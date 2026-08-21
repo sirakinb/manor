@@ -865,6 +865,25 @@ export function createRouter(deps: RouterDeps) {
         }
         return { path: input.path, content };
       }),
+      upload: authed.computer.upload.handler(async ({ context, input }) => {
+        const bot = await repos.getBot(context.actor, input.botId);
+        if (!bot.computer) throw new IsolationError();
+        const computerMode = parseComputerMode(bot.computer.scope);
+        const ctx = computerContext(context.actor, bot.id, "upload");
+        const filename = input.filename.replace(/[/\\]/g, "_").replace(/^\.+/, "_");
+        let bytes: Uint8Array;
+        try {
+          bytes = Uint8Array.from(Buffer.from(input.dataBase64, "base64"));
+        } catch {
+          throw new ORPCError("BAD_REQUEST", { message: "invalid file data" });
+        }
+        const uploadPath = `uploads/${filename}`;
+        const storedPath = resolveBotWorkspacePath(computerMode, bot.id, uploadPath);
+        const computer = await provisionComputer(deps, bot.computer.id, ctx);
+        scheduleComputerSleep(deps.jobs, bot.computer.id);
+        await deps.sandbox.writeFile(computer, { path: storedPath, content: bytes }, ctx);
+        return { path: uploadPath };
+      }),
       screenUrl: authed.computer.screenUrl.handler(async ({ context, input }) => {
         let bot = await repos.getBot(context.actor, input.botId);
         if (await expireStaleComputerControl(deps, bot.computer)) {

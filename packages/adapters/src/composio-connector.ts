@@ -99,6 +99,14 @@ export function executeSessionKey(toolkits: string[]): string {
   return [...new Set(toolkits.map((slug) => slug.trim()).filter(Boolean))].sort().join(",");
 }
 
+export function isToolPreloadCapError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const text = JSON.stringify(
+    (error as { error?: unknown }).error ?? (error as Error).message ?? "",
+  );
+  return text.includes("ToolRouterV2_BadRequest") || text.includes("supports up to");
+}
+
 export class ComposioConnector implements ConnectorProvider, ConnectionAuthProvider {
   private client: Composio | undefined;
   private readonly catalogSessions = new Map<string, string>();
@@ -143,12 +151,24 @@ export class ComposioConnector implements ConnectorProvider, ConnectionAuthProvi
         this.executeSessions.delete(userId);
       }
     }
-    const session = await composio.create(userId, {
-      manageConnections: false,
-      sandbox: { enable: false },
-      toolkits: key.split(","),
-      sessionPreset: "direct_tools",
-    });
+    let session: ComposioSession;
+    try {
+      session = await composio.create(userId, {
+        manageConnections: false,
+        sandbox: { enable: false },
+        toolkits: key.split(","),
+        sessionPreset: "direct_tools",
+      });
+    } catch (error) {
+      if (!isToolPreloadCapError(error)) throw error;
+      // Too many connected toolkits to preload every tool; fall back to
+      // Composio's meta tools (search + execute), which scale to any count.
+      session = await composio.create(userId, {
+        manageConnections: false,
+        sandbox: { enable: false },
+        toolkits: key.split(","),
+      });
+    }
     this.executeSessions.set(userId, { sessionId: session.sessionId, key });
     return session;
   }
@@ -293,7 +313,12 @@ export class CompositeConnector implements ConnectorProvider {
       const extra = await this.composio.discoverTools(context);
       const destNames = new Set(dest.map((tool) => tool.name));
       return [...dest, ...extra.filter((tool) => !destNames.has(tool.name))];
-    } catch {
+    } catch (error) {
+      // Without plugin tools the model silently falls back to the computer,
+      // so make this failure visible in server logs.
+      console.warn(
+        `composio discoverTools failed for user ${context.userId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return dest;
     }
   }

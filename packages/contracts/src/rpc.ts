@@ -161,6 +161,15 @@ export const appContract = {
     readFile: oc
       .input(z.object({ botId: Id, path: z.string() }))
       .output(z.object({ path: z.string(), content: z.string() })),
+    upload: oc
+      .input(
+        z.object({
+          botId: Id,
+          filename: z.string().min(1).max(200),
+          dataBase64: z.string().max(14_000_000),
+        }),
+      )
+      .output(z.object({ path: z.string() })),
     screenUrl: oc.input(botId).output(z.object({ url: z.string().nullable() })),
     heartbeat: oc.input(botId).output(z.object({ ok: z.literal(true) })),
   },

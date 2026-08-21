@@ -38,6 +38,7 @@ import {
 } from "../lib/thread-events";
 import { BotContextMenu, type ContextMenuPosition } from "./BotContextMenu";
 import { HostComputerPrompt } from "./HostComputerPrompt";
+import { ModelOverlay } from "./ModelOverlay";
 import { PluginsOverlay } from "./PluginsOverlay";
 import { RoutineSchedule } from "./RoutineSchedule";
 import { WindowChrome } from "./WindowChrome";
@@ -58,6 +59,7 @@ export function ShellPage() {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [computer, setComputer] = useState<ComputerStatus | null>(null);
   const [pluginsOpen, setPluginsOpen] = useState(false);
+  const [modelOpen, setModelOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [botMenu, setBotMenu] = useState<{
     botId: string;
@@ -78,6 +80,20 @@ export function ShellPage() {
     outputTokens: number;
     runs: number;
   } | null>(null);
+  const [activity, setActivity] = useState<
+    Array<{ id: string; runId: string; name: string; detail: string }>
+  >([]);
+  const [showActivity, setShowActivity] = useState(
+    () => window.localStorage.getItem("manor.showActivity") !== "0",
+  );
+  const toggleActivity = useCallback(() => {
+    setShowActivity((prev) => {
+      window.localStorage.setItem("manor.showActivity", prev ? "0" : "1");
+      return !prev;
+    });
+  }, []);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const autoBooted = useRef<string | null>(null);
   const expandedHistoryThread = useRef<string | null>(null);
   const messageScroll = useRef<HTMLDivElement>(null);
@@ -232,6 +248,7 @@ export function ShellPage() {
     if (!active) return;
     screenRequest.current += 1;
     setScreenUrl(null);
+    setActivity([]);
     expandedHistoryThread.current = null;
     const abort = new AbortController();
     void (async () => {
@@ -250,6 +267,24 @@ export function ShellPage() {
             cursor = Math.max(cursor, event.seq);
             retryMs = 250;
             applyThreadEvent(event, setSnapshot, setComputer);
+            if (event.type === "agent.tool.called" && event.runId) {
+              const payload = event.payload as {
+                name?: string;
+                executionId?: string;
+                detail?: string;
+              };
+              const entry = {
+                id: `${event.runId}:${payload.executionId ?? event.seq}`,
+                runId: event.runId,
+                name: payload.name ?? "tool",
+                detail: payload.detail ?? "",
+              };
+              setActivity((prev) => {
+                const scoped = prev.filter((item) => item.runId === entry.runId);
+                if (scoped.some((item) => item.id === entry.id)) return prev;
+                return [...scoped, entry].slice(-40);
+              });
+            }
             if (event.type === "bot.archived") {
               void refreshBots(true).catch(() => undefined);
             } else if (
@@ -291,6 +326,36 @@ export function ShellPage() {
     [bots, query],
   );
   const answerableAskMessageId = latestAnswerableAskMessageId(snapshot);
+
+  async function uploadAttachment(file: File) {
+    if (!active) return;
+    if (file.size > 10 * 1024 * 1024) {
+      window.alert("Files up to 10 MB are supported for now.");
+      return;
+    }
+    setUploading(file.name);
+    try {
+      const buffer = await file.arrayBuffer();
+      let binary = "";
+      const view = new Uint8Array(buffer);
+      const chunk = 0x8000;
+      for (let i = 0; i < view.length; i += chunk) {
+        binary += String.fromCharCode(...view.subarray(i, i + chunk));
+      }
+      const uploaded = await rpc.computer.upload({
+        botId: active.id,
+        filename: file.name,
+        dataBase64: btoa(binary),
+      });
+      setDraft((prev) =>
+        `${prev}${prev && !prev.endsWith(" ") ? " " : ""}(I attached ${file.name} — it's at ${uploaded.path} on your computer.)`,
+      );
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(null);
+    }
+  }
 
   async function send() {
     if (!active || !draft.trim()) return;
@@ -410,7 +475,11 @@ export function ShellPage() {
       <HostComputerPrompt />
       <aside className="flex w-[316px] shrink-0 flex-col border-r border-[#171719] bg-[#0B0B0C]">
         <div className="app-drag flex items-center justify-between px-[18px] pb-3 pt-4">
-          <WindowChrome />
+          <div className="flex items-center gap-2.5">
+            <WindowChrome />
+            <img src="/manor-mark.png" alt="Manor" className="h-[22px] w-[22px]" />
+            <span className="rk-wordmark text-[14px] text-[#F1F0F3]">MANOR</span>
+          </div>
           <button
             type="button"
             onClick={() => setPanel("create")}
@@ -439,12 +508,16 @@ export function ShellPage() {
                 event.preventDefault();
                 setBotMenu({ botId: bot.id, position: { x: event.clientX, y: event.clientY } });
               }}
-              className="flex gap-3 rounded-xl px-2.5 py-[11px] text-left"
-              style={{
-                background: active?.id === bot.id ? "#161618" : "transparent",
-              }}
+              className={`rk-bot-row flex gap-3 rounded-xl px-2.5 py-[11px] text-left ${
+                active?.id === bot.id ? "rk-bot-row-active" : ""
+              }`}
+              style={
+                {
+                  "--bot-tint": `color-mix(in srgb, ${bot.color} 14%, transparent)`,
+                } as React.CSSProperties
+              }
             >
-              <BotAvatar color={bot.color} size={38} />
+              <BotAvatar color={bot.color} size={54} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <span
@@ -489,7 +562,7 @@ export function ShellPage() {
               {archivedOpen
                 ? archivedBots.map((bot) => (
                     <div key={bot.id} className="flex items-center gap-2 rounded-lg px-2.5 py-2">
-                      <BotAvatar color={bot.color} size={28} />
+                      <BotAvatar color={bot.color} size={34} />
                       <span className="min-w-0 flex-1 truncate text-[14px] text-[#A8A8AD]">
                         {bot.name}
                       </span>
@@ -558,6 +631,17 @@ export function ShellPage() {
               ) : null}
               <button
                 type="button"
+                className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setModelOpen(true);
+                }}
+              >
+                <span className="text-[#9A9AA0]">◈</span>
+                <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">AI model</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => void authClient.signOut().then(() => navigate("/"))}
                 className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
               >
@@ -586,12 +670,31 @@ export function ShellPage() {
             onClick={() => setPanel("settings")}
             className="flex min-w-0 items-center gap-3"
           >
-            {active ? <BotAvatar color={active.color} size={26} /> : null}
+            {active ? <BotAvatar color={active.color} size={34} /> : null}
             <span className="min-w-0">
               <span className="block truncate text-[16px] font-medium text-[#ECECEE]">
                 {active?.name ?? "Select a bot"}
               </span>
             </span>
+          </button>
+          <div className="flex items-center gap-1">
+          <button
+            type="button"
+            title={showActivity ? "Hide live activity" : "Show live activity"}
+            onClick={toggleActivity}
+            className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+            style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={showActivity ? "#A855F7" : "#A8A8AD"}
+              strokeWidth="1.6"
+            >
+              <path d="M2 12h4l3-8 4 16 3-8h6" />
+            </svg>
           </button>
           <button
             type="button"
@@ -612,6 +715,7 @@ export function ShellPage() {
               <path d="M8 21h8M12 17v4" />
             </svg>
           </button>
+          </div>
         </div>
         <div
           ref={messageScroll}
@@ -646,7 +750,33 @@ export function ShellPage() {
             />
           ))}
           {snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status) ? (
-            <div className="flex justify-start">
+            <div className="flex flex-col items-start gap-2.5">
+              {showActivity &&
+              activity.some((item) => item.runId === snapshot.run?.id) ? (
+                <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
+                  <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
+                  <div className="flex flex-col gap-[7px]">
+                    {activity
+                      .filter((item) => item.runId === snapshot.run?.id)
+                      .map((item, index, list) => (
+                        <div
+                          key={item.id}
+                          className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
+                          style={
+                            index === list.length - 1
+                              ? { animation: "rkPulse 1.2s ease-in-out infinite" }
+                              : undefined
+                          }
+                        >
+                          <span className="shrink-0 text-[#A855F7]">{item.name}</span>
+                          {item.detail ? (
+                            <span className="truncate text-[#6E6975]">{item.detail}</span>
+                          ) : null}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
               <div
                 className="rounded-[20px] bg-[#1A1A1D] px-[18px] py-[13px] text-[14.5px] text-[#85858A]"
                 style={{ animation: "rkPulse 1.2s ease-in-out infinite" }}
@@ -657,10 +787,29 @@ export function ShellPage() {
           ) : null}
         </div>
         <div className="px-6 pb-6 pt-3">
+          {uploading ? (
+            <p className="mb-1.5 px-4 text-[12.5px] text-[#8A8590]">Uploading {uploading}…</p>
+          ) : null}
           <div className="flex items-center gap-3.5 rounded-full border border-[#202023] bg-[#131315] py-[9px] pr-2.5 pl-3">
-            <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[#26262A] text-[18px] text-[#9A9AA0]">
+            <input
+              ref={fileInput}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void uploadAttachment(file);
+              }}
+            />
+            <button
+              type="button"
+              title="Attach a file (saved to the bot's computer)"
+              onClick={() => fileInput.current?.click()}
+              disabled={!!uploading}
+              className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[#26262A] text-[18px] text-[#9A9AA0] hover:border-[#A855F7] hover:text-[#F1F0F3] disabled:opacity-50"
+            >
               +
-            </span>
+            </button>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -996,6 +1145,7 @@ export function ShellPage() {
       ) : null}
 
       {pluginsOpen ? <PluginsOverlay onClose={() => setPluginsOpen(false)} /> : null}
+      {modelOpen ? <ModelOverlay onClose={() => setModelOpen(false)} /> : null}
 
       {booting ? (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-[22px] bg-[rgba(4,4,5,.96)]">
@@ -1010,7 +1160,7 @@ export function ShellPage() {
         <div className="absolute inset-0 z-30 flex flex-col bg-[#050506]">
           <div className="flex items-center justify-between gap-4 border-b border-[#171719] px-[18px] py-3.5">
             <div className="flex min-w-0 items-center gap-3">
-              <BotAvatar color={active.color} size={28} />
+              <BotAvatar color={active.color} size={36} />
               <span className="truncate text-[15.5px] font-medium text-[#ECECEE]">
                 {computerLabel(computer?.mode, active.name)}
               </span>
@@ -1506,7 +1656,7 @@ function BotSettings({
   return (
     <div>
       <div className="flex justify-center">
-        <BotAvatar color={bot.color} size={64} />
+        <BotAvatar color={bot.color} size={80} />
       </div>
       <label className="mt-6 block text-[14px] text-[#85858A]">
         Name

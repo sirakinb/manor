@@ -240,6 +240,19 @@ export function createRunExecutor(deps: ExecutorDeps) {
       let lastLeaseCheckAt = 0;
       let retainComputerLease = false;
       let runAbortController: AbortController | null = null;
+      // Fires even while a long tool call is in flight, when the event-loop status check cannot run.
+      const cancelWatch = setInterval(() => {
+        void deps.prisma.run
+          .findUnique({ where: { id: runId }, select: { status: true } })
+          .then((still) => {
+            if (!still || still.status === "cancelled") {
+              leaseValid = false;
+              runAbortController?.abort();
+            }
+          })
+          .catch(() => undefined);
+      }, 1_500);
+      cancelWatch.unref?.();
       const heartbeat = setInterval(() => {
         void Promise.all([
           renewRunLease(deps, runId, workerId, fence),
@@ -664,7 +677,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
         const pluginLine =
           connectedPlugins.length > 0
-            ? `Connected plugins: ${connectedPlugins.map((row) => `${row.displayName} (${row.provider})`).join(", ")}. Use those plugin tools when the user asks about those apps.`
+            ? `Connected plugins: ${connectedPlugins.map((row) => `${row.displayName} (${row.provider})`).join(", ")}. Plugin tools call these apps' APIs directly and are already authenticated, so they are the fastest and most reliable route. When a connected plugin covers a task (for example sending email or updating a calendar), use the plugin tool alone — do not also open that app in the computer's browser to perform or verify the same action. Use the computer only for work no plugin tool covers.`
             : "No plugins are connected yet.";
 
         try {
@@ -719,6 +732,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 still.leaseFence !== fence
               ) {
                 leaseValid = false;
+                runAbortController.abort();
                 return;
               }
             }
@@ -833,7 +847,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 botId: bot.id,
                 type: "agent.tool.called",
                 runId,
-                payload: { name: event.name, executionId: event.executionId },
+                payload: {
+                  name: event.name,
+                  executionId: event.executionId,
+                  detail: redactSecrets(summarizeToolArgs(event.name, event.args), runSecrets),
+                },
               });
               if (scripted) await applyTool(event.name, event.args, event.executionId);
             } else if (event.type === "subagent") {
@@ -1027,6 +1045,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           throw new Error("Run setup failed; retrying");
         }
       } finally {
+        clearInterval(cancelWatch);
         clearInterval(heartbeat);
         if (!retainComputerLease) {
           await releaseComputerExecutionLease(deps.prisma, computerLease).catch(() => undefined);
@@ -1071,6 +1090,35 @@ async function renewRunLease(
     data: { leaseExpiresAt: new Date(Date.now() + 5 * 60_000) },
   });
   return renewed.count === 1;
+}
+
+export function summarizeToolArgs(name: string, args: unknown): string {
+  const record = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
+  const first = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === "string" && value.trim()) return value;
+    }
+    return "";
+  };
+  let detail = "";
+  if (name === "shell") detail = first("command", "cmd");
+  else if (name === "computer_act") detail = first("action", "instruction", "text");
+  else if (name === "computer_observe") detail = first("query", "reason");
+  else if (name === "read_file" || name === "write_file" || name === "open_path")
+    detail = first("path");
+  else if (name === "launch_app") detail = first("app", "name");
+  else if (name === "remember") detail = first("fact", "text");
+  else if (name === "run_subagent" || name === "spawn_bot") detail = first("task", "name");
+  else {
+    try {
+      detail = JSON.stringify(record);
+    } catch {
+      detail = "";
+    }
+  }
+  detail = detail.replace(/\s+/g, " ").trim();
+  return detail.length > 120 ? `${detail.slice(0, 117)}…` : detail;
 }
 
 function computerRetryDelay(fence: number): number {

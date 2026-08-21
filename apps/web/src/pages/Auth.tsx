@@ -9,7 +9,7 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const title = mode === "in" ? "Sign in to Rakazo" : "Create your Rakazo";
+  const title = mode === "in" ? "Sign in to Manor" : "Create your Manor";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,25 +32,22 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-[#F7F7F4] px-6 py-16 text-[#1B1B1E]">
+    <div className="flex min-h-full items-center justify-center bg-[#050308] px-6 py-16 text-[#F1F0F3]">
       <form onSubmit={submit} className="flex w-[460px] flex-col items-center">
-        <div className="flex h-[74px] w-[74px] items-center justify-center gap-[11px] rounded-full bg-[#16161A]">
-          <span className="h-5 w-[9px] rounded-full bg-[#F7F7F4]" />
-          <span className="h-5 w-[9px] rounded-full bg-[#F7F7F4]" />
-        </div>
-        <h1 className="mb-[38px] mt-[30px] text-[38px] tracking-[-0.02em]">{title}</h1>
+        <img src="/manor-mark.png" alt="" className="h-[74px] w-[74px]" />
+        <h1 className="rk-serif mb-[38px] mt-[30px] text-[38px]">{title}</h1>
         {mode === "up" ? (
-          <label className="mb-4 w-full text-[16px] text-[#6E6E68]">
+          <label className="mb-4 w-full text-[16px] text-[#8A8590]">
             Name
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="mt-2 w-full rounded-[13px] border border-[#E4E4DE] bg-[#F1F1ED] px-[18px] py-[17px] text-[17px] text-[#1B1B1E] outline-none"
+              className="mt-2 w-full rounded-[13px] border border-[#262130] bg-[#0C0B0E] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[#A855F7]"
             />
           </label>
         ) : null}
-        <label className="w-full text-[16px] text-[#6E6E68]">
+        <label className="w-full text-[16px] text-[#8A8590]">
           Email
           <input
             value={email}
@@ -58,10 +55,10 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
             placeholder="Your email address"
             type="email"
             required
-            className="mt-2 w-full rounded-[13px] border border-[#E4E4DE] bg-[#F1F1ED] px-[18px] py-[17px] text-[17px] text-[#1B1B1E] outline-none"
+            className="mt-2 w-full rounded-[13px] border border-[#262130] bg-[#0C0B0E] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[#A855F7]"
           />
         </label>
-        <label className="mt-4 w-full text-[16px] text-[#6E6E68]">
+        <label className="mt-4 w-full text-[16px] text-[#8A8590]">
           Password
           <input
             value={password}
@@ -70,29 +67,29 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
             type="password"
             required
             minLength={8}
-            className="mt-2 w-full rounded-[13px] border border-[#E4E4DE] bg-[#F1F1ED] px-[18px] py-[17px] text-[17px] text-[#1B1B1E] outline-none"
+            className="mt-2 w-full rounded-[13px] border border-[#262130] bg-[#0C0B0E] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[#A855F7]"
           />
         </label>
         {error ? <p className="mt-3 w-full text-sm text-[#C94244]">{error}</p> : null}
         <button
           type="submit"
           disabled={pending}
-          className="mt-3 w-full rounded-[13px] bg-[#121215] py-[18px] text-center text-[17px] font-medium text-[#FBFBF9] hover:bg-[#26262B]"
+          className="mt-3 w-full rounded-[13px] bg-[#9333EA] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[#A855F7]"
         >
           {pending ? "Working…" : mode === "in" ? "Continue with email" : "Create account"}
         </button>
-        <p className="mt-[30px] text-[16px] text-[#8C8C86]">
+        <p className="mt-[30px] text-[16px] text-[#8A8590]">
           {mode === "in" ? (
             <>
               Don’t have an account?{" "}
-              <Link to="/sign-up" className="font-medium text-[#1B1B1E]">
+              <Link to="/sign-up" className="font-medium text-[#F1F0F3]">
                 Sign up
               </Link>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <Link to="/sign-in" className="font-medium text-[#1B1B1E]">
+              <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
                 Sign in
               </Link>
             </>

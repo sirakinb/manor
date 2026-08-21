@@ -201,7 +201,7 @@ export function OnboardingPage() {
           <div>
             <h1 className="text-[32px] font-medium text-[#F1F1F2]">Connect a model</h1>
             <p className="mt-2 text-[#85858A]">
-              Rakazo does not pay for model usage. Paste an API key, sign in with ChatGPT, Copilot,
+              Manor does not pay for model usage. Paste an API key, sign in with ChatGPT, Copilot,
               or SuperGrok, or skip if this deployment already has a key.
             </p>
             <input
@@ -384,7 +384,7 @@ export function OnboardingPage() {
               onClick={() => void createBot()}
               className="mt-6 rounded-[11px] bg-[#F1F1EF] px-5 py-2.5 text-[#17171A]"
             >
-              Open Rakazo
+              Open Manor
             </button>
           </div>
         ) : null}

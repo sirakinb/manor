@@ -1,5 +1,15 @@
 import { cn } from "./lib/utils.js";
 
+const SPRITES: Record<string, string> = {
+  "#8B5CF6": "/sprites/sprite-purple.png",
+  "#F5C542": "/sprites/sprite-yellow.png",
+  "#3FB6AE": "/sprites/sprite-teal.png",
+  "#A78BFA": "/sprites/sprite-lavender.png",
+  "#F08040": "/sprites/sprite-orange.png",
+  "#E0524D": "/sprites/sprite-red.png",
+  "#5B8DEF": "/sprites/sprite-blue.png",
+};
+
 export function BotAvatar({
   color,
   size = 38,
@@ -9,6 +19,17 @@ export function BotAvatar({
   size?: number;
   className?: string;
 }) {
+  const sprite = SPRITES[color.toUpperCase()];
+  if (sprite) {
+    return (
+      <img
+        src={sprite}
+        alt=""
+        className={cn(className)}
+        style={{ width: size, height: size, objectFit: "contain", flex: "none" }}
+      />
+    );
+  }
   const visorW = Math.round(size * 0.68);
   const visorH = Math.round(size * 0.4);
   const dot = Math.max(3, Math.round(size * 0.1));

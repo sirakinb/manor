@@ -4,14 +4,66 @@
 @source "../../packages/ui-web/src/**/*.{ts,tsx}";
 @source "./src/**/*.{ts,tsx}";
 
+@font-face {
+  font-family: "Geist Pixel Grid";
+  src: url("/fonts/geist-pixel-grid.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
-  background: #050506;
-  color: #dfdfe2;
+  background: var(--rk-page, #030304);
+  color: var(--rk-body, #dfdde3);
   font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+}
+
+.rk-display {
+  font-family: "Geist Pixel Grid", Geist, sans-serif;
+}
+
+.rk-serif {
+  font-family: Fraunces, Georgia, serif;
+}
+
+.rk-wordmark {
+  font-family: Fraunces, Georgia, serif;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.rk-label {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Ridged scanline texture over the whole app (Aligno-style) */
+#root::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483647;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.017) 0px,
+    rgba(255, 255, 255, 0.017) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+.rk-bot-row {
+  transition: background 120ms ease;
+}
+.rk-bot-row:hover,
+.rk-bot-row-active {
+  background: var(--bot-tint, rgba(255, 255, 255, 0.05));
 }
 
 .rk-scroll::-webkit-scrollbar {
@@ -53,5 +105,69 @@ body,
   }
   50% {
     opacity: 0.3;
+  }
+}
+
+/* Landing page (ported from pentridge-build cover) */
+.lp {
+  --lp-violet: #8033cc;
+  --lp-magenta: #d131f7;
+  --lp-paper: #fafafa;
+  --lp-mute: #fafafa9e;
+  --lp-mist: #ffffff0f;
+  --lp-hairline: #ffffff1f;
+}
+
+.lp-glass {
+  background: var(--lp-mist);
+  border: 1px solid var(--lp-hairline);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+
+.lp-grain {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.lp-veil {
+  animation: 8s ease-in-out infinite alternate lp-veil;
+}
+
+.lp-rise {
+  animation: 0.9s cubic-bezier(0.22, 1, 0.36, 1) both lp-rise;
+}
+.lp-rise-delay-1 {
+  animation-delay: 0.12s;
+}
+
+@keyframes lp-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lp-veil {
+  0% {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-rise,
+  .lp-veil {
+    animation: none;
   }
 }
