@@ -1,3 +1,5 @@
+// Must run before builtinModels() so extra models land in the catalog.
+import "./extra-openrouter-models.js";
 import { Agent, type AgentMessage, type AgentTool } from "@earendil-works/pi-agent-core";
 import { type Api, type Model, type Models, Type } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
