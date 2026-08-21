@@ -10,7 +10,9 @@ import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 export const CHATGPT_OAUTH_PROVIDER = "openai-codex";
 export const COPILOT_OAUTH_PROVIDER = "github-copilot";
 export const XAI_OAUTH_PROVIDER = "xai";
+export const ANTHROPIC_OAUTH_PROVIDER = "anthropic";
 export const DEVICE_CODE_SIGN_IN = "device-code" as const;
+export const AUTH_URL_SIGN_IN = "auth-url" as const;
 
 export const DEVICE_CODE_PROVIDERS: Record<
   string,
@@ -34,8 +36,30 @@ export const DEVICE_CODE_PROVIDERS: Record<
   },
 };
 
+// Providers whose OAuth flow opens an authorize URL and asks the user to paste
+// the redirect URL (or code) back, instead of showing a device code.
+export const AUTH_URL_PROVIDERS: Record<
+  string,
+  { loginLabel: string; hint: string; billing: string }
+> = {
+  [ANTHROPIC_OAUTH_PROVIDER]: {
+    loginLabel: "Sign in with Claude Pro/Max",
+    hint: "Claude Pro/Max / key",
+    billing:
+      "Sign in with Claude Pro or Max, or paste an Anthropic API key. Uses your Anthropic subscription. Rakazo does not pay.",
+  },
+};
+
 export function isDeviceCodeProvider(providerId: string): boolean {
   return providerId in DEVICE_CODE_PROVIDERS;
+}
+
+export function isAuthUrlProvider(providerId: string): boolean {
+  return providerId in AUTH_URL_PROVIDERS;
+}
+
+export function isSubscriptionSignInProvider(providerId: string): boolean {
+  return isDeviceCodeProvider(providerId) || isAuthUrlProvider(providerId);
 }
 
 const MIN_OAUTH_VALIDITY_MS = 5 * 60 * 1000;
@@ -59,6 +83,7 @@ export type PiOAuthComplete =
 export type PiOAuthBegin = {
   loginId: string;
   provider: string;
+  mode: typeof DEVICE_CODE_SIGN_IN | typeof AUTH_URL_SIGN_IN;
   verificationUri: string;
   userCode: string;
   expiresInSeconds: number;
@@ -80,6 +105,8 @@ type Session = {
   abort: AbortController;
   credential?: OAuthCredential;
   error?: string;
+  // auth-url flows: resolves the runtime's "paste the redirect URL" prompt.
+  submitCode?: (input: string) => void;
 };
 
 function isOAuthCredential(value: Credential): value is OAuthCredential {
@@ -178,13 +205,14 @@ export class PiOAuthLogins {
     modelId?: string;
     label?: string;
   }): Promise<PiOAuthBegin> {
-    if (!isDeviceCodeProvider(input.provider)) {
+    if (!isSubscriptionSignInProvider(input.provider)) {
       throw new Error(
-        "In-app subscription sign-in is only available for ChatGPT Plus/Pro, GitHub Copilot, and SuperGrok.",
+        "In-app subscription sign-in is only available for ChatGPT Plus/Pro, Claude Pro/Max, GitHub Copilot, and SuperGrok.",
       );
     }
     this.abortForUserProvider(input.userId, input.provider);
 
+    const mode = isAuthUrlProvider(input.provider) ? AUTH_URL_SIGN_IN : DEVICE_CODE_SIGN_IN;
     const abort = new AbortController();
     const loginId = randomUUID();
     const session: Session = {
@@ -213,6 +241,13 @@ export class PiOAuthLogins {
           }
           return option.id;
         }
+        // Auth-url flows (Anthropic): the runtime asks for the pasted
+        // authorization code / redirect URL. Resolve it via submit().
+        if (prompt.type === "manual_code") {
+          return new Promise<string>((resolve) => {
+            session.submitCode = resolve;
+          });
+        }
         // Copilot asks for a GitHub Enterprise host first. Blank is github.com.
         if (prompt.type === "text") return "";
         throw new Error("Unexpected subscription login prompt.");
@@ -223,6 +258,13 @@ export class PiOAuthLogins {
             userCode: event.userCode,
             verificationUri: event.verificationUri,
             expiresInSeconds: event.expiresInSeconds ?? 15 * 60,
+          });
+        }
+        if (event.type === "auth_url") {
+          device.resolve({
+            userCode: "",
+            verificationUri: event.url,
+            expiresInSeconds: 15 * 60,
           });
         }
       },
@@ -253,6 +295,7 @@ export class PiOAuthLogins {
       return {
         loginId,
         provider: input.provider,
+        mode,
         verificationUri: started.verificationUri,
         userCode: started.userCode,
         expiresInSeconds: started.expiresInSeconds,
@@ -286,6 +329,25 @@ export class PiOAuthLogins {
       };
     }
     return { status: "pending" };
+  }
+
+  submit(
+    loginId: string,
+    actor: { userId: string; workspaceId: string },
+    code: string,
+  ): { ok: true } {
+    const session = this.pending.get(loginId);
+    if (!session || session.userId !== actor.userId || session.workspaceId !== actor.workspaceId) {
+      throw new Error("Sign-in session not found. Start sign-in again.");
+    }
+    if (session.error) throw new Error(session.error);
+    const resolve = session.submitCode;
+    if (!resolve) {
+      throw new Error("This sign-in is not waiting for a pasted code.");
+    }
+    session.submitCode = undefined;
+    resolve(code.trim());
+    return { ok: true };
   }
 
   consume(loginId: string): void {

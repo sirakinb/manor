@@ -195,6 +195,16 @@ export function createRouter(deps: RouterDeps) {
           label: input.label,
         });
       }),
+      submitOAuthCode: authed.models.submitOAuthCode.handler(async ({ context, input }) => {
+        return deps.oauthLogins.submit(
+          input.loginId,
+          {
+            userId: context.actor.userId,
+            workspaceId: context.actor.workspaceId,
+          },
+          input.code,
+        );
+      }),
       completeOAuth: authed.models.completeOAuth.handler(async ({ context, input }) => {
         const result = await deps.oauthLogins.complete(input.loginId, {
           userId: context.actor.userId,
@@ -204,7 +214,7 @@ export function createRouter(deps: RouterDeps) {
         const credential = await persistModelCredential(deps, context.actor, {
           provider: result.provider,
           plaintext: serializeModelSecret({ kind: "oauth", credential: result.credential }),
-          label: result.label ?? "ChatGPT Plus/Pro",
+          label: result.label ?? "Subscription",
           modelId: result.modelId,
         });
         deps.oauthLogins.consume(input.loginId);

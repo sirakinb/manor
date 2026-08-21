@@ -11,7 +11,7 @@ type CatalogEntry = {
   auth?: "api-key" | "oauth" | "both";
   oauthLabel?: string;
   subscription?: boolean;
-  signIn?: "device-code";
+  signIn?: "device-code" | "auth-url";
 };
 
 export function ModelOverlay({ onClose }: { onClose: () => void }) {
@@ -24,7 +24,13 @@ export function ModelOverlay({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [oauth, setOauth] = useState<{ verificationUri: string; userCode: string } | null>(null);
+  const [oauth, setOauth] = useState<{
+    verificationUri: string;
+    userCode: string;
+    mode: "device-code" | "auth-url";
+    loginId: string;
+  } | null>(null);
+  const [pasteCode, setPasteCode] = useState("");
 
   useEffect(() => {
     void Promise.all([rpc.me(), rpc.models.list().catch(() => [])])
@@ -65,7 +71,7 @@ export function ModelOverlay({ onClose }: { onClose: () => void }) {
     [catalog, provider],
   );
   const selected = models.find((entry) => entry.id === modelId) ?? models[0];
-  const deviceSignIn = selected?.signIn === "device-code";
+  const subscriptionSignIn = selected?.signIn === "device-code" || selected?.signIn === "auth-url";
   const acceptsKey = selected?.auth !== "oauth";
   const isCurrent = current?.provider === provider && current?.modelId === (selected?.id ?? "");
 
@@ -105,7 +111,13 @@ export function ModelOverlay({ onClose }: { onClose: () => void }) {
         modelId: selected.id,
         label: selected.providerName ?? provider,
       });
-      setOauth({ verificationUri: started.verificationUri, userCode: started.userCode });
+      setPasteCode("");
+      setOauth({
+        verificationUri: started.verificationUri,
+        userCode: started.userCode,
+        mode: started.mode,
+        loginId: started.loginId,
+      });
       window.open(started.verificationUri, "_blank", "noopener,noreferrer");
       for (let i = 0; i < 180; i += 1) {
         const row = await rpc.models.completeOAuth({ loginId: started.loginId });
@@ -217,21 +229,68 @@ export function ModelOverlay({ onClose }: { onClose: () => void }) {
               <div className="mt-4 border-t border-[#232326] pt-4">
                 {oauth ? (
                   <div className="rounded-[13px] border border-[#262130] bg-[#0C0B10] p-4">
-                    <p className="text-[14px] text-[#DFDDE3]">
-                      Enter this code at{" "}
-                      <a
-                        href={oauth.verificationUri}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#A855F7] underline"
-                      >
-                        {oauth.verificationUri}
-                      </a>
-                    </p>
-                    <p className="mt-2 font-mono text-[22px] tracking-[0.2em] text-[#F1F0F3]">
-                      {oauth.userCode}
-                    </p>
-                    <p className="mt-2 text-[12.5px] text-[#7A7A80]">Waiting for sign-in…</p>
+                    {oauth.mode === "auth-url" ? (
+                      <>
+                        <p className="text-[14px] text-[#DFDDE3]">
+                          Finish signing in at{" "}
+                          <a
+                            href={oauth.verificationUri}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#A855F7] underline"
+                          >
+                            claude.ai
+                          </a>
+                          . When the final page fails to load, copy its URL (or the code it shows)
+                          and paste it here:
+                        </p>
+                        <div className="mt-3 flex items-center gap-2">
+                          <input
+                            value={pasteCode}
+                            onChange={(e) => setPasteCode(e.target.value)}
+                            placeholder="http://localhost:53692/callback?code=…"
+                            className="w-full rounded-[11px] border border-[#26262A] bg-[#101012] px-3.5 py-2.5 text-[13px] text-[#ECECEE] outline-none focus:border-[#A855F7]"
+                          />
+                          <Button
+                            type="button"
+                            disabled={!pasteCode.trim()}
+                            onClick={() => {
+                              const code = pasteCode.trim();
+                              if (!code) return;
+                              void rpc.models
+                                .submitOAuthCode({ loginId: oauth.loginId, code })
+                                .then(() => setPasteCode(""))
+                                .catch((err) =>
+                                  setError(
+                                    err instanceof Error ? err.message : "Could not submit code",
+                                  ),
+                                );
+                            }}
+                          >
+                            Submit
+                          </Button>
+                        </div>
+                        <p className="mt-2 text-[12.5px] text-[#7A7A80]">Waiting for sign-in…</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[14px] text-[#DFDDE3]">
+                          Enter this code at{" "}
+                          <a
+                            href={oauth.verificationUri}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#A855F7] underline"
+                          >
+                            {oauth.verificationUri}
+                          </a>
+                        </p>
+                        <p className="mt-2 font-mono text-[22px] tracking-[0.2em] text-[#F1F0F3]">
+                          {oauth.userCode}
+                        </p>
+                        <p className="mt-2 text-[12.5px] text-[#7A7A80]">Waiting for sign-in…</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
@@ -245,7 +304,7 @@ export function ModelOverlay({ onClose }: { onClose: () => void }) {
                       />
                     ) : null}
                     <div className="flex items-center gap-3">
-                      {deviceSignIn ? (
+                      {subscriptionSignIn ? (
                         <Button type="button" disabled={pending} onClick={() => void signIn()}>
                           {pending ? "Working…" : (selected.oauthLabel ?? "Sign in")}
                         </Button>
