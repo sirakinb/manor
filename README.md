@@ -40,16 +40,6 @@ And because the computers live in the cloud, **your agents keep working after yo
 
 **Bring the model you already pay for.** Manor doesn't sell you tokens. Connect the AI subscription you already have — ChatGPT Plus/Pro, Claude Pro/Max, GitHub Copilot, SuperGrok — or paste any API key. Your models, your spend, your data.
 
-## Where it's headed
-
-Manor is young and moving fast. On the bench right now:
-
-- **Group chats with handoffs** — put several agents in one room, give them an objective instead of a task list, and let them pass the work between themselves
-- **Event triggers** — agents that react the moment an email lands or a message arrives, not just on a schedule
-- **Deep service-business integrations** — the systems your industry actually runs on, connected natively
-
-The goal isn't a smarter chatbot. It's the first genuinely affordable back office.
-
 ## Under the hood
 
 TypeScript end to end — React 19 + Vite on the web, Electron on desktop, Expo on mobile. Hono + oRPC APIs, PostgreSQL + Prisma, Graphile Worker for the always-on machinery, sandboxed agent computers on Docker (with E2B and Daytona as managed options), model access through Pi, and hundreds of app integrations through Composio.
