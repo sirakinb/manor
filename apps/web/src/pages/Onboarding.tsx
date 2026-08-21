@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  cancelModelOAuthAttempt,
+  finishModelOAuthAttempt,
+  type ModelCatalogEntry,
+  providerHint,
+  waitForModelOAuth,
+} from "../lib/model-auth";
 import { rpc } from "../lib/rpc";
 
 const QUESTIONS = [
@@ -26,34 +33,10 @@ const QUESTIONS = [
   },
 ];
 
-type CatalogEntry = {
-  provider: string;
-  providerName?: string;
-  id: string;
-  label: string;
-  billing: string;
-  auth?: "api-key" | "oauth" | "both";
-  oauthLabel?: string;
-  subscription?: boolean;
-  signIn?: "device-code" | "auth-url";
-};
-
-function providerHint(entry: CatalogEntry) {
-  if (entry.signIn === "device-code" || entry.signIn === "auth-url") {
-    if (entry.provider === "openai-codex") return "ChatGPT Plus/Pro";
-    if (entry.provider === "github-copilot") return "Copilot";
-    if (entry.provider === "xai") return "SuperGrok / key";
-    if (entry.provider === "anthropic") return "Claude Pro/Max / key";
-    return "Sign in";
-  }
-  if (entry.auth === "oauth") return "Skip or deploy key";
-  return "API key";
-}
-
 export function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<"loading" | "model" | "bot" | "questions">("loading");
-  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
+  const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState("openrouter");
   const [modelId, setModelId] = useState("deepseek/deepseek-v4-flash-0731");
@@ -71,6 +54,20 @@ export function OnboardingPage() {
   } | null>(null);
   const [pasteCode, setPasteCode] = useState("");
   const [oauthPending, setOauthPending] = useState(false);
+  const oauthAbortRef = useRef<AbortController | null>(null);
+  const oauthLoginIdRef = useRef<string | null>(null);
+
+  function cancelOAuthAttempt(resetState = true) {
+    const loginId = oauthLoginIdRef.current;
+    oauthLoginIdRef.current = null;
+    cancelModelOAuthAttempt(oauthAbortRef, () => {
+      if (resetState) {
+        setOauth(null);
+        setOauthPending(false);
+      }
+    });
+    if (loginId) void rpc.models.cancelOAuth({ loginId }).catch(() => undefined);
+  }
 
   useEffect(() => {
     void Promise.all([rpc.me(), rpc.models.list().catch(() => [])])
@@ -89,10 +86,11 @@ export function OnboardingPage() {
         setStep("model");
       })
       .catch(() => setStep("bot"));
+    return () => cancelOAuthAttempt(false);
   }, []);
 
   const providers = useMemo(() => {
-    const seen = new Map<string, CatalogEntry>();
+    const seen = new Map<string, ModelCatalogEntry>();
     for (const entry of catalog) {
       if (!seen.has(entry.provider)) seen.set(entry.provider, entry);
     }
@@ -135,7 +133,6 @@ export function OnboardingPage() {
           label: selected?.providerName ?? provider,
         });
       }
-      await rpc.models.setDefault({ provider, modelId });
       setStep("bot");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save model");
@@ -145,12 +142,19 @@ export function OnboardingPage() {
   async function startDeviceSignIn() {
     setError(null);
     setOauthPending(true);
+    const controller = new AbortController();
+    oauthAbortRef.current = controller;
     try {
-      const started = await rpc.models.beginOAuth({
-        provider,
-        modelId,
-        label: selected?.providerName ?? provider,
-      });
+      const started = await rpc.models.beginOAuth(
+        {
+          provider,
+          modelId,
+          label: selected?.providerName ?? provider,
+        },
+        { signal: controller.signal },
+      );
+      if (controller.signal.aborted) return;
+      oauthLoginIdRef.current = started.loginId;
       setPasteCode("");
       setOauth({
         verificationUri: started.verificationUri,
@@ -159,28 +163,22 @@ export function OnboardingPage() {
         loginId: started.loginId,
       });
       window.open(started.verificationUri, "_blank", "noopener,noreferrer");
-      for (let i = 0; i < 180; i += 1) {
-        const row = await rpc.models.completeOAuth({ loginId: started.loginId });
-        if (row.status === "connected") {
-          await rpc.models.setDefault({ provider, modelId });
-          setOauth(null);
-          setStep("bot");
-          return;
-        }
-        if (row.status === "error") {
-          setError(row.error);
-          setOauth(null);
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      }
-      setError("Sign-in timed out. Try again.");
+      await waitForModelOAuth(started.loginId, controller.signal);
+      if (controller.signal.aborted) return;
+      await rpc.models.finishOAuth({ loginId: started.loginId }, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      oauthLoginIdRef.current = null;
       setOauth(null);
+      setStep("bot");
     } catch (err) {
+      if (controller.signal.aborted) return;
+      const loginId = oauthLoginIdRef.current;
+      oauthLoginIdRef.current = null;
+      if (loginId) void rpc.models.cancelOAuth({ loginId }).catch(() => undefined);
       setError(err instanceof Error ? err.message : "Could not start sign-in");
       setOauth(null);
     } finally {
-      setOauthPending(false);
+      finishModelOAuthAttempt(oauthAbortRef, controller, () => setOauthPending(false));
     }
   }
 
@@ -223,10 +221,10 @@ export function OnboardingPage() {
                   key={entry.provider}
                   type="button"
                   onClick={() => {
+                    cancelOAuthAttempt();
                     setProvider(entry.provider);
                     const first = catalog.find((item) => item.provider === entry.provider);
                     if (first) setModelId(first.id);
-                    setOauth(null);
                     setError(null);
                   }}
                   className={`flex w-full items-center justify-between border-b border-[#202023] px-3.5 py-2.5 text-left last:border-0 ${
@@ -244,7 +242,10 @@ export function OnboardingPage() {
               Model
               <select
                 value={selected?.id ?? modelId}
-                onChange={(e) => setModelId(e.target.value)}
+                onChange={(e) => {
+                  cancelOAuthAttempt();
+                  setModelId(e.target.value);
+                }}
                 className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
               >
                 {modelsForProvider.map((entry) => (
@@ -269,7 +270,7 @@ export function OnboardingPage() {
                             rel="noreferrer"
                             className="text-[#ECECEE] underline"
                           >
-                            claude.ai
+                            {new URL(oauth.verificationUri).hostname}
                           </a>
                           . When the final page fails to load, copy its URL (or the code it shows)
                           and paste it here:
@@ -362,7 +363,14 @@ export function OnboardingPage() {
               >
                 Continue
               </button>
-              <button type="button" onClick={() => setStep("bot")} className="text-[#85858A]">
+              <button
+                type="button"
+                onClick={() => {
+                  cancelOAuthAttempt();
+                  setStep("bot");
+                }}
+                className="text-[#85858A]"
+              >
                 Skip for now
               </button>
             </div>

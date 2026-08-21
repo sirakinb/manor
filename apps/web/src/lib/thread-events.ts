@@ -36,11 +36,25 @@ export function prependThreadMessagePage(
   return prependThreadHistoryPage(prev, page);
 }
 
+export function isThreadSnapshotEvent(event: ProductEvent): boolean {
+  return (
+    event.type === "thread.cleared" ||
+    event.type === "thread.progress" ||
+    event.type === "thread.subagent" ||
+    event.type === "thread.message.created" ||
+    event.type === "thread.message.updated" ||
+    event.type === "run.waiting_input"
+  );
+}
+
 export function reduceThreadSnapshot(
   prev: ThreadSnapshot | null,
   event: ProductEvent,
 ): ThreadSnapshot | null {
   if (!prev) return prev;
+  if (event.type === "thread.cleared") {
+    return { ...prev, cursor: event.seq, messages: [], olderCursor: null, run: null };
+  }
   if (event.type === "run.waiting_input") {
     const run = prev.run;
     if (!run || run.id !== event.runId || run.status === "waiting_input") return prev;
@@ -117,12 +131,16 @@ export function reduceComputerStatus(
   if (!prev) return prev;
   if (!isComputerStatusEvent(event)) return prev;
   if (event.type === "computer.takeover.granted") {
-    return prev.controlHolder === "user" ? prev : { ...prev, controlHolder: "user" };
+    return prev.controlHolder === "user" && prev.controlBotId === event.botId
+      ? prev
+      : { ...prev, controlHolder: "user", controlBotId: event.botId };
   }
   if (event.type === "computer.takeover.released") {
     const holder = event.payload.holder;
     if (holder !== "bot" && holder !== "none") return prev;
-    return prev.controlHolder === holder ? prev : { ...prev, controlHolder: holder };
+    return prev.controlHolder === holder && prev.controlBotId === null
+      ? prev
+      : { ...prev, controlHolder: holder, controlBotId: null };
   }
   const status = event.payload.status;
   if (!isComputerState(status)) return prev;

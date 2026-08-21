@@ -3,83 +3,144 @@ import type {
   Bot,
   ComputerMode,
   ComputerStatus,
+  Me,
   ProductEvent,
   Routine,
+  SearchHit,
+  TaughtSkill,
   ThreadMessage,
   ThreadSnapshot,
+  VoiceInfo,
+  VoiceStatus,
+} from "@rakazo/contracts";
+import {
+  ATTACHMENT_ALLOWED_MIME_TYPES,
+  ATTACHMENT_MAX_BYTES,
+  ATTACHMENT_MAX_COUNT,
 } from "@rakazo/contracts";
 import {
   abortableDelay,
+  attachmentsForBot,
   cronFromPreset,
   defaultCronPreset,
   formatCron,
+  inferAttachmentMimeType,
   isActive,
   presetFromCron,
+  speechFromBlocks,
 } from "@rakazo/core";
 import { BotAvatar, Button } from "@rakazo/ui-web";
 import {
+  ArrowUp,
+  ChevronLeft,
+  Cpu,
+  Gauge,
+  LogOut,
+  Mic,
+  Monitor,
+  Paperclip,
+  Phone,
+  Plus,
+  Puzzle,
+  Settings,
+  Square,
+  Volume2,
+  X,
+} from "lucide-react";
+import {
   type Dispatch,
+  lazy,
+  memo,
+  type ReactNode,
+  type RefObject,
   type SetStateAction,
+  Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { SkillDraftCard } from "../components/teach/SkillDraftCard";
+import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
+import { TeachComputerSection } from "../components/teach/TeachComputerSection";
+import { TeachRecordingChrome, TeachStopButton } from "../components/teach/TeachRecordingChrome";
+import { decodeArtifactBase64, openArtifact } from "../lib/artifact-open";
 import { authClient } from "../lib/auth";
+import { takeInitialBootstrap } from "../lib/bootstrap";
+import { dictation } from "../lib/dictation";
+import { revokePendingAttachmentPreviews } from "../lib/pending-attachments";
+import { markAfterPaint, markOnce } from "../lib/performance";
 import { rpc } from "../lib/rpc";
 import {
   isComputerStatusEvent,
+  isThreadSnapshotEvent,
   mergeThreadSnapshot,
   prependThreadMessagePage,
   reduceComputerStatus,
   reduceThreadSnapshot,
 } from "../lib/thread-events";
-import { BotContextMenu, type ContextMenuPosition } from "./BotContextMenu";
+import { speaker } from "../lib/tts";
+import type { ContextMenuPosition } from "./BotContextMenu";
 import { HostComputerPrompt } from "./HostComputerPrompt";
-import { ModelOverlay } from "./ModelOverlay";
-import { PluginsOverlay } from "./PluginsOverlay";
-import { RoutineSchedule } from "./RoutineSchedule";
 import { WindowChrome } from "./WindowChrome";
+import { WorkspaceSearchResults } from "./WorkspaceSearch";
+
+const BotContextMenu = lazy(() =>
+  import("./BotContextMenu").then((module) => ({ default: module.BotContextMenu })),
+);
+const ModelSettingsOverlay = lazy(() =>
+  import("./ModelSettingsOverlay").then((module) => ({ default: module.ModelSettingsOverlay })),
+);
+const PluginsOverlay = lazy(() =>
+  import("./PluginsOverlay").then((module) => ({ default: module.PluginsOverlay })),
+);
+const RoutineSchedule = lazy(() =>
+  import("./RoutineSchedule").then((module) => ({ default: module.RoutineSchedule })),
+);
+const VoiceSettingsOverlay = lazy(() =>
+  import("./VoiceSettingsOverlay").then((module) => ({ default: module.VoiceSettingsOverlay })),
+);
+const CallView = lazy(() => import("./CallView").then((module) => ({ default: module.CallView })));
 
 type Panel = "computer" | "settings" | "routine" | "create" | null;
+
+type PendingAttachment = {
+  id: string;
+  botId: string;
+  file: File;
+  previewUrl?: string;
+};
+
+const ATTACHMENT_ACCEPT = ATTACHMENT_ALLOWED_MIME_TYPES.join(",");
 
 export function ShellPage() {
   const { botId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const session = authClient.useSession();
   const [bots, setBots] = useState<Bot[]>([]);
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [snapshot, setSnapshot] = useState<ThreadSnapshot | null>(null);
-  const [draft, setDraft] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [routinesBotId, setRoutinesBotId] = useState<string | null>(null);
+  const [taughtSkills, setTaughtSkills] = useState<TaughtSkill[]>([]);
+  const [taughtSkillsBotId, setTaughtSkillsBotId] = useState<string | null>(null);
+  const [teachBusy, setTeachBusy] = useState(false);
   const [computer, setComputer] = useState<ComputerStatus | null>(null);
   const [pluginsOpen, setPluginsOpen] = useState(false);
-  const [modelOpen, setModelOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [botMenu, setBotMenu] = useState<{
-    botId: string;
-    position: ContextMenuPosition;
-  } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Bot | null>(null);
-  const [booting, setBooting] = useState(false);
-  const [loadingOlder, setLoadingOlder] = useState(false);
-  const [routineDraft, setRoutineDraft] = useState({
-    name: "",
-    prompt: "",
-    schedule: defaultCronPreset(),
-  });
-  const [screenUrl, setScreenUrl] = useState<string | null>(null);
-  const [computerOpen, setComputerOpen] = useState(false);
-  const [usage, setUsage] = useState<{
-    inputTokens: number;
-    outputTokens: number;
-    runs: number;
-  } | null>(null);
   const [activity, setActivity] = useState<
     Array<{ id: string; runId: string; name: string; detail: string }>
   >([]);
@@ -92,16 +153,71 @@ export function ShellPage() {
       return !prev;
     });
   }, []);
-  const [uploading, setUploading] = useState<string | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [modelsOpen, setModelsOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<VoiceStatus | null>(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [dictating, setDictating] = useState(false);
+  const [dictationError, setDictationError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [botMenu, setBotMenu] = useState<{
+    botId: string;
+    position: ContextMenuPosition;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Bot | null>(null);
+  const [clearTarget, setClearTarget] = useState<Bot | null>(null);
+  const [booting, setBooting] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [initialBotsLoaded, setInitialBotsLoaded] = useState(false);
+  const [bootstrapMe, setBootstrapMe] = useState<Me | null>();
+  const [routineDraft, setRoutineDraft] = useState({
+    name: "",
+    prompt: "",
+    schedule: defaultCronPreset(),
+  });
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+  const [deleteRoutineTarget, setDeleteRoutineTarget] = useState<Routine | null>(null);
+  const [savingRoutine, setSavingRoutine] = useState(false);
+  const [runningRoutine, setRunningRoutine] = useState(false);
+  const [screenUrl, setScreenUrl] = useState<string | null>(null);
+  const [computerOpen, setComputerOpen] = useState(false);
+  const [usage, setUsage] = useState<{
+    inputTokens: number;
+    outputTokens: number;
+    runs: number;
+  } | null>(null);
   const autoBooted = useRef<string | null>(null);
+  const routineSavePending = useRef(false);
+  const routineRunPending = useRef(false);
+  const bootstrappedThread = useRef<ThreadSnapshot | null>(null);
   const expandedHistoryThread = useRef<string | null>(null);
+  const historyEpoch = useRef(0);
+  const initiallyScrolledThread = useRef<string | null>(null);
   const messageScroll = useRef<HTMLDivElement>(null);
+  const pinnedAroundRef = useRef<{
+    botId: string;
+    messageId: string;
+    threadId: string;
+    messages: ThreadMessage[];
+    olderCursor: number | null;
+  } | null>(null);
   const manuallyUnread = useRef(new Set<string>());
   const computerVisible = useRef(false);
   computerVisible.current = panel === "computer" || computerOpen;
+  const autoSpoken = useRef<string | null>(null);
+  const autoSpokenBotId = useRef<string | null>(null);
 
   const active = bots.find((b) => b.id === botId) ?? bots[0];
+  const activePendingAttachments = useMemo(
+    () => attachmentsForBot(pendingAttachments, active?.id),
+    [active?.id, pendingAttachments],
+  );
+  const activeRoutines = routinesBotId === active?.id ? routines : [];
+  const activeTaughtSkills = taughtSkillsBotId === active?.id ? taughtSkills : [];
+  const recordingSkill = activeTaughtSkills.find((skill) => skill.status === "recording") ?? null;
+  const routeBotId = useRef<string | undefined>(botId);
+  routeBotId.current = botId;
   const activeBotId = useRef<string | undefined>(active?.id);
   activeBotId.current = active?.id;
   const screenRequest = useRef(0);
@@ -150,17 +266,21 @@ export function ShellPage() {
   );
 
   async function refreshBots(includeArchived = false) {
+    markOnce("rk:renderer:bots-request-start");
     const [list, archived] = await Promise.all([
       rpc.bots.list(),
       includeArchived ? rpc.bots.listArchived() : Promise.resolve(null),
     ]);
+    markOnce("rk:renderer:bots-response");
     setBots(list);
+    setInitialBotsLoaded(true);
     if (archived) setArchivedBots(archived);
     if (includeArchived && list.length === 0 && archived?.length === 0) {
       navigate("/onboarding", { replace: true });
       return;
     }
-    if (!botId || !list.some((bot) => bot.id === botId)) {
+    const currentBotId = routeBotId.current;
+    if (!currentBotId || !list.some((bot) => bot.id === currentBotId)) {
       navigate(list[0] ? `/app/${list[0].id}` : "/app", { replace: true });
     }
   }
@@ -170,15 +290,37 @@ export function ShellPage() {
     const stickToEnd =
       !scrollElement ||
       scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight < 80;
-    const snap = await rpc.threads.get({ botId: id });
-    setSnapshot((prev) =>
-      mergeThreadSnapshot(prev, snap, expandedHistoryThread.current === snap.threadId),
-    );
+    markOnce("rk:renderer:thread-request-start");
+    const pin = pinnedAroundRef.current;
+    const keepPin = pin?.botId === id;
+    const epoch = historyEpoch.current;
+    const [snap, routines, skills] = await Promise.all([
+      rpc.threads.get({ botId: id }),
+      rpc.routines.list({ botId: id }),
+      rpc.skills.list({ botId: id }),
+      refreshComputerScreen(id),
+    ]);
+    markOnce("rk:renderer:thread-response");
+    // The epoch check drops a response that raced a conversation clear, which would otherwise
+    // re-apply the deleted messages and cursor over the emptied snapshot.
+    if (activeBotId.current !== id || epoch !== historyEpoch.current) return snap;
+    setSnapshot((prev) => {
+      let merged = mergeThreadSnapshot(prev, snap, expandedHistoryThread.current === snap.threadId);
+      if (keepPin && merged) {
+        merged = {
+          ...merged,
+          messages: pin.messages,
+          olderCursor: pin.olderCursor,
+        };
+      }
+      return merged;
+    });
     setComputer(snap.computer);
-    const routines = await rpc.routines.list({ botId: id });
     setRoutines(routines);
-    await refreshComputerScreen(id);
-    if (stickToEnd) {
+    setRoutinesBotId(id);
+    setTaughtSkills(skills);
+    setTaughtSkillsBotId(id);
+    if (!keepPin && stickToEnd) {
       window.requestAnimationFrame(() => {
         const element = messageScroll.current;
         if (element) element.scrollTop = element.scrollHeight;
@@ -203,14 +345,17 @@ export function ShellPage() {
 
   async function loadOlderMessages() {
     if (!active || snapshot?.olderCursor == null || loadingOlder) return;
+    pinnedAroundRef.current = null;
     const scrollElement = messageScroll.current;
     const previousHeight = scrollElement?.scrollHeight ?? 0;
+    const epoch = historyEpoch.current;
     setLoadingOlder(true);
     try {
       const page = await rpc.threads.messages({
         botId: active.id,
         before: snapshot.olderCursor,
       });
+      if (epoch !== historyEpoch.current) return;
       expandedHistoryThread.current = page.threadId;
       setSnapshot((prev) => prependThreadMessagePage(prev, page));
       window.requestAnimationFrame(() => {
@@ -223,10 +368,100 @@ export function ShellPage() {
   }
 
   useEffect(() => {
-    void refreshBots(true);
-    const poll = window.setInterval(() => void refreshBots().catch(() => undefined), 4000);
-    return () => window.clearInterval(poll);
+    let cancelled = false;
+    void takeInitialBootstrap(botId)
+      .then((bootstrap) => {
+        if (cancelled) return;
+        setBootstrapMe(bootstrap.me);
+        setBots(bootstrap.bots);
+        setArchivedBots(bootstrap.archivedBots);
+        setInitialBotsLoaded(true);
+        if (bootstrap.thread) {
+          bootstrappedThread.current = bootstrap.thread;
+          setSnapshot(bootstrap.thread);
+          setComputer(bootstrap.thread.computer);
+          setRoutines(bootstrap.routines);
+          setRoutinesBotId(bootstrap.thread.botId);
+          markOnce("rk:renderer:bots-response");
+          markOnce("rk:renderer:thread-response");
+        }
+        if (bootstrap.bots.length === 0 && bootstrap.archivedBots.length === 0) {
+          navigate("/onboarding", { replace: true });
+          return;
+        }
+        const selectedBotId = bootstrap.thread?.botId ?? bootstrap.bots[0]?.id;
+        if (selectedBotId && selectedBotId !== botId) {
+          navigate(`/app/${selectedBotId}`, { replace: true });
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBootstrapMe(null);
+        void refreshBots(true);
+      });
+    let refreshTimer: number | undefined;
+    const refreshVisibleBots = () => {
+      if (document.visibilityState !== "visible") return;
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => void refreshBots().catch(() => undefined), 50);
+    };
+    window.addEventListener("focus", refreshVisibleBots);
+    document.addEventListener("visibilitychange", refreshVisibleBots);
+    const poll = window.setInterval(refreshVisibleBots, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(refreshTimer);
+      window.clearInterval(poll);
+      window.removeEventListener("focus", refreshVisibleBots);
+      document.removeEventListener("visibilitychange", refreshVisibleBots);
+    };
   }, []);
+
+  useEffect(() => {
+    void rpc.voice
+      .status()
+      .then(setVoiceStatus)
+      .catch(() => undefined);
+    const unsubSpeech = speaker.subscribe((state) => {
+      setSpeakingMessageId(state.status === "idle" ? null : (state.messageId ?? null));
+    });
+    const unsubDictation = dictation.subscribe((state) => {
+      setDictating(state.status === "listening" || state.status === "transcribing");
+      if (state.error) setDictationError(state.error);
+      else if (state.status === "listening") setDictationError(null);
+    });
+    return () => {
+      unsubSpeech();
+      unsubDictation();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!active || !snapshot || snapshot.botId !== active.id) return;
+    const lastBot = [...snapshot.messages].reverse().find((message) => message.role === "bot");
+    if (autoSpokenBotId.current !== active.id) {
+      autoSpokenBotId.current = active.id;
+      autoSpoken.current = lastBot?.id ?? null;
+      return;
+    }
+    if (callOpen || !active.autoSpeak) {
+      autoSpoken.current = lastBot?.id ?? null;
+      return;
+    }
+    if (snapshot.run && ["running", "queued", "leased"].includes(snapshot.run.status)) return;
+    if (!lastBot || lastBot.id === autoSpoken.current) return;
+    const text = speechFromBlocks(lastBot.blocks);
+    if (!text) return;
+    autoSpoken.current = lastBot.id;
+    void speaker.speak(text, { botId: active.id, messageId: lastBot.id });
+  }, [
+    snapshot?.messages,
+    snapshot?.run?.status,
+    snapshot?.botId,
+    active?.autoSpeak,
+    active?.id,
+    callOpen,
+  ]);
 
   useEffect(() => {
     if (!active) return;
@@ -246,13 +481,20 @@ export function ShellPage() {
 
   useEffect(() => {
     if (!active) return;
+    if (!searchParams.get("m")) {
+      pinnedAroundRef.current = null;
+    }
     screenRequest.current += 1;
     setScreenUrl(null);
     setActivity([]);
     expandedHistoryThread.current = null;
+    historyEpoch.current += 1;
     const abort = new AbortController();
     void (async () => {
-      const snap = await refreshThread(active.id).catch(() => null);
+      const primed = bootstrappedThread.current;
+      bootstrappedThread.current = null;
+      const snap =
+        primed?.botId === active.id ? primed : await refreshThread(active.id).catch(() => null);
       if (abort.signal.aborted) return;
       let cursor = snap?.cursor ?? -1;
       let retryMs = 250;
@@ -285,12 +527,18 @@ export function ShellPage() {
                 return [...scoped, entry].slice(-40);
               });
             }
+            if (event.type === "thread.cleared") {
+              expandedHistoryThread.current = null;
+              pinnedAroundRef.current = null;
+              historyEpoch.current += 1;
+            }
             if (event.type === "bot.archived") {
               void refreshBots(true).catch(() => undefined);
             } else if (
               event.type === "bot.spawned" ||
               event.type === "bot.deleted" ||
-              event.type === "run.completed"
+              event.type === "run.completed" ||
+              event.type === "thread.cleared"
             ) {
               void refreshBots().catch(() => undefined);
             }
@@ -301,7 +549,7 @@ export function ShellPage() {
               }
               if (event.payload.role === "bot") markBotReadIfVisible(active.id);
             }
-            if (event.type === "run.completed") {
+            if (event.type === "run.completed" || event.type === "skill.teaching.stopped") {
               void refreshThread(active.id).catch(() => undefined);
             } else if (isComputerStatusEvent(event)) {
               void refreshComputerScreen(active.id).catch(() => undefined);
@@ -319,51 +567,292 @@ export function ShellPage() {
     return () => {
       abort.abort();
     };
-  }, [active?.id, markBotReadIfVisible]);
+  }, [active?.id, markBotReadIfVisible, searchParams]);
 
   const filtered = useMemo(
     () => bots.filter((b) => `${b.name} ${b.preview}`.toLowerCase().includes(query.toLowerCase())),
     [bots, query],
   );
-  const answerableAskMessageId = latestAnswerableAskMessageId(snapshot);
+  const workspaceQuery = query.trim();
+  const showWorkspaceSearch = workspaceQuery.length > 0;
 
-  async function uploadAttachment(file: File) {
-    if (!active) return;
-    if (file.size > 10 * 1024 * 1024) {
-      window.alert("Files up to 10 MB are supported for now.");
+  useEffect(() => {
+    if (!showWorkspaceSearch) {
+      setSearchHits([]);
+      setSearchLoading(false);
       return;
     }
-    setUploading(file.name);
-    try {
-      const buffer = await file.arrayBuffer();
-      let binary = "";
-      const view = new Uint8Array(buffer);
-      const chunk = 0x8000;
-      for (let i = 0; i < view.length; i += chunk) {
-        binary += String.fromCharCode(...view.subarray(i, i + chunk));
-      }
-      const uploaded = await rpc.computer.upload({
-        botId: active.id,
-        filename: file.name,
-        dataBase64: btoa(binary),
-      });
-      setDraft((prev) =>
-        `${prev}${prev && !prev.endsWith(" ") ? " " : ""}(I attached ${file.name} — it's at ${uploaded.path} on your computer.)`,
-      );
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(null);
-    }
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => {
+      setSearchLoading(true);
+      void rpc.search
+        .query({ q: workspaceQuery })
+        .then((result) => {
+          if (!abort.signal.aborted) setSearchHits(result.hits);
+        })
+        .catch(() => {
+          if (!abort.signal.aborted) setSearchHits([]);
+        })
+        .finally(() => {
+          if (!abort.signal.aborted) setSearchLoading(false);
+        });
+    }, 200);
+    return () => {
+      abort.abort();
+      window.clearTimeout(timer);
+    };
+  }, [showWorkspaceSearch, workspaceQuery]);
+
+  async function jumpToSearchHit(hit: SearchHit) {
+    setQuery("");
+    setSearchHits([]);
+    const params = new URLSearchParams();
+    if (hit.messageId) params.set("m", hit.messageId);
+    if (hit.routineId) params.set("routine", hit.routineId);
+    navigate({
+      pathname: `/app/${hit.botId}`,
+      search: params.toString() ? `?${params.toString()}` : undefined,
+    });
   }
 
-  async function send() {
-    if (!active || !draft.trim()) return;
-    const text = draft;
-    setDraft("");
-    await rpc.threads.send({ botId: active.id, text });
-    await refreshThread(active.id);
+  async function jumpToMessage(botId: string, messageId: string) {
+    const epoch = historyEpoch.current;
+    const [snap, page] = await Promise.all([
+      rpc.threads.get({ botId }),
+      rpc.threads.messages({ botId, around: { messageId } }),
+    ]);
+    // The epoch check drops a jump that raced a conversation clear (or a bot switch): applying
+    // the fetched page would pin deleted messages that every later refresh keeps restoring.
+    if (epoch !== historyEpoch.current) return;
+    expandedHistoryThread.current = page.threadId;
+    pinnedAroundRef.current = {
+      botId,
+      messageId,
+      threadId: page.threadId,
+      messages: page.messages,
+      olderCursor: page.olderCursor,
+    };
+    setSnapshot({
+      ...snap,
+      messages: page.messages,
+      olderCursor: page.olderCursor,
+    });
+    setComputer(snap.computer);
+    setRoutines(await rpc.routines.list({ botId }));
+    setRoutinesBotId(botId);
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-message-id="${messageId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
+
+  useEffect(() => {
+    if (!active) return;
+    const messageId = searchParams.get("m");
+    const routineId = searchParams.get("routine");
+    if (routineId && routinesBotId === active.id) {
+      const routine = routines.find((item) => item.id === routineId);
+      if (routine) {
+        setRoutineDraft({
+          name: routine.name,
+          prompt: routine.prompt,
+          schedule: presetFromCron(routine.cron),
+        });
+        setPanel("routine");
+      } else {
+        setPanel("computer");
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete("routine");
+      setSearchParams(next, { replace: true });
+    }
+    if (messageId) {
+      void jumpToMessage(active.id, messageId).finally(() => {
+        const next = new URLSearchParams(searchParams);
+        next.delete("m");
+        setSearchParams(next, { replace: true });
+      });
+    }
+  }, [active?.id, routines, routinesBotId, searchParams, setSearchParams]);
+  const answerableAskMessageId = latestAnswerableAskMessageId(snapshot);
+  const shellReady = initialBotsLoaded && Boolean(active && snapshot?.botId === active.id);
+  const refreshThreadRef = useRef(refreshThread);
+  refreshThreadRef.current = refreshThread;
+  const loadOlderMessagesRef = useRef(loadOlderMessages);
+  loadOlderMessagesRef.current = loadOlderMessages;
+
+  useLayoutEffect(() => {
+    if (initialBotsLoaded) {
+      markOnce("rk:renderer:bots-committed");
+      markAfterPaint("rk:renderer:bots-painted");
+    }
+    if (active && snapshot?.botId === active.id) {
+      markOnce("rk:renderer:thread-committed");
+      markAfterPaint("rk:renderer:thread-painted");
+    }
+    if (shellReady) {
+      markOnce("rk:renderer:shell-ready");
+      markAfterPaint("rk:renderer:shell-painted");
+    }
+  }, [active, initialBotsLoaded, shellReady, snapshot?.botId]);
+
+  useLayoutEffect(() => {
+    if (!active || snapshot?.botId !== active.id) return;
+    if (initiallyScrolledThread.current === snapshot.threadId) return;
+    if (pinnedAroundRef.current?.botId === active.id) return;
+    const element = messageScroll.current;
+    if (!element) return;
+    element.scrollTop = element.scrollHeight;
+    initiallyScrolledThread.current = snapshot.threadId;
+  }, [active, snapshot?.botId, snapshot?.threadId]);
+
+  const openBot = useCallback((id: string) => navigate(`/app/${id}`), [navigate]);
+  const loadOlder = useCallback(() => loadOlderMessagesRef.current(), []);
+  const answerMessage = useCallback(async (message: ThreadMessage, text: string) => {
+    const id = activeBotId.current;
+    if (!id) return;
+    await rpc.threads.answer({
+      botId: id,
+      runId: message.runId ?? "",
+      messageId: message.id,
+      answer: text,
+    });
+    await refreshThreadRef.current(id);
+  }, []);
+  const onAttachmentPick = useCallback(
+    async (files: FileList | null) => {
+      const id = activeBotId.current;
+      if (!id || !files?.length) return;
+      const existing = attachmentsForBot(pendingAttachments, id);
+      const next: PendingAttachment[] = [];
+      const skipped: string[] = [];
+      for (const file of Array.from(files)) {
+        if (existing.length + next.length >= ATTACHMENT_MAX_COUNT) {
+          skipped.push(`${file.name} (max ${ATTACHMENT_MAX_COUNT} attachments)`);
+          continue;
+        }
+        if (file.size > ATTACHMENT_MAX_BYTES) {
+          skipped.push(`${file.name} (over 10 MiB)`);
+          continue;
+        }
+        const mimeType = inferAttachmentMimeType(file.name, file.type);
+        if (!mimeType) {
+          skipped.push(file.name);
+          continue;
+        }
+        next.push({
+          id: `${file.name}-${file.size}-${file.lastModified}-${next.length}`,
+          botId: id,
+          file,
+          previewUrl: mimeType.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+        });
+      }
+      if (next.length) setPendingAttachments((current) => [...current, ...next]);
+      setAttachmentNotice(skipped.length ? `Skipped ${skipped.join(", ")}` : null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [pendingAttachments],
+  );
+  const removeAttachment = useCallback((attachment: PendingAttachment) => {
+    revokePendingAttachmentPreviews([attachment]);
+    setPendingAttachments((current) => current.filter((item) => item.id !== attachment.id));
+  }, []);
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const id = activeBotId.current;
+      if (!id || sending) return;
+      const attachments = attachmentsForBot(pendingAttachments, id);
+      const trimmed = text.trim();
+      if (!trimmed && attachments.length === 0) return;
+      setSending(true);
+      setSendError(null);
+      try {
+        const artifactIds: string[] = [];
+        for (const pending of attachments) {
+          const mimeType = inferAttachmentMimeType(pending.file.name, pending.file.type);
+          if (!mimeType) {
+            throw new Error(`Unsupported file type: ${pending.file.name}`);
+          }
+          const contentBase64 = await readFileAsBase64(pending.file);
+          const artifact = await rpc.artifacts.create({
+            botId: id,
+            name: pending.file.name,
+            mimeType,
+            contentBase64,
+          });
+          artifactIds.push(artifact.id);
+        }
+        await rpc.threads.send({
+          botId: id,
+          text: trimmed || undefined,
+          artifactIds: artifactIds.length ? artifactIds : undefined,
+        });
+        revokePendingAttachmentPreviews(attachments);
+        setPendingAttachments((current) => current.filter((attachment) => attachment.botId !== id));
+        if (activeBotId.current === id) setAttachmentNotice(null);
+        await refreshThreadRef.current(id);
+      } catch (error) {
+        if (activeBotId.current === id) {
+          setSendError(error instanceof Error ? error.message : "Failed to send message");
+        }
+      } finally {
+        setSending(false);
+      }
+    },
+    [pendingAttachments, sending],
+  );
+  const followUpMessage = useCallback(async (text: string) => {
+    const id = activeBotId.current;
+    if (!id) return;
+    await rpc.threads.followUp({ botId: id, text });
+    await refreshThreadRef.current(id);
+  }, []);
+  const stopRun = useCallback(async () => {
+    const id = activeBotId.current;
+    if (!id) return;
+    await rpc.threads.stop({ botId: id });
+    await refreshThreadRef.current(id);
+  }, []);
+  const stopTeaching = useCallback(async () => {
+    const id = activeBotId.current;
+    if (!id || teachBusy) return;
+    const recording = taughtSkills.find(
+      (skill) => skill.status === "recording" && taughtSkillsBotId === id,
+    );
+    if (!recording) return;
+    setTeachBusy(true);
+    try {
+      await rpc.skills.stop({ skillId: recording.id });
+      await refreshThreadRef.current(id);
+      setComputerOpen(false);
+    } finally {
+      setTeachBusy(false);
+    }
+  }, [teachBusy, taughtSkills, taughtSkillsBotId]);
+  // Transcript and MessageView are memoized; these must stay referentially stable or every
+  // Shell state change re-renders the whole transcript.
+  const refreshActiveThread = useCallback(async () => {
+    const id = activeBotId.current;
+    if (!id) return;
+    await refreshThreadRef.current(id);
+  }, []);
+  const addSkillRoutine = useCallback((name: string, prompt: string) => {
+    setRoutineDraft({ name, prompt, schedule: defaultCronPreset() });
+    setEditingRoutine(null);
+    setPanel("routine");
+  }, []);
+  const speakingMessageIdRef = useRef(speakingMessageId);
+  speakingMessageIdRef.current = speakingMessageId;
+  const speakMessage = useCallback((message: ThreadMessage) => {
+    if (speakingMessageIdRef.current === message.id) {
+      speaker.stop();
+      return;
+    }
+    const text = speechFromBlocks(message.blocks);
+    const id = activeBotId.current;
+    if (text && id) void speaker.speak(text, { botId: id, messageId: message.id });
+  }, []);
 
   async function createBot(input: {
     name: string;
@@ -425,6 +914,25 @@ export function ShellPage() {
     setComputerOpen(false);
   }, [active?.id]);
 
+  // The routine panel copies a routine's data into local draft state at click time
+  // rather than deriving it from `active`, so it goes stale across a bot switch —
+  // without this, Save on bot B could silently update bot A's routine.
+  useEffect(() => {
+    setEditingRoutine(null);
+    setDeleteRoutineTarget(null);
+    setPanel((current) => (current === "routine" ? null : current));
+  }, [active?.id]);
+
+  useEffect(() => {
+    setPendingAttachments((current) => {
+      const stale = current.filter((attachment) => attachment.botId !== active?.id);
+      revokePendingAttachmentPreviews(stale);
+      return attachmentsForBot(current, active?.id);
+    });
+    setAttachmentNotice(null);
+    setSendError(null);
+  }, [active?.id]);
+
   useEffect(() => {
     if (!computerOpen) return;
     function onKey(event: KeyboardEvent) {
@@ -471,8 +979,14 @@ export function ShellPage() {
     .toUpperCase();
 
   return (
-    <div className="relative flex h-full min-w-0 overflow-hidden bg-[#050506] text-[#DFDFE2]">
-      <HostComputerPrompt />
+    <div
+      data-testid="shell-root"
+      data-ready={shellReady}
+      className="relative flex h-full min-w-0 overflow-hidden bg-[#050506] text-[#DFDFE2]"
+    >
+      {bootstrapMe !== undefined ? (
+        <HostComputerPrompt initialMe={bootstrapMe ?? undefined} />
+      ) : null}
       <aside className="flex w-[316px] shrink-0 flex-col border-r border-[#171719] bg-[#0B0B0C]">
         <div className="app-drag flex items-center justify-between px-[18px] pb-3 pt-4">
           <div className="flex items-center gap-2.5">
@@ -499,56 +1013,64 @@ export function ShellPage() {
           />
         </div>
         <div className="rk-scroll flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 pb-2.5">
-          {filtered.map((bot) => (
-            <button
-              key={bot.id}
-              type="button"
-              onClick={() => navigate(`/app/${bot.id}`)}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                setBotMenu({ botId: bot.id, position: { x: event.clientX, y: event.clientY } });
-              }}
-              className={`rk-bot-row flex gap-3 rounded-xl px-2.5 py-[11px] text-left ${
-                active?.id === bot.id ? "rk-bot-row-active" : ""
-              }`}
-              style={
-                {
-                  "--bot-tint": `color-mix(in srgb, ${bot.color} 14%, transparent)`,
-                } as React.CSSProperties
-              }
-            >
-              <BotAvatar color={bot.color} size={54} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span
-                    className={`text-[15px] text-[#ECECEE] ${
-                      bot.unread ? "font-semibold" : "font-medium"
+          {showWorkspaceSearch ? (
+            <WorkspaceSearchResults
+              hits={searchHits}
+              loading={searchLoading}
+              onSelect={(hit) => void jumpToSearchHit(hit)}
+            />
+          ) : (
+            filtered.map((bot) => (
+              <button
+                key={bot.id}
+                type="button"
+                onClick={() => navigate(`/app/${bot.id}`)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  setBotMenu({ botId: bot.id, position: { x: event.clientX, y: event.clientY } });
+                }}
+                className={`rk-bot-row flex gap-3 rounded-xl px-2.5 py-[11px] text-left ${
+                  active?.id === bot.id ? "rk-bot-row-active" : ""
+                }`}
+                style={
+                  {
+                    "--bot-tint": `color-mix(in srgb, ${bot.color} 14%, transparent)`,
+                  } as React.CSSProperties
+                }
+              >
+                <BotAvatar color={bot.color} size={54} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span
+                      className={`text-[15px] text-[#ECECEE] ${
+                        bot.unread ? "font-semibold" : "font-medium"
+                      }`}
+                    >
+                      {bot.name}
+                      {bot.unread ? <span className="sr-only"> (unread)</span> : null}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-[#6C6C70]">
+                      {bot.status === "idle" ? "" : bot.status}
+                      {bot.unread ? (
+                        <span
+                          aria-hidden="true"
+                          className="inline-block h-2 w-2 rounded-full bg-[#8B5CF6]"
+                        />
+                      ) : null}
+                    </span>
+                  </div>
+                  <div
+                    className={`mt-0.5 truncate text-[13.5px] ${
+                      bot.unread ? "font-medium text-[#C9C9CE]" : "text-[#85858A]"
                     }`}
                   >
-                    {bot.name}
-                    {bot.unread ? <span className="sr-only"> (unread)</span> : null}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-[#6C6C70]">
-                    {bot.status === "idle" ? "" : bot.status}
-                    {bot.unread ? (
-                      <span
-                        aria-hidden="true"
-                        className="inline-block h-2 w-2 rounded-full bg-[#8B5CF6]"
-                      />
-                    ) : null}
-                  </span>
+                    {bot.preview || bot.title}
+                  </div>
                 </div>
-                <div
-                  className={`mt-0.5 truncate text-[13.5px] ${
-                    bot.unread ? "font-medium text-[#C9C9CE]" : "text-[#85858A]"
-                  }`}
-                >
-                  {bot.preview || bot.title}
-                </div>
-              </div>
-            </button>
-          ))}
-          {archivedBots.length > 0 ? (
+              </button>
+            ))
+          )}
+          {archivedBots.length > 0 && !showWorkspaceSearch ? (
             <div className="mt-2 border-t border-[#202023] pt-2">
               <button
                 type="button"
@@ -595,19 +1117,7 @@ export function ShellPage() {
           className="mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315]"
         >
           <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M4 7h3a1 1 0 0 0 1-1 1.5 1.5 0 1 1 3 0 1 1 0 0 0 1 1h3v3a1 1 0 0 0 1 1 1.5 1.5 0 1 1 0 3 1 1 0 0 0-1 1v3h-3a1 1 0 0 0-1 1 1.5 1.5 0 1 1-3 0 1 1 0 0 0-1-1H4v-3a1 1 0 0 0-1-1 1.5 1.5 0 1 1 0-3 1 1 0 0 0 1-1z" />
-            </svg>
+            <Puzzle size={15} strokeWidth={1.7} />
           </span>
           <span className="text-[14.5px] text-[#C9C9CE]">Plugins</span>
         </button>
@@ -616,12 +1126,34 @@ export function ShellPage() {
             <div className="absolute bottom-14 left-3 right-3 rounded-2xl border border-[#2A2A2F] bg-[#1A1A1D] p-2 shadow-[0_22px_50px_rgba(0,0,0,.55)]">
               <button
                 type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setModelsOpen(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
+              >
+                <Cpu size={16} strokeWidth={1.7} className="text-[#9A9AA0]" />
+                <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">Models</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setVoiceOpen(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
+              >
+                <Volume2 size={16} strokeWidth={1.7} className="text-[#9A9AA0]" />
+                <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">Voice</span>
+              </button>
+              <button
+                type="button"
                 className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
                 onClick={async () => {
                   setUsage(await rpc.usage.summary());
                 }}
               >
-                <span className="text-[#9A9AA0]">◔</span>
+                <Gauge size={16} strokeWidth={1.7} className="text-[#9A9AA0]" />
                 <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">Weekly usage</span>
               </button>
               {usage ? (
@@ -631,21 +1163,10 @@ export function ShellPage() {
               ) : null}
               <button
                 type="button"
-                className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setModelOpen(true);
-                }}
-              >
-                <span className="text-[#9A9AA0]">◈</span>
-                <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">AI model</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => void authClient.signOut().then(() => navigate("/"))}
                 className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
               >
-                <span className="text-[#9A9AA0]">⇤</span>
+                <LogOut size={16} strokeWidth={1.7} className="text-[#9A9AA0]" />
                 <span className="text-[14.5px] text-[#ECECEE]">Log out</span>
               </button>
             </div>
@@ -667,6 +1188,7 @@ export function ShellPage() {
         <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[17px]">
           <button
             type="button"
+            data-testid="bot-settings-trigger"
             onClick={() => setPanel("settings")}
             className="flex min-w-0 items-center gap-3"
           >
@@ -678,179 +1200,136 @@ export function ShellPage() {
             </span>
           </button>
           <div className="flex items-center gap-1">
-          <button
-            type="button"
-            title={showActivity ? "Hide live activity" : "Show live activity"}
-            onClick={toggleActivity}
-            className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-            style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={showActivity ? "#A855F7" : "#A8A8AD"}
-              strokeWidth="1.6"
-            >
-              <path d="M2 12h4l3-8 4 16 3-8h6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            title="Agent computer"
-            onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
-            className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-            style={{ background: panel ? "#1B1B1E" : "transparent" }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#A8A8AD"
-              strokeWidth="1.6"
-            >
-              <rect x="2" y="4" width="20" height="13" rx="2" />
-              <path d="M8 21h8M12 17v4" />
-            </svg>
-          </button>
-          </div>
-        </div>
-        <div
-          ref={messageScroll}
-          className="rk-scroll flex flex-1 flex-col gap-[13px] overflow-y-auto px-7 py-6"
-        >
-          {snapshot?.olderCursor != null ? (
+            {active ? (
+              <button
+                type="button"
+                title={voiceStatus?.ready ? "Call" : "Set up voice to call"}
+                aria-label="Call"
+                onClick={() => {
+                  if (!voiceStatus?.ready) {
+                    setVoiceOpen(true);
+                    return;
+                  }
+                  setCallOpen(true);
+                }}
+                className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                style={{ background: callOpen ? "#1B1B1E" : "transparent" }}
+              >
+                <Phone size={16} strokeWidth={1.6} className="text-[#A8A8AD]" />
+              </button>
+            ) : null}
             <button
               type="button"
-              disabled={loadingOlder}
-              onClick={() => void loadOlderMessages()}
-              className="self-center rounded-lg px-3 py-1.5 text-[13px] text-[#85858A] hover:bg-[#1A1A1D] hover:text-[#C9C9CE] disabled:opacity-50"
+              title={showActivity ? "Hide live activity" : "Show live activity"}
+              onClick={toggleActivity}
+              className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+              style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
             >
-              {loadingOlder ? "Loading…" : "Load earlier messages"}
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={showActivity ? "#A855F7" : "#A8A8AD"}
+                strokeWidth="1.6"
+              >
+                <path d="M2 12h4l3-8 4 16 3-8h6" />
+              </svg>
             </button>
-          ) : null}
-          {(snapshot?.messages ?? []).map((message) => (
-            <MessageView
-              key={message.id}
-              message={message}
-              canAnswer={message.id === answerableAskMessageId}
-              onOpenBot={(id) => navigate(`/app/${id}`)}
-              onAnswer={async (text) => {
-                if (!active) return;
-                await rpc.threads.answer({
-                  botId: active.id,
-                  runId: message.runId ?? "",
-                  messageId: message.id,
-                  answer: text,
-                });
-                await refreshThread(active.id);
-              }}
-            />
-          ))}
-          {snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status) ? (
-            <div className="flex flex-col items-start gap-2.5">
-              {showActivity &&
-              activity.some((item) => item.runId === snapshot.run?.id) ? (
-                <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
-                  <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
-                  <div className="flex flex-col gap-[7px]">
-                    {activity
-                      .filter((item) => item.runId === snapshot.run?.id)
-                      .map((item, index, list) => (
-                        <div
-                          key={item.id}
-                          className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
-                          style={
-                            index === list.length - 1
-                              ? { animation: "rkPulse 1.2s ease-in-out infinite" }
-                              : undefined
-                          }
-                        >
-                          <span className="shrink-0 text-[#A855F7]">{item.name}</span>
-                          {item.detail ? (
-                            <span className="truncate text-[#6E6975]">{item.detail}</span>
-                          ) : null}
-                        </div>
-                      ))}
-                  </div>
+            <button
+              type="button"
+              title="Agent computer"
+              onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
+              className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+              style={{ background: panel ? "#1B1B1E" : "transparent" }}
+            >
+              <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
+            </button>
+          </div>
+        </div>
+        <Transcript
+          scrollRef={messageScroll}
+          botId={active?.id ?? ""}
+          messages={snapshot?.messages ?? []}
+          olderCursor={snapshot?.olderCursor ?? null}
+          loadingOlder={loadingOlder}
+          answerableAskMessageId={answerableAskMessageId}
+          running={Boolean(
+            snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status),
+          )}
+          activityFeed={
+            showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
+              <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
+                <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
+                <div className="flex flex-col gap-[7px]">
+                  {activity
+                    .filter((item) => item.runId === snapshot?.run?.id)
+                    .map((item, index, list) => (
+                      <div
+                        key={item.id}
+                        className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
+                        style={
+                          index === list.length - 1
+                            ? { animation: "rkPulse 1.2s ease-in-out infinite" }
+                            : undefined
+                        }
+                      >
+                        <span className="shrink-0 text-[#A855F7]">{item.name}</span>
+                        {item.detail ? (
+                          <span className="truncate text-[#6E6975]">{item.detail}</span>
+                        ) : null}
+                      </div>
+                    ))}
                 </div>
-              ) : null}
-              <div
-                className="rounded-[20px] bg-[#1A1A1D] px-[18px] py-[13px] text-[14.5px] text-[#85858A]"
-                style={{ animation: "rkPulse 1.2s ease-in-out infinite" }}
-              >
-                working…
               </div>
-            </div>
-          ) : null}
-        </div>
-        <div className="px-6 pb-6 pt-3">
-          {uploading ? (
-            <p className="mb-1.5 px-4 text-[12.5px] text-[#8A8590]">Uploading {uploading}…</p>
-          ) : null}
-          <div className="flex items-center gap-3.5 rounded-full border border-[#202023] bg-[#131315] py-[9px] pr-2.5 pl-3">
-            <input
-              ref={fileInput}
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) void uploadAttachment(file);
-              }}
-            />
-            <button
-              type="button"
-              title="Attach a file (saved to the bot's computer)"
-              onClick={() => fileInput.current?.click()}
-              disabled={!!uploading}
-              className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[#26262A] text-[18px] text-[#9A9AA0] hover:border-[#A855F7] hover:text-[#F1F0F3] disabled:opacity-50"
-            >
-              +
-            </button>
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send();
-                }
-              }}
-              placeholder={active ? `Message ${active.name}` : "Message…"}
-              className="flex-1 bg-transparent text-[15.5px] text-[#E9E9EA] outline-none"
-            />
-            {snapshot?.run && isActive(snapshot.run.status) ? (
-              <button
-                type="button"
-                aria-label="Stop"
-                onClick={() =>
-                  active &&
-                  void rpc.threads.stop({ botId: active.id }).then(() => refreshThread(active.id))
-                }
-                className="grid h-9 w-9 place-items-center rounded-full bg-[#F1F1EF] text-[#17171A]"
-              >
-                ■
-              </button>
-            ) : (
-              <button
-                type="button"
-                aria-label="Send"
-                onClick={() => void send()}
-                className="grid h-9 w-9 place-items-center rounded-full bg-[#F1F1EF] text-[#17171A]"
-              >
-                ↑
-              </button>
-            )}
+            ) : null
+          }
+          onLoadOlder={loadOlder}
+          onOpenBot={openBot}
+          onAnswer={answerMessage}
+          onRefresh={refreshActiveThread}
+          onAddRoutine={addSkillRoutine}
+          voiceReady={Boolean(voiceStatus?.ready)}
+          speakingMessageId={speakingMessageId}
+          onSpeak={speakMessage}
+        />
+        {recordingSkill ? (
+          <div className="px-6 pb-2 text-center text-[13px] text-[#E65707]">
+            Teaching in progress — stop teaching before sending a new message.
           </div>
-        </div>
+        ) : null}
+        <Composer
+          activeName={active?.name}
+          running={Boolean(snapshot?.run && isActive(snapshot.run.status))}
+          disabled={Boolean(recordingSkill)}
+          pendingAttachments={activePendingAttachments}
+          attachmentNotice={attachmentNotice}
+          sendError={sendError}
+          dictationError={dictationError}
+          sending={sending}
+          fileInputRef={fileInputRef}
+          onAttachmentPick={onAttachmentPick}
+          onRemoveAttachment={removeAttachment}
+          onSend={sendMessage}
+          onStop={stopRun}
+          dictating={dictating}
+          transcribe={Boolean(voiceStatus?.transcribe)}
+          onDictateStart={(onFinal) => {
+            void dictation.listen({
+              mode: "hold",
+              transcribe: Boolean(voiceStatus?.transcribe),
+              onFinal,
+            });
+          }}
+          onDictateStop={() => dictation.submitHold()}
+        />
       </main>
 
       <aside
-        className={`flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-[#0A0A0B] transition-[width] duration-200 ease-out ${
-          panel && active ? "w-[384px] border-l border-[#141416]" : "w-0"
+        data-testid="side-panel"
+        data-panel={panel ?? "closed"}
+        className={`relative z-20 flex min-h-0 shrink-0 flex-col overflow-hidden bg-[#0A0A0B] transition-[width] duration-150 ease-out ${
+          panel && active ? "w-[384px] border-l border-[#141416]" : "pointer-events-none w-0"
         }`}
       >
         {panel && active ? (
@@ -861,11 +1340,15 @@ export function ShellPage() {
                   {computer?.state ?? active.status}
                 </span>
                 <div className="flex gap-3.5">
-                  <button type="button" onClick={() => setPanel("settings")}>
-                    ⚙
+                  <button
+                    type="button"
+                    aria-label="Bot settings"
+                    onClick={() => setPanel("settings")}
+                  >
+                    <Settings size={16} strokeWidth={1.7} />
                   </button>
-                  <button type="button" onClick={() => setPanel(null)}>
-                    ✕
+                  <button type="button" aria-label="Close panel" onClick={() => setPanel(null)}>
+                    <X size={16} strokeWidth={1.8} />
                   </button>
                 </div>
               </div>
@@ -911,13 +1394,13 @@ export function ShellPage() {
                   <span className="text-[13.5px] text-[#85858A]">
                     {computer?.busyBotName
                       ? `${computer.busyBotName} is using it`
-                      : computer?.controlHolder === "user"
+                      : computer?.controlHolder === "user" && computer.controlBotId === active.id
                         ? "You have control"
                         : computer?.state === "suspended"
                           ? "Asleep"
                           : computerLabel(computer?.mode, active.name)}
                   </span>
-                  {computer?.controlHolder === "user" ? (
+                  {computer?.controlHolder === "user" && computer.controlBotId === active.id ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -938,7 +1421,7 @@ export function ShellPage() {
                   )}
                 </div>
                 <div className="mt-[30px] mb-3 text-[14px] text-[#85858A]">Routines</div>
-                {routines.map((routine) => (
+                {activeRoutines.map((routine) => (
                   <button
                     key={routine.id}
                     type="button"
@@ -948,6 +1431,7 @@ export function ShellPage() {
                         prompt: routine.prompt,
                         schedule: presetFromCron(routine.cron),
                       });
+                      setEditingRoutine(routine);
                       setPanel("routine");
                     }}
                     className="flex w-full items-center gap-3 rounded-[11px] px-2.5 py-2.5 hover:bg-[#121214]"
@@ -961,30 +1445,35 @@ export function ShellPage() {
                 ))}
                 <button
                   type="button"
-                  onClick={async () => {
-                    const first = routines[0];
-                    if (first) {
-                      await rpc.routines.testRun({ routineId: first.id });
-                      await refreshThread(active.id);
-                    } else {
-                      setRoutineDraft({ name: "", prompt: "", schedule: defaultCronPreset() });
-                      setPanel("routine");
-                    }
-                  }}
-                  className="mt-1 flex items-center gap-2.5 px-2.5 py-2.5 text-[14.5px] text-[#7A7A80]"
-                >
-                  Run now
-                </button>
-                <button
-                  type="button"
                   onClick={() => {
                     setRoutineDraft({ name: "", prompt: "", schedule: defaultCronPreset() });
+                    setEditingRoutine(null);
                     setPanel("routine");
                   }}
                   className="mt-1 flex items-center gap-2.5 px-2.5 py-2.5 text-[14.5px] text-[#7A7A80]"
                 >
                   + New routine
                 </button>
+                {active ? (
+                  <TeachComputerSection
+                    botId={active.id}
+                    computer={computer}
+                    skills={activeTaughtSkills}
+                    busy={teachBusy}
+                    onRefresh={refreshActiveThread}
+                    onOpenComputer={openComputer}
+                    onStopTeaching={stopTeaching}
+                    onAddRoutine={(skill) => {
+                      setRoutineDraft({
+                        name: skill.name || skill.goal.slice(0, 80),
+                        prompt: `Run taught skill: ${skill.name || skill.goal}\n${skill.playbook.steps.map((step, index) => `${index + 1}. ${step}`).join("\n")}`,
+                        schedule: defaultCronPreset(),
+                      });
+                      setEditingRoutine(null);
+                      setPanel("routine");
+                    }}
+                  />
+                ) : null}
               </div>
             ) : null}
             {panel === "create" ? (
@@ -1019,12 +1508,7 @@ export function ShellPage() {
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                onArchive={async () => {
-                  await rpc.bots.archive({ botId: active.id });
-                  setPanel(null);
-                  await refreshBots(true);
-                }}
-                onDelete={() => setDeleteTarget(active)}
+                onClear={() => setClearTarget(active)}
               />
             ) : null}
             {panel === "routine" ? (
@@ -1035,11 +1519,11 @@ export function ShellPage() {
                     onClick={() => setPanel("computer")}
                     className="text-[#9A9AA0]"
                   >
-                    ‹
+                    <ChevronLeft size={18} strokeWidth={1.8} />
                   </button>
                   <div className="text-[15.5px] font-medium text-[#F1F1F2]">Routine</div>
                   <button type="button" onClick={() => setPanel(null)} className="text-[#6C6C70]">
-                    ✕
+                    <X size={16} strokeWidth={1.8} />
                   </button>
                 </div>
                 <label className="text-[14px] text-[#85858A]">
@@ -1061,91 +1545,218 @@ export function ShellPage() {
                 </label>
                 <div className="mt-5 text-[14px] text-[#85858A]">
                   When to run
-                  <RoutineSchedule
-                    value={routineDraft.schedule}
-                    onChange={(schedule) => setRoutineDraft((s) => ({ ...s, schedule }))}
-                  />
+                  <Suspense fallback={null}>
+                    <RoutineSchedule
+                      value={routineDraft.schedule}
+                      onChange={(schedule) => setRoutineDraft((s) => ({ ...s, schedule }))}
+                    />
+                  </Suspense>
                 </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await rpc.routines.create({
-                      botId: active.id,
-                      name: routineDraft.name || "Routine",
-                      prompt: routineDraft.prompt || "Check in.",
-                      cron: cronFromPreset(routineDraft.schedule),
-                      timezone: "UTC",
-                      active: true,
-                      notify: true,
-                    });
-                    await refreshThread(active.id);
-                    setPanel("computer");
-                  }}
-                  className="mt-5 rounded-[11px] bg-[#F1F1EF] px-4 py-2 text-[#17171A]"
-                >
-                  Save
-                </button>
+                <div className="mt-5 flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={savingRoutine || runningRoutine}
+                    onClick={async () => {
+                      if (routineSavePending.current) return;
+                      const targetBotId = active.id;
+                      const targetRoutine = editingRoutine;
+                      if (targetRoutine && targetRoutine.botId !== targetBotId) return;
+                      routineSavePending.current = true;
+                      setSavingRoutine(true);
+                      try {
+                        if (targetRoutine) {
+                          await rpc.routines.update({
+                            routineId: targetRoutine.id,
+                            name: routineDraft.name || "Routine",
+                            prompt: routineDraft.prompt || "Check in.",
+                            cron: cronFromPreset(routineDraft.schedule),
+                          });
+                        } else {
+                          await rpc.routines.create({
+                            botId: targetBotId,
+                            name: routineDraft.name || "Routine",
+                            prompt: routineDraft.prompt || "Check in.",
+                            cron: cronFromPreset(routineDraft.schedule),
+                            timezone: "UTC",
+                            active: true,
+                            notify: true,
+                          });
+                        }
+                        if (activeBotId.current !== targetBotId) return;
+                        await refreshThread(targetBotId);
+                        if (activeBotId.current === targetBotId) setPanel("computer");
+                      } finally {
+                        routineSavePending.current = false;
+                        setSavingRoutine(false);
+                      }
+                    }}
+                    className="rounded-[11px] bg-[#F1F1EF] px-4 py-2 text-[#17171A] disabled:opacity-40"
+                  >
+                    {savingRoutine ? "Saving…" : "Save"}
+                  </button>
+                  {editingRoutine?.botId === active.id ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={savingRoutine || runningRoutine}
+                        onClick={async () => {
+                          if (routineRunPending.current) return;
+                          const targetBotId = active.id;
+                          const targetRoutine = editingRoutine;
+                          routineRunPending.current = true;
+                          setRunningRoutine(true);
+                          try {
+                            await rpc.routines.testRun({ routineId: targetRoutine.id });
+                            await refreshThread(targetBotId);
+                          } finally {
+                            routineRunPending.current = false;
+                            setRunningRoutine(false);
+                          }
+                        }}
+                        className="rounded-[11px] border border-[#26262A] px-4 py-2 text-[14px] text-[#ECECEE] disabled:opacity-40"
+                      >
+                        {runningRoutine ? "Running…" : "Run now"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingRoutine || runningRoutine}
+                        onClick={() => setDeleteRoutineTarget(editingRoutine)}
+                        className="rounded-[11px] px-4 py-2 text-[14px] text-[#FF5364] disabled:opacity-40"
+                      >
+                        Delete routine
+                      </button>
+                    </>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>
         ) : null}
       </aside>
 
-      {contextBot && botMenu ? (
-        <BotContextMenu
-          bot={contextBot}
-          position={botMenu.position}
-          onClose={closeBotMenu}
-          onTogglePinned={() => {
-            setBotMenu(null);
-            void rpc.bots
-              .update({ botId: contextBot.id, pinned: !contextBot.pinned })
-              .then(() => refreshBots());
-          }}
-          onToggleUnread={() => {
-            const unread = !contextBot.unread;
-            setBotMenu(null);
-            const request = unread ? markBotUnread(contextBot.id) : markBotRead(contextBot.id);
-            void request.catch(() => undefined);
-          }}
-          onEdit={() => {
-            navigate(`/app/${contextBot.id}`);
-            setPanel("settings");
-            setBotMenu(null);
-          }}
-          onDuplicate={() => {
-            setBotMenu(null);
-            void rpc.bots.duplicate({ botId: contextBot.id }).then(async (bot) => {
+      <Suspense fallback={null}>
+        {contextBot && botMenu ? (
+          <BotContextMenu
+            bot={contextBot}
+            position={botMenu.position}
+            onClose={closeBotMenu}
+            onTogglePinned={() => {
+              setBotMenu(null);
+              void rpc.bots
+                .update({ botId: contextBot.id, pinned: !contextBot.pinned })
+                .then(() => refreshBots());
+            }}
+            onToggleUnread={() => {
+              const unread = !contextBot.unread;
+              setBotMenu(null);
+              const request = unread ? markBotUnread(contextBot.id) : markBotRead(contextBot.id);
+              void request.catch(() => undefined);
+            }}
+            onEdit={() => {
+              navigate(`/app/${contextBot.id}`);
+              setPanel("settings");
+              setBotMenu(null);
+            }}
+            onDuplicate={() => {
+              setBotMenu(null);
+              void rpc.bots.duplicate({ botId: contextBot.id }).then(async (bot) => {
+                await refreshBots();
+                navigate(`/app/${bot.id}`);
+              });
+            }}
+            onClear={() => {
+              setClearTarget(contextBot);
+              setBotMenu(null);
+            }}
+            onArchive={() => {
+              setBotMenu(null);
+              void rpc.bots.archive({ botId: contextBot.id }).then(() => refreshBots(true));
+            }}
+            onDelete={() => {
+              setDeleteTarget(contextBot);
+              setBotMenu(null);
+            }}
+          />
+        ) : null}
+
+        {deleteTarget ? (
+          <DeleteBotDialog
+            bot={deleteTarget}
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={async (deleteMemories) => {
+              await rpc.bots.remove({ botId: deleteTarget.id, deleteMemories });
+              setDeleteTarget(null);
+              setPanel(null);
+              await refreshBots(true);
+            }}
+          />
+        ) : null}
+
+        {clearTarget ? (
+          <ClearConversationDialog
+            bot={clearTarget}
+            onCancel={() => setClearTarget(null)}
+            onConfirm={async () => {
+              await rpc.threads.clear({ botId: clearTarget.id });
+              if (active?.id === clearTarget.id) {
+                expandedHistoryThread.current = null;
+                pinnedAroundRef.current = null;
+                historyEpoch.current += 1;
+                setSnapshot((current) =>
+                  current ? { ...current, messages: [], olderCursor: null, run: null } : current,
+                );
+              }
+              setClearTarget(null);
               await refreshBots();
-              navigate(`/app/${bot.id}`);
-            });
-          }}
-          onArchive={() => {
-            setBotMenu(null);
-            void rpc.bots.archive({ botId: contextBot.id }).then(() => refreshBots(true));
-          }}
-          onDelete={() => {
-            setDeleteTarget(contextBot);
-            setBotMenu(null);
-          }}
-        />
-      ) : null}
+            }}
+          />
+        ) : null}
 
-      {deleteTarget ? (
-        <DeleteBotDialog
-          bot={deleteTarget}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={async (deleteMemories) => {
-            await rpc.bots.remove({ botId: deleteTarget.id, deleteMemories });
-            setDeleteTarget(null);
-            setPanel(null);
-            await refreshBots(true);
-          }}
-        />
-      ) : null}
+        {deleteRoutineTarget ? (
+          <DeleteRoutineDialog
+            routine={deleteRoutineTarget}
+            onCancel={() => setDeleteRoutineTarget(null)}
+            onConfirm={async () => {
+              const target = deleteRoutineTarget;
+              await rpc.routines.remove({ routineId: target.id });
+              setDeleteRoutineTarget(null);
+              setEditingRoutine((current) => (current?.id === target.id ? null : current));
+              if (activeBotId.current !== target.botId) return;
+              await refreshThread(target.botId);
+              if (activeBotId.current === target.botId) setPanel("computer");
+            }}
+          />
+        ) : null}
 
-      {pluginsOpen ? <PluginsOverlay onClose={() => setPluginsOpen(false)} /> : null}
-      {modelOpen ? <ModelOverlay onClose={() => setModelOpen(false)} /> : null}
+        {pluginsOpen ? <PluginsOverlay onClose={() => setPluginsOpen(false)} /> : null}
+      </Suspense>
+
+      <Suspense fallback={null}>
+        {modelsOpen ? <ModelSettingsOverlay onClose={() => setModelsOpen(false)} /> : null}
+        {voiceOpen ? (
+          <VoiceSettingsOverlay
+            onClose={() => {
+              setVoiceOpen(false);
+              void rpc.voice
+                .status()
+                .then(setVoiceStatus)
+                .catch(() => undefined);
+            }}
+          />
+        ) : null}
+        {callOpen && active ? (
+          <CallView
+            botId={active.id}
+            botName={active.name}
+            transcribe={Boolean(voiceStatus?.transcribe)}
+            snapshot={snapshot}
+            onSend={sendMessage}
+            onFollowUp={followUpMessage}
+            onAnswer={answerMessage}
+            onClose={() => setCallOpen(false)}
+          />
+        ) : null}
+      </Suspense>
 
       {booting ? (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-[22px] bg-[rgba(4,4,5,.96)]">
@@ -1159,19 +1770,32 @@ export function ShellPage() {
       ) : computerOpen && active ? (
         <div className="absolute inset-0 z-30 flex flex-col bg-[#050506]">
           <div className="flex items-center justify-between gap-4 border-b border-[#171719] px-[18px] py-3.5">
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <BotAvatar color={active.color} size={36} />
-              <span className="truncate text-[15.5px] font-medium text-[#ECECEE]">
-                {computerLabel(computer?.mode, active.name)}
-              </span>
-              {computer?.controlHolder === "user" ? (
+              {recordingSkill ? (
+                <TeachRecordingChrome
+                  recording={recordingSkill}
+                  busy={teachBusy}
+                  onStop={stopTeaching}
+                  variant="overlay"
+                />
+              ) : (
+                <span className="truncate text-[15.5px] font-medium text-[#ECECEE]">
+                  {computerLabel(computer?.mode, active.name)}
+                </span>
+              )}
+              {!recordingSkill &&
+              computer?.controlHolder === "user" &&
+              computer.controlBotId === active.id ? (
                 <span className="rounded-full bg-[rgba(48,162,75,.14)] px-[11px] py-1 text-[13px] text-[#4ECB71]">
                   You have control
                 </span>
               ) : null}
             </div>
             <div className="flex items-center gap-3">
-              {computer?.controlHolder === "user" ? (
+              {recordingSkill ? (
+                <TeachStopButton busy={teachBusy} onStop={stopTeaching} />
+              ) : computer?.controlHolder === "user" && computer.controlBotId === active.id ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -1196,25 +1820,42 @@ export function ShellPage() {
                 aria-label="Close computer"
                 onClick={() => setComputerOpen(false)}
               >
-                ✕
+                <X size={16} strokeWidth={1.8} />
               </button>
             </div>
           </div>
-          <div className="min-h-0 flex-1 bg-[#0E0E10]">
+          <div className="relative min-h-0 flex-1 bg-[#0E0E10]">
             {computer?.kind === "desktop" ? (
               <div className="grid h-full place-items-center px-8 text-center text-sm text-[#6C6C70]">
                 This bot runs on this computer. There is no separate Linux desktop. Ask it to use
                 the shell; working directories under your home folder are allowed.
               </div>
             ) : computer?.state === "running" && embeddedScreenUrl ? (
-              <iframe
-                title="Bot screen"
-                src={embeddedScreenUrl}
-                sandbox={screenIframeSandbox(embeddedScreenUrl)}
-                className="h-full w-full border-0 bg-black"
-                allow="clipboard-read; clipboard-write; fullscreen"
-                style={{ pointerEvents: computer?.controlHolder === "user" ? "auto" : "none" }}
-              />
+              <>
+                <iframe
+                  title="Bot screen"
+                  src={embeddedScreenUrl}
+                  sandbox={screenIframeSandbox(embeddedScreenUrl)}
+                  className="h-full w-full border-0 bg-black"
+                  allow="clipboard-read; clipboard-write; fullscreen"
+                  style={{
+                    pointerEvents:
+                      recordingSkill ||
+                      !(computer?.controlHolder === "user" && computer.controlBotId === active.id)
+                        ? "none"
+                        : "auto",
+                  }}
+                />
+                {active ? (
+                  <TeachCaptureOverlay
+                    botId={active.id}
+                    skill={recordingSkill}
+                    enabled={Boolean(recordingSkill)}
+                    screenWidth={computer?.screenWidth}
+                    screenHeight={computer?.screenHeight}
+                  />
+                ) : null}
+              </>
             ) : (
               <div className="grid h-full place-items-center text-sm text-[#6C6C70]">
                 {computer?.state === "suspended"
@@ -1229,18 +1870,263 @@ export function ShellPage() {
   );
 }
 
+const Transcript = memo(function Transcript({
+  scrollRef,
+  botId,
+  messages,
+  olderCursor,
+  loadingOlder,
+  answerableAskMessageId,
+  running,
+  activityFeed,
+  onLoadOlder,
+  onOpenBot,
+  onAnswer,
+  onRefresh,
+  onAddRoutine,
+  voiceReady,
+  speakingMessageId,
+  onSpeak,
+}: {
+  scrollRef: RefObject<HTMLDivElement | null>;
+  botId: string;
+  messages: ThreadMessage[];
+  olderCursor: number | null;
+  loadingOlder: boolean;
+  answerableAskMessageId: string | null;
+  running: boolean;
+  activityFeed?: ReactNode;
+  onLoadOlder: () => void | Promise<void>;
+  onOpenBot: (botId: string) => void;
+  onAnswer: (message: ThreadMessage, text: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
+  onAddRoutine: (name: string, prompt: string) => void;
+  voiceReady: boolean;
+  speakingMessageId: string | null;
+  onSpeak: (message: ThreadMessage) => void;
+}) {
+  return (
+    <div
+      ref={scrollRef}
+      data-testid="transcript"
+      className="rk-scroll flex flex-1 flex-col gap-[13px] overflow-y-auto px-7 py-6"
+    >
+      {olderCursor != null ? (
+        <button
+          type="button"
+          disabled={loadingOlder}
+          onClick={() => void onLoadOlder()}
+          className="self-center rounded-lg px-3 py-1.5 text-[13px] text-[#85858A] hover:bg-[#1A1A1D] hover:text-[#C9C9CE] disabled:opacity-50"
+        >
+          {loadingOlder ? "Loading…" : "Load earlier messages"}
+        </button>
+      ) : null}
+      {messages.map((message) => (
+        <div key={message.id} data-message-id={message.id}>
+          <MessageView
+            botId={botId}
+            message={message}
+            canAnswer={message.id === answerableAskMessageId}
+            onOpenBot={onOpenBot}
+            onAnswer={onAnswer}
+            onRefresh={onRefresh}
+            onAddRoutine={onAddRoutine}
+            voiceReady={voiceReady}
+            speaking={speakingMessageId === message.id}
+            onSpeak={() => onSpeak(message)}
+          />
+        </div>
+      ))}
+      {running ? (
+        <div className="flex flex-col items-start gap-2.5">
+          {activityFeed}
+          <div
+            className="rounded-[20px] bg-[#1A1A1D] px-[18px] py-[13px] text-[14.5px] text-[#85858A]"
+            style={{ animation: "rkPulse 1.2s ease-in-out infinite" }}
+          >
+            working…
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
+const Composer = memo(function Composer({
+  activeName,
+  running,
+  disabled,
+  pendingAttachments,
+  attachmentNotice,
+  sendError,
+  dictationError,
+  sending,
+  fileInputRef,
+  onAttachmentPick,
+  onRemoveAttachment,
+  onSend,
+  onStop,
+  dictating,
+  transcribe,
+  onDictateStart,
+  onDictateStop,
+}: {
+  activeName?: string;
+  running: boolean;
+  disabled?: boolean;
+  pendingAttachments: PendingAttachment[];
+  attachmentNotice: string | null;
+  sendError: string | null;
+  dictationError: string | null;
+  sending: boolean;
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  onAttachmentPick: (files: FileList | null) => void | Promise<void>;
+  onRemoveAttachment: (attachment: PendingAttachment) => void;
+  onSend: (text: string) => Promise<void>;
+  onStop: () => Promise<void>;
+  dictating: boolean;
+  transcribe: boolean;
+  onDictateStart: (onFinal: (text: string) => void) => void;
+  onDictateStop: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const canSend = draft.trim().length > 0 || pendingAttachments.length > 0;
+
+  function send() {
+    if (!canSend || sending || disabled) return;
+    const text = draft;
+    setDraft("");
+    void onSend(text);
+  }
+
+  return (
+    <div className="px-6 pb-6 pt-3">
+      {sendError || dictationError ? (
+        <div className="mb-3 rounded-[14px] border border-[#5A2A2A] bg-[#2A1717] px-4 py-2 text-[13px] text-[#F1A8A8]">
+          {sendError ?? dictationError}
+        </div>
+      ) : null}
+      {attachmentNotice ? (
+        <div className="mb-3 rounded-[14px] border border-[#3A3A20] bg-[#232316] px-4 py-2 text-[13px] text-[#D6CFA0]">
+          {attachmentNotice}
+        </div>
+      ) : null}
+      {pendingAttachments.length ? (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {pendingAttachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="flex items-center gap-2 rounded-full border border-[#26262A] bg-[#17171A] px-3 py-1.5 text-[13px] text-[#C9C9CE]"
+            >
+              {attachment.previewUrl ? (
+                <img
+                  src={attachment.previewUrl}
+                  alt={attachment.file.name}
+                  className="h-8 w-8 rounded object-cover"
+                />
+              ) : (
+                <Paperclip size={14} strokeWidth={1.8} />
+              )}
+              <span className="max-w-[180px] truncate">{attachment.file.name}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${attachment.file.name}`}
+                onClick={() => onRemoveAttachment(attachment)}
+                className="text-[#85858A] hover:text-[#ECECEE]"
+              >
+                <X size={13} strokeWidth={2} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="flex items-center gap-3.5 rounded-full border border-[#202023] bg-[#131315] py-[9px] pr-2.5 pl-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ATTACHMENT_ACCEPT}
+          className="hidden"
+          onChange={(event) => void onAttachmentPick(event.target.files)}
+        />
+        <button
+          type="button"
+          aria-label="Attach file"
+          disabled={disabled}
+          onClick={() => fileInputRef.current?.click()}
+          className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[#26262A] text-[#9A9AA0] disabled:opacity-40"
+        >
+          <Plus size={17} strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          aria-label={dictating ? "Stop dictation" : "Dictate"}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            onDictateStart((text) => setDraft((current) => `${current} ${text}`.trim()));
+          }}
+          onMouseUp={onDictateStop}
+          onMouseLeave={() => {
+            if (dictating) onDictateStop();
+          }}
+          onTouchStart={(event) => {
+            event.preventDefault();
+            onDictateStart((text) => setDraft((current) => `${current} ${text}`.trim()));
+          }}
+          onTouchEnd={onDictateStop}
+          className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border ${
+            dictating
+              ? "border-[#4ECB71] bg-[rgba(48,162,75,.16)] text-[#4ECB71]"
+              : "border-[#26262A] text-[#9A9AA0]"
+          }`}
+          title={transcribe ? "Hold to talk" : "Hold to talk (on-device dictation)"}
+        >
+          <Mic size={16} strokeWidth={1.8} />
+        </button>
+        <input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              send();
+            }
+          }}
+          disabled={disabled}
+          placeholder={activeName ? `Message ${activeName}` : "Message…"}
+          className="flex-1 bg-transparent text-[15.5px] text-[#E9E9EA] outline-none disabled:opacity-40"
+        />
+        {running ? (
+          <button
+            type="button"
+            aria-label="Stop"
+            onClick={() => void onStop()}
+            className="grid h-9 w-9 place-items-center rounded-full bg-[#F1F1EF] text-[#17171A]"
+          >
+            <Square size={12} strokeWidth={0} fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label="Send"
+            disabled={sending || !canSend || disabled}
+            onClick={send}
+            className="grid h-9 w-9 place-items-center rounded-full bg-[#F1F1EF] text-[#17171A] disabled:opacity-50"
+          >
+            <ArrowUp size={18} strokeWidth={2} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+});
+
 function applyThreadEvent(
   event: ProductEvent,
   setSnapshot: Dispatch<SetStateAction<ThreadSnapshot | null>>,
   setComputer: Dispatch<SetStateAction<ComputerStatus | null>>,
 ) {
-  if (
-    event.type === "thread.progress" ||
-    event.type === "thread.subagent" ||
-    event.type === "thread.message.created" ||
-    event.type === "thread.message.updated" ||
-    event.type === "run.waiting_input"
-  ) {
+  if (isThreadSnapshotEvent(event)) {
     setSnapshot((prev) => reduceThreadSnapshot(prev, event));
   }
   if (isComputerStatusEvent(event)) {
@@ -1260,16 +2146,28 @@ function latestAnswerableAskMessageId(snapshot: ThreadSnapshot | null): string |
   return null;
 }
 
-function MessageView({
+const MessageView = memo(function MessageView({
+  botId,
   canAnswer,
   message,
   onAnswer,
   onOpenBot,
+  onRefresh,
+  onAddRoutine,
+  voiceReady,
+  speaking,
+  onSpeak,
 }: {
+  botId: string;
   canAnswer: boolean;
   message: ThreadMessage;
-  onAnswer: (text: string) => Promise<void>;
+  onAnswer: (message: ThreadMessage, text: string) => Promise<void>;
   onOpenBot: (botId: string) => void;
+  onRefresh: () => Promise<void>;
+  onAddRoutine: (name: string, prompt: string) => void;
+  voiceReady: boolean;
+  speaking: boolean;
+  onSpeak: () => void;
 }) {
   return (
     <>
@@ -1366,6 +2264,37 @@ function MessageView({
             </button>
           );
         }
+        if (block.kind === "image") {
+          return (
+            <div
+              key={i}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <ArtifactImage botId={botId} artifactId={block.artifactId} name={block.name} />
+            </div>
+          );
+        }
+        if (block.kind === "file") {
+          return (
+            <div
+              key={i}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  void openArtifact(botId, block.artifactId, block.name, block.mimeType)
+                }
+                className="rounded-[20px] border border-[#26262A] bg-[#17171A] px-4 py-3 text-left text-[14px] text-[#DFDFE2] hover:bg-[#1F1F22]"
+              >
+                <div className="font-medium">{block.name}</div>
+                <div className="mt-1 text-[#85858A]">
+                  {block.mimeType} · {formatBytes(block.size)}
+                </div>
+              </button>
+            </div>
+          );
+        }
         if (block.kind === "text" && message.role === "user") {
           return (
             <div key={i} className="flex justify-end">
@@ -1380,6 +2309,16 @@ function MessageView({
             <div key={i} className="flex justify-start">
               <div className="max-w-[74%] rounded-[20px] bg-[#1A1A1D] px-[18px] py-3 text-[15.5px] leading-[1.5] text-[#DFDFE2]">
                 <ChatMarkdown>{block.text}</ChatMarkdown>
+                {voiceReady ? (
+                  <button
+                    type="button"
+                    aria-label={speaking ? "Stop speaking" : "Speak this reply"}
+                    onClick={onSpeak}
+                    className="mt-2 text-[12px] text-[#85858A] hover:text-[#ECECEE]"
+                  >
+                    {speaking ? "Stop" : "Speak"}
+                  </button>
+                ) : null}
               </div>
             </div>
           );
@@ -1401,7 +2340,21 @@ function MessageView({
           );
         }
         if (block.kind === "ask") {
-          return <AskCard key={i} block={block} canAnswer={canAnswer} onAnswer={onAnswer} />;
+          return (
+            <AskCard
+              key={i}
+              block={block}
+              canAnswer={canAnswer}
+              onAnswer={(text) => onAnswer(message, text)}
+            />
+          );
+        }
+        if (block.kind === "skill_draft") {
+          return (
+            <div key={i} className="flex justify-start">
+              <SkillDraftCard block={block} onRefresh={onRefresh} onAddRoutine={onAddRoutine} />
+            </div>
+          );
         }
         if (block.kind === "computer") {
           return (
@@ -1425,7 +2378,7 @@ function MessageView({
       })}
     </>
   );
-}
+});
 
 type AskBlock = Extract<ThreadMessage["blocks"][number], { kind: "ask" }>;
 
@@ -1582,7 +2535,7 @@ function CreateBotForm({
       <div className="mb-4 flex items-center justify-between">
         <span className="text-[13.5px] text-[#85858A]">New bot</span>
         <button type="button" onClick={onCancel}>
-          ✕
+          <X size={16} strokeWidth={1.8} />
         </button>
       </div>
       <label className="mt-6 block text-[14px] text-[#85858A]">
@@ -1630,8 +2583,7 @@ function BotSettings({
   bot,
   onSave,
   onExport,
-  onArchive,
-  onDelete,
+  onClear,
 }: {
   bot: Bot;
   onSave: (patch: {
@@ -1640,21 +2592,31 @@ function BotSettings({
     description?: string;
     instructions?: string;
     computerMode: ComputerMode;
+    autoSpeak?: boolean;
+    voiceId?: string | null;
   }) => Promise<void>;
   onExport: () => Promise<void>;
-  onArchive: () => Promise<void>;
-  onDelete: () => void;
+  onClear: () => void;
 }) {
   const [name, setName] = useState(bot.name);
   const [title, setTitle] = useState(bot.title);
   const [description, setDescription] = useState(bot.description);
   const [computerMode, setComputerMode] = useState(bot.computerMode);
+  const [autoSpeak, setAutoSpeak] = useState(bot.autoSpeak);
+  const [voiceId, setVoiceId] = useState(bot.voiceId ?? "");
+  const [voices, setVoices] = useState<VoiceInfo[]>([]);
   const [saving, setSaving] = useState(false);
-  const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    void rpc.voice
+      .voices({})
+      .then(setVoices)
+      .catch(() => setVoices([]));
+  }, []);
+
   return (
-    <div>
+    <div data-testid="bot-settings">
       <div className="flex justify-center">
         <BotAvatar color={bot.color} size={80} />
       </div>
@@ -1684,6 +2646,31 @@ function BotSettings({
         />
       </label>
       <ComputerModePicker value={computerMode} onChange={setComputerMode} />
+      <label className="mt-5 flex cursor-pointer items-center gap-3 text-[14px] text-[#C9C9CE]">
+        <input
+          type="checkbox"
+          checked={autoSpeak}
+          onChange={(event) => setAutoSpeak(event.target.checked)}
+        />
+        Read replies aloud
+      </label>
+      {voices.length ? (
+        <label className="mt-4 block text-[14px] text-[#85858A]">
+          Voice
+          <select
+            value={voiceId}
+            onChange={(event) => setVoiceId(event.target.value)}
+            className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
+          >
+            <option value="">Account default</option>
+            {voices.map((voice) => (
+              <option key={voice.id} value={voice.id}>
+                {voice.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       {error ? <p className="mt-2 text-[13px] text-[#E65707]">{error}</p> : null}
       <div className="mt-5 flex flex-col items-start gap-3">
         <button
@@ -1698,6 +2685,8 @@ function BotSettings({
               description,
               instructions: description,
               computerMode,
+              autoSpeak,
+              voiceId: voiceId || null,
             })
               .catch((err) => setError(err instanceof Error ? err.message : "Could not save"))
               .finally(() => setSaving(false));
@@ -1713,23 +2702,86 @@ function BotSettings({
         >
           Export
         </button>
-        <button
-          type="button"
-          disabled={archiving}
-          onClick={() => {
-            setArchiving(true);
-            setError(null);
-            void onArchive()
-              .catch((err) => setError(err instanceof Error ? err.message : "Could not archive"))
-              .finally(() => setArchiving(false));
-          }}
-          className="text-[14px] text-[#85858A] disabled:opacity-40"
+        <button type="button" onClick={onClear} className="text-[14px] text-[#E65707]">
+          Clear conversation
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ClearConversationDialog({
+  bot,
+  onCancel,
+  onConfirm,
+}: {
+  bot: Bot;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [clearing, setClearing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !clearing) onCancel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [clearing, onCancel]);
+
+  return (
+    <div
+      role="presentation"
+      className="absolute inset-0 z-50 grid place-items-center bg-[rgba(4,4,5,.76)] px-5"
+      onPointerDown={() => {
+        if (!clearing) onCancel();
+      }}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="clear-conversation-title"
+        aria-describedby="clear-conversation-description"
+        className="w-full max-w-[420px] rounded-[18px] border border-[#343438] bg-[#1A1A1D] p-5 shadow-[0_24px_70px_rgba(0,0,0,.65)]"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <h2 id="clear-conversation-title" className="text-[17px] font-medium text-[#F1F1F2]">
+          Clear {bot.name}’s conversation?
+        </h2>
+        <p
+          id="clear-conversation-description"
+          className="mt-2 text-[14px] leading-6 text-[#9A9AA0]"
         >
-          {archiving ? "Archiving…" : "Archive bot"}
-        </button>
-        <button type="button" onClick={onDelete} className="text-[14px] text-[#E65707]">
-          Delete bot…
-        </button>
+          This permanently removes every message and stops current work. The bot, computer, memory,
+          and routines are kept.
+        </p>
+        {error ? <p className="mt-3 text-[13.5px] text-[#FF5364]">{error}</p> : null}
+        <div className="mt-5 flex justify-end gap-2.5">
+          <button
+            type="button"
+            disabled={clearing}
+            onClick={onCancel}
+            className="rounded-[10px] px-3.5 py-2 text-[14px] text-[#C9C9CE] hover:bg-[#29292D] disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={clearing}
+            onClick={() => {
+              setClearing(true);
+              setError(null);
+              void onConfirm().catch((err: unknown) => {
+                setError(err instanceof Error ? err.message : "Could not clear conversation");
+                setClearing(false);
+              });
+            }}
+            className="rounded-[10px] bg-[#FF5364] px-3.5 py-2 text-[14px] font-medium text-white disabled:opacity-40"
+          >
+            {clearing ? "Clearing…" : "Clear"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1841,6 +2893,79 @@ function DeleteBotDialog({
   );
 }
 
+function DeleteRoutineDialog({
+  routine,
+  onCancel,
+  onConfirm,
+}: {
+  routine: Routine;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deleting) onCancel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleting, onCancel]);
+
+  return (
+    <div
+      role="presentation"
+      className="absolute inset-0 z-50 grid place-items-center bg-[rgba(4,4,5,.76)] px-5"
+      onPointerDown={() => {
+        if (!deleting) onCancel();
+      }}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-routine-title"
+        aria-describedby="delete-routine-description"
+        className="w-full max-w-[420px] rounded-[18px] border border-[#343438] bg-[#1A1A1D] p-5 shadow-[0_24px_70px_rgba(0,0,0,.65)]"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <h2 id="delete-routine-title" className="text-[17px] font-medium text-[#F1F1F2]">
+          Delete {routine.name}?
+        </h2>
+        <p id="delete-routine-description" className="mt-2 text-[14px] leading-6 text-[#9A9AA0]">
+          This cannot be undone.
+        </p>
+        {error ? <p className="mt-3 text-[13.5px] text-[#FF5364]">{error}</p> : null}
+        <div className="mt-5 flex justify-end gap-2.5">
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={onCancel}
+            className="rounded-[10px] px-3.5 py-2 text-[14px] text-[#C9C9CE] hover:bg-[#29292D] disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={() => {
+              setDeleting(true);
+              setError(null);
+              void onConfirm().catch((err: unknown) => {
+                setError(err instanceof Error ? err.message : "Could not delete routine");
+                setDeleting(false);
+              });
+            }}
+            className="rounded-[10px] bg-[#FF5364] px-3.5 py-2 text-[14px] font-medium text-white disabled:opacity-40"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function embeddableScreenUrl(url: string | null): string | null {
   if (!url) return null;
   try {
@@ -1882,4 +3007,111 @@ function computerPlaceholder(
 
 function computerLabel(mode: ComputerStatus["mode"] | undefined, botName: string) {
   return mode === "dedicated" ? `${botName}’s computer` : "Team Computer";
+}
+
+function ArtifactImage({
+  botId,
+  artifactId,
+  name,
+}: {
+  botId: string;
+  artifactId: string;
+  name: string;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const container = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = container.current;
+    if (!element || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "320px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    setSrc(null);
+    void rpc.artifacts
+      .get({ botId, artifactId })
+      .then((artifact) => {
+        const bytes = decodeArtifactBase64(artifact.contentBase64);
+        objectUrl = URL.createObjectURL(
+          new Blob([new Uint8Array(bytes)], { type: artifact.mimeType }),
+        );
+        if (cancelled) URL.revokeObjectURL(objectUrl);
+        else setSrc(objectUrl);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [artifactId, botId, visible]);
+
+  return (
+    <div ref={container}>
+      {src ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="max-w-[240px] overflow-hidden rounded-[20px]"
+        >
+          <img src={src} alt={name} className="max-h-48 w-full object-cover" />
+        </button>
+      ) : (
+        <div className="rounded-[20px] border border-[#26262A] bg-[#17171A] px-4 py-3 text-[14px] text-[#85858A]">
+          {name}
+        </div>
+      )}
+      {open && src ? (
+        <button
+          type="button"
+          aria-label="Close image preview"
+          className="fixed inset-0 z-50 grid place-items-center bg-[rgba(4,4,5,.82)] p-6"
+          onClick={() => setOpen(false)}
+        >
+          <img
+            src={src}
+            alt={name}
+            className="max-h-[85vh] max-w-[90vw] rounded-[12px] object-contain"
+          />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const base64 = result.includes(",") ? (result.split(",")[1] ?? "") : result;
+      resolve(base64);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatBytes(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
