@@ -67,10 +67,6 @@ pnpm dev
 
 For production deployment behind a Cloudflare Tunnel, see [`infra/compose/VPS.md`](./infra/compose/VPS.md).
 
-## Lineage
-
-Manor is built on [Rakazo](https://github.com/elie222/rakazo), an excellent open-source agent platform (Apache 2.0), and contributes improvements back upstream. Manor takes that foundation in its own direction: a hosted, opinionated platform aimed squarely at service businesses.
-
 ## License
 
 Apache 2.0 — see [LICENSE](./LICENSE).
