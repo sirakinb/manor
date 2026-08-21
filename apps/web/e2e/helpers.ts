@@ -63,7 +63,7 @@ export async function completeOnboarding(page: Page, answers: string[], testInfo
     const created = page.waitForResponse(
       (response) => response.url().includes("/rpc/bots/create") && response.ok(),
     );
-    await page.getByRole("button", { name: "Open Rakazo" }).click();
+    await page.getByRole("button", { name: "Open Manor" }).click();
     await created;
     await page.waitForURL(/\/app/, { timeout: 5_000 }).catch(() => page.goto("/app"));
   }
@@ -80,7 +80,7 @@ export async function signup(
   testInfo?: TestInfo,
 ) {
   await page.goto("/sign-up");
-  await expect(page.getByRole("heading", { name: "Create your Rakazo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create your Manor" })).toBeVisible();
   if (testInfo) await captureScreenshot(page, testInfo, "01-sign-up");
   await page.getByPlaceholder("Your name").fill(name);
   await page.getByPlaceholder("Your email address").fill(email);

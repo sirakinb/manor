@@ -48,7 +48,10 @@ export function WelcomePage() {
           onClick={() => navigate("/sign-up")}
           className="lp-glass app-no-drag absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-[58%] items-center gap-2 rounded-full px-5 py-2.5 text-sm text-[#fafafa] transition hover:bg-white/15"
         >
-          <span aria-hidden="true" className="grid size-6 place-items-center rounded-full bg-white/90">
+          <span
+            aria-hidden="true"
+            className="grid size-6 place-items-center rounded-full bg-white/90"
+          >
             <span className="ml-0.5 border-y-[5px] border-l-[8px] border-y-transparent border-l-black" />
           </span>
           Watch it work
