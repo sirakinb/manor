@@ -11,6 +11,7 @@ playwright-report
 .env
 .env.local
 .env.*.local
+.env.vps
 data
 apps/**/data
 .tmp
@@ -35,3 +36,5 @@ verify-report
 .last-deployed-revision
 design/
 PRODUCT_PLAN.md
+**/._*
+.DS_Store

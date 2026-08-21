@@ -1,0 +1,221 @@
+# Manor production stack for the Hostinger VPS (srv1675098).
+#
+# Differences from docker-compose.prod.yml:
+# - Ingress via Cloudflare Tunnel (cloudflared) instead of Caddy: no host
+#   ports are published at all, so it co-exists with the box's Traefik and
+#   the Hermes agent without contention.
+# - SANDBOX_PROVIDER=docker: bot computers run as sibling containers through
+#   the sandbox supervisor, which needs /var/run/docker.sock.
+# - Memory limits sized for a 2 vCPU / 8 GB box shared with Hermes; expect
+#   1-2 concurrent bot computers.
+#
+# Usage (on the VPS, from the repo checkout):
+#   docker compose --env-file .env.vps -f infra/compose/docker-compose.vps.yml up -d --build
+
+name: manor-prod
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    mem_limit: 1g
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-manor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.vps}
+      POSTGRES_DB: ${POSTGRES_DB:-manor}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-manor} -d ${POSTGRES_DB:-manor}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Builds/tags the bot-computer image so the supervisor can launch it.
+  computer:
+    image: rakazo/computer:local
+    build:
+      context: ../sandboxes/computer
+    command: ["true"]
+    restart: "no"
+
+  data-init:
+    image: busybox:1
+    command: ["chown", "-R", "1000:1000", "/data"]
+    restart: "no"
+    volumes:
+      - appdata:/data
+
+  supervisor:
+    build:
+      context: ../..
+      dockerfile: infra/sandboxes/supervisor/Dockerfile
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 768m
+    env_file:
+      - ../../.env.vps
+    environment:
+      DATA_DIR: /data
+      SUPERVISOR_HOST: "0.0.0.0"
+      SUPERVISOR_PORT: "7091"
+      DOCKER_SOCKET: /var/run/docker.sock
+      RAKAZO_COMPUTER_IMAGE: rakazo/computer:local
+      SANDBOX_SCREEN_NETWORK: internal
+    expose:
+      - "7091"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - appdata:/data
+    networks:
+      - app
+    depends_on:
+      computer:
+        condition: service_completed_successfully
+      data-init:
+        condition: service_completed_successfully
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/compose/Dockerfile
+    restart: unless-stopped
+    command:
+      - bash
+      - -lc
+      - pnpm --filter @rakazo/db exec prisma migrate deploy && pnpm --filter @rakazo/api start
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 1536m
+    env_file:
+      - ../../.env.vps
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-manor}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.vps}@postgres:5432/${POSTGRES_DB:-manor}
+      DATA_DIR: /data
+      SANDBOX_PROVIDER: docker
+      SANDBOX_SUPERVISOR_URL: http://supervisor:7091
+      WAKEUP_DRIVER: graphile
+      AGENT_RUNTIME: pi
+    expose:
+      - "3100"
+    volumes:
+      - appdata:/data
+    networks:
+      - app
+      - data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      data-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3100/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/compose/Dockerfile
+    restart: unless-stopped
+    command: ["pnpm", "--filter", "@rakazo/worker", "start"]
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    mem_limit: 1536m
+    env_file:
+      - ../../.env.vps
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-manor}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.vps}@postgres:5432/${POSTGRES_DB:-manor}
+      DATA_DIR: /data
+      SANDBOX_PROVIDER: docker
+      SANDBOX_SUPERVISOR_URL: http://supervisor:7091
+      WAKEUP_DRIVER: graphile
+      AGENT_RUNTIME: pi
+    volumes:
+      - appdata:/data
+    networks:
+      - app
+      - data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/compose/Dockerfile
+    restart: unless-stopped
+    command: ["pnpm", "--filter", "@rakazo/web", "preview", "--host", "0.0.0.0", "--port", "5173"]
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 512m
+    env_file:
+      - ../../.env.vps
+    environment:
+      NODE_ENV: production
+      API_PROXY_TARGET: http://api:3100
+      RAKAZO_HOST: ${RAKAZO_HOST:?Set RAKAZO_HOST in .env.vps}
+    expose:
+      - "5173"
+    networks:
+      - app
+    depends_on:
+      api:
+        condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 128m
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.vps}"]
+    networks:
+      - app
+    depends_on:
+      web:
+        condition: service_started
+
+volumes:
+  pgdata:
+  appdata:
+
+networks:
+  # Supervisor launches bot computers onto its own network ("app", via
+  # SANDBOX_SCREEN_NETWORK=internal), so web can reach their noVNC ports
+  # by container IP. cloudflared reaches web:5173 here too.
+  app:
+  data:
+    internal: true
