@@ -1,56 +1,70 @@
-# Rakazo
+<p align="center">
+  <img src="./apps/web/public/manor-mark.png" width="96" alt="Manor" />
+</p>
 
-[![GitHub stars](https://img.shields.io/github/stars/elie222/rakazo?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/elie222/rakazo/stargazers)
-[![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?labelColor=black&style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/RWwKa2Sn7h)
+<h1 align="center">Manor</h1>
 
-![Rakazo — AI teammates you actually own](./docs/readme-hero.png)
+<p align="center"><em>Your team of always-on AI agents that you can give real work to.</em></p>
 
-Rakazo is an open-source platform for running persistent AI teammates. It is available on the web,
-as an Electron desktop app, and through an Expo mobile app. Bring your own model and computer
-provider, or run the complete stack locally.
+<p align="center">by <a href="https://pentridgemedia.com">Pentridge</a></p>
 
-Rakazo is in beta. Learn more at [rakazo.com](https://rakazo.com).
+---
 
-## Features
+## The problem with running a service business
 
-- Persistent bots with their own conversations, memory, routines, and history
-- Voice mode: speak replies, dictate, and call a bot. Bring your own ElevenLabs, OpenAI, or Cartesia key
-- Shared Team Computers and isolated Private computers
-- Browser, terminal, file, and graphical desktop access
-- Bots that can delegate to peer bots or short-lived subagents
-- Bring-your-own model credentials through Pi
-- Optional app integrations through Composio
-- Docker, E2B, Daytona, and trusted local-computer support
+If you run a service business — property management, a law practice, a med spa, a cleaning company, an agency — you already know the shape of the problem, because you live inside it.
 
-## Demo
+You find the leads. You answer the phone. You write the follow-ups. You chase the invoices. You update the CRM, when you remember to. Every task in the business waits for the same person: you. Software was supposed to help, and instead it gave you eleven more tabs to check.
 
-https://github.com/user-attachments/assets/dccdeddb-2134-4a56-8eed-b2e591736b1c
+The tools never actually *did* the work. They just held the work until you got there.
 
-## Stack
+## What Manor is
 
-- TypeScript
-- React 19, Vite, and Tailwind CSS
-- Electron and Expo
-- Hono and oRPC
-- PostgreSQL and Prisma
-- Better Auth
-- Graphile Worker
-- Pi
-- Docker, E2B, and Daytona
-- Composio
+Manor is a different bet: instead of giving you another tool, it gives you **staff**.
 
-## Quick start
+Each agent in Manor is hired like an employee, not prompted like a chatbot. You give it a name, a role, and a charter — what it owns, what good work looks like, and where it must stop and ask you. Then it gets the thing no chatbot has ever had:
 
-You need Node.js 22+, pnpm 9, and Docker Desktop.
+**Its own computer.**
+
+A real one, in the cloud — with a browser, a terminal, files, and a desktop. Your agents sign into the same tools you use — email, calendars, CRMs, spreadsheets, the web — and use them the way a person does: clicking, typing, navigating, filing. When a login wall appears, the agent hands you the screen; you sign in once, and your whole staff is signed in.
+
+And because the computers live in the cloud, **your agents keep working after you close your laptop.** Routines fire at 7am whether you're awake or not. The Friday close happens on Friday. Work stops waiting for you.
+
+## How you build your staff
+
+**Hire by writing a charter.** A role, its responsibilities, its boundaries — the same brief you'd give a new hire on day one. Agents that must ask about everything are useless; agents that never ask are dangerous. The charter is where you draw that line once, instead of worrying about it every day.
+
+**Show it the work — once.** Open an agent's computer, hit *Teach a task*, and walk through the workflow while it watches. It saves what you did as a named skill. Attach a schedule, and something you used to grind through every week now happens every night without you.
+
+**Let them build the team.** Agents can hire other agents. A coordinator can spin up a specialist for a lane of work, hand it a charter, and manage it — which is the moment one assistant quietly becomes a company.
+
+**Bring the model you already pay for.** Manor doesn't sell you tokens. Connect the AI subscription you already have — ChatGPT Plus/Pro, Claude Pro/Max, GitHub Copilot, SuperGrok — or paste any API key. Your models, your spend, your data.
+
+## Where it's headed
+
+Manor is young and moving fast. On the bench right now:
+
+- **Group chats with handoffs** — put several agents in one room, give them an objective instead of a task list, and let them pass the work between themselves
+- **Event triggers** — agents that react the moment an email lands or a message arrives, not just on a schedule
+- **Deep service-business integrations** — the systems your industry actually runs on, connected natively
+
+The goal isn't a smarter chatbot. It's the first genuinely affordable back office.
+
+## Under the hood
+
+TypeScript end to end — React 19 + Vite on the web, Electron on desktop, Expo on mobile. Hono + oRPC APIs, PostgreSQL + Prisma, Graphile Worker for the always-on machinery, sandboxed agent computers on Docker (with E2B and Daytona as managed options), model access through Pi, and hundreds of app integrations through Composio.
+
+## Run it yourself
+
+You'll need Node.js 22+, pnpm 9, and Docker Desktop.
 
 ```bash
-git clone https://github.com/elie222/rakazo.git
-cd rakazo
+git clone https://github.com/sirakinb/manor.git
+cd manor
 cp .env.example .env
 ```
 
-Set `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` in `.env` to independent, long random values. You can
-also set `OPENROUTER_API_KEY`, or connect a supported model provider during onboarding.
+Set `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` to independent, long random values. Optionally set `OPENROUTER_API_KEY`, or connect a model subscription during onboarding.
 
 ```bash
 docker compose --env-file .env -f infra/compose/docker-compose.yml up postgres -d
@@ -61,77 +75,12 @@ pnpm sandbox:build
 pnpm dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173), create an account, connect a model, and create
-your first bot.
+For production deployment behind a Cloudflare Tunnel, see [`infra/compose/VPS.md`](./infra/compose/VPS.md).
 
-For an agent-assisted installation, use [SETUP_PROMPT.md](./SETUP_PROMPT.md). For deployment,
-provider selection, backups, and upgrades, see the [self-hosting guide](./docs/self-host.md).
+## Lineage
 
-## Desktop and mobile
+Manor is built on [Rakazo](https://github.com/elie222/rakazo), an excellent open-source agent platform (Apache 2.0), and contributes improvements back upstream. Manor takes that foundation in its own direction: a hosted, opinionated platform aimed squarely at service businesses.
 
-The Electron and Expo apps are clients of the same Rakazo API used by the web app.
+## License
 
-With the development stack running, launch Electron with:
-
-```bash
-pnpm --filter @rakazo/desktop dev
-```
-
-Mobile build and release instructions live in [docs/mobile-release.md](./docs/mobile-release.md).
-
-## Development
-
-Rakazo is a TypeScript monorepo built with React, Electron, Expo, Hono, Postgres, Prisma, Graphile
-Worker, and Pi.
-
-```text
-apps/       web, api, worker, desktop, mobile, and public website
-packages/   domain, contracts, persistence, adapters, UI, and test tooling
-infra/      local services and computer images
-docs/       architecture, operations, and release guides
-```
-
-Common checks:
-
-```bash
-pnpm lint
-pnpm check
-pnpm test
-pnpm test:integration
-pnpm test:e2e
-```
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development workflow and test matrix.
-
-## Documentation
-
-```bash
-pnpm test              # unit, property, and in-process contract tests
-pnpm test:integration  # Postgres journeys, Graphile jobs, LISTEN/NOTIFY
-pnpm test:e2e          # Playwright against the emulated stack
-pnpm test:e2e -- --sandbox=e2b # the same deterministic suite against real E2B
-pnpm test:e2e -- --sandbox=daytona # the same suite against real Daytona
-pnpm test:e2e -- --sandbox=box # the same suite against real Box
-pnpm test:topology     # local Docker + Graphile worker recovery (needs Docker)
-pnpm test:canary       # live OpenRouter / E2B / Box canaries
-# explicit real vision-model + real E2B desktop acceptance test:
-COMPUTER_E2E_MODEL=<vision-capable-openrouter-model-id> pnpm test:computer
-```
-
-- [Self-hosting](./docs/self-host.md)
-- [Computer runtime and isolation](./docs/computer-runtime.md)
-- [Mobile releases](./docs/mobile-release.md)
-- [Performance testing](./docs/performance.md)
-
-## Contributing
-
-The Playwright workflow can also be started manually with **Sandbox provider** set to `e2b`, `daytona`, or `box`.
-Those options require `E2B_API_KEY`, `DAYTONA_API_KEY`, or `BOX_API_KEY`, keep the deterministic scripted agent runtime, and destroy
-the provider machines after the run. The default and all automatic runs remain on `fake`.
-Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull
-request. For security vulnerabilities, follow [SECURITY.md](./SECURITY.md) instead of filing a public
-issue.
-
-Rakazo is licensed under the [Apache License 2.0](./LICENSE).
-
-Questions and ideas are welcome in the [Rakazo Discord community](https://discord.gg/RWwKa2Sn7h).
+Apache 2.0 — see [LICENSE](./LICENSE).
