@@ -2,6 +2,17 @@ import * as z from "zod";
 import { ThreadMessageSchema } from "./events.js";
 import { Id, MemoryScope, RunStatus, SandboxKind } from "./ids.js";
 
+/// A conversation several bots take part in. Direct threads keep their single
+/// bot; a room has participants instead.
+export const RoomSchema = z.object({
+  id: Id,
+  workspaceId: Id,
+  name: z.string(),
+  botIds: z.array(Id),
+  createdAt: z.string(),
+});
+export type Room = z.infer<typeof RoomSchema>;
+
 export const ComputerModeSchema = z.enum(["team", "dedicated"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 
@@ -261,6 +272,16 @@ export const ThreadSnapshotSchema = z.object({
   computer: ComputerStatusSchema,
 });
 export type ThreadSnapshot = z.infer<typeof ThreadSnapshotSchema>;
+
+/// A room's transcript plus who is in it and which of them are working.
+export const RoomSnapshotSchema = z.object({
+  room: RoomSchema,
+  cursor: z.number().int().min(-1),
+  messages: z.array(ThreadMessageSchema),
+  olderCursor: z.number().int().nonnegative().nullable(),
+  runningBotIds: z.array(Id),
+});
+export type RoomSnapshot = z.infer<typeof RoomSnapshotSchema>;
 
 export const ModelCredentialSchema = z.object({
   id: Id,

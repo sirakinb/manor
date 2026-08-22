@@ -78,6 +78,11 @@ export interface CompactHistoryDeps {
 
 export async function compactHistory(deps: CompactHistoryDeps, threadId: string): Promise<void> {
   const thread = await deps.prisma.thread.findUniqueOrThrow({ where: { id: threadId } });
+  // Compaction summarizes as the thread's bot and files the memory under it.
+  // A room has no single owner, so there is no right bot to summarize as or to
+  // remember it; rooms keep their full history until that has a design.
+  const threadBotId = thread.botId;
+  if (!threadBotId) return;
   const { fromSeqExclusive, take } = nextCompactionBatchRange(
     thread.historyCompactedUpToSeq,
     COMPACTION_BATCH_SIZE,
@@ -135,7 +140,7 @@ export async function compactHistory(deps: CompactHistoryDeps, threadId: string)
   let summary = "";
   for await (const event of deps.runtime.run(
     {
-      botId: thread.botId,
+      botId: threadBotId,
       threadId,
       runId: `compact:${threadId}:${fromSeqExclusive}`,
       prompt: transcript,
@@ -158,7 +163,7 @@ export async function compactHistory(deps: CompactHistoryDeps, threadId: string)
   if (!summary) return;
 
   const save = deps.saveSupermemoryMemory ?? defaultSaveSupermemoryMemory;
-  const result = await save(summary, supermemoryContainerTag(thread.botId));
+  const result = await save(summary, supermemoryContainerTag(threadBotId));
   if (!result.ok) throw new Error(`Failed to save compacted memory: ${result.error}`);
 
   const lastSeq = batch[batch.length - 1]!.seq;

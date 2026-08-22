@@ -33,6 +33,7 @@ export interface ThreadEvents {
   notify(threadId: string, seq: number): Promise<void>;
   pauseRunForInput(input: PauseRunForInput): Promise<boolean>;
   sendUserMessage(input: SendUserMessageInput): Promise<SendUserMessageResult>;
+  sendRoomMessage(input: SendRoomMessageInput): Promise<SendRoomMessageResult>;
   follow(threadId: string, cursor: number, signal?: AbortSignal): AsyncGenerator<ProductEvent>;
 }
 
@@ -104,6 +105,28 @@ export interface SendUserMessageInput {
   linkMessageToRun?: boolean;
 }
 
+/**
+ * A turn in a room: one message, and a run for each bot it wakes. Rooms carry
+ * several bots, so a turn is not one run — it is however many the mentions ask
+ * for, created together so a partial wake can never be committed.
+ */
+export interface SendRoomMessageInput {
+  workspaceId: string;
+  threadId: string;
+  userId: string;
+  /** The bot that wrote this, when a bot did. Absent for a person. */
+  authorBotId?: string;
+  blocks: MessageBlock[];
+  prompt: string;
+  wakeBotIds: string[];
+}
+
+export interface SendRoomMessageResult {
+  messageId: string;
+  seq: number;
+  runs: Array<{ botId: string; runId: string; taskId: string }>;
+}
+
 export interface SendUserMessageResult {
   messageId: string;
   seq: number;
@@ -126,6 +149,7 @@ export function createThreadEvents(
     notify: (threadId, seq) => notifyRealtime(realtime, threadId, seq),
     pauseRunForInput: (input) => pauseRunForInput(prisma, input, realtime),
     sendUserMessage: (input) => sendUserMessage(prisma, input, realtime),
+    sendRoomMessage: (input) => sendRoomMessage(prisma, input, realtime),
     follow: (threadId, cursor, signal) =>
       followThreadEvents(prisma, threadId, cursor, realtime, signal, options.catchUpMs),
   };
@@ -282,6 +306,66 @@ export async function sendUserMessage(
   };
 }
 
+export async function sendRoomMessage(
+  prisma: PrismaClient,
+  input: SendRoomMessageInput,
+  realtime?: RealtimeFanout,
+): Promise<SendRoomMessageResult> {
+  const committed = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const message = await createThreadMessageInTransaction(tx, {
+      threadId: input.threadId,
+      role: input.authorBotId ? "bot" : "user",
+      authorBotId: input.authorBotId,
+      blocks: input.blocks,
+    });
+    const runs: Array<{ botId: string; runId: string; taskId: string }> = [];
+    for (const botId of input.wakeBotIds) {
+      const task = await tx.task.create({
+        data: {
+          workspaceId: input.workspaceId,
+          botId,
+          threadId: input.threadId,
+          userId: input.userId,
+          prompt: input.prompt,
+          status: "queued",
+        },
+      });
+      const run = await tx.run.create({
+        data: {
+          workspaceId: input.workspaceId,
+          botId,
+          threadId: input.threadId,
+          taskId: task.id,
+          userId: input.userId,
+          status: "queued",
+          // A mention is a turn addressed to this bot, whoever wrote it.
+          trigger: "user",
+        },
+      });
+      runs.push({ botId, runId: run.id, taskId: task.id });
+    }
+    const event = await appendEventInTransaction(tx, {
+      workspaceId: input.workspaceId,
+      threadId: input.threadId,
+      botId: input.authorBotId ?? input.wakeBotIds[0] ?? "",
+      type: "thread.message.created",
+      payload: {
+        messageId: message.id,
+        role: input.authorBotId ? "bot" : "user",
+        blocks: input.blocks,
+        authorBotId: input.authorBotId,
+      },
+    });
+    return { message, runs, event };
+  });
+  await notifyRealtime(realtime, input.threadId, committed.event.seq);
+  return {
+    messageId: committed.message.id,
+    seq: committed.message.seq,
+    runs: committed.runs,
+  };
+}
+
 export async function answerRunInput(
   prisma: PrismaClient,
   input: AnswerRunInput,
@@ -383,6 +467,8 @@ export async function pauseRunForInput(
     const message = await createThreadMessageInTransaction(tx, {
       threadId: input.threadId,
       role: "bot",
+      // A run's messages belong to its bot, which is how a room attributes them.
+      authorBotId: input.botId,
       blocks: input.blocks,
       runId: input.runId,
     });
@@ -532,6 +618,8 @@ export async function finalizeRun(
       const message = await createThreadMessageInTransaction(tx, {
         threadId: input.threadId,
         role: "bot",
+        // A run's messages belong to its bot, which is how a room attributes them.
+        authorBotId: input.botId,
         blocks: input.blocks,
         runId: input.runId,
       });
