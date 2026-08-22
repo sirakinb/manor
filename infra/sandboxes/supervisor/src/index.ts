@@ -667,7 +667,7 @@ async function applyComputerDns(container: Docker.Container) {
     await runContainerCommand(container, [
       "sh",
       "-c",
-      `printf %s ${JSON.stringify(contents)} > /etc/resolv.conf`,
+      `printf %b ${JSON.stringify(contents)} > /etc/resolv.conf`,
     ]);
   } catch (error) {
     console.error("computer dns setup", error);
