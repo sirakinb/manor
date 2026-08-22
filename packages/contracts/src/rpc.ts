@@ -148,6 +148,8 @@ export const appContract = {
         messageId: Id,
         seq: z.number().int().nonnegative(),
         woke: z.array(Id),
+        // Mentioned bots wake one at a time, so the rest wait their turn.
+        queued: z.array(Id),
         refused: z.array(z.object({ botId: Id, reason: z.string() })),
       }),
     ),

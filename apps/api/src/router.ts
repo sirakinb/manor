@@ -1849,6 +1849,9 @@ async function sendRoomTurn(
     botsAlreadyRunning: running.map((run) => run.botId),
   });
 
+  // Naming several bots reads as an order more often than a poll, so only the
+  // first starts now; each one wakes the next as it finishes.
+  const [first, ...queued] = decision.wake;
   const sent = await deps.events.sendRoomMessage({
     workspaceId: actor.workspaceId,
     threadId: room.id,
@@ -1856,7 +1859,7 @@ async function sendRoomTurn(
     authorBotId: input.authorBotId,
     blocks: buildUserMessageBlocks(input.text, []),
     prompt: input.text,
-    wakeBotIds: decision.wake,
+    wakeBotIds: first ? [first] : [],
   });
   for (const run of sent.runs) {
     await deps.jobs.enqueue(runContinueJob(run.runId));
@@ -1864,7 +1867,8 @@ async function sendRoomTurn(
   return {
     messageId: sent.messageId,
     seq: sent.seq,
-    woke: decision.wake,
+    woke: first ? [first] : [],
+    queued,
     refused: decision.refused.map((entry: { botId: string; reason: string }) => ({
       botId: entry.botId,
       reason: entry.reason,

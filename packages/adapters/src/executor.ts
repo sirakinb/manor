@@ -83,7 +83,7 @@ import {
   secretValuesToRedact,
   serializeModelSecret,
 } from "./pi-oauth.js";
-import { handOffRoomMentions } from "./room-handoff.js";
+import { handOffRoomMentions, wakeNextMentioned } from "./room-handoff.js";
 import { inferScript } from "./scripted-runtime.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 import {
@@ -1239,6 +1239,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 userId: run.userId,
                 authorBotId: bot.id,
                 text,
+              });
+              // Then whoever the person named and is still waiting. This runs
+              // after the handoff so an explicit pass of the baton wins, and it
+              // no-ops while anyone is still working.
+              await wakeNextMentioned(deps, {
+                threadId: thread.id,
+                workspaceId: run.workspaceId,
+                userId: run.userId,
               });
             } catch (error) {
               console.error("room handoff", error);

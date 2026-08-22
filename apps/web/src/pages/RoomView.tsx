@@ -57,6 +57,10 @@ export function RoomView({
       if (result.woke.length === 0 && text.includes("@")) {
         setNotice("Nobody was woken — check the name matches a bot in this room.");
       }
+      if (result.queued.length > 0) {
+        const names = result.queued.map((botId) => botById.get(botId)?.name ?? "a bot").join(", ");
+        setNotice(`${names} will follow once the bot before them is done.`);
+      }
       if (result.refused.length > 0) {
         const names = result.refused
           .map((entry) => botById.get(entry.botId)?.name ?? "a bot")
