@@ -15,7 +15,14 @@
 //   BLUEBUBBLES_URL        http://127.0.0.1:1234
 //   BLUEBUBBLES_PASSWORD   BlueBubbles server password
 //   ALLOWED_SENDERS        comma-separated handles allowed to command the bot
+//   TRIGGER_PREFIX         only relay messages starting with this, e.g. "@manor"
+//   ALLOW_FROM_ME          "true" to accept your own messages (self-chat setups)
 //   PORT                   default 8787
+//
+// When the Mac shares your Apple ID, texting the bot means texting yourself, so
+// the messages arrive marked as your own. ALLOW_FROM_ME turns those into
+// commands; TRIGGER_PREFIX then keeps the bot's own replies from re-triggering
+// it, since replies never carry the prefix.
 //
 // ALLOWED_SENDERS is not optional in spirit. Anyone who can text this Mac can
 // otherwise drive an agent that holds your logins, so the relay refuses every
@@ -30,6 +37,8 @@ const config = {
   outboundToken: process.env.CHANNEL_OUTBOUND_TOKEN ?? "",
   blueBubblesUrl: (process.env.BLUEBUBBLES_URL ?? "http://127.0.0.1:1234").replace(/\/$/, ""),
   blueBubblesPassword: process.env.BLUEBUBBLES_PASSWORD ?? "",
+  triggerPrefix: (process.env.TRIGGER_PREFIX ?? "").trim(),
+  allowFromMe: (process.env.ALLOW_FROM_ME ?? "").toLowerCase() === "true",
   allowedSenders: (process.env.ALLOWED_SENDERS ?? "")
     .split(",")
     .map((entry) => entry.trim().toLowerCase())
@@ -60,7 +69,12 @@ function senderAllowed(handle) {
   if (!candidate) return false;
   return config.allowedSenders.some((entry) => {
     const allowed = normalizeHandle(entry);
-    return allowed === candidate || (allowed.length >= 7 && candidate.endsWith(allowed));
+    if (!allowed) return false;
+    if (allowed.includes("@") || candidate.includes("@")) return allowed === candidate;
+    // Numbers may arrive with or without a country code; compare on the shorter.
+    const [longer, shorter] =
+      allowed.length >= candidate.length ? [allowed, candidate] : [candidate, allowed];
+    return shorter.length >= 7 && longer.endsWith(shorter);
   });
 }
 
@@ -89,15 +103,25 @@ async function handleBlueBubbles(req, res) {
   const data = payload.data ?? {};
 
   if (type !== "new-message") return json(res, 200, { ignored: `event ${type}` });
-  if (data.isFromMe) return json(res, 200, { ignored: "own message" });
+  if (data.isFromMe && !config.allowFromMe) return json(res, 200, { ignored: "own message" });
 
-  const text = String(data.text ?? "").trim();
+  let text = String(data.text ?? "").trim();
+
+  // The prefix is what separates a command from ordinary conversation — and,
+  // in a self-chat, from the bot's own replies.
+  if (config.triggerPrefix) {
+    if (!text.toLowerCase().startsWith(config.triggerPrefix.toLowerCase())) {
+      return json(res, 200, { ignored: "no trigger prefix" });
+    }
+    text = text.slice(config.triggerPrefix.length).trim();
+  }
   const chatId = data.chats?.[0]?.guid ?? data.chatGuid ?? "";
   const from = data.handle?.address ?? data.handleId ?? "";
   const messageId = data.guid ?? "";
 
   if (!text || !chatId) return json(res, 200, { ignored: "no text or chat" });
-  if (!senderAllowed(from)) {
+  // Your own messages are already proven to be yours by isFromMe.
+  if (!data.isFromMe && !senderAllowed(from)) {
     log(`refused message from ${from || "unknown sender"}`);
     return json(res, 200, { ignored: "sender not allowed" });
   }
@@ -163,5 +187,9 @@ createServer(async (req, res) => {
   }
 }).listen(config.port, "127.0.0.1", () => {
   log(`iMessage relay on http://127.0.0.1:${config.port}`);
-  log(`  bot ${config.botId} · ${config.allowedSenders.length} allowed sender(s)`);
+  log(
+    `  bot ${config.botId} · ${config.allowedSenders.length} allowed sender(s)` +
+      `${config.triggerPrefix ? ` · prefix "${config.triggerPrefix}"` : ""}` +
+      `${config.allowFromMe ? " · own messages accepted" : ""}`,
+  );
 });

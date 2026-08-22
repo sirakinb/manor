@@ -16,6 +16,7 @@ import { type JobPublisher, runContinueJob } from "@rakazo/adapter-kit";
 import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import type { Context, Hono } from "hono";
 import { buildUserMessageBlocks } from "./artifacts.js";
+import { twilioConfig, twilioSenderAllowed, twilioSignatureValid } from "./twilio.js";
 
 export interface ChannelDeps {
   prisma: PrismaClient;
@@ -24,6 +25,11 @@ export interface ChannelDeps {
 }
 
 const MAX_TEXT_LENGTH = 8_000;
+
+/** Empty TwiML: accept the message without sending an automatic reply. */
+function twiml() {
+  return '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
+}
 
 export function channelWebhookSecret(env: NodeJS.ProcessEnv = process.env) {
   return env.CHANNEL_WEBHOOK_SECRET?.trim() ?? "";
@@ -54,20 +60,52 @@ function originPreamble(provider: string, chatId: string, from: string | undefin
 
 export function mountChannelRoutes(app: Hono, deps: ChannelDeps) {
   app.post("/api/channels/:provider/inbound", async (c) => {
-    const secret = channelWebhookSecret();
-    if (!secret) return c.json({ error: "Channels are not configured" }, 503);
-    if (!authorized(c, secret)) return c.json({ error: "Unauthorized" }, 401);
-
     const provider = c.req.param("provider").slice(0, 40);
-    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-    const botId = typeof body.botId === "string" ? body.botId : "";
-    const text = typeof body.text === "string" ? body.text.slice(0, MAX_TEXT_LENGTH).trim() : "";
-    const chatId = typeof body.chatId === "string" ? body.chatId.slice(0, 200) : "";
-    const from = typeof body.from === "string" ? body.from.slice(0, 200) : undefined;
-    const messageId = typeof body.messageId === "string" ? body.messageId.slice(0, 200) : "";
+    let botId = "";
+    let text = "";
+    let chatId = "";
+    let from: string | undefined;
+    let messageId = "";
 
-    if (!botId || !text || !chatId) {
-      return c.json({ error: "botId, text, and chatId are required" }, 400);
+    if (provider === "twilio") {
+      // Twilio posts a form and proves itself with a request signature.
+      const config = twilioConfig();
+      if (!config) return c.json({ error: "Twilio is not configured" }, 503);
+      const form = Object.fromEntries(
+        [...(await c.req.formData().catch(() => new FormData())).entries()].map(([k, v]) => [
+          k,
+          String(v),
+        ]),
+      ) as Record<string, string>;
+      const signature = c.req.header("x-twilio-signature") ?? "";
+      if (!twilioSignatureValid(c.req.url, form, signature, config.authToken)) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+      from = (form.From ?? "").slice(0, 200);
+      if (!twilioSenderAllowed(from, config)) {
+        // Answer 200 so Twilio does not retry a message we will never accept.
+        return c.body(twiml(), 200, { "content-type": "text/xml" });
+      }
+      botId = config.botId;
+      text = (form.Body ?? "").slice(0, MAX_TEXT_LENGTH).trim();
+      chatId = from;
+      messageId = (form.MessageSid ?? "").slice(0, 200);
+      if (!text) return c.body(twiml(), 200, { "content-type": "text/xml" });
+    } else {
+      const secret = channelWebhookSecret();
+      if (!secret) return c.json({ error: "Channels are not configured" }, 503);
+      if (!authorized(c, secret)) return c.json({ error: "Unauthorized" }, 401);
+
+      const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+      botId = typeof body.botId === "string" ? body.botId : "";
+      text = typeof body.text === "string" ? body.text.slice(0, MAX_TEXT_LENGTH).trim() : "";
+      chatId = typeof body.chatId === "string" ? body.chatId.slice(0, 200) : "";
+      from = typeof body.from === "string" ? body.from.slice(0, 200) : undefined;
+      messageId = typeof body.messageId === "string" ? body.messageId.slice(0, 200) : "";
+
+      if (!botId || !text || !chatId) {
+        return c.json({ error: "botId, text, and chatId are required" }, 400);
+      }
     }
 
     // Trusted context: the bot row decides the workspace and user.
@@ -91,7 +129,11 @@ export function mountChannelRoutes(app: Hono, deps: ChannelDeps) {
         where: { workspaceId: bot.workspaceId, clientNonce: nonce },
         select: { id: true, taskId: true },
       });
-      if (existing) return c.json({ ok: true, runId: existing.id, duplicate: true });
+      if (existing) {
+        return provider === "twilio"
+          ? c.body(twiml(), 200, { "content-type": "text/xml" })
+          : c.json({ ok: true, runId: existing.id, duplicate: true });
+      }
     }
 
     const prompt = `${originPreamble(provider, chatId, from)}\n\n${text}`;
@@ -114,6 +156,8 @@ export function mountChannelRoutes(app: Hono, deps: ChannelDeps) {
       data: { status: "cancelled", completedAt: new Date() },
     });
     await deps.jobs.enqueue(runContinueJob(runId));
-    return c.json({ ok: true, runId });
+    return provider === "twilio"
+      ? c.body(twiml(), 200, { "content-type": "text/xml" })
+      : c.json({ ok: true, runId });
   });
 }

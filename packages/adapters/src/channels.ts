@@ -8,6 +8,9 @@
 //   CHANNEL_OUTBOUND_TOKEN   bearer token presented to the bridge
 //   CHANNEL_ALLOWED_CHATS    optional comma-separated allowlist of chat ids
 //
+// Twilio needs no bridge: when TWILIO_* is configured, provider "twilio" is
+// delivered straight to Twilio's API.
+//
 // The allowlist matters more than it looks. An agent that reads untrusted
 // content can be talked into replying somewhere new, which is the shape data
 // exfiltration takes on a messaging channel. When it is set, the agent can only
@@ -56,14 +59,6 @@ export async function sendChannelMessage(
   const chatId = request.chatId.trim();
   const text = request.text.slice(0, MAX_TEXT_LENGTH);
 
-  if (!url) {
-    return {
-      delivered: false,
-      provider,
-      chatId,
-      detail: "No channel bridge is configured for this deployment.",
-    };
-  }
   if (!provider || !chatId || !text.trim()) {
     return {
       delivered: false,
@@ -81,6 +76,19 @@ export async function sendChannelMessage(
     };
   }
 
+  if (provider === "twilio" || provider === "sms") {
+    const twilio = await sendViaTwilio(chatId, text, env, options.signal);
+    if (twilio) return { ...twilio, provider, chatId };
+  }
+
+  if (!url) {
+    return {
+      delivered: false,
+      provider,
+      chatId,
+      detail: "No channel bridge is configured for this deployment.",
+    };
+  }
   const token = env.CHANNEL_OUTBOUND_TOKEN?.trim();
   const signals = [options.signal, AbortSignal.timeout(OUTBOUND_TIMEOUT_MS)].filter(
     Boolean,
@@ -112,6 +120,49 @@ export async function sendChannelMessage(
       provider,
       chatId,
       detail: error instanceof Error ? error.message : "channel delivery failed",
+    };
+  }
+}
+
+/**
+ * Twilio delivery. Returns null when the deployment has no Twilio credentials,
+ * so the caller can fall back to a generic bridge.
+ */
+async function sendViaTwilio(
+  to: string,
+  text: string,
+  env: NodeJS.ProcessEnv,
+  signal?: AbortSignal,
+): Promise<{ delivered: boolean; detail?: string } | null> {
+  const accountSid = env.TWILIO_ACCOUNT_SID?.trim();
+  const authToken = env.TWILIO_AUTH_TOKEN?.trim();
+  const from = env.TWILIO_FROM_NUMBER?.trim();
+  if (!accountSid || !authToken || !from) return null;
+
+  const body = new URLSearchParams({ To: to, From: from, Body: text.slice(0, 1_600) });
+  const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Basic ${auth}`,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body,
+        signal: signal ?? AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
+      },
+    );
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      return { delivered: false, detail: `twilio ${response.status}: ${detail.slice(0, 200)}` };
+    }
+    return { delivered: true };
+  } catch (error) {
+    return {
+      delivered: false,
+      detail: error instanceof Error ? error.message : "twilio send failed",
     };
   }
 }
