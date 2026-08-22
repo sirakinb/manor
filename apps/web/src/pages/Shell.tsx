@@ -1,6 +1,7 @@
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type {
   Bot,
+  BotSection,
   ComputerMode,
   ComputerStatus,
   Me,
@@ -24,6 +25,7 @@ import {
   cronFromPreset,
   defaultCronPreset,
   formatCron,
+  groupBotsForSidebar,
   inferAttachmentMimeType,
   isActive,
   presetFromCron,
@@ -75,12 +77,14 @@ import { revokePendingAttachmentPreviews } from "../lib/pending-attachments";
 import { markAfterPaint, markOnce } from "../lib/performance";
 import { rpc } from "../lib/rpc";
 import {
+  computerPanelAutoBoot,
   isComputerStatusEvent,
   isThreadSnapshotEvent,
   mergeThreadSnapshot,
   prependThreadMessagePage,
   reduceComputerStatus,
   reduceThreadSnapshot,
+  userHoldsComputerControl,
 } from "../lib/thread-events";
 import { speaker } from "../lib/tts";
 import type { ContextMenuPosition } from "./BotContextMenu";
@@ -122,6 +126,7 @@ export function ShellPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const session = authClient.useSession();
   const [bots, setBots] = useState<Bot[]>([]);
+  const [botSections, setBotSections] = useState<BotSection[]>([]);
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -167,6 +172,7 @@ export function ShellPage() {
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Bot | null>(null);
   const [clearTarget, setClearTarget] = useState<Bot | null>(null);
+  const [newSectionBot, setNewSectionBot] = useState<Bot | null>(null);
   const [booting, setBooting] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [initialBotsLoaded, setInitialBotsLoaded] = useState(false);
@@ -267,12 +273,14 @@ export function ShellPage() {
 
   async function refreshBots(includeArchived = false) {
     markOnce("rk:renderer:bots-request-start");
-    const [list, archived] = await Promise.all([
+    const [list, sections, archived] = await Promise.all([
       rpc.bots.list(),
+      rpc.botSections.list(),
       includeArchived ? rpc.bots.listArchived() : Promise.resolve(null),
     ]);
     markOnce("rk:renderer:bots-response");
     setBots(list);
+    setBotSections(sections);
     setInitialBotsLoaded(true);
     if (archived) setArchivedBots(archived);
     if (includeArchived && list.length === 0 && archived?.length === 0) {
@@ -330,7 +338,7 @@ export function ShellPage() {
   }
 
   async function refreshComputerScreen(id: string) {
-    if (!computerVisible.current) return;
+    if (!computerVisible.current) return null;
     const request = ++screenRequest.current;
     const screen = await rpc.computer.screenUrl({ botId: id }).catch(() => ({ url: null }));
     if (
@@ -338,9 +346,10 @@ export function ShellPage() {
       activeBotId.current !== id ||
       !computerVisible.current
     ) {
-      return;
+      return null;
     }
     setScreenUrl(screen.url);
+    return screen.url;
   }
 
   async function loadOlderMessages() {
@@ -374,6 +383,7 @@ export function ShellPage() {
         if (cancelled) return;
         setBootstrapMe(bootstrap.me);
         setBots(bootstrap.bots);
+        setBotSections(bootstrap.botSections);
         setArchivedBots(bootstrap.archivedBots);
         setInitialBotsLoaded(true);
         if (bootstrap.thread) {
@@ -572,6 +582,10 @@ export function ShellPage() {
   const filtered = useMemo(
     () => bots.filter((b) => `${b.name} ${b.preview}`.toLowerCase().includes(query.toLowerCase())),
     [bots, query],
+  );
+  const sidebarGroups = useMemo(
+    () => groupBotsForSidebar(filtered, botSections),
+    [botSections, filtered],
   );
   const workspaceQuery = query.trim();
   const showWorkspaceSearch = workspaceQuery.length > 0;
@@ -900,15 +914,33 @@ export function ShellPage() {
       return;
     }
     if (!active) return;
-    if (computer?.state === "booting" || computer?.state === "suspended") return;
-    if (autoBooted.current === active.id && computer?.state === "running" && screenUrl) return;
-    autoBooted.current = active.id;
-    void bootComputer({
-      takeControl: false,
-      overlay: computer?.state !== "running",
-      force: true,
-    });
-  }, [panel, active?.id, computer?.state, screenUrl]);
+    const botId = active.id;
+    let cancelled = false;
+    void (async () => {
+      // Refresh from the server first. A stale SSE "booting" snapshot used to
+      // skip this effect, so an RPC takeover never showed "You have control".
+      const snap = await refreshThread(botId).catch(() => null);
+      if (cancelled || activeBotId.current !== botId) return;
+      const state = snap?.computer?.state;
+      const screen = state === "running" ? await refreshComputerScreen(botId) : null;
+      if (cancelled || activeBotId.current !== botId) return;
+      const action = computerPanelAutoBoot(state, screen);
+      if (action === "wait") {
+        if (state === "running") autoBooted.current = botId;
+        return;
+      }
+      if (action === "boot" && autoBooted.current === botId) return;
+      autoBooted.current = botId;
+      await bootComputer({
+        takeControl: false,
+        overlay: action === "boot",
+        force: true,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [panel, active?.id]);
 
   useEffect(() => {
     setComputerOpen(false);
@@ -952,7 +984,7 @@ export function ShellPage() {
 
   async function openComputer() {
     if (!active) return;
-    const needsTakeover = computer?.controlHolder !== "user";
+    const needsTakeover = !userHoldsComputerControl(computer, active.id);
     await bootComputer({
       takeControl: needsTakeover,
       overlay: needsTakeover || computer?.state !== "running",
@@ -969,6 +1001,7 @@ export function ShellPage() {
   }
 
   const embeddedScreenUrl = embeddableScreenUrl(screenUrl);
+  const hasControl = userHoldsComputerControl(computer, active?.id);
 
   const userName = session.data?.user.name ?? "You";
   const initials = userName
@@ -1020,54 +1053,66 @@ export function ShellPage() {
               onSelect={(hit) => void jumpToSearchHit(hit)}
             />
           ) : (
-            filtered.map((bot) => (
-              <button
-                key={bot.id}
-                type="button"
-                onClick={() => navigate(`/app/${bot.id}`)}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  setBotMenu({ botId: bot.id, position: { x: event.clientX, y: event.clientY } });
-                }}
-                className={`rk-bot-row flex gap-3 rounded-xl px-2.5 py-[11px] text-left ${
-                  active?.id === bot.id ? "rk-bot-row-active" : ""
-                }`}
-                style={
-                  {
-                    "--bot-tint": `color-mix(in srgb, ${bot.color} 14%, transparent)`,
-                  } as React.CSSProperties
-                }
-              >
-                <BotAvatar color={bot.color} size={54} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span
-                      className={`text-[15px] text-[#ECECEE] ${
-                        bot.unread ? "font-semibold" : "font-medium"
-                      }`}
-                    >
-                      {bot.name}
-                      {bot.unread ? <span className="sr-only"> (unread)</span> : null}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-[#6C6C70]">
-                      {bot.status === "idle" ? "" : bot.status}
-                      {bot.unread ? (
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-2 w-2 rounded-full bg-[#8B5CF6]"
-                        />
-                      ) : null}
-                    </span>
+            sidebarGroups.map((group) => (
+              <div key={group.key} data-sidebar-group={group.key}>
+                {group.title ? (
+                  <div className="px-2.5 pb-1 pt-3 text-[12.5px] font-medium text-[#6C6C70]">
+                    {group.title}
                   </div>
-                  <div
-                    className={`mt-0.5 truncate text-[13.5px] ${
-                      bot.unread ? "font-medium text-[#C9C9CE]" : "text-[#85858A]"
+                ) : null}
+                {group.bots.map((bot) => (
+                  <button
+                    key={bot.id}
+                    type="button"
+                    onClick={() => navigate(`/app/${bot.id}`)}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      setBotMenu({
+                        botId: bot.id,
+                        position: { x: event.clientX, y: event.clientY },
+                      });
+                    }}
+                    className={`rk-bot-row flex w-full gap-3 rounded-xl px-2.5 py-[11px] text-left ${
+                      active?.id === bot.id ? "rk-bot-row-active" : ""
                     }`}
+                    style={
+                      {
+                        "--bot-tint": `color-mix(in srgb, ${bot.color} 14%, transparent)`,
+                      } as React.CSSProperties
+                    }
                   >
-                    {bot.preview || bot.title}
-                  </div>
-                </div>
-              </button>
+                    <BotAvatar color={bot.color} size={54} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span
+                          className={`truncate text-[15px] text-[#ECECEE] ${
+                            bot.unread ? "font-semibold" : "font-medium"
+                          }`}
+                        >
+                          {bot.name}
+                          {bot.unread ? <span className="sr-only"> (unread)</span> : null}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-[#6C6C70]">
+                          {bot.status === "idle" ? "" : bot.status}
+                          {bot.unread ? (
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-2 w-2 rounded-full bg-[#8B5CF6]"
+                            />
+                          ) : null}
+                        </span>
+                      </div>
+                      <div
+                        className={`mt-0.5 truncate text-[13.5px] ${
+                          bot.unread ? "font-medium text-[#C9C9CE]" : "text-[#85858A]"
+                        }`}
+                      >
+                        {bot.preview || bot.title}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             ))
           )}
           {archivedBots.length > 0 && !showWorkspaceSearch ? (
@@ -1394,13 +1439,13 @@ export function ShellPage() {
                   <span className="text-[13.5px] text-[#85858A]">
                     {computer?.busyBotName
                       ? `${computer.busyBotName} is using it`
-                      : computer?.controlHolder === "user" && computer.controlBotId === active.id
+                      : hasControl
                         ? "You have control"
                         : computer?.state === "suspended"
                           ? "Asleep"
                           : computerLabel(computer?.mode, active.name)}
                   </span>
-                  {computer?.controlHolder === "user" && computer.controlBotId === active.id ? (
+                  {hasControl ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -1640,6 +1685,7 @@ export function ShellPage() {
             bot={contextBot}
             position={botMenu.position}
             onClose={closeBotMenu}
+            sections={botSections}
             onTogglePinned={() => {
               setBotMenu(null);
               void rpc.bots
@@ -1651,6 +1697,15 @@ export function ShellPage() {
               setBotMenu(null);
               const request = unread ? markBotUnread(contextBot.id) : markBotRead(contextBot.id);
               void request.catch(() => undefined);
+            }}
+            onMoveToSection={(sectionId) => {
+              setBotMenu(null);
+              if (sectionId === contextBot.sectionId) return;
+              void rpc.bots.update({ botId: contextBot.id, sectionId }).then(() => refreshBots());
+            }}
+            onCreateSection={() => {
+              setNewSectionBot(contextBot);
+              setBotMenu(null);
             }}
             onEdit={() => {
               navigate(`/app/${contextBot.id}`);
@@ -1688,6 +1743,18 @@ export function ShellPage() {
               setDeleteTarget(null);
               setPanel(null);
               await refreshBots(true);
+            }}
+          />
+        ) : null}
+
+        {newSectionBot ? (
+          <NewBotSectionDialog
+            bot={newSectionBot}
+            onCancel={() => setNewSectionBot(null)}
+            onConfirm={async (name) => {
+              await rpc.botSections.create({ botId: newSectionBot.id, name });
+              setNewSectionBot(null);
+              await refreshBots();
             }}
           />
         ) : null}
@@ -1784,9 +1851,7 @@ export function ShellPage() {
                   {computerLabel(computer?.mode, active.name)}
                 </span>
               )}
-              {!recordingSkill &&
-              computer?.controlHolder === "user" &&
-              computer.controlBotId === active.id ? (
+              {!recordingSkill && hasControl ? (
                 <span className="rounded-full bg-[rgba(48,162,75,.14)] px-[11px] py-1 text-[13px] text-[#4ECB71]">
                   You have control
                 </span>
@@ -1795,7 +1860,7 @@ export function ShellPage() {
             <div className="flex items-center gap-3">
               {recordingSkill ? (
                 <TeachStopButton busy={teachBusy} onStop={stopTeaching} />
-              ) : computer?.controlHolder === "user" && computer.controlBotId === active.id ? (
+              ) : hasControl ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -1839,11 +1904,7 @@ export function ShellPage() {
                   className="h-full w-full border-0 bg-black"
                   allow="clipboard-read; clipboard-write; fullscreen"
                   style={{
-                    pointerEvents:
-                      recordingSkill ||
-                      !(computer?.controlHolder === "user" && computer.controlBotId === active.id)
-                        ? "none"
-                        : "auto",
+                    pointerEvents: recordingSkill || !hasControl ? "none" : "auto",
                   }}
                 />
                 {active ? (
@@ -2706,6 +2767,91 @@ function BotSettings({
           Clear conversation
         </button>
       </div>
+    </div>
+  );
+}
+
+function NewBotSectionDialog({
+  bot,
+  onCancel,
+  onConfirm,
+}: {
+  bot: Bot;
+  onCancel: () => void;
+  onConfirm: (name: string) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !saving) onCancel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onCancel, saving]);
+
+  return (
+    <div
+      role="presentation"
+      className="absolute inset-0 z-50 grid place-items-center bg-[rgba(4,4,5,.76)] px-5"
+      onPointerDown={() => {
+        if (!saving) onCancel();
+      }}
+    >
+      <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-bot-section-title"
+        className="w-full max-w-[420px] rounded-[18px] border border-[#343438] bg-[#1A1A1D] p-5 shadow-[0_24px_70px_rgba(0,0,0,.65)]"
+        onPointerDown={(event) => event.stopPropagation()}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const trimmed = name.trim();
+          if (!trimmed || saving) return;
+          setSaving(true);
+          setError(null);
+          void onConfirm(trimmed).catch((err: unknown) => {
+            setError(err instanceof Error ? err.message : "Could not create section");
+            setSaving(false);
+          });
+        }}
+      >
+        <h2 id="new-bot-section-title" className="text-[17px] font-medium text-[#F1F1F2]">
+          New section
+        </h2>
+        <p className="mt-2 text-[14px] leading-6 text-[#9A9AA0]">
+          Create a section and move {bot.name} into it.
+        </p>
+        <label className="mt-4 block text-[13.5px] text-[#C9C9CE]">
+          Name
+          <input
+            maxLength={60}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="mt-2 w-full rounded-[11px] border border-[#343438] bg-[#101012] px-3.5 py-2.5 text-[14.5px] text-[#ECECEE] outline-none focus:border-[#66666D]"
+          />
+        </label>
+        {error ? <p className="mt-3 text-[13.5px] text-[#FF5364]">{error}</p> : null}
+        <div className="mt-5 flex justify-end gap-2.5">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onCancel}
+            className="rounded-[10px] px-3.5 py-2 text-[14px] text-[#C9C9CE] hover:bg-[#29292D] disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving || !name.trim()}
+            className="rounded-[10px] bg-[#F1F1EF] px-3.5 py-2 text-[14px] font-medium text-[#17171A] disabled:opacity-40"
+          >
+            {saving ? "Creating…" : "Create"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
