@@ -9,6 +9,20 @@ export const DELEGATION_TOOL_NAMES = new Set([
 
 export const builtinAgentTools: ConnectorTool[] = [
   {
+    name: "send_channel_message",
+    description:
+      "Reply on the messaging channel a message arrived from (for example iMessage or Slack). Use the provider and chat_id given in the incoming message. Only available when this deployment has a channel bridge configured.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        provider: { type: "string", description: "Channel the message came from, e.g. imessage." },
+        chat_id: { type: "string", description: "Conversation id from the incoming message." },
+        text: { type: "string", description: "Message to send." },
+      },
+      required: ["provider", "chat_id", "text"],
+    },
+  },
+  {
     name: "computer_observe",
     description:
       "Capture the current screen of this bot's computer. Returns frame metadata and an image. Observe before coordinate-based actions and whenever another actor may have changed the desktop.",

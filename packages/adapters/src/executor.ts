@@ -38,6 +38,7 @@ import {
   type ThreadEvents,
 } from "@rakazo/db";
 import { builtinAgentTools } from "./builtin-tools.js";
+import { sendChannelMessage } from "./channels.js";
 import { archiveSpawnedBot, spawnBot } from "./child-bots.js";
 import {
   collectLogIds,
@@ -531,6 +532,17 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (applied) await completeEffect(deps, applied.effect.id, result);
             return result;
           };
+          if (name === "send_channel_message") {
+            const result = await sendChannelMessage(
+              {
+                provider: String(args.provider ?? ""),
+                chatId: String(args.chat_id ?? args.chatId ?? ""),
+                text: String(args.text ?? ""),
+              },
+              { signal: context.signal },
+            );
+            return finish(result);
+          }
           if (name === "computer_observe") {
             if (await getActiveTeachingSession(deps.prisma, run.workspaceId, run.botId)) {
               return { error: "Teaching is in progress. Stop teaching before using the computer." };
@@ -1355,6 +1367,7 @@ export function summarizeToolArgs(name: string, args: unknown): string {
   else if (name === "launch_app") detail = first("app", "name");
   else if (name === "remember") detail = first("fact", "text");
   else if (name === "run_subagent" || name === "spawn_bot") detail = first("task", "name");
+  else if (name === "send_channel_message") detail = first("provider", "chat_id");
   else {
     try {
       detail = JSON.stringify(record);

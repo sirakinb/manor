@@ -29,6 +29,7 @@ import { createDb, createThreadEvents, type PrismaClient, requireMembership } fr
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { mountChannelRoutes } from "./channels.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createRouter } from "./router.js";
 import { mountVoiceHttpRoutes } from "./voice.js";
@@ -233,6 +234,7 @@ export async function createApp(
     if (matched) return c.newResponse(response.body, response);
     await next();
   });
+  mountChannelRoutes(app, { prisma, events, jobs });
   mountVoiceHttpRoutes(app, { prisma, secrets }, async (c) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
     if (!session?.user) return null;
