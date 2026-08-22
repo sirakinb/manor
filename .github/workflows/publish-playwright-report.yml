@@ -17,7 +17,10 @@ concurrency:
 
 jobs:
   publish:
+    # Skipped unless this deployment configures its own screenshot bucket, so
+    # forks get green CI without inheriting the upstream publishing setup.
     if: >-
+      vars.S3_BUCKET != '' &&
       (github.event.workflow_run.conclusion == 'success' ||
        github.event.workflow_run.conclusion == 'failure' ||
        github.event.workflow_run.conclusion == 'timed_out') &&

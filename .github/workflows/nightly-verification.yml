@@ -21,6 +21,8 @@ concurrency:
 jobs:
   visual-web:
     name: Daily web screenshots
+    # Needs a screenshot bucket; skipped when this deployment has none.
+    if: vars.S3_BUCKET != ''
     uses: ./.github/workflows/playwright.yml
     with:
       publish_report: true
