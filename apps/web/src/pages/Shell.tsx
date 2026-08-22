@@ -132,6 +132,11 @@ export function ShellPage() {
   const [botSections, setBotSections] = useState<BotSection[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [openRoomId, setOpenRoomId] = useState<string | null>(null);
+  // A room is only meaningful once you say who is in it, so naming and picking
+  // members happen together, in the list, rather than behind a blocking prompt.
+  const [draftRoom, setDraftRoom] = useState<{ name: string; botIds: string[] } | null>(null);
+  const roomNameRef = useRef<HTMLInputElement>(null);
+  const draftRoomOpen = draftRoom !== null;
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -592,16 +597,22 @@ export function ShellPage() {
    * A room starts with every bot in the workspace; who belongs is easier to
    * decide once you can see the conversation.
    */
-  const createRoom = useCallback(async () => {
-    const name = window.prompt("Name this room", "New room")?.trim();
-    if (!name) return;
-    const botIds = bots.slice(0, 12).map((bot) => bot.id);
-    if (botIds.length === 0) return;
-    const room = await rpc.rooms.create({ name, botIds }).catch(() => null);
+  const createRoom = useCallback(async (name: string, botIds: string[]) => {
+    if (!name.trim() || botIds.length === 0) return;
+    const room = await rpc.rooms
+      .create({ name: name.trim(), botIds: botIds.slice(0, 12) })
+      .catch(() => null);
     if (!room) return;
     setRooms((previous) => [room, ...previous]);
     setOpenRoomId(room.id);
-  }, [bots]);
+    setDraftRoom(null);
+  }, []);
+
+  useEffect(() => {
+    // Opening the panel is an intent to name the room, so the caret belongs
+    // here — but only on open, or every keystroke would reset it.
+    if (draftRoomOpen) roomNameRef.current?.focus();
+  }, [draftRoomOpen]);
 
   const refreshRooms = useCallback(async () => {
     const next = await rpc.rooms.list().catch(() => null);
@@ -1059,7 +1070,11 @@ export function ShellPage() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => void createRoom()}
+              onClick={() =>
+                setDraftRoom((previous) =>
+                  previous ? null : { name: "", botIds: bots.map((bot) => bot.id).slice(0, 2) },
+                )
+              }
               className="app-no-drag text-[#7A7A80] hover:text-[#C9C9CE]"
               title="New room — a conversation several bots share"
             >
@@ -1105,6 +1120,79 @@ export function ShellPage() {
             />
           ) : (
             <>
+              {draftRoom ? (
+                <div className="mb-2 rounded-xl border border-[#2A2A2E] bg-[#131315] p-3">
+                  <input
+                    ref={roomNameRef}
+                    value={draftRoom.name}
+                    onChange={(event) =>
+                      setDraftRoom((previous) =>
+                        previous ? { ...previous, name: event.target.value } : previous,
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") void createRoom(draftRoom.name, draftRoom.botIds);
+                      if (event.key === "Escape") setDraftRoom(null);
+                    }}
+                    placeholder="Room name"
+                    className="w-full bg-transparent text-[14px] text-[#ECECEE] outline-none placeholder:text-[#5F5B69]"
+                  />
+                  <div className="mt-2.5 max-h-[168px] overflow-y-auto">
+                    {bots.map((bot) => {
+                      const picked = draftRoom.botIds.includes(bot.id);
+                      return (
+                        <button
+                          key={bot.id}
+                          type="button"
+                          onClick={() =>
+                            setDraftRoom((previous) =>
+                              previous
+                                ? {
+                                    ...previous,
+                                    botIds: picked
+                                      ? previous.botIds.filter((id) => id !== bot.id)
+                                      : [...previous.botIds, bot.id],
+                                  }
+                                : previous,
+                            )
+                          }
+                          className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left hover:bg-[#1B1B1E]"
+                        >
+                          <BotAvatar color={bot.color} size={20} />
+                          <span className="flex-1 truncate text-[13px] text-[#C9C9CE]">
+                            {bot.name}
+                          </span>
+                          <span className={picked ? "text-[#A855F7]" : "text-[#3A3A3F]"}>
+                            {picked ? "\u2713" : "+"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-[12px] text-[#5F5B69]">
+                      {draftRoom.botIds.length} of 12
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDraftRoom(null)}
+                        className="text-[12.5px] text-[#85858A] hover:text-[#C9C9CE]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!draftRoom.name.trim() || draftRoom.botIds.length === 0}
+                        onClick={() => void createRoom(draftRoom.name, draftRoom.botIds)}
+                        className="rounded-full bg-[#F1F1EF] px-3 py-1 text-[12.5px] text-[#17171A] disabled:opacity-40"
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               {rooms.map((room) => {
                 const colors = room.botIds.flatMap(
                   (id: string) => bots.find((bot) => bot.id === id)?.color ?? [],
