@@ -467,6 +467,8 @@ export async function pauseRunForInput(
     const message = await createThreadMessageInTransaction(tx, {
       threadId: input.threadId,
       role: "bot",
+      // A run's messages belong to its bot, which is how a room attributes them.
+      authorBotId: input.botId,
       blocks: input.blocks,
       runId: input.runId,
     });
@@ -616,6 +618,8 @@ export async function finalizeRun(
       const message = await createThreadMessageInTransaction(tx, {
         threadId: input.threadId,
         role: "bot",
+        // A run's messages belong to its bot, which is how a room attributes them.
+        authorBotId: input.botId,
         blocks: input.blocks,
         runId: input.runId,
       });
