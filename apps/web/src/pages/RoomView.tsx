@@ -168,6 +168,12 @@ function RoomMessage({ message, botById }: { message: ThreadMessage; botById: Ma
     .join("\n\n");
   if (!text.trim()) return null;
 
+  // The room speaking for itself — a refused handoff, a pause — is a notice,
+  // not a turn, so it gets no author and sits quietly between the speakers.
+  if (message.role === "system") {
+    return <div className="mb-5 pl-[30px] text-[12.5px] italic text-[#8A8590]">{text}</div>;
+  }
+
   // A handoff is worth showing as its own beat, so the room reads as a chain
   // of ownership rather than a wall of chat.
   const handoffTo = author

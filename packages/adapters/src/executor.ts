@@ -27,6 +27,7 @@ import {
   nextFence,
   promptInvokesSkill,
   redactSecrets,
+  refusalNotice,
   sandboxCommandTimeoutMs,
   userTurnBlocksForRun,
 } from "@rakazo/core";
@@ -1233,13 +1234,27 @@ export function createRunExecutor(deps: ExecutorDeps) {
           // did not happen.
           if (thread.kind === "room") {
             try {
-              await handOffRoomMentions(deps, {
+              const handoff = await handOffRoomMentions(deps, {
                 threadId: thread.id,
                 workspaceId: run.workspaceId,
                 userId: run.userId,
                 authorBotId: bot.id,
                 text,
               });
+              // A refused handoff must say so in the room. Hitting the hop cap
+              // otherwise looks like the bots simply stopped mid-task.
+              const capped = handoff.refused.filter((entry) => entry.reason === "hop_limit");
+              if (capped.length > 0) {
+                const named = await deps.prisma.bot.findMany({
+                  where: { id: { in: capped.map((entry) => entry.botId) } },
+                  select: { name: true },
+                });
+                for (const refusedBot of named) {
+                  await publishMessage(deps, run, "system", [
+                    { kind: "text", text: refusalNotice("hop_limit", refusedBot.name) },
+                  ]);
+                }
+              }
               // Then whoever the person named and is still waiting. This runs
               // after the handoff so an explicit pass of the baton wins, and it
               // no-ops while anyone is still working.
