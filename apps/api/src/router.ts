@@ -52,13 +52,17 @@ import {
   appContract,
   type ComputerStatus,
   type Me,
+  type RoomSnapshot,
   type ThreadSnapshot,
 } from "@rakazo/contracts";
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
+  botHopsSinceHumanTurn,
   computerScreenSize,
+  decideMentions,
   nextCronDate,
+  parseMentions,
   projectMessages,
 } from "@rakazo/core";
 import {
@@ -97,6 +101,8 @@ import {
 } from "./voice.js";
 
 const MAX_COMPUTER_TEXT_FILE_BYTES = 2 * 1024 * 1024;
+/** How far back a room looks to count handoffs since the last human turn. */
+const ROOM_HOP_LOOKBACK = 60;
 const THREAD_MESSAGE_PAGE_SIZE = 100;
 const EXPORT_MESSAGE_PAGE_SIZE = 500;
 
@@ -500,6 +506,15 @@ export function createRouter(deps: RouterDeps) {
         await repos.deleteRoom(context.actor, input.roomId);
         return { ok: true as const };
       }),
+      snapshot: authed.rooms.snapshot.handler(async ({ context, input }) =>
+        roomSnapshot(deps, context.actor, input.roomId),
+      ),
+      send: authed.rooms.send.handler(async ({ context, input }) =>
+        sendRoomTurn(deps, context.actor, {
+          roomId: input.roomId,
+          text: input.text,
+        }),
+      ),
     },
     threads: {
       get: authed.threads.get.handler(async ({ context, input }) =>
@@ -1772,6 +1787,89 @@ export function createRouter(deps: RouterDeps) {
       ),
     },
   });
+}
+
+async function roomSnapshot(deps: RouterDeps, actor: Actor, roomId: string): Promise<RoomSnapshot> {
+  const room = await createRepos(deps.prisma).getRoom(actor, roomId);
+  const [messagePage, running, last] = await Promise.all([
+    loadMessagePage(deps.prisma, room.id, undefined, THREAD_MESSAGE_PAGE_SIZE),
+    deps.prisma.run.findMany({
+      where: { threadId: room.id, status: { in: [...ACTIVE_RUN_STATUSES] } },
+      select: { botId: true },
+    }),
+    deps.prisma.event.findFirst({
+      where: { threadId: room.id },
+      orderBy: { seq: "desc" },
+      select: { seq: true },
+    }),
+  ]);
+  return {
+    room,
+    cursor: last?.seq ?? -1,
+    messages: messagePage.messages,
+    olderCursor: messagePage.olderCursor,
+    runningBotIds: [...new Set(running.map((run) => run.botId))],
+  };
+}
+
+/**
+ * A turn in a room. The message is stored either way; the mentions in it decide
+ * who wakes, and the guards decide which of those are allowed to.
+ */
+async function sendRoomTurn(
+  deps: RouterDeps,
+  actor: Actor,
+  input: { roomId: string; text: string; authorBotId?: string },
+) {
+  const repos = createRepos(deps.prisma);
+  const room = await repos.getRoom(actor, input.roomId);
+  const participants = await deps.prisma.bot.findMany({
+    where: { id: { in: room.botIds }, workspaceId: actor.workspaceId },
+    select: { id: true, name: true },
+  });
+
+  const [recent, running] = await Promise.all([
+    deps.prisma.message.findMany({
+      where: { threadId: room.id },
+      orderBy: { seq: "desc" },
+      take: ROOM_HOP_LOOKBACK,
+      select: { role: true, authorBotId: true },
+    }),
+    deps.prisma.run.findMany({
+      where: { threadId: room.id, status: { in: [...ACTIVE_RUN_STATUSES] } },
+      select: { botId: true },
+    }),
+  ]);
+
+  const decision = decideMentions({
+    mentioned: parseMentions(input.text, participants),
+    participants,
+    authoredByBot: Boolean(input.authorBotId),
+    hopsSinceHumanTurn: botHopsSinceHumanTurn([...recent].reverse()),
+    botsAlreadyRunning: running.map((run) => run.botId),
+  });
+
+  const sent = await deps.events.sendRoomMessage({
+    workspaceId: actor.workspaceId,
+    threadId: room.id,
+    userId: actor.userId,
+    authorBotId: input.authorBotId,
+    blocks: buildUserMessageBlocks(input.text, []),
+    prompt: input.text,
+    wakeBotIds: decision.wake,
+  });
+  for (const run of sent.runs) {
+    await deps.jobs.enqueue(runContinueJob(run.runId));
+  }
+  return {
+    messageId: sent.messageId,
+    seq: sent.seq,
+    woke: decision.wake,
+    refused: decision.refused.map((entry: { botId: string; reason: string }) => ({
+      botId: entry.botId,
+      reason: entry.reason,
+    })),
+  };
 }
 
 async function snapshot(deps: RouterDeps, actor: Actor, botId: string): Promise<ThreadSnapshot> {

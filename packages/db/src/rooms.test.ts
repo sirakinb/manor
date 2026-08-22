@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createDb } from "./client.js";
+import { createThreadEvents } from "./events.js";
 import { createRepos } from "./repos.js";
 import { IsolationError } from "./scope.js";
 
@@ -111,6 +112,69 @@ describeDb("rooms", () => {
     const theirs = await repos.listRooms(stranger);
     expect(mine.length).toBeGreaterThan(0);
     expect(theirs).toEqual([]);
+  });
+
+  it("a mention creates a run for that bot, on the room's thread", async () => {
+    const room = await repos.createRoom(owner, { name: "Turn", botIds: [scoutId, quillId] });
+    const events = createThreadEvents(prisma);
+    // Which bots a mention resolves to is covered by the core unit tests; here
+    // the question is what the database does once that decision is made.
+    const sent = await events.sendRoomMessage({
+      workspaceId: owner.workspaceId,
+      threadId: room.id,
+      userId: owner.userId,
+      blocks: [{ kind: "text", text: "@Quill please draft this" }],
+      prompt: "@Quill please draft this",
+      wakeBotIds: [quillId],
+    });
+
+    expect(sent.runs).toHaveLength(1);
+    expect(sent.runs[0]!.botId).toBe(quillId);
+
+    // The run belongs to Quill but lives on the room's thread — the property the
+    // whole feature rests on.
+    const run = await prisma.run.findUniqueOrThrow({ where: { id: sent.runs[0]!.runId } });
+    expect(run.botId).toBe(quillId);
+    expect(run.threadId).toBe(room.id);
+
+    // Scout was in the room but not mentioned, so it was not woken.
+    const scoutRuns = await prisma.run.count({ where: { threadId: room.id, botId: scoutId } });
+    expect(scoutRuns).toBe(0);
+  });
+
+  it("a bot reply is stored with its author, and counts as a hop", async () => {
+    const room = await repos.createRoom(owner, { name: "Hops", botIds: [scoutId, quillId] });
+    const events = createThreadEvents(prisma);
+    await events.sendRoomMessage({
+      workspaceId: owner.workspaceId,
+      threadId: room.id,
+      userId: owner.userId,
+      blocks: [{ kind: "text", text: "start" }],
+      prompt: "start",
+      wakeBotIds: [],
+    });
+    await events.sendRoomMessage({
+      workspaceId: owner.workspaceId,
+      threadId: room.id,
+      userId: owner.userId,
+      authorBotId: scoutId,
+      blocks: [{ kind: "text", text: "@Quill your turn" }],
+      prompt: "@Quill your turn",
+      wakeBotIds: [quillId],
+    });
+
+    const stored = await prisma.message.findMany({
+      where: { threadId: room.id },
+      orderBy: { seq: "asc" },
+      select: { role: true, authorBotId: true },
+    });
+    expect(stored).toEqual([
+      { role: "user", authorBotId: null },
+      { role: "bot", authorBotId: scoutId },
+    ]);
+    // One bot message stands between the human turn and now: one handoff so far.
+    const hops = stored.filter((message) => message.role === "bot" && message.authorBotId).length;
+    expect(hops).toBe(1);
   });
 
   it("leaves direct threads alone", async () => {

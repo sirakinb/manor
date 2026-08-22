@@ -21,6 +21,7 @@ import {
   ModelCatalogEntrySchema,
   ModelCredentialSchema,
   RoomSchema,
+  RoomSnapshotSchema,
   RoutineSchema,
   SkillPlaybookSchema,
   TaughtSkillSchema,
@@ -141,6 +142,15 @@ export const appContract = {
       .input(z.object({ roomId: Id, botId: Id, member: z.boolean() }))
       .output(RoomSchema),
     delete: oc.input(z.object({ roomId: Id })).output(z.object({ ok: z.literal(true) })),
+    snapshot: oc.input(z.object({ roomId: Id })).output(RoomSnapshotSchema),
+    send: oc.input(z.object({ roomId: Id, text: z.string().trim().min(1).max(8000) })).output(
+      z.object({
+        messageId: Id,
+        seq: z.number().int().nonnegative(),
+        woke: z.array(Id),
+        refused: z.array(z.object({ botId: Id, reason: z.string() })),
+      }),
+    ),
   },
   threads: {
     get: oc.input(z.object({ botId: Id })).output(ThreadSnapshotSchema),

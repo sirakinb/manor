@@ -273,6 +273,16 @@ export const ThreadSnapshotSchema = z.object({
 });
 export type ThreadSnapshot = z.infer<typeof ThreadSnapshotSchema>;
 
+/// A room's transcript plus who is in it and which of them are working.
+export const RoomSnapshotSchema = z.object({
+  room: RoomSchema,
+  cursor: z.number().int().min(-1),
+  messages: z.array(ThreadMessageSchema),
+  olderCursor: z.number().int().nonnegative().nullable(),
+  runningBotIds: z.array(Id),
+});
+export type RoomSnapshot = z.infer<typeof RoomSnapshotSchema>;
+
 export const ModelCredentialSchema = z.object({
   id: Id,
   provider: z.string(),
