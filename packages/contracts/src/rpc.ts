@@ -215,7 +215,12 @@ export const appContract = {
     },
     tags: {
       create: oc
-        .input(z.object({ name: z.string().trim().min(1).max(60), color: z.string().max(16).optional() }))
+        .input(
+          z.object({
+            name: z.string().trim().min(1).max(60),
+            color: z.string().max(16).optional(),
+          }),
+        )
         .output(CrmTagSchema),
     },
     pipelines: {

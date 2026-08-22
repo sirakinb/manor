@@ -69,7 +69,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
@@ -95,6 +95,7 @@ import {
 } from "../lib/thread-events";
 import { speaker } from "../lib/tts";
 import type { ContextMenuPosition } from "./BotContextMenu";
+import { CrmView } from "./crm/CrmView";
 import { GroupAvatars } from "./GroupAvatars";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
@@ -144,6 +145,9 @@ export function ShellPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
   const [botSections, setBotSections] = useState<BotSection[]>([]);
+  // The CRM is a place, not a panel, so it lives on its own route and wins
+  // the main pane whenever the address says so.
+  const crmOpen = useLocation().pathname === "/app/crm";
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -1468,6 +1472,31 @@ export function ShellPage() {
         </div>
         <button
           type="button"
+          onClick={() => navigate("/app/crm")}
+          className={`mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315] ${
+            crmOpen ? "bg-[#131315]" : ""
+          }`}
+        >
+          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
+              <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
+              <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
+              <path d="M17.25 13.5v7.5M13.5 17.25h7.5" />
+            </svg>
+          </span>
+          <span className="text-[14.5px] text-[#C9C9CE]">CRM</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setPluginsOpen(true)}
           className="mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315]"
         >
@@ -1540,6 +1569,10 @@ export function ShellPage() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#0D0D0E]">
+        {crmOpen ? (
+          <CrmView />
+        ) : (
+          <>
         <div className="flex items-center justify-between border-b border-[#141416] px-3 py-[17px] md:px-[22px]">
           <div className="flex min-w-0 items-center gap-2">
             <button
@@ -1710,6 +1743,8 @@ export function ShellPage() {
           }}
           onDictateStop={() => dictation.submitHold()}
         />
+          </>
+        )}
       </main>
 
       <aside

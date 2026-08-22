@@ -75,7 +75,13 @@ function mapPipeline(row: {
   id: string;
   name: string;
   position: number;
-  stages: { id: string; pipelineId: string; name: string; position: number; color: string | null }[];
+  stages: {
+    id: string;
+    pipelineId: string;
+    name: string;
+    position: number;
+    color: string | null;
+  }[];
 }): CrmPipeline {
   return {
     id: row.id,
