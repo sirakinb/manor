@@ -16,6 +16,16 @@ const COMPUTER_PIDS = positiveNumber(process.env.RAKAZO_COMPUTER_PIDS, 512);
 // computer on a user-space kernel so a container escape cannot reach the host.
 // Unset uses the Docker default runtime.
 const COMPUTER_RUNTIME = process.env.RAKAZO_COMPUTER_RUNTIME?.trim() || undefined;
+// Sandboxed runtimes such as gVisor virtualize the network stack and cannot
+// reach Docker's embedded resolver at 127.0.0.11, so computers need explicit
+// nameservers. Container-name lookups are not needed: computers are reached by
+// the screen proxy, never the other way around.
+export const COMPUTER_DNS = (
+  process.env.RAKAZO_COMPUTER_DNS ?? (COMPUTER_RUNTIME ? "1.1.1.1,8.8.8.8" : "")
+)
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
 
 export function screenPorts(index: number) {
   if (index < 0 || index >= TEAM_SCREEN_LIMIT) {
@@ -101,6 +111,7 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       AutoRemove: false,
       NetworkMode: input.networkMode ?? "bridge",
       ...(COMPUTER_RUNTIME ? { Runtime: COMPUTER_RUNTIME } : {}),
+      ...(COMPUTER_DNS.length ? { Dns: COMPUTER_DNS } : {}),
     },
     WorkingDir: "/home/rakazo",
   };

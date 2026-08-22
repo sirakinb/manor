@@ -10,6 +10,7 @@ import Docker from "dockerode";
 import { Hono } from "hono";
 import { z } from "zod";
 import {
+  COMPUTER_DNS,
   COMPUTER_IMAGE,
   containerCreateOptions,
   containerNameFor,
@@ -100,7 +101,10 @@ app.post("/computers", async (c) => {
       ) {
         await existing.remove({ force: true }).catch(() => undefined);
       } else {
-        if (!info.State.Running) await existing.start();
+        if (!info.State.Running) {
+          await existing.start();
+          await applyComputerDns(existing);
+        }
         const screenUrl = await publishedScreenUrl(existing, info.State.Running ? info : undefined);
         return c.json({ id: existing.id, image: COMPUTER_IMAGE, screenUrl, resumed: true });
       }
@@ -117,6 +121,7 @@ app.post("/computers", async (c) => {
       }),
     );
     await container.start();
+    await applyComputerDns(container);
     const screenUrl = await publishedScreenUrl(container);
     return c.json({ id: container.id, image: COMPUTER_IMAGE, screenUrl, resumed: false });
   } catch (error) {
@@ -650,6 +655,23 @@ function internalScreenNetworking() {
     Boolean(process.env.RAKAZO_COMPUTER_NETWORK) ||
     process.env.SANDBOX_SCREEN_NETWORK === "internal"
   );
+}
+
+// Docker keeps its embedded resolver (127.0.0.11) at the front of a container's
+// resolv.conf on user-defined networks, and sandboxed runtimes like gVisor
+// cannot reach it. Point the computer straight at the configured nameservers.
+async function applyComputerDns(container: Docker.Container) {
+  if (!COMPUTER_DNS.length) return;
+  const contents = `${COMPUTER_DNS.map((server) => `nameserver ${server}`).join("\n")}\noptions ndots:0\n`;
+  try {
+    await runContainerCommand(container, [
+      "sh",
+      "-c",
+      `printf %s ${JSON.stringify(contents)} > /etc/resolv.conf`,
+    ]);
+  } catch (error) {
+    console.error("computer dns setup", error);
+  }
 }
 
 function computerNetworkMode(info: Docker.ContainerInspectInfo | undefined) {
