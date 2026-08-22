@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { randomUUID } from "node:crypto";
 // iMessage <-> Manor relay.
 //
 // Runs on the Mac next to BlueBubbles Server and translates between the two:
@@ -21,6 +20,7 @@ import { randomUUID } from "node:crypto";
 // ALLOWED_SENDERS is not optional in spirit. Anyone who can text this Mac can
 // otherwise drive an agent that holds your logins, so the relay refuses every
 // sender until you list the ones you trust.
+import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 
 const config = {

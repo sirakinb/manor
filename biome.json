@@ -60,5 +60,17 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["infra/bridges/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUndeclaredEnvVars": "off"
+          }
+        }
+      }
+    }
+  ]
 }
