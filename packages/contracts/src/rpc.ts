@@ -24,6 +24,11 @@ import {
   MeSchema,
   ModelCatalogEntrySchema,
   ModelCredentialSchema,
+  CrmContactSchema,
+  CrmDealSchema,
+  CrmOverviewSchema,
+  CrmPipelineSchema,
+  CrmTagSchema,
   RoutineSchema,
   SkillPlaybookSchema,
   TaughtSkillSchema,
@@ -174,6 +179,87 @@ export const appContract = {
     create: oc
       .input(z.object({ botId: Id, name: z.string().trim().min(1).max(60) }))
       .output(BotSectionSchema),
+  },
+  crm: {
+    overview: oc.output(CrmOverviewSchema),
+    contacts: {
+      create: oc
+        .input(
+          z.object({
+            firstName: z.string().trim().min(1).max(120),
+            lastName: z.string().trim().max(120).default(""),
+            email: z.string().trim().max(320).optional(),
+            phone: z.string().trim().max(40).optional(),
+            company: z.string().trim().max(200).optional(),
+            notes: z.string().max(4000).optional(),
+            tagIds: z.array(Id).max(20).optional(),
+          }),
+        )
+        .output(CrmContactSchema),
+      update: oc
+        .input(
+          z.object({
+            contactId: Id,
+            firstName: z.string().trim().min(1).max(120).optional(),
+            lastName: z.string().trim().max(120).optional(),
+            email: z.string().trim().max(320).nullable().optional(),
+            phone: z.string().trim().max(40).nullable().optional(),
+            company: z.string().trim().max(200).nullable().optional(),
+            notes: z.string().max(4000).nullable().optional(),
+            status: z.enum(["active", "archived"]).optional(),
+            tagIds: z.array(Id).max(20).optional(),
+          }),
+        )
+        .output(CrmContactSchema),
+      delete: oc.input(z.object({ contactId: Id })).output(z.object({ ok: z.literal(true) })),
+    },
+    tags: {
+      create: oc
+        .input(z.object({ name: z.string().trim().min(1).max(60), color: z.string().max(16).optional() }))
+        .output(CrmTagSchema),
+    },
+    pipelines: {
+      create: oc
+        .input(
+          z.object({
+            name: z.string().trim().min(1).max(120),
+            stages: z
+              .array(z.object({ name: z.string().trim().min(1).max(60) }))
+              .min(1)
+              .max(12),
+          }),
+        )
+        .output(CrmPipelineSchema),
+      /// First visit gets a ready board instead of an empty screen.
+      seed: oc.output(CrmOverviewSchema),
+      delete: oc.input(z.object({ pipelineId: Id })).output(z.object({ ok: z.literal(true) })),
+    },
+    deals: {
+      create: oc
+        .input(
+          z.object({
+            pipelineId: Id,
+            stageId: Id,
+            title: z.string().trim().min(1).max(200),
+            value: z.number().int().min(0).max(1_000_000_000).default(0),
+            contactId: Id.optional(),
+          }),
+        )
+        .output(CrmDealSchema),
+      update: oc
+        .input(
+          z.object({
+            dealId: Id,
+            title: z.string().trim().min(1).max(200).optional(),
+            value: z.number().int().min(0).max(1_000_000_000).optional(),
+            contactId: Id.nullable().optional(),
+            status: z.enum(["open", "won", "lost"]).optional(),
+          }),
+        )
+        .output(CrmDealSchema),
+      move: oc.input(z.object({ dealId: Id, stageId: Id })).output(CrmDealSchema),
+      delete: oc.input(z.object({ dealId: Id })).output(z.object({ ok: z.literal(true) })),
+    },
   },
   threads: {
     get: oc.input(threadTarget).output(ThreadSnapshotSchema),
