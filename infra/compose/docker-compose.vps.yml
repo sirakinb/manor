@@ -70,6 +70,10 @@ services:
       DOCKER_SOCKET: /var/run/docker.sock
       RAKAZO_COMPUTER_IMAGE: rakazo/computer:local
       SANDBOX_SCREEN_NETWORK: internal
+      # Agent computers get their own network so host egress policy can target
+      # that subnet alone, and a user-space kernel so an escape stays contained.
+      RAKAZO_COMPUTER_NETWORK: ${COMPUTER_NETWORK:-manor-prod_screens}
+      RAKAZO_COMPUTER_RUNTIME: ${COMPUTER_RUNTIME:-}
     expose:
       - "7091"
     volumes:
@@ -187,7 +191,9 @@ services:
     expose:
       - "5173"
     networks:
-      - app
+      app:
+      screens:
+        ipv4_address: 172.31.240.10
     depends_on:
       api:
         condition: service_healthy
@@ -217,5 +223,12 @@ networks:
   # SANDBOX_SCREEN_NETWORK=internal), so web can reach their noVNC ports
   # by container IP. cloudflared reaches web:5173 here too.
   app:
+  # Agent computers live here, reachable by web for screen streaming. Host
+  # firewall rules block this subnet from private ranges and the host itself.
+  screens:
+    name: manor-prod_screens
+    ipam:
+      config:
+        - subnet: 172.31.240.0/24
   data:
     internal: true

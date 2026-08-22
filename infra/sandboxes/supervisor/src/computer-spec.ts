@@ -12,6 +12,10 @@ function positiveNumber(raw: string | undefined, fallback: number): number {
 const COMPUTER_MEMORY_MB = positiveNumber(process.env.RAKAZO_COMPUTER_MEMORY_MB, 2048);
 const COMPUTER_CPUS = positiveNumber(process.env.RAKAZO_COMPUTER_CPUS, 1.5);
 const COMPUTER_PIDS = positiveNumber(process.env.RAKAZO_COMPUTER_PIDS, 512);
+// Optional OCI runtime for agent computers. Set to "runsc" (gVisor) to run each
+// computer on a user-space kernel so a container escape cannot reach the host.
+// Unset uses the Docker default runtime.
+const COMPUTER_RUNTIME = process.env.RAKAZO_COMPUTER_RUNTIME?.trim() || undefined;
 
 export function screenPorts(index: number) {
   if (index < 0 || index >= TEAM_SCREEN_LIMIT) {
@@ -96,6 +100,7 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       ReadonlyPaths: ["/usr/share/novnc"],
       AutoRemove: false,
       NetworkMode: input.networkMode ?? "bridge",
+      ...(COMPUTER_RUNTIME ? { Runtime: COMPUTER_RUNTIME } : {}),
     },
     WorkingDir: "/home/rakazo",
   };

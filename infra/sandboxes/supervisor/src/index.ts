@@ -613,7 +613,7 @@ async function publishedScreenUrl(
 ) {
   for (let i = 0; i < 30; i += 1) {
     const info = i === 0 && initialInfo ? initialInfo : await container.inspect();
-    if (process.env.SANDBOX_SCREEN_NETWORK === "internal") {
+    if (internalScreenNetworking()) {
       const networkMode = info.HostConfig.NetworkMode;
       const address = networkMode
         ? info.NetworkSettings?.Networks?.[networkMode]?.IPAddress
@@ -641,7 +641,20 @@ async function setInteractiveScreen(
   if (result.code !== 0) throw new Error(result.stderr || "control screen failed to start");
 }
 
+// Agent computers reach the web app over a Docker network rather than published
+// host ports. RAKAZO_COMPUTER_NETWORK pins them to a dedicated network so host
+// egress policy can be applied to that subnet alone; without it they join the
+// supervisor's own network.
+function internalScreenNetworking() {
+  return (
+    Boolean(process.env.RAKAZO_COMPUTER_NETWORK) ||
+    process.env.SANDBOX_SCREEN_NETWORK === "internal"
+  );
+}
+
 function computerNetworkMode(info: Docker.ContainerInspectInfo | undefined) {
+  const pinned = process.env.RAKAZO_COMPUTER_NETWORK?.trim();
+  if (pinned) return pinned;
   if (process.env.SANDBOX_SCREEN_NETWORK !== "internal") return undefined;
   return info ? Object.keys(info.NetworkSettings.Networks)[0] : undefined;
 }
