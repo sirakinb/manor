@@ -2,6 +2,17 @@ export const COMPUTER_IMAGE = process.env.RAKAZO_COMPUTER_IMAGE ?? "rakazo/compu
 export const TEAM_SCREEN_LIMIT = 8;
 const SCREEN_HOST = process.env.SANDBOX_SCREEN_HOST ?? "127.0.0.1";
 
+function positiveNumber(raw: string | undefined, fallback: number): number {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+// Per-computer resource ceilings. Defaults suit a 2 vCPU / 8 GB host running
+// one or two computers alongside the app containers.
+const COMPUTER_MEMORY_MB = positiveNumber(process.env.RAKAZO_COMPUTER_MEMORY_MB, 2048);
+const COMPUTER_CPUS = positiveNumber(process.env.RAKAZO_COMPUTER_CPUS, 1.5);
+const COMPUTER_PIDS = positiveNumber(process.env.RAKAZO_COMPUTER_PIDS, 512);
+
 export function screenPorts(index: number) {
   if (index < 0 || index >= TEAM_SCREEN_LIMIT) {
     throw new Error(
@@ -76,6 +87,12 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       Binds: [`${input.homePath}:/home/rakazo`],
       PortBindings: ports.PortBindings,
       ShmSize: 256 * 1024 * 1024,
+      // Keep one computer from starving the host (and every other bot on it).
+      // Override per deployment with RAKAZO_COMPUTER_MEMORY_MB / _CPUS / _PIDS.
+      Memory: COMPUTER_MEMORY_MB * 1024 * 1024,
+      MemorySwap: COMPUTER_MEMORY_MB * 1024 * 1024,
+      NanoCpus: Math.round(COMPUTER_CPUS * 1e9),
+      PidsLimit: COMPUTER_PIDS,
       ReadonlyPaths: ["/usr/share/novnc"],
       AutoRemove: false,
       NetworkMode: input.networkMode ?? "bridge",
