@@ -200,3 +200,18 @@ body,
     animation: none;
   }
 }
+
+/* Streamed reasoning: a margin note beside the conversation, not part of it. */
+.rk-thinking {
+  border-left: 2px solid rgba(168, 85, 247, 0.22);
+  padding-left: 14px;
+  font-style: normal;
+}
+
+.rk-thinking p {
+  margin: 0 0 6px;
+}
+
+.rk-thinking p:last-child {
+  margin-bottom: 0;
+}

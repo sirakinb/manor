@@ -6,6 +6,7 @@ import type {
   ComputerStatus,
   Me,
   ProductEvent,
+  Room,
   Routine,
   SearchHit,
   TaughtSkill,
@@ -89,6 +90,8 @@ import {
 import { speaker } from "../lib/tts";
 import type { ContextMenuPosition } from "./BotContextMenu";
 import { HostComputerPrompt } from "./HostComputerPrompt";
+import { RoomAvatars } from "./RoomAvatars";
+import { RoomView } from "./RoomView";
 import { WindowChrome } from "./WindowChrome";
 import { WorkspaceSearchResults } from "./WorkspaceSearch";
 
@@ -127,6 +130,8 @@ export function ShellPage() {
   const session = authClient.useSession();
   const [bots, setBots] = useState<Bot[]>([]);
   const [botSections, setBotSections] = useState<BotSection[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [openRoomId, setOpenRoomId] = useState<string | null>(null);
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -583,6 +588,30 @@ export function ShellPage() {
     () => bots.filter((b) => `${b.name} ${b.preview}`.toLowerCase().includes(query.toLowerCase())),
     [bots, query],
   );
+  /**
+   * A room starts with every bot in the workspace; who belongs is easier to
+   * decide once you can see the conversation.
+   */
+  const createRoom = useCallback(async () => {
+    const name = window.prompt("Name this room", "New room")?.trim();
+    if (!name) return;
+    const botIds = bots.slice(0, 12).map((bot) => bot.id);
+    if (botIds.length === 0) return;
+    const room = await rpc.rooms.create({ name, botIds }).catch(() => null);
+    if (!room) return;
+    setRooms((previous) => [room, ...previous]);
+    setOpenRoomId(room.id);
+  }, [bots]);
+
+  const refreshRooms = useCallback(async () => {
+    const next = await rpc.rooms.list().catch(() => null);
+    if (next) setRooms(next);
+  }, []);
+
+  useEffect(() => {
+    void refreshRooms();
+  }, [refreshRooms]);
+
   const sidebarGroups = useMemo(
     () => groupBotsForSidebar(filtered, botSections),
     [botSections, filtered],
@@ -1027,14 +1056,36 @@ export function ShellPage() {
             <img src="/manor-mark.png" alt="Manor" className="h-[22px] w-[22px]" />
             <span className="rk-wordmark text-[14px] text-[#F1F0F3]">MANOR</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setPanel("create")}
-            className="app-no-drag text-[21px] text-[#7A7A80] hover:text-[#C9C9CE]"
-            title="New bot"
-          >
-            +
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => void createRoom()}
+              className="app-no-drag text-[#7A7A80] hover:text-[#C9C9CE]"
+              title="New room — a conversation several bots share"
+            >
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              >
+                <circle cx="9" cy="8" r="3.2" />
+                <circle cx="16.5" cy="9.5" r="2.6" />
+                <path d="M3.5 18.5c0-2.8 2.5-4.5 5.5-4.5s5.5 1.7 5.5 4.5" />
+                <path d="M15 14.2c2.6.2 4.5 1.8 4.5 4.3" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanel("create")}
+              className="app-no-drag text-[21px] text-[#7A7A80] hover:text-[#C9C9CE]"
+              title="New bot"
+            >
+              +
+            </button>
+          </div>
         </div>
         <div className="mx-3.5 mb-3 flex items-center gap-2.5 rounded-xl border border-[#202023] bg-[#141416] px-3 py-2 text-[14px] text-[#6C6C70]">
           <span>⌕</span>
@@ -1053,67 +1104,99 @@ export function ShellPage() {
               onSelect={(hit) => void jumpToSearchHit(hit)}
             />
           ) : (
-            sidebarGroups.map((group) => (
-              <div key={group.key} data-sidebar-group={group.key}>
-                {group.title ? (
-                  <div className="px-2.5 pb-1 pt-3 text-[12.5px] font-medium text-[#6C6C70]">
-                    {group.title}
-                  </div>
-                ) : null}
-                {group.bots.map((bot) => (
+            <>
+              {rooms.map((room) => {
+                const colors = room.botIds.flatMap(
+                  (id: string) => bots.find((bot) => bot.id === id)?.color ?? [],
+                );
+                return (
                   <button
-                    key={bot.id}
+                    key={room.id}
                     type="button"
-                    onClick={() => navigate(`/app/${bot.id}`)}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      setBotMenu({
-                        botId: bot.id,
-                        position: { x: event.clientX, y: event.clientY },
-                      });
-                    }}
+                    onClick={() => setOpenRoomId(room.id)}
                     className={`rk-bot-row flex w-full gap-3 rounded-xl px-2.5 py-[11px] text-left ${
-                      active?.id === bot.id ? "rk-bot-row-active" : ""
+                      openRoomId === room.id ? "rk-bot-row-active" : ""
                     }`}
                     style={
                       {
-                        "--bot-tint": `color-mix(in srgb, ${bot.color} 14%, transparent)`,
+                        "--bot-tint": `color-mix(in srgb, ${colors[0] ?? "#8033cc"} 14%, transparent)`,
                       } as React.CSSProperties
                     }
                   >
-                    <BotAvatar color={bot.color} size={54} />
+                    <RoomAvatars colors={colors} size={54} />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span
-                          className={`truncate text-[15px] text-[#ECECEE] ${
-                            bot.unread ? "font-semibold" : "font-medium"
-                          }`}
-                        >
-                          {bot.name}
-                          {bot.unread ? <span className="sr-only"> (unread)</span> : null}
-                        </span>
-                        <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-[#6C6C70]">
-                          {bot.status === "idle" ? "" : bot.status}
-                          {bot.unread ? (
-                            <span
-                              aria-hidden="true"
-                              className="inline-block h-2 w-2 rounded-full bg-[#8B5CF6]"
-                            />
-                          ) : null}
-                        </span>
-                      </div>
-                      <div
-                        className={`mt-0.5 truncate text-[13.5px] ${
-                          bot.unread ? "font-medium text-[#C9C9CE]" : "text-[#85858A]"
-                        }`}
-                      >
-                        {bot.preview || bot.title}
-                      </div>
+                      <span className="block truncate text-[15px] font-medium text-[#ECECEE]">
+                        {room.name}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[13.5px] text-[#85858A]">
+                        {colors.length} bots
+                      </span>
                     </div>
                   </button>
-                ))}
-              </div>
-            ))
+                );
+              })}
+              {sidebarGroups.map((group) => (
+                <div key={group.key} data-sidebar-group={group.key}>
+                  {group.title ? (
+                    <div className="px-2.5 pb-1 pt-3 text-[12.5px] font-medium text-[#6C6C70]">
+                      {group.title}
+                    </div>
+                  ) : null}
+                  {group.bots.map((bot) => (
+                    <button
+                      key={bot.id}
+                      type="button"
+                      onClick={() => navigate(`/app/${bot.id}`)}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        setBotMenu({
+                          botId: bot.id,
+                          position: { x: event.clientX, y: event.clientY },
+                        });
+                      }}
+                      className={`rk-bot-row flex w-full gap-3 rounded-xl px-2.5 py-[11px] text-left ${
+                        active?.id === bot.id ? "rk-bot-row-active" : ""
+                      }`}
+                      style={
+                        {
+                          "--bot-tint": `color-mix(in srgb, ${bot.color} 14%, transparent)`,
+                        } as React.CSSProperties
+                      }
+                    >
+                      <BotAvatar color={bot.color} size={54} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span
+                            className={`truncate text-[15px] text-[#ECECEE] ${
+                              bot.unread ? "font-semibold" : "font-medium"
+                            }`}
+                          >
+                            {bot.name}
+                            {bot.unread ? <span className="sr-only"> (unread)</span> : null}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-[#6C6C70]">
+                            {bot.status === "idle" ? "" : bot.status}
+                            {bot.unread ? (
+                              <span
+                                aria-hidden="true"
+                                className="inline-block h-2 w-2 rounded-full bg-[#8B5CF6]"
+                              />
+                            ) : null}
+                          </span>
+                        </div>
+                        <div
+                          className={`mt-0.5 truncate text-[13.5px] ${
+                            bot.unread ? "font-medium text-[#C9C9CE]" : "text-[#85858A]"
+                          }`}
+                        >
+                          {bot.preview || bot.title}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </>
           )}
           {archivedBots.length > 0 && !showWorkspaceSearch ? (
             <div className="mt-2 border-t border-[#202023] pt-2">
@@ -1230,144 +1313,157 @@ export function ShellPage() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#0D0D0E]">
-        <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[17px]">
-          <button
-            type="button"
-            data-testid="bot-settings-trigger"
-            onClick={() => setPanel("settings")}
-            className="flex min-w-0 items-center gap-3"
-          >
-            {active ? <BotAvatar color={active.color} size={34} /> : null}
-            <span className="min-w-0">
-              <span className="block truncate text-[16px] font-medium text-[#ECECEE]">
-                {active?.name ?? "Select a bot"}
-              </span>
-            </span>
-          </button>
-          <div className="flex items-center gap-1">
-            {active ? (
+        {openRoomId ? (
+          <RoomView
+            roomId={openRoomId}
+            bots={bots}
+            onClose={() => {
+              setOpenRoomId(null);
+              void refreshRooms();
+            }}
+          />
+        ) : (
+          <>
+            <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[17px]">
               <button
                 type="button"
-                title={voiceStatus?.ready ? "Call" : "Set up voice to call"}
-                aria-label="Call"
-                onClick={() => {
-                  if (!voiceStatus?.ready) {
-                    setVoiceOpen(true);
-                    return;
-                  }
-                  setCallOpen(true);
-                }}
-                className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-                style={{ background: callOpen ? "#1B1B1E" : "transparent" }}
+                data-testid="bot-settings-trigger"
+                onClick={() => setPanel("settings")}
+                className="flex min-w-0 items-center gap-3"
               >
-                <Phone size={16} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                {active ? <BotAvatar color={active.color} size={34} /> : null}
+                <span className="min-w-0">
+                  <span className="block truncate text-[16px] font-medium text-[#ECECEE]">
+                    {active?.name ?? "Select a bot"}
+                  </span>
+                </span>
               </button>
-            ) : null}
-            <button
-              type="button"
-              title={showActivity ? "Hide live activity" : "Show live activity"}
-              onClick={toggleActivity}
-              className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-              style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={showActivity ? "#A855F7" : "#A8A8AD"}
-                strokeWidth="1.6"
-              >
-                <path d="M2 12h4l3-8 4 16 3-8h6" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              title="Agent computer"
-              onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
-              className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-              style={{ background: panel ? "#1B1B1E" : "transparent" }}
-            >
-              <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
-            </button>
-          </div>
-        </div>
-        <Transcript
-          scrollRef={messageScroll}
-          botId={active?.id ?? ""}
-          messages={snapshot?.messages ?? []}
-          olderCursor={snapshot?.olderCursor ?? null}
-          loadingOlder={loadingOlder}
-          answerableAskMessageId={answerableAskMessageId}
-          running={Boolean(
-            snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status),
-          )}
-          activityFeed={
-            showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
-              <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
-                <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
-                <div className="flex flex-col gap-[7px]">
-                  {activity
-                    .filter((item) => item.runId === snapshot?.run?.id)
-                    .map((item, index, list) => (
-                      <div
-                        key={item.id}
-                        className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
-                        style={
-                          index === list.length - 1
-                            ? { animation: "rkPulse 1.2s ease-in-out infinite" }
-                            : undefined
-                        }
-                      >
-                        <span className="shrink-0 text-[#A855F7]">{item.name}</span>
-                        {item.detail ? (
-                          <span className="truncate text-[#6E6975]">{item.detail}</span>
-                        ) : null}
-                      </div>
-                    ))}
-                </div>
+              <div className="flex items-center gap-1">
+                {active ? (
+                  <button
+                    type="button"
+                    title={voiceStatus?.ready ? "Call" : "Set up voice to call"}
+                    aria-label="Call"
+                    onClick={() => {
+                      if (!voiceStatus?.ready) {
+                        setVoiceOpen(true);
+                        return;
+                      }
+                      setCallOpen(true);
+                    }}
+                    className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                    style={{ background: callOpen ? "#1B1B1E" : "transparent" }}
+                  >
+                    <Phone size={16} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  title={showActivity ? "Hide live activity" : "Show live activity"}
+                  onClick={toggleActivity}
+                  className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                  style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={showActivity ? "#A855F7" : "#A8A8AD"}
+                    strokeWidth="1.6"
+                  >
+                    <path d="M2 12h4l3-8 4 16 3-8h6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  title="Agent computer"
+                  onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
+                  className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                  style={{ background: panel ? "#1B1B1E" : "transparent" }}
+                >
+                  <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                </button>
               </div>
-            ) : null
-          }
-          onLoadOlder={loadOlder}
-          onOpenBot={openBot}
-          onAnswer={answerMessage}
-          onRefresh={refreshActiveThread}
-          onAddRoutine={addSkillRoutine}
-          voiceReady={Boolean(voiceStatus?.ready)}
-          speakingMessageId={speakingMessageId}
-          onSpeak={speakMessage}
-        />
-        {recordingSkill ? (
-          <div className="px-6 pb-2 text-center text-[13px] text-[#E65707]">
-            Teaching in progress — stop teaching before sending a new message.
-          </div>
-        ) : null}
-        <Composer
-          activeName={active?.name}
-          running={Boolean(snapshot?.run && isActive(snapshot.run.status))}
-          disabled={Boolean(recordingSkill)}
-          pendingAttachments={activePendingAttachments}
-          attachmentNotice={attachmentNotice}
-          sendError={sendError}
-          dictationError={dictationError}
-          sending={sending}
-          fileInputRef={fileInputRef}
-          onAttachmentPick={onAttachmentPick}
-          onRemoveAttachment={removeAttachment}
-          onSend={sendMessage}
-          onStop={stopRun}
-          dictating={dictating}
-          transcribe={Boolean(voiceStatus?.transcribe)}
-          onDictateStart={(onFinal) => {
-            void dictation.listen({
-              mode: "hold",
-              transcribe: Boolean(voiceStatus?.transcribe),
-              onFinal,
-            });
-          }}
-          onDictateStop={() => dictation.submitHold()}
-        />
+            </div>
+            <Transcript
+              scrollRef={messageScroll}
+              botId={active?.id ?? ""}
+              messages={snapshot?.messages ?? []}
+              olderCursor={snapshot?.olderCursor ?? null}
+              loadingOlder={loadingOlder}
+              answerableAskMessageId={answerableAskMessageId}
+              running={Boolean(
+                snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status),
+              )}
+              activityFeed={
+                showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
+                  <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
+                    <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
+                    <div className="flex flex-col gap-[7px]">
+                      {activity
+                        .filter((item) => item.runId === snapshot?.run?.id)
+                        .map((item, index, list) => (
+                          <div
+                            key={item.id}
+                            className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
+                            style={
+                              index === list.length - 1
+                                ? { animation: "rkPulse 1.2s ease-in-out infinite" }
+                                : undefined
+                            }
+                          >
+                            <span className="shrink-0 text-[#A855F7]">{item.name}</span>
+                            {item.detail ? (
+                              <span className="truncate text-[#6E6975]">{item.detail}</span>
+                            ) : null}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : null
+              }
+              onLoadOlder={loadOlder}
+              onOpenBot={openBot}
+              onAnswer={answerMessage}
+              onRefresh={refreshActiveThread}
+              onAddRoutine={addSkillRoutine}
+              voiceReady={Boolean(voiceStatus?.ready)}
+              speakingMessageId={speakingMessageId}
+              onSpeak={speakMessage}
+            />
+            {recordingSkill ? (
+              <div className="px-6 pb-2 text-center text-[13px] text-[#E65707]">
+                Teaching in progress — stop teaching before sending a new message.
+              </div>
+            ) : null}
+            <Composer
+              activeName={active?.name}
+              running={Boolean(snapshot?.run && isActive(snapshot.run.status))}
+              disabled={Boolean(recordingSkill)}
+              pendingAttachments={activePendingAttachments}
+              attachmentNotice={attachmentNotice}
+              sendError={sendError}
+              dictationError={dictationError}
+              sending={sending}
+              fileInputRef={fileInputRef}
+              onAttachmentPick={onAttachmentPick}
+              onRemoveAttachment={removeAttachment}
+              onSend={sendMessage}
+              onStop={stopRun}
+              dictating={dictating}
+              transcribe={Boolean(voiceStatus?.transcribe)}
+              onDictateStart={(onFinal) => {
+                void dictation.listen({
+                  mode: "hold",
+                  transcribe: Boolean(voiceStatus?.transcribe),
+                  onFinal,
+                });
+              }}
+              onDictateStop={() => dictation.submitHold()}
+            />
+          </>
+        )}
       </main>
 
       <aside
@@ -2002,10 +2098,11 @@ const Transcript = memo(function Transcript({
         <div className="flex flex-col items-start gap-2.5">
           {activityFeed}
           <div
-            className="rounded-[20px] bg-[#1A1A1D] px-[18px] py-[13px] text-[14.5px] text-[#85858A]"
-            style={{ animation: "rkPulse 1.2s ease-in-out infinite" }}
+            className="flex items-center gap-2 px-[18px] py-1 text-[13px] tracking-[0.01em] text-[#6E6975]"
+            style={{ animation: "rkPulse 1.6s ease-in-out infinite" }}
           >
-            working…
+            <span className="inline-block h-[5px] w-[5px] rounded-full bg-[#A855F7]" />
+            working
           </div>
         </div>
       ) : null}
@@ -2245,9 +2342,11 @@ const MessageView = memo(function MessageView({
           );
         }
         if (block.kind === "progress") {
+          // Thinking aloud, not an answer: quieter and smaller than a finished
+          // reply, and without the bubble, so a glance can tell them apart.
           return (
             <div key={i} className="flex justify-start">
-              <div className="max-w-[74%] rounded-[20px] bg-[#1A1A1D] px-[18px] py-3 text-[15.5px] leading-[1.5] text-[#DFDFE2]">
+              <div className="rk-thinking max-w-[74%] px-[18px] py-1.5 text-[13.5px] leading-[1.6] text-[#8A8590]">
                 <ChatMarkdown streaming>{block.text}</ChatMarkdown>
               </div>
             </div>
