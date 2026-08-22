@@ -761,7 +761,15 @@ export function ShellPage() {
     initiallyScrolledThread.current = snapshot.threadId;
   }, [active, snapshot?.botId, snapshot?.threadId]);
 
-  const openBot = useCallback((id: string) => navigate(`/app/${id}`), [navigate]);
+  const openBot = useCallback(
+    (id: string) => {
+      // A room and a bot thread share the main pane, so opening one closes
+      // the other.
+      setOpenRoomId(null);
+      navigate(`/app/${id}`);
+    },
+    [navigate],
+  );
   const loadOlder = useCallback(() => loadOlderMessagesRef.current(), []);
   const answerMessage = useCallback(async (message: ThreadMessage, text: string) => {
     const id = activeBotId.current;
@@ -1234,7 +1242,7 @@ export function ShellPage() {
                     <button
                       key={bot.id}
                       type="button"
-                      onClick={() => navigate(`/app/${bot.id}`)}
+                      onClick={() => openBot(bot.id)}
                       onContextMenu={(event) => {
                         event.preventDefault();
                         setBotMenu({
@@ -2150,6 +2158,11 @@ const Transcript = memo(function Transcript({
   speakingMessageId: string | null;
   onSpeak: (message: ThreadMessage) => void;
 }) {
+  // Once the bot's own thinking is on screen, a separate "working" pulse says
+  // the same thing twice.
+  const last = messages[messages.length - 1];
+  const streamingThought = last?.role === "bot" && last.blocks.at(-1)?.kind === "progress";
+
   return (
     <div
       ref={scrollRef}
@@ -2185,13 +2198,15 @@ const Transcript = memo(function Transcript({
       {running ? (
         <div className="flex flex-col items-start gap-2.5">
           {activityFeed}
-          <div
-            className="flex items-center gap-2 px-[18px] py-1 text-[13px] tracking-[0.01em] text-[#6E6975]"
-            style={{ animation: "rkPulse 1.6s ease-in-out infinite" }}
-          >
-            <span className="inline-block h-[5px] w-[5px] rounded-full bg-[#A855F7]" />
-            working
-          </div>
+          {streamingThought ? null : (
+            <div
+              className="flex items-center gap-2 px-[18px] py-1 text-[13px] tracking-[0.01em] text-[#6E6975]"
+              style={{ animation: "rkPulse 1.6s ease-in-out infinite" }}
+            >
+              <span className="inline-block h-[5px] w-[5px] rounded-full bg-[#A855F7]" />
+              working
+            </div>
+          )}
         </div>
       ) : null}
     </div>
