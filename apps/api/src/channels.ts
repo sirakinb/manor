@@ -26,6 +26,18 @@ export interface ChannelDeps {
 
 const MAX_TEXT_LENGTH = 8_000;
 
+/**
+ * Twilio signs the public URL it posted to, but the request reaches the API
+ * through a tunnel and the web proxy, so req.url is the internal address by
+ * then. Rebuild the public URL for verification.
+ */
+function twilioWebhookUrl(fallback: string, env: NodeJS.ProcessEnv = process.env) {
+  const configured = env.TWILIO_WEBHOOK_URL?.trim();
+  if (configured) return configured;
+  const base = (env.API_URL ?? env.WEB_ORIGIN ?? "").trim().replace(/\/$/, "");
+  return base ? `${base}/api/channels/twilio/inbound` : fallback;
+}
+
 /** Empty TwiML: accept the message without sending an automatic reply. */
 function twiml() {
   return '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
@@ -78,7 +90,7 @@ export function mountChannelRoutes(app: Hono, deps: ChannelDeps) {
         ]),
       ) as Record<string, string>;
       const signature = c.req.header("x-twilio-signature") ?? "";
-      if (!twilioSignatureValid(c.req.url, form, signature, config.authToken)) {
+      if (!twilioSignatureValid(twilioWebhookUrl(c.req.url), form, signature, config.authToken)) {
         return c.json({ error: "Unauthorized" }, 401);
       }
       from = (form.From ?? "").slice(0, 200);

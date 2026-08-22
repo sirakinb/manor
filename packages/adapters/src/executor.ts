@@ -38,7 +38,7 @@ import {
   type ThreadEvents,
 } from "@rakazo/db";
 import { builtinAgentTools } from "./builtin-tools.js";
-import { sendChannelMessage } from "./channels.js";
+import { botMayUseChannels, sendChannelMessage } from "./channels.js";
 import { archiveSpawnedBot, spawnBot } from "./child-bots.js";
 import {
   collectLogIds,
@@ -476,9 +476,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const attachedFilesPrompt = currentTurnFilesInstruction(currentTurnFiles);
         const graphical =
           computer.kind !== "desktop" && deps.sandbox.describe().capabilities.graphical;
-        const builtins = graphical
+        const graphicalBuiltins = graphical
           ? builtinAgentTools
           : builtinAgentTools.filter((tool) => !GRAPHICAL_AGENT_TOOLS.has(tool.name));
+        // Messaging channels belong to one bot, so no other bot is offered the tool.
+        const builtins = botMayUseChannels(bot.id)
+          ? graphicalBuiltins
+          : graphicalBuiltins.filter((tool) => tool.name !== "send_channel_message");
         const tools = [
           ...builtins,
           ...discovered.filter(
@@ -533,6 +537,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
             return result;
           };
           if (name === "send_channel_message") {
+            if (!botMayUseChannels(bot.id)) {
+              return finish({
+                delivered: false,
+                detail: "This bot is not connected to a messaging channel.",
+              });
+            }
             const result = await sendChannelMessage(
               {
                 provider: String(args.provider ?? ""),

@@ -33,6 +33,20 @@ export interface ChannelSendResult {
   detail?: string;
 }
 
+/**
+ * The bot allowed to use messaging channels. Channels are a deployment-level
+ * connection to one conversation, so only the bot wired to them may send —
+ * otherwise any bot in any workspace could message the owner's phone.
+ */
+export function channelBotId(env: NodeJS.ProcessEnv = process.env) {
+  return (env.CHANNEL_BOT_ID ?? env.TWILIO_BOT_ID ?? "").trim();
+}
+
+export function botMayUseChannels(botId: string, env: NodeJS.ProcessEnv = process.env) {
+  const allowed = channelBotId(env);
+  return allowed.length > 0 && botId === allowed;
+}
+
 export function channelOutboundConfigured(env: NodeJS.ProcessEnv = process.env) {
   return Boolean(env.CHANNEL_OUTBOUND_URL?.trim());
 }

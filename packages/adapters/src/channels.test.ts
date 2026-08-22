@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { channelChatAllowed, sendChannelMessage } from "./channels.js";
+import { botMayUseChannels, channelChatAllowed, sendChannelMessage } from "./channels.js";
 
 const bridge = {
   CHANNEL_OUTBOUND_URL: "https://bridge.test/send",
@@ -16,6 +16,22 @@ describe("channel allowlist", () => {
     expect(channelChatAllowed("chat-1", env)).toBe(true);
     expect(channelChatAllowed("chat-2", env)).toBe(true);
     expect(channelChatAllowed("attacker-chat", env)).toBe(false);
+  });
+});
+
+describe("botMayUseChannels", () => {
+  it("only allows the bot the channel is wired to", () => {
+    const env = { TWILIO_BOT_ID: "bot-owner" };
+    expect(botMayUseChannels("bot-owner", env)).toBe(true);
+    expect(botMayUseChannels("someone-elses-bot", env)).toBe(false);
+  });
+
+  it("allows nobody when no channel bot is configured", () => {
+    expect(botMayUseChannels("bot-owner", {})).toBe(false);
+  });
+
+  it("accepts the generic override too", () => {
+    expect(botMayUseChannels("bot-x", { CHANNEL_BOT_ID: "bot-x" })).toBe(true);
   });
 });
 

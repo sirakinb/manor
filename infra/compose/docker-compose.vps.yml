@@ -74,6 +74,8 @@ services:
       # that subnet alone, and a user-space kernel so an escape stays contained.
       RAKAZO_COMPUTER_NETWORK: ${COMPUTER_NETWORK:-manor-prod_screens}
       RAKAZO_COMPUTER_RUNTIME: ${COMPUTER_RUNTIME:-}
+      RAKAZO_COMPUTER_MEMORY_MB: ${COMPUTER_MEMORY_MB:-}
+      RAKAZO_COMPUTER_CPUS: ${COMPUTER_CPUS:-}
     expose:
       - "7091"
     volumes:
