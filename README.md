@@ -65,7 +65,7 @@ pnpm sandbox:build
 pnpm dev
 ```
 
-For production deployment behind a Cloudflare Tunnel, see [`infra/compose/VPS.md`](./infra/compose/VPS.md).
+That runs Manor locally. To put it in the cloud — your own always-on instance behind a Cloudflare Tunnel, like the one this repo was built for — follow the step-by-step guide in [`docs/DEPLOY.md`](./docs/DEPLOY.md). Three accounts (a ~$15/mo VPS, a domain, free Cloudflare), six steps, about 45 minutes.
 
 ## License
 
