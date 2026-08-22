@@ -481,6 +481,26 @@ export function createRouter(deps: RouterDeps) {
         repos.createBotSection(context.actor, input),
       ),
     },
+    rooms: {
+      list: authed.rooms.list.handler(async ({ context }) => repos.listRooms(context.actor)),
+      get: authed.rooms.get.handler(async ({ context, input }) =>
+        repos.getRoom(context.actor, input.roomId),
+      ),
+      create: authed.rooms.create.handler(async ({ context, input }) =>
+        repos.createRoom(context.actor, { name: input.name, botIds: input.botIds }),
+      ),
+      setParticipant: authed.rooms.setParticipant.handler(async ({ context, input }) =>
+        repos.setRoomParticipant(context.actor, {
+          roomId: input.roomId,
+          botId: input.botId,
+          member: input.member,
+        }),
+      ),
+      delete: authed.rooms.delete.handler(async ({ context, input }) => {
+        await repos.deleteRoom(context.actor, input.roomId);
+        return { ok: true as const };
+      }),
+    },
     threads: {
       get: authed.threads.get.handler(async ({ context, input }) =>
         snapshot(deps, context.actor, input.botId),

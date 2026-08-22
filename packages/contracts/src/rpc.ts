@@ -20,6 +20,7 @@ import {
   MeSchema,
   ModelCatalogEntrySchema,
   ModelCredentialSchema,
+  RoomSchema,
   RoutineSchema,
   SkillPlaybookSchema,
   TaughtSkillSchema,
@@ -124,6 +125,22 @@ export const appContract = {
     create: oc
       .input(z.object({ botId: Id, name: z.string().trim().min(1).max(60) }))
       .output(BotSectionSchema),
+  },
+  rooms: {
+    list: oc.output(z.array(RoomSchema)),
+    get: oc.input(z.object({ roomId: Id })).output(RoomSchema),
+    create: oc
+      .input(
+        z.object({
+          name: z.string().trim().min(1).max(80),
+          botIds: z.array(Id).min(1).max(12),
+        }),
+      )
+      .output(RoomSchema),
+    setParticipant: oc
+      .input(z.object({ roomId: Id, botId: Id, member: z.boolean() }))
+      .output(RoomSchema),
+    delete: oc.input(z.object({ roomId: Id })).output(z.object({ ok: z.literal(true) })),
   },
   threads: {
     get: oc.input(z.object({ botId: Id })).output(ThreadSnapshotSchema),

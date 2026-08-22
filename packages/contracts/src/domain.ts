@@ -2,6 +2,17 @@ import * as z from "zod";
 import { ThreadMessageSchema } from "./events.js";
 import { Id, MemoryScope, RunStatus, SandboxKind } from "./ids.js";
 
+/// A conversation several bots take part in. Direct threads keep their single
+/// bot; a room has participants instead.
+export const RoomSchema = z.object({
+  id: Id,
+  workspaceId: Id,
+  name: z.string(),
+  botIds: z.array(Id),
+  createdAt: z.string(),
+});
+export type Room = z.infer<typeof RoomSchema>;
+
 export const ComputerModeSchema = z.enum(["team", "dedicated"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 

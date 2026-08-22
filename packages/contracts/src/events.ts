@@ -142,6 +142,9 @@ export const ThreadMessageSchema = z.object({
   threadId: Id,
   seq: z.number().int().nonnegative(),
   role: MessageRole,
+  /// Which bot wrote this, in a room. Absent for human messages and for
+  /// direct threads, where the thread's own bot is the only possible author.
+  authorBotId: Id.optional(),
   blocks: z.array(MessageBlock),
   runId: Id.optional(),
   createdAt: z.string(),
