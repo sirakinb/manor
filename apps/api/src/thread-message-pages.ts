@@ -75,8 +75,9 @@ function toThreadMessage(row: {
   threadId: string;
   seq: number;
   role: string;
-  authorBotId?: string | null;
   blocks: Prisma.JsonValue;
+  botId: string | null;
+  replyToMessageId: string | null;
   runId: string | null;
   createdAt: Date;
 }): ThreadMessage {
@@ -85,8 +86,9 @@ function toThreadMessage(row: {
     threadId: row.threadId,
     seq: row.seq,
     role: row.role as ThreadMessage["role"],
-    authorBotId: row.authorBotId ?? undefined,
     blocks: row.blocks as ThreadMessage["blocks"],
+    botId: row.botId ?? undefined,
+    replyToMessageId: row.replyToMessageId ?? undefined,
     runId: row.runId ?? undefined,
     createdAt: row.createdAt.toISOString(),
   };

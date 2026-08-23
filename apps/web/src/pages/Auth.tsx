@@ -40,6 +40,9 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
           <label className="mb-4 w-full text-[16px] text-[#8A8590]">
             Name
             <input
+              id="name"
+              name="name"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
@@ -50,6 +53,9 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
         <label className="w-full text-[16px] text-[#8A8590]">
           Email
           <input
+            id="email"
+            name="email"
+            autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Your email address"
@@ -61,6 +67,9 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
         <label className="mt-4 w-full text-[16px] text-[#8A8590]">
           Password
           <input
+            id={mode === "in" ? "current-password" : "new-password"}
+            name="password"
+            autoComplete={mode === "in" ? "current-password" : "new-password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"

@@ -33,7 +33,6 @@ export interface ThreadEvents {
   notify(threadId: string, seq: number): Promise<void>;
   pauseRunForInput(input: PauseRunForInput): Promise<boolean>;
   sendUserMessage(input: SendUserMessageInput): Promise<SendUserMessageResult>;
-  sendRoomMessage(input: SendRoomMessageInput): Promise<SendRoomMessageResult>;
   follow(threadId: string, cursor: number, signal?: AbortSignal): AsyncGenerator<ProductEvent>;
 }
 
@@ -46,6 +45,7 @@ export interface ClearThreadInput {
 export interface ClearThreadResult {
   event: ProductEvent;
   cancelledRunIds: string[];
+  historyCompactionGeneration: number;
 }
 
 export interface FinalizeComputerControlReleaseInput {
@@ -85,7 +85,6 @@ export interface PauseRunForInput {
 export interface AnswerRunInput {
   workspaceId: string;
   threadId: string;
-  botId: string;
   runId: string;
   messageId: string;
   answer: string;
@@ -103,28 +102,6 @@ export interface SendUserMessageInput {
   /** Skip task/run creation when the bot already has active work (follow-up behavior). */
   onlyIfIdle?: boolean;
   linkMessageToRun?: boolean;
-}
-
-/**
- * A turn in a room: one message, and a run for each bot it wakes. Rooms carry
- * several bots, so a turn is not one run — it is however many the mentions ask
- * for, created together so a partial wake can never be committed.
- */
-export interface SendRoomMessageInput {
-  workspaceId: string;
-  threadId: string;
-  userId: string;
-  /** The bot that wrote this, when a bot did. Absent for a person. */
-  authorBotId?: string;
-  blocks: MessageBlock[];
-  prompt: string;
-  wakeBotIds: string[];
-}
-
-export interface SendRoomMessageResult {
-  messageId: string;
-  seq: number;
-  runs: Array<{ botId: string; runId: string; taskId: string }>;
 }
 
 export interface SendUserMessageResult {
@@ -149,7 +126,6 @@ export function createThreadEvents(
     notify: (threadId, seq) => notifyRealtime(realtime, threadId, seq),
     pauseRunForInput: (input) => pauseRunForInput(prisma, input, realtime),
     sendUserMessage: (input) => sendUserMessage(prisma, input, realtime),
-    sendRoomMessage: (input) => sendRoomMessage(prisma, input, realtime),
     follow: (threadId, cursor, signal) =>
       followThreadEvents(prisma, threadId, cursor, realtime, signal, options.catchUpMs),
   };
@@ -168,7 +144,7 @@ export async function clearThread(
         botId: input.botId,
       },
       data: { unread: false },
-      select: { nextMessageSeq: true },
+      select: { nextMessageSeq: true, historyCompactionGeneration: true },
     });
     const activeRuns = await tx.run.findMany({
       where: {
@@ -218,7 +194,19 @@ export async function clearThread(
       // to null, immediately re-fire on the fresh conversation).
       await tx.thread.update({
         where: { id: input.threadId },
-        data: { historyCompactedUpToSeq: thread.nextMessageSeq - 1 },
+        data: {
+          historyCompactedUpToSeq: thread.nextMessageSeq - 1,
+          historyCompactionSummary: null,
+          historyCompactionGeneration: { increment: 1 },
+        },
+      });
+    } else {
+      await tx.thread.update({
+        where: { id: input.threadId },
+        data: {
+          historyCompactionSummary: null,
+          historyCompactionGeneration: { increment: 1 },
+        },
       });
     }
     await tx.bot.update({
@@ -230,10 +218,18 @@ export async function clearThread(
       type: "thread.cleared",
       payload: {},
     });
-    return { event, cancelledRunIds: runIds };
+    return {
+      event,
+      cancelledRunIds: runIds,
+      historyCompactionGeneration: thread.historyCompactionGeneration,
+    };
   });
   await notifyRealtime(realtime, committed.event.threadId, committed.event.seq);
-  return { event: mapProductEvent(committed.event), cancelledRunIds: committed.cancelledRunIds };
+  return {
+    event: mapProductEvent(committed.event),
+    cancelledRunIds: committed.cancelledRunIds,
+    historyCompactionGeneration: committed.historyCompactionGeneration,
+  };
 }
 
 export async function sendUserMessage(
@@ -241,128 +237,103 @@ export async function sendUserMessage(
   input: SendUserMessageInput,
   realtime?: RealtimeFanout,
 ): Promise<SendUserMessageResult> {
-  const committed = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // Message first: its thread-row lock serializes the whole send against clearThread, so a
-    // concurrent clear either sees the committed run and cancels it, or strictly precedes this
-    // transaction. Created in separate transactions, the run could land inside the clear's
-    // window and later repopulate the cleared conversation, and a clear could strand the
-    // message without its event.
-    const message = await createThreadMessageInTransaction(tx, {
-      threadId: input.threadId,
-      role: "user",
-      blocks: input.blocks,
-    });
-    const busy = input.onlyIfIdle
-      ? await tx.run.findFirst({
-          where: { botId: input.botId, status: { in: ["running", "queued", "leased"] } },
-          select: { id: true },
-        })
-      : null;
-    let task = null;
-    let run = null;
-    if (!busy) {
-      task = await tx.task.create({
-        data: {
-          workspaceId: input.workspaceId,
-          botId: input.botId,
+  const replay = async (): Promise<SendUserMessageResult | null> => {
+    if (!input.clientNonce) return null;
+    const message = await prisma.message.findUnique({
+      where: {
+        threadId_clientNonce: {
           threadId: input.threadId,
-          userId: input.userId,
-          prompt: input.prompt,
-          status: "queued",
-        },
-      });
-      run = await tx.run.create({
-        data: {
-          workspaceId: input.workspaceId,
-          botId: input.botId,
-          threadId: input.threadId,
-          taskId: task.id,
-          userId: input.userId,
-          status: "queued",
-          trigger: input.trigger,
           clientNonce: input.clientNonce,
         },
-      });
-      if (input.linkMessageToRun) {
-        await tx.message.update({ where: { id: message.id }, data: { runId: run.id } });
-      }
-    }
-    const event = await appendEventInTransaction(tx, {
-      workspaceId: input.workspaceId,
-      threadId: input.threadId,
-      botId: input.botId,
-      type: "thread.message.created",
-      runId: run?.id,
-      payload: { messageId: message.id, role: "user", blocks: input.blocks },
+      },
+      include: { sourceRuns: { orderBy: { createdAt: "asc" }, take: 1 } },
     });
-    return { message, task, run, event };
+    if (!message) return null;
+    const run = message.sourceRuns[0] ?? null;
+    return {
+      messageId: message.id,
+      seq: message.seq,
+      taskId: run?.taskId ?? null,
+      runId: run?.id ?? null,
+    };
+  };
+  const existing = await replay();
+  if (existing) return existing;
+
+  const commit = () =>
+    prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Message first: its thread-row lock serializes the whole send against clearThread, so a
+      // concurrent clear either sees the committed run and cancels it, or strictly precedes this
+      // transaction. Created in separate transactions, the run could land inside the clear's
+      // window and later repopulate the cleared conversation, and a clear could strand the
+      // message without its event.
+      const message = await createThreadMessageInTransaction(tx, {
+        threadId: input.threadId,
+        role: "user",
+        blocks: input.blocks,
+        clientNonce: input.clientNonce,
+      });
+      const busy = input.onlyIfIdle
+        ? await tx.run.findFirst({
+            where: { botId: input.botId, status: { in: ["running", "queued", "leased"] } },
+            select: { id: true },
+          })
+        : null;
+      let task = null;
+      let run = null;
+      if (!busy) {
+        task = await tx.task.create({
+          data: {
+            workspaceId: input.workspaceId,
+            botId: input.botId,
+            threadId: input.threadId,
+            userId: input.userId,
+            prompt: input.prompt,
+            status: "queued",
+          },
+        });
+        run = await tx.run.create({
+          data: {
+            workspaceId: input.workspaceId,
+            botId: input.botId,
+            threadId: input.threadId,
+            taskId: task.id,
+            userId: input.userId,
+            status: "queued",
+            trigger: input.trigger,
+            clientNonce: input.clientNonce ? `send:${message.id}` : undefined,
+            sourceMessageId: message.id,
+          },
+        });
+        if (input.linkMessageToRun) {
+          await tx.message.update({ where: { id: message.id }, data: { runId: run.id } });
+        }
+      }
+      const event = await appendEventInTransaction(tx, {
+        workspaceId: input.workspaceId,
+        threadId: input.threadId,
+        botId: input.botId,
+        type: "thread.message.created",
+        runId: run?.id,
+        payload: { messageId: message.id, role: "user", blocks: input.blocks },
+      });
+      return { message, task, run, event };
+    });
+  const committed = await commit().catch(async (error) => {
+    const winner = await replay();
+    if (winner) return { replay: winner } as const;
+    throw error;
   });
-  await notifyRealtime(realtime, input.threadId, committed.event.seq);
+  if ("replay" in committed) return committed.replay;
+  await notifyRealtime(realtime, input.threadId, committed.event.seq).catch((error) => {
+    // The event is durable; subscribers recover it from their persisted cursor.
+    console.error("user message realtime notification", error);
+  });
   return {
     messageId: committed.message.id,
     seq: committed.message.seq,
     taskId: committed.task?.id ?? null,
     runId: committed.run?.id ?? null,
-  };
-}
-
-export async function sendRoomMessage(
-  prisma: PrismaClient,
-  input: SendRoomMessageInput,
-  realtime?: RealtimeFanout,
-): Promise<SendRoomMessageResult> {
-  const committed = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const message = await createThreadMessageInTransaction(tx, {
-      threadId: input.threadId,
-      role: input.authorBotId ? "bot" : "user",
-      authorBotId: input.authorBotId,
-      blocks: input.blocks,
-    });
-    const runs: Array<{ botId: string; runId: string; taskId: string }> = [];
-    for (const botId of input.wakeBotIds) {
-      const task = await tx.task.create({
-        data: {
-          workspaceId: input.workspaceId,
-          botId,
-          threadId: input.threadId,
-          userId: input.userId,
-          prompt: input.prompt,
-          status: "queued",
-        },
-      });
-      const run = await tx.run.create({
-        data: {
-          workspaceId: input.workspaceId,
-          botId,
-          threadId: input.threadId,
-          taskId: task.id,
-          userId: input.userId,
-          status: "queued",
-          // A mention is a turn addressed to this bot, whoever wrote it.
-          trigger: "user",
-        },
-      });
-      runs.push({ botId, runId: run.id, taskId: task.id });
-    }
-    const event = await appendEventInTransaction(tx, {
-      workspaceId: input.workspaceId,
-      threadId: input.threadId,
-      botId: input.authorBotId ?? input.wakeBotIds[0] ?? "",
-      type: "thread.message.created",
-      payload: {
-        messageId: message.id,
-        role: input.authorBotId ? "bot" : "user",
-        blocks: input.blocks,
-        authorBotId: input.authorBotId,
-      },
-    });
-    return { message, runs, event };
-  });
-  await notifyRealtime(realtime, input.threadId, committed.event.seq);
-  return {
-    messageId: committed.message.id,
-    seq: committed.message.seq,
-    runs: committed.runs,
   };
 }
 
@@ -375,6 +346,16 @@ export async function answerRunInput(
     // Thread row first, then run rows — the same order as clearThread and finalizeRun, so a
     // concurrent clear cannot deadlock against this transaction.
     await tx.$queryRaw`SELECT id FROM threads WHERE id = ${input.threadId} FOR UPDATE`;
+    const run = await tx.run.findFirst({
+      where: {
+        id: input.runId,
+        workspaceId: input.workspaceId,
+        threadId: input.threadId,
+        status: "waiting_input",
+      },
+      select: { botId: true },
+    });
+    if (!run) return null;
     const message = await tx.message.findFirst({
       where: {
         id: input.messageId,
@@ -395,7 +376,6 @@ export async function answerRunInput(
         id: input.runId,
         workspaceId: input.workspaceId,
         threadId: input.threadId,
-        botId: input.botId,
         status: "waiting_input",
       },
       data: { status: "queued" },
@@ -417,7 +397,7 @@ export async function answerRunInput(
     const updated = await appendEventInTransaction(tx, {
       workspaceId: input.workspaceId,
       threadId: input.threadId,
-      botId: input.botId,
+      botId: run.botId,
       type: "thread.message.updated",
       runId: input.runId,
       payload: { messageId: message.id, role: "bot", blocks },
@@ -467,8 +447,6 @@ export async function pauseRunForInput(
     const message = await createThreadMessageInTransaction(tx, {
       threadId: input.threadId,
       role: "bot",
-      // A run's messages belong to its bot, which is how a room attributes them.
-      authorBotId: input.botId,
       blocks: input.blocks,
       runId: input.runId,
     });
@@ -504,7 +482,12 @@ export async function finalizeComputerControlRelease(
 ): Promise<boolean> {
   const committed = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const cleared = await tx.computer.updateMany({
-      where: { id: input.computerId, controlLeaseId: input.leaseId },
+      where: {
+        id: input.computerId,
+        workspaceId: input.workspaceId,
+        controlBotId: input.botId,
+        controlLeaseId: input.leaseId,
+      },
       data: {
         controlHolder: input.holder,
         controlLeaseId: null,
@@ -514,8 +497,8 @@ export async function finalizeComputerControlRelease(
     });
     if (cleared.count !== 1) return null;
 
-    const bot = await tx.bot.findUnique({
-      where: { id: input.botId },
+    const bot = await tx.bot.findFirst({
+      where: { id: input.botId, workspaceId: input.workspaceId },
       select: { thread: { select: { id: true } } },
     });
     if (!bot?.thread) return { threadId: null, seq: null };
@@ -618,9 +601,8 @@ export async function finalizeRun(
       const message = await createThreadMessageInTransaction(tx, {
         threadId: input.threadId,
         role: "bot",
-        // A run's messages belong to its bot, which is how a room attributes them.
-        authorBotId: input.botId,
         blocks: input.blocks,
+        botId: input.botId,
         runId: input.runId,
       });
       await appendEventInTransaction(tx, {

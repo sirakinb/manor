@@ -5,9 +5,10 @@ export interface CreateThreadMessageInput {
   threadId: string;
   role: "user" | "bot" | "system";
   blocks: MessageBlock[];
+  botId?: string;
+  replyToMessageId?: string;
   runId?: string;
-  /** Which bot wrote this, in a room. Direct threads leave it unset. */
-  authorBotId?: string;
+  clientNonce?: string;
 }
 
 export async function createThreadMessage(prisma: PrismaClient, input: CreateThreadMessageInput) {
@@ -34,9 +35,11 @@ export async function createThreadMessageInTransaction(
       threadId: input.threadId,
       seq: thread.nextMessageSeq - 1,
       role: input.role,
-      authorBotId: input.authorBotId,
       blocks: input.blocks as Prisma.InputJsonValue,
+      botId: input.botId,
+      replyToMessageId: input.replyToMessageId,
       runId: input.runId,
+      clientNonce: input.clientNonce,
     },
   });
 }

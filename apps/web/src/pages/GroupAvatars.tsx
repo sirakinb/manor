@@ -1,10 +1,10 @@
 import { BotAvatar } from "@rakazo/ui-web";
 
 /**
- * A room's members, stacked. Rooms and single bots share one list, so the
+ * A group's members, stacked. Groups and single bots share one list, so the
  * stack is what tells them apart at a glance.
  */
-export function RoomAvatars({
+export function GroupAvatars({
   colors,
   size = 38,
   max = 3,
