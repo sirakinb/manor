@@ -1,6 +1,7 @@
 // Must run before builtinModels() so extra models land in the catalog.
 import "./extra-openrouter-models.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
+import { LOCAL_PROVIDER_ID, registerLocalProvider } from "./pi-local-provider.js";
 import {
   AUTH_URL_PROVIDERS,
   AUTH_URL_SIGN_IN,
@@ -33,7 +34,7 @@ export function listPiCatalog(): PiCatalogEntry[] {
 let cachedCatalog: PiCatalogEntry[] | undefined;
 
 function buildPiCatalog(): PiCatalogEntry[] {
-  const models = builtinModels();
+  const models = registerLocalProvider(builtinModels());
   const entries: PiCatalogEntry[] = [];
   for (const provider of models.getProviders()) {
     const apiKey = Boolean(provider.auth.apiKey);
@@ -76,6 +77,9 @@ function catalogBilling(
 ) {
   const signInMeta = DEVICE_CODE_PROVIDERS[providerId] ?? AUTH_URL_PROVIDERS[providerId];
   if (signInMeta) return signInMeta.billing;
+  if (providerId === LOCAL_PROVIDER_ID) {
+    return "Runs on infrastructure configured by the deployment owner. No model charges from Rakazo.";
+  }
   if (opts.oauth && !opts.apiKey) {
     return `${name} subscription login is not in the Rakazo UI yet. Skip if this deployment already has credentials.`;
   }
