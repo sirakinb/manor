@@ -1574,176 +1574,176 @@ export function ShellPage() {
           <CrmView />
         ) : (
           <>
-        <div className="flex items-center justify-between border-b border-[#141416] px-3 py-[17px] md:px-[22px]">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              type="button"
-              aria-label="Open navigation"
-              onClick={() => setMobileSidebarOpen(true)}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#A8A8AD] hover:bg-[#1B1B1E] md:hidden"
-            >
-              <Menu size={19} strokeWidth={1.7} />
-            </button>
-            <button
-              type="button"
-              data-testid="bot-settings-trigger"
-              onClick={() => setPanel(inGroup ? "group-settings" : "settings")}
-              className="flex min-w-0 items-center gap-3"
-            >
-              {inGroup ? (
-                <GroupAvatars
-                  colors={(activeGroup?.members ?? []).map((member) => member.color)}
-                  size={30}
-                />
-              ) : active ? (
-                <BotAvatar color={active.color} size={26} />
-              ) : null}
-              <span className="min-w-0">
-                <span className="block truncate text-[16px] font-medium text-[#ECECEE]">
-                  {inGroup
-                    ? (activeGroup?.name ?? activeSnapshot?.groupName ?? "Group")
-                    : (active?.name ?? "Select a bot")}
-                </span>
-              </span>
-            </button>
-          </div>
-          <div className="flex items-center gap-1">
-            {!inGroup && active ? (
-              <button
-                type="button"
-                title={voiceStatus?.ready ? "Call" : "Set up voice to call"}
-                aria-label="Call"
-                onClick={() => {
-                  if (!voiceStatus?.ready) {
-                    setVoiceOpen(true);
-                    return;
-                  }
-                  setCallOpen(true);
-                }}
-                className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-                style={{ background: callOpen ? "#1B1B1E" : "transparent" }}
-              >
-                <Phone size={16} strokeWidth={1.6} className="text-[#A8A8AD]" />
-              </button>
-            ) : null}
-            <button
-              type="button"
-              title={showActivity ? "Hide live activity" : "Show live activity"}
-              onClick={toggleActivity}
-              className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-              style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={showActivity ? "#A855F7" : "#A8A8AD"}
-                strokeWidth="1.6"
-              >
-                <path d="M2 12h4l3-8 4 16 3-8h6" />
-              </svg>
-            </button>
-            {!inGroup ? (
-              <button
-                type="button"
-                title="Agent computer"
-                onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
-                className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-                style={{ background: panel ? "#1B1B1E" : "transparent" }}
-              >
-                <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
-              </button>
-            ) : null}
-          </div>
-        </div>
-        <Transcript
-          scrollRef={messageScroll}
-          artifactTarget={transcriptArtifactTarget}
-          messages={activeSnapshot?.messages ?? []}
-          olderCursor={activeSnapshot?.olderCursor ?? null}
-          loadingOlder={loadingOlder}
-          answerableAskMessageId={answerableAskMessageId}
-          running={transcriptRunning}
-          activityFeed={
-            showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
-              <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
-                <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
-                <div className="flex flex-col gap-[7px]">
-                  {activity
-                    .filter((item) => item.runId === snapshot?.run?.id)
-                    .map((item, index, list) => (
-                      <div
-                        key={item.id}
-                        className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
-                        style={
-                          index === list.length - 1
-                            ? { animation: "rkPulse 1.2s ease-in-out infinite" }
-                            : undefined
-                        }
-                      >
-                        <span className="shrink-0 text-[#A855F7]">{item.name}</span>
-                        {item.detail ? (
-                          <span className="truncate text-[#6E6975]">{item.detail}</span>
-                        ) : null}
-                      </div>
-                    ))}
-                </div>
+            <div className="flex items-center justify-between border-b border-[#141416] px-3 py-[17px] md:px-[22px]">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Open navigation"
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#A8A8AD] hover:bg-[#1B1B1E] md:hidden"
+                >
+                  <Menu size={19} strokeWidth={1.7} />
+                </button>
+                <button
+                  type="button"
+                  data-testid="bot-settings-trigger"
+                  onClick={() => setPanel(inGroup ? "group-settings" : "settings")}
+                  className="flex min-w-0 items-center gap-3"
+                >
+                  {inGroup ? (
+                    <GroupAvatars
+                      colors={(activeGroup?.members ?? []).map((member) => member.color)}
+                      size={30}
+                    />
+                  ) : active ? (
+                    <BotAvatar color={active.color} size={26} />
+                  ) : null}
+                  <span className="min-w-0">
+                    <span className="block truncate text-[16px] font-medium text-[#ECECEE]">
+                      {inGroup
+                        ? (activeGroup?.name ?? activeSnapshot?.groupName ?? "Group")
+                        : (active?.name ?? "Select a bot")}
+                    </span>
+                  </span>
+                </button>
               </div>
-            ) : null
-          }
-          onLoadOlder={loadOlder}
-          onOpenBot={openBot}
-          onAnswer={answerMessage}
-          onReply={setReplyTarget}
-          memberName={resolveTranscriptMemberName}
-          onRefresh={refreshActiveThread}
-          onAddRoutine={addSkillRoutine}
-          voiceReady={Boolean(voiceStatus?.ready)}
-          speakingMessageId={speakingMessageId}
-          onSpeak={speakMessage}
-        />
-        {recordingSkill ? (
-          <div className="px-6 pb-2 text-center text-[13px] text-[#E65707]">
-            Teaching in progress — stop teaching before sending a new message.
-          </div>
-        ) : null}
-        <Composer
-          key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
-          activeName={inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name}
-          running={composerRunning}
-          disabled={Boolean(recordingSkill)}
-          pendingAttachments={activePendingAttachments}
-          attachmentNotice={attachmentNotice}
-          sendError={sendError}
-          dictationError={dictationError}
-          sending={sending}
-          fileInputRef={fileInputRef}
-          onAttachmentPick={onAttachmentPick}
-          onRemoveAttachment={removeAttachment}
-          onSend={sendMessage}
-          onStop={stopRun}
-          replyTarget={activeReplyTarget}
-          onClearReply={() => setReplyTarget(null)}
-          mentionMembers={
-            inGroup
-              ? (activeSnapshot?.members ?? activeGroup?.members)?.map((member) => ({
-                  botId: member.botId,
-                  name: member.name,
-                }))
-              : undefined
-          }
-          dictating={dictating}
-          transcribe={Boolean(voiceStatus?.transcribe)}
-          onDictateStart={(onFinal) => {
-            void dictation.listen({
-              mode: "hold",
-              transcribe: Boolean(voiceStatus?.transcribe),
-              onFinal,
-            });
-          }}
-          onDictateStop={() => dictation.submitHold()}
-        />
+              <div className="flex items-center gap-1">
+                {!inGroup && active ? (
+                  <button
+                    type="button"
+                    title={voiceStatus?.ready ? "Call" : "Set up voice to call"}
+                    aria-label="Call"
+                    onClick={() => {
+                      if (!voiceStatus?.ready) {
+                        setVoiceOpen(true);
+                        return;
+                      }
+                      setCallOpen(true);
+                    }}
+                    className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                    style={{ background: callOpen ? "#1B1B1E" : "transparent" }}
+                  >
+                    <Phone size={16} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  title={showActivity ? "Hide live activity" : "Show live activity"}
+                  onClick={toggleActivity}
+                  className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                  style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={showActivity ? "#A855F7" : "#A8A8AD"}
+                    strokeWidth="1.6"
+                  >
+                    <path d="M2 12h4l3-8 4 16 3-8h6" />
+                  </svg>
+                </button>
+                {!inGroup ? (
+                  <button
+                    type="button"
+                    title="Agent computer"
+                    onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
+                    className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                    style={{ background: panel ? "#1B1B1E" : "transparent" }}
+                  >
+                    <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <Transcript
+              scrollRef={messageScroll}
+              artifactTarget={transcriptArtifactTarget}
+              messages={activeSnapshot?.messages ?? []}
+              olderCursor={activeSnapshot?.olderCursor ?? null}
+              loadingOlder={loadingOlder}
+              answerableAskMessageId={answerableAskMessageId}
+              running={transcriptRunning}
+              activityFeed={
+                showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
+                  <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
+                    <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
+                    <div className="flex flex-col gap-[7px]">
+                      {activity
+                        .filter((item) => item.runId === snapshot?.run?.id)
+                        .map((item, index, list) => (
+                          <div
+                            key={item.id}
+                            className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
+                            style={
+                              index === list.length - 1
+                                ? { animation: "rkPulse 1.2s ease-in-out infinite" }
+                                : undefined
+                            }
+                          >
+                            <span className="shrink-0 text-[#A855F7]">{item.name}</span>
+                            {item.detail ? (
+                              <span className="truncate text-[#6E6975]">{item.detail}</span>
+                            ) : null}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : null
+              }
+              onLoadOlder={loadOlder}
+              onOpenBot={openBot}
+              onAnswer={answerMessage}
+              onReply={setReplyTarget}
+              memberName={resolveTranscriptMemberName}
+              onRefresh={refreshActiveThread}
+              onAddRoutine={addSkillRoutine}
+              voiceReady={Boolean(voiceStatus?.ready)}
+              speakingMessageId={speakingMessageId}
+              onSpeak={speakMessage}
+            />
+            {recordingSkill ? (
+              <div className="px-6 pb-2 text-center text-[13px] text-[#E65707]">
+                Teaching in progress — stop teaching before sending a new message.
+              </div>
+            ) : null}
+            <Composer
+              key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
+              activeName={inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name}
+              running={composerRunning}
+              disabled={Boolean(recordingSkill)}
+              pendingAttachments={activePendingAttachments}
+              attachmentNotice={attachmentNotice}
+              sendError={sendError}
+              dictationError={dictationError}
+              sending={sending}
+              fileInputRef={fileInputRef}
+              onAttachmentPick={onAttachmentPick}
+              onRemoveAttachment={removeAttachment}
+              onSend={sendMessage}
+              onStop={stopRun}
+              replyTarget={activeReplyTarget}
+              onClearReply={() => setReplyTarget(null)}
+              mentionMembers={
+                inGroup
+                  ? (activeSnapshot?.members ?? activeGroup?.members)?.map((member) => ({
+                      botId: member.botId,
+                      name: member.name,
+                    }))
+                  : undefined
+              }
+              dictating={dictating}
+              transcribe={Boolean(voiceStatus?.transcribe)}
+              onDictateStart={(onFinal) => {
+                void dictation.listen({
+                  mode: "hold",
+                  transcribe: Boolean(voiceStatus?.transcribe),
+                  onFinal,
+                });
+              }}
+              onDictateStop={() => dictation.submitHold()}
+            />
           </>
         )}
       </main>

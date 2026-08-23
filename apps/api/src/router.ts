@@ -52,6 +52,7 @@ import { type Actor, appContract, type ComputerStatus, type Me } from "@rakazo/c
 import { ACTIVE_RUN_STATUSES, AttachmentValidationError, nextCronDate } from "@rakazo/core";
 import {
   appendEventInTransaction,
+  createCrmRepos,
   createGroupRepos,
   createRepos,
   createThreadMessageInTransaction,
