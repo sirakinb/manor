@@ -142,13 +142,19 @@ export function createCrmRepos(prisma: PrismaClient) {
   return {
     overview,
 
-    /** Idempotent: only seeds when the workspace has no pipelines yet. */
+    /**
+     * Idempotent, and safe against itself: the first visit fires this from an
+     * effect that React may run twice, so the check-then-create holds a
+     * per-workspace advisory lock for the transaction.
+     */
     async seedDefaultPipeline(actor: Actor): Promise<CrmOverview> {
-      const existing = await prisma.crmPipeline.count({
-        where: { workspaceId: actor.workspaceId },
-      });
-      if (existing === 0) {
-        await prisma.crmPipeline.create({
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`crm-seed-${actor.workspaceId}`}))`;
+        const existing = await tx.crmPipeline.count({
+          where: { workspaceId: actor.workspaceId },
+        });
+        if (existing > 0) return;
+        await tx.crmPipeline.create({
           data: {
             workspaceId: actor.workspaceId,
             name: DEFAULT_PIPELINE.name,
@@ -157,7 +163,7 @@ export function createCrmRepos(prisma: PrismaClient) {
             },
           },
         });
-      }
+      });
       return overview(actor);
     },
 

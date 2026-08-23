@@ -328,6 +328,7 @@ export function ShellPage() {
       return;
     }
     const currentBotId = routeBotId.current;
+    if (window.location.pathname === "/app/crm") return;
     if (!currentBotId || !list.some((bot) => bot.id === currentBotId)) {
       navigate(firstThreadRoute(list, groupList), { replace: true });
     }
@@ -488,7 +489,7 @@ export function ShellPage() {
           return;
         }
         const selectedBotId = bootstrap.thread?.botId ?? bootstrap.bots[0]?.id;
-        if (selectedBotId && selectedBotId !== botId) {
+        if (selectedBotId && selectedBotId !== botId && window.location.pathname !== "/app/crm") {
           navigate(`/app/${selectedBotId}`, { replace: true });
         }
       })
