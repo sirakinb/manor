@@ -52,6 +52,7 @@ import { type Actor, appContract, type ComputerStatus, type Me } from "@rakazo/c
 import { ACTIVE_RUN_STATUSES, AttachmentValidationError, nextCronDate } from "@rakazo/core";
 import {
   appendEventInTransaction,
+  createCrmRepos,
   createGroupRepos,
   createRepos,
   createThreadMessageInTransaction,
@@ -181,6 +182,7 @@ export function createRouter(deps: RouterDeps) {
   const os = implement(appContract).$context<{ actor: Actor | null; signal?: AbortSignal }>();
   const repos = createRepos(deps.prisma);
   const groupRepos = createGroupRepos(deps.prisma);
+  const crm = createCrmRepos(deps.prisma);
   const taughtSkills = createTaughtSkillsService({
     prisma: deps.prisma,
     events: deps.events,
@@ -571,6 +573,53 @@ export function createRouter(deps: RouterDeps) {
       create: authed.botSections.create.handler(async ({ context, input }) =>
         repos.createBotSection(context.actor, input),
       ),
+    },
+    crm: {
+      overview: authed.crm.overview.handler(async ({ context }) => crm.overview(context.actor)),
+      contacts: {
+        create: authed.crm.contacts.create.handler(async ({ context, input }) =>
+          crm.createContact(context.actor, input),
+        ),
+        update: authed.crm.contacts.update.handler(async ({ context, input }) =>
+          crm.updateContact(context.actor, input),
+        ),
+        delete: authed.crm.contacts.delete.handler(async ({ context, input }) => {
+          await crm.deleteContact(context.actor, input.contactId);
+          return { ok: true as const };
+        }),
+      },
+      tags: {
+        create: authed.crm.tags.create.handler(async ({ context, input }) =>
+          crm.createTag(context.actor, input),
+        ),
+      },
+      pipelines: {
+        create: authed.crm.pipelines.create.handler(async ({ context, input }) =>
+          crm.createPipeline(context.actor, input),
+        ),
+        seed: authed.crm.pipelines.seed.handler(async ({ context }) =>
+          crm.seedDefaultPipeline(context.actor),
+        ),
+        delete: authed.crm.pipelines.delete.handler(async ({ context, input }) => {
+          await crm.deletePipeline(context.actor, input.pipelineId);
+          return { ok: true as const };
+        }),
+      },
+      deals: {
+        create: authed.crm.deals.create.handler(async ({ context, input }) =>
+          crm.createDeal(context.actor, input),
+        ),
+        update: authed.crm.deals.update.handler(async ({ context, input }) =>
+          crm.updateDeal(context.actor, input),
+        ),
+        move: authed.crm.deals.move.handler(async ({ context, input }) =>
+          crm.moveDeal(context.actor, input.dealId, input.stageId),
+        ),
+        delete: authed.crm.deals.delete.handler(async ({ context, input }) => {
+          await crm.deleteDeal(context.actor, input.dealId);
+          return { ok: true as const };
+        }),
+      },
     },
     threads: {
       get: authed.threads.get.handler(async ({ context, input }) => {

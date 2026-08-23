@@ -69,7 +69,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
@@ -95,6 +95,7 @@ import {
 } from "../lib/thread-events";
 import { speaker } from "../lib/tts";
 import type { ContextMenuPosition } from "./BotContextMenu";
+import { CrmView } from "./crm/CrmView";
 import { GroupAvatars } from "./GroupAvatars";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
@@ -144,6 +145,9 @@ export function ShellPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
   const [botSections, setBotSections] = useState<BotSection[]>([]);
+  // The CRM is a place, not a panel, so it lives on its own route and wins
+  // the main pane whenever the address says so.
+  const crmOpen = useLocation().pathname === "/app/crm";
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -324,6 +328,7 @@ export function ShellPage() {
       return;
     }
     const currentBotId = routeBotId.current;
+    if (window.location.pathname === "/app/crm") return;
     if (!currentBotId || !list.some((bot) => bot.id === currentBotId)) {
       navigate(firstThreadRoute(list, groupList), { replace: true });
     }
@@ -484,7 +489,7 @@ export function ShellPage() {
           return;
         }
         const selectedBotId = bootstrap.thread?.botId ?? bootstrap.bots[0]?.id;
-        if (selectedBotId && selectedBotId !== botId) {
+        if (selectedBotId && selectedBotId !== botId && window.location.pathname !== "/app/crm") {
           navigate(`/app/${selectedBotId}`, { replace: true });
         }
       })
@@ -1468,6 +1473,31 @@ export function ShellPage() {
         </div>
         <button
           type="button"
+          onClick={() => navigate("/app/crm")}
+          className={`mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315] ${
+            crmOpen ? "bg-[#131315]" : ""
+          }`}
+        >
+          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
+              <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
+              <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
+              <path d="M17.25 13.5v7.5M13.5 17.25h7.5" />
+            </svg>
+          </span>
+          <span className="text-[14.5px] text-[#C9C9CE]">CRM</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setPluginsOpen(true)}
           className="mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315]"
         >
@@ -1540,176 +1570,182 @@ export function ShellPage() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#0D0D0E]">
-        <div className="flex items-center justify-between border-b border-[#141416] px-3 py-[17px] md:px-[22px]">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              type="button"
-              aria-label="Open navigation"
-              onClick={() => setMobileSidebarOpen(true)}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#A8A8AD] hover:bg-[#1B1B1E] md:hidden"
-            >
-              <Menu size={19} strokeWidth={1.7} />
-            </button>
-            <button
-              type="button"
-              data-testid="bot-settings-trigger"
-              onClick={() => setPanel(inGroup ? "group-settings" : "settings")}
-              className="flex min-w-0 items-center gap-3"
-            >
-              {inGroup ? (
-                <GroupAvatars
-                  colors={(activeGroup?.members ?? []).map((member) => member.color)}
-                  size={30}
-                />
-              ) : active ? (
-                <BotAvatar color={active.color} size={26} />
-              ) : null}
-              <span className="min-w-0">
-                <span className="block truncate text-[16px] font-medium text-[#ECECEE]">
-                  {inGroup
-                    ? (activeGroup?.name ?? activeSnapshot?.groupName ?? "Group")
-                    : (active?.name ?? "Select a bot")}
-                </span>
-              </span>
-            </button>
-          </div>
-          <div className="flex items-center gap-1">
-            {!inGroup && active ? (
-              <button
-                type="button"
-                title={voiceStatus?.ready ? "Call" : "Set up voice to call"}
-                aria-label="Call"
-                onClick={() => {
-                  if (!voiceStatus?.ready) {
-                    setVoiceOpen(true);
-                    return;
-                  }
-                  setCallOpen(true);
-                }}
-                className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-                style={{ background: callOpen ? "#1B1B1E" : "transparent" }}
-              >
-                <Phone size={16} strokeWidth={1.6} className="text-[#A8A8AD]" />
-              </button>
-            ) : null}
-            <button
-              type="button"
-              title={showActivity ? "Hide live activity" : "Show live activity"}
-              onClick={toggleActivity}
-              className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-              style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={showActivity ? "#A855F7" : "#A8A8AD"}
-                strokeWidth="1.6"
-              >
-                <path d="M2 12h4l3-8 4 16 3-8h6" />
-              </svg>
-            </button>
-            {!inGroup ? (
-              <button
-                type="button"
-                title="Agent computer"
-                onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
-                className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
-                style={{ background: panel ? "#1B1B1E" : "transparent" }}
-              >
-                <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
-              </button>
-            ) : null}
-          </div>
-        </div>
-        <Transcript
-          scrollRef={messageScroll}
-          artifactTarget={transcriptArtifactTarget}
-          messages={activeSnapshot?.messages ?? []}
-          olderCursor={activeSnapshot?.olderCursor ?? null}
-          loadingOlder={loadingOlder}
-          answerableAskMessageId={answerableAskMessageId}
-          running={transcriptRunning}
-          activityFeed={
-            showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
-              <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
-                <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
-                <div className="flex flex-col gap-[7px]">
-                  {activity
-                    .filter((item) => item.runId === snapshot?.run?.id)
-                    .map((item, index, list) => (
-                      <div
-                        key={item.id}
-                        className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
-                        style={
-                          index === list.length - 1
-                            ? { animation: "rkPulse 1.2s ease-in-out infinite" }
-                            : undefined
-                        }
-                      >
-                        <span className="shrink-0 text-[#A855F7]">{item.name}</span>
-                        {item.detail ? (
-                          <span className="truncate text-[#6E6975]">{item.detail}</span>
-                        ) : null}
-                      </div>
-                    ))}
-                </div>
+        {crmOpen ? (
+          <CrmView />
+        ) : (
+          <>
+            <div className="flex items-center justify-between border-b border-[#141416] px-3 py-[17px] md:px-[22px]">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Open navigation"
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#A8A8AD] hover:bg-[#1B1B1E] md:hidden"
+                >
+                  <Menu size={19} strokeWidth={1.7} />
+                </button>
+                <button
+                  type="button"
+                  data-testid="bot-settings-trigger"
+                  onClick={() => setPanel(inGroup ? "group-settings" : "settings")}
+                  className="flex min-w-0 items-center gap-3"
+                >
+                  {inGroup ? (
+                    <GroupAvatars
+                      colors={(activeGroup?.members ?? []).map((member) => member.color)}
+                      size={30}
+                    />
+                  ) : active ? (
+                    <BotAvatar color={active.color} size={26} />
+                  ) : null}
+                  <span className="min-w-0">
+                    <span className="block truncate text-[16px] font-medium text-[#ECECEE]">
+                      {inGroup
+                        ? (activeGroup?.name ?? activeSnapshot?.groupName ?? "Group")
+                        : (active?.name ?? "Select a bot")}
+                    </span>
+                  </span>
+                </button>
               </div>
-            ) : null
-          }
-          onLoadOlder={loadOlder}
-          onOpenBot={openBot}
-          onAnswer={answerMessage}
-          onReply={setReplyTarget}
-          memberName={resolveTranscriptMemberName}
-          onRefresh={refreshActiveThread}
-          onAddRoutine={addSkillRoutine}
-          voiceReady={Boolean(voiceStatus?.ready)}
-          speakingMessageId={speakingMessageId}
-          onSpeak={speakMessage}
-        />
-        {recordingSkill ? (
-          <div className="px-6 pb-2 text-center text-[13px] text-[#E65707]">
-            Teaching in progress — stop teaching before sending a new message.
-          </div>
-        ) : null}
-        <Composer
-          key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
-          activeName={inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name}
-          running={composerRunning}
-          disabled={Boolean(recordingSkill)}
-          pendingAttachments={activePendingAttachments}
-          attachmentNotice={attachmentNotice}
-          sendError={sendError}
-          dictationError={dictationError}
-          sending={sending}
-          fileInputRef={fileInputRef}
-          onAttachmentPick={onAttachmentPick}
-          onRemoveAttachment={removeAttachment}
-          onSend={sendMessage}
-          onStop={stopRun}
-          replyTarget={activeReplyTarget}
-          onClearReply={() => setReplyTarget(null)}
-          mentionMembers={
-            inGroup
-              ? (activeSnapshot?.members ?? activeGroup?.members)?.map((member) => ({
-                  botId: member.botId,
-                  name: member.name,
-                }))
-              : undefined
-          }
-          dictating={dictating}
-          transcribe={Boolean(voiceStatus?.transcribe)}
-          onDictateStart={(onFinal) => {
-            void dictation.listen({
-              mode: "hold",
-              transcribe: Boolean(voiceStatus?.transcribe),
-              onFinal,
-            });
-          }}
-          onDictateStop={() => dictation.submitHold()}
-        />
+              <div className="flex items-center gap-1">
+                {!inGroup && active ? (
+                  <button
+                    type="button"
+                    title={voiceStatus?.ready ? "Call" : "Set up voice to call"}
+                    aria-label="Call"
+                    onClick={() => {
+                      if (!voiceStatus?.ready) {
+                        setVoiceOpen(true);
+                        return;
+                      }
+                      setCallOpen(true);
+                    }}
+                    className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                    style={{ background: callOpen ? "#1B1B1E" : "transparent" }}
+                  >
+                    <Phone size={16} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  title={showActivity ? "Hide live activity" : "Show live activity"}
+                  onClick={toggleActivity}
+                  className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                  style={{ background: showActivity ? "#1B1B1E" : "transparent" }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={showActivity ? "#A855F7" : "#A8A8AD"}
+                    strokeWidth="1.6"
+                  >
+                    <path d="M2 12h4l3-8 4 16 3-8h6" />
+                  </svg>
+                </button>
+                {!inGroup ? (
+                  <button
+                    type="button"
+                    title="Agent computer"
+                    onClick={() => setPanel((p) => (p === "computer" ? null : "computer"))}
+                    className="grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                    style={{ background: panel ? "#1B1B1E" : "transparent" }}
+                  >
+                    <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <Transcript
+              scrollRef={messageScroll}
+              artifactTarget={transcriptArtifactTarget}
+              messages={activeSnapshot?.messages ?? []}
+              olderCursor={activeSnapshot?.olderCursor ?? null}
+              loadingOlder={loadingOlder}
+              answerableAskMessageId={answerableAskMessageId}
+              running={transcriptRunning}
+              activityFeed={
+                showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
+                  <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
+                    <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">Activity</div>
+                    <div className="flex flex-col gap-[7px]">
+                      {activity
+                        .filter((item) => item.runId === snapshot?.run?.id)
+                        .map((item, index, list) => (
+                          <div
+                            key={item.id}
+                            className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
+                            style={
+                              index === list.length - 1
+                                ? { animation: "rkPulse 1.2s ease-in-out infinite" }
+                                : undefined
+                            }
+                          >
+                            <span className="shrink-0 text-[#A855F7]">{item.name}</span>
+                            {item.detail ? (
+                              <span className="truncate text-[#6E6975]">{item.detail}</span>
+                            ) : null}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : null
+              }
+              onLoadOlder={loadOlder}
+              onOpenBot={openBot}
+              onAnswer={answerMessage}
+              onReply={setReplyTarget}
+              memberName={resolveTranscriptMemberName}
+              onRefresh={refreshActiveThread}
+              onAddRoutine={addSkillRoutine}
+              voiceReady={Boolean(voiceStatus?.ready)}
+              speakingMessageId={speakingMessageId}
+              onSpeak={speakMessage}
+            />
+            {recordingSkill ? (
+              <div className="px-6 pb-2 text-center text-[13px] text-[#E65707]">
+                Teaching in progress — stop teaching before sending a new message.
+              </div>
+            ) : null}
+            <Composer
+              key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
+              activeName={inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name}
+              running={composerRunning}
+              disabled={Boolean(recordingSkill)}
+              pendingAttachments={activePendingAttachments}
+              attachmentNotice={attachmentNotice}
+              sendError={sendError}
+              dictationError={dictationError}
+              sending={sending}
+              fileInputRef={fileInputRef}
+              onAttachmentPick={onAttachmentPick}
+              onRemoveAttachment={removeAttachment}
+              onSend={sendMessage}
+              onStop={stopRun}
+              replyTarget={activeReplyTarget}
+              onClearReply={() => setReplyTarget(null)}
+              mentionMembers={
+                inGroup
+                  ? (activeSnapshot?.members ?? activeGroup?.members)?.map((member) => ({
+                      botId: member.botId,
+                      name: member.name,
+                    }))
+                  : undefined
+              }
+              dictating={dictating}
+              transcribe={Boolean(voiceStatus?.transcribe)}
+              onDictateStart={(onFinal) => {
+                void dictation.listen({
+                  mode: "hold",
+                  transcribe: Boolean(voiceStatus?.transcribe),
+                  onFinal,
+                });
+              }}
+              onDictateStop={() => dictation.submitHold()}
+            />
+          </>
+        )}
       </main>
 
       <aside

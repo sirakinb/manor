@@ -8,17 +8,17 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  members       Member[]
-  invitations   Invitation[]
+  id               String                @id
+  name             String
+  email            String
+  emailVerified    Boolean               @default(false)
+  image            String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  members          Member[]
+  invitations      Invitation[]
   modelCredentials UserModelCredential[]
   voiceCredentials UserVoiceCredential[]
   secrets          Secret[]
@@ -29,16 +29,16 @@ model User {
 }
 
 model Session {
-  id                     String   @id
-  expiresAt              DateTime
-  token                  String
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  ipAddress              String?
-  userAgent              String?
-  userId                 String
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activeOrganizationId   String?
+  id                   String   @id
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
 
   @@unique([token])
   @@index([userId])
@@ -78,30 +78,30 @@ model Verification {
 }
 
 model Organization {
-  id          String       @id
-  name        String
-  slug        String
-  logo        String?
-  createdAt   DateTime
-  metadata    String?
-  members     Member[]
-  invitations Invitation[]
-  bots        Bot[]
-  botSections BotSection[]
-  botDeletions BotDeletion[]
-  threads     Thread[]
-  events      Event[]
-  tasks       Task[]
-  runs        Run[]
-  routines    Routine[]
-  taughtSkills TaughtSkill[]
-  connections Connection[]
-  capabilities CapabilityInstall[]
-  memoryDocuments MemoryDocument[]
-  agentHomes  AgentHome[]
-  browserProfiles BrowserProfile[]
-  artifacts   Artifact[]
-  usageRecords UsageRecord[]
+  id                      String                   @id
+  name                    String
+  slug                    String
+  logo                    String?
+  createdAt               DateTime
+  metadata                String?
+  members                 Member[]
+  invitations             Invitation[]
+  bots                    Bot[]
+  botSections             BotSection[]
+  botDeletions            BotDeletion[]
+  threads                 Thread[]
+  events                  Event[]
+  tasks                   Task[]
+  runs                    Run[]
+  routines                Routine[]
+  taughtSkills            TaughtSkill[]
+  connections             Connection[]
+  capabilities            CapabilityInstall[]
+  memoryDocuments         MemoryDocument[]
+  agentHomes              AgentHome[]
+  browserProfiles         BrowserProfile[]
+  artifacts               Artifact[]
+  usageRecords            UsageRecord[]
   notificationPreferences NotificationPreference[]
   computers   Computer[]
   externalEffects ExternalEffect[]
@@ -143,16 +143,16 @@ model Invitation {
 }
 
 model DeploymentSettings {
-  id                             String   @id @default("default")
-  ownerUserId                    String?
-  signupsEnabled                 Boolean  @default(true)
-  signupAllowlist                String   @default("")
-  defaultModelProvider           String?
-  defaultModelId                 String?
+  id                              String   @id @default("default")
+  ownerUserId                     String?
+  signupsEnabled                  Boolean  @default(true)
+  signupAllowlist                 String   @default("")
+  defaultModelProvider            String?
+  defaultModelId                  String?
   deploymentModelCredentialCipher String?
-  computerHost                   String?
-  createdAt                      DateTime @default(now())
-  updatedAt                      DateTime @updatedAt
+  computerHost                    String?
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
 
   @@map("deployment_settings")
 }
@@ -228,11 +228,11 @@ model Bot {
   runs           Run[]
   groupMembers   ChatGroupMember[]
 
+  @@unique([workspaceId, spawnKey])
   @@index([workspaceId, userId, archivedAt, pinned, updatedAt])
   @@index([sectionId])
   @@index([computerId])
   @@index([parentBotId])
-  @@unique([workspaceId, spawnKey])
   @@map("bots")
 }
 
@@ -254,13 +254,13 @@ model BotSection {
 }
 
 model BotDeletion {
-  id                String   @id
+  id                String       @id
   workspaceId       String
   workspace         Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name              String
   deletedByUserId   String
   memoriesPreserved Boolean
-  deletedAt         DateTime @default(now())
+  deletedAt         DateTime     @default(now())
 
   @@index([workspaceId, deletedAt])
   @@map("bot_deletions")
@@ -296,7 +296,7 @@ model ChatGroupMember {
 }
 
 model Thread {
-  id                      String       @id @default(cuid())
+  id                      String              @id @default(cuid())
   workspaceId             String
   workspace               Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   botId                   String?      @unique
@@ -304,9 +304,9 @@ model Thread {
   groupId                 String?      @unique
   group                   ChatGroup?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   userId                  String
-  createdAt               DateTime     @default(now())
-  nextEventSeq            Int          @default(0)
-  nextMessageSeq          Int          @default(0)
+  createdAt               DateTime            @default(now())
+  nextEventSeq            Int                 @default(0)
+  nextMessageSeq          Int                 @default(0)
   historyCompactedUpToSeq Int?
   historyCompactionSummary String?      @db.Text
   historyCompactionGeneration Int        @default(0)
@@ -344,17 +344,17 @@ model Message {
 }
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   threadId    String
-  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread      Thread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
   botId       String
   seq         Int
   type        String
   payload     Json
   runId       String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime     @default(now())
 
   @@unique([threadId, seq])
   @@index([workspaceId, createdAt])
@@ -364,18 +364,18 @@ model Event {
 }
 
 model Task {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   botId       String
-  bot         Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot         Bot          @relation(fields: [botId], references: [id], onDelete: Cascade)
   threadId    String
-  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread      Thread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
   userId      String
   prompt      String
   status      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   runs        Run[]
 
   @@index([workspaceId, botId])
@@ -383,23 +383,23 @@ model Task {
 }
 
 model Run {
-  id            String    @id @default(cuid())
-  workspaceId   String
-  workspace     Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  botId         String
-  bot           Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
-  threadId      String
-  thread        Thread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  taskId        String
-  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId        String
-  status        String
-  trigger       String
-  modelProvider String?
-  modelId       String?
-  error         String?
-  leaseOwner    String?
-  leaseFence    Int       @default(0)
+  id             String           @id @default(cuid())
+  workspaceId    String
+  workspace      Organization     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  botId          String
+  bot            Bot              @relation(fields: [botId], references: [id], onDelete: Cascade)
+  threadId       String
+  thread         Thread           @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  taskId         String
+  task           Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId         String
+  status         String
+  trigger        String
+  modelProvider  String?
+  modelId        String?
+  error          String?
+  leaseOwner     String?
+  leaseFence     Int              @default(0)
   leaseExpiresAt DateTime?
   checkpoint    String?
   clientNonce   String?
@@ -423,13 +423,13 @@ model Run {
 }
 
 model Attempt {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   runId      String
-  run        Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run        Run       @relation(fields: [runId], references: [id], onDelete: Cascade)
   fence      Int
   status     String
   error      String?
-  startedAt  DateTime @default(now())
+  startedAt  DateTime  @default(now())
   finishedAt DateTime?
 
   @@index([runId])
@@ -437,18 +437,18 @@ model Attempt {
 }
 
 model ExternalEffect {
-  id              String   @id @default(cuid())
-  workspaceId     String
-  workspace       Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  runId           String
-  run             Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
-  kind            String
-  idempotencyKey  String
-  status          String
-  request         Json
-  result          Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String       @id @default(cuid())
+  workspaceId    String
+  workspace      Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runId          String
+  run            Run          @relation(fields: [runId], references: [id], onDelete: Cascade)
+  kind           String
+  idempotencyKey String
+  status         String
+  request        Json
+  result         Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@unique([idempotencyKey])
   @@index([runId, status])
@@ -456,22 +456,22 @@ model ExternalEffect {
 }
 
 model Routine {
-  id          String    @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   botId       String
-  bot         Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot         Bot          @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId      String
   name        String
   prompt      String
   cron        String
-  timezone    String    @default("UTC")
-  active      Boolean   @default(false)
-  notify      Boolean   @default(true)
+  timezone    String       @default("UTC")
+  active      Boolean      @default(false)
+  notify      Boolean      @default(true)
   lastRunAt   DateTime?
   nextRunAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([active, nextRunAt])
   @@index([workspaceId, botId])
@@ -479,22 +479,22 @@ model Routine {
 }
 
 model TaughtSkill {
-  id          String    @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   botId       String
-  bot         Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot         Bot          @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId      String
-  name        String    @default("")
+  name        String       @default("")
   goal        String
   status      String
-  playbook    Json      @default("{}")
-  recording   Json      @default("{\"events\":[],\"snapshots\":[]}")
+  playbook    Json         @default("{}")
+  recording   Json         @default("{\"events\":[],\"snapshots\":[]}")
   startedAt   DateTime?
   expiresAt   DateTime?
   stoppedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([workspaceId, botId])
   @@index([workspaceId, botId, status])
@@ -504,25 +504,25 @@ model TaughtSkill {
 }
 
 model Connection {
-  id            String   @id @default(cuid())
-  workspaceId   String
-  workspace     Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId        String
-  provider      String
-  displayName   String
-  status        String
-  secretId      String?
-  providerRef   String?
-  metadata      Json     @default("{}")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  provider    String
+  displayName String
+  status      String
+  secretId    String?
+  providerRef String?
+  metadata    Json         @default("{}")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([workspaceId, userId])
   @@map("connections")
 }
 
 model CapabilityInstall {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   userId      String
@@ -531,26 +531,26 @@ model CapabilityInstall {
   source      String
   version     String?
   digest      String?
-  config      Json     @default("{}")
-  createdAt   DateTime @default(now())
+  config      Json         @default("{}")
+  createdAt   DateTime     @default(now())
 
   @@index([workspaceId, userId])
   @@map("capability_installs")
 }
 
 model MemoryDocument {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   workspaceId String
-  workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Organization     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   userId      String
   botId       String?
-  bot         Bot?     @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot         Bot?             @relation(fields: [botId], references: [id], onDelete: Cascade)
   scope       String
   path        String
   content     String
-  revision    Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  revision    Int              @default(1)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   revisions   MemoryRevision[]
 
   @@unique([workspaceId, scope, botId, path])
@@ -559,73 +559,73 @@ model MemoryDocument {
 }
 
 model MemoryRevision {
-  id         String   @id @default(cuid())
-  documentId String
-  document   MemoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  revision   Int
-  content    String
-  sourceRunId String?
+  id             String         @id @default(cuid())
+  documentId     String
+  document       MemoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  revision       Int
+  content        String
+  sourceRunId    String?
   sourceThreadId String?
-  createdAt  DateTime @default(now())
+  createdAt      DateTime       @default(now())
 
   @@unique([documentId, revision])
   @@map("memory_revisions")
 }
 
 model AgentHome {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  botId       String   @unique
-  bot         Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  botId       String       @unique
+  bot         Bot          @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId      String
-  revision    String   @default("empty")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  revision    String       @default("empty")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@map("agent_homes")
 }
 
 model BrowserProfile {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  botId       String   @unique
-  bot         Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  botId       String       @unique
+  bot         Bot          @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId      String
   secretId    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@map("browser_profiles")
 }
 
 model Computer {
-  id                      String   @id @default(cuid())
+  id                      String                   @id @default(cuid())
   workspaceId             String
-  workspace               Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId                   String
-  scope                    String   @default("team")
-  scopeKey                 String   @unique
-  homeKey                  String   @unique
-  homeRevision             String   @default("empty")
-  kind                     String
-  providerRef              String?
-  state                    String   @default("stopped")
-  controlHolder            String   @default("none")
-  controlLeaseId           String?
-  controlLeaseExpiresAt    DateTime?
-  controlBotId             String?
-  controlFence             Int      @default(0)
-  executionRunId           String?
-  executionBotId           String?
-  executionLeaseExpiresAt  DateTime?
-  executionFence           Int      @default(0)
-  screenUrl                String?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
-  bots                     Bot[]
-  executionLeases          ComputerExecutionLease[]
+  workspace               Organization             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId                  String
+  scope                   String                   @default("team")
+  scopeKey                String                   @unique
+  homeKey                 String                   @unique
+  homeRevision            String                   @default("empty")
+  kind                    String
+  providerRef             String?
+  state                   String                   @default("stopped")
+  controlHolder           String                   @default("none")
+  controlLeaseId          String?
+  controlLeaseExpiresAt   DateTime?
+  controlBotId            String?
+  controlFence            Int                      @default(0)
+  executionRunId          String?
+  executionBotId          String?
+  executionLeaseExpiresAt DateTime?
+  executionFence          Int                      @default(0)
+  screenUrl               String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  bots                    Bot[]
+  executionLeases         ComputerExecutionLease[]
 
   @@index([workspaceId, scope])
   @@map("computers")
@@ -649,7 +649,7 @@ model ComputerExecutionLease {
 }
 
 model Artifact {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   botId       String?
@@ -663,7 +663,7 @@ model Artifact {
   size        Int
   hash        String
   storageKey  String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime     @default(now())
 
   @@index([workspaceId, botId])
   @@index([groupId])
@@ -671,32 +671,32 @@ model Artifact {
 }
 
 model UsageRecord {
-  id           String   @id @default(cuid())
+  id           String       @id @default(cuid())
   workspaceId  String
   workspace    Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   botId        String?
-  bot          Bot?     @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot          Bot?         @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId       String
   runId        String?
-  run          Run?     @relation(fields: [runId], references: [id], onDelete: SetNull)
+  run          Run?         @relation(fields: [runId], references: [id], onDelete: SetNull)
   provider     String
   model        String
   inputTokens  Int
   outputTokens Int
-  createdAt    DateTime @default(now())
+  createdAt    DateTime     @default(now())
 
   @@index([workspaceId, userId, createdAt])
   @@map("usage_records")
 }
 
 model NotificationPreference {
-  id          String  @id @default(cuid())
+  id          String       @id @default(cuid())
   workspaceId String
   workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   userId      String
-  finish      Boolean @default(true)
-  help        Boolean @default(true)
-  takeover    Boolean @default(true)
+  finish      Boolean      @default(true)
+  help        Boolean      @default(true)
+  takeover    Boolean      @default(true)
 
   @@unique([workspaceId, userId])
   @@map("notification_preferences")
@@ -713,4 +713,104 @@ model Secret {
 
   @@index([userId, workspaceId])
   @@map("secrets")
+}
+
+// ── CRM ──────────────────────────────────────────────────────────────────────
+// A service business runs on who it knows and what work is moving. These are
+// plain workspace-scoped tables — no coupling to bots or threads — so that
+// phase 2 can hand bots CRM tools without touching the schema again.
+// Prefixed Crm* because Manor already has a Task model of its own.
+
+model CrmContact {
+  id          String   @id @default(cuid())
+  workspaceId String
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  company     String?
+  notes       String?
+  status      String   @default("active") // active | archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tags  CrmContactTag[]
+  deals CrmDeal[]
+
+  @@index([workspaceId, status])
+  @@map("crm_contacts")
+}
+
+model CrmTag {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  color       String?
+  createdAt   DateTime @default(now())
+
+  contacts CrmContactTag[]
+
+  @@unique([workspaceId, name])
+  @@map("crm_tags")
+}
+
+model CrmContactTag {
+  contactId String
+  contact   CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       CrmTag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@map("crm_contact_tags")
+}
+
+model CrmPipeline {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stages CrmStage[]
+  deals  CrmDeal[]
+
+  @@index([workspaceId])
+  @@map("crm_pipelines")
+}
+
+model CrmStage {
+  id         String      @id @default(cuid())
+  pipelineId String
+  pipeline   CrmPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  name       String
+  position   Int         @default(0)
+  color      String?
+  createdAt  DateTime    @default(now())
+
+  deals CrmDeal[]
+
+  @@index([pipelineId])
+  @@map("crm_stages")
+}
+
+model CrmDeal {
+  id          String      @id @default(cuid())
+  workspaceId String
+  pipelineId  String
+  pipeline    CrmPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stageId     String
+  stage       CrmStage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     CrmContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  title       String
+  // Whole dollars. Service-business deal sizes don't need cents, and whole
+  // numbers keep every rollup on the dashboard exact.
+  value       Int         @default(0)
+  status      String      @default("open") // open | won | lost
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([workspaceId, pipelineId])
+  @@map("crm_deals")
 }
