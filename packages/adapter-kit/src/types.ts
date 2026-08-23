@@ -159,6 +159,15 @@ export interface ConnectorTool {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+  readOnly?: boolean;
+  /** In-process routing metadata. It is never exposed to the model. */
+  route?: ConnectorRoute;
+}
+
+export interface ConnectorRoute {
+  connectorId: string;
+  toolName: string;
+  resourceId?: string;
 }
 
 export interface ConnectorCall {
@@ -166,6 +175,7 @@ export interface ConnectorCall {
   args: Record<string, unknown>;
   connectionId?: string;
   executionId: string;
+  route?: ConnectorRoute;
 }
 
 export type ConnectorEvent =
