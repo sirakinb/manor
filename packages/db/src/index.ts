@@ -3,6 +3,7 @@ export * from "./computers.js";
 export * from "./crm.js";
 export * from "./events.js";
 export * from "./groups.js";
+export * from "./memory-config.js";
 export * from "./messages.js";
 export * from "./model-credentials.js";
 export * from "./repos.js";
