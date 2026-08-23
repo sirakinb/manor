@@ -12,15 +12,18 @@ import type {
   NotificationMessage,
   NotificationProvider,
   SandboxProvider,
+  SemanticMemoryProvider,
 } from "@rakazo/adapter-kit";
 import { historyCompactJob, routineWakeupJob, runContinueJob } from "@rakazo/adapter-kit";
 import type { MessageBlock, RunStatus } from "@rakazo/contracts";
 import { ATTACHMENT_MAX_BYTES, isAttachmentImageMimeType } from "@rakazo/contracts";
 import {
+  type ActionApprovalRule,
   appendTextSegment,
   appendToolCallSegment,
   assertTransition,
   blocksToAgentHistoryText,
+  connectorKindFromToolName,
   containsSecret,
   createStreamingRedactor,
   endsSentence,
@@ -32,21 +35,36 @@ import {
   nextFence,
   promptInvokesSkill,
   redactSecrets,
+  resolveActionApproval,
   sandboxCommandTimeoutMs,
   type ToolCallStreak,
   type ToolNameStreak,
+  toolRequiresApproval,
   trackToolCallStreak,
   trackToolNameStreak,
   userTurnBlocksForRun,
 } from "@rakazo/core";
+import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import {
   appendEventInTransaction,
   createThreadMessageInTransaction,
+  effectiveMemoryScope,
   findDefaultModelCredential,
   type PrismaClient,
   parseComputerMode,
   type ThreadEvents,
 } from "@rakazo/db";
+import { buildApprovalAskBlock } from "./approval-ask.js";
+import {
+  approvalPausedToolResult,
+  claimApprovedEffect,
+  claimIntendedEffect,
+  completeExternalEffect,
+  isApprovalPausedResult,
+  resolveDuplicateEffectGate,
+  settleUncertainEffect,
+  uncertainEffectResult,
+} from "./approval-effect.js";
 import { builtinAgentTools } from "./builtin-tools.js";
 import { botMayUseChannels, sendChannelMessage } from "./channels.js";
 import { archiveSpawnedBot, spawnBot } from "./child-bots.js";
@@ -85,10 +103,13 @@ import {
   HISTORY_WINDOW_SIZE,
   historyWindowSize,
   LEGACY_HISTORY_WINDOW_SIZE,
+  MAX_RECALLED_MEMORIES,
   selectCompactedHistory,
   shouldEnqueueCompaction,
 } from "./history-compaction.js";
 import { loadAgentMemoryContext } from "./memory-context.js";
+import type { MemoryProviderResolver } from "./memory-provider-factory.js";
+import { selectMemoryTools } from "./memory-tools.js";
 import { toOAuthCredential } from "./pi-credentials.js";
 import {
   parseModelSecret,
@@ -96,13 +117,18 @@ import {
   secretValuesToRedact,
   serializeModelSecret,
 } from "./pi-oauth.js";
+import {
+  assertPlotDataWithinLimits,
+  PLOT_TOOL_GUIDE,
+  type PlotSpec,
+  parsePlotData,
+  plotSvgToPng,
+  renderPlotSpecToSvg,
+  searchChartCatalog,
+} from "./plot-tool.js";
 import { inferScript } from "./scripted-runtime.js";
 import type { EncryptedSecretStore } from "./secrets.js";
-import {
-  isSupermemoryEnabled,
-  searchSupermemory,
-  supermemoryContainerTag,
-} from "./supermemory-client.js";
+import { type TakeoverResumeCheckpoint, takeoverResumeFromRelease } from "./takeover-resume.js";
 import { getActiveTeachingSession, parsePlaybook } from "./teaching-session.js";
 import {
   attachWorkspaceFileToThread,
@@ -117,6 +143,7 @@ const READ_ONLY_AGENT_TOOLS = new Set([
   "read_file",
   "request_takeover",
   "run_subagent",
+  "recall_memory",
 ]);
 const MAX_MODEL_FILE_BYTES = 250_000;
 // Same tool, same arguments, this many times in a row means the agent is stuck, not paginating.
@@ -130,6 +157,7 @@ const GRAPHICAL_AGENT_TOOLS = new Set([
   "open_path",
   "launch_app",
 ]);
+const BUILTIN_AGENT_TOOL_NAMES = new Set(builtinAgentTools.map((tool) => tool.name));
 
 export interface ExecutorDeps {
   prisma: PrismaClient;
@@ -137,11 +165,12 @@ export interface ExecutorDeps {
   runtime: AgentRuntime;
   sandbox: SandboxProvider;
   memory: MemoryStore;
+  memoryProviders: MemoryProviderResolver;
   home: AgentHomeStore;
   artifacts?: ArtifactStore;
   connector?: ConnectorProvider;
   secrets: string[];
-  secretStore?: EncryptedSecretStore;
+  secretStore: EncryptedSecretStore;
   deploymentModelKey?: string;
   dataDir?: string;
   notifications?: NotificationProvider;
@@ -292,7 +321,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
       const run = await deps.prisma.run.findUnique({ where: { id: runId } });
       if (!run) return;
       if (isTerminal(run.status as RunStatus)) return;
-      const resumeFromTakeover = run.status === "waiting_takeover";
+      const resumeCheckpoint =
+        run.checkpoint === "takeover" || run.checkpoint === "takeover-skipped"
+          ? run.checkpoint
+          : null;
+      const resumeFromTakeover = run.status === "waiting_takeover" || Boolean(resumeCheckpoint);
+      const takeoverResume = resumeFromTakeover
+        ? takeoverResumeFromRelease(resumeCheckpoint === "takeover-skipped" ? "skipped" : "done")
+        : null;
 
       const fence = nextFence(run.leaseFence);
       const now = new Date();
@@ -313,6 +349,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           leaseFence: fence,
           leaseExpiresAt: new Date(Date.now() + 5 * 60_000),
           error: null,
+          checkpoint: null,
         },
       });
       if (leased.count !== 1) return;
@@ -337,7 +374,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
       });
       if (!leaseTarget.computerId) throw new Error("Bot has no computer");
       if (leaseTarget.computerSwitching) {
-        await requeueComputerRun(deps, runId, workerId, fence);
+        await requeueComputerRun(deps, runId, workerId, fence, resumeCheckpoint);
         return;
       }
       let computerLease: ComputerExecutionLease | null = null;
@@ -350,7 +387,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         });
       } catch (error) {
         if (!(error instanceof ComputerBusyError)) throw error;
-        await requeueComputerRun(deps, runId, workerId, fence);
+        await requeueComputerRun(deps, runId, workerId, fence, resumeCheckpoint);
         return;
       }
       const attempt = await deps.prisma.attempt
@@ -400,30 +437,40 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
       const runSecrets = [...deps.secrets];
       try {
-        const [bot, thread, messages, task, storedConnections, credential, settings, savedSkills] =
-          await Promise.all([
-            deps.prisma.bot.findUniqueOrThrow({
-              where: { id: run.botId },
-              include: { computer: true },
-            }),
-            deps.prisma.thread.findUniqueOrThrow({ where: { id: run.threadId } }),
-            deps.prisma.message.findMany({
-              where: { threadId: run.threadId },
-              orderBy: { seq: "desc" },
-              take: LEGACY_HISTORY_WINDOW_SIZE,
-              select: { id: true, seq: true, role: true, runId: true, blocks: true },
-            }),
-            deps.prisma.task.findUniqueOrThrow({ where: { id: run.taskId } }),
-            deps.prisma.connection.findMany({
-              where: { userId: run.userId, workspaceId: run.workspaceId },
-              select: { id: true, provider: true, displayName: true, status: true },
-            }),
-            findDefaultModelCredential(deps.prisma, run),
-            deps.prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-            deps.prisma.taughtSkill.findMany({
-              where: { botId: run.botId, workspaceId: run.workspaceId, status: "saved" },
-            }),
-          ]);
+        const [
+          bot,
+          thread,
+          messages,
+          task,
+          storedConnections,
+          credential,
+          settings,
+          configuredMemory,
+          savedSkills,
+        ] = await Promise.all([
+          deps.prisma.bot.findUniqueOrThrow({
+            where: { id: run.botId },
+            include: { computer: true },
+          }),
+          deps.prisma.thread.findUniqueOrThrow({ where: { id: run.threadId } }),
+          deps.prisma.message.findMany({
+            where: { threadId: run.threadId },
+            orderBy: { seq: "desc" },
+            take: LEGACY_HISTORY_WINDOW_SIZE,
+            select: { id: true, seq: true, role: true, runId: true, blocks: true },
+          }),
+          deps.prisma.task.findUniqueOrThrow({ where: { id: run.taskId } }),
+          deps.prisma.connection.findMany({
+            where: { userId: run.userId, workspaceId: run.workspaceId },
+            select: { id: true, provider: true, displayName: true, status: true },
+          }),
+          findDefaultModelCredential(deps.prisma, run),
+          deps.prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
+          deps.memoryProviders.resolve(run.workspaceId),
+          deps.prisma.taughtSkill.findMany({
+            where: { botId: run.botId, workspaceId: run.workspaceId, status: "saved" },
+          }),
+        ]);
         runAbortController = new AbortController();
         if (!leaseValid) runAbortController.abort();
         let liveSlugs: string[] = [];
@@ -451,6 +498,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
           signal: runAbortController.signal,
           connectedProviders: connectedPlugins.map((row) => row.provider),
         };
+        const memoryScope = configuredMemory
+          ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
+          : null;
+        const semanticMemory: SemanticMemoryProvider | null = configuredMemory?.provider ?? null;
 
         await deps.events.append({
           workspaceId: run.workspaceId,
@@ -461,7 +512,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           payload: { trigger: run.trigger },
         });
 
-        const discovered = deps.connector ? await deps.connector.discoverTools(context) : [];
+        const discoveredPromise = deps.connector
+          ? deps.connector.discoverTools(context)
+          : Promise.resolve([]);
         const visibleMessages = [...messages].reverse().map((m) => ({
           seq: m.seq,
           role: (m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant") as
@@ -487,27 +540,40 @@ export function createRunExecutor(deps: ExecutorDeps) {
           })),
           run.sourceMessageId,
         );
-        const currentTurnImages = await loadCurrentTurnImages(deps, turnBlocks, context);
-        const memoryContext = await loadAgentMemoryContext(deps.memory, bot.id, context);
-        const supermemoryEnabled = isSupermemoryEnabled(process.env.SUPERMEMORY_API_KEY);
+        const recallPromise =
+          semanticMemory && memoryScope && thread.historyCompactedUpToSeq != null
+            ? semanticMemory.recall(
+                {
+                  query: task.prompt,
+                  scope: memoryScope,
+                  botId: bot.id,
+                  historyGeneration: thread.historyCompactionGeneration,
+                  limit: MAX_RECALLED_MEMORIES,
+                },
+                context,
+              )
+            : Promise.resolve(null);
+        const [discovered, currentTurnImages, memoryContext, recalled] = await Promise.all([
+          discoveredPromise,
+          loadCurrentTurnImages(deps, turnBlocks, context),
+          loadAgentMemoryContext(deps.memory, bot.id, context),
+          recallPromise,
+        ]);
+        const semanticMemoryEnabled = Boolean(semanticMemory);
         let recalledMemory = "";
         let recallSucceeded = false;
-        if (supermemoryEnabled && thread.historyCompactedUpToSeq != null) {
-          const recalled = await searchSupermemory(
-            task.prompt,
-            supermemoryContainerTag(bot.id, thread.historyCompactionGeneration),
-          );
-          if (recalled.ok && recalled.results.length > 0) {
+        if (recalled) {
+          if (recalled.ok && recalled.value.length > 0) {
             recallSucceeded = true;
-            recalledMemory = formatRecalledMemory(recalled.results);
+            recalledMemory = formatRecalledMemory(recalled.value);
           } else if (!recalled.ok) {
-            console.error("supermemory recall failed", recalled.error);
+            console.error("semantic memory recall failed", recalled.error);
           }
         }
         if (!compactedHistory.usedLocalSummary) {
           history = history.slice(
             -historyWindowSize({
-              supermemoryEnabled: supermemoryEnabled && !thread.historyCompactionSummary,
+              semanticMemoryEnabled: semanticMemoryEnabled && !thread.historyCompactionSummary,
               compacted: thread.historyCompactedUpToSeq != null,
               recallSucceeded,
             }),
@@ -540,7 +606,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const groupContext = thread.groupId
           ? await loadGroupContext(deps.prisma, thread.groupId)
           : undefined;
-        const builtins = (
+        const availableBuiltins = (
           graphical
             ? builtinAgentTools
             : builtinAgentTools.filter((tool) => !GRAPHICAL_AGENT_TOOLS.has(tool.name))
@@ -548,12 +614,29 @@ export function createRunExecutor(deps: ExecutorDeps) {
           .filter((tool) => thread.groupId || tool.name !== "handoff_to_bot")
           // Messaging channels belong to one bot, so no other bot is offered the tool.
           .filter((tool) => botMayUseChannels(bot.id) || tool.name !== "send_channel_message");
-        const tools = [
-          ...builtins,
-          ...discovered.filter(
-            (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
-          ),
-        ];
+        const builtins = selectMemoryTools(availableBuiltins, semanticMemoryEnabled);
+        const exposedConnectorTools = discovered.filter(
+          (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
+        );
+        const connectorRoutes = new Map(
+          exposedConnectorTools
+            .filter((tool) => tool.route)
+            .map((tool) => [tool.name, tool.route!] as const),
+        );
+        const readOnlyConnectorTools = new Set(
+          exposedConnectorTools.filter((tool) => tool.readOnly).map((tool) => tool.name),
+        );
+        let approvalRulesPromise: Promise<ActionApprovalRule[]> | undefined;
+        const loadApprovalRules = () => {
+          approvalRulesPromise ??= deps.prisma.actionApprovalRule
+            .findMany({
+              where: { workspaceId: run.workspaceId, createdByUserId: run.userId },
+              select: { effect: true, matchKind: true, matchValue: true },
+            })
+            .then((rules) => rules as ActionApprovalRule[]);
+          return approvalRulesPromise;
+        };
+        const tools = [...builtins, ...exposedConnectorTools];
         const computerInstruction = graphical
           ? "You have a persistent computer. Use computer_observe and computer_act for its visible desktop, including browsers and installed applications. Use open_path and launch_app to open graphical files, URLs, and applications. Use the file tools and shell for precise filesystem and terminal work. On a Team Computer you have your own screen; other Team bots may run at the same time on theirs. Another user may interact with your screen while you run, so re-observe when it may have changed."
           : "You have a persistent sandbox filesystem and shell. This backend does not provide model-visible graphical control, so use the file tools and shell.";
@@ -588,11 +671,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
         let toolNameStreak: ToolNameStreak = { name: undefined, count: 0 };
         let lastComputerFrameId: string | undefined;
         let terminalCheckpointComplete = false;
+        let approvalPausePending = false;
         const progressRedactor = createStreamingRedactor(runSecrets);
         const scripted = deps.runtime.describe().capabilities.scripted;
-        const script = scripted
-          ? inferScript(task.prompt, resumeFromTakeover ? "takeover" : undefined)
-          : undefined;
+        const script = scripted ? inferScript(task.prompt, takeoverResume?.checkpoint) : undefined;
         const flushProgress = async () => {
           if (scripted || !pendingProgress) return;
           await deps.events.append({
@@ -620,26 +702,125 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return result;
         };
 
+        const pauseForApproval = () => {
+          approvalPausePending = true;
+          return approvalPausedToolResult();
+        };
+
         const applyTool = async (
           name: string,
           args: Record<string, unknown>,
           executionId: string,
         ) => {
-          const applied = READ_ONLY_AGENT_TOOLS.has(name)
-            ? undefined
-            : await recordEffect(deps, run, name, executionId, args);
-          if (applied?.duplicate) {
-            if (applied.effect.status === "completed") {
-              return applied.effect.result ?? { duplicate: true };
+          const viaConnector = !BUILTIN_AGENT_TOOL_NAMES.has(name);
+          const requiresApprovalByDefault = toolRequiresApproval(name, viaConnector);
+          const approvalDecision = resolveActionApproval({
+            toolName: name,
+            connectorKind: connectorKindFromToolName(
+              name,
+              connectedPlugins.map((plugin) => plugin.provider),
+            ),
+            rules: await loadApprovalRules(),
+          });
+          const needsApproval = approvalDecision === "ask";
+          const bypassApproval = approvalDecision === "allow" && requiresApprovalByDefault;
+          const effectKey =
+            needsApproval || requiresApprovalByDefault
+              ? approvalEffectKey(runId, name, args)
+              : executionId;
+          const applied =
+            READ_ONLY_AGENT_TOOLS.has(name) || readOnlyConnectorTools.has(name)
+              ? undefined
+              : await recordEffect(deps, run, name, effectKey, args);
+          let claimedEffect = false;
+
+          const claimOrReturn = async (
+            from: "approved" | "intended",
+          ): Promise<unknown | undefined> => {
+            const claim = from === "approved" ? claimApprovedEffect : claimIntendedEffect;
+            if (await claim(deps.prisma, applied!.effect.id)) {
+              claimedEffect = true;
+              return undefined;
             }
-            if (name !== "spawn_bot" && name !== "archive_bot" && name !== "delete_bot") {
-              throw new Error(`tool ${name} has an earlier execution with an uncertain outcome`);
+            const current = await deps.prisma.externalEffect.findUnique({
+              where: { id: applied!.effect.id },
+            });
+            if (current) {
+              const retryGate = resolveDuplicateEffectGate(current, name);
+              if (retryGate.action === "return") return retryGate.result;
+              if (retryGate.action === "uncertain") {
+                return settleUncertainEffect(deps.prisma, applied!.effect.id, name);
+              }
             }
-          }
-          const finish = async (result: unknown) => {
-            if (applied) await completeEffect(deps, applied.effect.id, result);
-            return result;
+            throw uncertainEffectError(name);
           };
+
+          const requestApproval = async () => {
+            if (!(await renewRunLease(deps, runId, workerId, fence))) {
+              return pauseForApproval();
+            }
+            await checkpointAndRecordComputerWorkspace(deps, storedComputer, computer, context);
+            const paused = await deps.events.pauseRunForInput({
+              workspaceId: run.workspaceId,
+              threadId: run.threadId,
+              botId: run.botId,
+              runId,
+              attemptId: attempt.id,
+              leaseOwner: workerId,
+              leaseFence: fence,
+              blocks: [buildApprovalAskBlock(applied!.effect.id, name, args, runSecrets)],
+            });
+            if (!paused) return pauseForApproval();
+            await notifyRun(deps, run, {
+              kind: "help",
+              title: `${bot.name} needs approval`,
+              body: `Review before ${name}`,
+              botId: bot.id,
+              threadId: thread.id,
+            });
+            return pauseForApproval();
+          };
+
+          if (applied?.duplicate) {
+            const gate = resolveDuplicateEffectGate(applied.effect, name);
+            if (gate.action === "return") return gate.result;
+            if (gate.action === "paused") {
+              if (!needsApproval) {
+                const early = await claimOrReturn("intended");
+                if (early !== undefined) return early;
+              } else {
+                const current = await deps.prisma.run.findUnique({
+                  where: { id: runId },
+                  select: { status: true },
+                });
+                if (current?.status === "waiting_input") {
+                  return pauseForApproval();
+                }
+                return requestApproval();
+              }
+            } else if (gate.action === "uncertain") {
+              return settleUncertainEffect(deps.prisma, applied.effect.id, gate.toolName);
+            } else if (gate.action === "execute") {
+              const early = await claimOrReturn("approved");
+              if (early !== undefined) return early;
+            }
+          } else if (needsApproval && applied) {
+            return requestApproval();
+          } else if (bypassApproval && applied) {
+            const early = await claimOrReturn("intended");
+            if (early !== undefined) return early;
+          }
+          const persistEffectResult = (result: unknown) =>
+            applied
+              ? completeEffect(
+                  deps,
+                  applied.effect.id,
+                  claimedEffect ? "executing" : "intended",
+                  result,
+                )
+              : Promise.resolve(true);
+          const finish = async (result: unknown) =>
+            (await persistEffectResult(result)) ? result : uncertainEffectResult(name);
           if (name === "send_channel_message") {
             if (!botMayUseChannels(bot.id)) {
               return finish({
@@ -750,6 +931,94 @@ export function createRunExecutor(deps: ExecutorDeps) {
               context,
             );
             return finish({ ok: true, path: filePath });
+          }
+          if (name === "render_plot") {
+            if (args.charts !== undefined) {
+              const query = typeof args.charts === "string" ? args.charts : undefined;
+              return {
+                charts: searchChartCatalog(query),
+                note: "Each spec is a complete runnable example: substitute your rows and column names, then call render_plot with it.",
+              };
+            }
+            if (args.help === true || !args.spec || typeof args.spec !== "object") {
+              return { guide: PLOT_TOOL_GUIDE };
+            }
+            try {
+              let rows = Array.isArray(args.data) ? (args.data as unknown[]) : undefined;
+              const dataPath =
+                typeof args.data_path === "string" && args.data_path ? args.data_path : undefined;
+              if (!rows && dataPath) {
+                const bytes = await deps.sandbox.readFile(
+                  computer,
+                  resolveBotWorkspacePath(computerMode, bot.id, dataPath),
+                  context,
+                  { maxBytes: ATTACHMENT_MAX_BYTES },
+                );
+                rows = parsePlotData(dataPath, new TextDecoder().decode(bytes));
+              }
+              assertPlotDataWithinLimits(args.spec as PlotSpec, rows);
+              // jsdom and sharp load lazily so chart-free runs never pay for them.
+              const { JSDOM } = await import("jsdom");
+              const svg = renderPlotSpecToSvg(
+                args.spec as PlotSpec,
+                rows,
+                new JSDOM("").window.document,
+              );
+              const png = await plotSvgToPng(svg);
+              const outPath =
+                typeof args.path === "string" && args.path
+                  ? args.path
+                  : `charts/plot-${Date.now()}.png`;
+              await deps.sandbox.writeFile(
+                computer,
+                { path: resolveBotWorkspacePath(computerMode, bot.id, outPath), content: png },
+                context,
+              );
+              let attached = false;
+              const chartName = outPath.split("/").pop() ?? "chart";
+              const chartRows = rows ?? (args.spec as { data?: unknown[] }).data ?? [];
+              const chartSpec = { ...(args.spec as Record<string, unknown>) };
+              delete chartSpec.data;
+              const chartFits =
+                Array.isArray(chartRows) &&
+                JSON.stringify({ spec: chartSpec, data: chartRows }).length <= 200_000;
+              if (args.attach !== false && chartFits) {
+                // Live inline chart: the client re-renders the validated spec
+                // and the PNG stays on disk as the exportable copy.
+                await publishMessage(deps, run, "bot", [
+                  {
+                    kind: "chart",
+                    name: chartName,
+                    spec: chartSpec,
+                    data: chartRows,
+                  },
+                ]);
+                attached = true;
+              } else if (args.attach !== false && deps.artifacts) {
+                const result = await attachWorkspaceFileToThread(
+                  { prisma: deps.prisma, artifacts: deps.artifacts },
+                  {
+                    workspaceId: run.workspaceId,
+                    userId: run.userId,
+                    botId: bot.id,
+                    runId: run.id,
+                    filePath: outPath,
+                    bytes: png,
+                    operationId: executionId,
+                  },
+                );
+                await publishMessage(deps, run, "bot", [result.block]);
+                attached = true;
+              }
+              return finish({ ok: true, path: outPath, attached });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              console.error(`render_plot failed for bot ${bot.id}: ${message}`);
+              return finish({
+                error: message,
+                hint: 'Call render_plot with {"charts": true} for runnable example specs, or {"help": true} for the full guide.',
+              });
+            }
           }
           if (name === "attach_file") {
             const filePath = String(args.path ?? "");
@@ -869,6 +1138,33 @@ export function createRunExecutor(deps: ExecutorDeps) {
             );
             return finish({ ok: true });
           }
+          if (name === "recall_memory") {
+            return semanticMemory!.recall(
+              {
+                query: String(args.query ?? ""),
+                scope: memoryScope!,
+                botId: bot.id,
+                ...(thread.historyCompactedUpToSeq == null
+                  ? {}
+                  : { historyGeneration: thread.historyCompactionGeneration }),
+                limit: MAX_RECALLED_MEMORIES,
+              },
+              context,
+            );
+          }
+          if (name === "save_memory") {
+            return finish(
+              await semanticMemory!.save(
+                {
+                  content: String(args.content ?? ""),
+                  scope: memoryScope!,
+                  botId: bot.id,
+                  source: { kind: "durable" },
+                },
+                context,
+              ),
+            );
+          }
           if (name === "request_takeover") return { ok: true };
           if (name === "run_subagent") {
             return {
@@ -892,7 +1188,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               prompt: args.prompt ? String(args.prompt) : undefined,
             });
             if ("error" in spawned) return finish(spawned);
-            await finish(spawned);
+            if (!(await persistEffectResult(spawned))) return uncertainEffectResult(name);
             try {
               await publishMessage(deps, run, "bot", [
                 {
@@ -942,7 +1238,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               context,
             );
             if ("error" in archived) return finish(archived);
-            await finish(archived);
+            if (!(await persistEffectResult(archived))) return uncertainEffectResult(name);
             try {
               await publishMessage(deps, run, "bot", [
                 {
@@ -968,7 +1264,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (deps.connector) {
             let result: unknown = { error: `unknown tool ${name}` };
             for await (const event of deps.connector.execute(
-              { tool: name, args, executionId },
+              { tool: name, args, executionId: effectKey, route: connectorRoutes.get(name) },
               context,
             )) {
               if (event.type === "result") {
@@ -1013,12 +1309,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const invokedSkill = savedSkills.find((skill) =>
           promptInvokesSkill(taskPrompt, skill.name || skill.goal),
         );
-        const prompt = invokedSkill
+        const basePrompt = invokedSkill
           ? `${formatSkillRunPrompt(
               invokedSkill.name || invokedSkill.goal.slice(0, 80),
               parsePlaybook(invokedSkill.playbook),
             )}\n\n${taskPrompt}`
           : taskPrompt;
+        const prompt = takeoverResume
+          ? `${basePrompt}\n\n${takeoverResume.promptNote}`
+          : basePrompt;
         const historicalContext: AgentRunRequest["history"] = [];
         if (compactedHistory.usedLocalSummary && compactedHistory.summary) {
           historicalContext.push({
@@ -1059,6 +1358,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 "archive_bot safely archives a bot this bot created, and only that bot. Use it when the user asks to remove that bot or when it is finished and unused. The user can restore it or permanently delete it later. confirm_name must exactly match its name.",
                 pluginLine,
                 taughtSkillsLine,
+                'For charts and data visualization, use the render_plot tool: it renders bar, line, scatter, histogram, heatmap, faceted and many more chart types from a JSON spec and attaches the PNG to the chat. Call render_plot with {"help": true} before your first chart to read the full guide.',
                 "Never print API keys, access tokens, or secret values. Prefer tools over claiming you already did the work.",
               ]
                 .filter((instruction): instruction is string => Boolean(instruction))
@@ -1074,12 +1374,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   ? { credential: resolved.oauth, persist: resolved.persistOAuth }
                   : undefined,
               },
-              resumeFromCheckpoint: resumeFromTakeover ? "takeover" : undefined,
+              resumeFromCheckpoint: takeoverResume?.checkpoint,
               script,
               executeTool: scripted ? undefined : applyTool,
             },
             context,
           )) {
+            if (approvalPausePending) return;
             if (!leaseValid) return;
             const now = Date.now();
             if (now - lastLeaseCheckAt >= 1_000) {
@@ -1103,6 +1404,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (event.type === "text") {
               assembled += event.text;
               currentTextSegment += event.text;
+              toolCallStreak = { key: undefined, count: 0 };
               toolNameStreak = { name: undefined, count: 0 };
               tryFlushPendingTools();
               pendingProgress += progressRedactor.push(event.text);
@@ -1111,6 +1413,22 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 await flushProgress();
               }
             } else if (event.type === "progress") {
+              toolCallStreak = { key: undefined, count: 0 };
+              toolNameStreak = { name: undefined, count: 0 };
+              // Flush batched text deltas first so an activity line cannot land
+              // ahead of text the model streamed before the tool call.
+              if (pendingProgress) {
+                await deps.events.append({
+                  workspaceId: run.workspaceId,
+                  threadId: thread.id,
+                  botId: bot.id,
+                  type: "thread.progress",
+                  runId,
+                  payload: { delta: pendingProgress, streaming: true },
+                });
+                pendingProgress = "";
+                lastProgressAt = Date.now();
+              }
               await deps.events.append({
                 workspaceId: run.workspaceId,
                 threadId: thread.id,
@@ -1172,6 +1490,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   controlLeaseId: null,
                   controlLeaseExpiresAt: null,
                   controlBotId: null,
+                  controlRunId: null,
                 },
               });
               await checkpointAndRecordComputerWorkspace(deps, storedComputer, computer, context);
@@ -1180,7 +1499,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
               }
               const paused = await deps.prisma.run.updateMany({
                 where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
-                data: { status: "waiting_takeover", leaseOwner: null, leaseExpiresAt: null },
+                data: {
+                  status: "waiting_takeover",
+                  leaseOwner: null,
+                  leaseExpiresAt: null,
+                  checkpoint: null,
+                },
               });
               if (paused.count !== 1) return;
               retainComputerLease = true;
@@ -1246,7 +1570,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 runAbortController?.abort();
                 return;
               }
-              if (scripted) await applyTool(event.name, event.args, event.executionId);
+              if (scripted) {
+                const result = await applyTool(event.name, event.args, event.executionId);
+                if (isApprovalPausedResult(result)) return;
+              }
             } else if (event.type === "subagent") {
               const safeTask = redactSecrets(event.task, runSecrets);
               const safeProgress = event.progress
@@ -1302,6 +1629,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }
           }
 
+          if (approvalPausePending) return;
           pendingProgress += progressRedactor.finish();
           await flushProgress();
 
@@ -1447,12 +1775,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
         }
         const released = await deps.prisma.run.updateMany({
           where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
-          data: {
-            status: "queued",
-            error: computerBusy ? null : "Run setup failed; retrying",
-            leaseOwner: null,
-            leaseExpiresAt: null,
-          },
+          data: computerRunRequeueData(
+            resumeCheckpoint,
+            computerBusy ? null : "Run setup failed; retrying",
+          ),
         });
         if (released.count === 1) {
           await deps.prisma.attempt.update({
@@ -1569,15 +1895,29 @@ function computerRetryDelay(fence: number): number {
   return Math.min(10_000, 250 * 2 ** Math.min(Math.max(fence - 1, 0), 5));
 }
 
+function computerRunRequeueData(
+  resumeCheckpoint: TakeoverResumeCheckpoint | null,
+  error: string | null = null,
+) {
+  return {
+    status: "queued" as const,
+    error,
+    leaseOwner: null,
+    leaseExpiresAt: null,
+    checkpoint: resumeCheckpoint,
+  };
+}
+
 async function requeueComputerRun(
   deps: ExecutorDeps,
   runId: string,
   workerId: string,
   fence: number,
+  resumeCheckpoint: TakeoverResumeCheckpoint | null,
 ): Promise<void> {
   const released = await deps.prisma.run.updateMany({
     where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
-    data: { status: "queued", error: null, leaseOwner: null, leaseExpiresAt: null },
+    data: computerRunRequeueData(resumeCheckpoint),
   });
   if (released.count !== 1) return;
   await deps.jobs.enqueue({
@@ -1662,7 +2002,12 @@ async function recordEffect(
   return { duplicate: false, effect };
 }
 
-async function completeEffect(deps: ExecutorDeps, effectId: string, result: unknown) {
+async function completeEffect(
+  deps: ExecutorDeps,
+  effectId: string,
+  expectedStatus: "intended" | "executing",
+  result: unknown,
+) {
   const storedResult =
     result &&
     typeof result === "object" &&
@@ -1670,10 +2015,13 @@ async function completeEffect(deps: ExecutorDeps, effectId: string, result: unkn
     "details" in result
       ? (result as { details: unknown }).details
       : result;
-  await deps.prisma.externalEffect.update({
-    where: { id: effectId },
-    data: { status: "completed", result: storedResult as never },
-  });
+  return completeExternalEffect(deps.prisma, effectId, expectedStatus, storedResult as never);
+}
+
+function uncertainEffectError(toolName: string): Error {
+  return new Error(
+    `tool ${toolName} has an earlier execution with an uncertain outcome; it may already have completed, so verify the destination before retrying`,
+  );
 }
 
 async function runSandboxCommand(
@@ -1718,14 +2066,14 @@ async function resolveModelKey(
   persistOAuth?: (credential: AgentModelOAuthCredential) => Promise<void>;
   redact: string[];
 }> {
-  if (credential && deps.secretStore) {
+  if (credential) {
     return withModelCredentialLock(credential.secretId, async () => {
       const row = await deps.prisma.secret.findUnique({ where: { id: credential.secretId } });
       if (!row) return { apiKey: deps.deploymentModelKey, redact: [] };
-      const plaintext = deps.secretStore!.load(row.ciphertext);
+      const plaintext = deps.secretStore.load(row.ciphertext);
       registerSecrets?.(secretValuesToRedact(parseModelSecret(plaintext)));
       const persist = async (next: string) => {
-        const stored = await deps.secretStore!.put(next, {
+        const stored = await deps.secretStore.put(next, {
           operationId: "cred",
           traceId: "cred-refresh",
           workspaceId,
@@ -1751,7 +2099,7 @@ async function resolveModelKey(
                   where: { id: credential.secretId },
                 });
                 if (!currentRow) return;
-                const current = parseModelSecret(deps.secretStore!.load(currentRow.ciphertext));
+                const current = parseModelSecret(deps.secretStore.load(currentRow.ciphertext));
                 if (current.kind === "oauth") {
                   const stored = current.credential;
                   if (stored.expires > next.expires) return;

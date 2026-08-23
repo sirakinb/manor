@@ -22,16 +22,17 @@ import {
   type ComputerExecutionLease,
   checkpointAndRecordComputerWorkspace,
   createVoiceProvider,
-  deleteSupermemoryContainer,
   destroyBot,
   displayBotWorkspacePath,
   type EncryptedSecretStore,
+  enqueueTakeoverContinuation,
   expireComputerControl,
   hasActiveComputerControl,
-  isSupermemoryEnabled,
   listPiCatalog,
+  type MemoryProviderResolver,
   type PiOAuthLogins,
   planLiveConnectionSync,
+  prepareMemoryProviderConnection,
   provisionComputer,
   releaseComputerExecutionLease,
   resolveBotWorkspacePath,
@@ -42,9 +43,9 @@ import {
   screenLeaseIdForRun,
   scriptedCatalogEntry,
   serializeModelSecret,
-  supermemoryContainerTag,
   takeoverLeaseMs,
   toComputerRef,
+  toStringRecord,
   touchRunningComputer,
 } from "@rakazo/adapters";
 import type { Auth } from "@rakazo/auth";
@@ -58,6 +59,7 @@ import {
   createThreadMessageInTransaction,
   findDefaultModelCredential,
   findDefaultVoiceCredential,
+  findWorkspaceMemoryConfig,
   IsolationError,
   lockOwnedGroup,
   newestModelCredentialOrder,
@@ -162,6 +164,7 @@ export interface RouterDeps {
   jobs: JobPublisher;
   sandbox: SandboxProvider;
   memory: MemoryStore;
+  memoryProviders: MemoryProviderResolver;
   home: AgentHomeStore;
   secrets: EncryptedSecretStore;
   oauthLogins: PiOAuthLogins;
@@ -411,6 +414,7 @@ export function createRouter(deps: RouterDeps) {
             notifyOnFinish: input.notifyOnFinish,
             color: input.color,
             pinned: input.pinned,
+            memoryScope: input.memoryScope,
             sectionId: input.sectionId,
             voiceId: input.voiceId,
             autoSpeak: input.autoSpeak,
@@ -462,6 +466,7 @@ export function createRouter(deps: RouterDeps) {
                 controlLeaseId: null,
                 controlLeaseExpiresAt: null,
                 controlBotId: null,
+                controlRunId: null,
                 executionRunId: null,
                 executionBotId: null,
                 executionLeaseExpiresAt: null,
@@ -666,26 +671,40 @@ export function createRouter(deps: RouterDeps) {
           threadId: bot.thread.id,
           botId: bot.id,
         });
-        await Promise.all(
-          cancelledRunIds.map((runId) => deps.jobs.cancel(runJobKey(runId)).catch(() => undefined)),
-        );
-        if (isSupermemoryEnabled(process.env.SUPERMEMORY_API_KEY)) {
+        const [configuredMemory] = await Promise.all([
+          deps.memoryProviders.resolve(context.actor.workspaceId).catch((error) => {
+            console.error("semantic memory resolution after thread clear failed", error);
+            return null;
+          }),
+          Promise.all(
+            cancelledRunIds.map((runId) =>
+              deps.jobs.cancel(runJobKey(runId)).catch(() => undefined),
+            ),
+          ),
+        ]);
+        // Durable memories remain in their workspace/private containers. Clear only removes
+        // conversation-derived summaries from the previous generation; including the new
+        // generation also covers a compaction job that began just after the clear committed.
+        if (configuredMemory) {
           // Best effort: the conversation rows are already deleted, so failing the clear here
           // would help nothing — a failed purge only leaves stale summaries recallable.
-          const tags = [
-            ...new Set([
-              supermemoryContainerTag(bot.id),
-              supermemoryContainerTag(bot.id, historyCompactionGeneration),
-            ]),
-          ];
-          await Promise.all(
-            tags.map(async (tag) => {
-              const purged = await deleteSupermemoryContainer(tag);
-              if (!purged.ok) {
-                console.error("supermemory purge after thread clear failed", purged.error);
-              }
-            }),
-          );
+          try {
+            const purged = await configuredMemory.provider.purgeHistory(
+              {
+                botId: bot.id,
+                generations: [
+                  Math.max(0, historyCompactionGeneration - 1),
+                  historyCompactionGeneration,
+                ],
+              },
+              computerContext(context.actor, bot.id, `thread-clear:${bot.thread.id}`),
+            );
+            if (!purged.ok) {
+              console.error("semantic memory purge after thread clear failed", purged.error);
+            }
+          } catch (error) {
+            console.error("semantic memory purge after thread clear failed", error);
+          }
         }
         return { ok: true as const };
       }),
@@ -786,6 +805,7 @@ export function createRouter(deps: RouterDeps) {
           threadId: target.threadId,
           runId: input.runId,
           messageId: input.messageId,
+          answeredByUserId: context.actor.userId,
           answer: input.answer,
         });
         if (!answered) {
@@ -902,6 +922,7 @@ export function createRouter(deps: RouterDeps) {
               controlLeaseId: null,
               controlLeaseExpiresAt: null,
               controlBotId: null,
+              controlRunId: null,
             },
           });
         } catch (error) {
@@ -950,6 +971,7 @@ export function createRouter(deps: RouterDeps) {
               controlLeaseId: null,
               controlLeaseExpiresAt: null,
               controlBotId: null,
+              controlRunId: null,
             },
           });
           bot = await repos.getBot(context.actor, input.botId);
@@ -1000,6 +1022,7 @@ export function createRouter(deps: RouterDeps) {
             controlLeaseId: leaseId,
             controlLeaseExpiresAt: expiresAt,
             controlBotId: bot.id,
+            controlRunId: waitingForTakeover ? executionLease?.runId : null,
             state: "running",
           },
         });
@@ -1029,6 +1052,7 @@ export function createRouter(deps: RouterDeps) {
               controlLeaseId: null,
               controlLeaseExpiresAt: null,
               controlBotId: null,
+              controlRunId: null,
             },
           });
           throw error;
@@ -1039,7 +1063,7 @@ export function createRouter(deps: RouterDeps) {
             threadId: bot.thread.id,
             botId: bot.id,
             type: "computer.takeover.granted",
-            payload: { leaseId },
+            payload: { leaseId, takeoverRequested: waitingForTakeover },
           });
         }
         scheduleComputerSleep(deps.jobs, bot.computer.id);
@@ -1072,19 +1096,22 @@ export function createRouter(deps: RouterDeps) {
           workspaceId: context.actor.workspaceId,
           computerId: bot.computer.id,
           botId: controlBotId,
+          runId: bot.computer.controlRunId,
           leaseId: controlLeaseId,
           holder: "bot",
-          reason: "released",
+          reason: input.reason ?? "released",
         });
         if (!released) return { ok: true as const };
         // The lease-specific key makes this cancellation safe after a replacement takeover.
-        await deps.jobs.cancel(computerControlExpireJobKey(bot.computer.id, controlLeaseId));
+        await deps.jobs
+          .cancel(computerControlExpireJobKey(bot.computer.id, controlLeaseId))
+          .catch((error) => {
+            // The expired job is harmless after the lease is cleared, so do not report a
+            // failed release after the transaction has committed.
+            console.error("computer control expiry cancellation", error);
+          });
 
-        const waiting = await deps.prisma.run.findFirst({
-          where: { botId: controlBotId, status: "waiting_takeover" },
-          orderBy: { createdAt: "desc" },
-        });
-        if (waiting) await deps.jobs.enqueue(runContinueJob(waiting.id));
+        await enqueueTakeoverContinuation(deps.jobs, released.runId);
         scheduleComputerSleep(deps.jobs, bot.computer.id);
         return { ok: true as const };
       }),
@@ -1336,6 +1363,31 @@ export function createRouter(deps: RouterDeps) {
           },
         });
         return docs.map((d) => `# ${d.path}\n\n${d.content}`).join("\n\n");
+      }),
+      providerConfig: authed.memory.providerConfig.handler(async ({ context }) => {
+        const config = await findWorkspaceMemoryConfig(deps.prisma, context.actor.workspaceId);
+        return config ? serializeWorkspaceMemoryConfig(config) : null;
+      }),
+      connectProvider: authed.memory.connectProvider.handler(async ({ context, input }) =>
+        persistMemoryProviderConfig(deps, context.actor, input),
+      ),
+      setDefaultScope: authed.memory.setDefaultScope.handler(async ({ context, input }) =>
+        updateMemoryProviderDefaultScope(deps, context.actor, input.defaultMemoryScope),
+      ),
+      disconnectProvider: authed.memory.disconnectProvider.handler(async ({ context }) => {
+        await requireWorkspaceOwner(deps.prisma, context.actor);
+        await withSerializableRetry(() =>
+          deps.prisma.$transaction(
+            async (tx) => {
+              const existing = await findWorkspaceMemoryConfig(tx, context.actor.workspaceId);
+              if (!existing) return;
+              await tx.workspaceMemoryConfig.delete({ where: { id: existing.id } });
+              await tx.secret.deleteMany({ where: { id: existing.secretId } });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          ),
+        );
+        return { ok: true as const };
       }),
     },
     routines: {
@@ -1695,6 +1747,62 @@ export function createRouter(deps: RouterDeps) {
         await deps.prisma.connection.updateMany({
           where: { id: input.connectionId, workspaceId: context.actor.workspaceId },
           data: { status: "revoked" },
+        });
+        return { ok: true as const };
+      }),
+    },
+    approvalRules: {
+      list: authed.approvalRules.list.handler(async ({ context }) => {
+        const rows = await deps.prisma.actionApprovalRule.findMany({
+          where: {
+            workspaceId: context.actor.workspaceId,
+            createdByUserId: context.actor.userId,
+          },
+          orderBy: { createdAt: "asc" },
+        });
+        return rows.map((row) => ({
+          id: row.id,
+          effect: row.effect as "always_allow" | "require_approval",
+          matchKind: row.matchKind as "tool" | "connector" | "category",
+          matchValue: row.matchValue,
+          createdAt: row.createdAt.toISOString(),
+        }));
+      }),
+      set: authed.approvalRules.set.handler(async ({ context, input }) => {
+        const row = await deps.prisma.actionApprovalRule.upsert({
+          where: {
+            workspaceId_createdByUserId_effect_matchKind_matchValue: {
+              workspaceId: context.actor.workspaceId,
+              createdByUserId: context.actor.userId,
+              effect: input.effect,
+              matchKind: input.matchKind,
+              matchValue: input.matchValue,
+            },
+          },
+          create: {
+            workspaceId: context.actor.workspaceId,
+            createdByUserId: context.actor.userId,
+            effect: input.effect,
+            matchKind: input.matchKind,
+            matchValue: input.matchValue,
+          },
+          update: {},
+        });
+        return {
+          id: row.id,
+          effect: row.effect as "always_allow" | "require_approval",
+          matchKind: row.matchKind as "tool" | "connector" | "category",
+          matchValue: row.matchValue,
+          createdAt: row.createdAt.toISOString(),
+        };
+      }),
+      remove: authed.approvalRules.remove.handler(async ({ context, input }) => {
+        await deps.prisma.actionApprovalRule.deleteMany({
+          where: {
+            id: input.id,
+            workspaceId: context.actor.workspaceId,
+            createdByUserId: context.actor.userId,
+          },
         });
         return { ok: true as const };
       }),
@@ -2121,6 +2229,112 @@ async function persistModelCredential(
     label: cred.label,
     hasKey: true,
     isDefault: true,
+  };
+}
+
+async function requireWorkspaceOwner(prisma: PrismaClient, actor: Actor): Promise<void> {
+  const owner = await prisma.member.findFirst({
+    where: {
+      organizationId: actor.workspaceId,
+      userId: actor.userId,
+      role: "owner",
+    },
+    select: { id: true },
+  });
+  if (!owner) throw new ORPCError("FORBIDDEN");
+}
+
+export async function persistMemoryProviderConfig(
+  deps: RouterDeps,
+  actor: Actor,
+  input: {
+    provider: string;
+    settings: Record<string, string>;
+    credentials: Record<string, string>;
+    defaultMemoryScope: "isolated" | "shared";
+  },
+) {
+  await requireWorkspaceOwner(deps.prisma, actor);
+  const prepared = await prepareMemoryProviderConnection(input).catch((error: unknown) => {
+    throw new ORPCError("BAD_REQUEST", {
+      message: error instanceof Error ? error.message : "Memory provider connection failed",
+    });
+  });
+  const stored = await deps.secrets.put(JSON.stringify(prepared.credentials), {
+    operationId: "memory-provider-config",
+    traceId: "memory-provider-config",
+    workspaceId: actor.workspaceId,
+    userId: actor.userId,
+    signal: new AbortController().signal,
+  });
+  const config = await withSerializableRetry(() =>
+    deps.prisma.$transaction(
+      async (tx) => {
+        const existing = await findWorkspaceMemoryConfig(tx, actor.workspaceId);
+        const secret = await tx.secret.create({
+          data: {
+            id: stored.id,
+            userId: actor.userId,
+            workspaceId: actor.workspaceId,
+            kind: "memory-provider",
+            ciphertext: stored.ciphertext,
+          },
+        });
+        const updated = await tx.workspaceMemoryConfig.upsert({
+          where: { workspaceId: actor.workspaceId },
+          create: {
+            workspaceId: actor.workspaceId,
+            userId: actor.userId,
+            provider: prepared.provider,
+            settings: prepared.settings,
+            secretId: secret.id,
+            defaultMemoryScope: input.defaultMemoryScope,
+          },
+          update: {
+            userId: actor.userId,
+            provider: prepared.provider,
+            settings: prepared.settings,
+            secretId: secret.id,
+            defaultMemoryScope: input.defaultMemoryScope,
+          },
+        });
+        if (existing && existing.secretId !== secret.id) {
+          await tx.secret.deleteMany({ where: { id: existing.secretId } });
+        }
+        return updated;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ),
+  );
+  return serializeWorkspaceMemoryConfig(config);
+}
+
+export async function updateMemoryProviderDefaultScope(
+  deps: RouterDeps,
+  actor: Actor,
+  defaultMemoryScope: "isolated" | "shared",
+) {
+  await requireWorkspaceOwner(deps.prisma, actor);
+  const existing = await findWorkspaceMemoryConfig(deps.prisma, actor.workspaceId);
+  if (!existing) throw new ORPCError("NOT_FOUND");
+  const updated = await deps.prisma.workspaceMemoryConfig.update({
+    where: { id: existing.id },
+    data: { defaultMemoryScope },
+  });
+  return serializeWorkspaceMemoryConfig(updated);
+}
+
+function serializeWorkspaceMemoryConfig(config: {
+  provider: string;
+  settings: unknown;
+  defaultMemoryScope: string;
+  updatedAt: Date;
+}) {
+  return {
+    provider: config.provider,
+    settings: toStringRecord(config.settings),
+    defaultMemoryScope: config.defaultMemoryScope as "isolated" | "shared",
+    updatedAt: config.updatedAt.toISOString(),
   };
 }
 

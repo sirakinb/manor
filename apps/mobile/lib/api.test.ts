@@ -398,12 +398,55 @@ describe("mobile thread event reduction", () => {
     const waiting = applyMobileThreadEvent(initial, {
       type: "run.waiting_input",
       runId: "run-1",
+      seq: 8,
     });
 
     expect(waiting?.run?.status).toBe("waiting_input");
-    expect(applyMobileThreadEvent(waiting, { type: "run.waiting_input", runId: "run-1" })).toBe(
-      waiting,
-    );
+    expect(waiting?.cursor).toBe(8);
+    const repeated = applyMobileThreadEvent(waiting, {
+      type: "run.waiting_input",
+      runId: "run-1",
+      seq: 9,
+    });
+    expect(repeated?.cursor).toBe(9);
+    expect(repeated?.run).toBe(waiting?.run);
+  });
+
+  it("advances the cursor for durable message events", () => {
+    const next = applyMobileThreadEvent(snapshot(), {
+      type: "thread.message.created",
+      seq: 11,
+      payload: { messageId: "message-1", role: "bot", blocks: [{ kind: "text", text: "Done" }] },
+    });
+
+    expect(next?.cursor).toBe(11);
+  });
+
+  it("preserves ask actions and runId on created messages", () => {
+    const initial = snapshot();
+    const askBlock = {
+      kind: "ask",
+      text: "Review before writing",
+      detail: "title: Result",
+      status: "pending",
+      actions: [
+        { id: "allow", label: "Allow once" },
+        { id: "always", label: "Always allow" },
+        { id: "deny", label: "Deny" },
+      ],
+    };
+
+    const next = applyMobileThreadEvent(initial, {
+      type: "thread.message.created",
+      runId: "run-1",
+      payload: { messageId: "message-ask", role: "bot", blocks: [askBlock] },
+    });
+
+    expect(next?.messages.at(-1)).toMatchObject({
+      id: "message-ask",
+      runId: "run-1",
+      blocks: [askBlock],
+    });
   });
 
   it("updates a waiting group run without replacing the newer active run", () => {

@@ -66,6 +66,9 @@ export type CrmOverview = z.infer<typeof CrmOverviewSchema>;
 export const ComputerModeSchema = z.enum(["team", "dedicated"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 
+export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
+export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
+
 export const BotSchema = z.object({
   id: Id,
   workspaceId: Id,
@@ -80,6 +83,7 @@ export const BotSchema = z.object({
   archivedAt: z.string().nullable(),
   unread: z.boolean(),
   parentBotId: Id.nullable(),
+  memoryScope: MemoryScopeSchema.nullable(),
   threadId: Id,
   preview: z.string(),
   status: z.string(),
@@ -147,26 +151,44 @@ export const BotSectionSchema = z.object({
 });
 export type BotSection = z.infer<typeof BotSectionSchema>;
 
+export const BOT_NAME_MAX_LENGTH = 80;
+export const BOT_TITLE_MAX_LENGTH = 500;
+export const BOT_DESCRIPTION_MAX_LENGTH = 4000;
+export const BOT_INSTRUCTIONS_MAX_LENGTH = 20000;
+
 export const CreateBotInput = z.object({
-  name: z.string().min(1).max(80),
-  title: z.string().max(160).default(""),
-  description: z.string().max(4000).default(""),
-  instructions: z.string().max(20000).default(""),
+  name: z.string().trim().min(1).max(BOT_NAME_MAX_LENGTH),
+  title: z.string().max(BOT_TITLE_MAX_LENGTH).default(""),
+  description: z.string().max(BOT_DESCRIPTION_MAX_LENGTH).default(""),
+  instructions: z.string().max(BOT_INSTRUCTIONS_MAX_LENGTH).default(""),
   notifyOnFinish: z.boolean().default(true),
   color: z.string().optional(),
   computerMode: ComputerModeSchema.default("team"),
 });
 export type CreateBotInput = z.infer<typeof CreateBotInput>;
 
+export function normalizeCreateBotProfile(
+  input: Pick<CreateBotInput, "name" | "title" | "description">,
+) {
+  const description = input.description.trim();
+  return {
+    name: input.name.trim().slice(0, BOT_NAME_MAX_LENGTH),
+    title: input.title.trim().slice(0, BOT_TITLE_MAX_LENGTH),
+    description: description.slice(0, BOT_DESCRIPTION_MAX_LENGTH),
+    instructions: description.slice(0, BOT_INSTRUCTIONS_MAX_LENGTH),
+  };
+}
+
 export const UpdateBotInput = z.object({
   botId: Id,
-  name: z.string().min(1).max(80).optional(),
-  title: z.string().max(160).optional(),
-  description: z.string().max(4000).optional(),
-  instructions: z.string().max(20000).optional(),
+  name: z.string().trim().min(1).max(BOT_NAME_MAX_LENGTH).optional(),
+  title: z.string().max(BOT_TITLE_MAX_LENGTH).optional(),
+  description: z.string().max(BOT_DESCRIPTION_MAX_LENGTH).optional(),
+  instructions: z.string().max(BOT_INSTRUCTIONS_MAX_LENGTH).optional(),
   notifyOnFinish: z.boolean().optional(),
   color: z.string().optional(),
   pinned: z.boolean().optional(),
+  memoryScope: MemoryScopeSchema.nullable().optional(),
   sectionId: Id.nullable().optional(),
   voiceId: z.string().max(120).nullable().optional(),
   autoSpeak: z.boolean().optional(),
@@ -284,6 +306,15 @@ export const ConnectionCatalogItemSchema = z.object({
 });
 export type ConnectionCatalogItem = z.infer<typeof ConnectionCatalogItemSchema>;
 
+export const ActionApprovalRuleSchema = z.object({
+  id: Id,
+  effect: z.enum(["always_allow", "require_approval"]),
+  matchKind: z.enum(["tool", "connector", "category"]),
+  matchValue: z.string(),
+  createdAt: z.string(),
+});
+export type ActionApprovalRule = z.infer<typeof ActionApprovalRuleSchema>;
+
 export const CapabilityInstallSchema = z.object({
   id: Id,
   kind: z.enum(["skill", "plugin", "mcp", "connection"]),
@@ -330,6 +361,7 @@ export const ComputerStatusSchema = z.object({
   state: z.enum(["stopped", "booting", "running", "suspended", "error"]),
   controlHolder: z.enum(["bot", "user", "none"]),
   controlBotId: Id.nullable(),
+  takeoverRequested: z.boolean(),
   screenAvailable: z.boolean(),
   screenWidth: z.number().int().positive(),
   screenHeight: z.number().int().positive(),
@@ -337,6 +369,9 @@ export const ComputerStatusSchema = z.object({
   busyBotName: z.string().nullable(),
 });
 export type ComputerStatus = z.infer<typeof ComputerStatusSchema>;
+
+export const ComputerReleaseReasonSchema = z.enum(["done", "skipped"]);
+export type ComputerReleaseReason = z.infer<typeof ComputerReleaseReasonSchema>;
 
 export const RunSchema = z.object({
   id: Id,
@@ -383,6 +418,14 @@ export const ModelCredentialSchema = z.object({
   isDefault: z.boolean(),
 });
 export type ModelCredential = z.infer<typeof ModelCredentialSchema>;
+
+export const WorkspaceMemoryConfigSchema = z.object({
+  provider: z.string(),
+  settings: z.record(z.string(), z.string()),
+  defaultMemoryScope: MemoryScopeSchema,
+  updatedAt: z.string(),
+});
+export type WorkspaceMemoryConfig = z.infer<typeof WorkspaceMemoryConfigSchema>;
 
 export const ModelCatalogEntrySchema = z.object({
   provider: z.string(),

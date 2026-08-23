@@ -159,6 +159,15 @@ export interface ConnectorTool {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+  readOnly?: boolean;
+  /** In-process routing metadata. It is never exposed to the model. */
+  route?: ConnectorRoute;
+}
+
+export interface ConnectorRoute {
+  connectorId: string;
+  toolName: string;
+  resourceId?: string;
 }
 
 export interface ConnectorCall {
@@ -166,6 +175,7 @@ export interface ConnectorCall {
   args: Record<string, unknown>;
   connectionId?: string;
   executionId: string;
+  route?: ConnectorRoute;
 }
 
 export type ConnectorEvent =
@@ -232,6 +242,46 @@ export interface MemoryCapabilities {
   search: boolean;
   revisions: boolean;
   markdownPortable: boolean;
+}
+
+export type DurableMemoryScope = "isolated" | "shared";
+
+export interface SemanticMemoryCapabilities {
+  recall: true;
+  save: true;
+  purgeHistory: true;
+  sharedScope: true;
+}
+
+export interface SemanticMemoryResult {
+  memory: string;
+  score: number;
+  updatedAt?: string;
+}
+
+export type SemanticMemoryResponse<T = void> =
+  | { ok: true; value: T }
+  | { ok: false; error: string };
+
+export interface SemanticMemoryRecallRequest {
+  query: string;
+  scope: DurableMemoryScope;
+  botId: string;
+  /** Omit until a thread has compacted history; the provider can then skip that namespace. */
+  historyGeneration?: number;
+  limit: number;
+}
+
+export interface SemanticMemorySaveRequest {
+  content: string;
+  scope: DurableMemoryScope;
+  botId: string;
+  source: { kind: "durable" } | { kind: "history"; generation: number };
+}
+
+export interface SemanticMemoryPurgeHistoryRequest {
+  botId: string;
+  generations: number[];
 }
 
 export interface AgentRunRequest {

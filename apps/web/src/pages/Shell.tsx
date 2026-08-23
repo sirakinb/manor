@@ -3,6 +3,7 @@ import type {
   Bot,
   BotSection,
   ComputerMode,
+  ComputerReleaseReason,
   ComputerStatus,
   Group,
   Me,
@@ -14,11 +15,16 @@ import type {
   ThreadSnapshot,
   VoiceInfo,
   VoiceStatus,
+  WorkspaceMemoryConfig,
 } from "@rakazo/contracts";
 import {
   ATTACHMENT_ALLOWED_MIME_TYPES,
   ATTACHMENT_MAX_BYTES,
   ATTACHMENT_MAX_COUNT,
+  BOT_DESCRIPTION_MAX_LENGTH,
+  BOT_NAME_MAX_LENGTH,
+  BOT_TITLE_MAX_LENGTH,
+  normalizeCreateBotProfile,
 } from "@rakazo/contracts";
 import {
   abortableDelay,
@@ -71,6 +77,7 @@ import {
 } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
+import { AskCard } from "../components/AskCard";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
 import { TeachComputerSection } from "../components/teach/TeachComputerSection";
@@ -105,11 +112,21 @@ import { WorkspaceSearchResults } from "./WorkspaceSearch";
 const BotContextMenu = lazy(() =>
   import("./BotContextMenu").then((module) => ({ default: module.BotContextMenu })),
 );
+const AccountSettingsOverlay = lazy(() =>
+  import("./AccountSettingsOverlay").then((module) => ({
+    default: module.AccountSettingsOverlay,
+  })),
+);
 const ModelSettingsOverlay = lazy(() =>
   import("./ModelSettingsOverlay").then((module) => ({ default: module.ModelSettingsOverlay })),
 );
 const PluginsOverlay = lazy(() =>
   import("./PluginsOverlay").then((module) => ({ default: module.PluginsOverlay })),
+);
+const MemorySettingsOverlay = lazy(() =>
+  import("./MemorySettingsOverlay").then((module) => ({
+    default: module.MemorySettingsOverlay,
+  })),
 );
 const RoutineSchedule = lazy(() =>
   import("./RoutineSchedule").then((module) => ({ default: module.RoutineSchedule })),
@@ -180,7 +197,13 @@ export function ShellPage() {
       return !prev;
     });
   }, []);
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
   const [modelsOpen, setModelsOpen] = useState(false);
+  const [memorySettingsOpen, setMemorySettingsOpen] = useState(false);
+  const [memoryProviderConfig, setMemoryProviderConfig] = useState<
+    WorkspaceMemoryConfig | null | undefined
+  >(undefined);
+  const memoryProviderConfigRevision = useRef(0);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus | null>(null);
@@ -460,6 +483,19 @@ export function ShellPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const providerConfigRevision = memoryProviderConfigRevision.current;
+    void rpc.memory
+      .providerConfig()
+      .then((providerConfig) => {
+        if (!cancelled && memoryProviderConfigRevision.current === providerConfigRevision) {
+          setMemoryProviderConfig(providerConfig);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && memoryProviderConfigRevision.current === providerConfigRevision) {
+          setMemoryProviderConfig(null);
+        }
+      });
     void Promise.all([takeInitialBootstrap(botId), rpc.groups.list()])
       .then(([bootstrap, groupList]) => {
         if (cancelled) return;
@@ -1091,9 +1127,12 @@ export function ShellPage() {
 
   async function createGroup(input: { name: string; botIds: string[] }) {
     const group = await rpc.groups.create(input);
-    setPanel(null);
-    await refreshBots();
+    setGroups((current) =>
+      current.some((item) => item.id === group.id) ? current : [group, ...current],
+    );
     navigate(`/app/g/${group.id}`);
+    setPanel(null);
+    await refreshBots().catch(() => undefined);
   }
 
   async function createBot(input: {
@@ -1103,16 +1142,16 @@ export function ShellPage() {
     computerMode: ComputerMode;
   }) {
     const bot = await rpc.bots.create({
-      name: input.name.trim(),
-      title: input.title,
-      description: input.description,
-      instructions: input.description,
+      ...normalizeCreateBotProfile(input),
       notifyOnFinish: true,
       computerMode: input.computerMode,
     });
-    await refreshBots();
+    setBots((current) =>
+      current.some((item) => item.id === bot.id) ? current : [bot, ...current],
+    );
     navigate(`/app/${bot.id}`);
     setPanel(null);
+    await refreshBots().catch(() => undefined);
   }
 
   async function bootComputer({
@@ -1223,10 +1262,10 @@ export function ShellPage() {
     setComputerOpen(true);
   }
 
-  async function releaseComputer() {
+  async function releaseComputer(reason?: ComputerReleaseReason) {
     if (!active) return;
     setComputerOpen(false);
-    await rpc.computer.release({ botId: active.id }).catch(() => undefined);
+    await rpc.computer.release({ botId: active.id, reason }).catch(() => undefined);
     await refreshThread(active.id);
   }
 
@@ -1511,6 +1550,18 @@ export function ShellPage() {
             <div className="absolute bottom-14 left-3 right-3 rounded-2xl border border-[#2A2A2F] bg-[#1A1A1D] p-2 shadow-[0_22px_50px_rgba(0,0,0,.55)]">
               <button
                 type="button"
+                aria-label="Settings"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setAccountSettingsOpen(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
+              >
+                <span className="text-[#9A9AA0]">⚙</span>
+                <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">Settings</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   setMenuOpen(false);
                   setModelsOpen(true);
@@ -1519,6 +1570,17 @@ export function ShellPage() {
               >
                 <Cpu size={16} strokeWidth={1.7} className="text-[#9A9AA0]" />
                 <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">Models</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setMemorySettingsOpen(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 hover:bg-[#232327]"
+              >
+                <span className="text-[#9A9AA0]">◇</span>
+                <span className="flex-1 text-left text-[14.5px] text-[#ECECEE]">Memory</span>
               </button>
               <button
                 type="button"
@@ -1558,6 +1620,7 @@ export function ShellPage() {
           ) : null}
           <button
             type="button"
+            data-testid="user-menu-trigger"
             onClick={() => setMenuOpen((v) => !v)}
             className="flex items-center gap-[11px] px-[18px] py-3.5"
           >
@@ -1765,16 +1828,27 @@ export function ShellPage() {
             panel !== "group-settings" ? (
               <div className="mb-4 flex items-center justify-between">
                 <span className="text-[13.5px] text-[#85858A]">
-                  {active ? (computer?.state ?? active.status) : "group"}
+                  {panel === "settings"
+                    ? "Settings"
+                    : active
+                      ? (computer?.state ?? active.status)
+                      : "group"}
                 </span>
                 <div className="flex gap-3.5">
-                  <button
-                    type="button"
-                    aria-label="Bot settings"
-                    onClick={() => setPanel("settings")}
-                  >
-                    <Settings size={16} strokeWidth={1.7} />
-                  </button>
+                  {active ? (
+                    <button
+                      type="button"
+                      aria-label={panel === "settings" ? "Show computer" : "Show settings"}
+                      onClick={() => setPanel(panel === "settings" ? "computer" : "settings")}
+                      className={
+                        panel === "settings"
+                          ? "text-[#ECECEE]"
+                          : "text-[#85858A] hover:text-[#ECECEE]"
+                      }
+                    >
+                      <Settings size={16} strokeWidth={1.7} />
+                    </button>
+                  ) : null}
                   <button type="button" aria-label="Close panel" onClick={() => setPanel(null)}>
                     <X size={16} strokeWidth={1.8} />
                   </button>
@@ -1829,14 +1903,10 @@ export function ShellPage() {
                           : computerLabel(computer?.mode, active.name)}
                   </span>
                   {hasControl ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void releaseComputer()}
-                    >
-                      Release
-                    </Button>
+                    <ComputerReleaseActions
+                      takeoverRequested={computer?.takeoverRequested ?? false}
+                      onRelease={releaseComputer}
+                    />
                   ) : (
                     <Button
                       type="button"
@@ -1908,7 +1978,7 @@ export function ShellPage() {
               <CreateGroupForm
                 bots={bots}
                 onCancel={() => setPanel(null)}
-                onCreate={(input) => void createGroup(input)}
+                onCreate={(input) => createGroup(input)}
               />
             ) : null}
             {panel === "group-settings" && activeGroup ? (
@@ -1917,28 +1987,36 @@ export function ShellPage() {
                 group={activeGroup}
                 bots={bots}
                 onSave={async (input) => {
-                  await rpc.groups.update({ groupId: activeGroup.id, ...input });
-                  await refreshBots();
-                  await refreshGroupThread(activeGroup.id);
+                  const updated = await rpc.groups.update({ groupId: activeGroup.id, ...input });
+                  setGroups((current) =>
+                    current.map((group) => (group.id === updated.id ? updated : group)),
+                  );
                   setPanel(null);
+                  await Promise.all([refreshBots(), refreshGroupThread(activeGroup.id)]).catch(
+                    () => undefined,
+                  );
                 }}
                 onRemove={async () => {
                   await rpc.groups.remove({ groupId: activeGroup.id });
+                  const remainingGroups = groups.filter((group) => group.id !== activeGroup.id);
+                  setGroups(remainingGroups);
                   setPanel(null);
-                  await refreshBots();
+                  navigate(firstThreadRoute(bots, remainingGroups), { replace: true });
+                  await refreshBots().catch(() => undefined);
                 }}
               />
             ) : null}
             {panel === "create" ? (
               <CreateBotForm
                 onCancel={() => setPanel(null)}
-                onCreate={(input) => void createBot(input)}
+                onCreate={(input) => createBot(input)}
               />
             ) : null}
             {panel === "settings" && active ? (
               <BotSettings
                 key={active.id}
                 bot={active}
+                memoryProviderConfigured={memoryProviderConfig != null}
                 onSave={async ({ computerMode, ...patch }) => {
                   if (computerMode !== active.computerMode) {
                     await rpc.bots.setComputer({
@@ -2208,6 +2286,13 @@ export function ShellPage() {
       </Suspense>
 
       <Suspense fallback={null}>
+        {accountSettingsOpen ? (
+          <AccountSettingsOverlay
+            name={userName}
+            email={session.data?.user.email}
+            onClose={() => setAccountSettingsOpen(false)}
+          />
+        ) : null}
         {modelsOpen ? <ModelSettingsOverlay onClose={() => setModelsOpen(false)} /> : null}
         {voiceOpen ? (
           <VoiceSettingsOverlay
@@ -2230,6 +2315,19 @@ export function ShellPage() {
             onFollowUp={followUpMessage}
             onAnswer={answerMessage}
             onClose={() => setCallOpen(false)}
+          />
+        ) : null}
+      </Suspense>
+
+      <Suspense fallback={null}>
+        {memorySettingsOpen ? (
+          <MemorySettingsOverlay
+            onClose={() => setMemorySettingsOpen(false)}
+            config={memoryProviderConfig}
+            onConfigChange={(config) => {
+              memoryProviderConfigRevision.current += 1;
+              setMemoryProviderConfig(config);
+            }}
           />
         ) : null}
       </Suspense>
@@ -2270,14 +2368,10 @@ export function ShellPage() {
               {recordingSkill ? (
                 <TeachStopButton busy={teachBusy} onStop={stopTeaching} />
               ) : hasControl ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void releaseComputer()}
-                >
-                  Release
-                </Button>
+                <ComputerReleaseActions
+                  takeoverRequested={computer?.takeoverRequested ?? false}
+                  onRelease={releaseComputer}
+                />
               ) : (
                 <Button
                   type="button"
@@ -2431,12 +2525,19 @@ const Transcript = memo(function Transcript({
       {running ? (
         <div className="flex flex-col items-start gap-2.5">
           {activityFeed}
-          <div
-            className="rounded-[20px] bg-[#1A1A1D] px-[18px] py-[13px] text-[14.5px] text-[#85858A]"
-            style={{ animation: "rkPulse 1.2s ease-in-out infinite" }}
-          >
-            working…
-          </div>
+          {!messages.some(
+            (message) =>
+              message.id.startsWith("progress:") &&
+              message.blocks[0]?.kind === "progress" &&
+              message.blocks[0].text,
+          ) ? (
+            <div
+              className="max-w-[74%] rounded-[20px] bg-[#1A1A1D] px-[18px] py-3 text-[15.5px] leading-[1.5] text-[#85858A]"
+              style={{ animation: "rkPulse 1.2s ease-in-out infinite" }}
+            >
+              working…
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -2724,6 +2825,32 @@ function applyThreadEvent(
   }
 }
 
+function ComputerReleaseActions({
+  takeoverRequested,
+  onRelease,
+}: {
+  takeoverRequested: boolean;
+  onRelease: (reason?: ComputerReleaseReason) => Promise<void>;
+}) {
+  if (!takeoverRequested) {
+    return (
+      <Button type="button" variant="outline" size="sm" onClick={() => void onRelease()}>
+        Release
+      </Button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <Button type="button" variant="outline" size="sm" onClick={() => void onRelease("skipped")}>
+        Skip
+      </Button>
+      <Button type="button" size="sm" onClick={() => void onRelease("done")}>
+        I’m done
+      </Button>
+    </div>
+  );
+}
+
 function ToolSteps({
   steps,
   currentIndex,
@@ -2972,6 +3099,13 @@ const MessageView = memo(function MessageView({
             </button>
           );
         }
+        if (block.kind === "chart") {
+          return (
+            <div key={i} className="flex justify-start">
+              <ChartBlockView name={block.name} spec={block.spec} data={block.data} />
+            </div>
+          );
+        }
         if (block.kind === "image") {
           return (
             <div
@@ -3087,108 +3221,6 @@ const MessageView = memo(function MessageView({
   );
 });
 
-type AskBlock = Extract<ThreadMessage["blocks"][number], { kind: "ask" }>;
-
-function AskCard({
-  block,
-  canAnswer,
-  onAnswer,
-}: {
-  block: AskBlock;
-  canAnswer: boolean;
-  onAnswer: (text: string) => Promise<void>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [answer, setAnswer] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function submitAnswer(value: string) {
-    const text = value.trim();
-    if (!text || submitting) return;
-    setSubmitting(true);
-    try {
-      await onAnswer(text);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <div className="max-w-[74%] rounded-[20px] border border-[#242428] bg-[#141417] px-5 py-[17px]">
-      <div className="text-[15.5px] leading-[1.5] text-[#ECECEE]">
-        <ChatMarkdown>{block.text}</ChatMarkdown>
-      </div>
-      {block.detail ? (
-        <pre className="mt-3 rounded-xl bg-[#0E0E10] px-3.5 py-3 font-mono text-[12.5px] leading-[1.7] text-[#85858A]">
-          {block.detail}
-        </pre>
-      ) : null}
-      {block.status === "answered" ? (
-        <div className="mt-3.5 text-[13.5px] font-medium text-[#4ECB71]">
-          {block.answer ? `Answered: ${block.answer}` : "Answered"}
-        </div>
-      ) : !canAnswer ? (
-        <div className="mt-3.5 text-[13.5px] font-medium text-[#85858A]">No longer active</div>
-      ) : editing ? (
-        <form
-          className="mt-3.5 flex flex-col gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submitAnswer(answer);
-          }}
-        >
-          <input
-            aria-label="Answer"
-            value={answer}
-            onChange={(event) => setAnswer(event.target.value)}
-            placeholder="Type your answer"
-            className="rounded-[11px] border border-[#303035] bg-[#0E0E10] px-3.5 py-2.5 text-[14.5px] text-[#ECECEE] outline-none focus:border-[#66666D]"
-          />
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={!answer.trim() || submitting}
-              className="rounded-[11px] bg-[#F1F1EF] px-[17px] py-2 text-[14.5px] font-medium text-[#17171A] disabled:opacity-50"
-            >
-              {submitting ? "Sending…" : "Send answer"}
-            </button>
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => {
-                setAnswer("");
-                setEditing(false);
-              }}
-              className="rounded-[11px] border border-[#26262A] px-[17px] py-2 text-[14.5px] text-[#C9C9CE] disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="mt-3.5 flex gap-2">
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => void submitAnswer("approved")}
-            className="rounded-[11px] bg-[#F1F1EF] px-[17px] py-2 text-[14.5px] font-medium text-[#17171A] disabled:opacity-50"
-          >
-            {submitting ? "Sending…" : "Send it"}
-          </button>
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => setEditing(true)}
-            className="rounded-[11px] border border-[#26262A] px-[17px] py-2 text-[14.5px] text-[#C9C9CE] disabled:opacity-50"
-          >
-            Edit first
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ComputerModePicker({
   value,
   onChange,
@@ -3229,26 +3261,47 @@ function CreateBotForm({
     title: string;
     description: string;
     computerMode: ComputerMode;
-  }) => void;
+  }) => Promise<void>;
   onCancel: () => void;
 }) {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [computerMode, setComputerMode] = useState<ComputerMode>("team");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    if (!name.trim() || submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await onCreate({ name, title, description, computerMode });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create bot");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <span className="text-[13.5px] text-[#85858A]">New bot</span>
-        <button type="button" onClick={onCancel}>
+        <button type="button" aria-label="Cancel new bot" onClick={onCancel}>
           <X size={16} strokeWidth={1.8} />
         </button>
       </div>
+      {error ? (
+        <p role="alert" data-testid="create-bot-error" className="mb-3 text-[13px] text-[#C94244]">
+          {error}
+        </p>
+      ) : null}
       <label className="mt-6 block text-[14px] text-[#85858A]">
         Name
         <input
           value={name}
+          maxLength={BOT_NAME_MAX_LENGTH}
           onChange={(e) => setName(e.target.value)}
           placeholder="Name this bot"
           className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
@@ -3258,6 +3311,7 @@ function CreateBotForm({
         Title
         <input
           value={title}
+          maxLength={BOT_TITLE_MAX_LENGTH}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Describe what this bot does"
           className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
@@ -3267,6 +3321,7 @@ function CreateBotForm({
         Description
         <textarea
           value={description}
+          maxLength={BOT_DESCRIPTION_MAX_LENGTH}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What this bot is for"
           rows={4}
@@ -3276,11 +3331,11 @@ function CreateBotForm({
       <ComputerModePicker value={computerMode} onChange={setComputerMode} />
       <button
         type="button"
-        disabled={!name.trim()}
-        onClick={() => onCreate({ name, title, description, computerMode })}
+        disabled={!name.trim() || submitting}
+        onClick={() => void handleSubmit()}
         className="mt-5 rounded-[11px] bg-[#F1F1EF] px-4 py-2 text-[#17171A] disabled:opacity-40"
       >
-        Create
+        {submitting ? "Creating…" : "Create"}
       </button>
     </div>
   );
@@ -3288,17 +3343,20 @@ function CreateBotForm({
 
 function BotSettings({
   bot,
+  memoryProviderConfigured,
   onSave,
   onExport,
   onClear,
 }: {
   bot: Bot;
+  memoryProviderConfigured: boolean;
   onSave: (patch: {
     name?: string;
     title?: string;
     description?: string;
     instructions?: string;
     computerMode: ComputerMode;
+    memoryScope?: "isolated" | "shared" | null;
     autoSpeak?: boolean;
     voiceId?: string | null;
   }) => Promise<void>;
@@ -3309,6 +3367,7 @@ function BotSettings({
   const [title, setTitle] = useState(bot.title);
   const [description, setDescription] = useState(bot.description);
   const [computerMode, setComputerMode] = useState(bot.computerMode);
+  const [memoryScope, setMemoryScope] = useState(bot.memoryScope);
   const [autoSpeak, setAutoSpeak] = useState(bot.autoSpeak);
   const [voiceId, setVoiceId] = useState(bot.voiceId ?? "");
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
@@ -3331,6 +3390,7 @@ function BotSettings({
         Name
         <input
           value={name}
+          maxLength={BOT_NAME_MAX_LENGTH}
           onChange={(e) => setName(e.target.value)}
           className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
         />
@@ -3339,6 +3399,7 @@ function BotSettings({
         Title
         <input
           value={title}
+          maxLength={BOT_TITLE_MAX_LENGTH}
           onChange={(e) => setTitle(e.target.value)}
           className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
         />
@@ -3347,12 +3408,41 @@ function BotSettings({
         Description
         <textarea
           value={description}
+          maxLength={BOT_DESCRIPTION_MAX_LENGTH}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
           className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
         />
       </label>
       <ComputerModePicker value={computerMode} onChange={setComputerMode} />
+      {memoryProviderConfigured ? (
+        <div className="mt-4 text-[14px] text-[#85858A]">
+          Memory scope
+          <div className="mt-2 flex gap-2">
+            {(
+              [
+                { value: null, label: "Inherit default" },
+                { value: "isolated" as const, label: "Isolated" },
+                { value: "shared" as const, label: "Shared" },
+              ] satisfies Array<{ value: "isolated" | "shared" | null; label: string }>
+            ).map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                aria-pressed={memoryScope === option.value}
+                onClick={() => setMemoryScope(option.value)}
+                className={`flex-1 rounded-[11px] border px-3 py-2 text-[13px] ${
+                  memoryScope === option.value
+                    ? "border-[#4A4A50] bg-[#1A1A1D] text-[#ECECEE]"
+                    : "border-[#26262A] text-[#85858A]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <label className="mt-5 flex cursor-pointer items-center gap-3 text-[14px] text-[#C9C9CE]">
         <input
           type="checkbox"
@@ -3392,6 +3482,7 @@ function BotSettings({
               description,
               instructions: description,
               computerMode,
+              memoryScope,
               autoSpeak,
               voiceId: voiceId || null,
             })
@@ -3799,6 +3890,155 @@ function computerPlaceholder(
 
 function computerLabel(mode: ComputerStatus["mode"] | undefined, botName: string) {
   return mode === "dedicated" ? `${botName}’s computer` : "Team Computer";
+}
+
+function ChartCanvas({
+  spec,
+  data,
+  width,
+  height,
+}: {
+  spec: Record<string, unknown>;
+  data: unknown[];
+  width: number;
+  height?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState<{
+    title?: string;
+    swatches: { label: string; color: string }[];
+  }>({ swatches: [] });
+  useEffect(() => {
+    let cancelled = false;
+    // Plot loads lazily so threads without charts never pay for the library.
+    void (async () => {
+      try {
+        const { buildPlotParts } = await import("@rakazo/core/plot");
+        if (cancelled || !ref.current) return;
+        // Hover inspection by default: give the first mark a tooltip unless
+        // the spec already asks for one somewhere.
+        const marks = Array.isArray((spec as { marks?: unknown[] }).marks)
+          ? ((spec as { marks: { options?: Record<string, unknown> }[] }).marks ?? [])
+          : [];
+        const hasTip = marks.some((mark) => mark.options && "tip" in mark.options);
+        const liveSpec = hasTip
+          ? spec
+          : {
+              ...spec,
+              marks: marks.map((mark, index) =>
+                index === 0 ? { ...mark, options: { ...(mark.options ?? {}), tip: true } } : mark,
+              ),
+            };
+        const parts = buildPlotParts(liveSpec as never, data, document, { width, height });
+        setMeta({ title: parts.title, swatches: parts.swatches });
+        setError(null);
+        ref.current.replaceChildren(parts.plotted);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not render chart");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [spec, data, width, height]);
+  if (error)
+    return <div className="text-[13px] text-[#F3A2AA]">Chart failed to render: {error}</div>;
+  return (
+    <div className="text-[#C9C9CE]">
+      {meta.title ? (
+        <div className="mb-1 text-[14.5px] font-semibold text-[#ECECEE]">{meta.title}</div>
+      ) : null}
+      {meta.swatches.length > 0 ? (
+        <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
+          {meta.swatches.map((swatch) => (
+            <span
+              key={swatch.label}
+              className="flex items-center gap-1.5 text-[12px] text-[#A6A6AD]"
+            >
+              <span
+                className="h-[10px] w-[10px] rounded-[3px]"
+                style={{ background: swatch.color }}
+              />
+              {swatch.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div ref={ref} className="[&_svg]:max-w-full" />
+    </div>
+  );
+}
+
+function ChartBlockView({
+  name,
+  spec,
+  data,
+}: {
+  name: string;
+  spec: Record<string, unknown>;
+  data: unknown[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+  return (
+    <>
+      <div className="group relative max-w-[74%] rounded-[20px] bg-[#17171A] p-4">
+        <ChartCanvas spec={spec} data={data} width={520} />
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="absolute right-3 top-3 rounded-lg border border-[#34343B] bg-[#1F1F22] px-2.5 py-1 text-[11px] text-[#B9B9C0] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A6A6AD]"
+        >
+          Expand
+        </button>
+      </div>
+      {expanded ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(4,4,5,.78)] p-8">
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label="Close expanded chart"
+            onClick={() => setExpanded(false)}
+            className="absolute inset-0 cursor-default"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Expanded chart: ${name}`}
+            className="relative max-h-[92vh] w-[min(1320px,94vw)] overflow-auto rounded-[24px] border border-[#2A2A31] bg-[#141416] p-8 shadow-[0_40px_90px_rgba(0,0,0,.6)]"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[13px] text-[#85858A]">{name}</span>
+              <button
+                type="button"
+                aria-label="Close chart"
+                onClick={() => setExpanded(false)}
+                className="text-lg text-[#85858A] hover:text-[#DFDFE2]"
+              >
+                ✕
+              </button>
+            </div>
+            <ChartCanvas
+              spec={spec}
+              data={data}
+              width={Math.min(1240, Math.floor(window.innerWidth * 0.88))}
+              height={Math.floor(window.innerHeight * 0.66)}
+            />
+          </section>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 function ArtifactImage({
