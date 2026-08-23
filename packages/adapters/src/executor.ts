@@ -128,6 +128,7 @@ import {
 } from "./plot-tool.js";
 import { inferScript } from "./scripted-runtime.js";
 import type { EncryptedSecretStore } from "./secrets.js";
+import { type TakeoverResumeCheckpoint, takeoverResumeFromRelease } from "./takeover-resume.js";
 import { getActiveTeachingSession, parsePlaybook } from "./teaching-session.js";
 import {
   attachWorkspaceFileToThread,
@@ -320,7 +321,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
       const run = await deps.prisma.run.findUnique({ where: { id: runId } });
       if (!run) return;
       if (isTerminal(run.status as RunStatus)) return;
-      const resumeFromTakeover = run.status === "waiting_takeover";
+      const resumeCheckpoint =
+        run.checkpoint === "takeover" || run.checkpoint === "takeover-skipped"
+          ? run.checkpoint
+          : null;
+      const resumeFromTakeover = run.status === "waiting_takeover" || Boolean(resumeCheckpoint);
+      const takeoverResume = resumeFromTakeover
+        ? takeoverResumeFromRelease(resumeCheckpoint === "takeover-skipped" ? "skipped" : "done")
+        : null;
 
       const fence = nextFence(run.leaseFence);
       const now = new Date();
@@ -341,6 +349,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           leaseFence: fence,
           leaseExpiresAt: new Date(Date.now() + 5 * 60_000),
           error: null,
+          checkpoint: null,
         },
       });
       if (leased.count !== 1) return;
@@ -365,7 +374,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
       });
       if (!leaseTarget.computerId) throw new Error("Bot has no computer");
       if (leaseTarget.computerSwitching) {
-        await requeueComputerRun(deps, runId, workerId, fence);
+        await requeueComputerRun(deps, runId, workerId, fence, resumeCheckpoint);
         return;
       }
       let computerLease: ComputerExecutionLease | null = null;
@@ -378,7 +387,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         });
       } catch (error) {
         if (!(error instanceof ComputerBusyError)) throw error;
-        await requeueComputerRun(deps, runId, workerId, fence);
+        await requeueComputerRun(deps, runId, workerId, fence, resumeCheckpoint);
         return;
       }
       const attempt = await deps.prisma.attempt
@@ -665,9 +674,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         let approvalPausePending = false;
         const progressRedactor = createStreamingRedactor(runSecrets);
         const scripted = deps.runtime.describe().capabilities.scripted;
-        const script = scripted
-          ? inferScript(task.prompt, resumeFromTakeover ? "takeover" : undefined)
-          : undefined;
+        const script = scripted ? inferScript(task.prompt, takeoverResume?.checkpoint) : undefined;
         const flushProgress = async () => {
           if (scripted || !pendingProgress) return;
           await deps.events.append({
@@ -1302,12 +1309,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const invokedSkill = savedSkills.find((skill) =>
           promptInvokesSkill(taskPrompt, skill.name || skill.goal),
         );
-        const prompt = invokedSkill
+        const basePrompt = invokedSkill
           ? `${formatSkillRunPrompt(
               invokedSkill.name || invokedSkill.goal.slice(0, 80),
               parsePlaybook(invokedSkill.playbook),
             )}\n\n${taskPrompt}`
           : taskPrompt;
+        const prompt = takeoverResume
+          ? `${basePrompt}\n\n${takeoverResume.promptNote}`
+          : basePrompt;
         const historicalContext: AgentRunRequest["history"] = [];
         if (compactedHistory.usedLocalSummary && compactedHistory.summary) {
           historicalContext.push({
@@ -1364,7 +1374,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   ? { credential: resolved.oauth, persist: resolved.persistOAuth }
                   : undefined,
               },
-              resumeFromCheckpoint: resumeFromTakeover ? "takeover" : undefined,
+              resumeFromCheckpoint: takeoverResume?.checkpoint,
               script,
               executeTool: scripted ? undefined : applyTool,
             },
@@ -1480,6 +1490,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   controlLeaseId: null,
                   controlLeaseExpiresAt: null,
                   controlBotId: null,
+                  controlRunId: null,
                 },
               });
               await checkpointAndRecordComputerWorkspace(deps, storedComputer, computer, context);
@@ -1488,7 +1499,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
               }
               const paused = await deps.prisma.run.updateMany({
                 where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
-                data: { status: "waiting_takeover", leaseOwner: null, leaseExpiresAt: null },
+                data: {
+                  status: "waiting_takeover",
+                  leaseOwner: null,
+                  leaseExpiresAt: null,
+                  checkpoint: null,
+                },
               });
               if (paused.count !== 1) return;
               retainComputerLease = true;
@@ -1759,12 +1775,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
         }
         const released = await deps.prisma.run.updateMany({
           where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
-          data: {
-            status: "queued",
-            error: computerBusy ? null : "Run setup failed; retrying",
-            leaseOwner: null,
-            leaseExpiresAt: null,
-          },
+          data: computerRunRequeueData(
+            resumeCheckpoint,
+            computerBusy ? null : "Run setup failed; retrying",
+          ),
         });
         if (released.count === 1) {
           await deps.prisma.attempt.update({
@@ -1881,15 +1895,29 @@ function computerRetryDelay(fence: number): number {
   return Math.min(10_000, 250 * 2 ** Math.min(Math.max(fence - 1, 0), 5));
 }
 
+function computerRunRequeueData(
+  resumeCheckpoint: TakeoverResumeCheckpoint | null,
+  error: string | null = null,
+) {
+  return {
+    status: "queued" as const,
+    error,
+    leaseOwner: null,
+    leaseExpiresAt: null,
+    checkpoint: resumeCheckpoint,
+  };
+}
+
 async function requeueComputerRun(
   deps: ExecutorDeps,
   runId: string,
   workerId: string,
   fence: number,
+  resumeCheckpoint: TakeoverResumeCheckpoint | null,
 ): Promise<void> {
   const released = await deps.prisma.run.updateMany({
     where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
-    data: { status: "queued", error: null, leaseOwner: null, leaseExpiresAt: null },
+    data: computerRunRequeueData(resumeCheckpoint),
   });
   if (released.count !== 1) return;
   await deps.jobs.enqueue({
