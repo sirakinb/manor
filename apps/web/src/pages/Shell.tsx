@@ -95,6 +95,7 @@ import {
 } from "../lib/thread-events";
 import { speaker } from "../lib/tts";
 import type { ContextMenuPosition } from "./BotContextMenu";
+import { GroupAvatars } from "./GroupAvatars";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import { WindowChrome } from "./WindowChrome";
@@ -1389,18 +1390,22 @@ export function ShellPage() {
                     setMobileSidebarOpen(false);
                     navigate(`/app/g/${group.id}`);
                   }}
-                  className="flex gap-3 rounded-xl px-2.5 py-[11px] text-left"
-                  style={{
-                    background: inGroup && activeGroup?.id === group.id ? "#161618" : "transparent",
-                  }}
+                  className={`rk-bot-row flex w-full gap-3 rounded-xl px-2.5 py-[11px] text-left ${
+                    inGroup && activeGroup?.id === group.id ? "rk-bot-row-active" : ""
+                  }`}
+                  style={
+                    {
+                      "--bot-tint": `color-mix(in srgb, ${
+                        group.members[0]?.color ?? "#8033cc"
+                      } 14%, transparent)`,
+                    } as React.CSSProperties
+                  }
                 >
-                  <span className="grid h-[38px] w-[38px] place-items-center rounded-full bg-[#232326] text-[13px] text-[#C9C9CE]">
-                    G
-                  </span>
+                  <GroupAvatars colors={group.members.map((member) => member.color)} size={54} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <span
-                        className={`text-[15px] text-[#ECECEE] ${
+                        className={`truncate text-[15px] text-[#ECECEE] ${
                           group.unread ? "font-semibold" : "font-medium"
                         }`}
                       >
@@ -1414,7 +1419,7 @@ export function ShellPage() {
                       ) : null}
                     </div>
                     <div className="mt-0.5 truncate text-[13.5px] text-[#85858A]">
-                      {group.members.map((member) => member.name).join(", ")}
+                      {group.preview || group.members.map((member) => member.name).join(", ")}
                     </div>
                   </div>
                 </button>
@@ -1552,9 +1557,10 @@ export function ShellPage() {
               className="flex min-w-0 items-center gap-3"
             >
               {inGroup ? (
-                <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-[#232326] text-[11px] text-[#C9C9CE]">
-                  G
-                </span>
+                <GroupAvatars
+                  colors={(activeGroup?.members ?? []).map((member) => member.color)}
+                  size={30}
+                />
               ) : active ? (
                 <BotAvatar color={active.color} size={26} />
               ) : null}
