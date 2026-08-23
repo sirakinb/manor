@@ -35,7 +35,6 @@ export * from "./pi-models.js";
 export * from "./pi-oauth.js";
 export * from "./pi-runtime.js";
 export * from "./realtime.js";
-export * from "./room-handoff.js";
 export * from "./sandbox-factory.js";
 export * from "./scripted-runtime.js";
 export * from "./scripted-voice.js";

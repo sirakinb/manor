@@ -27,7 +27,6 @@ import {
   nextFence,
   promptInvokesSkill,
   redactSecrets,
-  refusalNotice,
   sandboxCommandTimeoutMs,
   userTurnBlocksForRun,
 } from "@rakazo/core";
@@ -84,7 +83,6 @@ import {
   secretValuesToRedact,
   serializeModelSecret,
 } from "./pi-oauth.js";
-import { handOffRoomMentions, wakeNextMentioned } from "./room-handoff.js";
 import { inferScript } from "./scripted-runtime.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 import {
@@ -366,7 +364,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               where: { threadId: run.threadId },
               orderBy: { seq: "desc" },
               take: LEGACY_HISTORY_WINDOW_SIZE,
-              select: { role: true, runId: true, blocks: true, authorBotId: true },
+              select: { role: true, runId: true, blocks: true },
             }),
             deps.prisma.task.findUniqueOrThrow({ where: { id: run.taskId } }),
             deps.prisma.connection.findMany({
@@ -417,40 +415,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
         });
 
         const discovered = deps.connector ? await deps.connector.discoverTools(context) : [];
-        const roomParticipants =
-          thread.kind === "room"
-            ? await deps.prisma.bot.findMany({
-                where: { roomMemberships: { some: { threadId: thread.id } } },
-                select: { id: true, name: true },
-              })
-            : [];
-        const participantName = new Map(roomParticipants.map((entry) => [entry.id, entry.name]));
-        const others = roomParticipants
-          .filter((entry) => entry.id !== bot.id)
-          .map((entry) => entry.name);
-        const roomInstruction =
-          thread.kind === "room"
-            ? `You are in a room called "${thread.name ?? "Room"}" with the person and ${
-                others.length ? others.map((name) => `@${name}`).join(", ") : "no other bots"
-              }. Messages from others are labelled with who said them; only your own turns are yours. Answer as yourself, and keep replies short enough to read in a group. To hand work to another participant, mention them by name — @Name — and say what you are handing over and where to find it. Mention someone only when you actually need them; do not thank or acknowledge by mention.`
-            : undefined;
-        let history = [...messages].reverse().map((m) => {
-          const text = blocksToAgentHistoryText(m.blocks as MessageBlock[]);
-          // Only this bot's own messages are its own turns. Anything another
-          // participant said is input, named so the bot knows who it came from.
-          const spokenByAnotherBot = Boolean(m.authorBotId) && m.authorBotId !== bot.id;
-          if (spokenByAnotherBot) {
-            const speaker = participantName.get(m.authorBotId as string) ?? "another bot";
-            return { role: "user" as const, content: `${speaker}: ${text}` };
-          }
-          return {
-            role: (m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant") as
-              | "user"
-              | "assistant"
-              | "system",
-            content: text,
-          };
-        });
+        let history = [...messages].reverse().map((m) => ({
+          role: (m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant") as
+            | "user"
+            | "assistant"
+            | "system",
+          content: blocksToAgentHistoryText(m.blocks as MessageBlock[]),
+        }));
         const turnBlocks = userTurnBlocksForRun(
           run.trigger,
           runId,
@@ -948,7 +919,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 recalledMemory ? redactSecrets(recalledMemory, runSecrets) : undefined,
                 `${computerInstruction} Use remember for durable facts. Use request_takeover when the user must provide protected input or human judgment. Use destination_write only for connected destination records.`,
                 workspaceInstruction,
-                roomInstruction,
                 "A bot and a subagent are different. Never use both for the same request.",
                 "spawn_bot creates a lasting regular bot (own chat, computer, memory) that appears in the user's bot list. If the user asked to create a bot, call spawn_bot once and stop. Do not run_subagent to demo it.",
                 "run_subagent is a short helper inside this turn only. It is not a bot, has no thread, and does not show in the list. Use it for parallel work you will summarize here.",
@@ -1229,44 +1199,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
               threadId: thread.id,
             });
           }
-          // A reply in a room may hand work to another participant. Never fatal:
-          // the run is already finalized, and the worst case is a handoff that
-          // did not happen.
-          if (thread.kind === "room") {
-            try {
-              const handoff = await handOffRoomMentions(deps, {
-                threadId: thread.id,
-                workspaceId: run.workspaceId,
-                userId: run.userId,
-                authorBotId: bot.id,
-                text,
-              });
-              // A refused handoff must say so in the room. Hitting the hop cap
-              // otherwise looks like the bots simply stopped mid-task.
-              const capped = handoff.refused.filter((entry) => entry.reason === "hop_limit");
-              if (capped.length > 0) {
-                const named = await deps.prisma.bot.findMany({
-                  where: { id: { in: capped.map((entry) => entry.botId) } },
-                  select: { name: true },
-                });
-                for (const refusedBot of named) {
-                  await publishMessage(deps, run, "system", [
-                    { kind: "text", text: refusalNotice("hop_limit", refusedBot.name) },
-                  ]);
-                }
-              }
-              // Then whoever the person named and is still waiting. This runs
-              // after the handoff so an explicit pass of the baton wins, and it
-              // no-ops while anyone is still working.
-              await wakeNextMentioned(deps, {
-                threadId: thread.id,
-                workspaceId: run.workspaceId,
-                userId: run.userId,
-              });
-            } catch (error) {
-              console.error("room handoff", error);
-            }
-          }
           // Last, and never fatal: the run is already finalized, so a failure here must not reach
           // the catch block below, where a second finalizeRun would match no rows and silently
           // skip the completion notification.
@@ -1491,9 +1423,6 @@ async function publishMessage(
   const message = await createThreadMessage(deps.prisma, {
     threadId: run.threadId,
     role,
-    // Rooms hold several bots, so a reply has to say which one wrote it.
-    // Direct threads ignore this: their only possible author is the thread's bot.
-    authorBotId: role === "bot" ? run.botId : undefined,
     blocks,
     runId: run.id,
   });

@@ -136,24 +136,6 @@ body,
   backdrop-filter: blur(22px);
 }
 
-.lp-github {
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
-  transition:
-    color 200ms ease,
-    border-color 200ms ease,
-    box-shadow 200ms ease,
-    transform 200ms ease;
-}
-
-.lp-github:hover,
-.lp-github:focus-visible {
-  border-color: rgba(168, 85, 247, 0.55);
-  box-shadow:
-    0 0 0 1px rgba(168, 85, 247, 0.18),
-    0 8px 24px rgba(128, 51, 204, 0.28);
-  transform: translateY(-1px);
-}
-
 .lp-grain {
   pointer-events: none;
   position: absolute;
@@ -199,19 +181,4 @@ body,
   .lp-veil {
     animation: none;
   }
-}
-
-/* Streamed reasoning: a margin note beside the conversation, not part of it. */
-.rk-thinking {
-  border-left: 2px solid rgba(168, 85, 247, 0.22);
-  padding-left: 14px;
-  font-style: normal;
-}
-
-.rk-thinking p {
-  margin: 0 0 6px;
-}
-
-.rk-thinking p:last-child {
-  margin-bottom: 0;
 }

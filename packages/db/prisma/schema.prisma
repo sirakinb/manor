@@ -211,8 +211,6 @@ model Bot {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   thread         Thread?
-  roomMemberships ThreadParticipant[]
-  authoredMessages Message[]
   computerId     String?
   computer       Computer? @relation(fields: [computerId], references: [id], onDelete: SetNull)
   computerSwitching Boolean @default(false)
@@ -270,12 +268,8 @@ model Thread {
   id                      String       @id @default(cuid())
   workspaceId             String
   workspace               Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  // "direct" threads belong to one bot, as they always have. "room" threads
-  // have no owning bot and carry participants instead.
-  kind                    String       @default("direct")
-  botId                   String?      @unique
-  bot                     Bot?         @relation(fields: [botId], references: [id], onDelete: Cascade)
-  name                    String?
+  botId                   String       @unique
+  bot                     Bot          @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId                  String
   createdAt               DateTime     @default(now())
   nextEventSeq            Int          @default(0)
@@ -286,24 +280,9 @@ model Thread {
   events                  Event[]
   tasks                   Task[]
   runs                    Run[]
-  participants            ThreadParticipant[]
 
   @@index([workspaceId])
-  @@index([workspaceId, kind])
   @@map("threads")
-}
-
-/// Bots taking part in a room. Direct threads have none.
-model ThreadParticipant {
-  threadId String
-  thread   Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  botId    String
-  bot      Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
-  addedAt  DateTime @default(now())
-
-  @@id([threadId, botId])
-  @@index([botId])
-  @@map("thread_participants")
 }
 
 model Message {
@@ -312,10 +291,6 @@ model Message {
   thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
   seq       Int
   role      String
-  /// Which bot wrote this. Null for human messages and for direct threads,
-  /// where the thread's own bot is the only possible author.
-  authorBotId String?
-  authorBot   Bot?   @relation(fields: [authorBotId], references: [id], onDelete: SetNull)
   blocks    Json
   runId     String?
   createdAt DateTime @default(now())
