@@ -208,7 +208,6 @@ export class PiOAuthLogins {
         "In-app subscription sign-in is only available for ChatGPT Plus/Pro, Claude Pro/Max, GitHub Copilot, and SuperGrok.",
       );
     }
-    const mode = isAuthUrlProvider(input.provider) ? AUTH_URL_SIGN_IN : DEVICE_CODE_SIGN_IN;
     if (input.signal?.aborted) {
       throw input.signal.reason ?? new Error("Sign-in cancelled.");
     }
