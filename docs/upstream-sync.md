@@ -1,0 +1,92 @@
+# Upstream sync protocol
+
+Manor is a fork of `elie222/rakazo`. Upstream keeps moving; Manor keeps its own
+features and skin. This is the repeatable playbook for pulling upstream in
+without clobbering Manor's work. The visual companion lives in
+`docs/dev-site/` (open `index.html` for the branch/merge flowchart,
+`changelog.html` for the running changelog — update the changelog after every
+notable change or sync).
+
+## Standing rules
+
+1. **Merge, never rebase.** Rebasing rewrites deployed history and re-fights
+   every conflict. Merging keeps both stories true. Never force-push main.
+2. **Manor features live in Manor-owned files.** New features get their own
+   modules (`crm.ts`, `crm-tools.ts`, …) with one-line touchpoints in upstream
+   files, so the next sync conflicts on a line, not a feature.
+3. **Never sync and deploy in one step.** Main only advances after local
+   verification passes. Prod only advances after a checkpoint with Aki.
+   Rollback is redeploying the previous commit.
+4. **`rerere` stays on** (`git config rerere.enabled true`) so every conflict
+   resolution is remembered for the next sync.
+5. **This SSD is exFAT.** Before any git operation, vitest run, or bundle:
+   `find . -name '._*' -not -path './node_modules/*' -delete`
+   (AppleDouble files corrupt git packs and break tooling).
+
+## The loop
+
+```
+git fetch upstream
+git log --oneline HEAD..upstream/main     # what's new upstream
+git cherry HEAD upstream/main             # "-" = we already have it (backport)
+git merge-tree --write-tree HEAD upstream/main   # conflict preview, touches nothing
+git checkout -b sync/upstream-<YYYY-MM-DD>
+git merge upstream/main                   # resolve by the policy table below
+# verify locally (checklist below), then land on main
+# checkpoint with Aki, then deploy
+```
+
+## Conflict policy, by category
+
+| Category | Examples | Policy |
+|---|---|---|
+| Our contributions returning home | Claude Pro/Max OAuth (`pi-oauth.ts`, upstream #106) | **Ours is canonical.** Diff against upstream's landed copy; absorb only genuine improvements. |
+| Backport duplicates | fixes we cherry-picked that upstream later merged | Take **upstream** canonical, re-apply any deliberate Manor deltas. |
+| Manor identity | `README.md`, `Shell.tsx`, `Onboarding.tsx`, mobile skin | Keep **Manor's** look and branding, weave in upstream's new logic. |
+| High-care files | `router.ts`, `schema.prisma`, `app.ts`, `voice.ts` | Hand-union: keep both sides' routes/models/wiring. |
+| Mechanical | `pnpm-lock.yaml` | Take upstream, then `pnpm install` and commit the delta. |
+
+Known Manor deltas to preserve through any resolution:
+
+- The CRM: `packages/db/src/crm.ts`, `packages/adapters/src/crm-tools.ts`,
+  CRM routes in `router.ts`, CRM pages, the `/app/crm` redirect guard in
+  `Shell.tsx`'s `refreshBots`.
+- The four Team Computer fixes: owner-change rule in `screen-lease.ts`,
+  ref-persist `updateMany` in `computer-lifecycle.ts`, boot-reconcile in
+  `router.ts`, try/catch around both `setScreenControl` revocations.
+- Channel messaging: the `send_channel_message` filter and dispatch in
+  `executor.ts`, `channels.ts`.
+- The activity feed and Manor's skin throughout the web + mobile apps.
+
+## Verification checklist (before main advances)
+
+```
+find . -name '._*' -not -path './node_modules/*' -delete
+npx vitest run packages/adapters packages/core packages/contracts packages/db
+npx vitest run apps/api apps/web infra/sandboxes/supervisor
+pnpm check                    # typecheck, all packages
+npx prisma validate --schema packages/db/prisma/schema.prisma
+```
+
+Grep-verify the fix signatures survived:
+
+```
+grep -n "ownerId !== current.ownerId" packages/core/src/screen-lease.ts
+grep -n "Clients only call boot" apps/api/src/router.ts
+```
+
+Known non-blockers: `sandbox-conformance` listFiles failure (pre-existing),
+occasional `voice-http` deadline timing flake (passes on rerun).
+
+## Landing and deploying
+
+1. Merge the sync branch into `main` (a fast-forward or merge commit — never
+   rebase), push.
+2. **Checkpoint with Aki.** Then deploy: rsync to the VPS (`.env*` excluded)
+   and `docker compose --env-file .env.vps -f infra/compose/docker-compose.vps.yml up -d --build`.
+   New migrations apply on deploy; additive migrations need no DB rollback plan.
+3. Verify in the prod browser: Team Computer screen + Take control/Release,
+   CRM pages, fresh-bot onboarding, and one agent chat that exercises a new
+   feature.
+4. Add a changelog entry in `docs/dev-site/changelog.html`
+   (`class="entry sync"` for the purple dot).
