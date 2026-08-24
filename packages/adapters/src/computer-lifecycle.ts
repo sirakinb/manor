@@ -50,12 +50,12 @@ export async function provisionComputer(
   await mkdir(homePath, { recursive: true });
 
   if (existing.state === "running" && existing.providerRef) {
-    return reconnectComputer(deps, existing, homePath, context);
+    return reconnectComputer(deps, computerId, existing, homePath, context);
   }
   if (existing.state === "booting" || existing.state === "suspending") {
     const ready = await waitForComputerReady(deps.prisma, computerId, context);
     if (ready?.state === "running" && ready.providerRef) {
-      return reconnectComputer(deps, ready, homePath, context);
+      return reconnectComputer(deps, computerId, ready, homePath, context);
     }
     existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
   }
@@ -155,10 +155,12 @@ export async function provisionComputer(
 
 async function reconnectComputer(
   deps: {
+    prisma: PrismaClient;
     sandbox: SandboxProvider;
     home: AgentHomeStore;
     dataDir?: string;
   },
+  computerId: string,
   computer: {
     homeKey: string;
     providerRef: string | null;
@@ -185,6 +187,16 @@ async function reconnectComputer(
     context.botId,
     context,
   );
+  if (ref.providerRef !== computer.providerRef || ref.kind !== computer.kind) {
+    // The provider may hand back a replacement container (the old one was
+    // destroyed, say during a deploy). Screen and control calls read the ref
+    // from the database, so a stale ref leaves them pointed at a dead
+    // container while the bot happily uses the new one.
+    await deps.prisma.computer.updateMany({
+      where: { id: computerId, state: "running" },
+      data: { providerRef: ref.providerRef, kind: ref.kind },
+    });
+  }
   return ref;
 }
 

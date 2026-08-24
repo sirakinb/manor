@@ -330,6 +330,60 @@ describe("computer provisioning", () => {
       await rm(dataDir, { recursive: true, force: true });
     }
   });
+
+  it("persists a replacement provider ref handed back on reconnect", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-provision-replaced-"));
+    const ref = {
+      id: "provider-2",
+      botId: "bot-1",
+      kind: "cloud" as const,
+      providerRef: "provider-2",
+      fresh: true,
+    };
+    const prisma = {
+      computer: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "computer-1",
+          homeKey: "bot-1",
+          providerRef: "provider-1",
+          kind: "cloud",
+          scope: "dedicated",
+          state: "running",
+          controlLeaseId: null,
+        }),
+        updateMany: vi.fn(),
+      },
+    } as unknown as PrismaClient;
+    const sandbox = {
+      provision: vi.fn().mockResolvedValue(ref),
+      prepare: vi.fn().mockResolvedValue(undefined),
+    } as unknown as SandboxProvider;
+
+    try {
+      await expect(
+        provisionComputer(
+          {
+            prisma,
+            sandbox,
+            home: {} as AgentHomeStore,
+            jobs: {} as JobPublisher,
+            events: {} as ThreadEvents,
+            dataDir,
+          },
+          "computer-1",
+          context,
+        ),
+      ).resolves.toEqual(ref);
+      // Screen and control calls read the ref from the database, so a stale
+      // one leaves them aimed at a container that no longer exists.
+      expect(prisma.computer.updateMany).toHaveBeenCalledWith({
+        where: { id: "computer-1", state: "running" },
+        data: { providerRef: "provider-2", kind: "cloud" },
+      });
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("computer execution leases", () => {
