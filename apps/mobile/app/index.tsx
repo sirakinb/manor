@@ -170,13 +170,16 @@ export default function Home() {
           />
           <Text style={styles.wordmark}>Manor</Text>
         </View>
-        <CircleButton accessibilityLabel="Account" onPress={() => router.push("/account")}>
-          <Text style={styles.profileInitials}>{initials}</Text>
-        </CircleButton>
+        {/* Both sides carry two buttons so the centred lockup keeps its room. */}
         <View style={styles.headerActions}>
+          <CircleButton accessibilityLabel="Account" onPress={() => router.push("/account")}>
+            <Text style={styles.profileInitials}>{initials}</Text>
+          </CircleButton>
           <CircleButton accessibilityLabel="CRM" onPress={() => router.push("/crm")}>
             <NativeSymbol ios="chart.bar" android="stats-chart" size={17} />
           </CircleButton>
+        </View>
+        <View style={styles.headerActions}>
           <CircleButton
             accessibilityLabel="Search"
             active={searching}
