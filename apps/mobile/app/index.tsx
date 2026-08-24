@@ -174,6 +174,9 @@ export default function Home() {
           <Text style={styles.profileInitials}>{initials}</Text>
         </CircleButton>
         <View style={styles.headerActions}>
+          <CircleButton accessibilityLabel="CRM" onPress={() => router.push("/crm")}>
+            <NativeSymbol ios="chart.bar" android="stats-chart" size={17} />
+          </CircleButton>
           <CircleButton
             accessibilityLabel="Search"
             active={searching}
