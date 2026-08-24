@@ -1,18 +1,11 @@
 // Must run before builtinModels() so extra models land in the catalog.
 import "./extra-openrouter-models.js";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
+import type { ModelOAuthSignInMode } from "@rakazo/contracts";
 import { LOCAL_PROVIDER_ID, registerLocalProvider } from "./pi-local-provider.js";
-import {
-  AUTH_URL_PROVIDERS,
-  AUTH_URL_SIGN_IN,
-  DEVICE_CODE_PROVIDERS,
-  DEVICE_CODE_SIGN_IN,
-  isAuthUrlProvider,
-  isDeviceCodeProvider,
-} from "./pi-oauth.js";
+import { SUBSCRIPTION_SIGN_IN_PROVIDERS } from "./pi-oauth.js";
 
 export type PiCatalogAuth = "api-key" | "oauth" | "both";
-export type PiCatalogSignIn = typeof DEVICE_CODE_SIGN_IN | typeof AUTH_URL_SIGN_IN;
 
 export type PiCatalogEntry = {
   provider: string;
@@ -22,8 +15,9 @@ export type PiCatalogEntry = {
   billing: string;
   auth: PiCatalogAuth;
   oauthLabel?: string;
+  authHint?: string;
   subscription: boolean;
-  signIn?: PiCatalogSignIn;
+  signIn?: ModelOAuthSignInMode;
 };
 
 export function listPiCatalog(): PiCatalogEntry[] {
@@ -40,15 +34,10 @@ function buildPiCatalog(): PiCatalogEntry[] {
     const apiKey = Boolean(provider.auth.apiKey);
     const oauth = Boolean(provider.auth.oauth);
     const auth: PiCatalogAuth = apiKey && oauth ? "both" : oauth ? "oauth" : "api-key";
-    const signInMeta = DEVICE_CODE_PROVIDERS[provider.id] ?? AUTH_URL_PROVIDERS[provider.id];
+    const signInMeta = SUBSCRIPTION_SIGN_IN_PROVIDERS[provider.id];
     const oauthLabel =
       signInMeta?.loginLabel ?? provider.auth.oauth?.loginLabel ?? provider.auth.oauth?.name;
     const subscription = Boolean(provider.auth.oauth?.isSubscription);
-    const signIn = isDeviceCodeProvider(provider.id)
-      ? DEVICE_CODE_SIGN_IN
-      : isAuthUrlProvider(provider.id)
-        ? AUTH_URL_SIGN_IN
-        : undefined;
     const billing = catalogBilling(provider.id, provider.name, {
       apiKey,
       oauth,
@@ -62,8 +51,9 @@ function buildPiCatalog(): PiCatalogEntry[] {
         billing,
         auth,
         oauthLabel,
+        authHint: signInMeta?.hint,
         subscription,
-        signIn,
+        signIn: signInMeta?.mode,
       });
     }
   }
@@ -94,7 +84,7 @@ function catalogBilling(
   name: string,
   opts: { apiKey: boolean; oauth: boolean },
 ) {
-  const signInMeta = DEVICE_CODE_PROVIDERS[providerId] ?? AUTH_URL_PROVIDERS[providerId];
+  const signInMeta = SUBSCRIPTION_SIGN_IN_PROVIDERS[providerId];
   if (signInMeta) return signInMeta.billing;
   if (providerId === LOCAL_PROVIDER_ID) {
     return "Runs on infrastructure configured by the deployment owner. No model charges from Rakazo.";

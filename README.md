@@ -56,6 +56,16 @@ cp .env.example .env
 
 Set `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` to independent, long random values. Optionally set `OPENROUTER_API_KEY`, or connect a model subscription during onboarding.
 
+Managed app catalogs are optional. Set `COMPOSIO_API_KEY` for Composio, or the
+`PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, and `PIPEDREAM_PROJECT_ID` trio for Pipedream
+Connect. Users can add an HTTPS MCP server, Treg endpoint, or OpenAPI JSON document from
+**Integrations** without enabling either managed catalog. Connector credentials are encrypted on the
+server and are never returned by the API.
+
+Treg is usage-metered. Self-hosters supply their own Treg token; operators embedding Treg in a
+hosted product should review [Treg's integration terms](https://treg.to/integrate.md), which require
+a written agreement for hosted resale.
+
 ```bash
 docker compose --env-file .env -f infra/compose/docker-compose.yml up postgres -d
 pnpm install

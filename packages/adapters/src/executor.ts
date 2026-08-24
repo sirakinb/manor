@@ -50,6 +50,8 @@ import {
   createThreadMessageInTransaction,
   effectiveMemoryScope,
   findDefaultModelCredential,
+  type McpServer,
+  type Prisma,
   type PrismaClient,
   parseComputerMode,
   type ThreadEvents,
@@ -107,6 +109,11 @@ import {
   selectCompactedHistory,
   shouldEnqueueCompaction,
 } from "./history-compaction.js";
+import {
+  buildMcpCredentialBlob,
+  needsOAuthProbe,
+  parseMcpServerToolArgs,
+} from "./mcp-server-tool.js";
 import { loadAgentMemoryContext } from "./memory-context.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import { selectMemoryTools } from "./memory-tools.js";
@@ -462,7 +469,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
           deps.prisma.task.findUniqueOrThrow({ where: { id: run.taskId } }),
           deps.prisma.connection.findMany({
             where: { userId: run.userId, workspaceId: run.workspaceId },
-            select: { id: true, provider: true, displayName: true, status: true },
+            select: {
+              id: true,
+              connectorId: true,
+              provider: true,
+              providerRef: true,
+              displayName: true,
+              status: true,
+            },
           }),
           findDefaultModelCredential(deps.prisma, run),
           deps.prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
@@ -473,20 +487,28 @@ export function createRunExecutor(deps: ExecutorDeps) {
         ]);
         runAbortController = new AbortController();
         if (!leaseValid) runAbortController.abort();
+        const composioRows = storedConnections.filter(
+          (connection) => connection.connectorId === "composio",
+        );
         let liveSlugs: string[] = [];
-        if (needsLivePluginSync(storedConnections)) {
+        if (needsLivePluginSync(composioRows)) {
           const listing = await loadLivePluginSlugs(deps.listConnectedPluginSlugs, run.userId);
           if (listing.ok) {
             liveSlugs = listing.slugs;
-            await persistLivePluginConnections(
-              deps.prisma,
-              run,
-              storedConnections,
-              listing.slugs,
-            ).catch(() => undefined);
+            await persistLivePluginConnections(deps.prisma, run, composioRows, listing.slugs).catch(
+              () => undefined,
+            );
           }
         }
-        const connectedPlugins = mergeConnectedPlugins(storedConnections, liveSlugs);
+        const connectedComposio = mergeConnectedPlugins(composioRows, liveSlugs);
+        const activeKeys = new Set(
+          connectedComposio.map((connection) => `composio:${connection.provider}`),
+        );
+        const connectedPlugins = storedConnections.filter(
+          (connection) =>
+            connection.status === "connected" ||
+            activeKeys.has(`${connection.connectorId}:${connection.provider}`),
+        );
         const context = {
           operationId: runId,
           traceId: runId,
@@ -496,7 +518,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
           runId,
           screenLeaseId: screenLeaseIdForRun(computerLease, runId, fence),
           signal: runAbortController.signal,
-          connectedProviders: connectedPlugins.map((row) => row.provider),
+          connectedConnections: connectedPlugins.map((row) => ({
+            id: row.id,
+            connectorId: row.connectorId,
+            externalId: row.provider,
+            displayName: row.displayName,
+            providerRef: row.providerRef ?? undefined,
+          })),
+          connectedProviders: connectedComposio.map((row) => row.provider),
         };
         const memoryScope = configuredMemory
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
@@ -757,6 +786,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
           const requestApproval = async () => {
             if (!(await renewRunLease(deps, runId, workerId, fence))) {
+              // Another worker owns the run now; exit without leaving a local pause card.
               return pauseForApproval();
             }
             await checkpointAndRecordComputerWorkspace(deps, storedComputer, computer, context);
@@ -770,7 +800,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
               leaseFence: fence,
               blocks: [buildApprovalAskBlock(applied!.effect.id, name, args, runSecrets)],
             });
-            if (!paused) return pauseForApproval();
+            // pauseRunForInput returning false after a successful renew means the run row no
+            // longer matches this worker. Exiting via pauseForApproval() would leave the run
+            // stuck in "running" with no ask card — fail instead so the user can retry.
+            if (!paused) {
+              throw new Error("Could not pause this run for approval; try sending again.");
+            }
             await notifyRun(deps, run, {
               kind: "help",
               title: `${bot.name} needs approval`,
@@ -1138,6 +1173,109 @@ export function createRunExecutor(deps: ExecutorDeps) {
             );
             return finish({ ok: true });
           }
+          if (name === "add_mcp_server") {
+            const parsed = parseMcpServerToolArgs(args);
+            if (!parsed) {
+              return finish({
+                error:
+                  "Invalid MCP server details. Required: name, transport (streamable_http|sse|stdio); endpoint for remote transports; command for stdio.",
+              });
+            }
+            if (!deps.secretStore) {
+              return finish({ error: "Secret storage is not available in this deployment." });
+            }
+            const credentialBlob = buildMcpCredentialBlob(parsed);
+            let storedCredential: { id: string; ciphertext: string } | null = null;
+            if (credentialBlob) {
+              storedCredential = await deps.secretStore.put(credentialBlob, {
+                operationId: executionId,
+                traceId: executionId,
+                workspaceId: run.workspaceId,
+                userId: run.userId,
+                botId: bot.id,
+                signal: new AbortController().signal,
+              });
+            }
+            const oauthLikely = needsOAuthProbe(parsed);
+            let serverRow: McpServer;
+            let approvalEventSeq: number | undefined;
+            try {
+              const created = await deps.prisma.$transaction(async (tx) => {
+                if (storedCredential) {
+                  await tx.secret.create({
+                    data: {
+                      id: storedCredential.id,
+                      userId: run.userId,
+                      workspaceId: run.workspaceId,
+                      kind: "mcp",
+                      ciphertext: storedCredential.ciphertext,
+                    },
+                  });
+                }
+                const server = await tx.mcpServer.create({
+                  data: {
+                    workspaceId: run.workspaceId,
+                    userId: run.userId,
+                    slug: parsed.slug,
+                    name: parsed.name,
+                    description: parsed.description,
+                    transport: parsed.transport,
+                    endpoint: parsed.endpoint ?? null,
+                    command: parsed.command ?? null,
+                    args: parsed.args as unknown as Prisma.InputJsonValue,
+                    env: Object.fromEntries(Object.keys(parsed.env).map((key) => [key, true])),
+                    headers: Object.fromEntries(
+                      Object.keys(parsed.headers).map((key) => [key, true]),
+                    ),
+                    secretId: storedCredential?.id,
+                    enabled: true,
+                  },
+                });
+                if (!parsed.assignToSelf) return { server };
+                const blocks: MessageBlock[] = [
+                  {
+                    kind: "mcp_approval",
+                    name: server.name,
+                    serverId: server.id,
+                    transport: parsed.transport,
+                    endpoint: parsed.endpoint ?? null,
+                    needsOAuth: oauthLikely,
+                  },
+                ];
+                const committed = await persistMessageInTransaction(tx, run, "bot", blocks);
+                return { server, eventSeq: committed.eventSeq };
+              });
+              serverRow = created.server;
+              approvalEventSeq = created.eventSeq;
+            } catch (error) {
+              if (
+                typeof error === "object" &&
+                error !== null &&
+                "code" in error &&
+                (error as { code?: string }).code === "P2002"
+              ) {
+                return finish({
+                  error: `An MCP server named "${parsed.name}" already exists. Ask the user to remove it first or pick another name.`,
+                });
+              }
+              throw error;
+            }
+            if (approvalEventSeq !== undefined) {
+              await deps.events.notify(run.threadId, approvalEventSeq).catch((error) => {
+                console.error("MCP approval realtime notification", error);
+              });
+            }
+            return finish({
+              ok: true,
+              server_id: serverRow.id,
+              assigned_to_self: false,
+              next_step: parsed.assignToSelf
+                ? oauthLikely
+                  ? "An approval card was posted. The user must authorize and approve it before its tools become available."
+                  : "An approval card was posted. The user must approve it before its tools become available."
+                : "The server was registered without assigning it to this bot.",
+            });
+          }
           if (name === "recall_memory") {
             return semanticMemory!.recall(
               {
@@ -1290,7 +1428,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
         const pluginLine =
           connectedPlugins.length > 0
-            ? `Connected plugins: ${connectedPlugins.map((row) => `${row.displayName} (${row.provider})`).join(", ")}. Plugin tools call these apps' APIs directly and are already authenticated, so they are the fastest and most reliable route. When a connected plugin covers a task (for example sending email or updating a calendar), use the plugin tool alone — do not also open that app in the computer's browser to perform or verify the same action. Use the computer only for work no plugin tool covers.`
+            ? `Connected plugins: ${connectedPlugins.map((row) => `${row.displayName} (${row.connectorId}:${row.provider})`).join(", ")}. Plugin tools call these apps' APIs directly and are already authenticated, so they are the fastest and most reliable route. When a connected plugin covers a task (for example sending email or updating a calendar), use the plugin tool alone — do not also open that app in the computer's browser to perform or verify the same action. Use the computer only for work no plugin tool covers.`
             : "No plugins are connected yet.";
         const taughtSkillIndex = savedSkills.slice(0, 20);
         const taughtSkillsLine =
@@ -1359,6 +1497,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 pluginLine,
                 taughtSkillsLine,
                 'For charts and data visualization, use the render_plot tool: it renders bar, line, scatter, histogram, heatmap, faceted and many more chart types from a JSON spec and attaches the PNG to the chat. Call render_plot with {"help": true} before your first chart to read the full guide.',
+                "When the user asks you to add or connect an MCP server (and gives you its details), use add_mcp_server. If it uses browser sign-in, an approval card appears in the chat — tell the user to click Authorize on it.",
                 "Never print API keys, access tokens, or secret values. Prefer tools over claiming you already did the work.",
               ]
                 .filter((instruction): instruction is string => Boolean(instruction))
@@ -1944,28 +2083,37 @@ async function publishMessage(
   role: "user" | "bot" | "system",
   blocks: MessageBlock[],
 ) {
-  const committed = await deps.prisma.$transaction(async (tx) => {
-    const message = await createThreadMessageInTransaction(tx, {
-      threadId: run.threadId,
-      role,
-      blocks,
-      botId: run.botId,
-      runId: run.id,
-    });
-    const event = await appendEventInTransaction(tx, {
-      workspaceId: run.workspaceId,
-      threadId: run.threadId,
-      botId: run.botId,
-      type: "thread.message.created",
-      runId: run.id,
-      payload: { messageId: message.id, role, blocks },
-    });
-    return { message, eventSeq: event.seq };
-  });
+  const committed = await deps.prisma.$transaction((tx) =>
+    persistMessageInTransaction(tx, run, role, blocks),
+  );
   await deps.events.notify(run.threadId, committed.eventSeq).catch((error) => {
     console.error("thread message realtime notification", error);
   });
   return committed.message;
+}
+
+async function persistMessageInTransaction(
+  tx: Prisma.TransactionClient,
+  run: { id: string; workspaceId: string; threadId: string; botId: string },
+  role: "user" | "bot" | "system",
+  blocks: MessageBlock[],
+) {
+  const message = await createThreadMessageInTransaction(tx, {
+    threadId: run.threadId,
+    role,
+    blocks,
+    botId: run.botId,
+    runId: run.id,
+  });
+  const event = await appendEventInTransaction(tx, {
+    workspaceId: run.workspaceId,
+    threadId: run.threadId,
+    botId: run.botId,
+    type: "thread.message.created",
+    runId: run.id,
+    payload: { messageId: message.id, role, blocks },
+  });
+  return { message, eventSeq: event.seq };
 }
 
 async function recordEffect(

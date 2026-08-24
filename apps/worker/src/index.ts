@@ -15,11 +15,17 @@ import {
   GraphileJobPublisher,
   GraphileJobWorkerHost,
   InMemoryJobQueue,
+  InstalledConnectorProvider,
   isComposioEnabled,
+  isPipedreamEnabled,
   LocalAgentHomeStore,
   LocalArtifactStore,
+  McpConnector,
+  McpOAuthBroker,
   PiAgentRuntime,
+  PipedreamConnector,
   PostgresRealtimeFanout,
+  pipedreamConfigFromEnv,
   ScriptedAgentRuntime,
   WorkspaceMemoryProviderResolver,
 } from "@rakazo/adapters";
@@ -50,10 +56,37 @@ async function main() {
     dataDir,
     prisma,
   });
-  const stack = createConnectorStack(isComposioEnabled(process.env.COMPOSIO_API_KEY));
+  const secrets = new EncryptedSecretStore(resolveEncryptionKey(process.env));
+  const mcpOAuth = new McpOAuthBroker(prisma, secrets);
+  const mcp = new McpConnector(
+    prisma,
+    secrets,
+    {
+      stdioEnabled: process.env.MCP_STDIO_ENABLED === "true",
+      allowedCommands: (process.env.MCP_STDIO_ALLOWED_COMMANDS ?? "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean),
+    },
+    mcpOAuth,
+  );
+  const pipedreamConfig = pipedreamConfigFromEnv({
+    pipedreamClientId: process.env.PIPEDREAM_CLIENT_ID,
+    pipedreamClientSecret: process.env.PIPEDREAM_CLIENT_SECRET,
+    pipedreamProjectId: process.env.PIPEDREAM_PROJECT_ID,
+    pipedreamEnvironment: process.env.PIPEDREAM_ENVIRONMENT,
+    encryptionKey: resolveEncryptionKey(process.env),
+  });
+  const pipedream = isPipedreamEnabled(pipedreamConfig)
+    ? new PipedreamConnector(pipedreamConfig)
+    : undefined;
+  const stack = createConnectorStack(isComposioEnabled(process.env.COMPOSIO_API_KEY), undefined, [
+    new InstalledConnectorProvider(prisma, secrets),
+    ...(pipedream ? [pipedream] : []),
+    mcp,
+  ]);
   const connector = stack.destination;
   await connector.start();
-  const secrets = new EncryptedSecretStore(resolveEncryptionKey(process.env));
   const memoryProviders = new WorkspaceMemoryProviderResolver(prisma, secrets);
   const home = new LocalAgentHomeStore(dataDir);
   const artifacts = new LocalArtifactStore(dataDir);
@@ -111,6 +144,7 @@ async function main() {
     await jobs.close();
     await realtime.close();
     await connector.stop();
+    await mcp.close();
     await prisma.$disconnect().catch(() => undefined);
     await pool.end().catch(() => undefined);
   };

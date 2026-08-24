@@ -4,38 +4,15 @@ import {
   cancelModelOAuthAttempt,
   finishModelOAuthAttempt,
   type ModelCatalogEntry,
+  type ModelOAuthBegin,
   providerHint,
   waitForModelOAuth,
 } from "../lib/model-auth";
 import { rpc } from "../lib/rpc";
 
-const QUESTIONS = [
-  {
-    q: "What do you mainly want help with?",
-    sub: "Pick whatever’s closest, or type your own.",
-    opts: [
-      "Inbox & email",
-      "Slack & messages",
-      "Coding & repos",
-      "Research & writing",
-      "A bit of everything",
-    ],
-  },
-  {
-    q: "How do you want me to write?",
-    sub: "I’ll match this unless you say otherwise.",
-    opts: [
-      "Clear and tight",
-      "Warm and conversational",
-      "Polished / formal",
-      "Match whatever I draft",
-    ],
-  },
-];
-
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"loading" | "model" | "bot" | "questions">("loading");
+  const [step, setStep] = useState<"loading" | "model" | "bot">("loading");
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState("openrouter");
@@ -44,18 +21,13 @@ export function OnboardingPage() {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [answers, setAnswers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [oauth, setOauth] = useState<{
-    verificationUri: string;
-    userCode: string;
-    mode: "device-code" | "auth-url";
-    loginId: string;
-  } | null>(null);
+  const [oauth, setOauth] = useState<ModelOAuthBegin | null>(null);
   const [pasteCode, setPasteCode] = useState("");
   const [oauthPending, setOauthPending] = useState(false);
   const oauthAbortRef = useRef<AbortController | null>(null);
   const oauthLoginIdRef = useRef<string | null>(null);
+  const oauthCodeSubmittingRef = useRef(false);
 
   function cancelOAuthAttempt(resetState = true) {
     const loginId = oauthLoginIdRef.current;
@@ -118,7 +90,7 @@ export function OnboardingPage() {
   );
 
   const selected = modelsForProvider.find((entry) => entry.id === modelId) ?? modelsForProvider[0];
-  const subscriptionSignIn = selected?.signIn === "device-code" || selected?.signIn === "auth-url";
+  const subscriptionSignIn = selected?.signIn !== undefined;
   const acceptsKey = selected?.auth !== "oauth";
   const signInLabel = selected?.oauthLabel ?? "Sign in";
 
@@ -139,11 +111,22 @@ export function OnboardingPage() {
     }
   }
 
-  async function startDeviceSignIn() {
+  async function finishSubscriptionSignIn(loginId: string, controller: AbortController) {
+    await waitForModelOAuth(loginId, controller.signal);
+    if (controller.signal.aborted) return;
+    await rpc.models.finishOAuth({ loginId }, { signal: controller.signal });
+    if (controller.signal.aborted) return;
+    oauthLoginIdRef.current = null;
+    setOauth(null);
+    setStep("bot");
+  }
+
+  async function startSubscriptionSignIn() {
     setError(null);
     setOauthPending(true);
     const controller = new AbortController();
     oauthAbortRef.current = controller;
+    let waitingForCode = false;
     try {
       const started = await rpc.models.beginOAuth(
         {
@@ -156,20 +139,10 @@ export function OnboardingPage() {
       if (controller.signal.aborted) return;
       oauthLoginIdRef.current = started.loginId;
       setPasteCode("");
-      setOauth({
-        verificationUri: started.verificationUri,
-        userCode: started.userCode,
-        mode: started.mode,
-        loginId: started.loginId,
-      });
+      setOauth(started);
       window.open(started.verificationUri, "_blank", "noopener,noreferrer");
-      await waitForModelOAuth(started.loginId, controller.signal);
-      if (controller.signal.aborted) return;
-      await rpc.models.finishOAuth({ loginId: started.loginId }, { signal: controller.signal });
-      if (controller.signal.aborted) return;
-      oauthLoginIdRef.current = null;
-      setOauth(null);
-      setStep("bot");
+      waitingForCode = started.mode === "auth-url";
+      if (!waitingForCode) await finishSubscriptionSignIn(started.loginId, controller);
     } catch (err) {
       if (controller.signal.aborted) return;
       const loginId = oauthLoginIdRef.current;
@@ -178,25 +151,66 @@ export function OnboardingPage() {
       setError(err instanceof Error ? err.message : "Could not start sign-in");
       setOauth(null);
     } finally {
-      finishModelOAuthAttempt(oauthAbortRef, controller, () => setOauthPending(false));
+      if (!waitingForCode) {
+        finishModelOAuthAttempt(oauthAbortRef, controller, () => setOauthPending(false));
+      }
+    }
+  }
+
+  async function submitOAuthCode() {
+    if (oauth?.mode !== "auth-url" || oauthCodeSubmittingRef.current) return;
+    const controller = oauthAbortRef.current;
+    const code = pasteCode.trim();
+    if (!controller || !code) return;
+    oauthCodeSubmittingRef.current = true;
+    setPasteCode("");
+    setError(null);
+    let submitted = false;
+    let retryable = false;
+    try {
+      await rpc.models.submitOAuthCode(
+        { loginId: oauth.loginId, code },
+        { signal: controller.signal },
+      );
+      submitted = true;
+      await finishSubscriptionSignIn(oauth.loginId, controller);
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      if (submitted) {
+        oauthLoginIdRef.current = null;
+        setOauth(null);
+        void rpc.models.cancelOAuth({ loginId: oauth.loginId }).catch(() => undefined);
+      } else {
+        retryable = true;
+        setPasteCode(code);
+      }
+      setError(err instanceof Error ? err.message : "Could not finish sign-in");
+    } finally {
+      oauthCodeSubmittingRef.current = false;
+      if (!retryable) {
+        finishModelOAuthAttempt(oauthAbortRef, controller, () => setOauthPending(false));
+      }
     }
   }
 
   async function createBot() {
-    const instructions = answers.length
-      ? `User setup:\n${answers.map((a) => `- ${a}`).join("\n")}`
-      : description;
-    const bot = await rpc.bots.create({
-      name: name.trim(),
-      title,
-      description,
-      instructions,
-      notifyOnFinish: true,
-    });
-    navigate(`/app/${bot.id}`);
+    setError(null);
+    try {
+      const bot = await rpc.bots.create({
+        name: name.trim(),
+        title,
+        description,
+        instructions: description,
+        notifyOnFinish: true,
+      });
+      // Onboarding continues conversationally in the thread: greeting, focus
+      // choice, and Composio authorize cards.
+      await rpc.onboarding.start({ botId: bot.id }).catch(() => undefined);
+      navigate(`/app/${bot.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create your bot");
+    }
   }
-
-  const question = QUESTIONS[answers.length];
 
   return (
     <div className="flex min-h-full items-center justify-center bg-[#0D0D0E] px-6">
@@ -272,31 +286,22 @@ export function OnboardingPage() {
                           >
                             {new URL(oauth.verificationUri).hostname}
                           </a>
-                          . When the final page fails to load, copy its URL (or the code it shows)
-                          and paste it here:
+                          . The final page may not load; paste its URL or code here.
                         </p>
                         <div className="mt-3 flex items-center gap-2">
                           <input
                             value={pasteCode}
                             onChange={(e) => setPasteCode(e.target.value)}
+                            aria-label="Authorization code or callback URL"
+                            autoComplete="off"
+                            spellCheck={false}
                             placeholder="http://localhost:53692/callback?code=…"
                             className="w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-2.5 text-[13px] text-[#ECECEE]"
                           />
                           <button
                             type="button"
                             disabled={!pasteCode.trim()}
-                            onClick={() => {
-                              const code = pasteCode.trim();
-                              if (!code) return;
-                              void rpc.models
-                                .submitOAuthCode({ loginId: oauth.loginId, code })
-                                .then(() => setPasteCode(""))
-                                .catch((err) =>
-                                  setError(
-                                    err instanceof Error ? err.message : "Could not submit code",
-                                  ),
-                                );
-                            }}
+                            onClick={() => void submitOAuthCode()}
                             className="rounded-[11px] bg-[#F1F1EF] px-4 py-2.5 text-[#17171A] disabled:opacity-40"
                           >
                             Submit
@@ -328,7 +333,7 @@ export function OnboardingPage() {
                   <button
                     type="button"
                     disabled={oauthPending}
-                    onClick={() => void startDeviceSignIn()}
+                    onClick={() => void startSubscriptionSignIn()}
                     className="rounded-[11px] bg-[#F1F1EF] px-5 py-2.5 text-[#17171A] disabled:opacity-40"
                   >
                     {oauthPending ? "Starting…" : signInLabel}
@@ -408,47 +413,14 @@ export function OnboardingPage() {
                 className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
               />
             </label>
+            {error ? <p className="mt-3 text-sm text-[#E65707]">{error}</p> : null}
             <button
               type="button"
               disabled={!name.trim()}
-              onClick={() => setStep("questions")}
+              onClick={() => void createBot()}
               className="mt-6 rounded-[11px] bg-[#F1F1EF] px-5 py-2.5 text-[#17171A] disabled:opacity-40"
             >
               Continue
-            </button>
-          </div>
-        ) : null}
-        {step === "questions" && question ? (
-          <div className="rounded-[20px] bg-[#1A1A1D] p-5">
-            <div className="text-[17px] font-medium text-[#F1F1F2]">{question.q}</div>
-            <div className="mt-1 text-[15px] text-[#85858A]">{question.sub}</div>
-            <div className="mt-3.5 overflow-hidden rounded-[13px] border border-[#232326]">
-              {question.opts.map((opt, i) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setAnswers((a) => [...a, opt])}
-                  className="flex w-full items-center gap-3.5 border-b border-[#202023] px-4 py-3.5 text-left last:border-0 hover:bg-[#222226]"
-                >
-                  <span className="grid h-[22px] w-[22px] place-items-center rounded-[6px] bg-[#232327] text-[12.5px] text-[#9A9AA0]">
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  <span className="text-[15.5px] text-[#ECECEE]">{opt}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        {step === "questions" && !question ? (
-          <div>
-            <h1 className="text-[32px] font-medium text-[#F1F1F2]">You’re set.</h1>
-            <p className="mt-2 text-[#85858A]">I’ll pick up work the moment you send it.</p>
-            <button
-              type="button"
-              onClick={() => void createBot()}
-              className="mt-6 rounded-[11px] bg-[#F1F1EF] px-5 py-2.5 text-[#17171A]"
-            >
-              Open Manor
             </button>
           </div>
         ) : null}

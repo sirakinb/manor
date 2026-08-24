@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { ThreadMessageSchema } from "./events.js";
 import { Id, MemoryScope, RunStatus, SandboxKind } from "./ids.js";
+import { McpHeadersSchema, McpRemoteEndpointSchema, McpTransportSchema } from "./mcp.js";
 
 // ── CRM ─────────────────────────────────────────────────────────────────────
 
@@ -289,6 +290,7 @@ export type MemoryDocument = z.infer<typeof MemoryDocumentSchema>;
 
 export const ConnectionSchema = z.object({
   id: Id,
+  connectorId: z.string(),
   provider: z.string(),
   displayName: z.string(),
   status: z.enum(["pending", "connected", "revoked", "error"]),
@@ -298,6 +300,7 @@ export const ConnectionSchema = z.object({
 export type Connection = z.infer<typeof ConnectionSchema>;
 
 export const ConnectionCatalogItemSchema = z.object({
+  connectorId: z.string(),
   slug: z.string(),
   name: z.string(),
   logo: z.string().nullable(),
@@ -317,15 +320,89 @@ export type ActionApprovalRule = z.infer<typeof ActionApprovalRuleSchema>;
 
 export const CapabilityInstallSchema = z.object({
   id: Id,
-  kind: z.enum(["skill", "plugin", "mcp", "connection"]),
+  kind: z.enum(["skill", "plugin", "mcp", "api", "connection"]),
   name: z.string(),
   source: z.string(),
   version: z.string().nullable(),
   digest: z.string().nullable(),
+  secretConfigured: z.boolean(),
   config: z.record(z.string(), z.unknown()),
   createdAt: z.string(),
 });
 export type CapabilityInstall = z.infer<typeof CapabilityInstallSchema>;
+
+export type { McpTransport } from "./mcp.js";
+
+const McpServerBaseInput = z.object({
+  slug: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/),
+  name: z.string().trim().min(1).max(120),
+  description: z.string().max(2000).default(""),
+  enabled: z.boolean().default(true),
+  /** Update-only: drop the stored static credential (secret/env/headers).
+   * OAuth state survives so a connected server stays connected. */
+  clearCredential: z.boolean().optional(),
+});
+export const McpServerConfigInput = z.discriminatedUnion("transport", [
+  McpServerBaseInput.extend({
+    transport: z.literal("streamable_http"),
+    endpoint: McpRemoteEndpointSchema,
+    headers: McpHeadersSchema.default({}),
+    secret: z.string().max(16384).optional(),
+  }),
+  McpServerBaseInput.extend({
+    transport: z.literal("sse"),
+    endpoint: McpRemoteEndpointSchema,
+    headers: McpHeadersSchema.default({}),
+    secret: z.string().max(16384).optional(),
+  }),
+  McpServerBaseInput.extend({
+    transport: z.literal("stdio"),
+    command: z.string().min(1).max(512),
+    args: z.array(z.string().max(2048)).max(64).default([]),
+    env: z
+      .record(z.string().regex(/^[A-Z_][A-Z0-9_]*$/), z.string().max(4096))
+      .superRefine((value, ctx) => {
+        if (Object.keys(value).length > 32) {
+          ctx.addIssue({ code: "custom", message: "At most 32 environment variables are allowed" });
+        }
+      })
+      .default({}),
+    secret: z.string().max(16384).optional(),
+  }),
+]);
+export type McpServerConfigInput = z.infer<typeof McpServerConfigInput>;
+
+export const McpServerSchema = z.object({
+  id: Id,
+  workspaceId: Id,
+  slug: z.string(),
+  name: z.string(),
+  description: z.string(),
+  transport: McpTransportSchema,
+  endpoint: z.string().url().nullable(),
+  command: z.string().nullable(),
+  args: z.array(z.string()),
+  envKeys: z.array(z.string()),
+  headerKeys: z.array(z.string()),
+  hasSecret: z.boolean(),
+  oauthStatus: z.enum(["none", "connected", "reconnect"]),
+  enabled: z.boolean(),
+  revision: z.number().int().positive(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type McpServer = z.infer<typeof McpServerSchema>;
+
+export const BotMcpServerSchema = z.object({
+  id: Id,
+  botId: Id,
+  serverId: Id,
+  allowAllTools: z.boolean(),
+  allowedTools: z.array(z.string().min(1).max(200)),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type BotMcpServer = z.infer<typeof BotMcpServerSchema>;
 
 export const ArtifactSchema = z.object({
   id: Id,
@@ -419,6 +496,28 @@ export const ModelCredentialSchema = z.object({
 });
 export type ModelCredential = z.infer<typeof ModelCredentialSchema>;
 
+export const ModelOAuthSignInModeSchema = z.enum(["device-code", "auth-url"]);
+export type ModelOAuthSignInMode = z.infer<typeof ModelOAuthSignInModeSchema>;
+
+const ModelOAuthBeginBaseSchema = z.object({
+  loginId: z.string(),
+  provider: z.string(),
+  verificationUri: z
+    .string()
+    .url()
+    .refine((value) => value.startsWith("https://"), "Expected an HTTPS authorization URL"),
+  expiresInSeconds: z.number().int().positive(),
+});
+
+export const ModelOAuthBeginSchema = z.discriminatedUnion("mode", [
+  ModelOAuthBeginBaseSchema.extend({
+    mode: z.literal("device-code"),
+    userCode: z.string().min(1),
+  }),
+  ModelOAuthBeginBaseSchema.extend({ mode: z.literal("auth-url") }),
+]);
+export type ModelOAuthBegin = z.infer<typeof ModelOAuthBeginSchema>;
+
 export const WorkspaceMemoryConfigSchema = z.object({
   provider: z.string(),
   settings: z.record(z.string(), z.string()),
@@ -435,8 +534,9 @@ export const ModelCatalogEntrySchema = z.object({
   billing: z.string(),
   auth: z.enum(["api-key", "oauth", "both"]).optional(),
   oauthLabel: z.string().optional(),
+  authHint: z.string().optional(),
   subscription: z.boolean().optional(),
-  signIn: z.enum(["device-code", "auth-url"]).optional(),
+  signIn: ModelOAuthSignInModeSchema.optional(),
 });
 export type ModelCatalogEntry = z.infer<typeof ModelCatalogEntrySchema>;
 

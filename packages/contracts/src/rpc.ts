@@ -6,6 +6,7 @@ import {
   AppBootstrapSchema,
   ArtifactSchema,
   ArtifactWithContentSchema,
+  BotMcpServerSchema,
   BotSchema,
   BotSectionSchema,
   CapabilityInstallSchema,
@@ -27,11 +28,14 @@ import {
   GROUP_MEMBER_MAX,
   GroupDetailSchema,
   GroupSchema,
+  McpServerConfigInput,
+  McpServerSchema,
   MemoryDocumentSchema,
   MemoryScopeSchema,
   MeSchema,
   ModelCatalogEntrySchema,
   ModelCredentialSchema,
+  ModelOAuthBeginSchema,
   RoutineSchema,
   SkillPlaybookSchema,
   TaughtSkillSchema,
@@ -128,17 +132,9 @@ export const appContract = {
           modelId: z.string().optional(),
         }),
       )
-      .output(
-        z.object({
-          loginId: z.string(),
-          mode: z.enum(["device-code", "auth-url"]),
-          verificationUri: z.string().url(),
-          userCode: z.string(),
-          expiresInSeconds: z.number().int(),
-        }),
-      ),
+      .output(ModelOAuthBeginSchema),
     submitOAuthCode: oc
-      .input(z.object({ loginId: z.string(), code: z.string().min(1) }))
+      .input(z.object({ loginId: z.string(), code: z.string().trim().min(1).max(8_192) }))
       .output(z.object({ ok: z.literal(true) })),
     completeOAuth: oc
       .input(z.object({ loginId: z.string() }))
@@ -431,22 +427,86 @@ export const appContract = {
     install: oc
       .input(
         z.object({
-          kind: z.enum(["skill", "plugin", "mcp"]),
-          name: z.string(),
-          source: z.string(),
+          kind: z.enum(["skill", "plugin", "mcp", "api"]),
+          name: z.string().min(1).max(120),
+          source: z.string().min(1).max(2048),
           config: z.record(z.string(), z.unknown()).default({}),
+          credential: z.string().max(16_384).optional(),
         }),
       )
       .output(CapabilityInstallSchema),
     remove: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
   },
+  mcp: {
+    servers: {
+      list: oc.output(z.array(McpServerSchema)),
+      create: oc.input(McpServerConfigInput).output(McpServerSchema),
+      update: oc.input(z.object({ id: Id, config: McpServerConfigInput })).output(McpServerSchema),
+      remove: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
+    },
+    assignments: {
+      list: oc.input(botId).output(z.array(BotMcpServerSchema)),
+      all: oc.output(z.array(BotMcpServerSchema)),
+      approve: oc.input(z.object({ botId: Id, serverId: Id })).output(BotMcpServerSchema),
+      replace: oc
+        .input(
+          z.object({
+            botId: Id,
+            assignments: z.array(
+              z.object({
+                serverId: Id,
+                allowAllTools: z.boolean().default(true),
+                allowedTools: z.array(z.string().min(1).max(200)).max(500).default([]),
+              }),
+            ),
+          }),
+        )
+        .output(z.array(BotMcpServerSchema)),
+    },
+    oauth: {
+      begin: oc.input(z.object({ serverId: Id, redirectUri: z.string().url() })).output(
+        z.discriminatedUnion("status", [
+          z.object({
+            status: z.literal("authorization_required"),
+            sessionId: Id,
+            authorizationUrl: z.string().url(),
+          }),
+          z.object({
+            status: z.enum(["already_connected", "authorization_not_requested"]),
+          }),
+        ]),
+      ),
+      complete: oc
+        .input(z.object({ sessionId: Id, code: z.string().min(1), state: z.string().min(1) }))
+        .output(z.object({ ok: z.literal(true) })),
+      disconnect: oc.input(z.object({ serverId: Id })).output(z.object({ ok: z.literal(true) })),
+    },
+  },
+  onboarding: {
+    /** Seed the first-run conversational onboarding into the bot's thread. */
+    start: oc.input(z.object({ botId: Id })).output(z.object({ ok: z.literal(true) })),
+    /** Answer the focus choice; renames the bot and posts the app cards. */
+    choose: oc
+      .input(z.object({ botId: Id, optionId: z.string() }))
+      .output(z.object({ ok: z.literal(true) })),
+    /** Flip an app_connect card to connected after authorization completes. */
+    appConnected: oc
+      .input(z.object({ botId: Id, provider: z.string() }))
+      .output(z.object({ ok: z.literal(true) })),
+  },
   connections: {
     catalog: oc
-      .input(z.object({ query: z.string().optional() }))
+      .input(z.object({ query: z.string().optional(), connectorId: z.string().optional() }))
       .output(z.array(ConnectionCatalogItemSchema)),
     list: oc.output(z.array(ConnectionSchema)),
     begin: oc
-      .input(z.object({ provider: z.string(), displayName: z.string() }))
+      .input(
+        z.object({
+          connectorId: z.string().default("composio"),
+          provider: z.string(),
+          displayName: z.string(),
+        }),
+      )
       .output(z.object({ connectionId: Id, authorizationUrl: z.string().nullable() })),
     complete: oc
       .input(z.object({ connectionId: Id, code: z.string().optional() }))

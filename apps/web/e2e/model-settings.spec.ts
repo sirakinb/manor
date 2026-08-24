@@ -6,7 +6,7 @@ test("model settings connect, replace, and cancel provider authentication", asyn
   const userName = `Models ${stamp}`;
   await signup(page, `models-${stamp}@rakazo.test`, "password12", userName);
   await expect(page.getByLabel("API key")).toHaveAttribute("autocomplete", "new-password");
-  await completeOnboarding(page, ["A bit of everything", "Clear and tight"]);
+  await completeOnboarding(page);
 
   await page.getByRole("button", { name: new RegExp(userName) }).click();
   await page.getByRole("button", { name: "Models", exact: true }).click();
@@ -15,6 +15,7 @@ test("model settings connect, replace, and cancel provider authentication", asyn
   const providerSearch = page.getByPlaceholder("Search providers");
   await providerSearch.fill("scripted");
   await page.getByRole("button", { name: /Scripted/ }).click();
+  await expect(page.getByRole("combobox", { name: "Model" })).toHaveText(/Scripted runtime/);
   const apiKeyInput = page.getByLabel("API key");
   await expect(apiKeyInput).toHaveAttribute("autocomplete", "new-password");
   await apiKeyInput.fill("fake-scripted-key-one");
@@ -31,6 +32,8 @@ test("model settings connect, replace, and cancel provider authentication", asyn
       body: JSON.stringify({
         json: {
           loginId: "fake-login",
+          provider: "openai-codex",
+          mode: "device-code",
           verificationUri: "https://example.com/device",
           userCode: "TEST-CODE",
           expiresInSeconds: 900,

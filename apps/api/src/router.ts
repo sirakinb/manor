@@ -1,9 +1,10 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { implement, ORPCError } from "@orpc/server";
 import {
   type AdapterContext,
   type AgentHomeStore,
   type ArtifactStore,
+  type ConnectorCatalogItem,
   computerControlExpireJobKey,
   type JobPublisher,
   type MemoryStore,
@@ -17,9 +18,11 @@ import {
   acquireComputerExecutionLease,
   applyTeachingDesktopInput,
   archiveBot,
+  buildMcpCredentialBlob,
   type ComposioProvider,
   ComputerBusyError,
   type ComputerExecutionLease,
+  type ConnectorRegistry,
   checkpointAndRecordComputerWorkspace,
   createVoiceProvider,
   destroyBot,
@@ -29,11 +32,14 @@ import {
   expireComputerControl,
   hasActiveComputerControl,
   listPiCatalog,
+  McpOAuthBroker,
   type MemoryProviderResolver,
   type PiOAuthLogins,
   planLiveConnectionSync,
+  prepareApiInstall,
   prepareMemoryProviderConnection,
   provisionComputer,
+  type RemoteConnectorDependencies,
   releaseComputerExecutionLease,
   resolveBotWorkspacePath,
   sanitizeComposioError,
@@ -47,10 +53,22 @@ import {
   toComputerRef,
   toStringRecord,
   touchRunningComputer,
+  verifyMcpInstall,
 } from "@rakazo/adapters";
 import type { Auth } from "@rakazo/auth";
-import { type Actor, appContract, type ComputerStatus, type Me } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES, AttachmentValidationError, nextCronDate } from "@rakazo/core";
+import {
+  type Actor,
+  appContract,
+  type ComputerStatus,
+  type McpServer,
+  type Me,
+} from "@rakazo/contracts";
+import {
+  ACTIVE_RUN_STATUSES,
+  AttachmentValidationError,
+  containsSecret,
+  nextCronDate,
+} from "@rakazo/core";
 import {
   appendEventInTransaction,
   createCrmRepos,
@@ -72,6 +90,8 @@ import {
 } from "@rakazo/db";
 import { createOwnedArtifact, getOwnedArtifact, getWorkspaceArtifact } from "./artifacts.js";
 import { toComputerStatus } from "./computer-status.js";
+import { buildMcpUpdateMaterial } from "./mcp-material.js";
+import { chooseFocus, markAppConnected, startOnboarding } from "./onboarding.js";
 import { addScreenProxyCapability } from "./screen-proxy.js";
 import { queryWorkspaceSearch } from "./search.js";
 import { withSerializableRetry } from "./serializable-retry.js";
@@ -99,15 +119,17 @@ const MAX_COMPUTER_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const THREAD_MESSAGE_PAGE_SIZE = 100;
 const EXPORT_MESSAGE_PAGE_SIZE = 500;
 
-async function reconcilePendingComposioConnections(
+async function reconcilePendingConnections(
   prisma: PrismaClient,
   owner: Pick<Actor, "workspaceId" | "userId">,
+  connectorId: string,
   connectedProviders: string[],
 ): Promise<void> {
   const rows = await prisma.connection.findMany({
     where: {
       workspaceId: owner.workspaceId,
       userId: owner.userId,
+      connectorId,
       provider: { in: connectedProviders },
       status: { in: ["pending", "connected"] },
     },
@@ -157,6 +179,93 @@ function computerContext(actor: Actor, botId: string, operationId: string): Adap
   };
 }
 
+function mcpServerDto(
+  row: {
+    id: string;
+    workspaceId: string;
+    slug: string;
+    name: string;
+    description: string;
+    transport: string;
+    endpoint: string | null;
+    command: string | null;
+    args: unknown;
+    env: unknown;
+    headers: unknown;
+    secretId: string | null;
+    enabled: boolean;
+    revision: number;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  oauthStatus: McpServer["oauthStatus"] = "none",
+): McpServer {
+  const args = Array.isArray(row.args)
+    ? row.args.filter((item): item is string => typeof item === "string")
+    : [];
+  const envKeys =
+    row.env && typeof row.env === "object" && !Array.isArray(row.env) ? Object.keys(row.env) : [];
+  const headerKeys =
+    row.headers && typeof row.headers === "object" && !Array.isArray(row.headers)
+      ? Object.keys(row.headers)
+      : [];
+  return {
+    id: row.id,
+    workspaceId: row.workspaceId,
+    slug: row.slug,
+    name: row.name,
+    description: row.description,
+    transport: row.transport as McpServer["transport"],
+    endpoint: row.endpoint,
+    command: row.command,
+    args,
+    envKeys,
+    headerKeys,
+    hasSecret: row.secretId !== null,
+    oauthStatus,
+    enabled: row.enabled,
+    revision: row.revision,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function connectionContext(
+  actor: Pick<Actor, "workspaceId" | "userId">,
+  operationId: string,
+  signal?: AbortSignal,
+): AdapterContext {
+  return {
+    operationId,
+    traceId: operationId,
+    workspaceId: actor.workspaceId,
+    userId: actor.userId,
+    signal: signal ?? new AbortController().signal,
+  };
+}
+
+function mcpAssignmentDto(row: {
+  id: string;
+  botId: string;
+  serverId: string;
+  allowAllTools: boolean;
+  allowedTools: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: row.id,
+    botId: row.botId,
+    serverId: row.serverId,
+    allowAllTools: row.allowAllTools,
+    allowedTools: Array.isArray(row.allowedTools)
+      ? row.allowedTools.filter((item): item is string => typeof item === "string")
+      : [],
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
 export interface RouterDeps {
   prisma: PrismaClient;
   events: ThreadEvents;
@@ -169,6 +278,9 @@ export interface RouterDeps {
   secrets: EncryptedSecretStore;
   oauthLogins: PiOAuthLogins;
   composio?: ComposioProvider;
+  mcpOAuth?: McpOAuthBroker;
+  connectors: ConnectorRegistry;
+  remoteConnectors?: RemoteConnectorDependencies;
   artifacts: ArtifactStore;
   dataDir: string;
   env: {
@@ -184,6 +296,7 @@ export interface RouterDeps {
 export function createRouter(deps: RouterDeps) {
   const os = implement(appContract).$context<{ actor: Actor | null; signal?: AbortSignal }>();
   const repos = createRepos(deps.prisma);
+  const mcpOAuth = deps.mcpOAuth ?? new McpOAuthBroker(deps.prisma, deps.secrets);
   const groupRepos = createGroupRepos(deps.prisma);
   const crm = createCrmRepos(deps.prisma);
   const taughtSkills = createTaughtSkillsService({
@@ -288,14 +401,7 @@ export function createRouter(deps: RouterDeps) {
         });
       }),
       submitOAuthCode: authed.models.submitOAuthCode.handler(async ({ context, input }) => {
-        return deps.oauthLogins.submit(
-          input.loginId,
-          {
-            userId: context.actor.userId,
-            workspaceId: context.actor.workspaceId,
-          },
-          input.code,
-        );
+        return deps.oauthLogins.submit(input.loginId, context.actor, input.code);
       }),
       completeOAuth: authed.models.completeOAuth.handler(async ({ context, input }) => {
         const result = await deps.oauthLogins.complete(input.loginId, {
@@ -381,7 +487,7 @@ export function createRouter(deps: RouterDeps) {
       ),
       duplicate: authed.bots.duplicate.handler(async ({ context, input }) => {
         const source = await repos.getBot(context.actor, input.botId);
-        return repos.createBot(context.actor, {
+        const duplicate = await repos.createBot(context.actor, {
           name: duplicateBotName(source.name),
           title: source.title,
           description: source.description,
@@ -390,6 +496,26 @@ export function createRouter(deps: RouterDeps) {
           color: source.color,
           computerMode: source.computer?.scope === "dedicated" ? "dedicated" : "team",
         });
+        const assignments = await deps.prisma.botMcpServer.findMany({
+          where: {
+            botId: source.id,
+            workspaceId: context.actor.workspaceId,
+            userId: context.actor.userId,
+          },
+        });
+        if (assignments.length) {
+          await deps.prisma.botMcpServer.createMany({
+            data: assignments.map((assignment) => ({
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+              botId: duplicate.id,
+              serverId: assignment.serverId,
+              allowAllTools: assignment.allowAllTools,
+              allowedTools: assignment.allowedTools as Prisma.InputJsonValue,
+            })),
+          });
+        }
+        return duplicate;
       }),
       update: authed.bots.update.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
@@ -1577,76 +1703,558 @@ export function createRouter(deps: RouterDeps) {
         });
         return rows.map((row) => ({
           id: row.id,
-          kind: row.kind as "skill" | "plugin" | "mcp" | "connection",
+          kind: row.kind as "skill" | "plugin" | "mcp" | "api" | "connection",
           name: row.name,
           source: row.source,
           version: row.version,
           digest: row.digest,
+          secretConfigured: Boolean(row.secretId),
           config: row.config as Record<string, unknown>,
           createdAt: row.createdAt.toISOString(),
         }));
       }),
       install: authed.capabilities.install.handler(async ({ context, input }) => {
-        const row = await deps.prisma.capabilityInstall.create({
-          data: {
-            workspaceId: context.actor.workspaceId,
-            userId: context.actor.userId,
-            kind: input.kind,
-            name: input.name,
-            source: input.source,
-            config: input.config as Prisma.InputJsonValue,
-            digest: "sha256:local",
-            version: "0.0.0",
-          },
+        let source = input.source.trim();
+        let config = input.config;
+        const credential = input.credential?.trim() || undefined;
+        if (
+          credential &&
+          credential.length >= 8 &&
+          (source.includes(credential) || containsSecret(config, [credential]))
+        ) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "Put credentials only in the encrypted credential field",
+          });
+        }
+        if (JSON.stringify(config).length > 2_000_000) {
+          throw new ORPCError("BAD_REQUEST", { message: "Capability configuration is too large" });
+        }
+        if (credential && input.kind !== "mcp" && input.kind !== "api") {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "Credentials are only accepted for MCP and API tool sources",
+          });
+        }
+        try {
+          if (input.kind === "mcp") {
+            if (config.preset === "treg") {
+              source = "https://treg.to/mcp/";
+              config = { ...config, preset: "treg", auth: { type: "bearer" } };
+            }
+            const verified = await verifyMcpInstall({
+              source,
+              config,
+              credential,
+              signal: context.signal,
+              remote: deps.remoteConnectors,
+            });
+            config = verified.config;
+          }
+          if (input.kind === "api") {
+            const prepared = await prepareApiInstall({
+              source,
+              config,
+              credential,
+              signal: context.signal,
+              remote: deps.remoteConnectors,
+            });
+            source = prepared.source;
+            config = prepared.config;
+          }
+        } catch (error) {
+          const message = sanitizeComposioError(error);
+          throw new ORPCError("BAD_REQUEST", {
+            message: credential ? message.split(credential).join("[redacted]") : message,
+          });
+        }
+        const stored = credential
+          ? await deps.secrets.put(credential, {
+              operationId: "capabilities.install",
+              traceId: "capabilities.install",
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+              signal: context.signal ?? new AbortController().signal,
+            })
+          : undefined;
+        const digest = `sha256:${createHash("sha256")
+          .update(JSON.stringify({ kind: input.kind, source, config }))
+          .digest("hex")}`;
+        const row = await deps.prisma.$transaction(async (tx) => {
+          if (stored) {
+            await tx.secret.create({
+              data: {
+                id: stored.id,
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+                kind: "connector",
+                ciphertext: stored.ciphertext,
+              },
+            });
+          }
+          return tx.capabilityInstall.create({
+            data: {
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+              kind: input.kind,
+              name: input.name.trim(),
+              source,
+              secretId: stored?.id,
+              config: config as Prisma.InputJsonValue,
+              digest,
+              version: "1.0.0",
+            },
+          });
         });
         return {
           id: row.id,
-          kind: row.kind as "skill" | "plugin" | "mcp" | "connection",
+          kind: row.kind as "skill" | "plugin" | "mcp" | "api" | "connection",
           name: row.name,
           source: row.source,
           version: row.version,
           digest: row.digest,
+          secretConfigured: Boolean(row.secretId),
           config: row.config as Record<string, unknown>,
           createdAt: row.createdAt.toISOString(),
         };
       }),
       remove: authed.capabilities.remove.handler(async ({ context, input }) => {
-        await deps.prisma.capabilityInstall.deleteMany({
-          where: {
-            id: input.id,
+        await deps.prisma.$transaction(async (tx) => {
+          const existing = await tx.capabilityInstall.findFirst({
+            where: {
+              id: input.id,
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+            },
+          });
+          if (!existing) return;
+          await tx.capabilityInstall.delete({ where: { id: existing.id } });
+          if (existing.secretId) {
+            const shared = await tx.capabilityInstall.count({
+              where: { secretId: existing.secretId },
+            });
+            if (shared === 0) {
+              await tx.secret.deleteMany({
+                where: {
+                  id: existing.secretId,
+                  workspaceId: context.actor.workspaceId,
+                  userId: context.actor.userId,
+                },
+              });
+            }
+          }
+        });
+        return { ok: true as const };
+      }),
+    },
+    mcp: {
+      servers: {
+        list: authed.mcp.servers.list.handler(async ({ context }) => {
+          const rows = await deps.prisma.mcpServer.findMany({
+            where: { workspaceId: context.actor.workspaceId, userId: context.actor.userId },
+            orderBy: [{ name: "asc" }, { createdAt: "asc" }],
+          });
+          const secretIds = rows.flatMap((row) => (row.secretId ? [row.secretId] : []));
+          const secrets = secretIds.length
+            ? await deps.prisma.secret.findMany({
+                where: {
+                  id: { in: secretIds },
+                  workspaceId: context.actor.workspaceId,
+                  userId: context.actor.userId,
+                },
+                select: { id: true, ciphertext: true },
+              })
+            : [];
+          const ciphertextById = new Map(secrets.map((secret) => [secret.id, secret.ciphertext]));
+          return rows.map((row) =>
+            mcpServerDto(
+              row,
+              mcpOAuth.statusForCiphertext(
+                row.secretId ? ciphertextById.get(row.secretId) : undefined,
+              ),
+            ),
+          );
+        }),
+        create: authed.mcp.servers.create.handler(async ({ context, input }) => {
+          const secretPayload = buildMcpCredentialBlob(input);
+          const stored = secretPayload
+            ? await deps.secrets.put(
+                secretPayload,
+                computerContext(context.actor, "mcp", "mcp.create"),
+              )
+            : null;
+          const row = await deps.prisma.$transaction(async (tx) => {
+            if (stored) {
+              await tx.secret.create({
+                data: {
+                  id: stored.id,
+                  userId: context.actor.userId,
+                  workspaceId: context.actor.workspaceId,
+                  kind: "mcp",
+                  ciphertext: stored.ciphertext,
+                },
+              });
+            }
+            return tx.mcpServer.create({
+              data: {
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+                slug: input.slug,
+                name: input.name,
+                description: input.description,
+                transport: input.transport,
+                endpoint: "endpoint" in input ? input.endpoint : null,
+                command: "command" in input ? input.command : null,
+                args: ("args" in input ? input.args : []) as Prisma.InputJsonValue,
+                env: ("env" in input
+                  ? Object.fromEntries(Object.keys(input.env).map((key) => [key, true]))
+                  : {}) as Prisma.InputJsonValue,
+                headers: ("headers" in input
+                  ? Object.fromEntries(Object.keys(input.headers).map((key) => [key, true]))
+                  : {}) as Prisma.InputJsonValue,
+                secretId: stored?.id,
+                enabled: input.enabled,
+              },
+            });
+          });
+          return mcpServerDto(row, await mcpOAuth.statusFor(row, context.actor));
+        }),
+        update: authed.mcp.servers.update.handler(async ({ context, input }) => {
+          const config = input.config;
+          const row = await deps.prisma.$transaction(async (tx) => {
+            // Share the OAuth broker's per-server lock so a stale authorization
+            // snapshot cannot overwrite a simultaneous credential edit.
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('mcp-oauth-material'), hashtext(${input.id}))`;
+            const existing = await tx.mcpServer.findFirst({
+              where: {
+                id: input.id,
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+              },
+            });
+            if (!existing) throw new IsolationError();
+            const existingSecret = existing.secretId
+              ? await tx.secret.findFirst({
+                  where: {
+                    id: existing.secretId,
+                    workspaceId: context.actor.workspaceId,
+                    userId: context.actor.userId,
+                  },
+                })
+              : null;
+            let existingMaterial: Record<string, unknown> = {};
+            if (existingSecret) {
+              try {
+                const value = JSON.parse(deps.secrets.load(existingSecret.ciphertext));
+                if (value && typeof value === "object" && !Array.isArray(value))
+                  existingMaterial = value as Record<string, unknown>;
+              } catch {
+                /* Existing malformed secrets are replaced only when new credentials are supplied. */
+              }
+            }
+            const nextEndpoint = "endpoint" in config ? config.endpoint : null;
+            const update = buildMcpUpdateMaterial(existingMaterial, config, {
+              clearOAuth: existing.endpoint !== nextEndpoint,
+            });
+            const stored =
+              update.action === "store" && Object.keys(update.material).length > 0
+                ? await deps.secrets.put(
+                    JSON.stringify(update.material),
+                    computerContext(context.actor, "mcp", "mcp.update"),
+                  )
+                : null;
+            const clearing = update.action === "store" && Object.keys(update.material).length === 0;
+            const updated = await tx.mcpServer.update({
+              where: { id: existing.id },
+              data: {
+                slug: config.slug,
+                name: config.name,
+                description: config.description,
+                transport: config.transport,
+                endpoint: nextEndpoint,
+                command: "command" in config ? config.command : null,
+                args: ("args" in config ? config.args : []) as Prisma.InputJsonValue,
+                env: ("env" in config
+                  ? Object.fromEntries(Object.keys(config.env).map((key) => [key, true]))
+                  : {}) as Prisma.InputJsonValue,
+                headers: ("headers" in config
+                  ? Object.fromEntries(Object.keys(config.headers).map((key) => [key, true]))
+                  : {}) as Prisma.InputJsonValue,
+                enabled: config.enabled,
+                revision: { increment: 1 },
+                ...(stored ? { secretId: stored.id } : clearing ? { secretId: null } : {}),
+              },
+            });
+            if (stored) {
+              await tx.secret.create({
+                data: {
+                  id: stored.id,
+                  userId: context.actor.userId,
+                  workspaceId: context.actor.workspaceId,
+                  kind: "mcp",
+                  ciphertext: stored.ciphertext,
+                },
+              });
+              if (existing.secretId)
+                await tx.secret.deleteMany({
+                  where: { id: existing.secretId, workspaceId: context.actor.workspaceId },
+                });
+            } else if (clearing && existing.secretId) {
+              await tx.secret.deleteMany({
+                where: {
+                  id: existing.secretId,
+                  workspaceId: context.actor.workspaceId,
+                },
+              });
+            }
+            return updated;
+          });
+          return mcpServerDto(row, await mcpOAuth.statusFor(row, context.actor));
+        }),
+        remove: authed.mcp.servers.remove.handler(async ({ context, input }) => {
+          const server = await deps.prisma.mcpServer.findFirst({
+            where: {
+              id: input.id,
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+            },
+            select: { id: true, secretId: true },
+          });
+          if (!server) throw new IsolationError();
+          // Assignments cascade; the encrypted credential must go with the server.
+          await deps.prisma.$transaction([
+            deps.prisma.mcpServer.delete({ where: { id: server.id } }),
+            ...(server.secretId
+              ? [deps.prisma.secret.delete({ where: { id: server.secretId } })]
+              : []),
+          ]);
+          return { ok: true as const };
+        }),
+      },
+      assignments: {
+        all: authed.mcp.assignments.all.handler(async ({ context }) => {
+          const rows = await deps.prisma.botMcpServer.findMany({
+            where: {
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+              bot: { archivedAt: null },
+            },
+            orderBy: { createdAt: "asc" },
+          });
+          return rows.map(mcpAssignmentDto);
+        }),
+        list: authed.mcp.assignments.list.handler(async ({ context, input }) => {
+          const bot = await deps.prisma.bot.findFirst({
+            where: {
+              id: input.botId,
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+            },
+            select: { id: true },
+          });
+          if (!bot) throw new IsolationError();
+          const rows = await deps.prisma.botMcpServer.findMany({
+            where: {
+              botId: bot.id,
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+            },
+            orderBy: { createdAt: "asc" },
+          });
+          return rows.map(mcpAssignmentDto);
+        }),
+        approve: authed.mcp.assignments.approve.handler(async ({ context, input }) => {
+          const row = await deps.prisma.$transaction(async (tx) => {
+            const [bot, server] = await Promise.all([
+              tx.bot.findFirst({
+                where: {
+                  id: input.botId,
+                  workspaceId: context.actor.workspaceId,
+                  userId: context.actor.userId,
+                },
+                select: { id: true },
+              }),
+              tx.mcpServer.findFirst({
+                where: {
+                  id: input.serverId,
+                  workspaceId: context.actor.workspaceId,
+                  userId: context.actor.userId,
+                  enabled: true,
+                },
+                select: { id: true },
+              }),
+            ]);
+            if (!bot || !server) throw new IsolationError();
+            return tx.botMcpServer.upsert({
+              where: { botId_serverId: { botId: bot.id, serverId: server.id } },
+              create: {
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+                botId: bot.id,
+                serverId: server.id,
+                allowAllTools: true,
+                allowedTools: [],
+              },
+              update: {},
+            });
+          });
+          return mcpAssignmentDto(row);
+        }),
+        replace: authed.mcp.assignments.replace.handler(async ({ context, input }) => {
+          const result = await deps.prisma.$transaction(async (tx) => {
+            const bot = await tx.bot.findFirst({
+              where: {
+                id: input.botId,
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+              },
+              select: { id: true },
+            });
+            if (!bot) throw new IsolationError();
+            const servers = await tx.mcpServer.findMany({
+              where: {
+                id: { in: input.assignments.map((assignment) => assignment.serverId) },
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+              },
+              select: { id: true },
+            });
+            if (servers.length !== input.assignments.length) throw new IsolationError();
+            await tx.botMcpServer.deleteMany({
+              where: {
+                botId: bot.id,
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+              },
+            });
+            if (input.assignments.length)
+              await tx.botMcpServer.createMany({
+                data: input.assignments.map((assignment) => ({
+                  workspaceId: context.actor.workspaceId,
+                  userId: context.actor.userId,
+                  botId: bot.id,
+                  serverId: assignment.serverId,
+                  allowAllTools: assignment.allowAllTools,
+                  allowedTools: assignment.allowedTools as Prisma.InputJsonValue,
+                })),
+              });
+            return tx.botMcpServer.findMany({
+              where: {
+                botId: bot.id,
+                workspaceId: context.actor.workspaceId,
+                userId: context.actor.userId,
+              },
+              orderBy: { createdAt: "asc" },
+            });
+          });
+          return result.map(mcpAssignmentDto);
+        }),
+      },
+      oauth: {
+        begin: authed.mcp.oauth.begin.handler(async ({ context, input }) => {
+          try {
+            const expectedRedirect = new URL("/mcp/oauth/callback", deps.env.webOrigin).toString();
+            if (new URL(input.redirectUri).toString() !== expectedRedirect) {
+              throw new Error("MCP OAuth redirect URI is not allowed");
+            }
+            return await mcpOAuth.begin({
+              ...input,
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+            });
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: error instanceof Error ? error.message : "Could not start MCP OAuth",
+            });
+          }
+        }),
+        complete: authed.mcp.oauth.complete.handler(async ({ context, input }) => {
+          try {
+            await mcpOAuth.complete({
+              ...input,
+              workspaceId: context.actor.workspaceId,
+              userId: context.actor.userId,
+            });
+            return { ok: true as const };
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: error instanceof Error ? error.message : "Could not complete MCP OAuth",
+            });
+          }
+        }),
+        disconnect: authed.mcp.oauth.disconnect.handler(async ({ context, input }) => {
+          await mcpOAuth.disconnect({
+            ...input,
             workspaceId: context.actor.workspaceId,
             userId: context.actor.userId,
-          },
-        });
+          });
+          return { ok: true as const };
+        }),
+      },
+    },
+    onboarding: {
+      start: authed.onboarding.start.handler(async ({ context, input }) => {
+        await startOnboarding(
+          { prisma: deps.prisma, events: deps.events, composio: deps.composio },
+          context.actor,
+          input.botId,
+        );
+        return { ok: true as const };
+      }),
+      choose: authed.onboarding.choose.handler(async ({ context, input }) => {
+        await chooseFocus(
+          { prisma: deps.prisma, events: deps.events, composio: deps.composio },
+          context.actor,
+          input.botId,
+          input.optionId,
+        );
+        return { ok: true as const };
+      }),
+      appConnected: authed.onboarding.appConnected.handler(async ({ context, input }) => {
+        await markAppConnected(
+          { prisma: deps.prisma, events: deps.events, composio: deps.composio },
+          context.actor,
+          input.botId,
+          input.provider,
+        );
         return { ok: true as const };
       }),
     },
     connections: {
       catalog: authed.connections.catalog.handler(async ({ context, input }) => {
-        if (!deps.composio) return [];
-        try {
-          const items = await deps.composio.catalog(context.actor.userId, input.query);
-          const nowConnected = items.filter((item) => item.connected).map((item) => item.slug);
-          if (nowConnected.length > 0) {
-            // A connection can finish on Composio's side after our own completion check gave
-            // up (see PluginsOverlay's polling timeout) — reconcile stale "pending" rows here
-            // so callers like the run executor, which trust our local status, stay in sync.
-            // Reuse the executor's one-row-per-provider plan so duplicate auth attempts do not
-            // leave stale locally connected rows behind after a later revoke.
-            // Best effort: a failed reconciliation write shouldn't blank out an otherwise
-            // successful catalog fetch — the caller still gets accurate, if unreconciled, data.
-            await reconcilePendingComposioConnections(
-              deps.prisma,
-              context.actor,
-              nowConnected,
-            ).catch((error) => {
-              console.error("composio pending-connection reconciliation failed", error);
-            });
-          }
-          return items;
-        } catch {
-          return [];
-        }
+        const adapterContext = connectionContext(
+          context.actor,
+          "connections.catalog",
+          context.signal,
+        );
+        const providers = input.connectorId
+          ? [deps.connectors.managed(input.connectorId)].filter(
+              (provider): provider is NonNullable<typeof provider> => Boolean(provider),
+            )
+          : deps.connectors.managedProviders();
+        const catalogs = await Promise.all(
+          providers.map(async (provider): Promise<ConnectorCatalogItem[]> => {
+            try {
+              const items = await provider.catalog(adapterContext, input.query);
+              const nowConnected = items.filter((item) => item.connected).map((item) => item.slug);
+              if (nowConnected.length > 0) {
+                await reconcilePendingConnections(
+                  deps.prisma,
+                  context.actor,
+                  provider.describe().id,
+                  nowConnected,
+                ).catch((error) => {
+                  console.error(
+                    `${provider.describe().id} pending-connection reconciliation failed`,
+                    error,
+                  );
+                });
+              }
+              return items;
+            } catch {
+              return [];
+            }
+          }),
+        );
+        return catalogs.flat();
       }),
       list: authed.connections.list.handler(async ({ context }) => {
         const rows = await deps.prisma.connection.findMany({
@@ -1654,6 +2262,7 @@ export function createRouter(deps: RouterDeps) {
         });
         return rows.map((row) => ({
           id: row.id,
+          connectorId: row.connectorId,
           provider: row.provider,
           displayName: row.displayName,
           status: row.status as "pending" | "connected" | "revoked" | "error",
@@ -1662,28 +2271,26 @@ export function createRouter(deps: RouterDeps) {
         }));
       }),
       begin: authed.connections.begin.handler(async ({ context, input }) => {
+        const connector = deps.connectors.managed(input.connectorId);
+        if (!connector) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: `Connector ${input.connectorId} is not configured`,
+          });
+        }
         const row = await deps.prisma.connection.create({
           data: {
             workspaceId: context.actor.workspaceId,
             userId: context.actor.userId,
+            connectorId: input.connectorId,
             provider: input.provider,
             displayName: input.displayName,
             status: "pending",
           },
         });
-        if (!deps.composio) {
-          return { connectionId: row.id, authorizationUrl: null };
-        }
         try {
-          const auth = await deps.composio.begin(
+          const auth = await connector.begin(
             { provider: input.provider, redirectUrl: `${deps.env.webOrigin}/app` },
-            {
-              operationId: "connections.begin",
-              traceId: "connections.begin",
-              workspaceId: context.actor.workspaceId,
-              userId: context.actor.userId,
-              signal: new AbortController().signal,
-            },
+            connectionContext(context.actor, "connections.begin", context.signal),
           );
           await deps.prisma.connection.update({
             where: { id: row.id },
@@ -1711,26 +2318,28 @@ export function createRouter(deps: RouterDeps) {
           },
         });
         if (!existing) throw new IsolationError();
-        if (deps.composio) {
-          const ready = await deps.composio.connectionReady(
-            context.actor.userId,
+        const connector = deps.connectors.managed(existing.connectorId);
+        if (!connector) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: `Connector ${existing.connectorId} is not configured`,
+          });
+        }
+        let row = existing;
+        if (existing.status !== "connected") {
+          const ready = await connector.connectionReady(
+            connectionContext(context.actor, "connections.complete", context.signal),
             existing.provider,
           );
           if (ready) {
-            await deps.prisma.connection.update({
+            row = await deps.prisma.connection.update({
               where: { id: existing.id },
               data: { status: "connected" },
             });
           }
-        } else {
-          await deps.prisma.connection.update({
-            where: { id: existing.id },
-            data: { status: "connected" },
-          });
         }
-        const row = await deps.prisma.connection.findFirstOrThrow({ where: { id: existing.id } });
         return {
           id: row.id,
+          connectorId: row.connectorId,
           provider: row.provider,
           displayName: row.displayName,
           status: row.status as "pending" | "connected" | "revoked" | "error",
@@ -1746,17 +2355,28 @@ export function createRouter(deps: RouterDeps) {
             userId: context.actor.userId,
           },
         });
-        if (row && deps.composio) {
-          await deps.composio.revoke(row.provider, {
-            operationId: "connections.revoke",
-            traceId: "connections.revoke",
-            workspaceId: context.actor.workspaceId,
-            userId: context.actor.userId,
-            signal: new AbortController().signal,
-          });
+        if (row) {
+          const connector = deps.connectors.managed(row.connectorId);
+          if (!connector) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `Connector ${row.connectorId} is not configured`,
+            });
+          }
+          try {
+            await connector.revoke(
+              row.provider,
+              connectionContext(context.actor, "connections.revoke", context.signal),
+            );
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", { message: sanitizeComposioError(error) });
+          }
         }
         await deps.prisma.connection.updateMany({
-          where: { id: input.connectionId, workspaceId: context.actor.workspaceId },
+          where: {
+            id: input.connectionId,
+            workspaceId: context.actor.workspaceId,
+            userId: context.actor.userId,
+          },
           data: { status: "revoked" },
         });
         return { ok: true as const };
@@ -2244,15 +2864,15 @@ async function persistModelCredential(
 }
 
 async function requireWorkspaceOwner(prisma: PrismaClient, actor: Actor): Promise<void> {
-  const owner = await prisma.member.findFirst({
+  const member = await prisma.member.findFirst({
     where: {
       organizationId: actor.workspaceId,
       userId: actor.userId,
-      role: "owner",
     },
-    select: { id: true },
+    select: { role: true },
   });
-  if (!owner) throw new ORPCError("FORBIDDEN");
+  const roles = member?.role.split(",").map((role) => role.trim());
+  if (!roles?.includes("owner")) throw new ORPCError("FORBIDDEN");
 }
 
 export async function persistMemoryProviderConfig(

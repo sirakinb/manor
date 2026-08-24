@@ -6,7 +6,9 @@ import {
   BOT_TITLE_MAX_LENGTH,
   CreateBotInput,
   CreateGroupInput,
+  McpServerConfigInput,
   MessageBlock,
+  ModelOAuthBeginSchema,
   normalizeCreateBotProfile,
   ProductEventType,
   UpdateBotInput,
@@ -60,6 +62,28 @@ describe("contracts", () => {
     ).toBe(false);
   });
 
+  it("keeps model OAuth start results mode-specific", () => {
+    const shared = {
+      loginId: "login-1",
+      provider: "anthropic",
+      verificationUri: "https://example.com/authorize",
+      expiresInSeconds: 900,
+    };
+    expect(ModelOAuthBeginSchema.safeParse({ ...shared, mode: "auth-url" }).success).toBe(true);
+    expect(ModelOAuthBeginSchema.safeParse({ ...shared, mode: "device-code" }).success).toBe(false);
+    expect(
+      ModelOAuthBeginSchema.safeParse({ ...shared, mode: "device-code", userCode: "ABCD-1234" })
+        .success,
+    ).toBe(true);
+    expect(
+      ModelOAuthBeginSchema.safeParse({
+        ...shared,
+        mode: "auth-url",
+        verificationUri: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
+  });
+
   it("exposes the product rpc surface", () => {
     expect(appContract.models.beginOAuth).toBeTruthy();
     expect(appContract.bootstrap).toBeTruthy();
@@ -78,6 +102,36 @@ describe("contracts", () => {
     expect(ProductEventType.options).toContain("thread.cleared");
     expect(ProductEventType.options).toContain("thread.subagent");
     expect(ProductEventType.options).toContain("bot.spawned");
+  });
+
+  it("caps remote MCP headers", () => {
+    const headers = Object.fromEntries(
+      Array.from({ length: 33 }, (_, index) => [`X-Test-${index}`, "value"]),
+    );
+    expect(
+      McpServerConfigInput.safeParse({
+        slug: "demo",
+        name: "Demo",
+        transport: "streamable_http",
+        endpoint: "https://mcp.example.test",
+        headers,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects non-HTTPS MCP endpoints before storage", () => {
+    const base = {
+      slug: "demo",
+      name: "Demo",
+      transport: "streamable_http" as const,
+      headers: {},
+    };
+    expect(
+      McpServerConfigInput.safeParse({ ...base, endpoint: "http://127.0.0.1:3000/mcp" }).success,
+    ).toBe(false);
+    expect(
+      McpServerConfigInput.safeParse({ ...base, endpoint: "https://mcp.example.test/mcp" }).success,
+    ).toBe(true);
   });
 
   it("rejects oversized chart data wherever it is embedded", () => {
