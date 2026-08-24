@@ -139,7 +139,13 @@ export async function expireComputerControl(
       botId,
       signal: new AbortController().signal,
     };
-    await deps.sandbox.setScreenControl?.(toComputerRef(computer), false, context, leaseId);
+    try {
+      await deps.sandbox.setScreenControl?.(toComputerRef(computer), false, context, leaseId);
+    } catch {
+      // A container that has vanished cannot be holding the screen, and a
+      // provider failure here must not pin the lease forever — the next
+      // screen connect re-applies view-only mode on whatever exists.
+    }
   }
 
   const released = await deps.events.finalizeComputerControlRelease({

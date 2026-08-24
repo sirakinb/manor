@@ -1090,12 +1090,17 @@ export function createRouter(deps: RouterDeps) {
           return { ok: true as const };
         }
         if (bot.computer.providerRef) {
-          await deps.sandbox.setScreenControl?.(
-            toComputerRef(bot.computer),
-            false,
-            computerContext(context.actor, controlBotId, "screen.release"),
-            controlLeaseId,
-          );
+          try {
+            await deps.sandbox.setScreenControl?.(
+              toComputerRef(bot.computer),
+              false,
+              computerContext(context.actor, controlBotId, "screen.release"),
+              controlLeaseId,
+            );
+          } catch {
+            // Releasing must not fail on a dead or unreachable container —
+            // the database lease is the source of truth for control.
+          }
         }
 
         const released = await deps.events.finalizeComputerControlRelease({

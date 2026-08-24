@@ -126,21 +126,20 @@ describe("computer control leases", () => {
     logError.mockRestore();
   });
 
-  it("keeps the denied lease retryable when provider revocation fails", async () => {
+  it("completes the release even when provider revocation fails", async () => {
+    // A dead container cannot be holding the screen; retaining the lease here
+    // deadlocks every later provision behind "revocation still in progress".
     const harness = controlHarness({
       revokeError: new Error("provider unavailable"),
     });
 
-    await expect(expireComputerControl(harness.deps, "computer-id", "lease-1")).rejects.toThrow(
-      "provider unavailable",
-    );
+    await expect(expireComputerControl(harness.deps, "computer-id", "lease-1")).resolves.toBe(true);
 
-    expect(harness.prisma.computer.updateMany).toHaveBeenCalledTimes(1);
     expect(harness.prisma.computer.updateMany).toHaveBeenCalledWith({
       where: { id: "computer-id", controlLeaseId: "lease-1" },
       data: { controlHolder: "none" },
     });
-    expect(harness.events.finalizeComputerControlRelease).not.toHaveBeenCalled();
+    expect(harness.events.finalizeComputerControlRelease).toHaveBeenCalled();
   });
 
   it("retries atomic lease cleanup when release-event persistence fails", async () => {
