@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manor · Changelog</title>
+<style>
+  :root {
+    --bg: #0d0d0e;
+    --panel: #1a1a1d;
+    --line: #26262a;
+    --ink: #ececee;
+    --ink-2: #a8a8ad;
+    --ink-3: #85858a;
+    --orange: #e65707;
+    --purple: #a855f7;
+    --green: #34c26b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 32px 80px; }
+  nav { display: flex; align-items: baseline; gap: 22px; margin-bottom: 40px; }
+  nav .brand { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  nav .brand em { font-style: normal; color: var(--orange); }
+  nav a { color: var(--ink-3); text-decoration: none; font-size: 14px; }
+  nav a:hover { color: var(--ink); }
+  nav a.active { color: var(--ink); border-bottom: 2px solid var(--orange); padding-bottom: 2px; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .sub { color: var(--ink-3); margin: 0 0 44px; }
+
+  .entry { position: relative; padding: 0 0 40px 34px; border-left: 1px solid var(--line); margin-left: 6px; }
+  .entry:last-child { border-left-color: transparent; }
+  .entry::before {
+    content: "";
+    position: absolute;
+    left: -7px; top: 5px;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 3px solid var(--orange);
+  }
+  .entry.sync::before { border-color: var(--purple); }
+  .entry .date {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px; letter-spacing: 0.06em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .entry h2 { font-size: 18px; font-weight: 600; margin: 6px 0 10px; letter-spacing: -0.01em; }
+  .entry ul { margin: 0; padding-left: 18px; color: var(--ink-2); }
+  .entry li { margin: 5px 0; }
+  .entry li::marker { color: #4a4a52; }
+  .tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .tag {
+    font-size: 11.5px; font-weight: 500;
+    border-radius: 999px;
+    padding: 3px 11px;
+    background: #232327; color: var(--ink-2);
+  }
+  .tag.new { background: #12291b; color: var(--green); }
+  .tag.fix { background: #2a1608; color: var(--orange); }
+  .tag.sync { background: #1f1b29; color: var(--purple); }
+  .tag.mobile { background: #10202e; color: #5fb2ff; }
+  code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    background: #232327;
+    border-radius: 6px;
+    padding: 1.5px 6px;
+    color: var(--ink-2);
+  }
+  .howto {
+    margin-top: 40px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 24px;
+    color: var(--ink-3);
+    font-size: 13.5px;
+  }
+  .howto b { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <span class="brand">Manor <em>·</em> dev</span>
+    <a href="index.html">Branches &amp; merges</a>
+    <a class="active" href="changelog.html">Changelog</a>
+  </nav>
+
+  <h1>Changelog</h1>
+  <p class="sub">What changed in Manor, newest first. Orange dots are Manor work; purple dots are upstream syncs.</p>
+
+  <!-- Newest entries go directly below this line. Copy an .entry block, set the
+       date, pick tags (new / fix / sync / mobile), keep bullets short. -->
+
+  <div class="entry sync">
+    <div class="date">2026-08-24</div>
+    <h2>Upstream sync #3 — onboarding, MCP, connectors</h2>
+    <ul>
+      <li>Conversational onboarding: new bots greet you in the thread, ask focus questions, and offer app authorize cards (replaces the old static questions screen).</li>
+      <li>Agents can register MCP servers mid-chat (<code>add_mcp_server</code>) with an approval card; an MCP server management UI joins the plugins overlay.</li>
+      <li>Provider-neutral connector stack: Composio, Pipedream, user-installed Treg / remote MCP / OpenAPI tool sources.</li>
+      <li>Fixes brought in: OpenRouter mandatory-reasoning 400, Windows CRLF sandbox shebangs, E2E stabilization.</li>
+      <li>Kept through the merge: the CRM, all four Team Computer fixes, channel messaging, activity feed, Manor's skin.</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span><span class="tag new">feature</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-08-23</div>
+    <h2>Team Computer control, unwedged</h2>
+    <ul>
+      <li>A finished run can no longer wedge the computer screen for the next one.</li>
+      <li>Reconnecting a computer persists its replacement container ref.</li>
+      <li>Boot reconciles an already-running computer instead of trusting a stale ref.</li>
+      <li>A dead container can never block releasing control — the database lease is the source of truth.</li>
+    </ul>
+    <div class="tags"><span class="tag fix">fix</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-08-22</div>
+    <h2>Mobile polish + CRM on the phone</h2>
+    <ul>
+      <li>The CRM comes to mobile in a phone-sized shape.</li>
+      <li>Composer lifts above the keyboard; Team Computer stream stops flickering; header balanced.</li>
+      <li>App Store Connect app id pinned so TestFlight submits need no prompts.</li>
+    </ul>
+    <div class="tags"><span class="tag mobile">mobile</span><span class="tag fix">fix</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-08-21</div>
+    <h2>Voice &amp; calls, calmer</h2>
+    <ul>
+      <li>Corner call card, calmer narration, plainer controls.</li>
+      <li>Voice settings expose switching the active provider.</li>
+    </ul>
+    <div class="tags"><span class="tag new">feature</span></div>
+  </div>
+
+  <div class="entry sync">
+    <div class="date">2026-08-20</div>
+    <h2>Upstream sync #2 — approvals, charts, memory</h2>
+    <ul>
+      <li>Ask-before-send-and-spend: consequential actions pause for approval.</li>
+      <li>Live inspectable charts (<code>render_plot</code>) with per-tool activity feedback.</li>
+      <li>Provider-neutral workspace memory with the Supermemory adapter.</li>
+      <li>Takeover runs resume correctly after skipped control; bot-creation fixes.</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-08-18</div>
+    <h2>The CRM</h2>
+    <ul>
+      <li>Contacts, tags, pipelines, stages, and deals — workspace-scoped, in Manor's own skin.</li>
+      <li>Home, pipeline board, and contacts pages; the CRM is a place with its own route.</li>
+      <li>Deal values in whole dollars so every dashboard rollup stays exact.</li>
+    </ul>
+    <div class="tags"><span class="tag new">feature</span></div>
+  </div>
+
+  <div class="entry sync">
+    <div class="date">2026-08-16</div>
+    <h2>Upstream sync #1 — group chats</h2>
+    <ul>
+      <li>Adopted upstream group chats in place of Manor's rooms; groups wear Manor's stacked avatars.</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-08-12</div>
+    <h2>Claude Pro/Max sign-in — Manor's contribution</h2>
+    <ul>
+      <li>Anthropic OAuth subscription sign-in built here first; upstream later adopted it as #106.</li>
+    </ul>
+    <div class="tags"><span class="tag new">feature</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-08-08</div>
+    <h2>Manor is born</h2>
+    <ul>
+      <li>Forked from <code>elie222/rakazo</code>; Manor skin, wordmark, and README; mobile app wears the brand.</li>
+    </ul>
+    <div class="tags"><span class="tag new">milestone</span></div>
+  </div>
+
+  <div class="howto">
+    <b>Keeping this running:</b> after each notable change or upstream sync, copy the top
+    <code>.entry</code> block, set the date, write 2–5 bullets in plain language, and pick tags.
+    Syncs get <code>class="entry sync"</code> for the purple dot. Newest entry always sits first.
+  </div>
+</div>
+</body>
+</html>

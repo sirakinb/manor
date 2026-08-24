@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manor · Branches &amp; Merges</title>
+<style>
+  :root {
+    --bg: #0d0d0e;
+    --panel: #1a1a1d;
+    --line: #26262a;
+    --ink: #ececee;
+    --ink-2: #a8a8ad;
+    --ink-3: #85858a;
+    --orange: #e65707;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 48px 32px 80px; }
+  nav { display: flex; align-items: baseline; gap: 22px; margin-bottom: 40px; }
+  nav .brand { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  nav .brand em { font-style: normal; color: var(--orange); }
+  nav a { color: var(--ink-3); text-decoration: none; font-size: 14px; }
+  nav a:hover { color: var(--ink); }
+  nav a.active { color: var(--ink); border-bottom: 2px solid var(--orange); padding-bottom: 2px; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .sub { color: var(--ink-3); margin: 0 0 36px; max-width: 760px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 28px;
+    overflow-x: auto;
+  }
+  .card h2 { font-size: 17px; font-weight: 600; margin: 0 0 6px; }
+  .card .hint { color: var(--ink-3); font-size: 13.5px; margin: 0 0 20px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 0 0 24px; font-size: 13px; color: var(--ink-2); }
+  .legend span::before {
+    content: "";
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    margin-right: 7px;
+    vertical-align: baseline;
+  }
+  .legend .up::before { background: #4a4a52; }
+  .legend .manor::before { background: var(--orange); }
+  .legend .sync::before { background: var(--purple); }
+  .mermaid { display: flex; justify-content: flex-start; }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .rule {
+    background: #161619;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .rule b { display: block; font-size: 14.5px; margin-bottom: 4px; }
+  .rule p { margin: 0; color: var(--ink-3); font-size: 13.5px; }
+  code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    background: #232327;
+    border-radius: 6px;
+    padding: 1.5px 6px;
+    color: var(--ink-2);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <span class="brand">Manor <em>·</em> dev</span>
+    <a class="active" href="index.html">Branches &amp; merges</a>
+    <a href="changelog.html">Changelog</a>
+  </nav>
+
+  <h1>How Manor tracks upstream</h1>
+  <p class="sub">
+    Manor is a fork of <code>elie222/rakazo</code>. Upstream keeps moving; Manor keeps its own
+    features and skin. The rule that keeps them from colliding: upstream flows <em>into</em> Manor
+    through merges — Manor never rebases on top of it, and deployed history is never rewritten.
+  </p>
+
+  <div class="card">
+    <h2>The actual history</h2>
+    <p class="hint">Condensed to the milestones — each Manor node may cover several commits.</p>
+    <div class="legend">
+      <span class="up">upstream/main (rakazo)</span>
+      <span class="manor">main (Manor)</span>
+      <span class="sync">sync merge points</span>
+    </div>
+    <pre class="mermaid">
+%%{init: {
+  "theme": "base",
+  "gitGraph": { "mainBranchName": "upstream/main", "showCommitLabel": true, "parallelCommits": false },
+  "themeVariables": {
+    "darkMode": true,
+    "background": "#1a1a1d",
+    "primaryColor": "#232327",
+    "primaryTextColor": "#ececee",
+    "lineColor": "#4a4a52",
+    "commitLabelColor": "#ececee",
+    "commitLabelBackground": "#131315",
+    "commitLabelFontSize": "12px",
+    "tagLabelColor": "#0d0d0e",
+    "tagLabelBackground": "#e65707",
+    "tagLabelBorder": "#e65707",
+    "git0": "#4a4a52",
+    "git1": "#e65707",
+    "git2": "#a855f7",
+    "gitBranchLabel0": "#ececee",
+    "gitBranchLabel1": "#0d0d0e",
+    "gitBranchLabel2": "#0d0d0e"
+  }
+}}%%
+gitGraph
+  commit id: "#101 narration fix (fork point)"
+  branch main
+  checkout main
+  commit id: "Manor skin & branding"
+  commit id: "Claude Pro/Max OAuth ← our contribution"
+  commit id: "Mobile app: Manor skin, TestFlight"
+  checkout "upstream/main"
+  commit id: "group chats"
+  checkout main
+  merge "upstream/main" id: "sync: adopt group chats" tag: "sync #1"
+  commit id: "CRM: data + API"
+  commit id: "CRM: home, pipeline, contacts"
+  checkout "upstream/main"
+  commit id: "#102 Supermemory · #144 connectors"
+  commit id: "#137 charts · #95 thinking · #106 OAuth (ours, landed)"
+  checkout main
+  merge "upstream/main" id: "sync: approvals, charts, memory" tag: "sync #2"
+  commit id: "Voice & call UX"
+  commit id: "Mobile: CRM, keyboard, stream fixes"
+  commit id: "4 Team Computer control fixes"
+  checkout "upstream/main"
+  commit id: "#147 conversational onboarding + MCP"
+  commit id: "#150 CRLF · #152 reasoning · #156 E2E"
+  checkout main
+  merge "upstream/main" id: "sync: onboarding, MCP, connectors" tag: "sync #3 · today"
+  commit id: "next: CRM agent tools" type: HIGHLIGHT
+    </pre>
+  </div>
+
+  <div class="card">
+    <h2>The sync protocol, as a flow</h2>
+    <p class="hint">The repeatable loop — the full playbook lives in <code>docs/upstream-sync.md</code>.</p>
+    <pre class="mermaid">
+%%{init: { "theme": "base", "themeVariables": {
+  "darkMode": true,
+  "background": "#1a1a1d",
+  "primaryColor": "#232327",
+  "primaryTextColor": "#ececee",
+  "primaryBorderColor": "#34343b",
+  "lineColor": "#6e6975",
+  "secondaryColor": "#1f1b29",
+  "tertiaryColor": "#161619",
+  "fontSize": "14px"
+}}}%%
+flowchart LR
+  A["git fetch upstream"] --> B["What's new?<br/><code>git log HEAD..upstream/main</code><br/><code>git cherry</code> spots backports"]
+  B --> C["Preview conflicts<br/><code>git merge-tree --write-tree</code><br/>(touches nothing)"]
+  C --> D["Branch<br/><code>sync/upstream-&lt;date&gt;</code>"]
+  D --> E["Merge, never rebase<br/>resolve by policy table"]
+  E --> F["Verify locally<br/>fix-signature greps · tests<br/>typecheck · prisma validate"]
+  F --> G["Land on main"]
+  G --> H["Checkpoint with Aki,<br/>then deploy to VPS"]
+  style A fill:#232327,stroke:#34343b
+  style H fill:#2a1608,stroke:#e65707,color:#ececee
+    </pre>
+  </div>
+
+  <div class="card">
+    <h2>Standing rules</h2>
+    <div class="rules">
+      <div class="rule"><b>Merge, never rebase</b><p>Rebasing rewrites deployed history and re-fights every conflict. Merging keeps both stories true and lets <code>rerere</code> remember each resolution.</p></div>
+      <div class="rule"><b>Manor features live in Manor-owned files</b><p>New features get their own modules (like <code>crm.ts</code>, <code>crm-tools.ts</code>) with one-line touchpoints in upstream files — so the next sync conflicts on a line, not a feature.</p></div>
+      <div class="rule"><b>Never sync and deploy in one step</b><p>Main only advances after local verification passes. Prod only advances after a checkpoint. Rollback is redeploying the previous commit.</p></div>
+      <div class="rule"><b>Conflict policy, by category</b><p>Our contributions returning home → ours is canonical. Backport duplicates → take upstream. Manor identity (README, skin, onboarding look) → keep Manor, weave in upstream's logic. High-care files (router, schema) → hand-union.</p></div>
+    </div>
+  </div>
+</div>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, securityLevel: "loose" });
+</script>
+</body>
+</html>
