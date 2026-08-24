@@ -85,10 +85,7 @@ function makeFakeRepos() {
       contacts.push(contact);
       return contact;
     },
-    async updateContact(
-      _actor: unknown,
-      input: { contactId: string } & Record<string, unknown>,
-    ) {
+    async updateContact(_actor: unknown, input: { contactId: string } & Record<string, unknown>) {
       const contact = contacts.find((candidate) => candidate.id === input.contactId);
       if (!contact) throw new Error("missing contact");
       if (typeof input.company === "string") contact.company = input.company;
@@ -234,8 +231,14 @@ describe("executeCrmTool", () => {
 
   it("rejects unknown stages and ambiguous contact names", async () => {
     const { repos } = makeFakeRepos();
-    await executeCrmTool(repos, SCOPE, "crm_upsert_contact", { first_name: "John", last_name: "A" });
-    await executeCrmTool(repos, SCOPE, "crm_upsert_contact", { first_name: "John", last_name: "B" });
+    await executeCrmTool(repos, SCOPE, "crm_upsert_contact", {
+      first_name: "John",
+      last_name: "A",
+    });
+    await executeCrmTool(repos, SCOPE, "crm_upsert_contact", {
+      first_name: "John",
+      last_name: "B",
+    });
     expect(
       await executeCrmTool(repos, SCOPE, "crm_create_deal", {
         title: "x",
@@ -284,8 +287,14 @@ describe("executeCrmTool", () => {
   it("summarizes the board with per-stage rollups", async () => {
     const { repos } = makeFakeRepos();
     await executeCrmTool(repos, SCOPE, "crm_create_deal", { title: "A", value: 100 });
-    await executeCrmTool(repos, SCOPE, "crm_create_deal", { title: "B", value: 250, stage: "Proposal" });
-    const summary = summarizeOverview(await (repos.overview as CrmRepos["overview"])({ workspaceId: "ws-1" }));
+    await executeCrmTool(repos, SCOPE, "crm_create_deal", {
+      title: "B",
+      value: 250,
+      stage: "Proposal",
+    });
+    const summary = summarizeOverview(
+      await (repos.overview as CrmRepos["overview"])({ workspaceId: "ws-1" }),
+    );
     expect(summary.totals).toMatchObject({ open_deals: 2, open_value: 350 });
     const lead = summary.pipelines[0]!.stages.find((stage) => stage.name === "Lead");
     const proposal = summary.pipelines[0]!.stages.find((stage) => stage.name === "Proposal");

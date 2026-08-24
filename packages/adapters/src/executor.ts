@@ -70,7 +70,6 @@ import {
 } from "./approval-effect.js";
 import { builtinAgentTools } from "./builtin-tools.js";
 import { botMayUseChannels, sendChannelMessage } from "./channels.js";
-import { CRM_READ_ONLY_TOOL_NAMES, executeCrmTool } from "./crm-tools.js";
 import { archiveSpawnedBot, spawnBot } from "./child-bots.js";
 import {
   collectLogIds,
@@ -99,6 +98,7 @@ import {
 } from "./computer-support.js";
 import { observationToolResult, parseComputerActions } from "./computer-tools.js";
 import { checkpointAndRecordComputerWorkspace } from "./computer-workspace.js";
+import { CRM_READ_ONLY_TOOL_NAMES, executeCrmTool } from "./crm-tools.js";
 import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
 import {
   COMPACTION_BATCH_SIZE,

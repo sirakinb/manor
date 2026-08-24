@@ -29,7 +29,7 @@ test("logout protects bot deep links and sign-in restores the session", async ({
   await expect(page.getByRole("heading", { name: "Sign in to Manor" })).toBeVisible();
   await page.goto("/");
   await expect(page.getByText(/Your team of always-on AI agents/)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Sign In/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Manor on GitHub" })).toBeVisible();
   await captureScreenshot(page, testInfo, "37-logged-out-welcome");
 
   await page.goto(protectedBotPath);

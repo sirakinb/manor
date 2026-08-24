@@ -253,7 +253,12 @@ export async function executeCrmTool(
           phone: text(args.phone),
           company: text(args.company),
           notes: text(args.notes),
-          status: args.status === "archived" ? "archived" : args.status === "active" ? "active" : undefined,
+          status:
+            args.status === "archived"
+              ? "archived"
+              : args.status === "active"
+                ? "active"
+                : undefined,
           tagIds,
         });
         return { updated: true, contact: contactSummary(contact) };

@@ -264,7 +264,10 @@ export function createCrmRepos(prisma: PrismaClient) {
       await prisma.crmContact.delete({ where: { id: contactId } });
     },
 
-    async createTag(actor: CrmActorScope, input: { name: string; color?: string }): Promise<CrmTag> {
+    async createTag(
+      actor: CrmActorScope,
+      input: { name: string; color?: string },
+    ): Promise<CrmTag> {
       const row = await prisma.crmTag.upsert({
         where: { workspaceId_name: { workspaceId: actor.workspaceId, name: input.name } },
         create: { workspaceId: actor.workspaceId, name: input.name, color: input.color ?? null },
