@@ -837,10 +837,10 @@ export function createRouter(deps: RouterDeps) {
       boot: authed.computer.boot.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
-        if (bot.computer.state === "running" && bot.computer.providerRef) {
-          scheduleComputerSleep(deps.jobs, bot.computer.id);
-          return computerStatus(deps, context.actor, input.botId);
-        }
+        // Clients only call boot when the screen looks unhealthy, so even a
+        // "running" computer goes through provisioning — that reconnect is
+        // what heals a provider ref whose container has been replaced.
+        const running = bot.computer.state === "running" && bot.computer.providerRef !== null;
         const ctx = computerContext(context.actor, bot.id, "boot");
         const manualRunId = `boot:${randomUUID()}`;
         let lease: ComputerExecutionLease | null;
@@ -852,6 +852,12 @@ export function createRouter(deps: RouterDeps) {
           });
         } catch (error) {
           if (error instanceof ComputerBusyError) {
+            if (running) {
+              // An in-flight run holds the lease, and its own provisioning
+              // keeps the container and its ref honest.
+              scheduleComputerSleep(deps.jobs, bot.computer.id);
+              return computerStatus(deps, context.actor, input.botId);
+            }
             throw new ORPCError("CONFLICT", { message: "Computer is busy" });
           }
           throw error;
