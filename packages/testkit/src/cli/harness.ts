@@ -39,9 +39,14 @@ async function main() {
   const mode = integration ? "integration" : "e2e";
   const reportDir = path.resolve("test-report", mode);
   await mkdir(reportDir, { recursive: true });
-  const container = await new PostgreSqlContainer("postgres:16-alpine").start();
+  // HARNESS_DATABASE_URL points at an externally managed empty database and
+  // skips testcontainers — for machines where Docker is unavailable.
+  const externalDatabaseUrl = process.env.HARNESS_DATABASE_URL;
+  const container = externalDatabaseUrl
+    ? null
+    : await new PostgreSqlContainer("postgres:16-alpine").start();
   try {
-    const databaseUrl = container.getConnectionUri();
+    const databaseUrl = externalDatabaseUrl ?? container!.getConnectionUri();
     const apiPort = Number(process.env.API_PORT ?? 3110);
     const webPort = Number(process.env.WEB_PORT ?? 5180);
     const webOrigin = `http://127.0.0.1:${webPort}`;
@@ -208,7 +213,7 @@ async function main() {
       }
     }
   } finally {
-    await container.stop().catch(() => undefined);
+    await container?.stop().catch(() => undefined);
   }
 }
 

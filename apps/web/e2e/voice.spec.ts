@@ -26,8 +26,8 @@ test("voice settings connect a key, speak a reply, and open a call", async ({ pa
   await expect(apiKeyInput).toHaveAttribute("autocomplete", "new-password");
   await apiKeyInput.fill("fake-scripted-voice-key");
   await page.getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByText("Connected", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/Connected · Scripted/)).toBeVisible();
+  await expect(page.getByText("Active", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Active · Scripted/)).toBeVisible();
 
   const spoken = page.waitForResponse(
     (response) => response.url().includes("/api/voice/speak") && response.ok(),

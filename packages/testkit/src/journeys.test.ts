@@ -2003,6 +2003,65 @@ describeJourneys("required product journeys", () => {
     expect(deniedEffect?.status).toBe("denied");
   });
 
+  it("19b: a denied action asks again when the identical request is resent", async () => {
+    const cookie = await signup(app, `deny-retry-j-${stamp}@rakazo.test`, "Deny Retry");
+    const bot = await rpc<Bot>(app, cookie, "bots/create", {
+      name: "Chief",
+      title: "",
+      description: "",
+      instructions: "",
+      notifyOnFinish: true,
+    });
+    const recordsBefore = connector.records.length;
+    await rpc(app, cookie, "approvalRules/set", {
+      effect: "require_approval",
+      matchKind: "tool",
+      matchValue: "destination.write",
+    });
+
+    // Same prompt twice on purpose: the scripted runtime derives identical tool
+    // args from it, which is how the web e2e drives this flow.
+    const prompt = "write this to the destination crm as a note";
+    const first = await rpc<{ runId: string }>(app, cookie, "threads/send", {
+      botId: bot.id,
+      text: prompt,
+    });
+    const waiting = await waitFor(
+      app,
+      cookie,
+      bot.id,
+      (snap) => snap.run?.id === first.runId && snap.run.status === "waiting_input",
+    );
+    await answerPendingApproval(app, cookie, bot.id, first.runId, "deny", waiting);
+    await waitFor(
+      app,
+      cookie,
+      bot.id,
+      (snap) => !snap.run || ["completed", "failed", "cancelled"].includes(snap.run.status),
+    );
+    expect(connector.records).toHaveLength(recordsBefore);
+
+    const second = await rpc<{ runId: string }>(app, cookie, "threads/send", {
+      botId: bot.id,
+      text: prompt,
+    });
+    const waitingAgain = await waitFor(
+      app,
+      cookie,
+      bot.id,
+      (snap) => snap.run?.id === second.runId && snap.run.status === "waiting_input",
+    );
+    expect(connector.records).toHaveLength(recordsBefore);
+    await answerPendingApproval(app, cookie, bot.id, second.runId, "allow", waitingAgain);
+    await waitFor(
+      app,
+      cookie,
+      bot.id,
+      (snap) => !snap.run || ["completed", "failed", "cancelled"].includes(snap.run.status),
+    );
+    expect(connector.records.length).toBeGreaterThan(recordsBefore);
+  });
+
   it("20: actions run by default and specific exceptions override broad review rules", async () => {
     const cookie = await signup(app, `always-j-${stamp}@rakazo.test`, "Always");
     const bot = await rpc<Bot>(app, cookie, "bots/create", {
