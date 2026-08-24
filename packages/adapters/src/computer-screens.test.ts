@@ -90,15 +90,24 @@ describe("Team Computer parallel screens", () => {
     expect(() => claims.claim("computer-1", researcher)).not.toThrow();
   });
 
-  it("rejects a delayed claim after a newer run reclaimed the screen", () => {
+  it("rejects a delayed claim from an older fence of the same run", () => {
     const claims = new SingleScreenClaimTracker();
-    claims.claim("computer-1", { ...writer, screenLeaseId: "run-2:2" });
+    claims.claim("computer-1", { ...writer, screenLeaseId: "run-1:8" });
     expect(() => claims.claim("computer-1", { ...writer, screenLeaseId: "run-1:1" })).toThrow(
       ComputerScreenUnavailableError,
     );
     claims.release("computer-1", { ...writer, screenLeaseId: "run-1:1" });
     expect(() => claims.claim("computer-1", researcher)).toThrow(ComputerScreenUnavailableError);
-    claims.release("computer-1", { ...writer, screenLeaseId: "run-2:2" });
+    claims.release("computer-1", { ...writer, screenLeaseId: "run-1:8" });
+    expect(() => claims.claim("computer-1", researcher)).not.toThrow();
+  });
+
+  it("hands the screen to the next run instead of wedging on a finished one", () => {
+    // Runs both start at fence 1, so the old owner must never outrank the new one.
+    const claims = new SingleScreenClaimTracker();
+    claims.claim("computer-1", { ...writer, screenLeaseId: "run-1:1" });
+    expect(() => claims.claim("computer-1", { ...writer, screenLeaseId: "run-2:1" })).not.toThrow();
+    claims.release("computer-1", { ...writer, screenLeaseId: "run-2:1" });
     expect(() => claims.claim("computer-1", researcher)).not.toThrow();
   });
 

@@ -229,14 +229,22 @@ describe("sandbox supervisor input containment", () => {
     expect(nextScreenIndex(assigned, "researcher")).toBe(0);
   });
 
-  it("does not let a delayed request restore an older lease", () => {
+  it("does not let a delayed request restore an older fence of the same run", () => {
     const assigned = new Map<string, ScreenAssignment>();
-    expect(nextScreenIndex(assigned, "writer", "run-2:2")).toBe(0);
+    expect(nextScreenIndex(assigned, "writer", "run-1:8")).toBe(0);
     expect(() => nextScreenIndex(assigned, "writer", "run-1:1")).toThrow(
       /owned by a newer execution/,
     );
     expect(releaseAssignedScreen(assigned, "writer", "run-1:1")).toBeUndefined();
-    expect(releaseAssignedScreen(assigned, "writer", "run-2:2")).toBe(0);
+    expect(releaseAssignedScreen(assigned, "writer", "run-1:8")).toBe(0);
+  });
+
+  it("hands a screen to the next run instead of wedging on a finished one", () => {
+    // Runs both start at fence 1, so the old owner must never outrank the new one.
+    const assigned = new Map<string, ScreenAssignment>();
+    expect(nextScreenIndex(assigned, "writer", "run-1:1")).toBe(0);
+    expect(nextScreenIndex(assigned, "writer", "run-2:1")).toBe(0);
+    expect(releaseAssignedScreen(assigned, "writer", "run-2:1")).toBe(0);
   });
 
   it("stops extra displays without touching the primary desktop", () => {
