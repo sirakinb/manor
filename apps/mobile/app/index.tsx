@@ -1,11 +1,13 @@
 import type { SearchHit } from "@rakazo/contracts";
 import { groupBotsForSidebar } from "@rakazo/core";
+import { botColors } from "@rakazo/ui-tokens";
 import { Redirect, useFocusEffect, useRouter } from "expo-router";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -14,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BotAvatar } from "../components/bot-avatar";
+import { BotAvatar, GroupAvatar } from "../components/bot-avatar";
 import { BotOrganizeModal } from "../components/bot-organize-modal";
 import { NativeSymbol } from "../components/native-symbol";
 import {
@@ -26,13 +28,14 @@ import {
   rpc,
 } from "../lib/api";
 import { botTag, filterBots, formatThreadTime, userInitials } from "../lib/inbox";
-import { native } from "../lib/native";
+import { brandType, manor, native } from "../lib/native";
 import { previewSnippet } from "../lib/preview";
 import { registerPushToken } from "../lib/push";
 import { queryWorkspaceSearch } from "../lib/search";
 import { mobileSearchDestination } from "../lib/search-destination";
 
-const FALLBACK_COLOR = "#9B5CF6";
+// A sprite colour, so a bot saved without one still gets a Manor sprite.
+const FALLBACK_COLOR = botColors[0];
 
 type InboxItem =
   | { type: "bot"; bot: MobileBot }
@@ -159,6 +162,14 @@ export default function Home() {
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
       <View style={styles.header}>
+        <View accessibilityElementsHidden pointerEvents="none" style={styles.lockup}>
+          <Image
+            source={require("../assets/manor-mark.png")}
+            resizeMode="contain"
+            style={{ width: 20, height: 20 }}
+          />
+          <Text style={styles.wordmark}>Manor</Text>
+        </View>
         <CircleButton accessibilityLabel="Account" onPress={() => router.push("/account")}>
           <Text style={styles.profileInitials}>{initials}</Text>
         </CircleButton>
@@ -392,9 +403,7 @@ function GroupRow({ group }: { group: MobileGroup }) {
       }
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
-      <View style={[styles.groupAvatar]}>
-        <Text style={styles.groupAvatarLabel}>G</Text>
-      </View>
+      <GroupAvatar colors={group.members.map((member) => member.color)} />
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <Text style={styles.name} numberOfLines={1}>
@@ -434,6 +443,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  lockup: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+  },
+  wordmark: {
+    color: manor.ink,
+    fontFamily: brandType.wordmark,
+    fontSize: 15,
+    letterSpacing: 4.8,
+    textTransform: "uppercase",
+    // Tracking is applied on the right of every glyph, including the last.
+    marginRight: -4.8,
   },
   circleButton: {
     width: 40,
@@ -544,7 +573,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#8B5CF6",
+    backgroundColor: manor.accent,
   },
   sectionHeading: {
     color: native.secondaryLabel,
@@ -553,18 +582,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 4,
-  },
-  groupAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#232326",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  groupAvatarLabel: {
-    color: "#C9C9CE",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

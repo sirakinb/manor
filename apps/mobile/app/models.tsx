@@ -379,8 +379,8 @@ export default function Models() {
 
             {selected.auth === "oauth" && !deviceSignIn ? (
               <Text style={styles.secondary}>
-                This subscription sign-in is not available in Rakazo yet. Use a deployment
-                credential or choose another provider.
+                This subscription sign-in is not available in Manor yet. Use a deployment credential
+                or choose another provider.
               </Text>
             ) : null}
 

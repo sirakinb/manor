@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Rakazo",
-    "slug": "rakazo",
-    "owner": "inbox-zero",
-    "scheme": "rakazo",
+    "name": "Manor",
+    "slug": "manor",
+    "owner": "defipapi-org",
+    "scheme": "manor",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -26,21 +26,21 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#2965EC"
+          "color": "#A855F7"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Rakazo uses your photo library so you can attach images to a bot message.",
-          "cameraPermission": "Rakazo uses the camera so you can attach photos to a bot message.",
+          "photosPermission": "Manor uses your photo library so you can attach images to a bot message.",
+          "cameraPermission": "Manor uses the camera so you can attach photos to a bot message.",
           "microphonePermission": false
         }
       ],
       "./plugins/with-worklets-headers"
     ],
     "ios": {
-      "bundleIdentifier": "com.rakazo.app",
+      "bundleIdentifier": "com.pentridgemedia.manor",
       "buildNumber": "1",
       "supportsTablet": false,
       "icon": "./assets/icon.png",
@@ -48,21 +48,21 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSCameraUsageDescription": "Rakazo uses the camera so you can attach photos to a bot message.",
-        "NSPhotoLibraryUsageDescription": "Rakazo uses your photo library so you can attach images to a bot message.",
-        "NSLocalNetworkUsageDescription": "Rakazo connects to a self-hosted Rakazo server on your local network.",
+        "NSCameraUsageDescription": "Manor uses the camera so you can attach photos to a bot message.",
+        "NSPhotoLibraryUsageDescription": "Manor uses your photo library so you can attach images to a bot message.",
+        "NSLocalNetworkUsageDescription": "Manor connects to a self-hosted Manor server on your local network.",
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         }
       }
     },
     "android": {
-      "package": "com.rakazo.app",
+      "package": "com.pentridgemedia.manor",
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/monochrome-icon.png",
-        "backgroundColor": "#2965EC"
+        "backgroundColor": "#050506"
       }
     },
     "web": {
@@ -71,7 +71,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "07f7eb04-45e3-47fe-9374-99a2f991131e"
+        "projectId": "10b6d66c-519d-4222-b5bb-4c68bd275905"
       }
     }
   }

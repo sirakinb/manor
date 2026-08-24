@@ -3,7 +3,9 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Ridges } from "../components/ridges";
 import { loadApiBase } from "../lib/api";
+import { manor } from "../lib/native";
 
 export default function Layout() {
   const [ready, setReady] = useState(false);
@@ -19,14 +21,14 @@ export default function Layout() {
           <StatusBar style="light" />
           <Stack
             screenOptions={{
-              headerStyle: { backgroundColor: "#000" },
-              headerTintColor: "#ECECEE",
+              headerStyle: { backgroundColor: manor.page },
+              headerTintColor: manor.ink,
               headerShadowVisible: false,
               headerBackButtonDisplayMode: "minimal",
-              contentStyle: { backgroundColor: "#000" },
+              contentStyle: { backgroundColor: manor.page },
             }}
           >
-            <Stack.Screen name="index" options={{ headerShown: false, title: "Rakazo" }} />
+            <Stack.Screen name="index" options={{ headerShown: false, title: "Manor" }} />
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
             <Stack.Screen name="account" options={{ title: "Account" }} />
             <Stack.Screen name="models" options={{ title: "Models" }} />
@@ -54,9 +56,10 @@ export default function Layout() {
             <Stack.Screen name="routine" options={{ title: "Routine" }} />
             <Stack.Screen name="computer" options={{ title: "Computer" }} />
           </Stack>
+          <Ridges />
         </ThemeProvider>
       ) : (
-        <View style={{ flex: 1, backgroundColor: "#000" }} />
+        <View style={{ flex: 1, backgroundColor: manor.page }} />
       )}
     </GestureHandlerRootView>
   );

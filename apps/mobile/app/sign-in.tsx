@@ -2,10 +2,12 @@ import { Redirect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -24,6 +26,7 @@ import {
   signIn,
   usesCustomApiBase,
 } from "../lib/api";
+import { brandType, manor } from "../lib/native";
 
 export default function SignIn() {
   const router = useRouter();
@@ -45,8 +48,8 @@ export default function SignIn() {
 
   if (!ready) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#F7F7F4", justifyContent: "center", padding: 24 }}>
-        <Text style={{ color: "#6E6E68", textAlign: "center" }}>Loading…</Text>
+      <View style={{ flex: 1, backgroundColor: manor.page, justifyContent: "center", padding: 24 }}>
+        <Text style={{ color: manor.muted, textAlign: "center" }}>Loading…</Text>
       </View>
     );
   }
@@ -68,57 +71,44 @@ export default function SignIn() {
   const custom = usesCustomApiBase(apiBase);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F7F7F4" }}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: manor.page }}>
+      <StatusBar style="light" />
       <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
-        <Text style={{ color: "#1B1B1E", fontSize: 32, fontWeight: "500", textAlign: "center" }}>
-          Sign in to Rakazo
-        </Text>
-        <Text style={{ color: "#6E6E68", marginTop: 8, textAlign: "center" }}>
-          Same Better Auth session as the web app.
-        </Text>
+        <View style={{ alignItems: "center", marginBottom: 34 }}>
+          <Image
+            source={require("../assets/manor-mark.png")}
+            resizeMode="contain"
+            style={{ width: 74, height: 74 }}
+          />
+          <Text style={styles.wordmark}>Manor</Text>
+          <Text style={styles.byline}>By Pentridge</Text>
+        </View>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
+          keyboardAppearance="dark"
           placeholder="Email"
-          placeholderTextColor="#8C8C86"
+          placeholderTextColor={manor.muted2}
           value={email}
           onChangeText={setEmail}
-          style={{
-            marginTop: 28,
-            backgroundColor: "#F1F1ED",
-            borderRadius: 13,
-            padding: 16,
-            color: "#1B1B1E",
-          }}
+          style={styles.field}
         />
         <TextInput
           placeholder="Password"
-          placeholderTextColor="#8C8C86"
+          placeholderTextColor={manor.muted2}
+          keyboardAppearance="dark"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
-          style={{
-            marginTop: 12,
-            backgroundColor: "#F1F1ED",
-            borderRadius: 13,
-            padding: 16,
-            color: "#1B1B1E",
-          }}
+          style={[styles.field, { marginTop: 12 }]}
         />
-        {error ? <Text style={{ color: "#C94244", marginTop: 12 }}>{error}</Text> : null}
+        {error ? <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text> : null}
         <Pressable
           onPress={() => void submit()}
           disabled={pending}
-          style={{
-            marginTop: 16,
-            backgroundColor: "#121215",
-            borderRadius: 13,
-            padding: 18,
-            alignItems: "center",
-          }}
+          style={({ pressed }) => [styles.submit, pressed && { backgroundColor: manor.accent }]}
         >
-          <Text style={{ color: "#FBFBF9", fontSize: 17 }}>
+          <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
             {pending ? "Working…" : "Continue with email"}
           </Text>
         </Pressable>
@@ -134,13 +124,13 @@ export default function SignIn() {
       >
         {custom ? (
           <>
-            <Text style={{ color: "#A8A8A2", fontSize: 12 }}>Custom server</Text>
-            <Text style={{ color: "#6E6E68", fontSize: 13, marginTop: 2 }}>
+            <Text style={styles.footnoteLabel}>Custom server</Text>
+            <Text style={{ color: manor.muted2, fontSize: 13, marginTop: 3 }}>
               {displayApiHost(apiBase)}
             </Text>
           </>
         ) : (
-          <Text style={{ color: "#A8A8A2", fontSize: 13 }}>Use a custom server</Text>
+          <Text style={{ color: manor.muted, fontSize: 13 }}>Use a custom server</Text>
         )}
       </Pressable>
       <ServerSheet
@@ -224,7 +214,7 @@ function ServerSheet({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "#F7F7F4" }}
+        style={{ flex: 1, backgroundColor: manor.page }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <SafeAreaView style={{ flex: 1, paddingHorizontal: 24, paddingTop: 12 }}>
@@ -236,17 +226,17 @@ function ServerSheet({
             }}
           >
             <Pressable onPress={onClose} hitSlop={8}>
-              <Text style={{ color: "#6E6E68", fontSize: 17 }}>Cancel</Text>
+              <Text style={{ color: manor.muted, fontSize: 17 }}>Cancel</Text>
             </Pressable>
-            <Text style={{ color: "#1B1B1E", fontSize: 17, fontWeight: "600" }}>Server</Text>
+            <Text style={{ color: manor.ink, fontSize: 17, fontWeight: "600" }}>Server</Text>
             <Pressable onPress={() => void save()} disabled={pending} hitSlop={8}>
-              <Text style={{ color: "#1B1B1E", fontSize: 17, fontWeight: "600" }}>
+              <Text style={{ color: manor.accent, fontSize: 17, fontWeight: "600" }}>
                 {pending ? "Checking…" : "Save"}
               </Text>
             </Pressable>
           </View>
-          <Text style={{ color: "#6E6E68", marginTop: 28, fontSize: 15, lineHeight: 22 }}>
-            Point this app at your self-hosted Rakazo origin — the same HTTPS URL you open in a
+          <Text style={{ color: manor.muted, marginTop: 28, fontSize: 15, lineHeight: 22 }}>
+            Point this app at your self-hosted Manor origin — the same HTTPS URL you open in a
             browser.
           </Text>
           <TextInput
@@ -258,32 +248,26 @@ function ServerSheet({
             returnKeyType="go"
             onSubmitEditing={() => void save()}
             placeholder={defaultApiBase()}
-            placeholderTextColor="#8C8C86"
+            placeholderTextColor={manor.muted2}
+            keyboardAppearance="dark"
             value={draft}
             onChangeText={(value) => {
               setDraft(value);
               setError(null);
             }}
-            style={{
-              marginTop: 20,
-              backgroundColor: "#F1F1ED",
-              borderRadius: 13,
-              padding: 16,
-              color: "#1B1B1E",
-              fontSize: 16,
-            }}
+            style={[styles.field, { marginTop: 20, fontSize: 16 }]}
           />
           {warning ? (
-            <Text style={{ color: "#8C8C86", marginTop: 12, fontSize: 13 }}>{warning}</Text>
+            <Text style={{ color: manor.muted2, marginTop: 12, fontSize: 13 }}>{warning}</Text>
           ) : null}
-          {error ? <Text style={{ color: "#C94244", marginTop: 12 }}>{error}</Text> : null}
+          {error ? <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text> : null}
           {usesCustomApiBase(current) || draft.trim() !== current ? (
             <Pressable
               onPress={() => void restoreDefault()}
               disabled={pending}
               style={{ marginTop: 28, alignItems: "center" }}
             >
-              <Text style={{ color: "#6E6E68", fontSize: 15 }}>Use default server</Text>
+              <Text style={{ color: manor.muted, fontSize: 15 }}>Use default server</Text>
             </Pressable>
           ) : null}
         </SafeAreaView>
@@ -291,3 +275,50 @@ function ServerSheet({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  wordmark: {
+    marginTop: 22,
+    color: manor.ink,
+    fontFamily: brandType.wordmark,
+    fontSize: 26,
+    letterSpacing: 8.3,
+    textTransform: "uppercase",
+    // Tracking is applied on the right of every glyph, including the last.
+    marginRight: -8.3,
+  },
+  byline: {
+    marginTop: 10,
+    color: manor.muted2,
+    fontFamily: brandType.label,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+    marginRight: -1.8,
+  },
+  field: {
+    backgroundColor: manor.main,
+    borderWidth: 1,
+    borderColor: manor.hairlineStrong,
+    borderRadius: 13,
+    paddingHorizontal: 18,
+    paddingVertical: 17,
+    color: manor.ink,
+    fontSize: 17,
+  },
+  submit: {
+    marginTop: 16,
+    backgroundColor: "#9333EA",
+    borderRadius: 13,
+    paddingVertical: 18,
+    alignItems: "center",
+  },
+  footnoteLabel: {
+    color: manor.muted,
+    fontFamily: brandType.label,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+    marginRight: -1.8,
+  },
+});
