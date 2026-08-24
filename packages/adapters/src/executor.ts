@@ -47,6 +47,7 @@ import {
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import {
   appendEventInTransaction,
+  createCrmRepos,
   createThreadMessageInTransaction,
   effectiveMemoryScope,
   findDefaultModelCredential,
@@ -69,6 +70,7 @@ import {
 } from "./approval-effect.js";
 import { builtinAgentTools } from "./builtin-tools.js";
 import { botMayUseChannels, sendChannelMessage } from "./channels.js";
+import { CRM_READ_ONLY_TOOL_NAMES, executeCrmTool } from "./crm-tools.js";
 import { archiveSpawnedBot, spawnBot } from "./child-bots.js";
 import {
   collectLogIds,
@@ -151,6 +153,7 @@ const READ_ONLY_AGENT_TOOLS = new Set([
   "request_takeover",
   "run_subagent",
   "recall_memory",
+  ...CRM_READ_ONLY_TOOL_NAMES,
 ]);
 const MAX_MODEL_FILE_BYTES = 250_000;
 // Same tool, same arguments, this many times in a row means the agent is stuck, not paginating.
@@ -1158,6 +1161,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 ? formatObservation(result.observation, `launched ${application}`)
                 : { ok: true };
             }, finish);
+          }
+          if (name.startsWith("crm_")) {
+            const crmResult = await executeCrmTool(
+              createCrmRepos(deps.prisma),
+              { userId: run.userId, workspaceId: run.workspaceId },
+              name,
+              args,
+            );
+            if (crmResult !== undefined) return finish(crmResult);
           }
           if (name === "remember") {
             await deps.memory.commit(

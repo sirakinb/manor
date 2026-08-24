@@ -15,6 +15,9 @@ import { IsolationError } from "./scope.js";
  * at all, the same rule the rest of the repos follow.
  */
 
+/** Only the workspace matters for scoping, so agent runs can act without a full Actor. */
+export type CrmActorScope = Pick<Actor, "workspaceId">;
+
 /** The board a workspace starts with, so the pipeline is never an empty screen. */
 const DEFAULT_PIPELINE = {
   name: "Sales",
@@ -94,19 +97,19 @@ function mapPipeline(row: {
 const CONTACT_INCLUDE = { tags: { include: { tag: true } } } as const;
 
 export function createCrmRepos(prisma: PrismaClient) {
-  async function requireContact(actor: Actor, contactId: string) {
+  async function requireContact(actor: CrmActorScope, contactId: string) {
     const row = await prisma.crmContact.findUnique({ where: { id: contactId } });
     if (!row || row.workspaceId !== actor.workspaceId) throw new IsolationError();
     return row;
   }
 
-  async function requireDeal(actor: Actor, dealId: string) {
+  async function requireDeal(actor: CrmActorScope, dealId: string) {
     const row = await prisma.crmDeal.findUnique({ where: { id: dealId } });
     if (!row || row.workspaceId !== actor.workspaceId) throw new IsolationError();
     return row;
   }
 
-  async function requirePipeline(actor: Actor, pipelineId: string) {
+  async function requirePipeline(actor: CrmActorScope, pipelineId: string) {
     const row = await prisma.crmPipeline.findUnique({
       where: { id: pipelineId },
       include: { stages: true },
@@ -115,7 +118,7 @@ export function createCrmRepos(prisma: PrismaClient) {
     return row;
   }
 
-  async function overview(actor: Actor): Promise<CrmOverview> {
+  async function overview(actor: CrmActorScope): Promise<CrmOverview> {
     const where = { workspaceId: actor.workspaceId };
     const [pipelines, deals, contacts, tags] = await Promise.all([
       prisma.crmPipeline.findMany({
@@ -142,12 +145,36 @@ export function createCrmRepos(prisma: PrismaClient) {
   return {
     overview,
 
+    /** Case-insensitive search: every word must match a name, company, email, or phone. */
+    async searchContacts(actor: CrmActorScope, query: string, limit = 20): Promise<CrmContact[]> {
+      const terms = query.trim().split(/\s+/).filter(Boolean);
+      if (!terms.length) return [];
+      const rows = await prisma.crmContact.findMany({
+        where: {
+          workspaceId: actor.workspaceId,
+          AND: terms.map((term) => ({
+            OR: [
+              { firstName: { contains: term, mode: "insensitive" as const } },
+              { lastName: { contains: term, mode: "insensitive" as const } },
+              { company: { contains: term, mode: "insensitive" as const } },
+              { email: { contains: term, mode: "insensitive" as const } },
+              { phone: { contains: term } },
+            ],
+          })),
+        },
+        include: CONTACT_INCLUDE,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
+      return rows.map(mapContact);
+    },
+
     /**
      * Idempotent, and safe against itself: the first visit fires this from an
      * effect that React may run twice, so the check-then-create holds a
      * per-workspace advisory lock for the transaction.
      */
-    async seedDefaultPipeline(actor: Actor): Promise<CrmOverview> {
+    async seedDefaultPipeline(actor: CrmActorScope): Promise<CrmOverview> {
       await prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`crm-seed-${actor.workspaceId}`}))`;
         const existing = await tx.crmPipeline.count({
@@ -168,7 +195,7 @@ export function createCrmRepos(prisma: PrismaClient) {
     },
 
     async createContact(
-      actor: Actor,
+      actor: CrmActorScope,
       input: {
         firstName: string;
         lastName: string;
@@ -197,7 +224,7 @@ export function createCrmRepos(prisma: PrismaClient) {
     },
 
     async updateContact(
-      actor: Actor,
+      actor: CrmActorScope,
       input: {
         contactId: string;
         firstName?: string;
@@ -232,12 +259,12 @@ export function createCrmRepos(prisma: PrismaClient) {
       return mapContact(row);
     },
 
-    async deleteContact(actor: Actor, contactId: string): Promise<void> {
+    async deleteContact(actor: CrmActorScope, contactId: string): Promise<void> {
       await requireContact(actor, contactId);
       await prisma.crmContact.delete({ where: { id: contactId } });
     },
 
-    async createTag(actor: Actor, input: { name: string; color?: string }): Promise<CrmTag> {
+    async createTag(actor: CrmActorScope, input: { name: string; color?: string }): Promise<CrmTag> {
       const row = await prisma.crmTag.upsert({
         where: { workspaceId_name: { workspaceId: actor.workspaceId, name: input.name } },
         create: { workspaceId: actor.workspaceId, name: input.name, color: input.color ?? null },
@@ -247,7 +274,7 @@ export function createCrmRepos(prisma: PrismaClient) {
     },
 
     async createPipeline(
-      actor: Actor,
+      actor: CrmActorScope,
       input: { name: string; stages: { name: string }[] },
     ): Promise<CrmPipeline> {
       const last = await prisma.crmPipeline.findFirst({
@@ -269,13 +296,13 @@ export function createCrmRepos(prisma: PrismaClient) {
       return mapPipeline(row);
     },
 
-    async deletePipeline(actor: Actor, pipelineId: string): Promise<void> {
+    async deletePipeline(actor: CrmActorScope, pipelineId: string): Promise<void> {
       await requirePipeline(actor, pipelineId);
       await prisma.crmPipeline.delete({ where: { id: pipelineId } });
     },
 
     async createDeal(
-      actor: Actor,
+      actor: CrmActorScope,
       input: {
         pipelineId: string;
         stageId: string;
@@ -303,7 +330,7 @@ export function createCrmRepos(prisma: PrismaClient) {
     },
 
     async updateDeal(
-      actor: Actor,
+      actor: CrmActorScope,
       input: {
         dealId: string;
         title?: string;
@@ -326,7 +353,7 @@ export function createCrmRepos(prisma: PrismaClient) {
       return mapDeal(row);
     },
 
-    async moveDeal(actor: Actor, dealId: string, stageId: string): Promise<CrmDeal> {
+    async moveDeal(actor: CrmActorScope, dealId: string, stageId: string): Promise<CrmDeal> {
       const deal = await requireDeal(actor, dealId);
       const pipeline = await requirePipeline(actor, deal.pipelineId);
       if (!pipeline.stages.some((stage) => stage.id === stageId)) {
@@ -336,7 +363,7 @@ export function createCrmRepos(prisma: PrismaClient) {
       return mapDeal(row);
     },
 
-    async deleteDeal(actor: Actor, dealId: string): Promise<void> {
+    async deleteDeal(actor: CrmActorScope, dealId: string): Promise<void> {
       await requireDeal(actor, dealId);
       await prisma.crmDeal.delete({ where: { id: dealId } });
     },
@@ -346,7 +373,7 @@ export function createCrmRepos(prisma: PrismaClient) {
 /** Tag ids filtered to the actor's workspace; unknown ids are dropped, not errors. */
 async function ownedTagIds(
   prisma: PrismaClient,
-  actor: Actor,
+  actor: CrmActorScope,
   tagIds: string[] | undefined,
 ): Promise<string[]> {
   if (!tagIds?.length) return [];

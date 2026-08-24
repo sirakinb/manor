@@ -1,4 +1,5 @@
 import type { ConnectorTool } from "@rakazo/adapter-kit";
+import { crmAgentTools } from "./crm-tools.js";
 
 export const DELEGATION_TOOL_NAMES = new Set([
   "run_subagent",
@@ -327,4 +328,5 @@ export const builtinAgentTools: ConnectorTool[] = [
       required: ["message"],
     },
   },
+  ...crmAgentTools,
 ];
