@@ -3,10 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
+  type ComputerStatus,
   controlLabel,
   embeddableScreenUrl,
   previewPlaceholder,
   readScreenUrl,
+  screenSessionKey,
 } from "./computer.js";
 
 describe("embeddableScreenUrl", () => {
@@ -158,5 +160,48 @@ describe("mobile computer screen", () => {
     expect(src).toContain("SafeAreaProvider");
     expect(src).toContain("readScreenUrl");
     expect(src).toContain("SCREEN_URL_OPEN_ATTEMPTS");
+  });
+
+  it("only refetches the screen URL when the session changes", () => {
+    const src = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../app/computer.tsx"),
+      "utf8",
+    );
+    // The status poll runs every couple of seconds; a screen refetch on each
+    // tick reallocates the noVNC session and remounts the WebView.
+    expect(src).toContain("screenSessionKey");
+    expect(src).toMatch(/if \(!screenUrlRef\.current \|\| session !== screenSession\.current\)/);
+  });
+});
+
+describe("screenSessionKey", () => {
+  const running: ComputerStatus = {
+    state: "running",
+    controlHolder: "user",
+    controlBotId: "bot_1",
+    takeoverRequested: false,
+    screenAvailable: true,
+    mode: "team",
+    busyBotName: null,
+  };
+
+  it("is stable across the noise a status poll carries", () => {
+    expect(screenSessionKey({ ...running, takeoverRequested: true, busyBotName: "Scout" })).toBe(
+      screenSessionKey(running),
+    );
+  });
+
+  it("changes when the control grant baked into the URL changes", () => {
+    expect(screenSessionKey({ ...running, controlHolder: "bot" })).not.toBe(
+      screenSessionKey(running),
+    );
+    expect(screenSessionKey({ ...running, state: "suspended" })).not.toBe(
+      screenSessionKey(running),
+    );
+    expect(screenSessionKey({ ...running, mode: "dedicated" })).not.toBe(screenSessionKey(running));
+  });
+
+  it("treats a missing status as its own session", () => {
+    expect(screenSessionKey(null)).toBe("none");
   });
 });

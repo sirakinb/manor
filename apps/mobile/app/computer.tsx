@@ -20,6 +20,7 @@ import {
   previewPlaceholder,
   readScreenUrl,
   SCREEN_URL_OPEN_ATTEMPTS,
+  screenSessionKey,
 } from "../lib/computer";
 
 export default function Computer() {
@@ -35,6 +36,15 @@ export default function Computer() {
   const [switching, setSwitching] = useState(false);
   const [computerOpen, setComputerOpen] = useState(false);
   const autoBooted = useRef<string | null>(null);
+  // The 2s poll below closes over the first render, so the guard in refresh()
+  // has to read these rather than the state values.
+  const screenUrlRef = useRef<string | null>(null);
+  const screenSession = useRef<string | null>(null);
+
+  function applyScreenUrl(url: string | null) {
+    screenUrlRef.current = url;
+    setScreenUrl(url);
+  }
 
   const embeddedScreenUrl = embeddableScreenUrl(screenUrl, currentApiBase());
   const hasControl = computer?.controlHolder === "user" && computer.controlBotId === botId;
@@ -47,7 +57,7 @@ export default function Computer() {
   async function refreshScreen(attempts: number) {
     if (!botId) return;
     try {
-      setScreenUrl(
+      applyScreenUrl(
         await readScreenUrl(() => rpc<{ url: string | null }>("computer/screenUrl", { botId }), {
           attempts,
         }),
@@ -61,7 +71,15 @@ export default function Computer() {
     if (!botId) return;
     const status = await rpc<ComputerStatus>("computer/status", { botId });
     setComputer(status);
-    await refreshScreen(options?.screenAttempts ?? 1);
+    // Asking for a screen URL allocates a fresh noVNC session, and the WebView
+    // is keyed on that URL — refetching on every poll tore the stream down and
+    // rebuilt it twice a second, which reads as a flicker. Only ask again when
+    // there is nothing to show or the session the URL encodes has changed.
+    const session = screenSessionKey(status);
+    if (!screenUrlRef.current || session !== screenSession.current) {
+      screenSession.current = session;
+      await refreshScreen(options?.screenAttempts ?? 1);
+    }
     setReady(true);
     return status;
   }
@@ -156,7 +174,7 @@ export default function Computer() {
       }
       await rpc("bots/setComputer", { botId, mode });
       setComputer(null);
-      setScreenUrl(null);
+      applyScreenUrl(null);
       autoBooted.current = null;
       await refresh();
     } catch (err) {

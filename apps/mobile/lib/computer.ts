@@ -50,6 +50,23 @@ export async function readScreenUrl(
   return null;
 }
 
+/**
+ * Identifies the screen session a URL stands for. The server bakes the control
+ * grant into the noVNC URL it hands back, so these are the fields that make a
+ * previously fetched URL stale; anything else in the status can churn without
+ * costing us a reconnect.
+ */
+export function screenSessionKey(status: ComputerStatus | null): string {
+  if (!status) return "none";
+  return [
+    status.state,
+    status.mode,
+    status.controlHolder,
+    status.controlBotId ?? "",
+    String(status.screenAvailable),
+  ].join("|");
+}
+
 /** Point a loopback noVNC URL at the same host the app uses for the API. */
 export function embeddableScreenUrl(url: string | null, apiBase: string): string | null {
   if (!url) return null;
