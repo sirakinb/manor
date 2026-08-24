@@ -91,6 +91,27 @@ export function VoiceSettingsOverlay({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function makeActive() {
+    if (!selected || !credential) return;
+    const targetVoice = credential.voiceId || voiceId || voices[0]?.id;
+    if (!targetVoice) {
+      setError("Pick a voice for this provider first.");
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    setPending("voice");
+    try {
+      await rpc.voice.setVoice({ voiceId: targetVoice, provider: selected.id });
+      await refresh(selected.id);
+      setNotice(`${selected.name} is now the active voice.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not switch provider");
+    } finally {
+      setPending(null);
+    }
+  }
+
   async function testVoice() {
     setError(null);
     setNotice(null);
@@ -147,7 +168,9 @@ export function VoiceSettingsOverlay({ onClose }: { onClose: () => void }) {
                 : "Not configured"}
           </div>
           <div className="mt-1 text-[13px] text-[#85858A]">
-            {selected?.name ?? status?.provider ?? "Connect ElevenLabs, OpenAI, or Cartesia"}
+            {catalog.find((entry) => entry.id === status?.provider)?.name ??
+              status?.provider ??
+              "Connect ElevenLabs, OpenAI, or Cartesia"}
           </div>
         </div>
 
@@ -156,7 +179,7 @@ export function VoiceSettingsOverlay({ onClose }: { onClose: () => void }) {
             <div className="mb-3 text-[13.5px] text-[#85858A]">Providers</div>
             <div className="rk-scroll overflow-y-auto rounded-[13px] border border-[#26262A]">
               {catalog.map((entry) => {
-                const connected = credentials.some((cred) => cred.provider === entry.id);
+                const cred = credentials.find((candidate) => candidate.provider === entry.id);
                 return (
                   <button
                     key={entry.id}
@@ -180,8 +203,10 @@ export function VoiceSettingsOverlay({ onClose }: { onClose: () => void }) {
                         {entry.transcribe ? "Speak + transcribe" : "Speak only"}
                       </span>
                     </span>
-                    {connected ? (
-                      <span className="text-[12px] text-[#4ECB71]">Connected</span>
+                    {cred?.isDefault ? (
+                      <span className="text-[12px] text-[#4ECB71]">Active</span>
+                    ) : cred ? (
+                      <span className="text-[12px] text-[#85858A]">Connected</span>
                     ) : null}
                   </button>
                 );
@@ -200,7 +225,11 @@ export function VoiceSettingsOverlay({ onClose }: { onClose: () => void }) {
                     Personal credential
                   </div>
                   <div className="mt-1 text-[15px] text-[#ECECEE]">
-                    {credential ? `Connected · ${selected.name}` : "Not connected"}
+                    {credential
+                      ? credential.isDefault
+                        ? `Active · ${selected.name}`
+                        : `Connected · ${selected.name}`
+                      : "Not connected"}
                   </div>
                   <div className="mt-1 text-[13px] text-[#85858A]">
                     Keys stay on the server. The app only learns whether a provider is configured.
@@ -226,6 +255,18 @@ export function VoiceSettingsOverlay({ onClose }: { onClose: () => void }) {
                 >
                   {pending === "connect" ? "Connecting…" : credential ? "Replace key" : "Connect"}
                 </Button>
+
+                {credential && !credential.isDefault ? (
+                  <Button
+                    type="button"
+                    variant="pill"
+                    className="ml-3 mt-3"
+                    disabled={busy}
+                    onClick={() => void makeActive()}
+                  >
+                    {pending === "voice" ? "Switching…" : `Use ${selected.name} for voice`}
+                  </Button>
+                ) : null}
 
                 {credential ? (
                   <>
