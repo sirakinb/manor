@@ -12,6 +12,7 @@ import { Link, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Alert, AppState, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { AskActions } from "../components/AskActions";
+import { KeyboardAvoider } from "../components/keyboard-avoider";
 import {
   MarkdownArtifactPreview,
   type MarkdownArtifactPreviewTarget,
@@ -526,7 +527,7 @@ export default function Thread() {
   const answerableAskMessageId = latestAnswerableAskMessageId(snap);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#000", paddingHorizontal: 20, paddingBottom: 24 }}>
+    <KeyboardAvoider style={{ backgroundColor: "#000", paddingHorizontal: 20, paddingBottom: 24 }}>
       {error ? <Text style={{ color: "#8E8E93", marginTop: 12 }}>{error}</Text> : null}
       <ScrollView
         ref={scroll}
@@ -780,7 +781,7 @@ export default function Thread() {
           onClose={() => setMarkdownPreview(null)}
         />
       ) : null}
-    </View>
+    </KeyboardAvoider>
   );
 }
 

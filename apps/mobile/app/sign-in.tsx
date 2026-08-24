@@ -74,7 +74,16 @@ export default function SignIn() {
     <SafeAreaView style={{ flex: 1, backgroundColor: manor.page }}>
       <StatusBar style="light" />
       <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
-        <View style={{ alignItems: "center", marginBottom: 34 }}>
+        {/* The server picker only matters to self-hosters and to us in dev, so it
+            hides behind the mark rather than sitting on the login screen. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Manor"
+          accessibilityHint="Double tap and hold to choose a custom server"
+          delayLongPress={600}
+          onLongPress={() => setServerOpen(true)}
+          style={{ alignItems: "center", marginBottom: 34 }}
+        >
           <Image
             source={require("../assets/manor-mark.png")}
             resizeMode="contain"
@@ -82,7 +91,7 @@ export default function SignIn() {
           />
           <Text style={styles.wordmark}>Manor</Text>
           <Text style={styles.byline}>By Pentridge</Text>
-        </View>
+        </Pressable>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
@@ -113,26 +122,20 @@ export default function SignIn() {
           </Text>
         </Pressable>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={
-          custom ? `Custom server ${displayApiHost(apiBase)}` : "Use a custom server"
-        }
-        hitSlop={12}
-        onPress={() => setServerOpen(true)}
-        style={{ alignItems: "center", paddingHorizontal: 24, paddingBottom: 12, paddingTop: 8 }}
-      >
-        {custom ? (
-          <>
-            <Text style={styles.footnoteLabel}>Custom server</Text>
-            <Text style={{ color: manor.muted2, fontSize: 13, marginTop: 3 }}>
-              {displayApiHost(apiBase)}
-            </Text>
-          </>
-        ) : (
-          <Text style={{ color: manor.muted, fontSize: 13 }}>Use a custom server</Text>
-        )}
-      </Pressable>
+      {custom ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Custom server ${displayApiHost(apiBase)}`}
+          hitSlop={12}
+          onPress={() => setServerOpen(true)}
+          style={{ alignItems: "center", paddingHorizontal: 24, paddingBottom: 12, paddingTop: 8 }}
+        >
+          <Text style={styles.footnoteLabel}>Custom server</Text>
+          <Text style={{ color: manor.muted2, fontSize: 13, marginTop: 3 }}>
+            {displayApiHost(apiBase)}
+          </Text>
+        </Pressable>
+      ) : null}
       <ServerSheet
         visible={serverOpen}
         current={apiBase}
