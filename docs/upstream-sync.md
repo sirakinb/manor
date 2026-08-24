@@ -90,3 +90,6 @@ occasional `voice-http` deadline timing flake (passes on rerun).
    feature.
 4. Add a changelog entry in `docs/dev-site/changelog.html`
    (`class="entry sync"` for the purple dot).
+5. Publish the dev-site to https://manor-dev.pages.dev (Cloudflare Pages,
+   project `manor-dev`, direct upload — the repo stays private):
+   `npx wrangler pages deploy docs/dev-site --project-name manor-dev --branch main`
