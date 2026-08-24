@@ -339,6 +339,12 @@ function DealCard({
   );
 }
 
+// A stable ref identity, so React attaches it once on mount instead of
+// re-running it (and stealing focus) on every keystroke's re-render.
+function focusOnMount(node: HTMLInputElement | null) {
+  node?.focus();
+}
+
 const inputClass =
   "w-full rounded-lg border border-[#202023] bg-[#0F0F11] px-3 py-2 text-[13.5px] text-[#ECECEE] outline-none placeholder:text-[#5F5B69] focus:border-[#3A3A40]";
 
@@ -423,7 +429,7 @@ function CreateDealModal({
     <ModalShell title="New deal" onClose={onClose}>
       <div className="space-y-3">
         <input
-          ref={(node) => node?.focus()}
+          ref={focusOnMount}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Deal title"
@@ -526,7 +532,7 @@ function CreatePipelineModal({
     <ModalShell title="New pipeline" onClose={onClose}>
       <div className="space-y-3">
         <input
-          ref={(node) => node?.focus()}
+          ref={focusOnMount}
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Pipeline name"

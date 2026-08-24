@@ -178,6 +178,12 @@ function TagChip({ tag }: { tag: CrmTag }) {
   );
 }
 
+// A stable ref identity, so React attaches it once on mount instead of
+// re-running it (and stealing focus) on every keystroke's re-render.
+function focusOnMount(node: HTMLInputElement | null) {
+  node?.focus();
+}
+
 const fieldClass =
   "w-full rounded-lg border border-[#202023] bg-[#0F0F11] px-3 py-2 text-[13.5px] text-[#ECECEE] outline-none placeholder:text-[#5F5B69] focus:border-[#3A3A40]";
 
@@ -291,9 +297,7 @@ function ContactDrawer({
       <div className="rk-scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
         <div className="grid grid-cols-2 gap-2.5">
           <input
-            ref={(node) => {
-              if (!contact) node?.focus();
-            }}
+            ref={contact ? undefined : focusOnMount}
             value={form.firstName}
             onChange={(event) => set("firstName", event.target.value)}
             placeholder="First name"
