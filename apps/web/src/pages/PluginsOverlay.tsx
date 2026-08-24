@@ -6,6 +6,9 @@ import { rpc } from "../lib/rpc";
 let cachedCatalog: ConnectionCatalogItem[] = [];
 type CatalogView = "all" | "connected";
 
+// Composio serves these marks as near-black on transparent, invisible on the dark tile.
+const LIGHT_TILE_LOGOS = new Set(["github", "twitter", "x", "apple"]);
+
 function markConnected(items: ConnectionCatalogItem[], slug: string, connected: boolean) {
   return items.map((entry) => (entry.slug === slug ? { ...entry, connected } : entry));
 }
@@ -162,7 +165,9 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
                 <img
                   src={item.logo}
                   alt=""
-                  className="h-[42px] w-[42px] rounded-xl bg-[#2C2C30] object-contain"
+                  className={`h-[42px] w-[42px] rounded-xl object-contain ${
+                    LIGHT_TILE_LOGOS.has(item.slug) ? "bg-[#ECECEE] p-1.5" : "bg-[#2C2C30]"
+                  }`}
                 />
               ) : (
                 <div className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-[#2C2C30] font-semibold">

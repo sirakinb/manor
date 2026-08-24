@@ -32,6 +32,7 @@ export function CallView({
   const phaseRef = useRef<Phase>("listening");
   const spokenMessage = useRef<string | null>(null);
   const narrated = useRef(new Set<string>());
+  const lastNarrationAt = useRef(0);
   const closing = useRef(false);
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
@@ -98,7 +99,10 @@ export function CallView({
 
   useEffect(() => {
     closing.current = false;
-    spokenMessage.current = null;
+    // Anything already in the thread predates the call; only speak what arrives now.
+    const existing = snapshotRef.current?.messages ?? [];
+    spokenMessage.current =
+      [...existing].reverse().find((message) => message.role === "bot")?.id ?? null;
     narrated.current.clear();
     const unsubSpeech = speaker.subscribe((state) => {
       if (state.status === "speaking") {
@@ -140,7 +144,7 @@ export function CallView({
   }, []);
 
   useEffect(() => {
-    if (closing.current || phaseRef.current === "listening") return;
+    if (closing.current) return;
     const messages = snapshot?.messages ?? [];
     const lastBot = [...messages].reverse().find((message) => message.role === "bot");
     if (lastBot && lastBot.id !== spokenMessage.current) {
@@ -161,10 +165,12 @@ export function CallView({
         snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status);
       if (!runActive) {
         spokenMessage.current = lastBot.id;
-        void listen();
+        if (phaseRef.current !== "listening") void listen();
         return;
       }
     }
+    // Never narrate over an open mic — it would hear its own voice.
+    if (phaseRef.current === "listening") return;
     if (snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status)) {
       const phrases: string[] = [];
       let lastKey = "";
@@ -183,44 +189,67 @@ export function CallView({
           lastKey = key;
         }
       }
-      if (phrases.length) {
+      // Rate-limit narration: one batched utterance every 8s at most. Each phrase
+      // is a separate TTS round-trip, so narrating every event makes the call
+      // stutter — talk, silence, talk. Skipped phrases stay marked; stale
+      // progress is not worth reading late.
+      if (phrases.length && Date.now() - lastNarrationAt.current > 8000) {
+        lastNarrationAt.current = Date.now();
         void speaker.speak(phrases.join(". "), { botId, messageId: `narrate:${lastKey}` });
       }
     }
   }, [snapshot, botId]);
 
+  const runActive = Boolean(
+    snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status),
+  );
+  const statusLabel =
+    phase === "speaking"
+      ? "Speaking…"
+      : phase === "thinking" || runActive
+        ? "Working…"
+        : "Listening…";
+
   return (
-    <div className="absolute inset-0 z-40 grid place-items-center bg-[rgba(4,4,5,.82)] px-5">
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex justify-end px-5 pb-5">
       <div
         data-testid="call-view"
-        className="w-full max-w-[420px] rounded-[24px] border border-[#2A2A2F] bg-[#141416] p-6 text-center shadow-[0_30px_80px_rgba(0,0,0,.55)]"
+        className="pointer-events-auto w-[300px] rounded-[18px] border border-[#2A2A2F] bg-[#141416] p-4 shadow-[0_18px_50px_rgba(0,0,0,.55)]"
       >
-        <div className="text-[13px] uppercase tracking-[0.12em] text-[#6C6C70]">Call</div>
-        <div className="mt-2 text-[22px] font-medium text-[#F1F1F2]">{botName}</div>
-        <div className="mt-5 text-[15px] text-[#C9C9CE]">
-          {phase === "listening" ? "Listening…" : phase === "speaking" ? "Speaking…" : "Working…"}
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="min-w-0 truncate text-[15px] font-medium text-[#F1F1F2]">{botName}</div>
+          <div className="shrink-0 text-[12px] uppercase tracking-[0.1em] text-[#6C6C70]">
+            {statusLabel}
+          </div>
         </div>
-        <p className="mt-3 min-h-[3.2em] text-[14.5px] leading-[1.5] text-[#85858A]">
-          {phase === "listening" ? heard || "Say something. Silence sends it." : caption}
+        <p className="mt-2 min-h-[2.6em] text-[13px] leading-[1.45] text-[#85858A]">
+          {phase === "listening"
+            ? heard ||
+              (runActive
+                ? "Still working — talk anytime to steer it."
+                : "Say something. Silence sends it.")
+            : caption}
         </p>
-        {error ? <p className="mt-2 text-[13px] text-[#C94244]">{error}</p> : null}
-        <div className="mt-6 flex justify-center gap-3">
+        {error ? <p className="mt-1.5 text-[12.5px] text-[#C94244]">{error}</p> : null}
+        <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={interrupt}
-            className="rounded-full border border-[#2A2A2F] px-4 py-2 text-[14px] text-[#C9C9CE]"
+            className="flex-1 rounded-full border border-[#2A2A2F] px-3 py-1.5 text-[13px] text-[#C9C9CE] hover:bg-[#1B1B1E]"
           >
-            Interrupt
+            Stop &amp; talk
           </button>
           <button
             type="button"
             onClick={hangUp}
-            className="rounded-full bg-[#FF5364] px-4 py-2 text-[14px] font-medium text-white"
+            className="flex-1 rounded-full bg-[#FF5364] px-3 py-1.5 text-[13px] font-medium text-white"
           >
             Hang up
           </button>
         </div>
-        <p className="mt-4 text-[12px] text-[#6C6C70]">Space interrupts · Esc hangs up</p>
+        <p className="mt-2.5 text-center text-[11px] text-[#6C6C70]">
+          Space stops it · Esc hangs up
+        </p>
       </div>
     </div>
   );
