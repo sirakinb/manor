@@ -99,7 +99,7 @@
     <pre class="mermaid">
 %%{init: {
   "theme": "base",
-  "gitGraph": { "mainBranchName": "upstream/main", "showCommitLabel": true, "parallelCommits": false },
+  "gitGraph": { "mainBranchName": "upstream/main", "showCommitLabel": true, "parallelCommits": false, "rotateCommitLabel": false },
   "themeVariables": {
     "darkMode": true,
     "background": "#1a1a1d",
@@ -120,7 +120,7 @@
     "gitBranchLabel2": "#0d0d0e"
   }
 }}%%
-gitGraph
+gitGraph TB:
   commit id: "#101 narration fix (fork point)"
   branch main
   checkout main
@@ -145,8 +145,14 @@ gitGraph
   commit id: "#147 conversational onboarding + MCP"
   commit id: "#150 CRLF · #152 reasoning · #156 E2E"
   checkout main
-  merge "upstream/main" id: "sync: onboarding, MCP, connectors" tag: "sync #3 · today"
-  commit id: "CRM agent tools: chat & voice work the board" type: HIGHLIGHT
+  merge "upstream/main" id: "sync: onboarding, MCP, connectors" tag: "sync #3"
+  commit id: "CRM agent tools: chat & voice work the board"
+  commit id: "Pipeline: deal editing + honest drag"
+  checkout "upstream/main"
+  commit id: "#170 schedules · #149 local models"
+  commit id: "#153 avatars · #171 RTL · #175 catalog"
+  checkout main
+  merge "upstream/main" id: "sync: schedules, local models, avatars" tag: "sync #4 · today" type: HIGHLIGHT
     </pre>
   </div>
 
