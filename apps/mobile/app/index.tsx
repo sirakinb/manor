@@ -16,8 +16,9 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BotAvatar, GroupAvatar } from "../components/bot-avatar";
+import { BotAvatar } from "../components/bot-avatar";
 import { BotOrganizeModal } from "../components/bot-organize-modal";
+import { GroupAvatar } from "../components/group-avatar";
 import { NativeSymbol } from "../components/native-symbol";
 import {
   loadSessionToken,
@@ -362,7 +363,7 @@ function BotRow({ bot, onLongPress }: { bot: MobileBot; onLongPress: () => void 
       onLongPress={onLongPress}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
-      <BotAvatar color={bot.color || FALLBACK_COLOR} />
+      <BotAvatar color={bot.color || FALLBACK_COLOR} status={bot.status} />
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <View style={styles.titleRow}>
@@ -409,7 +410,7 @@ function GroupRow({ group }: { group: MobileGroup }) {
       }
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
-      <GroupAvatar colors={group.members.map((member) => member.color)} />
+      <GroupAvatar members={group.members} size={54} />
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <Text style={styles.name} numberOfLines={1}>
@@ -496,6 +497,7 @@ const styles = StyleSheet.create({
     color: native.label,
     paddingHorizontal: 12,
     fontSize: 17,
+    writingDirection: "auto",
   },
   error: {
     color: native.secondaryLabel,
@@ -549,6 +551,7 @@ const styles = StyleSheet.create({
     color: native.label,
     fontSize: 17,
     fontWeight: "600",
+    writingDirection: "auto",
   },
   tag: {
     flexShrink: 1,
@@ -561,6 +564,7 @@ const styles = StyleSheet.create({
     color: native.secondaryLabel,
     fontSize: 11,
     fontWeight: "500",
+    writingDirection: "auto",
   },
   time: {
     color: native.secondaryLabel,
@@ -570,6 +574,7 @@ const styles = StyleSheet.create({
     color: native.secondaryLabel,
     fontSize: 15,
     lineHeight: 20,
+    writingDirection: "auto",
   },
   unreadPreview: {
     color: native.label,

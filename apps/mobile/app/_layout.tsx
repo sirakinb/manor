@@ -6,6 +6,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ridges } from "../components/ridges";
 import { loadApiBase } from "../lib/api";
 import { manor } from "../lib/native";
+import { applyMobileUiDirection } from "../lib/ui-direction";
+
+applyMobileUiDirection();
 
 export default function Layout() {
   const [ready, setReady] = useState(false);

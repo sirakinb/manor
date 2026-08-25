@@ -14,7 +14,12 @@ import type {
   SandboxProvider,
   SemanticMemoryProvider,
 } from "@rakazo/adapter-kit";
-import { historyCompactJob, routineWakeupJob, runContinueJob } from "@rakazo/adapter-kit";
+import {
+  historyCompactJob,
+  routineJobKey,
+  routineWakeupJob,
+  runContinueJob,
+} from "@rakazo/adapter-kit";
 import type { MessageBlock, RunStatus } from "@rakazo/contracts";
 import { ATTACHMENT_MAX_BYTES, isAttachmentImageMimeType } from "@rakazo/contracts";
 import {
@@ -135,6 +140,13 @@ import {
   renderPlotSpecToSvg,
   searchChartCatalog,
 } from "./plot-tool.js";
+import {
+  cancelScheduleFromTool,
+  createScheduleFromTool,
+  filterBuiltinToolsForThread,
+  isOneShotRoutineCron,
+  listSchedulesFromTool,
+} from "./schedule-tools.js";
 import { inferScript } from "./scripted-runtime.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 import { type TakeoverResumeCheckpoint, takeoverResumeFromRelease } from "./takeover-resume.js";
@@ -153,6 +165,7 @@ const READ_ONLY_AGENT_TOOLS = new Set([
   "request_takeover",
   "run_subagent",
   "recall_memory",
+  "schedule_list",
   ...CRM_READ_ONLY_TOOL_NAMES,
 ]);
 const MAX_MODEL_FILE_BYTES = 250_000;
@@ -264,6 +277,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         provider,
         id,
         apiKey: resolved.oauth ? undefined : resolved.apiKey,
+        baseUrl: resolved.baseUrl,
         oauth: resolved.oauth
           ? { credential: resolved.oauth, persist: resolved.persistOAuth }
           : undefined,
@@ -281,15 +295,30 @@ export function createRunExecutor(deps: ExecutorDeps) {
         include: { thread: true },
       });
       if (!bot?.thread) return;
-      const nextRunAt = nextCronDate(
-        routine.cron,
-        new Date(Math.max(Date.now(), scheduledAt.getTime())),
-        routine.timezone,
-      );
+      let nextRunAt: Date | null = null;
+      if (isOneShotRoutineCron(routine.cron)) {
+        nextRunAt = null;
+      } else {
+        try {
+          nextRunAt = nextCronDate(
+            routine.cron,
+            new Date(Math.max(Date.now(), scheduledAt.getTime())),
+            routine.timezone,
+          );
+        } catch {
+          // Legacy rows may contain schedules accepted before cron validation was added.
+          // Fire the already-due run once, then pause the invalid schedule.
+        }
+      }
+      const previousLastRunAt = routine.lastRunAt;
       const claimed = await deps.prisma.$transaction(async (tx) => {
         const updated = await tx.routine.updateMany({
           where: { id: routine.id, active: true, nextRunAt: scheduledAt },
-          data: { lastRunAt: new Date(), nextRunAt },
+          data: {
+            lastRunAt: new Date(),
+            nextRunAt,
+            ...(nextRunAt ? {} : { active: false }),
+          },
         });
         if (updated.count !== 1) return null;
         const task = await tx.task.create({
@@ -315,16 +344,50 @@ export function createRunExecutor(deps: ExecutorDeps) {
         });
       });
       if (!claimed) return;
-      await deps.events.append({
-        workspaceId: routine.workspaceId,
-        threadId: bot.thread.id,
-        botId: bot.id,
-        type: "routine.fired",
-        runId: claimed.id,
-        payload: { routineId: routine.id, scheduledFor },
-      });
-      await deps.jobs.enqueue(routineWakeupJob(routine.id, nextRunAt));
-      await deps.jobs.enqueue(runContinueJob(claimed.id));
+      // Enqueue continuation first so a thread-signal failure cannot strand the run.
+      try {
+        await deps.jobs.enqueue(runContinueJob(claimed.id));
+      } catch (error) {
+        // Restore the claim so wakeup retry / routine reconciliation can fire again.
+        await deps.prisma.$transaction(async (tx) => {
+          await tx.run.deleteMany({ where: { id: claimed.id, status: "queued" } });
+          await tx.task.deleteMany({ where: { id: claimed.taskId, status: "queued" } });
+          await tx.routine.updateMany({
+            where: {
+              id: routine.id,
+              nextRunAt,
+              ...(nextRunAt ? {} : { active: false }),
+            },
+            data: {
+              nextRunAt: scheduledAt,
+              active: true,
+              lastRunAt: previousLastRunAt,
+            },
+          });
+        });
+        throw error;
+      }
+      try {
+        await deps.events.append({
+          workspaceId: routine.workspaceId,
+          threadId: bot.thread.id,
+          botId: bot.id,
+          type: "routine.fired",
+          runId: claimed.id,
+          payload: { routineId: routine.id, scheduledFor },
+        });
+      } catch {
+        // Best effort: the run is already queued.
+      }
+      if (isOneShotRoutineCron(routine.cron)) {
+        try {
+          await deps.jobs.cancel(routineJobKey(routine.id));
+        } catch {
+          // Best effort: the run is already queued for continuation.
+        }
+      } else if (nextRunAt) {
+        await deps.jobs.enqueue(routineWakeupJob(routine.id, nextRunAt));
+      }
     },
 
     async continueRun(runId: string, workerId: string) {
@@ -638,14 +701,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const groupContext = thread.groupId
           ? await loadGroupContext(deps.prisma, thread.groupId)
           : undefined;
-        const availableBuiltins = (
+        const availableBuiltins = filterBuiltinToolsForThread(
           graphical
             ? builtinAgentTools
-            : builtinAgentTools.filter((tool) => !GRAPHICAL_AGENT_TOOLS.has(tool.name))
-        )
-          .filter((tool) => thread.groupId || tool.name !== "handoff_to_bot")
+            : builtinAgentTools.filter((tool) => !GRAPHICAL_AGENT_TOOLS.has(tool.name)),
+          thread.groupId,
           // Messaging channels belong to one bot, so no other bot is offered the tool.
-          .filter((tool) => botMayUseChannels(bot.id) || tool.name !== "send_channel_message");
+        ).filter((tool) => botMayUseChannels(bot.id) || tool.name !== "send_channel_message");
         const builtins = selectMemoryTools(availableBuiltins, semanticMemoryEnabled);
         const exposedConnectorTools = discovered.filter(
           (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
@@ -1185,6 +1247,43 @@ export function createRunExecutor(deps: ExecutorDeps) {
             );
             return finish({ ok: true });
           }
+          if (name === "schedule_create") {
+            const created = await createScheduleFromTool(deps, {
+              workspaceId: run.workspaceId,
+              botId: bot.id,
+              userId: run.userId,
+              threadId: thread.id,
+              name: String(args.name ?? ""),
+              prompt: String(args.prompt ?? ""),
+              timezone: args.timezone ? String(args.timezone) : undefined,
+              schedule: {
+                cron: args.cron,
+                every: args.every,
+                unit: args.unit,
+                runAt: args.runAt,
+                delayMinutes: args.delayMinutes,
+                delaySeconds: args.delaySeconds,
+              },
+            });
+            return finish(created);
+          }
+          if (name === "schedule_list") {
+            return listSchedulesFromTool(deps, {
+              workspaceId: run.workspaceId,
+              botId: bot.id,
+              userId: run.userId,
+            });
+          }
+          if (name === "schedule_cancel") {
+            const cancelled = await cancelScheduleFromTool(deps, {
+              workspaceId: run.workspaceId,
+              botId: bot.id,
+              userId: run.userId,
+              routineId: args.routineId ? String(args.routineId) : undefined,
+              name: args.name ? String(args.name) : undefined,
+            });
+            return finish(cancelled);
+          }
           if (name === "add_mcp_server") {
             const parsed = parseMcpServerToolArgs(args);
             if (!parsed) {
@@ -1521,6 +1620,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 provider: credential?.provider ?? settings?.defaultModelProvider ?? "scripted",
                 id: credential?.defaultModel ?? settings?.defaultModelId ?? "scripted",
                 apiKey: resolved.oauth ? undefined : resolved.apiKey,
+                baseUrl: resolved.baseUrl,
                 oauth: resolved.oauth
                   ? { credential: resolved.oauth, persist: resolved.persistOAuth }
                   : undefined,
@@ -2222,6 +2322,7 @@ async function resolveModelKey(
   registerSecrets?: (values: string[]) => void,
 ): Promise<{
   apiKey?: string;
+  baseUrl?: string;
   oauth?: AgentModelOAuthCredential;
   persistOAuth?: (credential: AgentModelOAuthCredential) => Promise<void>;
   redact: string[];
@@ -2249,8 +2350,11 @@ async function resolveModelKey(
         persist,
       });
       const oauth = resolved.secret.kind === "oauth" ? resolved.secret.credential : undefined;
+      const baseUrl =
+        resolved.secret.kind === "openai_compatible" ? resolved.secret.baseUrl : undefined;
       return {
         apiKey: resolved.apiKey,
+        baseUrl,
         oauth,
         persistOAuth: oauth
           ? async (next) => {

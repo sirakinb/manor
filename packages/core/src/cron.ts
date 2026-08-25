@@ -1,4 +1,12 @@
+import { Cron } from "croner";
+
 const WEEKDAYS = "1-5";
+
+export const ONCE_ROUTINE_CRON = "@once";
+
+export function isOneShotRoutineCron(cron: string): boolean {
+  return cron.trim() === ONCE_ROUTINE_CRON;
+}
 
 export const CRON_FREQS = [
   "Every hour",
@@ -34,7 +42,11 @@ export function defaultCronPreset(): CronPreset {
 }
 
 export function cronFromPreset(input: CronPresetInput): string {
-  if (input.freq === "Advanced") return input.cron?.trim() || "*/3 * * * *";
+  const advancedCron = input.cron?.trim();
+  if (input.freq === "Advanced") {
+    if (advancedCron && isOneShotRoutineCron(advancedCron)) return ONCE_ROUTINE_CRON;
+    return advancedCron || "*/3 * * * *";
+  }
   if (input.freq === "Every hour") return "0 * * * *";
   if (input.freq === "Interval") {
     const n = Number.isFinite(input.n) && (input.n ?? 0) > 0 ? (input.n as number) : 5;
@@ -52,6 +64,9 @@ export function cronFromPreset(input: CronPresetInput): string {
 export function presetFromCron(cron: string): CronPreset {
   const base = defaultCronPreset();
   const trimmed = cron.trim();
+  if (isOneShotRoutineCron(trimmed)) {
+    return { ...base, freq: "Advanced", cron: ONCE_ROUTINE_CRON };
+  }
   const parts = trimmed.split(/\s+/);
   if (parts.length < 5) {
     return { ...base, freq: "Advanced", cron: trimmed };
@@ -129,27 +144,43 @@ export function formatSchedule(preset: CronPreset): string {
 }
 
 export function formatCron(cron: string): string {
+  if (isOneShotRoutineCron(cron)) return "One-time";
   return formatSchedule(presetFromCron(cron));
 }
 
+export function resolveRoutineNextRunAt(
+  cron: string,
+  from: Date,
+  timezone: string,
+  existing: Date | null | undefined,
+): Date | null {
+  if (isOneShotRoutineCron(cron)) return existing ?? null;
+  return nextCronDate(cron, from, timezone);
+}
+
 export function nextCronDate(cron: string, from: Date, timezone = "UTC"): Date {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length < 5) {
-    return new Date(from.getTime() + 60_000);
+  if (isOneShotRoutineCron(cron)) {
+    throw new Error("nextCronDate does not apply to one-shot routines");
   }
-  const [minuteExpr, hourExpr] = parts;
-  const candidate = new Date(from.getTime() + 60_000);
-  candidate.setSeconds(0, 0);
-  for (let i = 0; i < 24 * 60 + 2; i += 1) {
-    const minute = candidate.getUTCMinutes();
-    const hour = candidate.getUTCHours();
-    if (matchField(minuteExpr ?? "*", minute, 0, 59) && matchField(hourExpr ?? "*", hour, 0, 23)) {
-      void timezone;
-      return candidate;
-    }
-    candidate.setUTCMinutes(candidate.getUTCMinutes() + 1);
+  if (cron.trim().split(/\s+/).length !== 5) {
+    throw new RangeError("Cron expressions must contain five fields");
   }
-  return new Date(from.getTime() + 60_000);
+  const schedule = new Cron(cron, {
+    paused: true,
+    timezone: validTimezoneOrUtc(timezone),
+  });
+  const next = schedule.nextRun(from);
+  if (!next) throw new RangeError(`Cron expression has no future run: ${cron}`);
+  return next;
+}
+
+function validTimezoneOrUtc(timezone: string): string {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+    return timezone;
+  } catch {
+    return "UTC";
+  }
 }
 
 function parseClock(time: string): { hour: number; minute: number } {
@@ -176,20 +207,4 @@ function stepValue(expr: string): number | null {
 
 function isInt(expr: string): boolean {
   return /^\d+$/.test(expr);
-}
-
-function matchField(expr: string, value: number, min: number, max: number): boolean {
-  if (expr === "*") return true;
-  if (expr.startsWith("*/")) {
-    const step = Number(expr.slice(2));
-    return Number.isFinite(step) && step > 0 && value % step === 0;
-  }
-  if (expr.includes("-")) {
-    const [a, b] = expr.split("-").map(Number);
-    return value >= (a ?? min) && value <= (b ?? max);
-  }
-  if (expr.includes(",")) {
-    return expr.split(",").map(Number).includes(value);
-  }
-  return Number(expr) === value;
 }
