@@ -112,7 +112,6 @@ import {
 import { speaker } from "../lib/tts";
 import type { ContextMenuPosition } from "./BotContextMenu";
 import { CrmView } from "./crm/CrmView";
-import { GroupAvatars } from "./GroupAvatars";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import { WindowChrome } from "./WindowChrome";
@@ -1479,7 +1478,7 @@ export function ShellPage() {
                     } as React.CSSProperties
                   }
                 >
-                  <GroupAvatars colors={group.members.map((member) => member.color)} size={54} />
+                  <GroupAvatar members={group.members} size={54} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <span

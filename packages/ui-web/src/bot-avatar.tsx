@@ -32,12 +32,21 @@ export const BotAvatar = memo(function BotAvatar({
   const sprite = SPRITES[color.toUpperCase()];
   if (sprite) {
     return (
-      <img
-        src={sprite}
-        alt=""
-        className={cn(className)}
-        style={{ width: size, height: size, objectFit: "contain", flex: "none" }}
-      />
+      <div
+        className={cn(
+          "rakazo-bot-avatar relative flex items-center justify-center select-none",
+          className,
+        )}
+        data-working={isWorking}
+        style={{ width: size, height: size, flex: "none" }}
+      >
+        {isWorking ? <WorkingRing size={size} color={color} gradId={gradId} /> : null}
+        <img
+          src={sprite}
+          alt=""
+          style={{ width: size, height: size, objectFit: "contain", flex: "none" }}
+        />
+      </div>
     );
   }
   const visorW = Math.round(size * 0.68);
@@ -78,37 +87,7 @@ export const BotAvatar = memo(function BotAvatar({
           : `0 2px ${Math.max(4, Math.round(size * 0.15))}px rgba(0,0,0,0.4), inset 0 1px 1.5px rgba(255,255,255,0.4)`,
       }}
     >
-      {isWorking ? (
-        <svg
-          className="rakazo-bot-avatar-ring absolute pointer-events-none"
-          style={{
-            inset: -4,
-            width: size + 8,
-            height: size + 8,
-            filter: `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 10px #ffffff)`,
-          }}
-          viewBox="0 0 48 48"
-          fill="none"
-        >
-          <circle
-            cx="24"
-            cy="24"
-            r="22"
-            stroke={`url(#${gradId})`}
-            strokeWidth="3.2"
-            strokeLinecap="round"
-            strokeDasharray="45 80"
-          />
-          <circle cx="43" cy="24" r="2.8" fill="#ffffff" />
-          <defs>
-            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-              <stop offset="60%" stopColor={color} stopOpacity="0.9" />
-              <stop offset="100%" stopColor={color} stopOpacity="0" />
-            </linearGradient>
-          </defs>
-        </svg>
-      ) : null}
+      {isWorking ? <WorkingRing size={size} color={color} gradId={gradId} /> : null}
 
       <div
         className="rakazo-bot-avatar-visor relative flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-[1.04]"
@@ -154,6 +133,40 @@ export const BotAvatar = memo(function BotAvatar({
     </div>
   );
 });
+
+function WorkingRing({ size, color, gradId }: { size: number; color: string; gradId: string }) {
+  return (
+    <svg
+      className="rakazo-bot-avatar-ring absolute pointer-events-none"
+      style={{
+        inset: -4,
+        width: size + 8,
+        height: size + 8,
+        filter: `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 10px #ffffff)`,
+      }}
+      viewBox="0 0 48 48"
+      fill="none"
+    >
+      <circle
+        cx="24"
+        cy="24"
+        r="22"
+        stroke={`url(#${gradId})`}
+        strokeWidth="3.2"
+        strokeLinecap="round"
+        strokeDasharray="45 80"
+      />
+      <circle cx="43" cy="24" r="2.8" fill="#ffffff" />
+      <defs>
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="60%" stopColor={color} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
 
 function hashString(str: string): number {
   let hash = 0;

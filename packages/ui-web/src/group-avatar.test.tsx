@@ -9,7 +9,7 @@ describe("GroupAvatar", () => {
   });
 
   it("renders single BotAvatar when 1 member", () => {
-    const html = renderToString(<GroupAvatar members={[{ name: "Harry", color: "#8B5CF6" }]} />);
+    const html = renderToString(<GroupAvatar members={[{ name: "Harry", color: "#6366F1" }]} />);
     expect(html).toContain("rakazo-bot-avatar");
   });
 
@@ -17,7 +17,7 @@ describe("GroupAvatar", () => {
     const html = renderToString(
       <GroupAvatar
         members={[
-          { name: "Sherlock", color: "#8B5CF6" },
+          { name: "Sherlock", color: "#6366F1" },
           { name: "Elon", color: "#06B6D4" },
         ]}
       />,
@@ -31,7 +31,7 @@ describe("GroupAvatar", () => {
     const html = renderToString(
       <GroupAvatar
         members={[
-          { name: "Sherlock", color: "#8B5CF6", status: "running" },
+          { name: "Sherlock", color: "#6366F1", status: "running" },
           { name: "Elon", color: "#06B6D4", status: "idle" },
         ]}
       />,
@@ -44,7 +44,7 @@ describe("GroupAvatar", () => {
     const html = renderToString(
       <GroupAvatar
         members={[
-          { name: "Sherlock", color: "#8B5CF6" },
+          { name: "Sherlock", color: "#6366F1" },
           { name: "Elon", color: "#06B6D4" },
           { name: "Penny", color: "#EC4899" },
         ]}
@@ -58,7 +58,7 @@ describe("GroupAvatar", () => {
     const html = renderToString(
       <GroupAvatar
         members={[
-          { name: "Sherlock", color: "#8B5CF6" },
+          { name: "Sherlock", color: "#6366F1" },
           { name: "Elon", color: "#06B6D4" },
           { name: "Penny", color: "#EC4899" },
           { name: "Harry", color: "#10B981" },

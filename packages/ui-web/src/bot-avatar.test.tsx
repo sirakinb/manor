@@ -6,7 +6,7 @@ describe("BotAvatar", () => {
   it("renders distinct SVG gradient IDs for concurrent working avatars", () => {
     const html = renderToString(
       <div>
-        <BotAvatar color="#8B5CF6" status="running" />
+        <BotAvatar color="#6366F1" status="running" />
         <BotAvatar color="#10B981" status="running" />
       </div>,
     );
@@ -33,5 +33,19 @@ describe("BotAvatar", () => {
   it("renders idle avatar without working ring when idle", () => {
     const html = renderToString(<BotAvatar color="#F59E0B" status="idle" />);
     expect(html).not.toContain("<svg");
+  });
+
+  it("renders a sprite image for Manor brand colors, with the working ring", () => {
+    const html = renderToString(<BotAvatar color="#8B5CF6" status="running" />);
+    expect(html).toContain("/sprites/sprite-purple.png");
+    expect(html).toContain('data-working="true"');
+    expect(html).toContain("rakazo-bot-avatar-ring");
+  });
+
+  it("renders a sprite without the ring when idle", () => {
+    const html = renderToString(<BotAvatar color="#8B5CF6" status="idle" />);
+    expect(html).toContain("/sprites/sprite-purple.png");
+    expect(html).toContain('data-working="false"');
+    expect(html).not.toContain("rakazo-bot-avatar-ring");
   });
 });
