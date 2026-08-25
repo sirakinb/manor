@@ -3,6 +3,7 @@ import {
   DndContext,
   type DragEndEvent,
   type DragOverEvent,
+  DragOverlay,
   type DragStartEvent,
   PointerSensor,
   useDraggable,
@@ -28,6 +29,7 @@ export function CrmPipelineBoard({
 }) {
   const [pipelineId, setPipelineId] = useState(overview.pipelines[0]?.id ?? "");
   const [creating, setCreating] = useState<null | "deal" | "pipeline">(null);
+  const [editing, setEditing] = useState<CrmDeal | null>(null);
   const pipeline =
     overview.pipelines.find((entry) => entry.id === pipelineId) ?? overview.pipelines[0];
 
@@ -47,6 +49,7 @@ export function CrmPipelineBoard({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const dragFromStage = useRef<string | null>(null);
+  const [activeDeal, setActiveDeal] = useState<CrmDeal | null>(null);
 
   const stageForDeal = useCallback(
     (dealId: string) => deals.find((deal) => deal.id === dealId)?.stageId,
@@ -59,7 +62,9 @@ export function CrmPipelineBoard({
   );
 
   function handleDragStart(event: DragStartEvent) {
-    dragFromStage.current = stageForDeal(String(event.active.id)) ?? null;
+    const dealId = String(event.active.id);
+    dragFromStage.current = stageForDeal(dealId) ?? null;
+    setActiveDeal(deals.find((deal) => deal.id === dealId) ?? null);
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -73,9 +78,15 @@ export function CrmPipelineBoard({
     );
   }
 
+  function handleDragCancel() {
+    dragFromStage.current = null;
+    setActiveDeal(null);
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const from = dragFromStage.current;
     dragFromStage.current = null;
+    setActiveDeal(null);
     if (!event.over) return;
     const dealId = String(event.active.id);
     const target = resolveStage(String(event.over.id));
@@ -146,6 +157,7 @@ export function CrmPipelineBoard({
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-4">
           {pipeline.stages.map((stage) => (
@@ -156,9 +168,22 @@ export function CrmPipelineBoard({
               contactById={contactById}
               onSetStatus={setStatus}
               onDelete={removeDeal}
+              onEdit={setEditing}
             />
           ))}
         </div>
+        <DragOverlay dropAnimation={null}>
+          {activeDeal ? (
+            <DealCardOverlay
+              deal={activeDeal}
+              contact={activeDeal.contactId ? contactById.get(activeDeal.contactId) : undefined}
+              accent={(() => {
+                const stage = pipeline.stages.find((entry) => entry.id === activeDeal.stageId);
+                return stage ? (stage.color ?? stageColor(stage.position)) : "#5F5B69";
+              })()}
+            />
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {creating === "deal" ? (
@@ -168,6 +193,17 @@ export function CrmPipelineBoard({
           onClose={() => setCreating(null)}
           onCreated={async () => {
             setCreating(null);
+            await onChanged();
+          }}
+        />
+      ) : null}
+      {editing ? (
+        <EditDealModal
+          deal={editing}
+          contacts={overview.contacts}
+          onClose={() => setEditing(null)}
+          onSaved={async () => {
+            setEditing(null);
             await onChanged();
           }}
         />
@@ -192,12 +228,14 @@ function StageColumn({
   contactById,
   onSetStatus,
   onDelete,
+  onEdit,
 }: {
   stage: CrmStage;
   deals: CrmDeal[];
   contactById: Map<string, CrmContact>;
   onSetStatus: (dealId: string, status: "open" | "won" | "lost") => void;
   onDelete: (dealId: string) => void;
+  onEdit: (deal: CrmDeal) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
   const accent = stage.color ?? stageColor(stage.position);
@@ -226,6 +264,7 @@ function StageColumn({
             accent={accent}
             onSetStatus={onSetStatus}
             onDelete={onDelete}
+            onEdit={onEdit}
           />
         ))}
         {deals.length === 0 ? (
@@ -244,14 +283,16 @@ function DealCard({
   accent,
   onSetStatus,
   onDelete,
+  onEdit,
 }: {
   deal: CrmDeal;
   contact: CrmContact | undefined;
   accent: string;
   onSetStatus: (dealId: string, status: "open" | "won" | "lost") => void;
   onDelete: (dealId: string) => void;
+  onEdit: (deal: CrmDeal) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: deal.id,
   });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -261,12 +302,9 @@ function DealCard({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      style={{
-        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-        borderLeftColor: accent,
-      }}
+      style={{ borderLeftColor: accent }}
       className={`group relative cursor-grab rounded-lg border border-[#232326] border-l-2 bg-[#18181B] p-3 ${
-        isDragging ? "z-10 opacity-90 shadow-lg" : ""
+        isDragging ? "opacity-30" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -281,33 +319,23 @@ function DealCard({
           ⋯
         </button>
       </div>
-      <div className="mt-1.5 flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-[#DFDFE2] tabular-nums">
-          {formatMoney(deal.value)}
-        </span>
-        {deal.status !== "open" ? (
-          <span
-            className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-            style={{
-              backgroundColor: withAlpha(STATUS_COLORS[deal.status], 0.14),
-              color: STATUS_COLORS[deal.status],
-            }}
-          >
-            {deal.status}
-          </span>
-        ) : null}
-      </div>
-      {contact ? (
-        <p className="mt-1 truncate text-[12px] text-[#6E6975]">
-          {contact.firstName} {contact.lastName}
-        </p>
-      ) : null}
+      <DealCardDetails deal={deal} contact={contact} />
 
       {menuOpen ? (
         <div
           className="absolute right-2 top-7 z-20 w-36 rounded-lg border border-[#2A2A2E] bg-[#1C1C1F] py-1 shadow-xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              onEdit(deal);
+            }}
+            className="block w-full px-3 py-1.5 text-left text-[12.5px] text-[#C9C9CE] hover:bg-[#232326]"
+          >
+            Edit
+          </button>
           {(["open", "won", "lost"] as const)
             .filter((status) => status !== deal.status)
             .map((status) => (
@@ -335,6 +363,55 @@ function DealCard({
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function DealCardDetails({ deal, contact }: { deal: CrmDeal; contact: CrmContact | undefined }) {
+  return (
+    <>
+      <div className="mt-1.5 flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-[#DFDFE2] tabular-nums">
+          {formatMoney(deal.value)}
+        </span>
+        {deal.status !== "open" ? (
+          <span
+            className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+            style={{
+              backgroundColor: withAlpha(STATUS_COLORS[deal.status], 0.14),
+              color: STATUS_COLORS[deal.status],
+            }}
+          >
+            {deal.status}
+          </span>
+        ) : null}
+      </div>
+      {contact ? (
+        <p className="mt-1 truncate text-[12px] text-[#6E6975]">
+          {contact.firstName} {contact.lastName}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+// The card that follows the cursor while dragging; the in-column card ghosts.
+function DealCardOverlay({
+  deal,
+  contact,
+  accent,
+}: {
+  deal: CrmDeal;
+  contact: CrmContact | undefined;
+  accent: string;
+}) {
+  return (
+    <div
+      style={{ borderLeftColor: accent }}
+      className="cursor-grabbing rounded-lg border border-[#232326] border-l-2 bg-[#18181B] p-3 shadow-xl"
+    >
+      <p className="min-w-0 truncate text-[13px] font-medium text-[#ECECEE]">{deal.title}</p>
+      <DealCardDetails deal={deal} contact={contact} />
     </div>
   );
 }
@@ -495,6 +572,91 @@ function CreateDealModal({
             className="rounded-full bg-[#F1F1EF] px-4 py-1.5 text-[13px] font-medium text-[#17171A] disabled:opacity-40"
           >
             Create
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function EditDealModal({
+  deal,
+  contacts,
+  onClose,
+  onSaved,
+}: {
+  deal: CrmDeal;
+  contacts: CrmContact[];
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [title, setTitle] = useState(deal.title);
+  const [value, setValue] = useState(deal.value > 0 ? String(deal.value) : "");
+  const [contactId, setContactId] = useState(deal.contactId ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!title.trim() || busy) return;
+    setBusy(true);
+    try {
+      await rpc.crm.deals.update({
+        dealId: deal.id,
+        title: title.trim(),
+        value: Number.parseInt(value, 10) > 0 ? Number.parseInt(value, 10) : 0,
+        contactId: contactId || null,
+      });
+      await onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <ModalShell title="Edit deal" onClose={onClose}>
+      <div className="space-y-3">
+        <input
+          ref={focusOnMount}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Deal title"
+          className={inputClass}
+        />
+        <input
+          value={value}
+          onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, ""))}
+          placeholder="Value (USD)"
+          inputMode="numeric"
+          className={inputClass}
+        />
+        <select
+          value={contactId}
+          onChange={(event) => setContactId(event.target.value)}
+          className={inputClass}
+        >
+          <option value="">No contact</option>
+          {contacts
+            .filter((contact) => contact.status === "active" || contact.id === deal.contactId)
+            .map((contact) => (
+              <option key={contact.id} value={contact.id}>
+                {contact.firstName} {contact.lastName}
+              </option>
+            ))}
+        </select>
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 text-[13px] text-[#85858A] hover:text-[#C9C9CE]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!title.trim() || busy}
+            onClick={() => void submit()}
+            className="rounded-full bg-[#F1F1EF] px-4 py-1.5 text-[13px] font-medium text-[#17171A] disabled:opacity-40"
+          >
+            Save
           </button>
         </div>
       </div>
