@@ -696,6 +696,7 @@ export function ShellPage() {
             } else if (
               event.type === "bot.spawned" ||
               event.type === "bot.deleted" ||
+              event.type === "run.started" ||
               isRunTerminalEvent(event) ||
               event.type === "thread.cleared"
             ) {
@@ -777,8 +778,11 @@ export function ShellPage() {
               readVisibleGroups.current.delete(groupId);
               markVisibleGroupRead();
             }
-            if (isRunTerminalEvent(event)) {
+            if (isRunTerminalEvent(event) || event.type === "run.started") {
               void refreshGroupThread(groupId).catch(() => undefined);
+              // Sidebar bot/group rows read from bots/groups state, not the thread
+              // snapshot, so member working status needs the list refresh too.
+              void refreshBots().catch(() => undefined);
             }
           }
         } catch {
