@@ -282,9 +282,7 @@ export function ShellPage() {
   function updateSnapshot(update: (prev: ThreadSnapshot | null) => ThreadSnapshot | null) {
     commitSnapshot(update(snapshotRef.current));
   }
-  const [pluginsOpen, setPluginsOpen] = useState(
-    () => Boolean(searchParams.get("integrations")),
-  );
+  const [pluginsOpen, setPluginsOpen] = useState(() => Boolean(searchParams.get("integrations")));
   const [activity, setActivity] = useState<
     Array<{ id: string; runId: string; name: string; detail: string }>
   >([]);
