@@ -111,7 +111,7 @@ function DemoOverlay({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Manor demo"
         tabIndex={-1}
-        className="relative w-[min(1100px,94vw)] overflow-hidden rounded-[18px] border border-[#2B2B2F] bg-black shadow-[0_40px_90px_rgba(0,0,0,.6)] outline-none"
+        className="relative w-[min(1320px,94vw)] overflow-hidden rounded-[18px] border border-[#2B2B2F] bg-black shadow-[0_40px_90px_rgba(0,0,0,.6)] outline-none"
       >
         <video
           ref={video}
