@@ -62,6 +62,12 @@ Connect. Users can add an HTTPS MCP server, Treg endpoint, or OpenAPI JSON docum
 **Integrations** without enabling either managed catalog. Connector credentials are encrypted on the
 server and are never returned by the API.
 
+Native Google Forms access is also optional. Enable the Google Forms API and Google Drive API in a
+Google Cloud project, create an OAuth Web client, and authorize
+`<WEB_ORIGIN>/api/auth/callback/google` as its redirect URI. Set `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` on the API server. Manor requests only form editing, response reading, and
+app-file Drive access; provider tokens are encrypted at rest.
+
 Treg is usage-metered. Self-hosters supply their own Treg token; operators embedding Treg in a
 hosted product should review [Treg's integration terms](https://treg.to/integrate.md), which require
 a written agreement for hosted resale.

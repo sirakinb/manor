@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
@@ -14,6 +14,7 @@ export default defineConfig({
       "apps/api/src/**/*.test.ts",
       "apps/www/src/**/*.test.ts",
     ],
+    exclude: [...configDefaults.exclude, "**/._*"],
     testTimeout: 30_000,
     hookTimeout: 60_000,
   },

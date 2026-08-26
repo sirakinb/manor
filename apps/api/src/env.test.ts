@@ -56,6 +56,16 @@ describe("loadEnv", () => {
     });
   });
 
+  it("loads optional Google OAuth configuration without trimming secrets into logs", () => {
+    const env = loadEnv({
+      ...base,
+      GOOGLE_CLIENT_ID: " google-client-id ",
+      GOOGLE_CLIENT_SECRET: " google-client-secret ",
+    });
+    expect(env.googleClientId).toBe("google-client-id");
+    expect(env.googleClientSecret).toBe("google-client-secret");
+  });
+
   it("throws when production omits secrets", () => {
     expect(() =>
       loadEnv({

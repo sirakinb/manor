@@ -18,6 +18,7 @@ import {
   destroyBot,
   EncryptedSecretStore,
   ExpoPushProvider,
+  GoogleFormsConnector,
   GraphileJobPublisher,
   InMemoryJobQueue,
   InMemoryRealtimeFanout,
@@ -45,6 +46,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { mountChannelRoutes } from "./channels.js";
 import { type AppEnv, loadEnv } from "./env.js";
+import { createGoogleFormsTokenBroker } from "./google-forms-token-broker.js";
 import { createRouter } from "./router.js";
 import { mountVoiceHttpRoutes } from "./voice.js";
 
@@ -135,24 +137,14 @@ export async function createApp(
     pipedreamOverride ??
     (isPipedreamEnabled(pipedreamConfig) ? new PipedreamConnector(pipedreamConfig) : undefined);
   const installed = new InstalledConnectorProvider(prisma, secrets, remoteConnectors);
-  const stack = createConnectorStack(isComposioEnabled(env.composioApiKey), composioOverride, [
-    installed,
-    ...(pipedream ? [pipedream] : []),
-    mcp,
-  ]);
-  const connector = stack.destination;
-  await connector.start();
-  void stack.composio?.warmDirectory().catch(() => undefined);
-  void pipedream?.warmDirectory?.().catch(() => undefined);
-  const runtime =
-    env.agentRuntime === "scripted" ? new ScriptedAgentRuntime() : new PiAgentRuntime();
-  const notifications = new ExpoPushProvider(env.dataDir);
   const auth = createAuth(prisma, {
     secret: env.authSecret,
     baseURL: env.authUrl,
     webOrigin: env.webOrigin,
     signupsEnabled: env.signupsEnabled,
     signupAllowlist: env.signupAllowlist,
+    googleClientId: env.googleClientId,
+    googleClientSecret: env.googleClientSecret,
     extraOrigins: [
       "rakazo://",
       "exp://",
@@ -187,6 +179,23 @@ export async function createApp(
       await rm(pushTokenPath(env.dataDir, userId), { force: true }).catch(() => undefined);
     },
   });
+  const googleForms =
+    env.googleClientId && env.googleClientSecret
+      ? new GoogleFormsConnector(createGoogleFormsTokenBroker(prisma, auth))
+      : undefined;
+  const stack = createConnectorStack(isComposioEnabled(env.composioApiKey), composioOverride, [
+    installed,
+    ...(pipedream ? [pipedream] : []),
+    ...(googleForms ? [googleForms] : []),
+    mcp,
+  ]);
+  const connector = stack.destination;
+  await connector.start();
+  void stack.composio?.warmDirectory().catch(() => undefined);
+  void pipedream?.warmDirectory?.().catch(() => undefined);
+  const runtime =
+    env.agentRuntime === "scripted" ? new ScriptedAgentRuntime() : new PiAgentRuntime();
+  const notifications = new ExpoPushProvider(env.dataDir);
   const executor = createRunExecutor({
     prisma,
     runtime,

@@ -2571,12 +2571,16 @@ export function createRouter(deps: RouterDeps) {
           await deps.prisma.connection.update({
             where: { id: row.id },
             data: {
-              status: auth.authorizationUrl ? "pending" : "connected",
+              status: auth.authorizationUrl || auth.accountLink ? "pending" : "connected",
               providerRef: auth.state || null,
               metadata: { state: auth.state },
             },
           });
-          return { connectionId: row.id, authorizationUrl: auth.authorizationUrl };
+          return {
+            connectionId: row.id,
+            authorizationUrl: auth.authorizationUrl,
+            accountLink: auth.accountLink,
+          };
         } catch (error) {
           await deps.prisma.connection.update({
             where: { id: row.id },

@@ -9,6 +9,8 @@ export interface AppEnv {
   apiUrl: string;
   signupsEnabled: string | undefined;
   signupAllowlist: string | undefined;
+  googleClientId: string | undefined;
+  googleClientSecret: string | undefined;
   encryptionKey: string;
   dataDir: string;
   sandboxSupervisorUrl: string;
@@ -47,6 +49,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     apiUrl: source.API_URL ?? "http://127.0.0.1:3100",
     signupsEnabled: source.SIGNUPS_ENABLED,
     signupAllowlist: source.SIGNUP_ALLOWLIST,
+    googleClientId: optional(source.GOOGLE_CLIENT_ID),
+    googleClientSecret: optional(source.GOOGLE_CLIENT_SECRET),
     encryptionKey: resolveEncryptionKey(source),
     dataDir: source.DATA_DIR ?? "./data",
     sandboxSupervisorUrl: source.SANDBOX_SUPERVISOR_URL ?? "http://127.0.0.1:7091",

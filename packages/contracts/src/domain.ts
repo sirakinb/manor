@@ -435,6 +435,12 @@ export const ConnectionCatalogItemSchema = z.object({
   logo: z.string().nullable(),
   connected: z.boolean(),
   noAuth: z.boolean(),
+  accountLink: z
+    .object({
+      provider: z.string(),
+      scopes: z.array(z.string()),
+    })
+    .optional(),
 });
 export type ConnectionCatalogItem = z.infer<typeof ConnectionCatalogItemSchema>;
 

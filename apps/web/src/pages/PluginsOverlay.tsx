@@ -2,6 +2,7 @@ import type { CapabilityInstall, ConnectionCatalogItem } from "@rakazo/contracts
 import { abortableDelay } from "@rakazo/core";
 import { Button } from "@rakazo/ui-web";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { authClient } from "../lib/auth";
 import { rpc } from "../lib/rpc";
 
 type CatalogView = "all" | "connected" | "sources";
@@ -97,6 +98,15 @@ export function PluginsOverlay({
       });
       if (started.authorizationUrl)
         window.open(started.authorizationUrl, "_blank", "noopener,noreferrer");
+      if (started.accountLink) {
+        const linked = await authClient.linkSocial({
+          provider: started.accountLink.provider,
+          scopes: started.accountLink.scopes,
+          callbackURL: `${window.location.origin}/app?integrations=${encodeURIComponent(item.slug)}`,
+        });
+        if (linked.error) throw new Error(linked.error.message ?? "Could not connect account");
+        return;
+      }
       if (item.noAuth && !started.authorizationUrl) {
         if (controller.signal.aborted) return;
         setItemConnected(item, true);
@@ -142,6 +152,10 @@ export function PluginsOverlay({
         matches.find((entry) => entry.status === "error");
       if (!row) throw new Error(`No connection record found for ${item.name}.`);
       await rpc.connections.revoke({ connectionId: row.id });
+      if (item.accountLink) {
+        const unlinked = await authClient.unlinkAccount({ providerId: item.accountLink.provider });
+        if (unlinked.error) throw new Error(unlinked.error.message ?? "Could not unlink account");
+      }
       setItemConnected(item, false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not revoke connection");

@@ -129,7 +129,14 @@ export interface ConnectionAuthProvider {
   begin(
     request: { provider: string; redirectUrl: string },
     context: AdapterContext,
-  ): Promise<{ authorizationUrl: string | null; state: string }>;
+  ): Promise<{
+    authorizationUrl: string | null;
+    state: string;
+    accountLink?: {
+      provider: string;
+      scopes: string[];
+    };
+  }>;
   complete(
     request: { state: string; code?: string },
     context: AdapterContext,

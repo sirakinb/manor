@@ -12,6 +12,8 @@ export interface AuthEnv {
   webOrigin: string;
   signupsEnabled: string | undefined;
   signupAllowlist: string | undefined;
+  googleClientId?: string;
+  googleClientSecret?: string;
   extraOrigins?: string[];
   beforeDeleteUser?: (userId: string) => Promise<void>;
 }
@@ -21,6 +23,7 @@ function newId(): string {
 }
 
 export function createAuth(prisma: PrismaClient, env: AuthEnv) {
+  const googleEnabled = Boolean(env.googleClientId && env.googleClientSecret);
   return betterAuth({
     appName: "Rakazo",
     secret: env.secret,
@@ -31,6 +34,22 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       enabled: true,
       disableSignUp: !signupsOpen(env.signupsEnabled),
     },
+    account: {
+      encryptOAuthTokens: true,
+      accountLinking: { disableImplicitLinking: true },
+    },
+    ...(googleEnabled
+      ? {
+          socialProviders: {
+            google: {
+              clientId: env.googleClientId!,
+              clientSecret: env.googleClientSecret!,
+              accessType: "offline" as const,
+              prompt: "select_account consent",
+            },
+          },
+        }
+      : {}),
     user: {
       deleteUser: {
         enabled: true,

@@ -47,6 +47,10 @@ export default function Integrations() {
   }, []);
 
   async function connect(item: ConnectionCatalogItem) {
+    if (item.accountLink) {
+      Alert.alert("Use Manor web", `Connect ${item.name} from Manor on the web or desktop.`);
+      return;
+    }
     connectionAttempt.current?.abort();
     const controller = new AbortController();
     connectionAttempt.current = controller;
@@ -92,6 +96,10 @@ export default function Integrations() {
   }
 
   async function revoke(item: ConnectionCatalogItem) {
+    if (item.accountLink) {
+      Alert.alert("Use Manor web", `Disconnect ${item.name} from Manor on the web or desktop.`);
+      return;
+    }
     const key = `${item.connectorId}:${item.slug}`;
     setPending(key);
     setError(null);

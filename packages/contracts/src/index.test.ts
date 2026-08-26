@@ -4,6 +4,7 @@ import {
   BOT_DESCRIPTION_MAX_LENGTH,
   BOT_INSTRUCTIONS_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
+  ConnectionCatalogItemSchema,
   CreateBotInput,
   CreateGroupInput,
   McpServerConfigInput,
@@ -119,6 +120,26 @@ describe("contracts", () => {
     expect(ProductEventType.options).toContain("thread.cleared");
     expect(ProductEventType.options).toContain("thread.subagent");
     expect(ProductEventType.options).toContain("bot.spawned");
+  });
+
+  it("keeps account-link OAuth instructions provider-neutral and non-secret", () => {
+    expect(
+      ConnectionCatalogItemSchema.parse({
+        connectorId: "google-workspace",
+        slug: "google-forms",
+        name: "Google Forms",
+        logo: null,
+        connected: false,
+        noAuth: false,
+        accountLink: {
+          provider: "google",
+          scopes: ["https://www.googleapis.com/auth/forms.body"],
+        },
+      }).accountLink,
+    ).toEqual({
+      provider: "google",
+      scopes: ["https://www.googleapis.com/auth/forms.body"],
+    });
   });
 
   it("accepts bot-to-bot runs in thread snapshots and activity rows", () => {

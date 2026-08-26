@@ -577,7 +577,13 @@ export const appContract = {
           displayName: z.string(),
         }),
       )
-      .output(z.object({ connectionId: Id, authorizationUrl: z.string().nullable() })),
+      .output(
+        z.object({
+          connectionId: Id,
+          authorizationUrl: z.string().nullable(),
+          accountLink: ConnectionCatalogItemSchema.shape.accountLink,
+        }),
+      ),
     complete: oc
       .input(z.object({ connectionId: Id, code: z.string().optional() }))
       .output(ConnectionSchema),
