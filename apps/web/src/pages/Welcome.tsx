@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { WindowChrome } from "./WindowChrome";
 
 export function WelcomePage() {
-  const navigate = useNavigate();
+  const [demoOpen, setDemoOpen] = useState(false);
   return (
     <div className="lp relative min-h-full overflow-hidden bg-black text-[#fafafa]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -41,7 +41,7 @@ export function WelcomePage() {
       <main className="relative z-10 flex min-h-[calc(100dvh-108px)] flex-col justify-end px-5 pb-24 sm:px-8 sm:pb-36">
         <button
           type="button"
-          onClick={() => navigate("/sign-up")}
+          onClick={() => setDemoOpen(true)}
           className="lp-glass app-no-drag absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-[58%] items-center gap-2 rounded-full px-5 py-2.5 text-sm text-[#fafafa] transition hover:bg-white/15"
         >
           <span
@@ -67,6 +67,80 @@ export function WelcomePage() {
           </h1>
         </div>
       </main>
+
+      {demoOpen ? <DemoOverlay onClose={() => setDemoOpen(false)} /> : null}
+    </div>
+  );
+}
+
+function DemoOverlay({ onClose }: { onClose: () => void }) {
+  const dialog = useRef<HTMLDivElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onCloseRef.current();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    dialog.current?.focus();
+    // A click opened this, so the page carries user activation and audio may start.
+    // Browsers that still refuse leave the poster up behind the native controls.
+    void video.current?.play().catch(() => undefined);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, []);
+
+  return (
+    <div className="app-no-drag absolute inset-0 z-30 flex items-center justify-center bg-[rgba(4,4,5,.78)] p-4 backdrop-blur-sm sm:p-10">
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Close demo"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
+      <div
+        ref={dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Manor demo"
+        tabIndex={-1}
+        className="relative w-[min(1100px,94vw)] overflow-hidden rounded-[18px] border border-[#2B2B2F] bg-black shadow-[0_40px_90px_rgba(0,0,0,.6)] outline-none"
+      >
+        <video
+          ref={video}
+          src="/manor-demo.mp4"
+          poster="/manor-demo-poster.jpg"
+          controls
+          playsInline
+          preload="metadata"
+          onEnded={onClose}
+          className="block max-h-[82vh] w-full bg-black"
+        >
+          <track kind="captions" />
+        </video>
+      </div>
+      <button
+        type="button"
+        aria-label="Close demo"
+        onClick={onClose}
+        className="lp-glass absolute top-5 right-5 grid size-9 place-items-center rounded-full text-[#fafafa] transition hover:bg-white/15 sm:top-8 sm:right-8"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4">
+          <path
+            d="M3.5 3.5l9 9m0-9l-9 9"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
     </div>
   );
 }
