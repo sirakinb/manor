@@ -82,7 +82,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - appdata:/data
     networks:
-      - app
+      app:
+      # Sync #5: the supervisor now probes a computer's VNC port before
+      # answering boot (waitForScreenReady) and proxies control streams, so it
+      # must reach the pinned screens network the computers live on. Static IP
+      # so harden-computer-egress.sh can exempt it like web's screen proxy.
+      screens:
+        ipv4_address: 172.31.240.11
     depends_on:
       computer:
         condition: service_completed_successfully

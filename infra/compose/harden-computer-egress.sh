@@ -9,18 +9,20 @@
 #   FORWARD (DOCKER-USER): computer subnet -> RFC1918 / link-local / loopback
 #   INPUT:                 computer subnet -> the host itself
 #
-# Return traffic and the web container (which proxies screen streams into the
-# computers) are allowed explicitly.
+# Return traffic, the web container (which proxies screen streams into the
+# computers), and the supervisor (which probes VNC readiness and proxies
+# control streams since upstream sync #5) are allowed explicitly.
 #
 # Configure:
-#   COMPUTER_SUBNET  CIDR of the computers' network (default 172.31.240.0/24)
-#   SCREEN_PROXY_IP  address allowed to open connections into it (default .10)
+#   COMPUTER_SUBNET   CIDR of the computers' network (default 172.31.240.0/24)
+#   SCREEN_PROXY_IPS  space-separated addresses allowed to open connections
+#                     into it (default ".10 .11": web, supervisor)
 #
 # Rules live in memory; install the companion systemd unit to reapply on boot.
 set -euo pipefail
 
 COMPUTER_SUBNET="${COMPUTER_SUBNET:-172.31.240.0/24}"
-SCREEN_PROXY_IP="${SCREEN_PROXY_IP:-172.31.240.10}"
+SCREEN_PROXY_IPS="${SCREEN_PROXY_IPS:-172.31.240.10 172.31.240.11}"
 PRIVATE_RANGES=(10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 127.0.0.0/8)
 TAG="manor-computer-egress"
 
@@ -47,8 +49,11 @@ flush_tagged INPUT
 pos=1
 iptables -I DOCKER-USER "${pos}" -m conntrack --ctstate ESTABLISHED,RELATED \
   -m comment --comment "${TAG}" -j RETURN; pos=$((pos + 1))
-iptables -I DOCKER-USER "${pos}" -s "${SCREEN_PROXY_IP}" \
-  -m comment --comment "${TAG}" -j RETURN; pos=$((pos + 1))
+for proxy_ip in ${SCREEN_PROXY_IPS}; do
+  iptables -I DOCKER-USER "${pos}" -s "${proxy_ip}" \
+    -m comment --comment "${TAG}" -j RETURN
+  pos=$((pos + 1))
+done
 for range in "${PRIVATE_RANGES[@]}"; do
   iptables -I DOCKER-USER "${pos}" -s "${COMPUTER_SUBNET}" -d "${range}" \
     -m comment --comment "${TAG}" -j DROP
@@ -61,4 +66,4 @@ iptables -I INPUT 1 -s "${COMPUTER_SUBNET}" -m conntrack --ctstate ESTABLISHED,R
 iptables -I INPUT 2 -s "${COMPUTER_SUBNET}" \
   -m comment --comment "${TAG}" -j DROP
 
-echo "Applied ${TAG} rules for ${COMPUTER_SUBNET} (screen proxy ${SCREEN_PROXY_IP} allowed)."
+echo "Applied ${TAG} rules for ${COMPUTER_SUBNET} (proxies allowed: ${SCREEN_PROXY_IPS})."
