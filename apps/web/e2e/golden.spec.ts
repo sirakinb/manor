@@ -217,7 +217,7 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   const composer = page.getByPlaceholder(/Message/);
   await composer.fill("spawn a bot named Scout to research venues");
   await page.keyboard.press("Enter");
-  await expect(sidebarBotButton(page, /Scout/)).toBeVisible({
+  await expect(sidebarBotButton(page, /^Scout\b/)).toBeVisible({
     timeout: 30_000,
   });
   await captureScreenshot(page, testInfo, "13-spawned-bot");
