@@ -77,6 +77,26 @@ pnpm dev
 
 That runs Manor locally. To put it in the cloud — your own always-on instance behind a Cloudflare Tunnel, like the one this repo was built for — follow the step-by-step guide in [`docs/DEPLOY.md`](./docs/DEPLOY.md). Three accounts (a ~$15/mo VPS, a domain, free Cloudflare), six steps, about 45 minutes.
 
+## Desktop and mobile
+
+The Electron and Expo apps are clients of the same Manor API used by the web app.
+
+With the development stack running, launch Electron with:
+
+```bash
+pnpm --filter @rakazo/desktop dev
+```
+
+On first run the desktop app asks whether to use the stack on this computer
+(`http://127.0.0.1:5173`) or connect to an existing server. Public servers must use HTTPS; HTTP is
+accepted only for loopback and private LAN addresses (not link-local). The app verifies the
+server's health endpoint before saving, and later launches go straight to that instance.
+
+Use **Change Server…** in the application menu to reconnect. Closing that window without
+saving returns to the previous instance. For development automation, set `RAKAZO_WEB_URL` to point
+the shell somewhere else without changing the saved instance, or `RAKAZO_FORCE_SETUP=1` to run
+setup again.
+
 ## License
 
 Apache 2.0 — see [LICENSE](./LICENSE).
