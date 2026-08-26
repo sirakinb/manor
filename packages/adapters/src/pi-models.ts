@@ -1,10 +1,12 @@
 // Must run before builtinModels() so extra models land in the catalog.
 import "./extra-openrouter-models.js";
+import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
-import type { ModelOAuthSignInMode } from "@rakazo/contracts";
+import type { ModelOAuthSignInMode, ThinkingLevel } from "@rakazo/contracts";
 import { LOCAL_PROVIDER_ID, registerLocalProvider } from "./pi-local-provider.js";
 import { SUBSCRIPTION_SIGN_IN_PROVIDERS } from "./pi-oauth.js";
 import {
+  OPENAI_COMPATIBLE_CATALOG_MODEL_ID,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   registerOpenAiCompatibleCatalog,
 } from "./pi-openai-compatible-provider.js";
@@ -22,6 +24,9 @@ export type PiCatalogEntry = {
   authHint?: string;
   subscription: boolean;
   signIn?: ModelOAuthSignInMode;
+  reasoning?: boolean;
+  thinkingLevels?: ThinkingLevel[];
+  placeholder?: boolean;
 };
 
 export function listPiCatalog(): PiCatalogEntry[] {
@@ -47,6 +52,7 @@ function buildPiCatalog(): PiCatalogEntry[] {
       oauth,
     });
     for (const model of provider.getModels()) {
+      const thinkingLevels = getSupportedThinkingLevels(model) as ThinkingLevel[];
       entries.push({
         provider: provider.id,
         providerName: provider.name,
@@ -59,6 +65,9 @@ function buildPiCatalog(): PiCatalogEntry[] {
           provider.id === OPENAI_COMPATIBLE_PROVIDER_ID ? "Custom server" : signInMeta?.hint,
         subscription,
         signIn: signInMeta?.mode,
+        reasoning: Boolean(model.reasoning),
+        thinkingLevels,
+        ...(model.id === OPENAI_COMPATIBLE_CATALOG_MODEL_ID ? { placeholder: true } : {}),
       });
     }
   }
@@ -78,6 +87,8 @@ function buildPiCatalog(): PiCatalogEntry[] {
       billing: `Configured via PI_DEFAULT_MODEL (${envDefaultModel}).`,
       auth: "api-key",
       subscription: false,
+      reasoning: true,
+      thinkingLevels: ["off", "minimal", "low", "medium", "high"],
     });
   }
 
