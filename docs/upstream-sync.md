@@ -52,10 +52,10 @@ Known Manor deltas to preserve through any resolution:
   CRM routes in `router.ts`, CRM pages, the `/app/crm` redirect guard in
   `Shell.tsx`'s `refreshBots`.
 - The four Team Computer fixes: owner-change rule in `screen-lease.ts`,
-  ref-persist `updateMany` in `computer-lifecycle.ts`, boot-reconcile in
+  ref-persist `updateMany` in `packages/adapters/src/computer-lifecycle.ts`, boot-reconcile in
   `router.ts`, try/catch around both `setScreenControl` revocations.
 - Channel messaging: the `send_channel_message` filter and dispatch in
-  `executor.ts`, `channels.ts`.
+  `executor.ts`, `builtin-tools.ts`.
 - The activity feed and Manor's skin throughout the web + mobile apps.
 
 ## Verification checklist (before main advances)
@@ -76,7 +76,10 @@ grep -n "Clients only call boot" apps/api/src/router.ts
 ```
 
 Known non-blockers: `sandbox-conformance` listFiles failure (pre-existing),
-occasional `voice-http` deadline timing flake (passes on rerun).
+occasional `voice-http` deadline timing flake (passes on rerun), and
+`desktop-sandbox-write-containment.test.ts` "keeps writes on the opened
+inode" (macOS-only: the test expects Linux `/proc/self/fd` semantics;
+macOS takes the fail-closed pathname branch. Passes on Linux CI).
 
 ## Landing and deploying
 
