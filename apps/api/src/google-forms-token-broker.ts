@@ -23,6 +23,19 @@ export function createGoogleFormsTokenBroker(
       if (!token.accessToken) throw new Error("Google Forms is not connected");
       return token.accessToken;
     },
+    async disconnect(userId) {
+      await prisma.account.updateMany({
+        where: { userId, providerId: "google" },
+        data: {
+          accessToken: null,
+          refreshToken: null,
+          idToken: null,
+          accessTokenExpiresAt: null,
+          refreshTokenExpiresAt: null,
+          scope: null,
+        },
+      });
+    },
   };
 }
 

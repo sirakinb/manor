@@ -21,11 +21,13 @@ export const GOOGLE_FORMS_SCOPES = [
   "https://www.googleapis.com/auth/forms.body",
   "https://www.googleapis.com/auth/forms.responses.readonly",
   "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/drive.metadata.readonly",
 ] as const;
 
 export interface GoogleFormsTokenBroker {
   isConnected(userId: string, requiredScopes: readonly string[]): Promise<boolean>;
   accessToken(userId: string): Promise<string>;
+  disconnect(userId: string): Promise<void>;
 }
 
 export interface GoogleFormsConnectorDependencies {
@@ -201,10 +203,11 @@ export class GoogleFormsConnector implements ManagedConnectorProvider {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ token }),
-      signal: context.signal,
+      signal: combineSignals(context.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)),
     });
-    if (!response.ok)
+    if (!response.ok && response.status !== 400)
       throw new Error(`Google authorization revocation failed (${response.status})`);
+    await this.tokens.disconnect(context.userId);
   }
 
   private async executeTool(
