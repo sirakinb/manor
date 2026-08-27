@@ -18,6 +18,7 @@ function broker(connected = true): GoogleFormsTokenBroker {
   return {
     isConnected: vi.fn(async () => connected),
     accessToken: vi.fn(async () => "fake-google-access-token"),
+    disconnect: vi.fn(async () => {}),
   };
 }
 
@@ -192,6 +193,30 @@ describe("GoogleFormsConnector", () => {
     ).resolves.toEqual([{ type: "error", message: "Bearer [redacted] is invalid" }]);
     expect(seen[0]).toContain("mimeType+%3D+%27application%2Fvnd.google-apps.form%27");
     expect(seen[1]).toContain("/forms/form-1/responses?pageSize=20");
+  });
+
+  it("clears stored credentials on revoke, including an already-revoked token", async () => {
+    for (const status of [200, 400]) {
+      const tokens = broker();
+      const connector = new GoogleFormsConnector(tokens, {
+        fetch: vi.fn(async () => new Response(null, { status })),
+      });
+
+      await expect(connector.revoke("connection-1", context)).resolves.toBeUndefined();
+      expect(tokens.disconnect).toHaveBeenCalledWith(context.userId);
+    }
+  });
+
+  it("keeps credentials when revocation fails for an unexpected reason", async () => {
+    const tokens = broker();
+    const connector = new GoogleFormsConnector(tokens, {
+      fetch: vi.fn(async () => new Response(null, { status: 503 })),
+    });
+
+    await expect(connector.revoke("connection-1", context)).rejects.toThrow(
+      "Google authorization revocation failed (503)",
+    );
+    expect(tokens.disconnect).not.toHaveBeenCalled();
   });
 
   it("appends new questions after existing form items", async () => {
