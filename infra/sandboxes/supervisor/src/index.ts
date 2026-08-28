@@ -875,7 +875,10 @@ async function applyComputerDns(container: Docker.Container) {
 // computer reach another bot's desktop/VNC endpoint with no authentication).
 async function computerNetworkName(botId: string, info: Docker.ContainerInspectInfo | undefined) {
   // Manor: RAKAZO_COMPUTER_NETWORK pins computers to a dedicated network so
-  // host egress policy can be applied to that subnet alone.
+  // host egress policy can be applied to that subnet alone. That trades the
+  // per-bot isolation described above for a targetable subnet, so the host
+  // firewall becomes what keeps bots off each other's VNC — see the computer
+  // network policy section in infra/compose/VPS.md.
   const pinned = process.env.RAKAZO_COMPUTER_NETWORK?.trim();
   if (pinned) return pinned;
   if (screenNetworkMode === "internal") {

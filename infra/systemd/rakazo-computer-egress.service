@@ -1,0 +1,15 @@
+[Unit]
+Description=Apply egress and isolation rules for Manor agent computers
+# The rules live in Docker's own chains, which Docker rebuilds when it starts,
+# so this has to run after Docker rather than merely once at boot.
+Requires=docker.service
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/rakazo-computer-egress
+
+[Install]
+WantedBy=multi-user.target

@@ -6,6 +6,10 @@
 # other containers, not the cloud metadata address. This installs idempotent
 # iptables rules that allow internet egress and drop everything else.
 #
+# Required, not hardening-on-top: Manor pins every computer to one shared
+# network, so the RFC1918 drop below is also what stops one bot from reaching
+# another bot's unauthenticated VNC.
+#
 #   FORWARD (DOCKER-USER): computer subnet -> RFC1918 / link-local / loopback
 #   INPUT:                 computer subnet -> the host itself
 #
@@ -18,7 +22,9 @@
 #   SCREEN_PROXY_IPS  space-separated addresses allowed to open connections
 #                     into it (default ".10 .11": web, supervisor)
 #
-# Rules live in memory; install the companion systemd unit to reapply on boot.
+# Rules live in memory and Docker rebuilds its chains on restart, so install
+# infra/systemd/rakazo-computer-egress.service to reapply them. Setup steps are
+# in infra/compose/VPS.md.
 set -euo pipefail
 
 COMPUTER_SUBNET="${COMPUTER_SUBNET:-172.31.240.0/24}"
