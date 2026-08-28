@@ -115,6 +115,9 @@ services:
       - ../../.env.vps
     environment:
       NODE_ENV: production
+      # Sibling containers reach the API over the compose network, so it must
+      # not bind loopback-only inside its own namespace.
+      API_HOST: "0.0.0.0"
       DATABASE_URL: postgres://${POSTGRES_USER:-manor}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.vps}@postgres:5432/${POSTGRES_DB:-manor}
       DATA_DIR: /data
       SANDBOX_PROVIDER: docker
@@ -169,6 +172,9 @@ services:
       - ../../.env.vps
     environment:
       NODE_ENV: production
+      # The worker runs no HTTP surface and signs no screen URLs.
+      BETTER_AUTH_SECRET: ""
+      SCREEN_PROXY_SECRET: ""
       DATABASE_URL: postgres://${POSTGRES_USER:-manor}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.vps}@postgres:5432/${POSTGRES_DB:-manor}
       DATA_DIR: /data
       SANDBOX_PROVIDER: docker
@@ -208,12 +214,13 @@ services:
       - ALL
     pids_limit: 128
     mem_limit: 512m
-    env_file:
-      - ../../.env.vps
+    # No env_file: this container is the internet-facing edge, so it gets an
+    # explicit allowlist instead of every secret in .env.vps.
     environment:
       NODE_ENV: production
       API_PROXY_TARGET: http://api:3100
       RAKAZO_HOST: ${RAKAZO_HOST:?Set RAKAZO_HOST in .env.vps}
+      SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env.vps}
     expose:
       - "5173"
     networks:

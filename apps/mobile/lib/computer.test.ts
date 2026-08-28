@@ -11,6 +11,25 @@ import {
   screenSessionKey,
 } from "./computer.js";
 
+function computer(overrides: Partial<ComputerStatus> = {}): ComputerStatus {
+  return {
+    botId: "bot-1",
+    mode: "team",
+    kind: "fake",
+    state: "running",
+    controlHolder: "none",
+    controlBotId: null,
+    takeoverRequested: false,
+    screenAvailable: true,
+    screenWidth: 1280,
+    screenHeight: 800,
+    homeRevision: null,
+    busyBotName: null,
+    updateAvailable: true,
+    ...overrides,
+  };
+}
+
 describe("embeddableScreenUrl", () => {
   it("leaves a public stream URL alone", () => {
     const url = "https://sandbox.e2b.app/stream?authKey=abc&view_only=true";
@@ -49,45 +68,35 @@ describe("computer copy", () => {
     expect(previewPlaceholder("running", true, "Chief")).toBe("Booting live desktop…");
     expect(
       controlLabel(
-        {
+        computer({
           state: "running",
           controlHolder: "user",
           controlBotId: "bot-1",
           takeoverRequested: true,
-          screenAvailable: true,
-          mode: "team",
-          busyBotName: null,
-        },
+        }),
         "Chief",
         "bot-1",
       ),
     ).toBe("You have control");
     expect(
       controlLabel(
-        {
+        computer({
           state: "running",
           controlHolder: "user",
           controlBotId: "other-bot",
-          takeoverRequested: false,
-          screenAvailable: true,
-          mode: "team",
-          busyBotName: null,
-        },
+        }),
         "Chief",
         "bot-1",
       ),
     ).toBe("Team Computer");
     expect(
       controlLabel(
-        {
+        computer({
           state: "suspended",
           controlHolder: "none",
           controlBotId: null,
-          takeoverRequested: false,
           screenAvailable: false,
-          mode: "team",
-          busyBotName: null,
-        },
+        }),
         "Chief",
       ),
     ).toBe("Asleep");
@@ -176,13 +185,19 @@ describe("mobile computer screen", () => {
 
 describe("screenSessionKey", () => {
   const running: ComputerStatus = {
+    botId: "bot_1",
+    kind: "docker",
     state: "running",
     controlHolder: "user",
     controlBotId: "bot_1",
     takeoverRequested: false,
     screenAvailable: true,
+    screenWidth: 1280,
+    screenHeight: 800,
+    homeRevision: null,
     mode: "team",
     busyBotName: null,
+    updateAvailable: false,
   };
 
   it("is stable across the noise a status poll carries", () => {

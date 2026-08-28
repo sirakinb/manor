@@ -8,6 +8,7 @@ import {
   AppBootstrapSchema,
   ArtifactSchema,
   ArtifactWithContentSchema,
+  AvatarStyleSchema,
   BotMcpServerSchema,
   BotSchema,
   BotSectionSchema,
@@ -43,6 +44,10 @@ import {
   RoutineSchema,
   ScratchpadItemSchema,
   ScratchpadItemStatusSchema,
+  ServerUpdateCheckSchema,
+  ServerUpdateRequestSchema,
+  ServerUpdateRunSchema,
+  ServerUpdateStatusSchema,
   SkillPlaybookSchema,
   TaughtSkillSchema,
   TeachRecordingEventSchema,
@@ -59,7 +64,7 @@ import {
   WorkspaceMemoryConfigSchema,
 } from "./domain.js";
 import { ProductEventSchema } from "./events.js";
-import { Id } from "./ids.js";
+import { Id, IsoDate } from "./ids.js";
 import { RunsListOutputSchema } from "./runs.js";
 import { SearchQueryOutputSchema } from "./search.js";
 
@@ -117,6 +122,9 @@ const threadSendInput = threadTarget
 export const appContract = {
   health: oc.output(z.object({ ok: z.literal(true), version: z.string() })),
   me: oc.output(MeSchema),
+  preferences: {
+    update: oc.input(z.object({ avatarStyle: AvatarStyleSchema })).output(MeSchema),
+  },
   bootstrap: oc.input(z.object({ botId: Id.optional() })).output(AppBootstrapSchema),
   deployment: {
     get: oc.output(DeploymentSettingsSchema),
@@ -129,6 +137,16 @@ export const appContract = {
         }),
       )
       .output(DeploymentSettingsSchema),
+  },
+  /**
+   * Deployment-owner product updates. When the Compose updater sidecar is reachable, these proxy
+   * to its `/state` `/plan` `/apply` contract. Rollback stays on the sidecar for ops only and is
+   * not exposed here. Never git-fetch from the API process.
+   */
+  updater: {
+    status: oc.output(ServerUpdateStatusSchema),
+    check: oc.input(ServerUpdateRequestSchema).output(ServerUpdateCheckSchema),
+    apply: oc.input(ServerUpdateRequestSchema).output(ServerUpdateRunSchema),
   },
   models: {
     list: oc.output(z.array(ModelCatalogEntrySchema)),
@@ -188,14 +206,18 @@ export const appContract = {
   groups: {
     create: oc.input(CreateGroupInput).output(GroupSchema),
     list: oc.output(z.array(GroupSchema)),
+    listArchived: oc.output(z.array(GroupSchema)),
     get: oc.input(groupId).output(GroupDetailSchema),
+    duplicate: oc.input(groupId).output(GroupSchema),
     update: oc.input(UpdateGroupInput).output(GroupSchema),
+    archive: oc.input(groupId).output(z.object({ ok: z.literal(true) })),
+    restore: oc.input(groupId).output(z.object({ ok: z.literal(true) })),
     remove: oc.input(groupId).output(z.object({ ok: z.literal(true) })),
   },
   botSections: {
     list: oc.output(z.array(BotSectionSchema)),
     create: oc
-      .input(z.object({ botId: Id, name: z.string().trim().min(1).max(60) }))
+      .input(threadTarget.safeExtend({ name: z.string().trim().min(1).max(60) }))
       .output(BotSectionSchema),
   },
   crm: {
@@ -314,7 +336,7 @@ export const appContract = {
     followUp: oc
       .input(threadTarget.safeExtend({ text: z.string().min(1) }))
       .output(z.object({ ok: z.literal(true) })),
-    clear: oc.input(botId).output(z.object({ ok: z.literal(true) })),
+    clear: oc.input(threadTarget).output(z.object({ ok: z.literal(true) })),
     answer: oc
       .input(
         threadTarget.safeExtend({
@@ -331,6 +353,9 @@ export const appContract = {
     status: oc.input(botId).output(ComputerStatusSchema),
     boot: oc.input(botId).output(ComputerStatusSchema),
     stop: oc.input(botId).output(ComputerStatusSchema),
+    recover: oc.input(botId).output(ComputerStatusSchema),
+    reset: oc.input(botId).output(ComputerStatusSchema),
+    update: oc.input(botId).output(ComputerStatusSchema),
     takeover: oc.input(botId).output(z.object({ leaseId: Id, expiresAt: z.string() })),
     release: oc
       .input(
@@ -406,6 +431,8 @@ export const appContract = {
           timezone: z.string().optional(),
           active: z.boolean().optional(),
           notify: z.boolean().optional(),
+          /** ISO datetime to arm a never-run one-shot. */
+          runAt: IsoDate.optional(),
         }),
       )
       .output(RoutineSchema),

@@ -54,7 +54,9 @@ cd manor
 cp .env.example .env
 ```
 
-Set `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` to independent, long random values. Optionally set `OPENROUTER_API_KEY`, or connect a model subscription during onboarding.
+Set `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, and `SCREEN_PROXY_SECRET` in `.env` to independent
+long random values. Docker sandboxes also need a dedicated `SANDBOX_SUPERVISOR_TOKEN`. You can
+also set `OPENROUTER_API_KEY`, or connect a supported model provider during onboarding.
 
 Managed app catalogs are optional. Set `COMPOSIO_API_KEY` for Composio, or the
 `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`, and `PIPEDREAM_PROJECT_ID` trio for Pipedream
@@ -102,6 +104,12 @@ Use **Change Server…** in the application menu to reconnect. Closing that wind
 saving returns to the previous instance. For development automation, set `RAKAZO_WEB_URL` to point
 the shell somewhere else without changing the saved instance, or `RAKAZO_FORCE_SETUP=1` to run
 setup again.
+
+## Web UI language
+
+The web (and Electron-hosted) UI supports English, Deutsch, 한국어, Türkçe, हिन्दी, and Português
+(Brasil). Change it under **Settings → Language**. The marketing homepage (`apps/www`) is available
+in en/de/ko via footer language links (`/`, `/de/`, `/ko/`); other marketing pages stay English.
 
 ## License
 

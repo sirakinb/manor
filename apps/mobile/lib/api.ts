@@ -163,7 +163,13 @@ export type MobileBotSection = BotSection;
 
 export type MobileMe = Pick<
   Me,
-  "name" | "email" | "workspaceId" | "defaultProvider" | "defaultModel" | "needsModel"
+  | "name"
+  | "email"
+  | "workspaceId"
+  | "defaultProvider"
+  | "defaultModel"
+  | "needsModel"
+  | "avatarStyle"
 >;
 
 export type MobileModel = ModelCatalogEntry;
@@ -183,7 +189,15 @@ export type MobileMessage = {
 
 export type MobileGroup = Pick<
   Group,
-  "id" | "name" | "preview" | "unread" | "updatedAt" | "members"
+  | "id"
+  | "name"
+  | "preview"
+  | "pinned"
+  | "sectionId"
+  | "archivedAt"
+  | "unread"
+  | "updatedAt"
+  | "members"
 >;
 
 export type MobileSnapshot = {

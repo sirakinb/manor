@@ -4,6 +4,7 @@ import {
   connectorKindFromToolName,
   connectorToolRequiresApproval,
   isApprovalAskBlock,
+  isSecretAskBlock,
   resolveActionApproval,
   toolRequiresApproval,
 } from "./action-approval.js";
@@ -78,6 +79,20 @@ describe("isApprovalAskBlock", () => {
   });
 });
 
+describe("isSecretAskBlock", () => {
+  it("detects masked secret asks", () => {
+    expect(isSecretAskBlock({ kind: "ask", input: "secret" })).toBe(true);
+    expect(isSecretAskBlock({ kind: "ask", input: "text" })).toBe(false);
+    expect(
+      isSecretAskBlock({
+        kind: "ask",
+        input: "secret",
+        approvalEffectId: "effect-1",
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("connectorKindFromToolName", () => {
   it("uses the first underscore segment", () => {
     expect(connectorKindFromToolName("gmail_send_email")).toBe("gmail");
@@ -128,13 +143,13 @@ describe("resolveActionApproval", () => {
     ).toBe("allow");
   });
 
-  it("does not let standing rules gate approval-exempt local tools", () => {
+  it("lets an explicit rule gate a tool that is exempt by default", () => {
     expect(
       resolveActionApproval({
-        toolName: "read_file",
-        rules: [{ effect: "require_approval", matchKind: "tool", matchValue: "read_file" }],
+        toolName: "shell",
+        rules: [{ effect: "require_approval", matchKind: "tool", matchValue: "shell" }],
       }),
-    ).toBe("allow");
+    ).toBe("ask");
   });
 
   it("lets require_approval beat always-allow at the same specificity", () => {

@@ -14,6 +14,7 @@ import {
   createJobReconciler,
   createRunExecutor,
   createRunSandbox,
+  createRunSecretWriter,
   type DestinationEmulator,
   destroyBot,
   EncryptedSecretStore,
@@ -40,6 +41,7 @@ import {
   WorkspaceMemoryProviderResolver,
 } from "@rakazo/adapters";
 import { blockedAuthPaths, createAuth } from "@rakazo/auth";
+import { signupPolicyFromEnv } from "@rakazo/core";
 import { createDb, createThreadEvents, type PrismaClient, requireMembership } from "@rakazo/db";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
@@ -94,12 +96,34 @@ export async function createApp(
           publisher: created.pool,
         })
       : new InMemoryRealtimeFanout());
-  const events = createThreadEvents(prisma, realtime);
-  await prisma.deploymentSettings.upsert({
+  const secrets = new EncryptedSecretStore(env.encryptionKey);
+  const events = createThreadEvents(prisma, realtime, {
+    runSecretWriter: createRunSecretWriter(secrets),
+  });
+  const environmentSignupPolicy = signupPolicyFromEnv(env);
+  const deploymentSettings = await prisma.deploymentSettings.upsert({
     where: { id: "default" },
-    create: { id: "default" },
+    create: {
+      id: "default",
+      signupsEnabled: environmentSignupPolicy.enabled,
+      signupAllowlist: environmentSignupPolicy.allowlist.join(","),
+      signupPolicyInitialized: true,
+    },
     update: {},
   });
+  if (!deploymentSettings.signupPolicyInitialized) {
+    // Older versions created this row with schema defaults even though auth
+    // still enforced the environment policy. Copy that effective policy once
+    // so upgrades preserve behavior before Settings becomes authoritative.
+    await prisma.deploymentSettings.updateMany({
+      where: { id: "default", signupPolicyInitialized: false },
+      data: {
+        signupsEnabled: environmentSignupPolicy.enabled,
+        signupAllowlist: environmentSignupPolicy.allowlist.join(","),
+        signupPolicyInitialized: true,
+      },
+    });
+  }
 
   const jobKind = env.wakeupDriver;
   const inMemoryJobs = jobKind === "memory" ? new InMemoryJobQueue() : undefined;
@@ -116,7 +140,6 @@ export async function createApp(
     dataDir: env.dataDir,
     prisma,
   });
-  const secrets = new EncryptedSecretStore(env.encryptionKey);
   const crmIntegrationService = createCrmIntegrationService({ prisma, secrets });
   const mcpOAuth = new McpOAuthBroker(prisma, secrets, remoteConnectors);
   const memoryProviders = new WorkspaceMemoryProviderResolver(prisma, secrets);
@@ -207,10 +230,11 @@ export async function createApp(
     home,
     artifacts,
     connector: stack.connector,
+    connectors: stack.connector,
     listConnectedPluginSlugs: stack.composio?.listConnectedSlugs.bind(stack.composio),
-    secrets: [env.openRouterKey ?? "", env.composioApiKey ?? ""].filter(Boolean),
+    secrets: [env.deploymentModelKey ?? "", env.composioApiKey ?? ""].filter(Boolean),
     secretStore: secrets,
-    deploymentModelKey: env.openRouterKey,
+    deploymentModelKey: env.deploymentModelKey,
     dataDir: env.dataDir,
     notifications,
     jobs,
@@ -229,7 +253,7 @@ export async function createApp(
     runtime,
     secretStore: secrets,
     memoryProviders,
-    deploymentModelKey: env.openRouterKey,
+    deploymentModelKey: env.deploymentModelKey,
   });
   if (inMemoryJobs) {
     await inMemoryJobs.start(jobHandlers);
@@ -258,10 +282,14 @@ export async function createApp(
     env: {
       defaultProvider: env.defaultProvider,
       defaultModel: env.defaultModel,
-      openRouterKey: env.openRouterKey,
+      deploymentModelKey: env.deploymentModelKey,
       webOrigin: env.webOrigin,
-      screenProxySecret: env.authSecret,
+      screenProxySecret: env.screenProxySecret,
       sandboxProvider: env.sandboxProvider,
+      gitSha: env.gitSha,
+      updaterUrl: env.updaterUrl,
+      updaterToken: env.updaterToken,
+      imageTag: env.imageTag,
     },
   });
   const rpc = new RPCHandler(router);

@@ -134,6 +134,9 @@ jobs:
           provenance: mode=max
           sbom: true
       - name: Attest the published image
+        # Attestation storage is unavailable on user-owned private repositories,
+        # where this step fails after the image has already been published.
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/${{ github.repository }}/${{ matrix.name }}

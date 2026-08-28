@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { AvatarStyleProvider } from "../components/avatar-style";
 import { Ridges } from "../components/ridges";
 import { loadApiBase } from "../lib/api";
 import { manor } from "../lib/native";
@@ -20,50 +21,52 @@ export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {ready ? (
-        <ThemeProvider value={DarkTheme}>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerStyle: { backgroundColor: manor.page },
-              headerTintColor: manor.ink,
-              headerShadowVisible: false,
-              headerBackButtonDisplayMode: "minimal",
-              contentStyle: { backgroundColor: manor.page },
-            }}
-          >
-            <Stack.Screen name="index" options={{ headerShown: false, title: "Manor" }} />
-            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-            <Stack.Screen name="account" options={{ title: "Account" }} />
-            <Stack.Screen name="models" options={{ title: "Models" }} />
-            <Stack.Screen name="voice" options={{ title: "Voice" }} />
-            <Stack.Screen name="integrations" options={{ title: "Integrations" }} />
-            <Stack.Screen
-              name="new"
-              options={{
-                title: "New bot",
-                presentation: "modal",
-                gestureEnabled: true,
-                headerBackVisible: false,
+        <AvatarStyleProvider>
+          <ThemeProvider value={DarkTheme}>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerStyle: { backgroundColor: manor.page },
+                headerTintColor: manor.ink,
+                headerShadowVisible: false,
+                headerBackButtonDisplayMode: "minimal",
+                contentStyle: { backgroundColor: manor.page },
               }}
-            />
-            <Stack.Screen
-              name="new-group"
-              options={{
-                title: "New group",
-                presentation: "modal",
-                gestureEnabled: true,
-              }}
-            />
-            <Stack.Screen name="group-thread" options={{ title: "Group" }} />
-            <Stack.Screen name="group-settings" options={{ title: "Group settings" }} />
-            <Stack.Screen name="bot-settings" options={{ title: "Chat settings" }} />
-            <Stack.Screen name="thread" options={{ title: "Thread" }} />
-            <Stack.Screen name="routine" options={{ title: "Routine" }} />
-            <Stack.Screen name="computer" options={{ title: "Computer" }} />
-            <Stack.Screen name="crm" options={{ title: "CRM" }} />
-          </Stack>
-          <Ridges />
-        </ThemeProvider>
+            >
+              <Stack.Screen name="index" options={{ headerShown: false, title: "Manor" }} />
+              <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+              <Stack.Screen name="account" options={{ title: "Account" }} />
+              <Stack.Screen name="models" options={{ title: "Models" }} />
+              <Stack.Screen name="voice" options={{ title: "Voice" }} />
+              <Stack.Screen name="integrations" options={{ title: "Integrations" }} />
+              <Stack.Screen
+                name="new"
+                options={{
+                  title: "New bot",
+                  presentation: "modal",
+                  gestureEnabled: true,
+                  headerBackVisible: false,
+                }}
+              />
+              <Stack.Screen
+                name="new-group"
+                options={{
+                  title: "New group",
+                  presentation: "modal",
+                  gestureEnabled: true,
+                }}
+              />
+              <Stack.Screen name="group-thread" options={{ title: "Group" }} />
+              <Stack.Screen name="group-settings" options={{ title: "Group settings" }} />
+              <Stack.Screen name="bot-settings" options={{ title: "Chat settings" }} />
+              <Stack.Screen name="thread" options={{ title: "Thread" }} />
+              <Stack.Screen name="routine" options={{ title: "Routine" }} />
+              <Stack.Screen name="computer" options={{ title: "Computer" }} />
+              <Stack.Screen name="crm" options={{ title: "CRM" }} />
+            </Stack>
+            <Ridges />
+          </ThemeProvider>
+        </AvatarStyleProvider>
       ) : (
         <View style={{ flex: 1, backgroundColor: manor.page }} />
       )}
