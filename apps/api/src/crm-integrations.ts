@@ -669,7 +669,7 @@ export function createCrmIntegrationService(deps: {
         data: row.event.payload,
       });
       const timestamp = Math.floor(Date.now() / 1000).toString();
-      const secret = secrets.load(row.endpoint.signingSecret);
+      const secret = secrets.load(row.endpoint.signingSecret, row.endpoint.id);
       const signature = signCrmWebhook(secret, timestamp, body);
       try {
         const response = await webhookFetch(row.endpoint.url, {
@@ -1006,15 +1006,23 @@ export function mountCrmIntegrationRoutes(
       );
     }
     const signingSecret = `whsec_${randomBytes(24).toString("base64url")}`;
-    const encrypted = await deps.secrets.put(signingSecret, {
-      operationId: `webhook-create:${workspaceId}`,
-      traceId: `webhook-create:${workspaceId}`,
-      workspaceId,
-      userId,
-      signal: c.req.raw.signal,
-    });
+    // The secret store binds the record id into the AEAD tag, so the endpoint id
+    // has to exist before the secret is sealed.
+    const endpointId = randomBytes(16).toString("hex");
+    const encrypted = await deps.secrets.put(
+      signingSecret,
+      {
+        operationId: `webhook-create:${workspaceId}`,
+        traceId: `webhook-create:${workspaceId}`,
+        workspaceId,
+        userId,
+        signal: c.req.raw.signal,
+      },
+      endpointId,
+    );
     const row = await deps.prisma.crmWebhookEndpoint.create({
       data: {
+        id: endpointId,
         workspaceId,
         createdByUserId: userId,
         name: parsed.data.name,

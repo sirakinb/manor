@@ -65,7 +65,9 @@ find . -name '._*' -not -path './node_modules/*' -delete
 npx vitest run packages/adapters packages/core packages/contracts packages/db
 npx vitest run apps/api apps/web infra/sandboxes/supervisor
 pnpm check                    # typecheck, all packages
-npx prisma validate --schema packages/db/prisma/schema.prisma
+pnpm lint                     # biome
+# `npx prisma` pulls a release-candidate CLI without `validate`; use the pinned one.
+(cd packages/db && ./node_modules/.bin/prisma validate)
 ```
 
 Grep-verify the fix signatures survived:
@@ -75,8 +77,10 @@ grep -n "ownerId !== current.ownerId" packages/core/src/screen-lease.ts
 grep -n "Clients only call boot" apps/api/src/router.ts
 ```
 
-Known non-blockers: `sandbox-conformance` listFiles failure (pre-existing),
-occasional `voice-http` deadline timing flake (passes on rerun), and
+Known non-blockers: `sandbox-conformance` listFiles failure (macOS writes an
+AppleDouble `notes/._result.txt` beside the fixture on the exFAT SSD, so the
+listing carries an extra entry; passes on Linux CI), occasional `voice-http`
+deadline timing flake (passes on rerun), and
 `desktop-sandbox-write-containment.test.ts` "keeps writes on the opened
 inode" (macOS-only: the test expects Linux `/proc/self/fd` semantics;
 macOS takes the fail-closed pathname branch. Passes on Linux CI).

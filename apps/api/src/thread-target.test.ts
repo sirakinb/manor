@@ -74,6 +74,102 @@ describe("threadSnapshot", () => {
       }),
     ]);
   });
+
+  it("returns the latest failed run so the client can show its error", async () => {
+    const run = {
+      id: "run-failed",
+      botId: "bot-1",
+      threadId: "thread-1",
+      taskId: "task-1",
+      status: "failed",
+      trigger: "user",
+      modelProvider: "openrouter",
+      modelId: "openrouter/unknown",
+      error: "Provider is not configured: openrouter",
+      startedAt: null,
+      completedAt: new Date("2026-08-23T00:00:01.000Z"),
+      createdAt: new Date("2026-08-23T00:00:00.000Z"),
+    };
+    const findManyEvents = vi.fn();
+    const findFirstRun = vi.fn().mockResolvedValue(run);
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: "thread-1" }]),
+      message: { findMany: vi.fn().mockResolvedValue([]) },
+      event: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: findManyEvents,
+      },
+      run: { findFirst: findFirstRun },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+    } as unknown as PrismaClient;
+    const target = {
+      kind: "bot",
+      botId: "bot-1",
+      threadId: "thread-1",
+      bot: { computer: null },
+    } as ThreadTarget;
+
+    const snapshot = await threadSnapshot({ prisma }, target);
+
+    expect(findFirstRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          botId: "bot-1",
+          threadId: "thread-1",
+          status: {
+            in: ["queued", "leased", "running", "waiting_input", "waiting_takeover", "failed"],
+          },
+        }),
+      }),
+    );
+    expect(snapshot.run).toEqual(
+      expect.objectContaining({
+        id: "run-failed",
+        status: "failed",
+        error: "Provider is not configured: openrouter",
+      }),
+    );
+    expect(findManyEvents).not.toHaveBeenCalled();
+  });
+
+  it("does not return a cancelled or completed run", async () => {
+    const findManyEvents = vi.fn();
+    const findFirstRun = vi.fn().mockResolvedValue(null);
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: "thread-1" }]),
+      message: { findMany: vi.fn().mockResolvedValue([]) },
+      event: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: findManyEvents,
+      },
+      run: { findFirst: findFirstRun },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+    } as unknown as PrismaClient;
+    const target = {
+      kind: "bot",
+      botId: "bot-1",
+      threadId: "thread-1",
+      bot: { computer: null },
+    } as ThreadTarget;
+
+    const snapshot = await threadSnapshot({ prisma }, target);
+
+    expect(findFirstRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: {
+            in: ["queued", "leased", "running", "waiting_input", "waiting_takeover", "failed"],
+          },
+        }),
+      }),
+    );
+    expect(snapshot.run).toBeNull();
+    expect(findManyEvents).not.toHaveBeenCalled();
+  });
 });
 
 describe("stopThreadRuns", () => {
@@ -87,20 +183,24 @@ describe("stopThreadRuns", () => {
         ]),
         updateMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
-      bot: {
+      computer: {
         findMany: vi.fn().mockResolvedValue([
           {
-            id: "bot-a",
-            computer: { homeKey: "home-a", kind: "fake", providerRef: "computer-a" },
+            homeKey: "home-a",
+            kind: "fake",
+            providerRef: "computer-a",
+            executionBotId: "bot-a",
           },
           {
-            id: "bot-b",
-            computer: { homeKey: "home-b", kind: "fake", providerRef: "computer-b" },
+            homeKey: "home-b",
+            kind: "fake",
+            providerRef: "computer-b",
+            executionBotId: "bot-b",
           },
         ]),
+        updateMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
       computerExecutionLease: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
-      computer: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
       event: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     } as unknown as PrismaClient;
     const actor = {
@@ -130,6 +230,12 @@ describe("stopThreadRuns", () => {
     expect(releaseScreen).toHaveBeenCalledWith(
       expect.objectContaining({ providerRef: "computer-b" }),
       expect.objectContaining({ workspaceId: "workspace-1", userId: "user-1", botId: "bot-b" }),
+    );
+    expect(prisma.computerExecutionLease.deleteMany).toHaveBeenCalledWith({
+      where: { runId: { in: ["run-a", "run-b"] } },
+    });
+    expect(prisma.computer.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { executionRunId: { in: ["run-a", "run-b"] } } }),
     );
   });
 });

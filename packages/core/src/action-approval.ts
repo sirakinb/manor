@@ -11,6 +11,7 @@ const APPROVAL_EXEMPT_TOOLS = new Set([
   "launch_app",
   "remember",
   "request_takeover",
+  "request_secret",
   "run_subagent",
   "spawn_bot",
   "schedule_create",
@@ -103,7 +104,6 @@ export function resolveActionApproval(input: {
   connectorKind?: string;
   rules: ActionApprovalRule[];
 }): "ask" | "allow" {
-  if (APPROVAL_EXEMPT_TOOLS.has(input.toolName)) return "allow";
   const connectorKind = input.connectorKind ?? connectorKindFromToolName(input.toolName);
   const matchingRules = input.rules.filter((rule) =>
     ruleMatches(rule, input.toolName, connectorKind),
@@ -116,6 +116,14 @@ export function resolveActionApproval(input: {
   )
     ? "ask"
     : "allow";
+}
+
+export function isSecretAskBlock(block: {
+  kind: string;
+  input?: string;
+  approvalEffectId?: string;
+}): boolean {
+  return block.kind === "ask" && block.input === "secret" && !block.approvalEffectId;
 }
 
 export function isApprovalAskBlock(block: {

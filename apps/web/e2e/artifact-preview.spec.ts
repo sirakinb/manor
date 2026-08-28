@@ -12,9 +12,9 @@ test("agent-attached files appear as downloadable cards", async ({ page }, testI
   await composer.fill("write notes/result.txt and attach it to the thread");
   await page.keyboard.press("Enter");
 
-  // Scoped to the thread: the sidebar bot row's accessible name includes the
-  // live status and message preview, which also contain "result.txt" mid-run.
-  const fileCard = page.locator("main").getByRole("button", { name: /result\.txt/ });
+  // Scope to the thread and to ArtifactFileCard text (name + mime): the sidebar
+  // bot row's accessible name also contains "result.txt" mid-run.
+  const fileCard = page.locator("main").getByRole("button", { name: /result\.txt text\/plain/ });
   await expect(fileCard).toBeVisible({ timeout: 30_000 });
   await captureScreenshot(page, testInfo, "current-file-card");
 

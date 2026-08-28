@@ -70,6 +70,9 @@ export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
 
+export const AvatarStyleSchema = z.enum(["robot", "organic"]);
+export type AvatarStyle = z.infer<typeof AvatarStyleSchema>;
+
 export const ThinkingLevelSchema = z.enum([
   "off",
   "minimal",
@@ -125,6 +128,9 @@ export const GroupSchema = z.object({
   id: Id,
   workspaceId: Id,
   name: z.string(),
+  pinned: z.boolean(),
+  sectionId: Id.nullable(),
+  archivedAt: z.string().nullable(),
   members: z.array(GroupMemberSchema),
   threadId: Id,
   preview: z.string(),
@@ -150,6 +156,8 @@ export const UpdateGroupInput = z.object({
   groupId: Id,
   name: z.string().trim().min(1).max(80).optional(),
   botIds: GroupBotIds.optional(),
+  pinned: z.boolean().optional(),
+  sectionId: Id.nullable().optional(),
 });
 export type UpdateGroupInput = z.infer<typeof UpdateGroupInput>;
 
@@ -579,6 +587,7 @@ export const ComputerStatusSchema = z.object({
   screenHeight: z.number().int().positive(),
   homeRevision: z.string().nullable(),
   busyBotName: z.string().nullable(),
+  updateAvailable: z.boolean(),
 });
 export type ComputerStatus = z.infer<typeof ComputerStatusSchema>;
 
@@ -789,6 +798,15 @@ export type ServerUpdateStrategy = z.infer<typeof ServerUpdateStrategySchema>;
 export const ServerUpdateModeSchema = z.enum(["sidecar", "checkout", "unavailable"]);
 export type ServerUpdateMode = z.infer<typeof ServerUpdateModeSchema>;
 
+/**
+ * What Settings should render for a deployment owner.
+ * `sidecar`: Check / Update / Rollback through the updater sidecar.
+ * `compose`: Compose install without a reachable sidecar; show host pull/up commands.
+ * `source`: git checkout / `pnpm dev`; show terminal commands, never a fake Apply.
+ */
+export const ServerUpdateInstallKindSchema = z.enum(["sidecar", "compose", "source"]);
+export type ServerUpdateInstallKind = z.infer<typeof ServerUpdateInstallKindSchema>;
+
 export const ServerUpdateRunSchema = z.object({
   startedAt: z.iso.datetime(),
   finishedAt: z.iso.datetime().nullable(),
@@ -814,6 +832,9 @@ export type ServerUpdateRun = z.infer<typeof ServerUpdateRunSchema>;
 export const ServerUpdateStatusSchema = z.object({
   supported: z.boolean(),
   unsupportedReason: z.string().nullable(),
+  installKind: ServerUpdateInstallKindSchema,
+  /** Host commands to run when `installKind` is not `sidecar`. Empty when the sidecar applies. */
+  manualCommands: z.array(z.string()),
   mode: ServerUpdateModeSchema,
   strategy: ServerUpdateStrategySchema.nullable(),
   strategyNote: z.string().nullable(),
@@ -843,9 +864,16 @@ export const ServerUpdateCheckSchema = z.object({
   changed: z.array(z.string()),
   commit: z.string().nullable(),
   targetCommit: z.string().nullable(),
+  targetTag: z.string().nullable(),
   behindBy: z.number().int().nonnegative(),
 });
 export type ServerUpdateCheck = z.infer<typeof ServerUpdateCheckSchema>;
+
+export const ServerUpdateRequestSchema = z.object({
+  repoUrl: z.string().max(400).optional(),
+  branch: z.string().max(200).optional(),
+});
+export type ServerUpdateRequest = z.infer<typeof ServerUpdateRequestSchema>;
 
 export const MeSchema = z.object({
   userId: Id,
@@ -858,6 +886,7 @@ export const MeSchema = z.object({
   defaultModel: z.string().nullable(),
   computerHost: z.enum(["docker", "this-mac"]).nullable(),
   canChooseHostComputer: z.boolean(),
+  avatarStyle: AvatarStyleSchema,
 });
 export type Me = z.infer<typeof MeSchema>;
 
@@ -866,6 +895,7 @@ export const AppBootstrapSchema = z.object({
   bots: z.array(BotSchema),
   botSections: z.array(BotSectionSchema),
   archivedBots: z.array(BotSchema),
+  archivedGroups: z.array(GroupSchema),
   thread: ThreadSnapshotSchema.nullable(),
   routines: z.array(RoutineSchema),
 });
