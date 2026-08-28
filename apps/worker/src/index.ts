@@ -6,6 +6,7 @@ loadRootEnv();
 import {
   createBackgroundJobHandlers,
   createConnectorStack,
+  createCrmWebhookEmitter,
   createJobReconciler,
   createPostgresReconciliationLeadership,
   createRunExecutor,
@@ -117,6 +118,7 @@ async function main() {
     notifications: new ExpoPushProvider(dataDir),
     jobs,
     events,
+    crmEvent: createCrmWebhookEmitter(prisma),
   });
 
   const jobHandlers = createBackgroundJobHandlers({

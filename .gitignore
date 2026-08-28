@@ -44,3 +44,7 @@ PRODUCT_PLAN.md
 apps/web/src/locales/**/*.mjs
 apps/web/src/locales/**/*.js
 apps/web/scripts/msgids.json
+
+# Python bytecode from the computer sandbox image
+__pycache__/
+*.pyc

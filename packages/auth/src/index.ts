@@ -35,6 +35,25 @@ export async function resolveSignupPolicy(
   return signupPolicyFromEnv(env);
 }
 
+/**
+ * Enforced on user creation rather than on the sign-up route, because social
+ * sign-in never touches a "sign-up" path — Google lands on /sign-in/social and
+ * /callback/google, which a route-name check silently waves through.
+ */
+export async function assertSignupAllowed(
+  prisma: Pick<PrismaClient, "deploymentSettings">,
+  env: Pick<AuthEnv, "signupsEnabled" | "signupAllowlist">,
+  email: string,
+): Promise<void> {
+  const policy = await resolveSignupPolicy(prisma, env);
+  if (!policy.enabled) {
+    throw new APIError("BAD_REQUEST", { message: "Registration is closed" });
+  }
+  if (email && !emailAllowed(email, policy.allowlist)) {
+    throw new APIError("BAD_REQUEST", { message: "Email is not allowed to register" });
+  }
+}
+
 function newId(): string {
   return randomBytes(16).toString("hex");
 }
@@ -49,7 +68,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     emailAndPassword: {
       enabled: true,
-      // Signup policy is mutable deployment state, so the request hook below
+      // Signup policy is mutable deployment state, so the user-create hook below
       // enforces it instead of freezing an environment value at process start.
       disableSignUp: false,
     },
@@ -106,26 +125,12 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
         creatorRole: "owner",
       }),
     ],
-    hooks: {
-      before: async (ctx) => {
-        const path = String((ctx as { path?: string }).path ?? "");
-        if (!path.includes("sign-up")) return;
-        const policy = await resolveSignupPolicy(prisma, env);
-        if (!policy.enabled) {
-          throw new APIError("BAD_REQUEST", { message: "Registration is closed" });
-        }
-        const email =
-          typeof ctx.body === "object" && ctx.body && "email" in ctx.body
-            ? String((ctx.body as { email?: string }).email ?? "")
-            : "";
-        if (email && !emailAllowed(email, policy.allowlist)) {
-          throw new APIError("BAD_REQUEST", { message: "Email is not allowed to register" });
-        }
-      },
-    },
     databaseHooks: {
       user: {
         create: {
+          before: async (user) => {
+            await assertSignupAllowed(prisma, env, String(user.email ?? ""));
+          },
           after: async (user) => {
             const orgId = newId();
             await prisma.organization.create({

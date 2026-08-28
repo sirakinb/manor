@@ -1,5 +1,55 @@
 import { describe, expect, it, vi } from "vitest";
-import { blockedAuthPaths, resolveSignupPolicy } from "./index.js";
+import { assertSignupAllowed, blockedAuthPaths, createAuth, resolveSignupPolicy } from "./index.js";
+
+function settings(policy: { signupsEnabled: boolean; signupAllowlist: string }) {
+  return {
+    deploymentSettings: {
+      findUnique: vi.fn().mockResolvedValue({ ...policy, signupPolicyInitialized: true }),
+    },
+  } as never;
+}
+
+const env = { signupsEnabled: "true", signupAllowlist: "" };
+
+describe("assertSignupAllowed", () => {
+  it("rejects every new account while registration is closed", async () => {
+    const prisma = settings({ signupsEnabled: false, signupAllowlist: "" });
+    await expect(assertSignupAllowed(prisma, env, "someone@example.com")).rejects.toThrow(
+      "Registration is closed",
+    );
+  });
+
+  it("rejects an address outside the allowlist", async () => {
+    const prisma = settings({ signupsEnabled: true, signupAllowlist: "@company.test" });
+    await expect(assertSignupAllowed(prisma, env, "outsider@example.com")).rejects.toThrow(
+      "Email is not allowed to register",
+    );
+  });
+
+  it("admits an allowlisted address", async () => {
+    const prisma = settings({ signupsEnabled: true, signupAllowlist: "@company.test" });
+    await expect(assertSignupAllowed(prisma, env, "person@company.test")).resolves.toBeUndefined();
+  });
+
+  // Google never hits a "sign-up" route, so the policy has to hang off user
+  // creation. Asserting the wiring keeps it from drifting back onto a path check.
+  it("is enforced on user creation, which social sign-in also goes through", async () => {
+    const prisma = settings({ signupsEnabled: false, signupAllowlist: "" });
+    const auth = createAuth(prisma, {
+      secret: "test-secret-at-least-32-characters-long",
+      baseURL: "http://localhost",
+      webOrigin: "http://localhost",
+      signupsEnabled: "true",
+      signupAllowlist: "",
+    });
+
+    await expect(
+      auth.options.databaseHooks?.user?.create?.before?.({
+        email: "google-user@example.com",
+      } as never),
+    ).rejects.toThrow("Registration is closed");
+  });
+});
 
 describe("auth policy", () => {
   it("blocks invitation and org-creation paths in version 1", () => {
