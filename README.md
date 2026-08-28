@@ -103,6 +103,12 @@ saving returns to the previous instance. For development automation, set `RAKAZO
 the shell somewhere else without changing the saved instance, or `RAKAZO_FORCE_SETUP=1` to run
 setup again.
 
+## Web UI language
+
+The web (and Electron-hosted) UI supports English, Deutsch, and 한국어. Change it under
+**Settings → Language**. The marketing homepage (`apps/www`) is available in en/de/ko via
+footer language links (`/`, `/de/`, `/ko/`); other marketing pages stay English.
+
 ## License
 
 Apache 2.0 — see [LICENSE](./LICENSE).

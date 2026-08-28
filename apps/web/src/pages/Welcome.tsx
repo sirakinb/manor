@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { WindowChrome } from "./WindowChrome";
 
@@ -41,7 +42,7 @@ export function WelcomePage() {
             <rect x="2" y="3" width="12" height="11" rx="2.5" />
             <path d="M2 6.5h12M5.5 1.6v2.4M10.5 1.6v2.4" strokeLinecap="round" />
           </svg>
-          Book demo
+          <Trans>Book demo</Trans>
         </a>
       </header>
 
@@ -57,20 +58,22 @@ export function WelcomePage() {
           >
             <span className="ml-0.5 border-y-[5px] border-l-[8px] border-y-transparent border-l-black" />
           </span>
-          Watch it work
+          <Trans>Watch it work</Trans>
         </button>
         <div className="max-w-4xl">
           <h1 className="lp-rise text-[2.15rem] leading-[1.08] tracking-[-0.04em] sm:text-5xl">
-            Your team of{" "}
-            <span className="rk-display bg-linear-to-r from-[#8033cc] to-[#fafafa] bg-clip-text text-transparent">
-              always-on AI agents
-            </span>
-            <br />
-            that you can give{" "}
-            <span className="rk-display bg-linear-to-r from-[#8033cc] to-[#fafafa] bg-clip-text text-transparent">
-              real work
-            </span>{" "}
-            to.
+            <Trans>
+              Your team of{" "}
+              <span className="rk-display bg-linear-to-r from-[#8033cc] to-[#fafafa] bg-clip-text text-transparent">
+                always-on AI agents
+              </span>
+              <br />
+              that you can give{" "}
+              <span className="rk-display bg-linear-to-r from-[#8033cc] to-[#fafafa] bg-clip-text text-transparent">
+                real work
+              </span>{" "}
+              to.
+            </Trans>
           </h1>
         </div>
       </main>
@@ -81,6 +84,7 @@ export function WelcomePage() {
 }
 
 function DemoOverlay({ onClose }: { onClose: () => void }) {
+  const { t } = useLingui();
   const dialog = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const onCloseRef = useRef(onClose);
@@ -108,7 +112,7 @@ function DemoOverlay({ onClose }: { onClose: () => void }) {
       <button
         type="button"
         tabIndex={-1}
-        aria-label="Close demo"
+        aria-label={t`Close demo`}
         onClick={onClose}
         className="absolute inset-0 cursor-default"
       />
@@ -116,7 +120,7 @@ function DemoOverlay({ onClose }: { onClose: () => void }) {
         ref={dialog}
         role="dialog"
         aria-modal="true"
-        aria-label="Manor demo"
+        aria-label={t`Manor demo`}
         tabIndex={-1}
         className="relative w-[min(1240px,92vw)] overflow-hidden rounded-[18px] border border-[#2B2B2F] bg-black shadow-[0_40px_90px_rgba(0,0,0,.6)] outline-none"
       >
@@ -135,7 +139,7 @@ function DemoOverlay({ onClose }: { onClose: () => void }) {
       </div>
       <button
         type="button"
-        aria-label="Close demo"
+        aria-label={t`Close demo`}
         onClick={onClose}
         className="lp-glass absolute top-5 right-5 grid size-9 place-items-center rounded-full text-[#fafafa] transition hover:bg-white/15 sm:top-8 sm:right-8"
       >

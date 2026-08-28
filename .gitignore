@@ -39,3 +39,8 @@ design/
 PRODUCT_PLAN.md
 **/._*
 .DS_Store
+
+# Lingui compiled catalogs — Vite plugin compiles .po at build time
+apps/web/src/locales/**/*.mjs
+apps/web/src/locales/**/*.js
+apps/web/scripts/msgids.json

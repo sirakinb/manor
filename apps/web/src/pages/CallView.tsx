@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ThreadMessage, ThreadSnapshot } from "@rakazo/contracts";
 import { narrateTool, speechFromBlocks, spokenDecision } from "@rakazo/core";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +26,7 @@ export function CallView({
   onAnswer: (message: ThreadMessage, text: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useLingui();
   const [phase, setPhase] = useState<Phase>("listening");
   const [caption, setCaption] = useState("");
   const [heard, setHeard] = useState("");
@@ -36,6 +38,8 @@ export function CallView({
   const closing = useRef(false);
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
+  const askPromptRef = useRef(t`Say yes or no, or answer in a sentence.`);
+  askPromptRef.current = t`Say yes or no, or answer in a sentence.`;
 
   function setCallPhase(next: Phase) {
     phaseRef.current = next;
@@ -67,7 +71,7 @@ export function CallView({
         onFinal: (text) => void handleTranscript(text),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Microphone failed");
+      setError(err instanceof Error ? err.message : t`Microphone failed`);
     }
   }
 
@@ -92,7 +96,7 @@ export function CallView({
         await onSend(text);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send that");
+      setError(err instanceof Error ? err.message : t`Could not send that`);
       void listen();
     }
   }
@@ -155,7 +159,7 @@ export function CallView({
       if (text) {
         spokenMessage.current = lastBot.id;
         dictation.stop("cancel");
-        void speaker.speak(ask ? `${text}. Say yes or no, or answer in a sentence.` : text, {
+        void speaker.speak(ask ? `${text}. ${askPromptRef.current}` : text, {
           botId,
           messageId: lastBot.id,
         });
@@ -205,10 +209,10 @@ export function CallView({
   );
   const statusLabel =
     phase === "speaking"
-      ? "Speaking…"
+      ? t`Speaking…`
       : phase === "thinking" || runActive
-        ? "Working…"
-        : "Listening…";
+        ? t`Working…`
+        : t`Listening…`;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex justify-end px-5 pb-5">
@@ -226,8 +230,8 @@ export function CallView({
           {phase === "listening"
             ? heard ||
               (runActive
-                ? "Still working — talk anytime to steer it."
-                : "Say something. Silence sends it.")
+                ? t`Still working — talk anytime to steer it.`
+                : t`Say something. Silence sends it.`)
             : caption}
         </p>
         {error ? <p className="mt-1.5 text-[12.5px] text-[#C94244]">{error}</p> : null}
@@ -237,18 +241,18 @@ export function CallView({
             onClick={interrupt}
             className="flex-1 rounded-full border border-[#2A2A2F] px-3 py-1.5 text-[13px] text-[#C9C9CE] hover:bg-[#1B1B1E]"
           >
-            Stop &amp; talk
+            <Trans>Stop &amp; talk</Trans>
           </button>
           <button
             type="button"
             onClick={hangUp}
             className="flex-1 rounded-full bg-[#FF5364] px-3 py-1.5 text-[13px] font-medium text-white"
           >
-            Hang up
+            <Trans>Hang up</Trans>
           </button>
         </div>
         <p className="mt-2.5 text-center text-[11px] text-[#6C6C70]">
-          Space stops it · Esc hangs up
+          <Trans>Space stops it · Esc hangs up</Trans>
         </p>
       </div>
     </div>
