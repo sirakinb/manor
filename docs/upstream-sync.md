@@ -92,6 +92,18 @@ macOS takes the fail-closed pathname branch. Passes on Linux CI).
 2. **Checkpoint with Aki.** Then deploy: rsync to the VPS (`.env*` excluded)
    and `docker compose --env-file .env.vps -f infra/compose/docker-compose.vps.yml up -d --build`.
    New migrations apply on deploy; additive migrations need no DB rollback plan.
+
+   **Read the new migrations first — not all of them are additive.** Redeploying
+   the previous commit rolls code back, never data. Run
+   `infra/compose/backup-vps.sh` before any deploy that carries a `DELETE`,
+   `DROP`, or a non-nullable column, because that backup is the only rollback.
+
+   The 2026-08 sync carries one: `0012b_retire_custom_rooms` deletes every
+   `threads` row with `kind = 'room'` (cascading to their messages, runs, and
+   events) and then drops the column. That retires Manor's own multi-bot rooms
+   in favour of upstream group chats, and it must run before `0013_group_chats`,
+   whose constraint a bot-less room thread would violate. Intended, but
+   irreversible on a database that has real rooms in it.
 3. Verify in the prod browser: Team Computer screen + Take control/Release,
    CRM pages, fresh-bot onboarding, and one agent chat that exercises a new
    feature.
