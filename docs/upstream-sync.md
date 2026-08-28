@@ -98,12 +98,19 @@ macOS takes the fail-closed pathname branch. Passes on Linux CI).
    `infra/compose/backup-vps.sh` before any deploy that carries a `DELETE`,
    `DROP`, or a non-nullable column, because that backup is the only rollback.
 
-   The 2026-08 sync carries one: `0012b_retire_custom_rooms` deletes every
-   `threads` row with `kind = 'room'` (cascading to their messages, runs, and
-   events) and then drops the column. That retires Manor's own multi-bot rooms
-   in favour of upstream group chats, and it must run before `0013_group_chats`,
-   whose constraint a bot-less room thread would violate. Intended, but
-   irreversible on a database that has real rooms in it.
+   To list what a deploy will actually apply, diff against the commit prod is
+   currently running — the presence of a destructive migration in the tree says
+   nothing, since Prisma only runs the ones absent from `_prisma_migrations`:
+
+   ```sh
+   git diff --name-only --diff-filter=A <deployed-commit> HEAD -- packages/db/prisma/migrations
+   ```
+
+   `0012b_retire_custom_rooms` is the cautionary example, and the reason to run
+   that diff rather than grep the tree: it deletes every `threads` row with
+   `kind = 'room'`, cascading to their messages, runs, and events. It already
+   applied on 2026-08-23 (merge `4835915`), so it is inert now — but it still
+   looks alarming in the tree forever.
 3. Verify in the prod browser: Team Computer screen + Take control/Release,
    CRM pages, fresh-bot onboarding, and one agent chat that exercises a new
    feature.
