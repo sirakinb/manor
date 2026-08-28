@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -120,5 +120,35 @@ describe("LocalAgentHomeStore path containment", () => {
     const exported = [];
     for await (const file of store.exportHome("bot-1", context)) exported.push(file.path);
     expect(exported).toEqual(["safe.txt"]);
+  });
+
+  it("serialises reads against commit so a concurrent checkout never sees a half-swapped home", async () => {
+    const { root, store } = await fixture();
+    // The committed home is large and the incoming one is tiny, so the commit's
+    // rename lands while a reader is still mid-walk. A reader that only waited
+    // for the in-flight write would silently return a truncated home.
+    const large = path.join(root, "large");
+    await mkdir(large);
+    for (let index = 0; index < 200; index += 1) {
+      await writeFile(path.join(large, `file-${index}.txt`), "large");
+    }
+    const small = path.join(root, "small");
+    await mkdir(small);
+    await writeFile(path.join(small, "only.txt"), "small");
+    await store.commit("bot-1", large, context);
+
+    const dest = path.join(root, "checkout");
+    const [, exported] = await Promise.all([
+      store.checkout("bot-1", dest, context),
+      (async () => {
+        const paths: string[] = [];
+        for await (const file of store.exportHome("bot-1", context)) paths.push(file.path);
+        return paths;
+      })(),
+      store.commit("bot-1", small, context),
+    ]);
+
+    expect(await readdir(dest)).toHaveLength(200);
+    expect(exported).toHaveLength(200);
   });
 });
