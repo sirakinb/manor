@@ -1,4 +1,3 @@
-import { mkdir } from "node:fs/promises";
 import type {
   AdapterContext,
   AgentHomeStore,
@@ -16,7 +15,7 @@ import {
   restoreComputerWorkspace,
 } from "./computer-workspace.js";
 import { isUnrecoverableSandboxError } from "./e2b-sandbox.js";
-import { resolveAgentHomePath } from "./home.js";
+import { ensureAgentHomeDirectory, resolveAgentHomePath } from "./home.js";
 
 const EXECUTION_LEASE_MS = 5 * 60_000;
 const BOOT_WAIT_ATTEMPTS = 40;
@@ -53,7 +52,7 @@ export async function provisionComputer(
     }
   }
   const homePath = resolveAgentHomePath(deps.home, existing.homeKey, deps.dataDir ?? "./data");
-  await mkdir(homePath, { recursive: true });
+  await ensureAgentHomeDirectory(homePath);
 
   if (existing.state === "running" && existing.providerRef) {
     return reconnectComputer(deps, computerId, existing, homePath, context);

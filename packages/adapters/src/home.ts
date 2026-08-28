@@ -210,6 +210,23 @@ export function resolveAgentHomePath(home: AgentHomeStore, homeKey: string, data
   return path.resolve(dataDir, "homes", homeKey);
 }
 
+/**
+ * `commit` swaps the home in with a rename, so the directory briefly does not
+ * exist. Callers outside the store's write lock — a second bot booting the
+ * shared Team Computer, say — otherwise see ENOENT from mkdir mid-swap.
+ */
+export async function ensureAgentHomeDirectory(homePath: string, attempts = 5) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await mkdir(homePath, { recursive: true });
+      return;
+    } catch (error) {
+      if (!isMissing(error) || attempt >= attempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
+    }
+  }
+}
+
 function safeJoin(root: string, rel: string) {
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(resolvedRoot, `.${path.sep}${rel.replace(/^\/+/, "")}`);
