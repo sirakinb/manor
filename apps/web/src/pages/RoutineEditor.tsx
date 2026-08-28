@@ -390,7 +390,7 @@ export function RoutineEditor({
             <div
               role="menu"
               aria-labelledby={addTriggerId}
-              className="absolute right-0 bottom-full z-20 mb-2 min-w-[220px] rounded-[14px] border border-[#2A2A2E] bg-[#16161A] py-1.5 shadow-[0_12px_40px_rgba(0,0,0,.55)]"
+              className="rk-scroll absolute right-0 bottom-full z-20 mb-2 max-h-[min(380px,calc(100dvh-72px))] min-w-[220px] overflow-y-auto rounded-[14px] border border-[#2A2A2E] bg-[#16161A] py-1.5 shadow-[0_12px_40px_rgba(0,0,0,.55)]"
             >
               <div>
                 <button
