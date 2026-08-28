@@ -16,6 +16,7 @@
     "@rakazo/adapter-kit": "workspace:*",
     "@rakazo/adapters": "workspace:*",
     "@rakazo/auth": "workspace:*",
+    "@rakazo/brands": "workspace:*",
     "@rakazo/contracts": "workspace:*",
     "@rakazo/core": "workspace:*",
     "@rakazo/db": "workspace:*",

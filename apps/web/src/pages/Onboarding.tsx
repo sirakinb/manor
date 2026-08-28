@@ -221,8 +221,8 @@ export function OnboardingPage() {
             </h1>
             <p className="mt-2 text-[#85858A]">
               <Trans>
-                Manor does not pay for model usage. Paste an API key, sign in with ChatGPT, Claude,
-                Copilot, or SuperGrok, or skip if this deployment already has a key.
+                Models run on your own accounts and keys. Sign in with ChatGPT, Claude, Copilot, or
+                SuperGrok, paste an API key, or skip if this deployment already has one.
               </Trans>
             </p>
             <input

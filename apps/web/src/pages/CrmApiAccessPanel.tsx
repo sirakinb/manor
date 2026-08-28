@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
+import { brandName } from "../lib/brand";
 
 type Credential = {
   id: string;
@@ -268,7 +269,9 @@ export function CrmApiAccessPanel() {
             <Trans>Outbound webhooks</Trans>
           </h3>
           <p className="mt-1 text-xs leading-5 text-[#85858A]">
-            <Trans>Manor signs contact events and retries failed deliveries automatically.</Trans>
+            <Trans>
+              {brandName} signs contact events and retries failed deliveries automatically.
+            </Trans>
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-[.7fr_1.3fr_auto]">

@@ -155,6 +155,7 @@ function isPlaceRoute(pathname: string): boolean {
   return pathname === "/app/crm" || pathname === "/app/docs";
 }
 
+import { accentColor, brand } from "../lib/brand";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import {
@@ -1909,7 +1910,7 @@ export function ShellPage() {
     <div
       data-testid="shell-root"
       data-ready={shellReady}
-      className="relative flex h-full min-w-0 overflow-hidden bg-[#050506] text-[#DFDFE2]"
+      className="relative flex h-full min-w-0 overflow-hidden bg-[var(--rk-page)] text-[#DFDFE2]"
     >
       {bootstrapMe !== undefined ? (
         <HostComputerPrompt initialMe={bootstrapMe ?? undefined} />
@@ -1930,8 +1931,16 @@ export function ShellPage() {
         <div className="app-drag flex items-center justify-between px-[18px] pb-3 pt-4">
           <div className="flex items-center gap-2.5">
             <WindowChrome />
-            <img src="/manor-mark.png" alt="Manor" className="h-[22px] w-[22px]" />
-            <span className="rk-wordmark text-[14px] text-[#F1F0F3]">MANOR</span>
+            <img
+              src={brand.logo.src}
+              alt={brand.logo.alt}
+              className={brand.logo.wide ? "h-[22px] w-auto" : "h-[22px] w-[22px]"}
+            />
+            {brand.logo.wide ? null : (
+              <span className="rk-wordmark text-[14px] text-[#F1F0F3]">
+                {brand.name.toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="relative flex items-center gap-2.5">
             <button
@@ -2475,7 +2484,7 @@ export function ShellPage() {
                     height="18"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke={showActivity ? "#A855F7" : "#A8A8AD"}
+                    stroke={showActivity ? accentColor : "#A8A8AD"}
                     strokeWidth="1.6"
                   >
                     <path d="M2 12h4l3-8 4 16 3-8h6" />
@@ -2530,7 +2539,7 @@ export function ShellPage() {
                                 : undefined
                             }
                           >
-                            <span className="shrink-0 text-[#A855F7]">{item.name}</span>
+                            <span className="shrink-0 text-[var(--rk-accent)]">{item.name}</span>
                             {item.detail ? (
                               <span className="truncate text-[#6E6975]">{item.detail}</span>
                             ) : null}
@@ -3299,7 +3308,7 @@ export function ShellPage() {
           </div>
         </div>
       ) : computerOpen && active ? (
-        <div className="absolute inset-0 z-30 flex flex-col bg-[#050506]">
+        <div className="absolute inset-0 z-30 flex flex-col bg-[var(--rk-page)]">
           <div className="flex items-center justify-between gap-4 border-b border-[#171719] px-[18px] py-3.5">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <BotAvatar

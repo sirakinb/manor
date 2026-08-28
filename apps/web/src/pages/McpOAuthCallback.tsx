@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { brandName } from "../lib/brand";
 import { MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
 
@@ -44,7 +45,7 @@ export function McpOAuthCallbackPage() {
   }, [navigate, params, t]);
   const showReturn = Boolean(error) && window.name !== POPUP_NAME;
   return (
-    <div className="grid min-h-screen place-items-center bg-[#050506] p-6 text-center">
+    <div className="grid min-h-screen place-items-center bg-[var(--rk-page)] p-6 text-center">
       <div>
         <div className="text-lg text-[#F1F1F2]">
           {error ? (
@@ -62,7 +63,7 @@ export function McpOAuthCallbackPage() {
             onClick={() => navigate("/app")}
             className="mt-5 rounded-xl bg-[#7785FF] px-4 py-2 text-sm font-semibold text-[#090A12]"
           >
-            <Trans>Return to Manor</Trans>
+            <Trans>Return to {brandName}</Trans>
           </button>
         ) : (
           <p className="mt-2 text-sm text-[#85858B]">

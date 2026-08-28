@@ -54,6 +54,9 @@ importers:
       '@rakazo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@rakazo/brands':
+        specifier: workspace:*
+        version: link:../../packages/brands
       '@rakazo/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -243,6 +246,9 @@ importers:
       '@orpc/contract':
         specifier: ^1.15.0
         version: 1.15.0(@opentelemetry/api@1.9.1)
+      '@rakazo/brands':
+        specifier: workspace:*
+        version: link:../../packages/brands
       '@rakazo/chat-ui':
         specifier: workspace:*
         version: link:../../packages/chat-ui
@@ -566,6 +572,18 @@ importers:
         specifier: ^1.6.27
         version: 1.6.27(@opentelemetry/api@1.9.1)(@prisma/client@7.9.1(prisma@7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(magicast@0.5.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(typescript@5.9.3))(mysql2@3.15.3)(pg@8.23.0)(prisma@7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(magicast@0.5.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(jsdom@30.0.1(@noble/hashes@2.3.0))(vite@8.2.1(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)))
     devDependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(jsdom@30.0.1(@noble/hashes@2.3.0))(vite@8.2.1(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))
+
+  packages/brands:
+    devDependencies:
+      '@rakazo/ui-tokens':
+        specifier: workspace:*
+        version: link:../ui-tokens
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { brandName } from "../lib/brand";
 import { localizedProviderHint } from "../lib/localized-provider-hint";
 import type { ModelCatalogEntry, ModelCredential } from "../lib/model-auth";
 import { rpc } from "../lib/rpc";
@@ -307,7 +308,7 @@ export function ModelSettingsOverlay({ onClose }: { onClose: () => void }) {
               {loading ? (
                 <Trans>Loading model catalog…</Trans>
               ) : (
-                <Trans>Choose which connected model Manor uses.</Trans>
+                <Trans>Choose which connected model {brandName} uses.</Trans>
               )}
             </p>
           </div>
@@ -685,8 +686,8 @@ export function ModelSettingsOverlay({ onClose }: { onClose: () => void }) {
                 {selected.auth === "oauth" && !subscriptionSignIn ? (
                   <p className="mt-5 text-sm leading-[1.5] text-[#85858A]">
                     <Trans>
-                      This subscription sign-in is not available in Manor yet. Use a deployment
-                      credential or choose another provider.
+                      This subscription sign-in is not available in {brandName} yet. Use a
+                      deployment credential or choose another provider.
                     </Trans>
                   </p>
                 ) : null}
