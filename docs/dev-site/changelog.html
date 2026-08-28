@@ -101,6 +101,20 @@
        date, pick tags (new / fix / sync / mobile), keep bullets short. -->
 
   <div class="entry sync">
+    <div class="date">2026-08-28</div>
+    <h2>Upstream sync #6 — group organization, avatar styles, and a security pass</h2>
+    <ul>
+      <li>Pin and reorder bots in the sidebar; the group list picks up sections and faster indexes.</li>
+      <li>Choose your avatar style — Robot sprites or Organic — from Settings. The setting was inert before; now it actually repaints every avatar and keeps each bot's colour.</li>
+      <li>The CRM speaks all six languages. It was the last untranslated surface; plural rules are real plural rules, not English glued onto a placeholder.</li>
+      <li>Security: agent-computer egress rules now survive a Docker restart via a systemd unit, so a sandbox can no longer reach the private network after a reboot. Screen-proxy and supervisor secrets are enforced on boot.</li>
+      <li>Fixes: the agent home store no longer loses files under concurrent checkout (it was returning 2 of 200), and a sleeping Team Computer can't take the worker down with it on shutdown.</li>
+      <li>Kept through the merge: the CRM, sprites and skin, channel messaging, Team Computer fixes, and Manor's computer-network pinning on the VPS.</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span><span class="tag new">feature</span><span class="tag fix">fix</span></div>
+  </div>
+
+  <div class="entry sync">
     <div class="date">2026-08-25</div>
     <h2>Upstream sync #5 — agent skills, scratchpads, bots talking to bots</h2>
     <ul>
