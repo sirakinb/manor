@@ -1324,12 +1324,17 @@ export function createRouter(deps: RouterDeps) {
         }
         if (hasActiveComputerControl(bot.computer) && bot.computer.controlBotId !== bot.id) {
           const previousBotId = bot.computer.controlBotId!;
-          await deps.sandbox.setScreenControl?.(
-            toComputerRef(bot.computer),
-            false,
-            computerContext(context.actor, previousBotId, "screen.release"),
-            bot.computer.controlLeaseId ?? undefined,
-          );
+          try {
+            await deps.sandbox.setScreenControl?.(
+              toComputerRef(bot.computer),
+              false,
+              computerContext(context.actor, previousBotId, "screen.release"),
+              bot.computer.controlLeaseId ?? undefined,
+            );
+          } catch {
+            // Releasing must not fail on a dead or unreachable container —
+            // the database lease is the source of truth for control.
+          }
           await deps.prisma.computer.updateMany({
             where: { id: bot.computer.id, controlLeaseId: bot.computer.controlLeaseId },
             data: {

@@ -48,6 +48,11 @@ git pull
 docker compose --env-file .env.vps -f infra/compose/docker-compose.vps.yml up -d --build
 ```
 
+After pulling, diff `.env.vps` against `.env.vps.example` for new required keys.
+As of the 2026-08 sync, `SANDBOX_SUPERVISOR_TOKEN` and `SCREEN_PROXY_SECRET` are
+mandatory — the API now refuses to boot without them, and each must be 32+
+characters and distinct from `BETTER_AUTH_SECRET` and from each other.
+
 Prisma migrations run automatically when the api container boots.
 
 ## Notes
