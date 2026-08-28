@@ -70,6 +70,7 @@ import {
   ArrowDown,
   ArrowUp,
   Bell,
+  BookOpen,
   Box,
   ChevronDown,
   ChevronLeft,
@@ -152,6 +153,13 @@ import { speaker } from "../lib/tts";
 import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
 import { CrmView } from "./crm/CrmView";
+import { DocsView } from "./DocsView";
+
+/** Routes that render a full-pane place instead of a bot thread. */
+function isPlaceRoute(pathname: string): boolean {
+  return pathname === "/app/crm" || pathname === "/app/docs";
+}
+
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import { WindowChrome } from "./WindowChrome";
@@ -274,9 +282,11 @@ export function ShellPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
   const [botSections, setBotSections] = useState<BotSection[]>([]);
-  // The CRM is a place, not a panel, so it lives on its own route and wins
-  // the main pane whenever the address says so.
-  const crmOpen = useLocation().pathname === "/app/crm";
+  // The CRM and docs are places, not panels, so they live on their own routes
+  // and win the main pane whenever the address says so.
+  const placePathname = useLocation().pathname;
+  const crmOpen = placePathname === "/app/crm";
+  const docsOpen = placePathname === "/app/docs";
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedGroups, setArchivedGroups] = useState<Group[]>([]);
   const [archivedOpen, setArchivedOpen] = useState(false);
@@ -570,9 +580,9 @@ export function ShellPage() {
           }
           return;
         }
-        // The CRM route has no bot selected; redirecting would bounce the user
-        // off the board every time the bot list refreshes.
-        if (window.location.pathname === "/app/crm") return;
+        // Place routes (CRM, docs) have no bot selected; redirecting would
+        // bounce the user off the page every time the bot list refreshes.
+        if (isPlaceRoute(window.location.pathname)) return;
         const currentBotId = routeBotId.current;
         if (!currentBotId || !list.some((bot) => bot.id === currentBotId)) {
           navigate(firstThreadRoute(list, groupList), { replace: true });
@@ -791,7 +801,7 @@ export function ShellPage() {
           return;
         }
         const selectedBotId = bootstrap.thread?.botId ?? bootstrap.bots[0]?.id;
-        if (selectedBotId && selectedBotId !== botId && window.location.pathname !== "/app/crm") {
+        if (selectedBotId && selectedBotId !== botId && !isPlaceRoute(window.location.pathname)) {
           navigate(`/app/${selectedBotId}`, { replace: true });
         }
       })
@@ -2295,6 +2305,20 @@ export function ShellPage() {
             <Trans>Integrations</Trans>
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => navigate("/app/docs")}
+          className={`mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315] ${
+            docsOpen ? "bg-[#131315]" : ""
+          }`}
+        >
+          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
+            <BookOpen size={15} strokeWidth={1.7} />
+          </span>
+          <span className="text-[14.5px] text-[#C9C9CE]">
+            <Trans>Documentation</Trans>
+          </span>
+        </button>
         <div className="relative">
           {menuOpen ? (
             <div className="absolute bottom-14 inset-x-3 rounded-2xl border border-[#2A2A2F] bg-[#1A1A1D] p-2 shadow-[0_22px_50px_rgba(0,0,0,.55)]">
@@ -2400,6 +2424,8 @@ export function ShellPage() {
       <main className="flex min-w-0 flex-1 flex-col bg-[#0D0D0E]">
         {crmOpen ? (
           <CrmView />
+        ) : docsOpen ? (
+          <DocsView />
         ) : (
           <>
             <div className="flex items-center justify-between border-b border-[#141416] px-3 py-[17px] md:px-[22px]">
