@@ -263,7 +263,7 @@ export function RoutineEditor({
             }`}
           >
             <span
-              className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white transition-transform ${
+              className={`absolute top-[2px] left-0 h-[18px] w-[18px] rounded-full bg-white transition-transform ${
                 draft.active ? "translate-x-[20px]" : "translate-x-[2px]"
               }`}
             />
@@ -390,9 +390,9 @@ export function RoutineEditor({
             <div
               role="menu"
               aria-labelledby={addTriggerId}
-              className="absolute right-0 bottom-full z-20 mb-2 min-w-[220px] rounded-[14px] border border-[#2A2A2E] bg-[#16161A] py-1.5 shadow-[0_12px_40px_rgba(0,0,0,.55)]"
+              className="rk-scroll absolute right-0 bottom-full z-20 mb-2 max-h-[min(380px,calc(100dvh-72px))] min-w-[220px] overflow-y-auto rounded-[14px] border border-[#2A2A2E] bg-[#16161A] py-1.5 shadow-[0_12px_40px_rgba(0,0,0,.55)]"
             >
-              <div className="relative">
+              <div>
                 <button
                   type="button"
                   role="menuitem"
@@ -405,25 +405,22 @@ export function RoutineEditor({
                     <ClockIcon />
                     <Trans>On a schedule</Trans>
                   </span>
-                  <ChevronRight size={14} className="text-[#85858A]" />
+                  <ChevronRight
+                    size={14}
+                    className={`text-[#85858A] transition-transform ${scheduleOpen ? "rotate-90" : ""}`}
+                  />
                 </button>
                 {scheduleOpen ? (
-                  <div
-                    role="menu"
-                    className="absolute top-0 right-full mr-1.5 min-w-[170px] overflow-hidden rounded-[14px] border border-[#2A2A2E] bg-[#16161A] py-1.5 shadow-[0_12px_40px_rgba(0,0,0,.55)]"
-                  >
+                  <div role="menu" className="pb-1">
                     {SCHEDULE_PRESETS.map((freq) => (
                       <button
                         key={freq}
                         type="button"
                         role="menuitem"
                         onClick={() => addSchedule(freq)}
-                        className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-start text-[14px] text-[#ECECEE] hover:bg-[#1E1E22]"
+                        className="flex w-full items-center justify-between gap-3 py-2.5 ps-10 pe-3.5 text-start text-[14px] text-[#ECECEE] hover:bg-[#1E1E22]"
                       >
                         {schedulePresetLabel(freq)}
-                        {freq === "Every day" || freq === "Weekdays" ? (
-                          <ChevronRight size={14} className="text-[#85858A]" />
-                        ) : null}
                       </button>
                     ))}
                   </div>
