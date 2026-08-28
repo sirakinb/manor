@@ -133,7 +133,7 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use((req, _res, next) => {
             const pathname = req.url?.split("?", 1)[0] ?? "/";
             if (
-              ["/api", "/rpc", "/v1", "/mcp", "/novnc"].some((prefix) =>
+              ["/api", "/rpc", "/v1", "/mcp/crm", "/novnc"].some((prefix) =>
                 pathname.startsWith(prefix),
               )
             ) {
@@ -156,7 +156,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/api": { target: api, changeOrigin: true },
-        "/mcp": { target: api, changeOrigin: true },
+        "/mcp/crm": { target: api, changeOrigin: true },
         "/rpc": { target: api, changeOrigin: true },
         "/v1": { target: api, changeOrigin: true },
       },
@@ -167,7 +167,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts: [previewHost],
       proxy: {
         "/api": { target: api, changeOrigin: true },
-        "/mcp": { target: api, changeOrigin: true },
+        "/mcp/crm": { target: api, changeOrigin: true },
         "/rpc": { target: api, changeOrigin: true },
         "/v1": { target: api, changeOrigin: true },
       },
