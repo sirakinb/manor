@@ -149,12 +149,7 @@ export function CrmApiAccessPanel() {
             </Trans>
           </p>
         </div>
-        <a
-          href="https://rakazo.com/docs/crm-integrations"
-          target="_blank"
-          rel="noreferrer"
-          className="text-sm text-[#AEB5FF] hover:text-[#D1D5FF]"
-        >
+        <a href="/app/docs" className="text-sm text-[#AEB5FF] hover:text-[#D1D5FF]">
           <Trans>Documentation ↗</Trans>
         </a>
       </div>
