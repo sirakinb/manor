@@ -16,7 +16,11 @@ import path from "node:path";
 import type { AdapterContext, AgentHomeStore, PortableFile } from "@rakazo/adapter-kit";
 
 export class LocalAgentHomeStore implements AgentHomeStore {
-  private readonly botWrites = new Map<string, Promise<void>>();
+  // Readers hold this too: `commit` swaps the home in with a rename, so a reader
+  // that merely waited for the in-flight write to settle could still be walking
+  // the tree when the next commit renames it away, and would silently observe a
+  // half-swapped or empty home.
+  private readonly botLocks = new Map<string, Promise<void>>();
 
   constructor(private readonly root: string) {}
 
@@ -41,17 +45,18 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   }
 
   async checkout(botId: string, dest: string, _context: AdapterContext): Promise<string> {
-    await this.waitForBotWrite(botId);
-    await this.recoverInterruptedCommit(botId);
-    await mkdir(dest, { recursive: true });
-    const src = this.botDir(botId);
-    await mkdir(src, { recursive: true });
-    await copyDir(src, dest);
-    return "working";
+    return this.withBotLock(botId, async () => {
+      await this.recoverInterruptedCommit(botId);
+      await mkdir(dest, { recursive: true });
+      const src = this.botDir(botId);
+      await mkdir(src, { recursive: true });
+      await copyDir(src, dest);
+      return "working";
+    });
   }
 
   async commit(botId: string, src: string, _context: AdapterContext): Promise<string> {
-    return this.withBotWrite(botId, async () => {
+    return this.withBotLock(botId, async () => {
       await this.recoverInterruptedCommit(botId);
       const dest = this.botDir(botId);
       const parent = path.dirname(dest);
@@ -80,7 +85,7 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   }
 
   async revise(botId: string): Promise<string> {
-    return this.withBotWrite(botId, async () => this.writeRevision(botId));
+    return this.withBotLock(botId, async () => this.writeRevision(botId));
   }
 
   async restore(
@@ -92,12 +97,19 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     await this.checkout(botId, dest, context);
   }
 
+  // Streams under the lock rather than buffering, so a large home stays streamable.
+  // `for await` runs the generator's finally on break or throw, which is how every
+  // caller drains it.
   async *exportHome(botId: string, _context: AdapterContext): AsyncIterable<PortableFile> {
-    await this.waitForBotWrite(botId);
-    await this.recoverInterruptedCommit(botId);
-    const dir = this.botDir(botId);
-    await mkdir(dir, { recursive: true });
-    yield* walkFiles(dir, dir);
+    const release = await this.acquireBotLock(botId);
+    try {
+      await this.recoverInterruptedCommit(botId);
+      const dir = this.botDir(botId);
+      await mkdir(dir, { recursive: true });
+      yield* walkFiles(dir, dir);
+    } finally {
+      release();
+    }
   }
 
   async readFile(
@@ -106,21 +118,22 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     _context: AdapterContext,
     options?: { maxBytes?: number },
   ): Promise<string> {
-    await this.waitForBotWrite(botId);
-    await this.recoverInterruptedCommit(botId);
-    const full = await containedExistingPath(this.botDir(botId), filePath);
-    const handle = await open(full, constants.O_RDONLY | constants.O_NOFOLLOW);
-    try {
-      if (options?.maxBytes !== undefined) {
-        const info = await handle.stat();
-        if (info.size > options.maxBytes) {
-          throw new Error(`agent home file exceeds ${options.maxBytes} bytes`);
+    return this.withBotLock(botId, async () => {
+      await this.recoverInterruptedCommit(botId);
+      const full = await containedExistingPath(this.botDir(botId), filePath);
+      const handle = await open(full, constants.O_RDONLY | constants.O_NOFOLLOW);
+      try {
+        if (options?.maxBytes !== undefined) {
+          const info = await handle.stat();
+          if (info.size > options.maxBytes) {
+            throw new Error(`agent home file exceeds ${options.maxBytes} bytes`);
+          }
         }
+        return await handle.readFile("utf8");
+      } finally {
+        await handle.close();
       }
-      return await handle.readFile("utf8");
-    } finally {
-      await handle.close();
-    }
+    });
   }
 
   async writeFile(
@@ -129,7 +142,7 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     content: string,
     _context: AdapterContext,
   ): Promise<void> {
-    await this.withBotWrite(botId, async () => {
+    await this.withBotLock(botId, async () => {
       await this.recoverInterruptedCommit(botId);
       const full = await containedWritePath(this.botDir(botId), filePath);
       const handle = await open(
@@ -146,25 +159,26 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   }
 
   async list(botId: string, dirPath: string, _context: AdapterContext) {
-    await this.waitForBotWrite(botId);
-    await this.recoverInterruptedCommit(botId);
-    const root = this.botDir(botId);
-    const candidate = safeJoin(root, dirPath);
-    const full = await ensureContainedDirectory(root, candidate);
-    const entries = await readdir(full, { withFileTypes: true });
-    const listed = await Promise.all(
-      entries.map(async (entry) => {
-        const child = await containedTarget(root, path.join(full, entry.name)).catch(() => null);
-        if (!child) return null;
-        const info = await stat(child);
-        return {
-          path: path.posix.join(dirPath.replace(/\\/g, "/"), entry.name),
-          kind: info.isDirectory() ? ("dir" as const) : ("file" as const),
-          size: info.size,
-        };
-      }),
-    );
-    return listed.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    return this.withBotLock(botId, async () => {
+      await this.recoverInterruptedCommit(botId);
+      const root = this.botDir(botId);
+      const candidate = safeJoin(root, dirPath);
+      const full = await ensureContainedDirectory(root, candidate);
+      const entries = await readdir(full, { withFileTypes: true });
+      const listed = await Promise.all(
+        entries.map(async (entry) => {
+          const child = await containedTarget(root, path.join(full, entry.name)).catch(() => null);
+          if (!child) return null;
+          const info = await stat(child);
+          return {
+            path: path.posix.join(dirPath.replace(/\\/g, "/"), entry.name),
+            kind: info.isDirectory() ? ("dir" as const) : ("file" as const),
+            size: info.size,
+          };
+        }),
+      );
+      return listed.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    });
   }
 
   private async writeRevision(botId: string) {
@@ -181,27 +195,30 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     if (!(await pathExists(dest)) && (await pathExists(previous))) await rename(previous, dest);
   }
 
-  private async withBotWrite<T>(botId: string, work: () => Promise<T>): Promise<T> {
-    const previous = this.botWrites.get(botId) ?? Promise.resolve();
+  private async acquireBotLock(botId: string): Promise<() => void> {
+    const previous = this.botLocks.get(botId) ?? Promise.resolve();
     let release: () => void = () => undefined;
     const current = new Promise<void>((resolve) => {
       release = resolve;
     });
-    // Keep the chain alive even when a prior write rejects, so later writers are not stuck
+    // Keep the chain alive even when a prior holder rejects, so later callers are not stuck
     // behind a permanently rejected predecessor.
     const queued = previous.catch(() => undefined).then(() => current);
-    this.botWrites.set(botId, queued);
+    this.botLocks.set(botId, queued);
     await previous.catch(() => undefined);
+    return () => {
+      release();
+      if (this.botLocks.get(botId) === queued) this.botLocks.delete(botId);
+    };
+  }
+
+  private async withBotLock<T>(botId: string, work: () => Promise<T>): Promise<T> {
+    const release = await this.acquireBotLock(botId);
     try {
       return await work();
     } finally {
       release();
-      if (this.botWrites.get(botId) === queued) this.botWrites.delete(botId);
     }
-  }
-
-  private async waitForBotWrite(botId: string) {
-    await (this.botWrites.get(botId) ?? Promise.resolve());
   }
 }
 
