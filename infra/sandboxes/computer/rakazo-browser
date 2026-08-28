@@ -8,6 +8,13 @@ if [ -z "$BIN" ]; then
   echo "chromium is not installed" >&2
   exit 1
 fi
+# The profile persists across container recreation, but Chromium's
+# SingletonLock encodes hostname-pid. A lock from another hostname can
+# never be a live process in this container, so it is always stale.
+LOCK_TARGET="$(readlink "$PROFILE/SingletonLock" 2>/dev/null || true)"
+if [ -n "$LOCK_TARGET" ] && [ "${LOCK_TARGET%-*}" != "$(hostname)" ]; then
+  rm -f "$PROFILE/SingletonLock" "$PROFILE/SingletonCookie" "$PROFILE/SingletonSocket"
+fi
 exec "$BIN" \
   --test-type \
   --no-sandbox \
