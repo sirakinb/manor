@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmOverview } from "@rakazo/contracts";
 import { useMemo, useState } from "react";
@@ -60,12 +61,13 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
   const dealCount = scope.deals.length;
   const contactCount = overview.contacts.length;
   const wonCount = won.length;
+  const openAmount = formatMoney(openValue);
 
   const cards = [
     {
       label: t`Total pipeline`,
       value: formatMoney(totalValue),
-      detail: t`${dealCount} deal${dealCount === 1 ? "" : "s"}`,
+      detail: plural(dealCount, { one: "# deal", other: "# deals" }),
     },
     {
       label: t`Won revenue`,
@@ -75,12 +77,12 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
     {
       label: t`Open deals`,
       value: String(open.length),
-      detail: t`${formatMoney(openValue)} in play`,
+      detail: t`${openAmount} in play`,
     },
     {
       label: t`Avg deal size`,
       value: formatMoney(avgDeal),
-      detail: t`${contactCount} contact${contactCount === 1 ? "" : "s"}`,
+      detail: plural(contactCount, { one: "# contact", other: "# contacts" }),
     },
   ];
 

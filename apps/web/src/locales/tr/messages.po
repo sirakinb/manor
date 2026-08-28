@@ -50,11 +50,6 @@ msgstr "{0} {unitLabel}"
 msgid "{0} connection"
 msgstr "{0} bağlantısı"
 
-#. placeholder {0}: formatMoney(openValue)
-#: src/pages/crm/CrmHome.tsx:78
-msgid "{0} in play"
-msgstr ""
-
 #. placeholder {0}: computer.busyBotName
 #: src/pages/Shell.tsx:2712
 msgid "{0} is using it"
@@ -90,18 +85,16 @@ msgstr "{botName} henüz başka bir bota mesaj göndermedi."
 msgid "{botName}’s computer"
 msgstr "{botName} adlı botun bilgisayarı"
 
-#. placeholder {0}: contactCount === 1 ? "" : "s"
-#: src/pages/crm/CrmHome.tsx:83
-msgid "{contactCount} contact{0}"
+#: src/pages/crm/CrmHome.tsx:85
+msgid "{contactCount, plural, one {# contact} other {# contacts}}"
 msgstr ""
 
 #: src/pages/ActivityList.tsx:142
 msgid "{days}d ago"
 msgstr "{days} g önce"
 
-#. placeholder {0}: dealCount === 1 ? "" : "s"
-#: src/pages/crm/CrmHome.tsx:68
-msgid "{dealCount} deal{0}"
+#: src/pages/crm/CrmHome.tsx:70
+msgid "{dealCount, plural, one {# deal} other {# deals}}"
 msgstr ""
 
 #: src/pages/ActivityList.tsx:140
@@ -111,6 +104,10 @@ msgstr "{hours} sa önce"
 #: src/pages/ActivityList.tsx:138
 msgid "{minutes}m ago"
 msgstr "{minutes} dk önce"
+
+#: src/pages/crm/CrmHome.tsx:80
+msgid "{openAmount} in play"
+msgstr ""
 
 #: src/components/teach/TeachRecordingChrome.tsx:46
 #: src/components/teach/TeachRecordingChrome.tsx:64
@@ -125,7 +122,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/pages/crm/CrmHome.tsx:73
+#: src/pages/crm/CrmHome.tsx:75
 msgid "{wonCount} closed"
 msgstr ""
 
@@ -284,7 +281,7 @@ msgstr "Agent bilgisayarı"
 msgid "Agents:"
 msgstr "Agent'lar:"
 
-#: src/pages/crm/CrmHome.tsx:97
+#: src/pages/crm/CrmHome.tsx:99
 msgid "All pipelines"
 msgstr ""
 
@@ -477,7 +474,7 @@ msgstr "Yetkilendir"
 msgid "Avatars"
 msgstr ""
 
-#: src/pages/crm/CrmHome.tsx:81
+#: src/pages/crm/CrmHome.tsx:83
 msgid "Avg deal size"
 msgstr ""
 
@@ -1214,7 +1211,7 @@ msgstr "gün"
 msgid "Deal actions"
 msgstr ""
 
-#: src/pages/crm/CrmHome.tsx:184
+#: src/pages/crm/CrmHome.tsx:186
 msgid "Deal status"
 msgstr ""
 
@@ -1744,7 +1741,7 @@ msgstr "Yerel"
 msgid "Log out"
 msgstr "Çıkış yap"
 
-#: src/pages/crm/CrmHome.tsx:53
+#: src/pages/crm/CrmHome.tsx:54
 msgid "Lost"
 msgstr ""
 
@@ -2024,7 +2021,7 @@ msgstr ""
 msgid "No credential saved"
 msgstr "Kayıtlı kimlik bilgisi yok"
 
-#: src/pages/crm/CrmHome.tsx:125
+#: src/pages/crm/CrmHome.tsx:127
 msgid "No deals yet"
 msgstr ""
 
@@ -2093,7 +2090,7 @@ msgstr "Şimdi değil"
 msgid "Notes"
 msgstr ""
 
-#: src/pages/crm/CrmHome.tsx:282
+#: src/pages/crm/CrmHome.tsx:284
 msgid "Nothing to chart yet"
 msgstr ""
 
@@ -2127,7 +2124,7 @@ msgstr "OAuth, tarayıcı yetkilendirmesini destekleyen sağlayıcılar için ku
 msgid "on the 1st at {0}"
 msgstr "her ayın 1'inde saat {0}"
 
-#: src/pages/crm/CrmHome.tsx:51
+#: src/pages/crm/CrmHome.tsx:52
 #: src/pages/ScratchpadSection.tsx:157
 msgid "Open"
 msgstr "Aç"
@@ -2136,7 +2133,7 @@ msgstr "Aç"
 msgid "Open computer"
 msgstr "Bilgisayarı aç"
 
-#: src/pages/crm/CrmHome.tsx:76
+#: src/pages/crm/CrmHome.tsx:78
 msgid "Open deals"
 msgstr ""
 
@@ -2255,7 +2252,7 @@ msgstr ""
 msgid "Pipeline name"
 msgstr ""
 
-#: src/pages/crm/CrmHome.tsx:139
+#: src/pages/crm/CrmHome.tsx:141
 msgid "Pipeline value by stage"
 msgstr ""
 
@@ -2293,7 +2290,7 @@ msgstr "Yanıtları sesli oku"
 msgid "Recent"
 msgstr "Son"
 
-#: src/pages/crm/CrmHome.tsx:196
+#: src/pages/crm/CrmHome.tsx:198
 msgid "Recent deals"
 msgstr ""
 
@@ -2823,7 +2820,7 @@ msgstr "Dene"
 msgid "The API did not come back. Refresh this page."
 msgstr ""
 
-#: src/pages/crm/CrmHome.tsx:128
+#: src/pages/crm/CrmHome.tsx:130
 msgid "The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to add the first one."
 msgstr ""
 
@@ -2914,7 +2911,7 @@ msgstr ""
 msgid "Tool sources"
 msgstr "Araç kaynakları"
 
-#: src/pages/crm/CrmHome.tsx:66
+#: src/pages/crm/CrmHome.tsx:68
 msgid "Total pipeline"
 msgstr ""
 
@@ -3001,7 +2998,7 @@ msgstr "Bu modeli kullan"
 msgid "Value (USD)"
 msgstr ""
 
-#: src/pages/crm/CrmHome.tsx:171
+#: src/pages/crm/CrmHome.tsx:173
 msgid "Value distribution"
 msgstr ""
 
@@ -3085,11 +3082,11 @@ msgstr "Ne zaman kullanılır"
 msgid "Where should bots run?"
 msgstr "Botlar nerede çalışsın?"
 
-#: src/pages/crm/CrmHome.tsx:52
+#: src/pages/crm/CrmHome.tsx:53
 msgid "Won"
 msgstr ""
 
-#: src/pages/crm/CrmHome.tsx:71
+#: src/pages/crm/CrmHome.tsx:73
 msgid "Won revenue"
 msgstr ""
 
