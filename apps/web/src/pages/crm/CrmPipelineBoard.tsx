@@ -11,6 +11,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmContact, CrmDeal, CrmOverview, CrmStage } from "@rakazo/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
@@ -139,7 +140,7 @@ export function CrmPipelineBoard({
             onClick={() => setCreating("pipeline")}
             className="text-[12.5px] text-[#6E6975] hover:text-[#C9C9CE]"
           >
-            + New pipeline
+            <Trans>+ New pipeline</Trans>
           </button>
         </div>
         <button
@@ -147,7 +148,7 @@ export function CrmPipelineBoard({
           onClick={() => setCreating("deal")}
           className="rounded-full bg-[#F1F1EF] px-3.5 py-1.5 text-[13px] font-medium text-[#17171A]"
         >
-          New deal
+          <Trans>New deal</Trans>
         </button>
       </div>
 
@@ -269,7 +270,7 @@ function StageColumn({
         ))}
         {deals.length === 0 ? (
           <div className="flex items-center justify-center rounded-lg border border-dashed border-[#232326] py-6 text-[12px] text-[#5F5B69]">
-            Drop deals here
+            <Trans>Drop deals here</Trans>
           </div>
         ) : null}
       </div>
@@ -292,6 +293,7 @@ function DealCard({
   onDelete: (dealId: string) => void;
   onEdit: (deal: CrmDeal) => void;
 }) {
+  const { t } = useLingui();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: deal.id,
   });
@@ -314,7 +316,7 @@ function DealCard({
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => setMenuOpen((open) => !open)}
           className="shrink-0 text-[#5F5B69] opacity-0 transition-opacity hover:text-[#C9C9CE] group-hover:opacity-100"
-          aria-label="Deal actions"
+          aria-label={t`Deal actions`}
         >
           ⋯
         </button>
@@ -334,23 +336,27 @@ function DealCard({
             }}
             className="block w-full px-3 py-1.5 text-left text-[12.5px] text-[#C9C9CE] hover:bg-[#232326]"
           >
-            Edit
+            <Trans>Edit</Trans>
           </button>
           {(["open", "won", "lost"] as const)
             .filter((status) => status !== deal.status)
-            .map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onSetStatus(deal.id, status);
-                }}
-                className="block w-full px-3 py-1.5 text-left text-[12.5px] text-[#C9C9CE] hover:bg-[#232326]"
-              >
-                Mark {status}
-              </button>
-            ))}
+            .map((status) => {
+              const label =
+                status === "open" ? t`Mark open` : status === "won" ? t`Mark won` : t`Mark lost`;
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onSetStatus(deal.id, status);
+                  }}
+                  className="block w-full px-3 py-1.5 text-left text-[12.5px] text-[#C9C9CE] hover:bg-[#232326]"
+                >
+                  {label}
+                </button>
+              );
+            })}
           <button
             type="button"
             onClick={() => {
@@ -359,7 +365,7 @@ function DealCard({
             }}
             className="block w-full px-3 py-1.5 text-left text-[12.5px] text-[#F87171] hover:bg-[#232326]"
           >
-            Delete
+            <Trans>Delete</Trans>
           </button>
         </div>
       ) : null}
@@ -473,6 +479,7 @@ function CreateDealModal({
   onClose: () => void;
   onCreated: () => Promise<void>;
 }) {
+  const { t } = useLingui();
   const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
   const [pipelineId, setPipelineId] = useState(initialPipelineId);
@@ -503,19 +510,19 @@ function CreateDealModal({
   }
 
   return (
-    <ModalShell title="New deal" onClose={onClose}>
+    <ModalShell title={t`New deal`} onClose={onClose}>
       <div className="space-y-3">
         <input
           ref={focusOnMount}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Deal title"
+          placeholder={t`Deal title`}
           className={inputClass}
         />
         <input
           value={value}
           onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, ""))}
-          placeholder="Value (USD)"
+          placeholder={t`Value (USD)`}
           inputMode="numeric"
           className={inputClass}
         />
@@ -548,7 +555,9 @@ function CreateDealModal({
           onChange={(event) => setContactId(event.target.value)}
           className={inputClass}
         >
-          <option value="">No contact</option>
+          <option value="">
+            <Trans>No contact</Trans>
+          </option>
           {overview.contacts
             .filter((contact) => contact.status === "active")
             .map((contact) => (
@@ -563,7 +572,7 @@ function CreateDealModal({
             onClick={onClose}
             className="px-3 py-1.5 text-[13px] text-[#85858A] hover:text-[#C9C9CE]"
           >
-            Cancel
+            <Trans>Cancel</Trans>
           </button>
           <button
             type="button"
@@ -571,7 +580,7 @@ function CreateDealModal({
             onClick={() => void submit()}
             className="rounded-full bg-[#F1F1EF] px-4 py-1.5 text-[13px] font-medium text-[#17171A] disabled:opacity-40"
           >
-            Create
+            <Trans>Create</Trans>
           </button>
         </div>
       </div>
@@ -590,6 +599,7 @@ function EditDealModal({
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
+  const { t } = useLingui();
   const [title, setTitle] = useState(deal.title);
   const [value, setValue] = useState(deal.value > 0 ? String(deal.value) : "");
   const [contactId, setContactId] = useState(deal.contactId ?? "");
@@ -612,19 +622,19 @@ function EditDealModal({
   }
 
   return (
-    <ModalShell title="Edit deal" onClose={onClose}>
+    <ModalShell title={t`Edit deal`} onClose={onClose}>
       <div className="space-y-3">
         <input
           ref={focusOnMount}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Deal title"
+          placeholder={t`Deal title`}
           className={inputClass}
         />
         <input
           value={value}
           onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, ""))}
-          placeholder="Value (USD)"
+          placeholder={t`Value (USD)`}
           inputMode="numeric"
           className={inputClass}
         />
@@ -633,7 +643,9 @@ function EditDealModal({
           onChange={(event) => setContactId(event.target.value)}
           className={inputClass}
         >
-          <option value="">No contact</option>
+          <option value="">
+            <Trans>No contact</Trans>
+          </option>
           {contacts
             .filter((contact) => contact.status === "active" || contact.id === deal.contactId)
             .map((contact) => (
@@ -648,7 +660,7 @@ function EditDealModal({
             onClick={onClose}
             className="px-3 py-1.5 text-[13px] text-[#85858A] hover:text-[#C9C9CE]"
           >
-            Cancel
+            <Trans>Cancel</Trans>
           </button>
           <button
             type="button"
@@ -656,7 +668,7 @@ function EditDealModal({
             onClick={() => void submit()}
             className="rounded-full bg-[#F1F1EF] px-4 py-1.5 text-[13px] font-medium text-[#17171A] disabled:opacity-40"
           >
-            Save
+            <Trans>Save</Trans>
           </button>
         </div>
       </div>
@@ -671,6 +683,7 @@ function CreatePipelineModal({
   onClose: () => void;
   onCreated: (pipelineId: string) => Promise<void>;
 }) {
+  const { t } = useLingui();
   const [name, setName] = useState("");
   const [stages, setStages] = useState(["Lead", "Qualified", "Won"]);
   const [busy, setBusy] = useState(false);
@@ -691,17 +704,19 @@ function CreatePipelineModal({
   }
 
   return (
-    <ModalShell title="New pipeline" onClose={onClose}>
+    <ModalShell title={t`New pipeline`} onClose={onClose}>
       <div className="space-y-3">
         <input
           ref={focusOnMount}
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="Pipeline name"
+          placeholder={t`Pipeline name`}
           className={inputClass}
         />
         <div>
-          <p className="mb-1.5 text-[12px] font-medium text-[#85858A]">Stages, in order</p>
+          <p className="mb-1.5 text-[12px] font-medium text-[#85858A]">
+            <Trans>Stages, in order</Trans>
+          </p>
           <div className="space-y-2">
             {stages.map((stage, index) => (
               <div key={`stage-${index.toString()}`} className="flex items-center gap-2">
@@ -712,7 +727,7 @@ function CreatePipelineModal({
                       previous.map((entry, at) => (at === index ? event.target.value : entry)),
                     )
                   }
-                  placeholder={`Stage ${index + 1}`}
+                  placeholder={t`Stage ${index + 1}`}
                   className={inputClass}
                 />
                 {stages.length > 1 ? (
@@ -722,7 +737,7 @@ function CreatePipelineModal({
                       setStages((previous) => previous.filter((_, at) => at !== index))
                     }
                     className="text-[#5F5B69] hover:text-[#C9C9CE]"
-                    aria-label="Remove stage"
+                    aria-label={t`Remove stage`}
                   >
                     ✕
                   </button>
@@ -736,7 +751,7 @@ function CreatePipelineModal({
               onClick={() => setStages((previous) => [...previous, ""])}
               className="mt-2 text-[12.5px] text-[#6E6975] hover:text-[#C9C9CE]"
             >
-              + Add stage
+              <Trans>+ Add stage</Trans>
             </button>
           ) : null}
         </div>
@@ -746,7 +761,7 @@ function CreatePipelineModal({
             onClick={onClose}
             className="px-3 py-1.5 text-[13px] text-[#85858A] hover:text-[#C9C9CE]"
           >
-            Cancel
+            <Trans>Cancel</Trans>
           </button>
           <button
             type="button"
@@ -754,7 +769,7 @@ function CreatePipelineModal({
             onClick={() => void submit()}
             className="rounded-full bg-[#F1F1EF] px-4 py-1.5 text-[13px] font-medium text-[#17171A] disabled:opacity-40"
           >
-            Create
+            <Trans>Create</Trans>
           </button>
         </div>
       </div>

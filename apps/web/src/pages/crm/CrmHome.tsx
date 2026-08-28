@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmOverview } from "@rakazo/contracts";
 import { useMemo, useState } from "react";
 import { formatMoney, formatMoneyShort, STATUS_COLORS, stageColor, withAlpha } from "./theme";
@@ -9,6 +11,7 @@ const ALL = "__all__";
  * how much has landed, and where the pipeline is thick or thin.
  */
 export function CrmHome({ overview }: { overview: CrmOverview }) {
+  const { t } = useLingui();
   const [pipelineId, setPipelineId] = useState<string>(ALL);
 
   const scope = useMemo(() => {
@@ -46,35 +49,40 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
   const donutTotal = donut.reduce((sum, stage) => sum + stage.value, 0);
 
   const statusData = [
-    { label: "Open", count: open.length, color: STATUS_COLORS.open },
-    { label: "Won", count: won.length, color: STATUS_COLORS.won },
-    { label: "Lost", count: lost.length, color: STATUS_COLORS.lost },
+    { label: t`Open`, count: open.length, color: STATUS_COLORS.open },
+    { label: t`Won`, count: won.length, color: STATUS_COLORS.won },
+    { label: t`Lost`, count: lost.length, color: STATUS_COLORS.lost },
   ].filter((entry) => entry.count > 0);
   const statusTotal = statusData.reduce((sum, entry) => sum + entry.count, 0);
 
   const stageById = new Map(scope.stages.map((stage) => [stage.id, stage]));
   const recent = scope.deals.slice(0, 6);
 
+  const dealCount = scope.deals.length;
+  const contactCount = overview.contacts.length;
+  const wonCount = won.length;
+  const openAmount = formatMoney(openValue);
+
   const cards = [
     {
-      label: "Total pipeline",
+      label: t`Total pipeline`,
       value: formatMoney(totalValue),
-      detail: `${scope.deals.length} deal${scope.deals.length === 1 ? "" : "s"}`,
+      detail: plural(dealCount, { one: "# deal", other: "# deals" }),
     },
     {
-      label: "Won revenue",
+      label: t`Won revenue`,
       value: formatMoney(wonValue),
-      detail: `${won.length} closed`,
+      detail: t`${wonCount} closed`,
     },
     {
-      label: "Open deals",
+      label: t`Open deals`,
       value: String(open.length),
-      detail: `${formatMoney(openValue)} in play`,
+      detail: t`${openAmount} in play`,
     },
     {
-      label: "Avg deal size",
+      label: t`Avg deal size`,
       value: formatMoney(avgDeal),
-      detail: `${overview.contacts.length} contact${overview.contacts.length === 1 ? "" : "s"}`,
+      detail: plural(contactCount, { one: "# contact", other: "# contacts" }),
     },
   ];
 
@@ -87,7 +95,9 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
             onChange={(event) => setPipelineId(event.target.value)}
             className="rounded-lg border border-[#202023] bg-[#131315] px-3 py-1.5 text-[13px] text-[#C9C9CE] outline-none"
           >
-            <option value={ALL}>All pipelines</option>
+            <option value={ALL}>
+              <Trans>All pipelines</Trans>
+            </option>
             {overview.pipelines.map((pipeline) => (
               <option key={pipeline.id} value={pipeline.id}>
                 {pipeline.name}
@@ -113,10 +123,14 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
 
       {scope.deals.length === 0 ? (
         <div className="mt-4 rounded-xl border border-dashed border-[#2A2A2E] p-12 text-center">
-          <p className="text-[14px] font-medium text-[#C9C9CE]">No deals yet</p>
+          <p className="text-[14px] font-medium text-[#C9C9CE]">
+            <Trans>No deals yet</Trans>
+          </p>
           <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-[#6E6975]">
-            The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to
-            add the first one.
+            <Trans>
+              The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to
+              add the first one.
+            </Trans>
           </p>
         </div>
       ) : (
@@ -124,7 +138,7 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
           <div className="mt-4 grid grid-cols-3 gap-3">
             <div className="col-span-2 rounded-xl border border-[#202023] bg-[#131315] p-4">
               <h2 className="mb-4 text-[13px] font-semibold text-[#ECECEE]">
-                Pipeline value by stage
+                <Trans>Pipeline value by stage</Trans>
               </h2>
               <div className="space-y-3">
                 {stageData.map((stage) => (
@@ -156,7 +170,7 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
             </div>
 
             <Ring
-              title="Value distribution"
+              title={t`Value distribution`}
               center={formatMoneyShort(donutTotal)}
               segments={donut.map((stage) => ({
                 label: stage.name,
@@ -169,7 +183,7 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
 
           <div className="mt-3 grid grid-cols-3 gap-3">
             <Ring
-              title="Deal status"
+              title={t`Deal status`}
               center={String(statusTotal)}
               segments={statusData.map((entry) => ({
                 label: entry.label,
@@ -180,7 +194,9 @@ export function CrmHome({ overview }: { overview: CrmOverview }) {
             />
 
             <div className="col-span-2 rounded-xl border border-[#202023] bg-[#131315] p-4">
-              <h2 className="mb-1 text-[13px] font-semibold text-[#ECECEE]">Recent deals</h2>
+              <h2 className="mb-1 text-[13px] font-semibold text-[#ECECEE]">
+                <Trans>Recent deals</Trans>
+              </h2>
               <div className="divide-y divide-[#1C1C1F]">
                 {recent.map((deal) => {
                   const stage = stageById.get(deal.stageId);
@@ -264,7 +280,9 @@ function Ring({
     <div className="rounded-xl border border-[#202023] bg-[#131315] p-4">
       <h2 className="mb-3 text-[13px] font-semibold text-[#ECECEE]">{title}</h2>
       {segments.length === 0 ? (
-        <p className="py-10 text-center text-[13px] text-[#6E6975]">Nothing to chart yet</p>
+        <p className="py-10 text-center text-[13px] text-[#6E6975]">
+          <Trans>Nothing to chart yet</Trans>
+        </p>
       ) : (
         <>
           <div className="flex justify-center">

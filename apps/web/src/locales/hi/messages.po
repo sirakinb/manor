@@ -46,12 +46,12 @@ msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
 #. placeholder {0}: block.name
-#: src/pages/Shell.tsx:5810
+#: src/pages/Shell.tsx:5823
 msgid "{0} connection"
 msgstr "{0} कनेक्शन"
 
 #. placeholder {0}: computer.busyBotName
-#: src/pages/Shell.tsx:2704
+#: src/pages/Shell.tsx:2712
 msgid "{0} is using it"
 msgstr "{0} इसका उपयोग कर रहा है"
 
@@ -68,7 +68,7 @@ msgstr "{0} MB"
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
 #: src/pages/AccountSettingsOverlay.tsx:180
-#: src/pages/Shell.tsx:2364
+#: src/pages/Shell.tsx:2369
 msgid "{0} runs · {1} tokens"
 msgstr "{0} रन · {1} टोकन"
 
@@ -81,13 +81,21 @@ msgstr "{botName} · {0, plural, one {# सहयोगी बॉट} other {# �
 msgid "{botName} has not messaged another bot yet."
 msgstr "{botName} ने अभी तक किसी दूसरे बॉट को संदेश नहीं भेजा है।"
 
-#: src/pages/Shell.tsx:5687
+#: src/pages/Shell.tsx:5700
 msgid "{botName}’s computer"
 msgstr "{botName} का कंप्यूटर"
+
+#: src/pages/crm/CrmHome.tsx:85
+msgid "{contactCount, plural, one {# contact} other {# contacts}}"
+msgstr ""
 
 #: src/pages/ActivityList.tsx:142
 msgid "{days}d ago"
 msgstr "{days} दिन पहले"
+
+#: src/pages/crm/CrmHome.tsx:70
+msgid "{dealCount, plural, one {# deal} other {# deals}}"
+msgstr ""
 
 #: src/pages/ActivityList.tsx:140
 msgid "{hours}h ago"
@@ -96,6 +104,10 @@ msgstr "{hours} घंटे पहले"
 #: src/pages/ActivityList.tsx:138
 msgid "{minutes}m ago"
 msgstr "{minutes} मिनट पहले"
+
+#: src/pages/crm/CrmHome.tsx:80
+msgid "{openAmount} in play"
+msgstr ""
 
 #: src/components/teach/TeachRecordingChrome.tsx:46
 #: src/components/teach/TeachRecordingChrome.tsx:64
@@ -110,18 +122,30 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/pages/Shell.tsx:3540
+#: src/pages/crm/CrmHome.tsx:75
+msgid "{wonCount} closed"
+msgstr ""
+
+#: src/pages/Shell.tsx:3553
 msgid "{workingBotName} is working"
 msgstr "{workingBotName} काम कर रहा है"
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:3969
+#: src/pages/Shell.tsx:3982
 msgid "@{0}"
 msgstr "@{0}"
 
 #: src/pages/RoutineSchedule.tsx:150
 msgid "+ Add another schedule"
 msgstr "+ एक और शेड्यूल जोड़ें"
+
+#: src/pages/crm/CrmPipelineBoard.tsx:754
+msgid "+ Add stage"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:143
+msgid "+ New pipeline"
+msgstr ""
 
 #: src/components/teach/TeachComputerSection.tsx:133
 msgid "+ Teach a task"
@@ -135,7 +159,7 @@ msgstr "एक्सेस टोकन (वैकल्पिक)"
 msgid "Account"
 msgstr "खाता"
 
-#: src/pages/Shell.tsx:5188
+#: src/pages/Shell.tsx:5201
 msgid "Account default"
 msgstr "खाता डिफ़ॉल्ट"
 
@@ -167,17 +191,18 @@ msgstr "सक्रिय आवाज़"
 
 #: src/pages/Shell.tsx:1954
 #: src/pages/Shell.tsx:1956
-#: src/pages/Shell.tsx:2509
+#: src/pages/Shell.tsx:2517
 msgid "Activity"
 msgstr "गतिविधि"
 
+#: src/pages/crm/CrmContacts.tsx:393
 #: src/pages/PluginsOverlay.tsx:343
 #: src/pages/PluginsOverlay.tsx:408
 #: src/pages/ScratchpadSection.tsx:188
 msgid "Add"
 msgstr "जोड़ें"
 
-#: src/pages/Shell.tsx:2971
+#: src/pages/Shell.tsx:2979
 msgid "Add a run time for this one-shot."
 msgstr ""
 
@@ -226,6 +251,11 @@ msgstr "रूटीन में जोड़ें"
 msgid "Add Treg"
 msgstr "Treg जोड़ें"
 
+#: src/pages/CrmApiAccessPanel.tsx:298
+msgid "Add webhook"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:298
 #: src/pages/McpServersOverlay.tsx:363
 #: src/pages/PluginsOverlay.tsx:338
 #: src/pages/PluginsOverlay.tsx:403
@@ -235,7 +265,7 @@ msgstr "जोड़ा जा रहा है…"
 #: src/pages/AccountSettingsOverlay.tsx:199
 #: src/pages/PluginsOverlay.tsx:434
 #: src/pages/RoutineSchedule.tsx:42
-#: src/pages/Shell.tsx:5091
+#: src/pages/Shell.tsx:5104
 msgid "Advanced"
 msgstr "उन्नत"
 
@@ -243,13 +273,17 @@ msgstr "उन्नत"
 msgid "Agent access for new servers"
 msgstr "नए सर्वरों के लिए एजेंट एक्सेस"
 
-#: src/pages/Shell.tsx:2478
+#: src/pages/Shell.tsx:2486
 msgid "Agent computer"
 msgstr "एजेंट कंप्यूटर"
 
 #: src/pages/McpServersOverlay.tsx:431
 msgid "Agents:"
 msgstr "एजेंट:"
+
+#: src/pages/crm/CrmHome.tsx:99
+msgid "All pipelines"
+msgstr ""
 
 #. placeholder {0}: rule.matchValue
 #: src/components/ApprovalRulesSettings.tsx:20
@@ -334,27 +368,29 @@ msgstr "यह तब लागू होता है जब आप 'सर्�
 msgid "Approval boundaries"
 msgstr "अनुमोदन सीमाएं"
 
-#: src/pages/Shell.tsx:6003
+#: src/pages/Shell.tsx:6016
 msgid "Approve"
 msgstr "अनुमोदित करें"
 
-#: src/pages/Shell.tsx:5994
+#: src/pages/Shell.tsx:6007
 msgid "Approve this server to let your agent use its tools."
 msgstr "अपने एजेंट को इसके टूल उपयोग करने देने के लिए इस सर्वर को अनुमोदित करें।"
 
 #: src/pages/BotContextMenu.tsx:104
+#: src/pages/crm/CrmContacts.tsx:429
 msgid "Archive"
 msgstr "आर्काइव करें"
 
-#: src/pages/Shell.tsx:4635
+#: src/pages/Shell.tsx:4648
 msgid "archived"
 msgstr "आर्काइव किया गया"
 
+#: src/pages/crm/CrmContacts.tsx:63
 #: src/pages/Shell.tsx:2187
 msgid "Archived"
 msgstr "आर्काइव किया गया"
 
-#: src/pages/Shell.tsx:4646
+#: src/pages/Shell.tsx:4659
 msgid "Archived. Chat, memory, and files kept."
 msgstr "आर्काइव किया गया। चैट, मेमोरी और फ़ाइलें सुरक्षित रखी गईं।"
 
@@ -393,7 +429,7 @@ msgstr "खरीद से पहले पूछें"
 msgid "Ask before sending external email"
 msgstr "बाहरी ईमेल भेजने से पहले पूछें"
 
-#: src/pages/Shell.tsx:2706
+#: src/pages/Shell.tsx:2714
 msgid "Asleep"
 msgstr "निष्क्रिय"
 
@@ -408,11 +444,11 @@ msgstr "{0} बजे"
 msgid "at {timeSelect}"
 msgstr "{timeSelect} बजे"
 
-#: src/pages/Shell.tsx:4040
+#: src/pages/Shell.tsx:4053
 msgid "Attach file"
 msgstr "फ़ाइल संलग्न करें"
 
-#: src/pages/Shell.tsx:4239
+#: src/pages/Shell.tsx:4252
 msgid "Attachment"
 msgstr "अटैचमेंट"
 
@@ -425,17 +461,21 @@ msgstr "ऑथराइज़ेशन कोड या कॉलबैक URL"
 msgid "Authorization expired — reconnect required"
 msgstr "ऑथराइज़ेशन समाप्त — पुनः कनेक्ट करना आवश्यक"
 
-#: src/pages/Shell.tsx:5795
+#: src/pages/Shell.tsx:5808
 msgid "Authorization timed out. Please try again."
 msgstr "ऑथराइज़ेशन का समय समाप्त हो गया। कृपया पुनः प्रयास करें।"
 
-#: src/pages/Shell.tsx:5837
-#: src/pages/Shell.tsx:6003
+#: src/pages/Shell.tsx:5850
+#: src/pages/Shell.tsx:6016
 msgid "Authorize"
 msgstr "ऑथराइज़ करें"
 
 #: src/pages/AccountSettingsOverlay.tsx:133
 msgid "Avatars"
+msgstr ""
+
+#: src/pages/crm/CrmHome.tsx:83
+msgid "Avg deal size"
 msgstr ""
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:48
@@ -450,18 +490,18 @@ msgstr "बियरर टोकन"
 msgid "Book demo"
 msgstr ""
 
-#: src/pages/Shell.tsx:5679
+#: src/pages/Shell.tsx:5692
 msgid "Booting live desktop…"
 msgstr "लाइव डेस्कटॉप शुरू हो रहा है…"
 
 #. placeholder {0}: active?.name
-#: src/pages/Shell.tsx:3348
+#: src/pages/Shell.tsx:3356
 msgid "Booting up {0}’s computer"
 msgstr "{0} का कंप्यूटर शुरू हो रहा है"
 
-#: src/pages/Shell.tsx:4507
-#: src/pages/Shell.tsx:4508
-#: src/pages/Shell.tsx:4639
+#: src/pages/Shell.tsx:4520
+#: src/pages/Shell.tsx:4521
+#: src/pages/Shell.tsx:4652
 msgid "bot"
 msgstr "बॉट"
 
@@ -473,11 +513,11 @@ msgstr "बॉट"
 msgid "Bot messages"
 msgstr "बॉट संदेश"
 
-#: src/pages/Shell.tsx:3440
+#: src/pages/Shell.tsx:3453
 msgid "Bot screen"
 msgstr "बॉट स्क्रीन"
 
-#: src/pages/Shell.tsx:2674
+#: src/pages/Shell.tsx:2682
 msgid "Bot screen preview"
 msgstr "बॉट स्क्रीन प्रीव्यू"
 
@@ -485,7 +525,7 @@ msgstr "बॉट स्क्रीन प्रीव्यू"
 msgid "Bots act without asking by default. Add an exception only when you want to review a type of action first. These preferences apply across all your bots."
 msgstr "बॉट डिफ़ॉल्ट रूप से बिना पूछे कार्रवाई करते हैं। अपवाद तभी जोड़ें जब आप किसी प्रकार की कार्रवाई की पहले समीक्षा करना चाहते हों। ये प्राथमिकताएं आपके सभी बॉट्स पर लागू होती हैं।"
 
-#: src/pages/Shell.tsx:3541
+#: src/pages/Shell.tsx:3554
 msgid "Bots are working"
 msgstr "बॉट काम कर रहे हैं"
 
@@ -493,8 +533,8 @@ msgstr "बॉट काम कर रहे हैं"
 msgid "Bring your own key. The provider is swappable; your bots keep the same speak and call buttons."
 msgstr "अपनी कुंजी स्वयं लाएं। प्रोवाइडर बदला जा सकता है; आपके बॉट्स के बोलने और कॉल करने वाले बटन वही रहते हैं।"
 
-#: src/pages/Shell.tsx:2442
-#: src/pages/Shell.tsx:2443
+#: src/pages/Shell.tsx:2450
+#: src/pages/Shell.tsx:2451
 msgid "Call"
 msgstr "कॉल"
 
@@ -505,15 +545,18 @@ msgstr "सर्वर तक नहीं पहुंचा जा सका�
 #: src/components/AskCard.tsx:161
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/teach/TeachComputerSection.tsx:122
+#: src/pages/crm/CrmPipelineBoard.tsx:575
+#: src/pages/crm/CrmPipelineBoard.tsx:663
+#: src/pages/crm/CrmPipelineBoard.tsx:764
 #: src/pages/PluginsOverlay.tsx:558
-#: src/pages/Shell.tsx:5355
-#: src/pages/Shell.tsx:5427
-#: src/pages/Shell.tsx:5542
-#: src/pages/Shell.tsx:5618
+#: src/pages/Shell.tsx:5368
+#: src/pages/Shell.tsx:5440
+#: src/pages/Shell.tsx:5555
+#: src/pages/Shell.tsx:5631
 msgid "Cancel"
 msgstr "रद्द करें"
 
-#: src/pages/Shell.tsx:4883
+#: src/pages/Shell.tsx:4896
 msgid "Cancel new bot"
 msgstr "नया बॉट रद्द करें"
 
@@ -521,7 +564,7 @@ msgstr "नया बॉट रद्द करें"
 msgid "Cancel new group"
 msgstr "नया समूह रद्द करें"
 
-#: src/pages/Shell.tsx:3916
+#: src/pages/Shell.tsx:3929
 msgid "Cancel reply"
 msgstr "उत्तर रद्द करें"
 
@@ -529,11 +572,11 @@ msgstr "उत्तर रद्द करें"
 msgid "Cancelled"
 msgstr "रद्द किया गया"
 
-#: src/pages/Shell.tsx:5900
+#: src/pages/Shell.tsx:5913
 msgid "Chart failed to render: {error}"
 msgstr "चार्ट रेंडर नहीं हो सका: {error}"
 
-#: src/pages/Shell.tsx:4182
+#: src/pages/Shell.tsx:4195
 msgid "Chat Settings"
 msgstr "चैट सेटिंग्स"
 
@@ -545,8 +588,8 @@ msgstr ""
 msgid "Check for updates"
 msgstr ""
 
-#: src/pages/Shell.tsx:2987
-#: src/pages/Shell.tsx:2996
+#: src/pages/Shell.tsx:2995
+#: src/pages/Shell.tsx:3004
 msgid "Check in."
 msgstr "जांच करें।"
 
@@ -562,25 +605,26 @@ msgstr ""
 msgid "Choose which connected model Manor uses."
 msgstr ""
 
-#: src/pages/Shell.tsx:5442
+#: src/pages/Shell.tsx:5455
 msgid "Clear"
 msgstr "साफ़ करें"
 
 #. placeholder {0}: bot.name
-#: src/pages/Shell.tsx:5408
+#: src/pages/Shell.tsx:5421
 msgid "Clear {0}’s conversation?"
 msgstr "{0} की बातचीत साफ़ करें?"
 
 #: src/pages/BotContextMenu.tsx:103
-#: src/pages/Shell.tsx:5243
+#: src/pages/Shell.tsx:5256
 msgid "Clear conversation"
 msgstr "बातचीत साफ़ करें"
 
-#: src/pages/Shell.tsx:5442
+#: src/pages/Shell.tsx:5455
 msgid "Clearing…"
 msgstr "साफ़ किया जा रहा है…"
 
 #: src/pages/BotContextMenu.tsx:67
+#: src/pages/crm/CrmContacts.tsx:302
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
 msgstr "बंद करें"
@@ -589,11 +633,11 @@ msgstr "बंद करें"
 msgid "Close bot messages"
 msgstr "बॉट संदेश बंद करें"
 
-#: src/pages/Shell.tsx:6085
+#: src/pages/Shell.tsx:6098
 msgid "Close chart"
 msgstr "चार्ट बंद करें"
 
-#: src/pages/Shell.tsx:3414
+#: src/pages/Shell.tsx:3427
 msgid "Close computer"
 msgstr "कंप्यूटर बंद करें"
 
@@ -602,7 +646,7 @@ msgstr "कंप्यूटर बंद करें"
 msgid "Close demo"
 msgstr ""
 
-#: src/pages/Shell.tsx:6185
+#: src/pages/Shell.tsx:6198
 msgid "Close image preview"
 msgstr "छवि प्रीव्यू बंद करें"
 
@@ -626,7 +670,7 @@ msgstr "मॉडल सेटिंग्स बंद करें"
 msgid "Close navigation"
 msgstr "नेविगेशन बंद करें"
 
-#: src/pages/Shell.tsx:2652
+#: src/pages/Shell.tsx:2660
 msgid "Close panel"
 msgstr "पैनल बंद करें"
 
@@ -661,28 +705,33 @@ msgstr ""
 msgid "Command"
 msgstr "कमांड"
 
+#: src/pages/crm/CrmContacts.tsx:94
+#: src/pages/crm/CrmContacts.tsx:327
+msgid "Company"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx:118
 msgid "Complete"
 msgstr "पूर्ण"
 
-#: src/pages/Shell.tsx:4793
-#: src/pages/Shell.tsx:4821
+#: src/pages/Shell.tsx:4806
+#: src/pages/Shell.tsx:4834
 msgid "Computer"
 msgstr "कंप्यूटर"
 
-#: src/pages/Shell.tsx:5682
+#: src/pages/Shell.tsx:5695
 msgid "Computer failed to boot"
 msgstr "कंप्यूटर शुरू नहीं हो सका"
 
-#: src/pages/Shell.tsx:3462
+#: src/pages/Shell.tsx:3475
 msgid "Computer is asleep"
 msgstr "कंप्यूटर निष्क्रिय है"
 
-#: src/pages/Shell.tsx:5681
+#: src/pages/Shell.tsx:5694
 msgid "Computer is asleep — take control to wake it"
 msgstr "कंप्यूटर निष्क्रिय है — जगाने के लिए नियंत्रण लें"
 
-#: src/pages/Shell.tsx:5683
+#: src/pages/Shell.tsx:5696
 msgid "Computer is stopped"
 msgstr "कंप्यूटर रुका हुआ है"
 
@@ -715,7 +764,7 @@ msgstr "API कुंजी कनेक्ट करें"
 msgid "Connect ElevenLabs, OpenAI, or Cartesia"
 msgstr "ElevenLabs, OpenAI या Cartesia कनेक्ट करें"
 
-#: src/pages/Shell.tsx:5983
+#: src/pages/Shell.tsx:5996
 msgid "Connect MCP server “{name}”"
 msgstr "MCP सर्वर “{name}” कनेक्ट करें"
 
@@ -735,15 +784,19 @@ msgstr "इस प्रोवाइडर को अपने व्यक्�
 msgid "Connect Treg"
 msgstr "Treg कनेक्ट करें"
 
+#: src/pages/CrmApiAccessPanel.tsx:147
+msgid "Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint."
+msgstr ""
+
 #: src/pages/McpOAuthCallback.tsx:53
 #: src/pages/MemorySettingsOverlay.tsx:163
 #: src/pages/ModelSettingsOverlay.tsx:378
-#: src/pages/Shell.tsx:5834
+#: src/pages/Shell.tsx:5847
 #: src/pages/VoiceSettingsOverlay.tsx:227
 msgid "Connected"
 msgstr "कनेक्टेड"
 
-#: src/pages/Shell.tsx:6013
+#: src/pages/Shell.tsx:6026
 msgid "Connected — its tools are available from your next message."
 msgstr "कनेक्टेड — इसके टूल आपके अगले संदेश से उपलब्ध हैं।"
 
@@ -768,7 +821,7 @@ msgstr "{0} कनेक्ट किया गया और उपयोग म
 
 #: src/pages/McpServersOverlay.tsx:16
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
-#: src/pages/Shell.tsx:6003
+#: src/pages/Shell.tsx:6016
 #: src/pages/VoiceSettingsOverlay.tsx:282
 msgid "Connecting…"
 msgstr "कनेक्ट हो रहा है…"
@@ -777,6 +830,14 @@ msgstr "कनेक्ट हो रहा है…"
 #: src/pages/PluginsOverlay.tsx:156
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} से कनेक्शन अभी लंबित है। आप इसे बंद करके बाद में जांच सकते हैं।"
+
+#: src/pages/crm/CrmContacts.tsx:296
+msgid "Contact"
+msgstr ""
+
+#: src/pages/crm/CrmView.tsx:25
+msgid "Contacts"
+msgstr ""
 
 #: src/pages/Onboarding.tsx:495
 #: src/pages/Onboarding.tsx:550
@@ -787,9 +848,32 @@ msgstr "जारी रखें"
 msgid "Continue with email"
 msgstr "ईमेल से जारी रखें"
 
-#: src/pages/Shell.tsx:4290
+#: src/pages/CrmApiAccessPanel.tsx:240
+#: src/pages/CrmApiAccessPanel.tsx:319
+msgid "Copied"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:234
+#: src/pages/CrmApiAccessPanel.tsx:313
+#: src/pages/Shell.tsx:4303
 msgid "Copy"
 msgstr "कॉपी करें"
+
+#: src/pages/CrmApiAccessPanel.tsx:230
+msgid "Copy integration token"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:305
+msgid "Copy the signing secret now"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:226
+msgid "Copy this token now"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:309
+msgid "Copy webhook signing secret"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:54
 msgid "Could not add"
@@ -799,11 +883,11 @@ msgstr "जोड़ा नहीं जा सका"
 msgid "Could not add MCP server"
 msgstr "MCP सर्वर जोड़ा नहीं जा सका"
 
-#: src/pages/Shell.tsx:5970
+#: src/pages/Shell.tsx:5983
 msgid "Could not approve this server"
 msgstr "इस सर्वर को अनुमोदित नहीं किया जा सका"
 
-#: src/pages/Shell.tsx:5798
+#: src/pages/Shell.tsx:5811
 msgid "Could not authorize this app"
 msgstr "इस ऐप को ऑथराइज़ नहीं किया जा सका"
 
@@ -811,7 +895,7 @@ msgstr "इस ऐप को ऑथराइज़ नहीं किया ज
 msgid "Could not change the default model"
 msgstr "डिफ़ॉल्ट मॉडल बदला नहीं जा सका"
 
-#: src/pages/Shell.tsx:5436
+#: src/pages/Shell.tsx:5449
 msgid "Could not clear conversation"
 msgstr "बातचीत साफ़ नहीं की जा सकी"
 
@@ -840,27 +924,35 @@ msgstr "यह आवाज़ प्रोवाइडर कनेक्ट �
 msgid "Could not continue"
 msgstr "जारी नहीं रखा जा सका"
 
-#: src/pages/Shell.tsx:4871
+#: src/pages/Shell.tsx:4884
 msgid "Could not create bot"
 msgstr "बॉट नहीं बनाया जा सका"
+
+#: src/pages/CrmApiAccessPanel.tsx:83
+msgid "Could not create credential"
+msgstr ""
 
 #: src/pages/GroupPanel.tsx:88
 msgid "Could not create group"
 msgstr "समूह नहीं बनाया जा सका"
 
-#: src/pages/Shell.tsx:5327
+#: src/pages/Shell.tsx:5340
 msgid "Could not create section"
 msgstr "सेक्शन नहीं बनाया जा सका"
+
+#: src/pages/CrmApiAccessPanel.tsx:114
+msgid "Could not create webhook"
+msgstr ""
 
 #: src/pages/Onboarding.tsx:205
 msgid "Could not create your bot"
 msgstr "आपका बॉट नहीं बनाया जा सका"
 
-#: src/pages/Shell.tsx:5551
+#: src/pages/Shell.tsx:5564
 msgid "Could not delete bot"
 msgstr "बॉट डिलीट नहीं किया जा सका"
 
-#: src/pages/Shell.tsx:5631
+#: src/pages/Shell.tsx:5644
 msgid "Could not delete group"
 msgstr ""
 
@@ -868,7 +960,7 @@ msgstr ""
 msgid "Could not delete MCP server"
 msgstr "MCP सर्वर डिलीट नहीं किया जा सका"
 
-#: src/pages/Shell.tsx:5632
+#: src/pages/Shell.tsx:5645
 msgid "Could not delete routine"
 msgstr "रूटीन डिलीट नहीं किया जा सका"
 
@@ -893,6 +985,10 @@ msgstr "{name} डाउनलोड नहीं हो सका। पुन�
 msgid "Could not install connector"
 msgstr "कनेक्टर इंस्टॉल नहीं हो सका"
 
+#: src/pages/CrmApiAccessPanel.tsx:68
+msgid "Could not load API access"
+msgstr ""
+
 #: src/components/ApprovalRulesSettings.tsx:39
 msgid "Could not load approval rules"
 msgstr "अनुमोदन नियम लोड नहीं हो सके"
@@ -908,6 +1004,10 @@ msgstr "MCP सर्वर लोड नहीं हो सके"
 #: src/pages/ModelSettingsOverlay.tsx:107
 msgid "Could not load model settings"
 msgstr "मॉडल सेटिंग्स लोड नहीं हो सकीं"
+
+#: src/pages/crm/CrmView.tsx:35
+msgid "Could not load the CRM"
+msgstr ""
 
 #: src/components/ArtifactFileCard.tsx:169
 msgid "Could not load this file."
@@ -946,7 +1046,11 @@ msgstr "समूह हटाया नहीं जा सका"
 msgid "Could not remove rule"
 msgstr "नियम हटाया नहीं जा सका"
 
-#: src/pages/Shell.tsx:5890
+#: src/pages/CrmApiAccessPanel.tsx:127
+msgid "Could not remove webhook"
+msgstr ""
+
+#: src/pages/Shell.tsx:5903
 msgid "Could not render chart"
 msgstr "चार्ट रेंडर नहीं हो सका"
 
@@ -954,7 +1058,11 @@ msgstr "चार्ट रेंडर नहीं हो सका"
 msgid "Could not revoke connection"
 msgstr "कनेक्शन रद्द नहीं किया जा सका"
 
-#: src/pages/Shell.tsx:5228
+#: src/pages/CrmApiAccessPanel.tsx:96
+msgid "Could not revoke credential"
+msgstr ""
+
+#: src/pages/Shell.tsx:5241
 msgid "Could not save"
 msgstr "सहेजा नहीं जा सका"
 
@@ -966,7 +1074,7 @@ msgstr "समूह सहेजा नहीं जा सका"
 msgid "Could not save model"
 msgstr "मॉडल सहेजा नहीं जा सका"
 
-#: src/pages/Shell.tsx:3011
+#: src/pages/Shell.tsx:3019
 msgid "Could not save routine"
 msgstr "रूटीन सहेजा नहीं जा सका"
 
@@ -982,7 +1090,7 @@ msgstr "वह विकल्प सहेजा नहीं जा सका"
 msgid "Could not save that voice"
 msgstr "वह आवाज़ सहेजी नहीं जा सकी"
 
-#: src/pages/Shell.tsx:5710
+#: src/pages/Shell.tsx:5723
 msgid "Could not save this choice"
 msgstr "यह विकल्प सहेजा नहीं जा सका"
 
@@ -1022,14 +1130,17 @@ msgstr "डिफ़ॉल्ट मेमोरी स्कोप अपडे
 msgid "Couldn't update avatars"
 msgstr ""
 
+#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmPipelineBoard.tsx:583
+#: src/pages/crm/CrmPipelineBoard.tsx:772
 #: src/pages/Shell.tsx:1974
-#: src/pages/Shell.tsx:4930
-#: src/pages/Shell.tsx:5362
+#: src/pages/Shell.tsx:4943
+#: src/pages/Shell.tsx:5375
 msgid "Create"
 msgstr "बनाएं"
 
 #. placeholder {0}: bot.name
-#: src/pages/Shell.tsx:5336
+#: src/pages/Shell.tsx:5349
 msgid "Create a section and move {0} into it."
 msgstr "एक सेक्शन बनाएं और {0} को उसमें ले जाएं।"
 
@@ -1041,6 +1152,10 @@ msgstr "खाता बनाएं"
 msgid "Create group"
 msgstr "समूह बनाएं"
 
+#: src/pages/CrmApiAccessPanel.tsx:192
+msgid "Create token"
+msgstr ""
+
 #: src/pages/Onboarding.tsx:513
 msgid "Create your first bot"
 msgstr "अपना पहला बॉट बनाएं"
@@ -1049,9 +1164,10 @@ msgstr "अपना पहला बॉट बनाएं"
 msgid "Create your Manor"
 msgstr ""
 
+#: src/pages/CrmApiAccessPanel.tsx:192
 #: src/pages/GroupPanel.tsx:134
-#: src/pages/Shell.tsx:4930
-#: src/pages/Shell.tsx:5362
+#: src/pages/Shell.tsx:4943
+#: src/pages/Shell.tsx:5375
 msgid "Creating…"
 msgstr "बनाया जा रहा है…"
 
@@ -1059,9 +1175,21 @@ msgstr "बनाया जा रहा है…"
 msgid "Credential"
 msgstr "क्रेडेंशियल"
 
+#: src/pages/CrmApiAccessPanel.tsx:182
+msgid "Credential name"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:586
 msgid "credential saved"
 msgstr "क्रेडेंशियल सहेजा गया"
+
+#: src/pages/CrmApiAccessPanel.tsx:197
+msgid "Credential scopes"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:144
+msgid "CRM API access"
+msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:87
 msgid "Cron"
@@ -1079,7 +1207,24 @@ msgstr "दिन"
 msgid "days"
 msgstr "दिन"
 
-#: src/pages/Shell.tsx:5135
+#: src/pages/crm/CrmPipelineBoard.tsx:319
+msgid "Deal actions"
+msgstr ""
+
+#: src/pages/crm/CrmHome.tsx:186
+msgid "Deal status"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:519
+#: src/pages/crm/CrmPipelineBoard.tsx:631
+msgid "Deal title"
+msgstr ""
+
+#: src/pages/crm/CrmContacts.tsx:401
+msgid "Deals"
+msgstr ""
+
+#: src/pages/Shell.tsx:5148
 msgid "Default (medium)"
 msgstr "डिफ़ॉल्ट (मध्यम)"
 
@@ -1088,25 +1233,27 @@ msgid "Default scope"
 msgstr "डिफ़ॉल्ट स्कोप"
 
 #: src/pages/BotContextMenu.tsx:105
+#: src/pages/crm/CrmContacts.tsx:436
+#: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/McpServersOverlay.tsx:481
-#: src/pages/Shell.tsx:2217
-#: src/pages/Shell.tsx:2247
-#: src/pages/Shell.tsx:5557
-#: src/pages/Shell.tsx:5639
+#: src/pages/Shell.tsx:2222
+#: src/pages/Shell.tsx:2252
+#: src/pages/Shell.tsx:5570
+#: src/pages/Shell.tsx:5652
 msgid "Delete"
 msgstr "डिलीट करें"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.name
-#: src/pages/Shell.tsx:2213
-#: src/pages/Shell.tsx:2243
+#: src/pages/Shell.tsx:2218
+#: src/pages/Shell.tsx:2248
 msgid "Delete {0}"
 msgstr "{0} डिलीट करें"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: item.name
-#: src/pages/Shell.tsx:5489
-#: src/pages/Shell.tsx:5605
+#: src/pages/Shell.tsx:5502
+#: src/pages/Shell.tsx:5618
 msgid "Delete {0}?"
 msgstr "{0} डिलीट करें?"
 
@@ -1114,21 +1261,21 @@ msgstr "{0} डिलीट करें?"
 msgid "Delete group"
 msgstr "समूह डिलीट करें"
 
-#: src/pages/Shell.tsx:5526
+#: src/pages/Shell.tsx:5539
 msgid "Delete memories too"
 msgstr "मेमोरी भी डिलीट करें"
 
-#: src/pages/Shell.tsx:3066
+#: src/pages/Shell.tsx:3074
 msgid "Delete routine"
 msgstr "रूटीन डिलीट करें"
 
-#: src/pages/Shell.tsx:4637
+#: src/pages/Shell.tsx:4650
 msgid "deleted"
 msgstr "डिलीट किया गया"
 
 #: src/pages/GroupPanel.tsx:232
-#: src/pages/Shell.tsx:5557
-#: src/pages/Shell.tsx:5639
+#: src/pages/Shell.tsx:5570
+#: src/pages/Shell.tsx:5652
 msgid "Deleting…"
 msgstr "डिलीट किया जा रहा है…"
 
@@ -1145,17 +1292,17 @@ msgid "Deployment default"
 msgstr "डिप्लॉयमेंट डिफ़ॉल्ट"
 
 #: src/pages/Onboarding.tsx:529
-#: src/pages/Shell.tsx:4908
+#: src/pages/Shell.tsx:4921
 msgid "Describe what this bot does"
 msgstr "बताएं कि यह बॉट क्या करता है"
 
 #: src/pages/Onboarding.tsx:534
-#: src/pages/Shell.tsx:4913
-#: src/pages/Shell.tsx:5079
+#: src/pages/Shell.tsx:4926
+#: src/pages/Shell.tsx:5092
 msgid "Description"
 msgstr "विवरण"
 
-#: src/pages/Shell.tsx:4049
+#: src/pages/Shell.tsx:4062
 msgid "Dictate"
 msgstr "बोलकर लिखें"
 
@@ -1168,7 +1315,7 @@ msgstr "डिस्कनेक्ट करें"
 msgid "Disconnecting…"
 msgstr "डिस्कनेक्ट हो रहा है…"
 
-#: src/pages/Shell.tsx:6018
+#: src/pages/Shell.tsx:6031
 msgid "Dismissed — reconnect anytime from MCP settings."
 msgstr "खारिज किया गया — MCP सेटिंग्स से कभी भी पुनः कनेक्ट करें।"
 
@@ -1188,6 +1335,10 @@ msgstr "Docker (अनुशंसित)"
 #: src/pages/HostComputerPrompt.tsx:52
 msgid "Docker is the default: bots use a shared Team Computer."
 msgstr "Docker डिफ़ॉल्ट है: बॉट एक साझा टीम कंप्यूटर का उपयोग करते हैं।"
+
+#: src/pages/CrmApiAccessPanel.tsx:158
+msgid "Documentation ↗"
+msgstr ""
 
 #: src/pages/Auth.tsx:148
 msgid "Don’t have an account?"
@@ -1212,13 +1363,25 @@ msgstr "{name} डाउनलोड करें"
 msgid "Draft skill"
 msgstr "ड्राफ़्ट स्किल"
 
+#: src/pages/crm/CrmPipelineBoard.tsx:273
+msgid "Drop deals here"
+msgstr ""
+
 #: src/pages/BotContextMenu.tsx:101
 msgid "Duplicate"
 msgstr "डुप्लिकेट"
 
-#: src/pages/Shell.tsx:4452
+#: src/pages/Shell.tsx:4465
 msgid "Earlier message"
 msgstr "पुराना संदेश"
+
+#: src/pages/crm/CrmPipelineBoard.tsx:339
+msgid "Edit"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:625
+msgid "Edit deal"
+msgstr ""
 
 #: src/components/AskCard.tsx:181
 msgid "Edit first"
@@ -1229,6 +1392,8 @@ msgid "Edit Profile"
 msgstr "प्रोफ़ाइल संपादित करें"
 
 #: src/pages/Auth.tsx:58
+#: src/pages/crm/CrmContacts.tsx:97
+#: src/pages/crm/CrmContacts.tsx:333
 msgid "Email"
 msgstr "ईमेल"
 
@@ -1272,7 +1437,11 @@ msgstr "हर महीने"
 msgid "Every week"
 msgstr "हर सप्ताह"
 
-#: src/pages/Shell.tsx:6064
+#: src/pages/crm/CrmContacts.tsx:81
+msgid "Everyone your business talks to lives here. Add the first one."
+msgstr ""
+
+#: src/pages/Shell.tsx:6077
 msgid "Expand"
 msgstr "विस्तृत करें"
 
@@ -1281,7 +1450,7 @@ msgstr "विस्तृत करें"
 msgid "Expand {0}"
 msgstr ""
 
-#: src/pages/Shell.tsx:5240
+#: src/pages/Shell.tsx:5253
 msgid "Export"
 msgstr "एक्सपोर्ट करें"
 
@@ -1289,7 +1458,7 @@ msgstr "एक्सपोर्ट करें"
 msgid "Export this week's list from the CRM and drop it in the shared folder"
 msgstr "CRM से इस सप्ताह की सूची एक्सपोर्ट करें और उसे साझा फ़ोल्डर में डालें"
 
-#: src/pages/Shell.tsx:5260
+#: src/pages/Shell.tsx:5273
 msgid "Extra high"
 msgstr "अतिरिक्त उच्च"
 
@@ -1332,6 +1501,10 @@ msgstr "<0>{0}</0> पर साइन इन पूरा करें। अ�
 msgid "Finishing MCP connection…"
 msgstr "MCP कनेक्शन पूरा हो रहा है…"
 
+#: src/pages/crm/CrmContacts.tsx:314
+msgid "First name"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx:1026
 msgid "Free"
 msgstr ""
@@ -1340,8 +1513,12 @@ msgstr ""
 msgid "Fullscreen"
 msgstr "फ़ुलस्क्रीन"
 
-#: src/pages/Shell.tsx:2432
-#: src/pages/Shell.tsx:2634
+#: src/pages/CrmApiAccessPanel.tsx:350
+msgid "Give an MCP client a token with CRM scopes and connect it to this endpoint."
+msgstr ""
+
+#: src/pages/Shell.tsx:2440
+#: src/pages/Shell.tsx:2642
 msgid "Group"
 msgstr "समूह"
 
@@ -1379,7 +1556,7 @@ msgstr "एक नमूना सुनें"
 msgid "Hi, this is how I'll sound when I read replies out loud."
 msgstr "नमस्ते, उत्तर पढ़कर सुनाते समय मेरी आवाज़ ऐसी होगी।"
 
-#: src/pages/Shell.tsx:2459
+#: src/pages/Shell.tsx:2467
 msgid "Hide live activity"
 msgstr ""
 
@@ -1387,17 +1564,25 @@ msgstr ""
 msgid "Hide password"
 msgstr ""
 
-#: src/pages/Shell.tsx:5263
+#: src/pages/Shell.tsx:5276
 msgid "High"
 msgstr "उच्च"
 
-#: src/pages/Shell.tsx:4068
+#: src/pages/Shell.tsx:4081
 msgid "Hold to talk"
 msgstr "बोलने के लिए दबाए रखें"
 
-#: src/pages/Shell.tsx:4068
+#: src/pages/Shell.tsx:4081
 msgid "Hold to talk (on-device dictation)"
 msgstr "बोलने के लिए दबाए रखें (डिवाइस पर ही श्रुतलेखन)"
+
+#: src/pages/crm/CrmView.tsx:23
+msgid "Home"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:347
+msgid "Hosted MCP"
+msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:66
 msgid "hour"
@@ -1415,7 +1600,7 @@ msgstr "कितनी बार"
 msgid "How to check"
 msgstr "जांच कैसे करें"
 
-#: src/pages/Shell.tsx:4346
+#: src/pages/Shell.tsx:4359
 msgid "I’m done"
 msgstr "मेरा काम हो गया"
 
@@ -1427,7 +1612,7 @@ msgstr "अगर आपने वह सुना, तो आवाज़ त�
 msgid "Import OpenAPI JSON"
 msgstr "OpenAPI JSON इम्पोर्ट करें"
 
-#: src/pages/Shell.tsx:5150
+#: src/pages/Shell.tsx:5163
 msgid "Inherit default"
 msgstr "डिफ़ॉल्ट का पालन करें"
 
@@ -1439,12 +1624,12 @@ msgstr "इनपुट"
 msgid "Instance API key"
 msgstr "इंस्टेंस API कुंजी"
 
-#: src/pages/Shell.tsx:2913
+#: src/pages/Shell.tsx:2921
 msgid "Instruction"
 msgstr "निर्देश"
 
 #: src/pages/PluginsOverlay.tsx:255
-#: src/pages/Shell.tsx:2290
+#: src/pages/Shell.tsx:2295
 msgid "Integrations"
 msgstr "इंटीग्रेशन"
 
@@ -1461,19 +1646,19 @@ msgid "Interval unit"
 msgstr "अंतराल इकाई"
 
 #: src/pages/MemorySettingsOverlay.tsx:39
-#: src/pages/Shell.tsx:5151
+#: src/pages/Shell.tsx:5164
 msgid "Isolated"
 msgstr "पृथक"
 
-#: src/pages/Shell.tsx:5492
+#: src/pages/Shell.tsx:5505
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "इसकी बातचीत, फ़ाइलें और रूटीन स्थायी रूप से डिलीट कर दिए जाएंगे। इसके बनाए बॉट आपकी सूची में बने रहेंगे।"
 
-#: src/pages/Shell.tsx:3707
+#: src/pages/Shell.tsx:3720
 msgid "Jump to latest"
 msgstr "नवीनतम संदेश पर जाएँ"
 
-#: src/pages/Shell.tsx:4447
+#: src/pages/Shell.tsx:4460
 msgid "Jump to replied message"
 msgstr "जिस संदेश का उत्तर दिया गया उस पर जाएं"
 
@@ -1481,7 +1666,7 @@ msgstr "जिस संदेश का उत्तर दिया गया 
 msgid "just now"
 msgstr "अभी-अभी"
 
-#: src/pages/Shell.tsx:5510
+#: src/pages/Shell.tsx:5523
 msgid "Keep memories"
 msgstr "मेमोरी रखें"
 
@@ -1495,11 +1680,15 @@ msgstr "कुंजियां सर्वर पर ही रहती ह�
 msgid "Language"
 msgstr "भाषा"
 
+#: src/pages/crm/CrmContacts.tsx:320
+msgid "Last name"
+msgstr ""
+
 #: src/pages/CallView.tsx:245
 msgid "Listening…"
 msgstr "सुना जा रहा है…"
 
-#: src/pages/Shell.tsx:3656
+#: src/pages/Shell.tsx:3669
 msgid "Load earlier messages"
 msgstr "पुराने संदेश लोड करें"
 
@@ -1538,8 +1727,9 @@ msgid "Loading voice providers…"
 msgstr "आवाज़ प्रोवाइडर्स लोड हो रहे हैं…"
 
 #: src/App.tsx:50
+#: src/pages/crm/CrmView.tsx:72
 #: src/pages/Onboarding.tsx:214
-#: src/pages/Shell.tsx:3656
+#: src/pages/Shell.tsx:3669
 msgid "Loading…"
 msgstr "लोड हो रहा है…"
 
@@ -1547,13 +1737,21 @@ msgstr "लोड हो रहा है…"
 msgid "Local"
 msgstr "लोकल"
 
-#: src/pages/Shell.tsx:2376
+#: src/pages/Shell.tsx:2381
 msgid "Log out"
 msgstr "लॉग आउट"
 
-#: src/pages/Shell.tsx:5261
+#: src/pages/crm/CrmHome.tsx:54
+msgid "Lost"
+msgstr ""
+
+#: src/pages/Shell.tsx:5274
 msgid "Low"
 msgstr "निम्न"
+
+#: src/pages/CrmApiAccessPanel.tsx:171
+msgid "Machine credentials"
+msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx:138
 msgid "Manage the workspace semantic memory provider."
@@ -1565,6 +1763,10 @@ msgstr ""
 
 #: src/pages/Onboarding.tsx:223
 msgid "Manor does not pay for model usage. Paste an API key, sign in with ChatGPT, Claude, Copilot, or SuperGrok, or skip if this deployment already has a key."
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:276
+msgid "Manor signs contact events and retries failed deliveries automatically."
 msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:533
@@ -1579,7 +1781,19 @@ msgstr "पढ़ा हुआ चिह्नित करें"
 msgid "Mark as Unread"
 msgstr "अपठित चिह्नित करें"
 
-#: src/pages/Shell.tsx:5265
+#: src/pages/crm/CrmPipelineBoard.tsx:345
+msgid "Mark lost"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:345
+msgid "Mark open"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:345
+msgid "Mark won"
+msgstr ""
+
+#: src/pages/Shell.tsx:5278
 msgid "Max"
 msgstr "अधिकतम"
 
@@ -1589,7 +1803,7 @@ msgstr "अधिकतम"
 msgid "MCP servers"
 msgstr "MCP सर्वर"
 
-#: src/pages/Shell.tsx:5262
+#: src/pages/Shell.tsx:5275
 msgid "Medium"
 msgstr "मध्यम"
 
@@ -1602,33 +1816,33 @@ msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "सदस्य ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} चुनें)"
 
 #: src/pages/MemorySettingsOverlay.tsx:134
-#: src/pages/Shell.tsx:2334
+#: src/pages/Shell.tsx:2339
 msgid "Memory"
 msgstr "मेमोरी"
 
-#: src/pages/Shell.tsx:5146
+#: src/pages/Shell.tsx:5159
 msgid "Memory scope"
 msgstr "मेमोरी स्कोप"
 
-#: src/pages/Shell.tsx:4146
-#: src/pages/Shell.tsx:4241
+#: src/pages/Shell.tsx:4159
+#: src/pages/Shell.tsx:4254
 msgid "Message"
 msgstr "संदेश"
 
-#: src/pages/Shell.tsx:4142
-#: src/pages/Shell.tsx:4146
+#: src/pages/Shell.tsx:4155
+#: src/pages/Shell.tsx:4159
 msgid "Message {activeName}"
 msgstr "{activeName} को संदेश भेजें"
 
-#: src/pages/Shell.tsx:4525
+#: src/pages/Shell.tsx:4538
 msgid "Message from {peer}"
 msgstr "{peer} का संदेश"
 
-#: src/pages/Shell.tsx:4143
+#: src/pages/Shell.tsx:4156
 msgid "Message…"
 msgstr "संदेश…"
 
-#: src/pages/Shell.tsx:4525
+#: src/pages/Shell.tsx:4538
 msgid "Messaged {peer}"
 msgstr "{peer} को संदेश भेजा"
 
@@ -1636,7 +1850,7 @@ msgstr "{peer} को संदेश भेजा"
 msgid "Microphone failed"
 msgstr "माइक्रोफ़ोन विफल"
 
-#: src/pages/Shell.tsx:5264
+#: src/pages/Shell.tsx:5277
 msgid "Minimal"
 msgstr "न्यूनतम"
 
@@ -1658,7 +1872,7 @@ msgstr "मिनट"
 #: src/pages/Onboarding.tsx:298
 #: src/pages/Onboarding.tsx:347
 #: src/pages/Onboarding.tsx:355
-#: src/pages/Shell.tsx:5102
+#: src/pages/Shell.tsx:5115
 msgid "Model"
 msgstr "मॉडल"
 
@@ -1680,7 +1894,7 @@ msgid "Model updated."
 msgstr "मॉडल अपडेट किया गया।"
 
 #: src/pages/ModelSettingsOverlay.tsx:304
-#: src/pages/Shell.tsx:2321
+#: src/pages/Shell.tsx:2326
 msgid "Models"
 msgstr "मॉडल्स"
 
@@ -1698,7 +1912,7 @@ msgstr "मासिक"
 msgid "Move {0} to section"
 msgstr "{0} को सेक्शन में ले जाएं"
 
-#: src/pages/Shell.tsx:5513
+#: src/pages/Shell.tsx:5526
 msgid "Move them to your shared memory."
 msgstr "उन्हें अपनी साझा मेमोरी में ले जाएं।"
 
@@ -1708,18 +1922,19 @@ msgstr "यहां ले जाएं"
 
 #: src/components/teach/SkillDraftCard.tsx:82
 #: src/pages/Auth.tsx:45
+#: src/pages/crm/CrmContacts.tsx:91
 #: src/pages/GroupPanel.tsx:110
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:516
-#: src/pages/Shell.tsx:2905
-#: src/pages/Shell.tsx:4893
-#: src/pages/Shell.tsx:5061
-#: src/pages/Shell.tsx:5339
+#: src/pages/Shell.tsx:2913
+#: src/pages/Shell.tsx:4906
+#: src/pages/Shell.tsx:5074
+#: src/pages/Shell.tsx:5352
 msgid "Name"
 msgstr "नाम"
 
 #: src/pages/Onboarding.tsx:520
-#: src/pages/Shell.tsx:4898
+#: src/pages/Shell.tsx:4911
 msgid "Name this bot"
 msgstr "इस बॉट को नाम दें"
 
@@ -1736,9 +1951,19 @@ msgid "Needs takeover"
 msgstr "नियंत्रण लेना ज़रूरी"
 
 #: src/pages/Shell.tsx:1988
-#: src/pages/Shell.tsx:4881
+#: src/pages/Shell.tsx:4894
 msgid "New bot"
 msgstr "नया बॉट"
+
+#: src/pages/crm/CrmContacts.tsx:70
+#: src/pages/crm/CrmContacts.tsx:296
+msgid "New contact"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:151
+#: src/pages/crm/CrmPipelineBoard.tsx:513
+msgid "New deal"
+msgstr ""
 
 #: src/pages/GroupPanel.tsx:98
 #: src/pages/Shell.tsx:1998
@@ -1749,14 +1974,22 @@ msgstr "नया समूह"
 msgid "New open-work item"
 msgstr "नया खुला-कार्य आइटम"
 
-#: src/pages/Shell.tsx:2791
+#: src/pages/crm/CrmPipelineBoard.tsx:707
+msgid "New pipeline"
+msgstr ""
+
+#: src/pages/Shell.tsx:2799
 msgid "New routine"
 msgstr "नया रूटीन"
 
 #: src/pages/BotContextMenu.tsx:130
-#: src/pages/Shell.tsx:5333
+#: src/pages/Shell.tsx:5346
 msgid "New section"
 msgstr "नया सेक्शन"
+
+#: src/pages/crm/CrmContacts.tsx:384
+msgid "New tag"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:362
 msgid "No apps match your search."
@@ -1775,9 +2008,22 @@ msgstr "कोई प्रमाणीकरण नहीं"
 msgid "No connection record found for {0}."
 msgstr "{0} के लिए कोई कनेक्शन रिकॉर्ड नहीं मिला।"
 
+#: src/pages/crm/CrmPipelineBoard.tsx:559
+#: src/pages/crm/CrmPipelineBoard.tsx:647
+msgid "No contact"
+msgstr ""
+
+#: src/pages/crm/CrmContacts.tsx:77
+msgid "No contacts yet"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:12
 msgid "No credential saved"
 msgstr "कोई क्रेडेंशियल सहेजा नहीं गया"
+
+#: src/pages/crm/CrmHome.tsx:127
+msgid "No deals yet"
+msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:123
 msgid "No exceptions. Actions run automatically."
@@ -1815,6 +2061,10 @@ msgstr "कोई प्रोवाइडर नहीं मिला।"
 msgid "No results"
 msgstr "कोई परिणाम नहीं"
 
+#: src/pages/crm/CrmContacts.tsx:77
+msgid "Nobody matches that search"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx:108
 msgid "None yet"
 msgstr "अभी तक कोई नहीं"
@@ -1832,9 +2082,17 @@ msgstr "कनेक्टेड नहीं"
 msgid "Not in the plugin catalog"
 msgstr ""
 
-#: src/pages/Shell.tsx:6006
+#: src/pages/Shell.tsx:6019
 msgid "Not now"
 msgstr "अभी नहीं"
+
+#: src/pages/crm/CrmContacts.tsx:345
+msgid "Notes"
+msgstr ""
+
+#: src/pages/crm/CrmHome.tsx:284
+msgid "Nothing to chart yet"
+msgstr ""
 
 #: src/pages/ActivityList.tsx:72
 msgid "Now"
@@ -1866,19 +2124,24 @@ msgstr "OAuth उन प्रोवाइडर्स के लिए उप�
 msgid "on the 1st at {0}"
 msgstr "1 तारीख को {0} बजे"
 
+#: src/pages/crm/CrmHome.tsx:52
 #: src/pages/ScratchpadSection.tsx:157
 msgid "Open"
 msgstr "खोलें"
 
-#: src/pages/Shell.tsx:2693
+#: src/pages/Shell.tsx:2701
 msgid "Open computer"
 msgstr "कंप्यूटर खोलें"
 
-#: src/pages/Shell.tsx:2663
+#: src/pages/crm/CrmHome.tsx:78
+msgid "Open deals"
+msgstr ""
+
+#: src/pages/Shell.tsx:2671
 msgid "Open in full window"
 msgstr "पूरी विंडो में खोलें"
 
-#: src/pages/Shell.tsx:2404
+#: src/pages/Shell.tsx:2409
 msgid "Open navigation"
 msgstr "नेविगेशन खोलें"
 
@@ -1895,7 +2158,7 @@ msgstr "खुला कार्य"
 msgid "OpenAI-compatible server URL"
 msgstr "OpenAI-संगत सर्वर URL"
 
-#: src/pages/Shell.tsx:4648
+#: src/pages/Shell.tsx:4661
 msgid "Opened its thread."
 msgstr "इसका थ्रेड खोला।"
 
@@ -1937,6 +2200,10 @@ msgstr "संगठन API कुंजी"
 msgid "Other model…"
 msgstr "अन्य मॉडल…"
 
+#: src/pages/CrmApiAccessPanel.tsx:273
+msgid "Outbound webhooks"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx:142
 #: src/pages/ScratchpadSection.tsx:147
 msgid "Park"
@@ -1965,6 +2232,10 @@ msgstr "अपनी API कुंजी पेस्ट करें"
 msgid "Personal credential"
 msgstr "व्यक्तिगत क्रेडेंशियल"
 
+#: src/pages/crm/CrmContacts.tsx:339
+msgid "Phone"
+msgstr ""
+
 #: src/pages/VoiceSettingsOverlay.tsx:176
 msgid "Pick a voice"
 msgstr "एक आवाज़ चुनें"
@@ -1972,6 +2243,18 @@ msgstr "एक आवाज़ चुनें"
 #: src/pages/BotContextMenu.tsx:84
 msgid "Pin"
 msgstr "पिन करें"
+
+#: src/pages/crm/CrmView.tsx:24
+msgid "Pipeline"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:713
+msgid "Pipeline name"
+msgstr ""
+
+#: src/pages/crm/CrmHome.tsx:141
+msgid "Pipeline value by stage"
+msgstr ""
 
 #: src/pages/VoiceSettingsOverlay.tsx:325
 msgid "Playing…"
@@ -1982,7 +2265,7 @@ msgstr "प्ले हो रहा है…"
 msgid "Preview {0}"
 msgstr "{0} का प्रीव्यू"
 
-#: src/pages/Shell.tsx:4836
+#: src/pages/Shell.tsx:4849
 msgid "Private"
 msgstr "निजी"
 
@@ -1999,13 +2282,17 @@ msgstr "प्रोवाइडर्स"
 msgid "Queued"
 msgstr "कतार में"
 
-#: src/pages/Shell.tsx:5178
+#: src/pages/Shell.tsx:5191
 msgid "Read replies aloud"
 msgstr "उत्तर पढ़कर सुनाएं"
 
 #: src/pages/ActivityList.tsx:82
 msgid "Recent"
 msgstr "हाल के"
+
+#: src/pages/crm/CrmHome.tsx:198
+msgid "Recent deals"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx:17
 msgid "Reconnect OAuth"
@@ -2033,11 +2320,12 @@ msgstr "रिकवर एक ऐसे कंप्यूटर को बद�
 msgid "Recovering…"
 msgstr "रिकवर हो रहा है…"
 
-#: src/pages/Shell.tsx:4336
+#: src/pages/Shell.tsx:4349
 msgid "Release"
 msgstr "नियंत्रण छोड़ें"
 
 #: src/components/ApprovalRulesSettings.tsx:138
+#: src/pages/CrmApiAccessPanel.tsx:338
 #: src/pages/PluginsOverlay.tsx:341
 #: src/pages/PluginsOverlay.tsx:406
 #: src/pages/PluginsOverlay.tsx:599
@@ -2046,25 +2334,29 @@ msgid "Remove"
 msgstr "हटाएं"
 
 #. placeholder {0}: attachment.file.name
-#: src/pages/Shell.tsx:3950
+#: src/pages/Shell.tsx:3963
 msgid "Remove {0}"
 msgstr "{0} हटाएं"
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:4105
+#: src/pages/Shell.tsx:4118
 msgid "Remove mention {0}"
 msgstr "उल्लेख {0} हटाएं"
 
 #. placeholder {0}: selectedSkill.name
-#: src/pages/Shell.tsx:4084
+#: src/pages/Shell.tsx:4097
 msgid "Remove skill {0}"
 msgstr "स्किल {0} हटाएं"
+
+#: src/pages/crm/CrmPipelineBoard.tsx:740
+msgid "Remove stage"
+msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:125
 msgid "Remove this schedule"
 msgstr "यह शेड्यूल हटाएं"
 
-#: src/pages/Shell.tsx:4647
+#: src/pages/Shell.tsx:4660
 msgid "Removed with chat, computer, and memory."
 msgstr "चैट, कंप्यूटर और मेमोरी सहित हटाया गया।"
 
@@ -2072,6 +2364,7 @@ msgstr "चैट, कंप्यूटर और मेमोरी सहि�
 msgid "Removed, but list refresh failed"
 msgstr "हटाया गया, लेकिन सूची रिफ़्रेश विफल रही"
 
+#: src/pages/CrmApiAccessPanel.tsx:338
 #: src/pages/PluginsOverlay.tsx:336
 #: src/pages/PluginsOverlay.tsx:401
 #: src/pages/PluginsOverlay.tsx:599
@@ -2092,11 +2385,11 @@ msgstr "API कुंजी बदलें"
 msgid "Replace key"
 msgstr "कुंजी बदलें"
 
-#: src/pages/Shell.tsx:4282
+#: src/pages/Shell.tsx:4295
 msgid "Reply"
 msgstr "उत्तर दें"
 
-#: src/pages/Shell.tsx:3913
+#: src/pages/Shell.tsx:3926
 msgid "Replying to {replyName}"
 msgstr "{replyName} को उत्तर दे रहे हैं"
 
@@ -2117,8 +2410,9 @@ msgstr "कंप्यूटर रीसेट करें?"
 msgid "Resetting…"
 msgstr "रीसेट हो रहा है…"
 
-#: src/pages/Shell.tsx:2209
-#: src/pages/Shell.tsx:2239
+#: src/pages/crm/CrmContacts.tsx:429
+#: src/pages/Shell.tsx:2214
+#: src/pages/Shell.tsx:2244
 msgid "Restore"
 msgstr "बहाल करें"
 
@@ -2134,30 +2428,38 @@ msgstr "अभी पुनः प्रयास करें"
 msgid "Return to Manor"
 msgstr ""
 
+#: src/pages/CrmApiAccessPanel.tsx:263
+msgid "Revoke"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:263
+msgid "Revoking…"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx:157
 msgid "Robot"
 msgstr ""
 
-#: src/pages/Shell.tsx:2898
-#: src/pages/Shell.tsx:2986
-#: src/pages/Shell.tsx:2995
+#: src/pages/Shell.tsx:2906
+#: src/pages/Shell.tsx:2994
+#: src/pages/Shell.tsx:3003
 msgid "Routine"
 msgstr "रूटीन"
 
-#: src/pages/Shell.tsx:2740
+#: src/pages/Shell.tsx:2748
 msgid "Routines"
 msgstr "रूटीन्स"
 
-#: src/pages/Shell.tsx:2939
-#: src/pages/Shell.tsx:2946
+#: src/pages/Shell.tsx:2947
+#: src/pages/Shell.tsx:2954
 msgid "Run at"
 msgstr ""
 
-#: src/pages/Shell.tsx:3058
+#: src/pages/Shell.tsx:3066
 msgid "Run now"
 msgstr "अभी चलाएं"
 
-#: src/pages/Shell.tsx:2979
+#: src/pages/Shell.tsx:2987
 msgid "Run time must be in the future."
 msgstr ""
 
@@ -2165,20 +2467,22 @@ msgstr ""
 msgid "Running"
 msgstr "चल रहा है"
 
-#: src/pages/Shell.tsx:2776
+#: src/pages/Shell.tsx:2784
 msgid "Running · Stop"
 msgstr "चल रहा है · रोकें"
 
-#: src/pages/Shell.tsx:3058
+#: src/pages/Shell.tsx:3066
 msgid "Running…"
 msgstr "चल रहा है…"
 
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/components/teach/TeachComputerSection.tsx:183
+#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:675
-#: src/pages/Shell.tsx:3034
-#: src/pages/Shell.tsx:5233
+#: src/pages/Shell.tsx:3042
+#: src/pages/Shell.tsx:5246
 msgid "Save"
 msgstr "सहेजें"
 
@@ -2202,7 +2506,7 @@ msgstr "सहेजा गया।"
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:673
-#: src/pages/Shell.tsx:3034
+#: src/pages/Shell.tsx:3042
 msgid "Saving…"
 msgstr "सहेजा जा रहा है…"
 
@@ -2229,6 +2533,10 @@ msgstr "ऐप खोजें"
 msgid "Search models"
 msgstr ""
 
+#: src/pages/crm/CrmContacts.tsx:53
+msgid "Search people, companies, tags"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx:344
 #: src/pages/ModelSettingsOverlay.tsx:350
 msgid "Search providers"
@@ -2243,11 +2551,11 @@ msgstr "प्रोवाइडर्स और मॉडल खोजें"
 msgid "Searching…"
 msgstr "खोजा जा रहा है…"
 
-#: src/pages/Shell.tsx:2433
+#: src/pages/Shell.tsx:2441
 msgid "Select a bot"
 msgstr "एक बॉट चुनें"
 
-#: src/pages/Shell.tsx:4166
+#: src/pages/Shell.tsx:4179
 msgid "Send"
 msgstr "भेजें"
 
@@ -2276,22 +2584,22 @@ msgstr "सर्वर का नाम"
 msgid "Server URL"
 msgstr "सर्वर URL"
 
-#: src/pages/Shell.tsx:2442
+#: src/pages/Shell.tsx:2450
 msgid "Set up voice to call"
 msgstr "कॉल के लिए आवाज़ सेट करें"
 
 #: src/pages/AccountSettingsOverlay.tsx:103
-#: src/pages/Shell.tsx:2298
-#: src/pages/Shell.tsx:2308
-#: src/pages/Shell.tsx:2630
+#: src/pages/Shell.tsx:2303
+#: src/pages/Shell.tsx:2313
+#: src/pages/Shell.tsx:2638
 msgid "Settings"
 msgstr "सेटिंग्स"
 
-#: src/pages/Shell.tsx:4184
+#: src/pages/Shell.tsx:4197
 msgid "Settings: General"
 msgstr "सेटिंग्स: सामान्य"
 
-#: src/pages/Shell.tsx:4186
+#: src/pages/Shell.tsx:4199
 msgid "Settings: Usage"
 msgstr "सेटिंग्स: उपयोग"
 
@@ -2301,15 +2609,15 @@ msgid "Setup help"
 msgstr "सेटअप सहायता"
 
 #: src/pages/MemorySettingsOverlay.tsx:39
-#: src/pages/Shell.tsx:5152
+#: src/pages/Shell.tsx:5165
 msgid "Shared"
 msgstr "साझा"
 
-#: src/pages/Shell.tsx:2641
+#: src/pages/Shell.tsx:2649
 msgid "Show computer"
 msgstr "कंप्यूटर दिखाएं"
 
-#: src/pages/Shell.tsx:2459
+#: src/pages/Shell.tsx:2467
 msgid "Show live activity"
 msgstr ""
 
@@ -2317,7 +2625,7 @@ msgstr ""
 msgid "Show password"
 msgstr ""
 
-#: src/pages/Shell.tsx:2641
+#: src/pages/Shell.tsx:2649
 msgid "Show settings"
 msgstr "सेटिंग्स दिखाएं"
 
@@ -2337,11 +2645,11 @@ msgid "Sign up"
 msgstr "साइन अप करें"
 
 #. placeholder {0}: skill.name
-#: src/pages/Shell.tsx:3997
+#: src/pages/Shell.tsx:4010
 msgid "Skill {0}"
 msgstr "स्किल {0}"
 
-#: src/pages/Shell.tsx:4343
+#: src/pages/Shell.tsx:4356
 msgid "Skip"
 msgstr "छोड़ें"
 
@@ -2367,8 +2675,8 @@ msgstr ""
 msgid "Space stops it · Esc hangs up"
 msgstr ""
 
-#: src/pages/Shell.tsx:4494
-#: src/pages/Shell.tsx:4745
+#: src/pages/Shell.tsx:4507
+#: src/pages/Shell.tsx:4758
 msgid "Speak"
 msgstr "बोलें"
 
@@ -2380,14 +2688,23 @@ msgstr "बोलें + लिप्यंतरण करें"
 msgid "Speak only"
 msgstr "केवल बोलें"
 
-#: src/pages/Shell.tsx:4490
-#: src/pages/Shell.tsx:4741
+#: src/pages/Shell.tsx:4503
+#: src/pages/Shell.tsx:4754
 msgid "Speak this reply"
 msgstr "यह उत्तर बोलकर सुनाएं"
 
 #: src/pages/CallView.tsx:242
 msgid "Speaking…"
 msgstr "बोल रहा है…"
+
+#. placeholder {0}: index + 1
+#: src/pages/crm/CrmPipelineBoard.tsx:730
+msgid "Stage {0}"
+msgstr ""
+
+#: src/pages/crm/CrmPipelineBoard.tsx:718
+msgid "Stages, in order"
+msgstr ""
 
 #: src/components/teach/TeachComputerSection.tsx:115
 msgid "Start recording"
@@ -2411,11 +2728,11 @@ msgstr "चरण"
 msgid "Still working — talk anytime to steer it."
 msgstr ""
 
-#: src/pages/Shell.tsx:3383
-#: src/pages/Shell.tsx:3387
-#: src/pages/Shell.tsx:4157
-#: src/pages/Shell.tsx:4494
-#: src/pages/Shell.tsx:4745
+#: src/pages/Shell.tsx:3396
+#: src/pages/Shell.tsx:3400
+#: src/pages/Shell.tsx:4170
+#: src/pages/Shell.tsx:4507
+#: src/pages/Shell.tsx:4758
 msgid "Stop"
 msgstr "रोकें"
 
@@ -2423,12 +2740,12 @@ msgstr "रोकें"
 msgid "Stop & talk"
 msgstr ""
 
-#: src/pages/Shell.tsx:4049
+#: src/pages/Shell.tsx:4062
 msgid "Stop dictation"
 msgstr "श्रुतलेखन रोकें"
 
-#: src/pages/Shell.tsx:4490
-#: src/pages/Shell.tsx:4741
+#: src/pages/Shell.tsx:4503
+#: src/pages/Shell.tsx:4754
 msgid "Stop speaking"
 msgstr "बोलना रोकें"
 
@@ -2437,8 +2754,8 @@ msgstr "बोलना रोकें"
 msgid "Stop teaching"
 msgstr "सिखाना रोकें"
 
-#: src/pages/Shell.tsx:2720
-#: src/pages/Shell.tsx:3403
+#: src/pages/Shell.tsx:2728
+#: src/pages/Shell.tsx:3416
 msgid "Stop the bot first"
 msgstr "पहले बॉट रोकें"
 
@@ -2446,7 +2763,7 @@ msgstr "पहले बॉट रोकें"
 msgid "Stored encrypted"
 msgstr "एन्क्रिप्टेड रूप में संग्रहीत"
 
-#: src/pages/Shell.tsx:4599
+#: src/pages/Shell.tsx:4612
 msgid "subagent"
 msgstr "सबएजेंट"
 
@@ -2464,8 +2781,13 @@ msgstr ""
 msgid "Switching…"
 msgstr "बदला जा रहा है…"
 
-#: src/pages/Shell.tsx:2723
-#: src/pages/Shell.tsx:3408
+#: src/pages/crm/CrmContacts.tsx:100
+#: src/pages/crm/CrmContacts.tsx:352
+msgid "Tags"
+msgstr ""
+
+#: src/pages/Shell.tsx:2731
+#: src/pages/Shell.tsx:3421
 msgid "Take control"
 msgstr "नियंत्रण लें"
 
@@ -2473,7 +2795,7 @@ msgstr "नियंत्रण लें"
 msgid "Teach a task"
 msgstr "कोई कार्य सिखाएं"
 
-#: src/pages/Shell.tsx:2554
+#: src/pages/Shell.tsx:2562
 msgid "Teaching in progress — stop teaching before sending a new message."
 msgstr "सिखाना जारी है — नया संदेश भेजने से पहले सिखाना रोकें।"
 
@@ -2481,11 +2803,11 @@ msgstr "सिखाना जारी है — नया संदेश भ
 msgid "Teaching needs a graphical sandbox computer. Desktop-host bots can run shell tasks, but not screen recording."
 msgstr "सिखाने के लिए ग्राफ़िकल सैंडबॉक्स कंप्यूटर चाहिए। डेस्कटॉप-होस्ट बॉट शेल कार्य चला सकते हैं, लेकिन स्क्रीन रिकॉर्डिंग नहीं।"
 
-#: src/pages/Shell.tsx:4836
+#: src/pages/Shell.tsx:4849
 msgid "Team"
 msgstr "टीम"
 
-#: src/pages/Shell.tsx:5687
+#: src/pages/Shell.tsx:5700
 msgid "Team Computer"
 msgstr "टीम कंप्यूटर"
 
@@ -2498,24 +2820,28 @@ msgstr "टेस्ट करें"
 msgid "The API did not come back. Refresh this page."
 msgstr ""
 
+#: src/pages/crm/CrmHome.tsx:130
+msgid "The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to add the first one."
+msgstr ""
+
 #: src/pages/MemorySettingsOverlay.tsx:218
 msgid "The selected memory provider is not available in this build."
 msgstr "चयनित मेमोरी प्रोवाइडर इस बिल्ड में उपलब्ध नहीं है।"
 
-#: src/pages/Shell.tsx:5129
+#: src/pages/Shell.tsx:5142
 msgid "Thinking"
 msgstr "सोच रहा है"
 
-#: src/pages/Shell.tsx:2667
+#: src/pages/Shell.tsx:2675
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 msgstr "यह बॉट इसी कंप्यूटर पर चलता है, किसी Linux डेस्कटॉप पर नहीं। शेल और फ़ाइलें आपके होम फ़ोल्डर का उपयोग करती हैं।"
 
-#: src/pages/Shell.tsx:3432
+#: src/pages/Shell.tsx:3445
 msgid "This bot runs on this computer. There is no separate Linux desktop. Ask it to use the shell; working directories under your home folder are allowed."
 msgstr "यह बॉट इसी कंप्यूटर पर चलता है। कोई अलग Linux डेस्कटॉप नहीं है। इससे शेल का उपयोग करने को कहें; आपके होम फ़ोल्डर के अंदर की वर्किंग डायरेक्ट्री की अनुमति है।"
 
-#: src/pages/Shell.tsx:5529
-#: src/pages/Shell.tsx:5608
+#: src/pages/Shell.tsx:5542
+#: src/pages/Shell.tsx:5621
 msgid "This cannot be undone."
 msgstr "इसे पूर्ववत नहीं किया जा सकता।"
 
@@ -2539,7 +2865,7 @@ msgstr "यह Mac"
 msgid "This Mac runs shell commands with your account, including files in your home folder. Do not turn it on for a shared or public server."
 msgstr "यह Mac आपके खाते से शेल कमांड चलाता है, जिसमें आपके होम फ़ोल्डर की फ़ाइलें भी शामिल हैं। इसे किसी साझा या सार्वजनिक सर्वर पर चालू न करें।"
 
-#: src/pages/Shell.tsx:5414
+#: src/pages/Shell.tsx:5427
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr ""
 
@@ -2547,7 +2873,7 @@ msgstr ""
 msgid "This provider cannot paste a key here. Skip if this deployment already has credentials."
 msgstr "यह प्रोवाइडर यहां कुंजी पेस्ट नहीं कर सकता। यदि इस डिप्लॉयमेंट में पहले से क्रेडेंशियल हैं तो छोड़ दें।"
 
-#: src/pages/Shell.tsx:5954
+#: src/pages/Shell.tsx:5967
 msgid "This server cannot be assigned without a bot."
 msgstr "बॉट के बिना यह सर्वर असाइन नहीं किया जा सकता।"
 
@@ -2559,7 +2885,7 @@ msgstr "इस सर्वर ने ब्राउज़र ऑथराइ�
 msgid "This server is already connected. Disconnect it first to authorize again."
 msgstr "यह सर्वर पहले से कनेक्टेड है। पुनः ऑथराइज़ करने के लिए पहले इसे डिस्कनेक्ट करें।"
 
-#: src/pages/Shell.tsx:5993
+#: src/pages/Shell.tsx:6006
 msgid "This server uses browser sign-in. Authorize it to let your agents use its tools — a popup will open."
 msgstr "यह सर्वर ब्राउज़र साइन-इन का उपयोग करता है। अपने एजेंट को इसके टूल उपयोग करने देने के लिए इसे ऑथराइज़ करें — एक पॉपअप खुलेगा।"
 
@@ -2572,14 +2898,22 @@ msgid "Time of day"
 msgstr "दिन का समय"
 
 #: src/pages/Onboarding.tsx:525
-#: src/pages/Shell.tsx:4903
-#: src/pages/Shell.tsx:5070
+#: src/pages/Shell.tsx:4916
+#: src/pages/Shell.tsx:5083
 msgid "Title"
 msgstr "शीर्षक"
+
+#: src/pages/CrmApiAccessPanel.tsx:174
+msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:566
 msgid "Tool sources"
 msgstr "टूल स्रोत"
+
+#: src/pages/crm/CrmHome.tsx:68
+msgid "Total pipeline"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:528
 msgid "Treg token"
@@ -2642,7 +2976,7 @@ msgid "Updating…"
 msgstr "अपडेट हो रहा है…"
 
 #: src/pages/AccountSettingsOverlay.tsx:176
-#: src/pages/Shell.tsx:2359
+#: src/pages/Shell.tsx:2364
 msgid "Usage"
 msgstr "उपयोग"
 
@@ -2659,6 +2993,15 @@ msgstr "मिला हुआ मॉडल उपयोग करें"
 msgid "Use this model"
 msgstr "यह मॉडल उपयोग करें"
 
+#: src/pages/crm/CrmPipelineBoard.tsx:525
+#: src/pages/crm/CrmPipelineBoard.tsx:637
+msgid "Value (USD)"
+msgstr ""
+
+#: src/pages/crm/CrmHome.tsx:173
+msgid "Value distribution"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:549
 msgid "Verify and add"
 msgstr "पुष्टि करके जोड़ें"
@@ -2667,8 +3010,8 @@ msgstr "पुष्टि करके जोड़ें"
 msgid "Verifying…"
 msgstr "पुष्टि की जा रही है…"
 
-#: src/pages/Shell.tsx:2347
-#: src/pages/Shell.tsx:5182
+#: src/pages/Shell.tsx:2352
+#: src/pages/Shell.tsx:5195
 #: src/pages/VoiceSettingsOverlay.tsx:145
 #: src/pages/VoiceSettingsOverlay.tsx:305
 msgid "Voice"
@@ -2685,7 +3028,7 @@ msgstr "साइन-इन की प्रतीक्षा…"
 msgid "Waiting for the API to come back…"
 msgstr ""
 
-#: src/pages/Shell.tsx:5837
+#: src/pages/Shell.tsx:5850
 msgid "Waiting…"
 msgstr "प्रतीक्षा…"
 
@@ -2693,12 +3036,20 @@ msgstr "प्रतीक्षा…"
 msgid "Watch it work"
 msgstr ""
 
+#: src/pages/CrmApiAccessPanel.tsx:287
+msgid "Webhook HTTPS URL"
+msgstr ""
+
+#: src/pages/CrmApiAccessPanel.tsx:281
+msgid "Webhook name"
+msgstr ""
+
 #: src/pages/RoutineSchedule.tsx:34
 #: src/pages/RoutineSchedule.tsx:90
 msgid "Weekdays"
 msgstr "कार्यदिवस"
 
-#: src/pages/Shell.tsx:5499
+#: src/pages/Shell.tsx:5512
 msgid "What about its memories?"
 msgstr "इसकी मेमोरी का क्या करें?"
 
@@ -2707,7 +3058,7 @@ msgid "What result will you demonstrate?"
 msgstr "आप कौन-सा परिणाम दिखाकर बताएंगे?"
 
 #: src/pages/Onboarding.tsx:538
-#: src/pages/Shell.tsx:4918
+#: src/pages/Shell.tsx:4931
 msgid "What this bot is for"
 msgstr "यह बॉट किस लिए है"
 
@@ -2719,7 +3070,7 @@ msgstr "क्या लौटाना है"
 msgid "When {botName} messages another bot, the exchange shows up here instead of in the chat."
 msgstr "जब {botName} किसी दूसरे बॉट को संदेश भेजता है, तो वह आदान-प्रदान चैट के बजाय यहां दिखता है।"
 
-#: src/pages/Shell.tsx:2922
+#: src/pages/Shell.tsx:2930
 msgid "When to run"
 msgstr "कब चलाएं"
 
@@ -2731,12 +3082,20 @@ msgstr "कब उपयोग करें"
 msgid "Where should bots run?"
 msgstr "बॉट कहां चलने चाहिए?"
 
+#: src/pages/crm/CrmHome.tsx:53
+msgid "Won"
+msgstr ""
+
+#: src/pages/crm/CrmHome.tsx:73
+msgid "Won revenue"
+msgstr ""
+
 #: src/pages/Auth.tsx:138
 #: src/pages/CallView.tsx:244
 msgid "Working…"
 msgstr "काम चल रहा है…"
 
-#: src/pages/Shell.tsx:5112
+#: src/pages/Shell.tsx:5125
 msgid "Workspace default"
 msgstr "वर्कस्पेस डिफ़ॉल्ट"
 
@@ -2753,8 +3112,8 @@ msgstr "अगर यह अपने आप रीडायरेक्ट न 
 msgid "You can close this window."
 msgstr "आप यह विंडो बंद कर सकते हैं।"
 
-#: src/pages/Shell.tsx:2700
-#: src/pages/Shell.tsx:3373
+#: src/pages/Shell.tsx:2708
+#: src/pages/Shell.tsx:3386
 msgid "You have control"
 msgstr "नियंत्रण आपके पास है"
 

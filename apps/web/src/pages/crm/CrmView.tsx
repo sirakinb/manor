@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmOverview } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
 import { rpc } from "../../lib/rpc";
@@ -7,21 +8,22 @@ import { CrmPipelineBoard } from "./CrmPipelineBoard";
 
 type CrmTab = "home" | "pipeline" | "contacts";
 
-const TABS: Array<{ key: CrmTab; label: string }> = [
-  { key: "home", label: "Home" },
-  { key: "pipeline", label: "Pipeline" },
-  { key: "contacts", label: "Contacts" },
-];
-
 /**
  * The CRM pane. One dataset feeds all three tabs, so it is loaded here once
  * and every mutation below refreshes it — the surfaces stay consistent
  * without any of them owning the data.
  */
 export function CrmView() {
+  const { t } = useLingui();
   const [tab, setTab] = useState<CrmTab>("home");
   const [overview, setOverview] = useState<CrmOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const tabs: Array<{ key: CrmTab; label: string }> = [
+    { key: "home", label: t`Home` },
+    { key: "pipeline", label: t`Pipeline` },
+    { key: "contacts", label: t`Contacts` },
+  ];
 
   const refresh = useCallback(async () => {
     try {
@@ -30,9 +32,9 @@ export function CrmView() {
       setOverview(next.pipelines.length === 0 ? await rpc.crm.pipelines.seed() : next);
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not load the CRM");
+      setError(cause instanceof Error ? cause.message : t`Could not load the CRM`);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void refresh();
@@ -44,7 +46,7 @@ export function CrmView() {
         <div className="flex items-center gap-5">
           <span className="text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">CRM</span>
           <div className="flex items-center gap-1 rounded-full border border-[#202023] bg-[#131315] p-1">
-            {TABS.map((entry) => (
+            {tabs.map((entry) => (
               <button
                 key={entry.key}
                 type="button"
@@ -66,7 +68,9 @@ export function CrmView() {
         {error ? (
           <p className="px-[22px] py-6 text-[13px] text-[#E8A33C]">{error}</p>
         ) : !overview ? (
-          <p className="px-[22px] py-6 text-[13px] text-[#6E6975]">Loading…</p>
+          <p className="px-[22px] py-6 text-[13px] text-[#6E6975]">
+            <Trans>Loading…</Trans>
+          </p>
         ) : tab === "home" ? (
           <CrmHome overview={overview} />
         ) : tab === "pipeline" ? (

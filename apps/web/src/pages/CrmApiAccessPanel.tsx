@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
 
@@ -40,6 +41,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function CrmApiAccessPanel() {
+  const { t } = useLingui();
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [name, setName] = useState("Website sync");
@@ -63,7 +65,7 @@ export function CrmApiAccessPanel() {
 
   useEffect(() => {
     void refresh().catch((reason) =>
-      setError(reason instanceof Error ? reason.message : "Could not load API access"),
+      setError(reason instanceof Error ? reason.message : t`Could not load API access`),
     );
   }, []);
 
@@ -78,7 +80,7 @@ export function CrmApiAccessPanel() {
       setRevealedToken(created.token);
       await refresh();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not create credential");
+      setError(reason instanceof Error ? reason.message : t`Could not create credential`);
     } finally {
       setBusy(null);
     }
@@ -91,7 +93,7 @@ export function CrmApiAccessPanel() {
       await api(`/v1/integration-credentials/${id}`, { method: "DELETE" });
       await refresh();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not revoke credential");
+      setError(reason instanceof Error ? reason.message : t`Could not revoke credential`);
     } finally {
       setBusy(null);
     }
@@ -109,7 +111,7 @@ export function CrmApiAccessPanel() {
       setWebhookUrl("");
       await refresh();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not create webhook");
+      setError(reason instanceof Error ? reason.message : t`Could not create webhook`);
     } finally {
       setBusy(null);
     }
@@ -122,7 +124,7 @@ export function CrmApiAccessPanel() {
       await api(`/v1/webhooks/${id}`, { method: "DELETE" });
       await refresh();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not remove webhook");
+      setError(reason instanceof Error ? reason.message : t`Could not remove webhook`);
     } finally {
       setBusy(null);
     }
@@ -138,9 +140,13 @@ export function CrmApiAccessPanel() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-5">
         <div>
-          <h2 className="text-lg font-medium text-[#ECECEE]">CRM API access</h2>
+          <h2 className="text-lg font-medium text-[#ECECEE]">
+            <Trans>CRM API access</Trans>
+          </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-[#85858A]">
-            Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint.
+            <Trans>
+              Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint.
+            </Trans>
           </p>
         </div>
         <a
@@ -149,7 +155,7 @@ export function CrmApiAccessPanel() {
           rel="noreferrer"
           className="text-sm text-[#AEB5FF] hover:text-[#D1D5FF]"
         >
-          Documentation ↗
+          <Trans>Documentation ↗</Trans>
         </a>
       </div>
 
@@ -161,15 +167,19 @@ export function CrmApiAccessPanel() {
 
       <BuiCard className="space-y-4 p-5">
         <div>
-          <h3 className="font-medium text-[#ECECEE]">Machine credentials</h3>
+          <h3 className="font-medium text-[#ECECEE]">
+            <Trans>Machine credentials</Trans>
+          </h3>
           <p className="mt-1 text-xs leading-5 text-[#85858A]">
-            Tokens are shown once. Store them in your server or automation platform, never browser
-            code.
+            <Trans>
+              Tokens are shown once. Store them in your server or automation platform, never browser
+              code.
+            </Trans>
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <input
-            aria-label="Credential name"
+            aria-label={t`Credential name`}
             value={name}
             onChange={(event) => setName(event.target.value)}
             className="rounded-xl border border-[#2C2C30] bg-[#101012] px-3 py-2.5 text-sm text-[#ECECEE] outline-none"
@@ -179,11 +189,13 @@ export function CrmApiAccessPanel() {
             disabled={busy === "credential" || !name.trim() || scopes.length === 0}
             onClick={() => void createCredential()}
           >
-            {busy === "credential" ? "Creating…" : "Create token"}
+            {busy === "credential" ? <Trans>Creating…</Trans> : <Trans>Create token</Trans>}
           </BuiButton>
         </div>
         <fieldset className="flex flex-wrap gap-2">
-          <legend className="sr-only">Credential scopes</legend>
+          <legend className="sr-only">
+            <Trans>Credential scopes</Trans>
+          </legend>
           {ALL_SCOPES.map((scope) => {
             const selected = scopes.includes(scope);
             return (
@@ -210,20 +222,22 @@ export function CrmApiAccessPanel() {
         {revealedToken ? (
           <div className="rounded-xl border border-[#3DBB7255] bg-[#3DBB7212] p-4">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-[#8BD7AA]">Copy this token now</span>
+              <span className="text-xs font-medium text-[#8BD7AA]">
+                <Trans>Copy this token now</Trans>
+              </span>
               <button
                 type="button"
-                aria-label="Copy integration token"
+                aria-label={t`Copy integration token`}
                 onClick={() => void copy(revealedToken, "token")}
                 className="text-xs text-[#C7CCFF]"
               >
-                Copy
+                <Trans>Copy</Trans>
               </button>
             </div>
             <code className="block break-all text-xs text-[#ECECEE]">{revealedToken}</code>
             {copied === "token" ? (
               <div className="mt-3">
-                <SuccessPop label="Copied" />
+                <SuccessPop label={t`Copied`} />
               </div>
             ) : null}
           </div>
@@ -246,7 +260,7 @@ export function CrmApiAccessPanel() {
                   disabled={busy === credential.id}
                   onClick={() => void revokeCredential(credential.id)}
                 >
-                  {busy === credential.id ? "Revoking…" : "Revoke"}
+                  {busy === credential.id ? <Trans>Revoking…</Trans> : <Trans>Revoke</Trans>}
                 </BuiButton>
               </div>
             ))}
@@ -255,20 +269,22 @@ export function CrmApiAccessPanel() {
 
       <BuiCard className="space-y-4 p-5">
         <div>
-          <h3 className="font-medium text-[#ECECEE]">Outbound webhooks</h3>
+          <h3 className="font-medium text-[#ECECEE]">
+            <Trans>Outbound webhooks</Trans>
+          </h3>
           <p className="mt-1 text-xs leading-5 text-[#85858A]">
-            Manor signs contact events and retries failed deliveries automatically.
+            <Trans>Manor signs contact events and retries failed deliveries automatically.</Trans>
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-[.7fr_1.3fr_auto]">
           <input
-            aria-label="Webhook name"
+            aria-label={t`Webhook name`}
             value={webhookName}
             onChange={(event) => setWebhookName(event.target.value)}
             className="rounded-xl border border-[#2C2C30] bg-[#101012] px-3 py-2.5 text-sm text-[#ECECEE] outline-none"
           />
           <input
-            aria-label="Webhook HTTPS URL"
+            aria-label={t`Webhook HTTPS URL`}
             value={webhookUrl}
             onChange={(event) => setWebhookUrl(event.target.value)}
             placeholder="https://example.com/hooks/manor"
@@ -279,28 +295,28 @@ export function CrmApiAccessPanel() {
             disabled={busy === "webhook" || !webhookName.trim() || !webhookUrl.trim()}
             onClick={() => void createWebhook()}
           >
-            {busy === "webhook" ? "Adding…" : "Add webhook"}
+            {busy === "webhook" ? <Trans>Adding…</Trans> : <Trans>Add webhook</Trans>}
           </BuiButton>
         </div>
         {revealedSecret ? (
           <div className="rounded-xl border border-[#3DBB7255] bg-[#3DBB7212] p-4">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-medium text-[#8BD7AA]">
-                Copy the signing secret now
+                <Trans>Copy the signing secret now</Trans>
               </span>
               <button
                 type="button"
-                aria-label="Copy webhook signing secret"
+                aria-label={t`Copy webhook signing secret`}
                 onClick={() => void copy(revealedSecret, "secret")}
                 className="text-xs text-[#C7CCFF]"
               >
-                Copy
+                <Trans>Copy</Trans>
               </button>
             </div>
             <code className="block break-all text-xs text-[#ECECEE]">{revealedSecret}</code>
             {copied === "secret" ? (
               <div className="mt-3">
-                <SuccessPop label="Copied" />
+                <SuccessPop label={t`Copied`} />
               </div>
             ) : null}
           </div>
@@ -319,7 +335,7 @@ export function CrmApiAccessPanel() {
                 disabled={busy === webhook.id}
                 onClick={() => void removeWebhook(webhook.id)}
               >
-                {busy === webhook.id ? "Removing…" : "Remove"}
+                {busy === webhook.id ? <Trans>Removing…</Trans> : <Trans>Remove</Trans>}
               </BuiButton>
             </div>
           ))}
@@ -327,9 +343,11 @@ export function CrmApiAccessPanel() {
       </BuiCard>
 
       <BuiCard className="p-5">
-        <h3 className="font-medium text-[#ECECEE]">Hosted MCP</h3>
+        <h3 className="font-medium text-[#ECECEE]">
+          <Trans>Hosted MCP</Trans>
+        </h3>
         <p className="mt-1 text-xs leading-5 text-[#85858A]">
-          Give an MCP client a token with CRM scopes and connect it to this endpoint.
+          <Trans>Give an MCP client a token with CRM scopes and connect it to this endpoint.</Trans>
         </p>
         <code className="mt-3 block rounded-xl bg-[#101012] px-4 py-3 text-xs text-[#C7CCFF]">
           {window.location.origin}/mcp/crm
