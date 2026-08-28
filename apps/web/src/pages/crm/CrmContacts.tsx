@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmContact, CrmOverview, CrmTag } from "@rakazo/contracts";
 import { useMemo, useState } from "react";
 import { rpc } from "../../lib/rpc";
@@ -14,6 +15,7 @@ export function CrmContacts({
   overview: CrmOverview;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useLingui();
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function CrmContacts({
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search people, companies, tags"
+              placeholder={t`Search people, companies, tags`}
               className="w-full bg-transparent text-[13.5px] text-[#ECECEE] outline-none placeholder:text-[#5F5B69]"
             />
           </div>
@@ -58,25 +60,25 @@ export function CrmContacts({
               checked={showArchived}
               onChange={(event) => setShowArchived(event.target.checked)}
             />
-            Archived
+            <Trans>Archived</Trans>
           </label>
           <button
             type="button"
             onClick={() => setCreating(true)}
             className="rounded-full bg-[#F1F1EF] px-3.5 py-1.5 text-[13px] font-medium text-[#17171A]"
           >
-            New contact
+            <Trans>New contact</Trans>
           </button>
         </div>
 
         {contacts.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#2A2A2E] p-12 text-center">
             <p className="text-[14px] font-medium text-[#C9C9CE]">
-              {search ? "Nobody matches that search" : "No contacts yet"}
+              {search ? <Trans>Nobody matches that search</Trans> : <Trans>No contacts yet</Trans>}
             </p>
             {!search ? (
               <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-[#6E6975]">
-                Everyone your business talks to lives here. Add the first one.
+                <Trans>Everyone your business talks to lives here. Add the first one.</Trans>
               </p>
             ) : null}
           </div>
@@ -85,10 +87,18 @@ export function CrmContacts({
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[#1C1C1F] bg-[#111113] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5F5B69]">
-                  <th className="px-4 py-2.5">Name</th>
-                  <th className="px-4 py-2.5">Company</th>
-                  <th className="hidden px-4 py-2.5 xl:table-cell">Email</th>
-                  <th className="px-4 py-2.5">Tags</th>
+                  <th className="px-4 py-2.5">
+                    <Trans>Name</Trans>
+                  </th>
+                  <th className="px-4 py-2.5">
+                    <Trans>Company</Trans>
+                  </th>
+                  <th className="hidden px-4 py-2.5 xl:table-cell">
+                    <Trans>Email</Trans>
+                  </th>
+                  <th className="px-4 py-2.5">
+                    <Trans>Tags</Trans>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#161618]">
@@ -199,6 +209,7 @@ function ContactDrawer({
   onClose: () => void;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useLingui();
   const [form, setForm] = useState({
     firstName: contact?.firstName ?? "",
     lastName: contact?.lastName ?? "",
@@ -282,13 +293,13 @@ function ContactDrawer({
     <aside className="flex w-[360px] shrink-0 flex-col border-l border-[#141416] bg-[#101012]">
       <div className="flex items-center justify-between border-b border-[#141416] px-5 py-[15px]">
         <span className="text-[14px] font-medium text-[#ECECEE]">
-          {contact ? "Contact" : "New contact"}
+          {contact ? <Trans>Contact</Trans> : <Trans>New contact</Trans>}
         </span>
         <button
           type="button"
           onClick={onClose}
           className="text-[#85858A] hover:text-[#ECECEE]"
-          aria-label="Close"
+          aria-label={t`Close`}
         >
           ✕
         </button>
@@ -300,44 +311,46 @@ function ContactDrawer({
             ref={contact ? undefined : focusOnMount}
             value={form.firstName}
             onChange={(event) => set("firstName", event.target.value)}
-            placeholder="First name"
+            placeholder={t`First name`}
             className={fieldClass}
           />
           <input
             value={form.lastName}
             onChange={(event) => set("lastName", event.target.value)}
-            placeholder="Last name"
+            placeholder={t`Last name`}
             className={fieldClass}
           />
         </div>
         <input
           value={form.company}
           onChange={(event) => set("company", event.target.value)}
-          placeholder="Company"
+          placeholder={t`Company`}
           className={fieldClass}
         />
         <input
           value={form.email}
           onChange={(event) => set("email", event.target.value)}
-          placeholder="Email"
+          placeholder={t`Email`}
           className={fieldClass}
         />
         <input
           value={form.phone}
           onChange={(event) => set("phone", event.target.value)}
-          placeholder="Phone"
+          placeholder={t`Phone`}
           className={fieldClass}
         />
         <textarea
           value={form.notes}
           onChange={(event) => set("notes", event.target.value)}
-          placeholder="Notes"
+          placeholder={t`Notes`}
           rows={3}
           className={`${fieldClass} resize-none`}
         />
 
         <div>
-          <p className="mb-1.5 text-[12px] font-medium text-[#85858A]">Tags</p>
+          <p className="mb-1.5 text-[12px] font-medium text-[#85858A]">
+            <Trans>Tags</Trans>
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {overview.tags.map((tag) => {
               const active = tagIds.includes(tag.id);
@@ -368,7 +381,7 @@ function ContactDrawer({
               onKeyDown={(event) => {
                 if (event.key === "Enter") void addTag();
               }}
-              placeholder="New tag"
+              placeholder={t`New tag`}
               className={fieldClass}
             />
             <button
@@ -377,14 +390,16 @@ function ContactDrawer({
               disabled={!newTag.trim()}
               className="shrink-0 text-[13px] text-[#85858A] hover:text-[#C9C9CE] disabled:opacity-40"
             >
-              Add
+              <Trans>Add</Trans>
             </button>
           </div>
         </div>
 
         {deals.length > 0 ? (
           <div>
-            <p className="mb-1.5 text-[12px] font-medium text-[#85858A]">Deals</p>
+            <p className="mb-1.5 text-[12px] font-medium text-[#85858A]">
+              <Trans>Deals</Trans>
+            </p>
             <div className="space-y-1.5">
               {deals.map((deal) => (
                 <div
@@ -411,14 +426,14 @@ function ContactDrawer({
                 onClick={() => void setArchived(contact.status !== "archived")}
                 className="text-[#6E6975] hover:text-[#C9C9CE]"
               >
-                {contact.status === "archived" ? "Restore" : "Archive"}
+                {contact.status === "archived" ? <Trans>Restore</Trans> : <Trans>Archive</Trans>}
               </button>
               <button
                 type="button"
                 onClick={() => void remove()}
                 className="text-[#F87171]/70 hover:text-[#F87171]"
               >
-                Delete
+                <Trans>Delete</Trans>
               </button>
             </div>
           ) : (
@@ -430,7 +445,7 @@ function ContactDrawer({
             onClick={() => void save()}
             className="rounded-full bg-[#F1F1EF] px-4 py-1.5 text-[13px] font-medium text-[#17171A] disabled:opacity-40"
           >
-            {contact ? "Save" : "Create"}
+            {contact ? <Trans>Save</Trans> : <Trans>Create</Trans>}
           </button>
         </div>
       </div>
