@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
   assertSafeRemoteUrl,
+  createCrmWebhookEmitter,
   createSafeRemoteFetch,
   crmAgentTools,
   type EncryptedSecretStore,
@@ -539,36 +540,7 @@ export function createCrmIntegrationService(deps: {
     return { moved: true, deal };
   }
 
-  async function emitWebhook(
-    workspaceId: string,
-    type: (typeof WEBHOOK_EVENTS)[number],
-    resourceId: string,
-    data: unknown,
-  ) {
-    try {
-      const endpoints = await prisma.crmWebhookEndpoint.findMany({
-        where: { workspaceId, enabled: true },
-        select: { id: true, events: true },
-      });
-      const matching = endpoints.filter(
-        ({ events }) => Array.isArray(events) && events.includes(type),
-      );
-      if (!matching.length) return;
-      await prisma.crmWebhookEvent.create({
-        data: {
-          workspaceId,
-          type,
-          resourceId,
-          payload: data as never,
-          deliveries: { create: matching.map(({ id: endpointId }) => ({ endpointId })) },
-        },
-      });
-    } catch (error) {
-      // CRM writes remain authoritative if the outbox is temporarily unavailable.
-      // The caller must never retry an already-applied mutation because event capture failed.
-      console.error("crm webhook event capture", error);
-    }
-  }
+  const emitWebhook = createCrmWebhookEmitter(prisma);
 
   async function withIdempotency<T extends object>(
     principal: IntegrationPrincipal,

@@ -1,6 +1,6 @@
 import type { ConnectorTool } from "@rakazo/adapter-kit";
 import type { CrmContact, CrmDeal, CrmOverview, CrmPipeline } from "@rakazo/contracts";
-import { type createCrmRepos, IsolationError } from "@rakazo/db";
+import { type createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/db";
 
 /**
  * The CRM as agent tools, so chat and voice can read and work the board.
@@ -354,4 +354,56 @@ export async function executeCrmTool(
     if (error instanceof IsolationError) return { error: error.message };
     throw error;
   }
+}
+
+export const CRM_WEBHOOK_EVENTS = [
+  "contact.created",
+  "contact.updated",
+  "deal.created",
+  "deal.updated",
+  "deal.stage_changed",
+] as const;
+
+export type CrmWebhookEvent = (typeof CRM_WEBHOOK_EVENTS)[number];
+
+export type CrmWebhookEmitter = (
+  workspaceId: string,
+  type: CrmWebhookEvent,
+  resourceId: string,
+  payload: unknown,
+) => Promise<void>;
+
+/**
+ * Writes the outbox row a delivery job later drains. Lives here rather than in
+ * the API so the worker — which executes every run when WAKEUP_DRIVER=graphile
+ * — can emit the same events an agent's CRM tool calls produce.
+ */
+export function createCrmWebhookEmitter(
+  prisma: Pick<PrismaClient, "crmWebhookEndpoint" | "crmWebhookEvent">,
+): CrmWebhookEmitter {
+  return async (workspaceId, type, resourceId, payload) => {
+    try {
+      const endpoints = await prisma.crmWebhookEndpoint.findMany({
+        where: { workspaceId, enabled: true },
+        select: { id: true, events: true },
+      });
+      const matching = endpoints.filter(
+        ({ events }) => Array.isArray(events) && events.includes(type),
+      );
+      if (!matching.length) return;
+      await prisma.crmWebhookEvent.create({
+        data: {
+          workspaceId,
+          type,
+          resourceId,
+          payload: payload as never,
+          deliveries: { create: matching.map(({ id: endpointId }) => ({ endpointId })) },
+        },
+      });
+    } catch (error) {
+      // CRM writes remain authoritative if the outbox is temporarily unavailable.
+      // The caller must never retry an already-applied mutation because event capture failed.
+      console.error("crm webhook event capture", error);
+    }
+  };
 }

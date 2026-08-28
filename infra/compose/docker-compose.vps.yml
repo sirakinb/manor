@@ -232,7 +232,9 @@ services:
         condition: service_healthy
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # Pinned rather than :latest — this container terminates public ingress, and
+    # the command already passes --no-autoupdate. Bump deliberately.
+    image: cloudflare/cloudflared:2026.8.2
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
