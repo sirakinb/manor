@@ -9,6 +9,7 @@ import {
 import { Button } from "@rakazo/ui-web";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { authClient } from "../lib/auth";
+import { brandName } from "../lib/brand";
 import { rpc } from "../lib/rpc";
 import { CrmApiAccessPanel } from "./CrmApiAccessPanel";
 
@@ -532,8 +533,8 @@ export function PluginsOverlay({
                     ) : null}
                     <p className="text-xs leading-5 text-[#707077]">
                       <Trans>
-                        Manor verifies the source before saving it. Credentials are encrypted and
-                        are never returned to clients or exposed to the model.
+                        {brandName} verifies the source before saving it. Credentials are encrypted
+                        and are never returned to clients or exposed to the model.
                       </Trans>
                     </p>
                     <div className="flex gap-2">

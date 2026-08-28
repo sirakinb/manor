@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "re
 import { Navigate, Route, Routes } from "react-router-dom";
 import { BuiButton, LoadingState } from "./components/beautiful-ui/primitives";
 import { authClient } from "./lib/auth";
+import { brand } from "./lib/brand";
 import { markAfterPaint, markOnce } from "./lib/performance";
 import {
   holdUnreachableGate,
@@ -55,9 +56,20 @@ export function App() {
   const user = session.data?.user;
   return (
     <div className="h-full" data-rakazo-app-state="ready">
-      <Suspense fallback={<div className="h-full bg-[#050506]" />}>
+      <Suspense fallback={<div className="h-full bg-[var(--rk-page)]" />}>
         <Routes>
-          <Route path="/" element={user ? <Navigate to="/app" replace /> : <WelcomePage />} />
+          <Route
+            path="/"
+            element={
+              user ? (
+                <Navigate to="/app" replace />
+              ) : brand.id === "manor" ? (
+                <WelcomePage />
+              ) : (
+                <Navigate to="/sign-in" replace />
+              )
+            }
+          />
           <Route
             path="/sign-in"
             element={user ? <Navigate to="/app" replace /> : <AuthPage key="in" mode="in" />}
@@ -126,7 +138,7 @@ function SessionUnavailable({ refetch }: { refetch: () => Promise<void> }) {
   }, [attempt, retryKey]);
 
   return (
-    <div className="grid h-full place-items-center bg-[#050506] px-6 text-center">
+    <div className="grid h-full place-items-center bg-[var(--rk-page)] px-6 text-center">
       <div className="flex flex-col items-center">
         <LoadingState label={t`Reconnecting`} />
         <p className="mt-3 text-[13.5px] text-[#6C6C70]">
@@ -151,7 +163,7 @@ function SessionUnavailable({ refetch }: { refetch: () => Promise<void> }) {
 function ShellSkeleton() {
   return (
     <div
-      className="flex h-full overflow-hidden bg-[#050506]"
+      className="flex h-full overflow-hidden bg-[var(--rk-page)]"
       data-rakazo-app-state="session-pending"
     >
       <aside className="hidden w-[316px] shrink-0 border-e border-[#171719] bg-[#0B0B0C] px-3.5 pt-16 md:block">

@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
+import { brandName } from "../lib/brand";
 
 type DocsTab = "start" | "rest" | "mcp" | "webhooks";
 
@@ -133,8 +134,8 @@ function GettingStarted({ origin }: { origin: string }) {
     <>
       <Prose>
         <Trans>
-          The Manor API connects websites, automation tools, and AI clients to this workspace. The
-          CRM is the first surface it covers; new areas will appear here as they open up.
+          The {brandName} API connects websites, automation tools, and AI clients to this workspace.
+          The CRM is the first surface it covers; new areas will appear here as they open up.
         </Trans>
       </Prose>
       <Section title={<Trans>Base URL</Trans>}>
@@ -216,8 +217,8 @@ function McpReference({ origin }: { origin: string }) {
     <>
       <Prose>
         <Trans>
-          Manor hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude,
-          agents, IDEs — gets the same tools Manor's own bots use.
+          {brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP —
+          Claude, agents, IDEs — gets the same tools {brandName}'s own bots use.
         </Trans>
       </Prose>
       <Section title={<Trans>Endpoint</Trans>}>
@@ -255,8 +256,8 @@ function WebhooksReference() {
     <>
       <Prose>
         <Trans>
-          Manor pushes CRM changes to URLs you register — in Integrations → CRM API access or via{" "}
-          <Mono>POST /v1/webhooks</Mono>. Each endpoint gets a signing secret, shown once.
+          {brandName} pushes CRM changes to URLs you register — in Integrations → CRM API access or
+          via <Mono>POST /v1/webhooks</Mono>. Each endpoint gets a signing secret, shown once.
         </Trans>
       </Prose>
       <Section title={<Trans>Events</Trans>}>

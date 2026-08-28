@@ -19,6 +19,7 @@
     "@lingui/react": "5.9.5",
     "@orpc/client": "^1.15.0",
     "@orpc/contract": "^1.15.0",
+    "@rakazo/brands": "workspace:*",
     "@rakazo/chat-ui": "workspace:*",
     "@rakazo/contracts": "workspace:*",
     "@rakazo/core": "workspace:*",

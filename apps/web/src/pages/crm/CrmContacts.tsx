@@ -365,7 +365,7 @@ function ContactDrawer({
                   }
                   className={`rounded-full border px-2.5 py-1 text-[11.5px] transition-colors ${
                     active
-                      ? "border-[#A855F7] text-[#C084FC]"
+                      ? "border-[var(--rk-accent)] text-[var(--rk-accent-soft)]"
                       : "border-[#2A2A2E] text-[#6E6975] hover:text-[#C9C9CE]"
                   }`}
                 >

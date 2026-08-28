@@ -42,6 +42,7 @@ import {
   WorkspaceMemoryProviderResolver,
 } from "@rakazo/adapters";
 import { blockedAuthPaths, createAuth } from "@rakazo/auth";
+import { brandOrigins } from "@rakazo/brands";
 import { signupPolicyFromEnv } from "@rakazo/core";
 import { createDb, createThreadEvents, type PrismaClient, requireMembership } from "@rakazo/db";
 import { MarkdownMemoryStore } from "@rakazo/memory";
@@ -173,6 +174,7 @@ export async function createApp(
     googleClientId: env.googleClientId,
     googleClientSecret: env.googleClientSecret,
     extraOrigins: [
+      ...brandOrigins(),
       "rakazo://",
       "exp://",
       "exp://*",
@@ -385,6 +387,7 @@ function isTrustedOrigin(origin: string, env: AppEnv) {
   if (!origin) return true;
   if (origin === env.webOrigin || origin === env.apiUrl || origin === env.authUrl) return true;
   if (origin.startsWith("rakazo://") || origin.startsWith("exp://")) return true;
+  if (brandOrigins().includes(origin)) return true;
   try {
     const host = new URL(origin).hostname;
     return host === "localhost" || host === "127.0.0.1";
