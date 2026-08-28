@@ -33,6 +33,14 @@ http://{$RAKAZO_HOST:app.example.com} {
 		reverse_proxy api:3100
 	}
 
+	handle /v1/* {
+		reverse_proxy api:3100
+	}
+
+	handle /mcp/* {
+		reverse_proxy api:3100
+	}
+
 	handle {
 		reverse_proxy web:5173
 	}

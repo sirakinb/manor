@@ -17,6 +17,7 @@ export * from "./computer-screens.js";
 export * from "./computer-support.js";
 export * from "./computer-tools.js";
 export * from "./computer-workspace.js";
+export * from "./crm-tools.js";
 export * from "./daytona-emulator.js";
 export * from "./daytona-sandbox.js";
 export * from "./desktop-sandbox.js";

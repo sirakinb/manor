@@ -1,0 +1,156 @@
+---
+import Footer from "../../components/Footer.astro";
+import Header from "../../components/Header.astro";
+import { fetchGithubStars, formatStarCount } from "../../github";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const stars = await fetchGithubStars();
+const starsLabel = stars === null ? "Star" : formatStarCount(stars);
+---
+
+<BaseLayout
+  title="CRM integrations · Rakazo"
+  description="Connect websites, newsletter forms, automation platforms, and AI clients to the Manor CRM with REST, webhooks, OpenAPI, and MCP."
+>
+  <div class="container">
+    <Header starsLabel={starsLabel} />
+    <main id="main" class="integration-docs">
+      <aside class="integration-docs__nav" aria-label="On this page">
+        <span>On this page</span>
+        <a href="#choose">Choose a surface</a>
+        <a href="#credentials">Credentials</a>
+        <a href="#upsert">Newsletter signup</a>
+        <a href="#pull">Pull changes</a>
+        <a href="#webhooks">Webhooks</a>
+        <a href="#mcp">MCP</a>
+        <a href="#openapi">OpenAPI</a>
+      </aside>
+
+      <article class="integration-docs__copy">
+        <p class="integration-docs__eyebrow">Developer documentation</p>
+        <h1>Connect anything to the CRM</h1>
+        <p class="integration-docs__lede">
+          Websites, newsletter forms, automation platforms, and AI clients can all work with the
+          same workspace-scoped CRM used by Manor on web, desktop, and mobile.
+        </p>
+
+        <section id="choose">
+          <h2>Choose the right surface</h2>
+          <div class="integration-docs__surface-grid">
+            <div><strong>REST</strong><span>Deterministic reads and writes between systems.</span></div>
+            <div><strong>Webhooks</strong><span>Push CRM changes to your application.</span></div>
+            <div><strong>MCP</strong><span>Give CRM tools to an AI client.</span></div>
+            <div><strong>OpenAPI</strong><span>Import the contract into automation tools.</span></div>
+          </div>
+        </section>
+
+        <section id="credentials">
+          <h2>Create a machine credential</h2>
+          <p>
+            In Manor on web or desktop, open <strong>Integrations → CRM API</strong>. Name the
+            credential, select the smallest scopes it needs, and choose <strong>Create token</strong>.
+            Copy the returned <code>manor_…</code> token immediately. Manor stores only its hash.
+          </p>
+          <ul>
+            <li><code>crm:read</code> lists and searches CRM records.</li>
+            <li><code>crm:write</code> creates and updates CRM records.</li>
+            <li><code>webhooks:manage</code> manages webhook endpoints through the API.</li>
+          </ul>
+          <div class="integration-docs__callout">
+            Keep tokens on a trusted backend or in an automation platform's encrypted secret store.
+            Never embed one in browser JavaScript, a mobile app, or a public repository.
+          </div>
+        </section>
+
+        <section id="upsert">
+          <h2>Send a newsletter signup</h2>
+          <p>
+            The upsert endpoint links the source system's stable subscriber ID to a Manor contact.
+            If that identity is new, Manor can match an existing contact by email before creating one.
+          </p>
+          <pre><code>{`curl https://your-manor.example/v1/crm/contacts/upsert \\
+  --request POST \\
+  --header "Authorization: Bearer $MANOR_TOKEN" \\
+  --header "Content-Type: application/json" \\
+  --header "Idempotency-Key: newsletter-signup-1042" \\
+  --data '{
+    "source": "website-newsletter",
+    "external_id": "subscriber-1042",
+    "first_name": "Ada",
+    "last_name": "Lovelace",
+    "email": "ada@example.com",
+    "tags": ["newsletter", "website"]
+  }'`}</code></pre>
+          <p>
+            Repeating the same request is safe. External identities resolve to the canonical contact,
+            while <code>Idempotency-Key</code> replays the completed response for 24 hours. Reusing a
+            key with a different body returns <code>409</code>.
+          </p>
+        </section>
+
+        <section id="pull">
+          <h2>Pull contact changes</h2>
+          <pre><code>{`GET /v1/crm/contacts?updated_after=2026-08-27T12:00:00Z&limit=100
+Authorization: Bearer $MANOR_TOKEN`}</code></pre>
+          <p>
+            Follow <code>next_cursor</code> until it is null. The cursor includes the update timestamp
+            and record ID, so records sharing the same timestamp are not skipped.
+          </p>
+        </section>
+
+        <section id="webhooks">
+          <h2>Receive webhook events</h2>
+          <p>
+            Add an HTTPS endpoint under <strong>Integrations → CRM API</strong>. Copy its one-time
+            signing secret. Manor currently exposes <code>contact.created</code> and
+            <code>contact.updated</code> in the panel and retries failed deliveries with exponential
+            backoff up to eight attempts.
+          </p>
+          <pre><code>{`const expected = createHmac("sha256", signingSecret)
+  .update(timestamp + "." + rawBody)
+  .digest("hex");
+
+timingSafeEqual(
+  Buffer.from(signature.replace("v1=", ""), "hex"),
+  Buffer.from(expected, "hex"),
+);`}</code></pre>
+          <p>
+            Verify <code>X-Manor-Signature</code> against the raw request body before parsing it, and
+            reject stale <code>X-Manor-Timestamp</code> values to prevent replay.
+          </p>
+        </section>
+
+        <section id="mcp">
+          <h2>Connect an MCP client</h2>
+          <p>
+            Point a Streamable HTTP client at <code>/mcp/crm</code> and use the machine token as a
+            bearer credential. A read-only token only receives read tools.
+          </p>
+          <pre><code>{`{
+  "mcpServers": {
+    "manor-crm": {
+      "url": "https://your-manor.example/mcp/crm",
+      "headers": {
+        "Authorization": "Bearer manor_replace_me"
+      }
+    }
+  }
+}`}</code></pre>
+          <p>
+            Use <code>crm_sync_contact</code> for source-aware synchronization. The remaining
+            <code>crm_*</code> tools cover contact search, deals, pipelines, and stage movement.
+          </p>
+        </section>
+
+        <section id="openapi">
+          <h2>Import the OpenAPI contract</h2>
+          <p>
+            Every deployment publishes its machine-readable contract at
+            <code>/v1/openapi.json</code>. Import it when a platform supports OpenAPI but not MCP.
+          </p>
+        </section>
+      </article>
+    </main>
+    <Footer />
+  </div>
+</BaseLayout>

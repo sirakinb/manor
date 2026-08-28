@@ -299,6 +299,17 @@ export interface RouterDeps {
   remoteConnectors?: RemoteConnectorDependencies;
   artifacts: ArtifactStore;
   dataDir: string;
+  crmEvent?: (
+    workspaceId: string,
+    type:
+      | "contact.created"
+      | "contact.updated"
+      | "deal.created"
+      | "deal.updated"
+      | "deal.stage_changed",
+    resourceId: string,
+    payload: unknown,
+  ) => Promise<void>;
   env: {
     defaultProvider: string;
     defaultModel: string;
@@ -806,12 +817,16 @@ export function createRouter(deps: RouterDeps) {
     crm: {
       overview: authed.crm.overview.handler(async ({ context }) => crm.overview(context.actor)),
       contacts: {
-        create: authed.crm.contacts.create.handler(async ({ context, input }) =>
-          crm.createContact(context.actor, input),
-        ),
-        update: authed.crm.contacts.update.handler(async ({ context, input }) =>
-          crm.updateContact(context.actor, input),
-        ),
+        create: authed.crm.contacts.create.handler(async ({ context, input }) => {
+          const contact = await crm.createContact(context.actor, input);
+          await deps.crmEvent?.(context.actor.workspaceId, "contact.created", contact.id, contact);
+          return contact;
+        }),
+        update: authed.crm.contacts.update.handler(async ({ context, input }) => {
+          const contact = await crm.updateContact(context.actor, input);
+          await deps.crmEvent?.(context.actor.workspaceId, "contact.updated", contact.id, contact);
+          return contact;
+        }),
         delete: authed.crm.contacts.delete.handler(async ({ context, input }) => {
           await crm.deleteContact(context.actor, input.contactId);
           return { ok: true as const };
@@ -835,15 +850,21 @@ export function createRouter(deps: RouterDeps) {
         }),
       },
       deals: {
-        create: authed.crm.deals.create.handler(async ({ context, input }) =>
-          crm.createDeal(context.actor, input),
-        ),
-        update: authed.crm.deals.update.handler(async ({ context, input }) =>
-          crm.updateDeal(context.actor, input),
-        ),
-        move: authed.crm.deals.move.handler(async ({ context, input }) =>
-          crm.moveDeal(context.actor, input.dealId, input.stageId),
-        ),
+        create: authed.crm.deals.create.handler(async ({ context, input }) => {
+          const deal = await crm.createDeal(context.actor, input);
+          await deps.crmEvent?.(context.actor.workspaceId, "deal.created", deal.id, deal);
+          return deal;
+        }),
+        update: authed.crm.deals.update.handler(async ({ context, input }) => {
+          const deal = await crm.updateDeal(context.actor, input);
+          await deps.crmEvent?.(context.actor.workspaceId, "deal.updated", deal.id, deal);
+          return deal;
+        }),
+        move: authed.crm.deals.move.handler(async ({ context, input }) => {
+          const deal = await crm.moveDeal(context.actor, input.dealId, input.stageId);
+          await deps.crmEvent?.(context.actor.workspaceId, "deal.stage_changed", deal.id, deal);
+          return deal;
+        }),
         delete: authed.crm.deals.delete.handler(async ({ context, input }) => {
           await crm.deleteDeal(context.actor, input.dealId);
           return { ok: true as const };

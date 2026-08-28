@@ -22,6 +22,7 @@ Rakazo is an open source Grok Bot alternative that gives each bot a sandboxed br
 - [About](https://rakazo.com/about/)
 - [Support](https://rakazo.com/support/)
 - [Privacy](https://rakazo.com/privacy/)
+- [CRM integration API](https://rakazo.com/docs/crm-integrations/)
 - [Sitemap](https://rakazo.com/sitemap-index.xml)
 `;
 
@@ -45,6 +46,76 @@ For help with the Rakazo mobile app or a hosted Rakazo account, email [hello@rak
 For self-hosted Rakazo, start with the [self-hosting guide](https://github.com/elie222/rakazo/blob/main/docs/self-host.md). Open reproducible bugs and feature requests in the [public GitHub repository](https://github.com/elie222/rakazo/issues). Report vulnerabilities only to [security@rakazo.com](mailto:security@rakazo.com).
 
 Hosted users can permanently delete their account and associated personal workspace data from the Account screen in the Rakazo app.
+`;
+
+export const CRM_INTEGRATIONS_MARKDOWN = `# Manor CRM integrations
+
+The Manor CRM Integration API connects websites, newsletter forms, automation platforms, and AI clients to the same workspace-scoped CRM used by the Manor web, desktop, and mobile apps.
+
+Use REST for deterministic system-to-system synchronization, webhooks for outbound change notifications, and MCP when an AI client needs CRM tools. All three surfaces use the same CRM records and workspace authorization boundary.
+
+## Create a machine credential
+
+In Manor on the web or desktop, open **Integrations → CRM API**. Name the credential, choose the smallest scopes the integration needs, and select **Create token**. Copy the returned \`manor_…\` token immediately; Manor stores only its hash and cannot show it again.
+
+- \`crm:read\`: list and search CRM records.
+- \`crm:write\`: create and update CRM records.
+- \`webhooks:manage\`: create and remove webhook endpoints through the API.
+
+Never embed a Manor token in browser JavaScript, a mobile application, or a public repository. Call Manor from a trusted backend or an automation platform's encrypted secret store.
+
+## Upsert a newsletter subscriber
+
+\`POST /v1/crm/contacts/upsert\` deterministically creates or updates a contact. Supply both \`source\` and \`external_id\` when the source system has a stable subscriber identifier. Manor falls back to a case-insensitive email match when no external identity is linked yet.
+
+\`\`\`bash
+curl https://your-manor.example/v1/crm/contacts/upsert \\
+  --request POST \\
+  --header "Authorization: Bearer $MANOR_TOKEN" \\
+  --header "Content-Type: application/json" \\
+  --header "Idempotency-Key: newsletter-signup-1042" \\
+  --data '{
+    "source": "website-newsletter",
+    "external_id": "subscriber-1042",
+    "first_name": "Ada",
+    "last_name": "Lovelace",
+    "email": "ada@example.com",
+    "tags": ["newsletter", "website"]
+  }'
+\`\`\`
+
+The response includes \`created\` and the canonical contact. Repeating the same request is safe: the external identity resolves to the existing contact, and an \`Idempotency-Key\` replays the completed response for 24 hours. Reusing an idempotency key with a different request returns \`409\`.
+
+## Pull contact changes
+
+Use \`GET /v1/crm/contacts?updated_after=<ISO timestamp>&limit=100\`. Follow \`next_cursor\` until it is null. Cursors encode both the update timestamp and record ID so multiple records updated at the same instant are not skipped.
+
+## Receive webhook events
+
+Create an HTTPS endpoint under **Integrations → CRM API** or call \`POST /v1/webhooks\` with a token that has \`webhooks:manage\`. Manor returns the signing secret once. Contact endpoints currently subscribe to \`contact.created\` and \`contact.updated\` from the product UI.
+
+Each delivery contains \`id\`, \`type\`, \`created_at\`, and \`data\`. Manor sends \`X-Manor-Delivery\`, \`X-Manor-Event\`, \`X-Manor-Timestamp\`, and \`X-Manor-Signature\`. Verify \`v1=HMAC_SHA256(secret, timestamp + "." + rawBody)\` before parsing or acting on the body. Reject stale timestamps to prevent replay. Failed deliveries use exponential backoff and are retried up to eight times.
+
+## Connect an MCP client
+
+Point a Streamable HTTP MCP client at \`https://your-manor.example/mcp/crm\` and send the same machine token as a bearer credential. Read-only tokens only receive read tools; write tools require \`crm:write\`.
+
+\`\`\`json
+{
+  "mcpServers": {
+    "manor-crm": {
+      "url": "https://your-manor.example/mcp/crm",
+      "headers": { "Authorization": "Bearer manor_replace_me" }
+    }
+  }
+}
+\`\`\`
+
+Use the \`crm_sync_contact\` tool for source-aware synchronization. The other \`crm_*\` tools cover overview, search, contact editing, deal creation, deal updates, and stage movement.
+
+## OpenAPI
+
+Every deployment publishes its machine-readable contract at \`/v1/openapi.json\`. Import that URL into tools that understand OpenAPI when MCP is not available.
 `;
 
 export const PRIVACY_MARKDOWN = `# Rakazo privacy
@@ -84,6 +155,7 @@ Do not present Rakazo as a zero-configuration hosted service. Self-hosting is av
 - [Releases](https://github.com/elie222/rakazo/releases)
 - [Support](https://rakazo.com/support/)
 - [Privacy](https://rakazo.com/privacy/)
+- [CRM integration API](https://rakazo.com/docs/crm-integrations/)
 - [Sitemap](https://rakazo.com/sitemap-index.xml)
 `;
 
@@ -102,6 +174,7 @@ const MARKDOWN_DOCUMENTS = new Map<string, string>([
   ["/about", ABOUT_MARKDOWN],
   ["/privacy", PRIVACY_MARKDOWN],
   ["/support", SUPPORT_MARKDOWN],
+  ["/docs/crm-integrations", CRM_INTEGRATIONS_MARKDOWN],
 ]);
 
 type MediaPreference = {

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.1",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@orpc/server": "^1.15.0",
     "@rakazo/adapter-kit": "workspace:*",
     "@rakazo/adapters": "workspace:*",
@@ -19,7 +20,8 @@
     "@rakazo/core": "workspace:*",
     "@rakazo/db": "workspace:*",
     "@rakazo/memory": "workspace:*",
-    "hono": "^4.9.6"
+    "hono": "^4.9.6",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

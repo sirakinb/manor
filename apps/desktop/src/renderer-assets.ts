@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const PASSTHROUGH_PATHS = ["/api", "/rpc", "/novnc"];
+const PASSTHROUGH_PATHS = ["/api", "/mcp", "/rpc", "/v1", "/novnc"];
 
 const CONTENT_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",

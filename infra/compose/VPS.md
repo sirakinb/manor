@@ -9,7 +9,7 @@ Hermes Agent and Traefik containers — neither is touched.
 ```
 Cloudflare (manor.pentridgemedia.com, proxied CNAME -> tunnel)
   └─ cloudflared (container, egress-only — no host ports published)
-       └─ web:5173  (vite preview; proxies /api, /rpc -> api:3100, /novnc -> computers)
+       └─ web:5173  (vite preview; proxies /api, /rpc, /v1, /mcp -> api:3100, /novnc -> computers)
             ├─ api:3100      (migrates DB on boot, then serves)
             ├─ worker        (graphile wakeups)
             ├─ supervisor:7091 (docker sandbox provider; /var/run/docker.sock)

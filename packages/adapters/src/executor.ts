@@ -226,6 +226,17 @@ export interface ExecutorDeps {
   notifications?: NotificationProvider;
   jobs: JobPublisher;
   listConnectedPluginSlugs?: (userId: string) => Promise<string[]>;
+  crmEvent?: (
+    workspaceId: string,
+    type:
+      | "contact.created"
+      | "contact.updated"
+      | "deal.created"
+      | "deal.updated"
+      | "deal.stage_changed",
+    resourceId: string,
+    payload: unknown,
+  ) => Promise<void>;
 }
 
 export async function deferFutureRoutine(
@@ -1363,7 +1374,34 @@ export function createRunExecutor(deps: ExecutorDeps) {
               name,
               args,
             );
-            if (crmResult !== undefined) return finish(crmResult);
+            if (crmResult !== undefined) {
+              if (deps.crmEvent && crmResult && typeof crmResult === "object") {
+                const value = crmResult as Record<string, unknown>;
+                const contact = value.contact as { id?: string } | undefined;
+                const deal = value.deal as { id?: string } | undefined;
+                if (contact?.id && (value.created || value.updated)) {
+                  await deps.crmEvent(
+                    run.workspaceId,
+                    value.created ? "contact.created" : "contact.updated",
+                    contact.id,
+                    contact,
+                  );
+                }
+                if (deal?.id && (value.created || value.updated || value.moved)) {
+                  await deps.crmEvent(
+                    run.workspaceId,
+                    value.created
+                      ? "deal.created"
+                      : value.moved
+                        ? "deal.stage_changed"
+                        : "deal.updated",
+                    deal.id,
+                    deal,
+                  );
+                }
+              }
+              return finish(crmResult);
+            }
           }
           if (name === "remember") {
             await deps.memory.commit(

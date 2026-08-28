@@ -45,6 +45,7 @@ import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { mountChannelRoutes } from "./channels.js";
+import { createCrmIntegrationService, mountCrmIntegrationRoutes } from "./crm-integrations.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createGoogleFormsTokenBroker } from "./google-forms-token-broker.js";
 import { createRouter } from "./router.js";
@@ -116,6 +117,7 @@ export async function createApp(
     prisma,
   });
   const secrets = new EncryptedSecretStore(env.encryptionKey);
+  const crmIntegrationService = createCrmIntegrationService({ prisma, secrets });
   const mcpOAuth = new McpOAuthBroker(prisma, secrets, remoteConnectors);
   const memoryProviders = new WorkspaceMemoryProviderResolver(prisma, secrets);
   const oauthLogins = new PiOAuthLogins();
@@ -213,6 +215,7 @@ export async function createApp(
     notifications,
     jobs,
     events,
+    crmEvent: crmIntegrationService.emitWebhook,
   });
 
   const jobHandlers = createBackgroundJobHandlers({
@@ -251,6 +254,7 @@ export async function createApp(
     remoteConnectors,
     artifacts,
     dataDir: env.dataDir,
+    crmEvent: crmIntegrationService.emitWebhook,
     env: {
       defaultProvider: env.defaultProvider,
       defaultModel: env.defaultModel,
@@ -278,6 +282,16 @@ export async function createApp(
       return c.json({ error: "Not available in version 1" }, 404);
     }
     return auth.handler(c.req.raw);
+  });
+  const crmIntegrations = mountCrmIntegrationRoutes(app, {
+    prisma,
+    secrets,
+    service: crmIntegrationService,
+    resolveActor: async (request) => {
+      const session = await auth.api.getSession({ headers: sessionHeaders(request) });
+      if (!session?.user) return null;
+      return requireMembership(prisma, session.user.id).catch(() => null);
+    },
   });
   app.use("/rpc/*", async (c, next) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
@@ -320,6 +334,7 @@ export async function createApp(
     connectors: stack.connector,
     executor,
     stop: async () => {
+      await crmIntegrations.stop();
       oauthLogins.abortAll();
       await reconciler?.stop();
       await jobs.close();

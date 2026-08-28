@@ -132,7 +132,11 @@ export default defineConfig(({ mode }) => {
           if (!Number.isFinite(performanceAssetDelayMs) || performanceAssetDelayMs <= 0) return;
           server.middlewares.use((req, _res, next) => {
             const pathname = req.url?.split("?", 1)[0] ?? "/";
-            if (["/api", "/rpc", "/novnc"].some((prefix) => pathname.startsWith(prefix))) {
+            if (
+              ["/api", "/rpc", "/v1", "/mcp", "/novnc"].some((prefix) =>
+                pathname.startsWith(prefix),
+              )
+            ) {
               next();
               return;
             }
@@ -152,7 +156,9 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/api": { target: api, changeOrigin: true },
+        "/mcp": { target: api, changeOrigin: true },
         "/rpc": { target: api, changeOrigin: true },
+        "/v1": { target: api, changeOrigin: true },
       },
     },
     preview: {
@@ -161,7 +167,9 @@ export default defineConfig(({ mode }) => {
       allowedHosts: [previewHost],
       proxy: {
         "/api": { target: api, changeOrigin: true },
+        "/mcp": { target: api, changeOrigin: true },
         "/rpc": { target: api, changeOrigin: true },
+        "/v1": { target: api, changeOrigin: true },
       },
     },
   };

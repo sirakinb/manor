@@ -25,6 +25,8 @@ model User {
   mcpServers       McpServer[]
   botSections      BotSection[]
   actionApprovalRules ActionApprovalRule[]
+  integrationCredentials IntegrationCredential[]
+  crmWebhookEndpoints CrmWebhookEndpoint[]
 
   @@unique([email])
   @@map("user")
@@ -113,6 +115,11 @@ model Organization {
   actionApprovalRules ActionApprovalRule[]
   workspaceMemoryConfig WorkspaceMemoryConfig?
   chatGroups  ChatGroup[]
+  integrationCredentials IntegrationCredential[]
+  integrationIdempotencyKeys IntegrationIdempotencyKey[]
+  crmContactExternalIds CrmContactExternalId[]
+  crmWebhookEndpoints CrmWebhookEndpoint[]
+  crmWebhookEvents CrmWebhookEvent[]
 
   @@unique([slug])
   @@map("organization")
@@ -829,9 +836,27 @@ model CrmContact {
 
   tags  CrmContactTag[]
   deals CrmDeal[]
+  externalIds CrmContactExternalId[]
 
   @@index([workspaceId, status])
   @@map("crm_contacts")
+}
+
+/// A provider-neutral identity for a contact in another system. A contact can
+/// be linked to a newsletter, billing system, and form provider independently.
+model CrmContactExternalId {
+  id          String     @id @default(cuid())
+  workspaceId String
+  workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contactId   String
+  contact     CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  source      String
+  externalId  String
+  createdAt   DateTime   @default(now())
+
+  @@unique([workspaceId, source, externalId])
+  @@index([contactId])
+  @@map("crm_contact_external_ids")
 }
 
 model CrmTag {
@@ -906,6 +931,105 @@ model CrmDeal {
 
   @@index([workspaceId, pipelineId])
   @@map("crm_deals")
+}
+
+// ── Public integrations ─────────────────────────────────────────────────────
+
+/// High-entropy machine credential. Only its SHA-256 digest is persisted; the
+/// plaintext is returned exactly once when the credential is created.
+model IntegrationCredential {
+  id              String       @id @default(cuid())
+  workspaceId     String
+  workspace       Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdByUserId String
+  createdByUser   User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  name            String
+  tokenPrefix     String
+  tokenHash       String       @unique
+  scopes          Json
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime     @default(now())
+
+  idempotencyKeys IntegrationIdempotencyKey[]
+
+  @@index([workspaceId, revokedAt])
+  @@map("integration_credentials")
+}
+
+/// Stores completed mutation responses so a caller can safely retry a request
+/// after a timeout without applying the mutation twice.
+model IntegrationIdempotencyKey {
+  id           String                @id @default(cuid())
+  workspaceId  String
+  workspace    Organization          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  credentialId String
+  credential   IntegrationCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  key          String
+  requestHash  String
+  statusCode   Int
+  response     Json
+  createdAt    DateTime              @default(now())
+  expiresAt    DateTime
+
+  @@unique([credentialId, key])
+  @@index([expiresAt])
+  @@map("integration_idempotency_keys")
+}
+
+model CrmWebhookEndpoint {
+  id               String       @id @default(cuid())
+  workspaceId      String
+  workspace        Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdByUserId  String
+  createdByUser    User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  name             String
+  url              String
+  signingSecret    String
+  events           Json
+  enabled          Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  deliveries CrmWebhookDelivery[]
+
+  @@index([workspaceId, enabled])
+  @@map("crm_webhook_endpoints")
+}
+
+model CrmWebhookEvent {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type        String
+  resourceId  String
+  payload     Json
+  createdAt   DateTime     @default(now())
+
+  deliveries CrmWebhookDelivery[]
+
+  @@index([workspaceId, createdAt])
+  @@map("crm_webhook_events")
+}
+
+model CrmWebhookDelivery {
+  id           String             @id @default(cuid())
+  endpointId   String
+  endpoint     CrmWebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  eventId      String
+  event        CrmWebhookEvent    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status       String             @default("pending") // pending | delivering | delivered | dead
+  attempts     Int                @default(0)
+  nextAttemptAt DateTime          @default(now())
+  deliveredAt DateTime?
+  lastError    String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([endpointId, eventId])
+  @@index([status, nextAttemptAt])
+  @@map("crm_webhook_deliveries")
 }
 
 model McpServer {

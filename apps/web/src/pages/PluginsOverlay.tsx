@@ -4,8 +4,9 @@ import { Button } from "@rakazo/ui-web";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { authClient } from "../lib/auth";
 import { rpc } from "../lib/rpc";
+import { CrmApiAccessPanel } from "./CrmApiAccessPanel";
 
-type CatalogView = "all" | "connected" | "sources";
+type CatalogView = "all" | "connected" | "sources" | "api-access";
 type SourceKind = "treg" | "mcp" | "api";
 
 // Composio serves these marks as near-black on transparent, invisible on the dark tile.
@@ -262,7 +263,7 @@ export function PluginsOverlay({
           </Button>
         </div>
 
-        {view !== "sources" ? (
+        {view !== "sources" && view !== "api-access" ? (
           <div className="px-8 pt-4">
             <input
               value={query}
@@ -274,7 +275,7 @@ export function PluginsOverlay({
         ) : null}
 
         <div role="tablist" aria-label="Integration views" className="flex gap-1 px-8 pt-4">
-          {(["all", "connected", "sources"] as const).map((option) => (
+          {(["all", "connected", "sources", "api-access"] as const).map((option) => (
             <button
               key={option}
               type="button"
@@ -291,7 +292,13 @@ export function PluginsOverlay({
                   : "text-[#7A7A80] hover:text-[#C8C8CC]"
               }`}
             >
-              {option === "all" ? "Apps" : option === "connected" ? "Connected" : "Tool sources"}
+              {option === "all"
+                ? "Apps"
+                : option === "connected"
+                  ? "Connected"
+                  : option === "sources"
+                    ? "Tool sources"
+                    : "CRM API"}
             </button>
           ))}
         </div>
@@ -304,7 +311,9 @@ export function PluginsOverlay({
           {error ? <p className="mb-4 text-sm text-[#C94244]">{error}</p> : null}
           {loading ? <p className="text-[#6C6C70]">Loading integrations…</p> : null}
 
-          {view === "sources" ? (
+          {view === "api-access" ? (
+            <CrmApiAccessPanel />
+          ) : view === "sources" ? (
             <div className="space-y-4">
               {sourceKind ? (
                 <div className="space-y-3 rounded-[16px] border border-[#2C2C30] bg-[#101012] p-5">
