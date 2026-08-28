@@ -48,3 +48,8 @@ apps/web/scripts/msgids.json
 # Python bytecode from the computer sandbox image
 __pycache__/
 *.pyc
+
+# Agent worktrees. These are nested checkouts, so leaving them visible lets
+# `git add -A` commit a whole second copy of the repo, and Biome refuses to run
+# against a nested root config.
+.claude/worktrees/
