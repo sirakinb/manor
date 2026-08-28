@@ -102,6 +102,31 @@
 
   <div class="entry sync">
     <div class="date">2026-08-28</div>
+    <h2>Upstream sync #7 — webhook triggers and quieter failures</h2>
+    <ul>
+      <li>Routines can now fire from an inbound webhook, not just a schedule: the new routine editor grows an "Add trigger" menu, and each webhook gets its own rotating bearer key.</li>
+      <li>Unexpected RPC errors are logged server-side instead of vanishing behind an opaque 500, so the next bug report comes with a stack trace.</li>
+      <li>Sandbox hardening: the computer image survives restrictive host umasks, E2B screen setup gets a real timeout, a failed reconnect provisions a fresh sandbox instead of wedging, and transport errors surface out of computer replacement.</li>
+      <li>Self-hosting: a pull-based Compose flavour that runs from prebuilt images, plus MCP allowlist reporting.</li>
+      <li>All 31 new routine-editor strings translated in every locale — de, ko, tr, hi, pt-BR stay at zero missing.</li>
+      <li>Kept through the merge: the CRM, the API docs page, Manor's skin, channel messaging, and the Team Computer fixes.</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span><span class="tag new">feature</span><span class="tag fix">fix</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-08-28</div>
+    <h2>An API reference in the app, and a tidier Integrations page</h2>
+    <ul>
+      <li>Documentation lives in the sidebar now: REST endpoints, MCP connection steps, webhook signing — all at /app/docs.</li>
+      <li>The Integrations catalog lines up in an even grid with no stray gap below Slack.</li>
+      <li>Advanced is reorganized into two clear sections — Tool sources (MCP, OpenAPI, Treg) and CRM API access — with a one-line explainer instead of a wall of buttons.</li>
+    </ul>
+    <div class="tags"><span class="tag new">feature</span></div>
+  </div>
+
+  <div class="entry sync">
+    <div class="date">2026-08-28</div>
     <h2>Upstream sync #6 — group organization, avatar styles, and a security pass</h2>
     <ul>
       <li>Pin and reorder bots in the sidebar; the group list picks up sections and faster indexes.</li>
