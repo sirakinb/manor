@@ -34,8 +34,11 @@ export const BotAvatar = memo(function BotAvatar({
   const isWorking = ACTIVE_RUN_STATUSES.some((activeStatus) => activeStatus === status);
   const gradId = `spin-grad-${useId().replace(/[^a-zA-Z0-9-_]/g, "")}`;
   const preferredVariant = useAvatarStyle();
-  // Manor's brand colors render as sprites; anything else gets the animated avatar.
-  const sprite = SPRITES[color.toUpperCase()];
+  const style = variant ?? preferredVariant;
+  // Manor's brand colors render as sprites; anything else gets the animated
+  // avatar. Every seeded bot color is a sprite key, so this has to yield to an
+  // explicit "organic" choice or the account setting could never take effect.
+  const sprite = style === "robot" ? SPRITES[color.toUpperCase()] : undefined;
   if (sprite) {
     return (
       <div
@@ -55,7 +58,7 @@ export const BotAvatar = memo(function BotAvatar({
       </div>
     );
   }
-  if ((variant ?? preferredVariant) === "organic") {
+  if (style === "organic") {
     return (
       <OrganicAvatar
         color={color}
