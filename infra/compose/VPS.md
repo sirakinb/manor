@@ -40,6 +40,27 @@ Cloudflare (manor.pentridgemedia.com, proxied CNAME -> tunnel)
    ```
 5. Verify: `docker compose -f infra/compose/docker-compose.vps.yml ps` (api
    healthy), then https://manor.pentridgemedia.com.
+6. Apply the computer network policy — see below. This is required, not
+   optional.
+
+## Computer network policy
+
+Agent computers run untrusted, model-generated activity. Upstream gives each
+bot's computer its own Docker network so one cannot reach another's VNC, which
+is unauthenticated. Manor pins them all to a single `screens` network instead
+(`RAKAZO_COMPUTER_NETWORK`) so host egress policy can target one subnet, so on
+this box `harden-computer-egress.sh` is what keeps bots off each other — not
+just off the host. Skipping it leaves every bot's desktop reachable from every
+other bot.
+
+```sh
+install -m 0755 infra/compose/harden-computer-egress.sh /usr/local/sbin/rakazo-computer-egress
+install -m 0644 infra/systemd/rakazo-computer-egress.service /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now rakazo-computer-egress
+```
+
+The rules live in Docker's chains, so Docker rebuilds them on restart and the
+unit reapplies them. Confirm with `iptables -S DOCKER-USER | grep manor`.
 
 ## Updating
 
