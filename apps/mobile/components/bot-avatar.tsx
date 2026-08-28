@@ -31,11 +31,14 @@ export const BotAvatar = memo(function BotAvatar({
 }) {
   const isWorking = ACTIVE_RUN_STATUSES.some((activeStatus) => activeStatus === status);
   const { avatarStyle } = useAvatarStyle();
-  const sprite = SPRITES[color.toUpperCase()];
+  const style = variant ?? avatarStyle;
+  // Every seeded bot color is a sprite key, so the sprite branch has to yield to
+  // an explicit "organic" choice or the account setting could never take effect.
+  const sprite = style === "robot" ? SPRITES[color.toUpperCase()] : undefined;
   if (sprite) {
     return <Image source={sprite} resizeMode="contain" style={{ width: size, height: size }} />;
   }
-  if ((variant ?? avatarStyle) === "organic") {
+  if (style === "organic") {
     const seed = avatarIdentitySeed(identity || color || "#8B5CF6");
     return (
       <View

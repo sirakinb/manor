@@ -122,4 +122,12 @@ describe("BotAvatar", () => {
     expect(html).toContain('data-working="false"');
     expect(html).not.toContain("rakazo-bot-avatar-ring");
   });
+
+  // Every seeded bot color is a sprite key, so without this gate the account
+  // setting renders a changed preview but never changes a real bot.
+  it("honours an explicit organic style even for a brand color", () => {
+    const html = renderToString(<BotAvatar color="#8B5CF6" variant="organic" />);
+    expect(html).not.toContain("/sprites/sprite-purple.png");
+    expect(html).toContain("rakazo-organic-avatar");
+  });
 });
