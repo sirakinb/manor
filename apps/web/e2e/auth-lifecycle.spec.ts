@@ -82,5 +82,7 @@ test("logout protects bot deep links and sign-in restores the session", async ({
   await captureScreenshot(page, testInfo, "40-restored-auth-session");
   await composer.press("Enter");
   await expect(composer).toHaveValue("");
-  await expect(page.getByText(message, { exact: true })).toBeVisible();
+  // The text also lands in the thread list's last-message preview, so an
+  // unscoped lookup races that render and trips strict mode.
+  await expect(page.getByTestId("transcript").getByText(message, { exact: true })).toBeVisible();
 });
