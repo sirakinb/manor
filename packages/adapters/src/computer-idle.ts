@@ -19,7 +19,14 @@ export function sandboxIdleMs(): number {
 
 export function scheduleComputerSleep(jobs: JobPublisher, computerId: string): void {
   if (!computerId) return;
-  void jobs.enqueue(computerSleepJob(computerId, new Date(Date.now() + sandboxIdleMs())));
+  // Nothing awaits this and no process installs an unhandledRejection handler,
+  // so a rejection here takes the whole worker down — including during shutdown,
+  // when an in-flight job can still enqueue against an already-closed publisher.
+  // The reconciler does not re-derive sleep timers, but the next keepalive
+  // schedules a fresh one, so an idle computer is a far cheaper failure.
+  void jobs
+    .enqueue(computerSleepJob(computerId, new Date(Date.now() + sandboxIdleMs())))
+    .catch((error) => console.error("schedule computer sleep", error));
 }
 
 export async function touchRunningComputer(

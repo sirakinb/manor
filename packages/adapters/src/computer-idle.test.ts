@@ -1,7 +1,12 @@
 import type { AgentHomeStore, JobPublisher, SandboxProvider } from "@rakazo/adapter-kit";
 import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
-import { DEFAULT_SANDBOX_IDLE_MS, sandboxIdleMs, sleepComputerIfIdle } from "./computer-idle.js";
+import {
+  DEFAULT_SANDBOX_IDLE_MS,
+  sandboxIdleMs,
+  scheduleComputerSleep,
+  sleepComputerIfIdle,
+} from "./computer-idle.js";
 import {
   e2bCreateOptions,
   isUnrecoverableSandboxError,
@@ -19,6 +24,28 @@ describe("sandbox idle", () => {
     } finally {
       if (previous === undefined) delete process.env.SANDBOX_IDLE_MS;
       else process.env.SANDBOX_IDLE_MS = previous;
+    }
+  });
+
+  // Nothing awaits this call, so a rejection would surface as an unhandled
+  // rejection and kill the process — most likely on shutdown, when an in-flight
+  // job enqueues against a publisher that close() already tore down.
+  it("swallows a publisher failure instead of rejecting into the void", async () => {
+    const error = new Error("Background job publisher is closed");
+    const jobs = { enqueue: vi.fn().mockRejectedValue(error) };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const rejections: unknown[] = [];
+    const capture = (reason: unknown) => rejections.push(reason);
+    process.on("unhandledRejection", capture);
+    try {
+      scheduleComputerSleep(jobs as unknown as JobPublisher, "computer-1");
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(jobs.enqueue).toHaveBeenCalledOnce();
+      expect(rejections).toEqual([]);
+      expect(logged).toHaveBeenCalledWith("schedule computer sleep", error);
+    } finally {
+      process.off("unhandledRejection", capture);
+      logged.mockRestore();
     }
   });
 
