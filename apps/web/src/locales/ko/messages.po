@@ -342,7 +342,7 @@ msgstr "추가 중…"
 msgid "Advanced"
 msgstr "고급 설정"
 
-#: src/pages/RoutineEditor.tsx:591
+#: src/pages/RoutineEditor.tsx:604
 msgid "Advanced..."
 msgstr "고급..."
 
@@ -1600,13 +1600,13 @@ msgstr "{intervalAmountSelect} {intervalUnitSelect}마다"
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "데이터를 생성하는 모든 <0>POST</0>는 <1>Idempotency-Key</1> 헤더를 받습니다. 같은 키로 재시도하면 쓰기를 반복하지 않고 원래 결과를 반환하며, 같은 키를 다른 페이로드와 함께 재사용하면 <2>409</2>로 실패합니다."
 
-#: src/pages/RoutineEditor.tsx:581
+#: src/pages/RoutineEditor.tsx:594
 #: src/pages/RoutineSchedule.tsx:32
 #: src/pages/RoutineSchedule.tsx:98
 msgid "Every day"
 msgstr "매일"
 
-#: src/pages/RoutineEditor.tsx:579
+#: src/pages/RoutineEditor.tsx:592
 #: src/pages/RoutineSchedule.tsx:30
 #: src/pages/RoutineSchedule.tsx:84
 msgid "Every hour"
@@ -1616,7 +1616,7 @@ msgstr "매시간"
 msgid "Every Monday"
 msgstr "매주 월요일"
 
-#: src/pages/RoutineEditor.tsx:587
+#: src/pages/RoutineEditor.tsx:600
 #: src/pages/RoutineSchedule.tsx:38
 msgid "Every month"
 msgstr "매월"
@@ -1625,7 +1625,7 @@ msgstr "매월"
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "모든 요청에는 <0>Authorization: Bearer manor_…</0>가 포함됩니다. 토큰의 범위가 접근 가능한 대상을 결정합니다."
 
-#: src/pages/RoutineEditor.tsx:585
+#: src/pages/RoutineEditor.tsx:598
 #: src/pages/RoutineSchedule.tsx:36
 msgid "Every week"
 msgstr "매주"
@@ -1761,7 +1761,7 @@ msgstr "먼저 통화를 종료한 다음 화면의 코드를 입력하세요."
 msgid "Hang up, then enter the code on screen."
 msgstr "통화를 종료한 다음 화면의 코드를 입력하세요."
 
-#: src/pages/RoutineEditor.tsx:557
+#: src/pages/RoutineEditor.tsx:564
 msgid "header"
 msgstr "헤더"
 
@@ -1842,6 +1842,10 @@ msgstr "샘플이 들렸다면 음성 설정이 완료되었습니다."
 msgid "Import OpenAPI JSON"
 msgstr "OpenAPI JSON 가져오기"
 
+#: src/pages/DocsView.tsx:569
+msgid "Inbound: trigger a bot"
+msgstr "인바운드: 봇 트리거"
+
 #: src/pages/Shell.tsx:5110
 msgid "Inherit default"
 msgstr "기본 설정 사용"
@@ -1863,7 +1867,7 @@ msgstr "실행할 내용"
 msgid "Integrations"
 msgstr "앱·도구 연동"
 
-#: src/pages/RoutineEditor.tsx:589
+#: src/pages/RoutineEditor.tsx:602
 #: src/pages/RoutineSchedule.tsx:40
 msgid "Interval"
 msgstr "간격"
@@ -1901,7 +1905,7 @@ msgstr "방금"
 msgid "Keep memories"
 msgstr "기억은 유지"
 
-#: src/pages/RoutineEditor.tsx:550
+#: src/pages/RoutineEditor.tsx:557
 msgid "key"
 msgstr "키"
 
@@ -2500,6 +2504,10 @@ msgstr "또는 API 키 연결"
 msgid "Or paste an API key"
 msgstr "또는 API 키 붙여넣기"
 
+#: src/pages/RoutineEditor.tsx:570
+msgid "or, if the sender cannot set headers"
+msgstr "또는 발신자가 헤더를 설정할 수 없는 경우"
+
 #: src/pages/AccountSettingsOverlay.tsx:157
 msgid "Organic"
 msgstr "자연 유입"
@@ -2591,7 +2599,7 @@ msgstr "파이프라인과 딜"
 msgid "Playing…"
 msgstr "재생 중…"
 
-#: src/pages/RoutineEditor.tsx:543
+#: src/pages/RoutineEditor.tsx:550
 msgid "POST to"
 msgstr "POST 대상"
 
@@ -2715,7 +2723,7 @@ msgstr "단계 제거"
 msgid "Remove this schedule"
 msgstr "이 일정 삭제"
 
-#: src/pages/RoutineEditor.tsx:534
+#: src/pages/RoutineEditor.tsx:541
 msgid "Remove webhook"
 msgstr "웹훅 제거"
 
@@ -2807,7 +2815,7 @@ msgstr "취소 중…"
 msgid "Robot"
 msgstr "로봇"
 
-#: src/pages/RoutineEditor.tsx:568
+#: src/pages/RoutineEditor.tsx:581
 msgid "Rotate key"
 msgstr "키 교체"
 
@@ -2955,6 +2963,10 @@ msgstr "보내기"
 #: src/pages/DocsView.tsx:295
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "모든 호출에 토큰을 베어러 헤더로 보냅니다. 다음은 워크스페이스의 연락처를 나열합니다:"
+
+#: src/pages/DocsView.tsx:582
+msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
+msgstr "헤더를 설정할 수 없는 발신자(cal.com, 폼 빌더)는 대신 URL에 키를 붙일 수 있습니다: <0>?token=<webhook key></0>. 본문은 64 KB로 제한되며, <1>text</1> 필드는 그대로 전달되고 그 외에는 JSON으로 전달됩니다. 같은 <2>Idempotency-Key</2> 헤더(또는 페이로드 <3>id</3>/<4>event_id</4>)를 가진 반복 전달은 중복 제거됩니다."
 
 #: src/components/AskCard.tsx:97
 #: src/components/AskCard.tsx:126
@@ -3524,7 +3536,11 @@ msgstr "웹훅 이름"
 msgid "Webhooks"
 msgstr "웹훅"
 
-#: src/pages/RoutineEditor.tsx:583
+#: src/pages/DocsView.tsx:571
+msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
+msgstr "웹훅은 반대 방향으로도 흐릅니다 — 모든 봇에는 외부 서비스가 POST할 수 있는 인바운드 URL이 있습니다. 페이로드는 메시지로 도착하고 웹훅 트리거가 있는 루틴이 실행되어 봇이 도구로 대응할 수 있습니다. 봇의 루틴 편집기에서 설정하세요."
+
+#: src/pages/RoutineEditor.tsx:596
 #: src/pages/RoutineSchedule.tsx:34
 #: src/pages/RoutineSchedule.tsx:90
 msgid "Weekdays"
@@ -3556,7 +3572,7 @@ msgid "When {botName} messages another bot, the exchange shows up here instead o
 msgstr "{botName}이 다른 Bot에게 메시지를 보내면 대화 대신 여기에 표시됩니다."
 
 #: src/pages/RoutineEditor.tsx:86
-#: src/pages/RoutineEditor.tsx:530
+#: src/pages/RoutineEditor.tsx:537
 msgid "When a webhook fires"
 msgstr "웹훅이 호출될 때"
 

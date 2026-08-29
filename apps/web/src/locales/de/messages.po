@@ -342,7 +342,7 @@ msgstr "Wird hinzugefügt…"
 msgid "Advanced"
 msgstr "Erweitert"
 
-#: src/pages/RoutineEditor.tsx:591
+#: src/pages/RoutineEditor.tsx:604
 msgid "Advanced..."
 msgstr "Erweitert..."
 
@@ -1600,13 +1600,13 @@ msgstr "alle {intervalAmountSelect} {intervalUnitSelect}"
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "Jeder <0>POST</0>, der Daten anlegt, akzeptiert einen <1>Idempotency-Key</1>-Header. Ein erneuter Versuch mit demselben Key liefert das ursprüngliche Ergebnis, statt den Schreibvorgang zu wiederholen; die Wiederverwendung eines Keys mit anderem Payload schlägt mit <2>409</2> fehl."
 
-#: src/pages/RoutineEditor.tsx:581
+#: src/pages/RoutineEditor.tsx:594
 #: src/pages/RoutineSchedule.tsx:32
 #: src/pages/RoutineSchedule.tsx:98
 msgid "Every day"
 msgstr "Jeden Tag"
 
-#: src/pages/RoutineEditor.tsx:579
+#: src/pages/RoutineEditor.tsx:592
 #: src/pages/RoutineSchedule.tsx:30
 #: src/pages/RoutineSchedule.tsx:84
 msgid "Every hour"
@@ -1616,7 +1616,7 @@ msgstr "Jede Stunde"
 msgid "Every Monday"
 msgstr "Jeden Montag"
 
-#: src/pages/RoutineEditor.tsx:587
+#: src/pages/RoutineEditor.tsx:600
 #: src/pages/RoutineSchedule.tsx:38
 msgid "Every month"
 msgstr "Jeden Monat"
@@ -1625,7 +1625,7 @@ msgstr "Jeden Monat"
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "Jede Anfrage trägt <0>Authorization: Bearer manor_…</0>. Die Scopes des Tokens bestimmen, worauf es zugreifen kann."
 
-#: src/pages/RoutineEditor.tsx:585
+#: src/pages/RoutineEditor.tsx:598
 #: src/pages/RoutineSchedule.tsx:36
 msgid "Every week"
 msgstr "Jede Woche"
@@ -1761,7 +1761,7 @@ msgstr "Lege zuerst auf und gib dann den Code auf dem Bildschirm ein."
 msgid "Hang up, then enter the code on screen."
 msgstr "Lege auf und gib dann den Code auf dem Bildschirm ein."
 
-#: src/pages/RoutineEditor.tsx:557
+#: src/pages/RoutineEditor.tsx:564
 msgid "header"
 msgstr "Header"
 
@@ -1842,6 +1842,10 @@ msgstr "Wenn du das gehört hast, ist die Stimme einsatzbereit."
 msgid "Import OpenAPI JSON"
 msgstr "OpenAPI-JSON importieren"
 
+#: src/pages/DocsView.tsx:569
+msgid "Inbound: trigger a bot"
+msgstr "Eingehend: einen Bot auslösen"
+
 #: src/pages/Shell.tsx:5110
 msgid "Inherit default"
 msgstr "Standard übernehmen"
@@ -1863,7 +1867,7 @@ msgstr "Anweisung"
 msgid "Integrations"
 msgstr "Integrationen"
 
-#: src/pages/RoutineEditor.tsx:589
+#: src/pages/RoutineEditor.tsx:602
 #: src/pages/RoutineSchedule.tsx:40
 msgid "Interval"
 msgstr "Intervall"
@@ -1901,7 +1905,7 @@ msgstr "gerade eben"
 msgid "Keep memories"
 msgstr "Erinnerungen behalten"
 
-#: src/pages/RoutineEditor.tsx:550
+#: src/pages/RoutineEditor.tsx:557
 msgid "key"
 msgstr "Schlüssel"
 
@@ -2500,6 +2504,10 @@ msgstr "Oder einen API-Schlüssel verbinden"
 msgid "Or paste an API key"
 msgstr "Oder einen API-Schlüssel einfügen"
 
+#: src/pages/RoutineEditor.tsx:570
+msgid "or, if the sender cannot set headers"
+msgstr "oder, falls der Sender keine Header setzen kann"
+
 #: src/pages/AccountSettingsOverlay.tsx:157
 msgid "Organic"
 msgstr "Organisch"
@@ -2591,7 +2599,7 @@ msgstr "Pipelines und Deals"
 msgid "Playing…"
 msgstr "Wiedergabe…"
 
-#: src/pages/RoutineEditor.tsx:543
+#: src/pages/RoutineEditor.tsx:550
 msgid "POST to"
 msgstr "POST an"
 
@@ -2715,7 +2723,7 @@ msgstr "Phase entfernen"
 msgid "Remove this schedule"
 msgstr "Diesen Zeitplan entfernen"
 
-#: src/pages/RoutineEditor.tsx:534
+#: src/pages/RoutineEditor.tsx:541
 msgid "Remove webhook"
 msgstr "Webhook entfernen"
 
@@ -2807,7 +2815,7 @@ msgstr "Widerrufe…"
 msgid "Robot"
 msgstr "Roboter"
 
-#: src/pages/RoutineEditor.tsx:568
+#: src/pages/RoutineEditor.tsx:581
 msgid "Rotate key"
 msgstr "Schlüssel rotieren"
 
@@ -2955,6 +2963,10 @@ msgstr "Senden"
 #: src/pages/DocsView.tsx:295
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "Sende das Token bei jedem Aufruf als Bearer-Header. Das listet die Kontakte des Workspace auf:"
+
+#: src/pages/DocsView.tsx:582
+msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
+msgstr "Sender, die keine Header setzen können (cal.com, Formular-Tools), können den Key stattdessen an die URL anhängen: <0>?token=<webhook key></0>. Bodys sind auf 64 KB begrenzt; ein <1>text</1>-Feld wird wörtlich zugestellt, alles andere als JSON übergeben. Wiederholte Zustellungen mit demselben <2>Idempotency-Key</2>-Header (oder Payload-<3>id</3>/<4>event_id</4>) werden dedupliziert."
 
 #: src/components/AskCard.tsx:97
 #: src/components/AskCard.tsx:126
@@ -3524,7 +3536,11 @@ msgstr "Webhook-Name"
 msgid "Webhooks"
 msgstr "Webhooks"
 
-#: src/pages/RoutineEditor.tsx:583
+#: src/pages/DocsView.tsx:571
+msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
+msgstr "Webhooks fließen auch in die andere Richtung — jeder Bot hat eine eingehende URL, an die externe Dienste POSTen können. Der Payload kommt als Nachricht an und jede Routine mit Webhook-Trigger läuft, sodass der Bot mit seinen Tools darauf reagieren kann. Eingerichtet wird das im Routinen-Editor des Bots."
+
+#: src/pages/RoutineEditor.tsx:596
 #: src/pages/RoutineSchedule.tsx:34
 #: src/pages/RoutineSchedule.tsx:90
 msgid "Weekdays"
@@ -3556,7 +3572,7 @@ msgid "When {botName} messages another bot, the exchange shows up here instead o
 msgstr "Wenn {botName} einem anderen Bot eine Nachricht sendet, wird der Austausch hier statt im Chat angezeigt."
 
 #: src/pages/RoutineEditor.tsx:86
-#: src/pages/RoutineEditor.tsx:530
+#: src/pages/RoutineEditor.tsx:537
 msgid "When a webhook fires"
 msgstr "Wenn ein Webhook ausgelöst wird"
 

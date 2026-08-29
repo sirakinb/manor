@@ -342,7 +342,7 @@ msgstr "Adding…"
 msgid "Advanced"
 msgstr "Advanced"
 
-#: src/pages/RoutineEditor.tsx:591
+#: src/pages/RoutineEditor.tsx:604
 msgid "Advanced..."
 msgstr "Advanced..."
 
@@ -1600,13 +1600,13 @@ msgstr "every {intervalAmountSelect} {intervalUnitSelect}"
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 
-#: src/pages/RoutineEditor.tsx:581
+#: src/pages/RoutineEditor.tsx:594
 #: src/pages/RoutineSchedule.tsx:32
 #: src/pages/RoutineSchedule.tsx:98
 msgid "Every day"
 msgstr "Every day"
 
-#: src/pages/RoutineEditor.tsx:579
+#: src/pages/RoutineEditor.tsx:592
 #: src/pages/RoutineSchedule.tsx:30
 #: src/pages/RoutineSchedule.tsx:84
 msgid "Every hour"
@@ -1616,7 +1616,7 @@ msgstr "Every hour"
 msgid "Every Monday"
 msgstr "Every Monday"
 
-#: src/pages/RoutineEditor.tsx:587
+#: src/pages/RoutineEditor.tsx:600
 #: src/pages/RoutineSchedule.tsx:38
 msgid "Every month"
 msgstr "Every month"
@@ -1625,7 +1625,7 @@ msgstr "Every month"
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 
-#: src/pages/RoutineEditor.tsx:585
+#: src/pages/RoutineEditor.tsx:598
 #: src/pages/RoutineSchedule.tsx:36
 msgid "Every week"
 msgstr "Every week"
@@ -1761,7 +1761,7 @@ msgstr "Hang up first, then enter the code on screen."
 msgid "Hang up, then enter the code on screen."
 msgstr "Hang up, then enter the code on screen."
 
-#: src/pages/RoutineEditor.tsx:557
+#: src/pages/RoutineEditor.tsx:564
 msgid "header"
 msgstr "header"
 
@@ -1842,6 +1842,10 @@ msgstr "If you heard that, voice is ready."
 msgid "Import OpenAPI JSON"
 msgstr "Import OpenAPI JSON"
 
+#: src/pages/DocsView.tsx:569
+msgid "Inbound: trigger a bot"
+msgstr "Inbound: trigger a bot"
+
 #: src/pages/Shell.tsx:5110
 msgid "Inherit default"
 msgstr "Inherit default"
@@ -1863,7 +1867,7 @@ msgstr "Instruction"
 msgid "Integrations"
 msgstr "Integrations"
 
-#: src/pages/RoutineEditor.tsx:589
+#: src/pages/RoutineEditor.tsx:602
 #: src/pages/RoutineSchedule.tsx:40
 msgid "Interval"
 msgstr "Interval"
@@ -1901,7 +1905,7 @@ msgstr "just now"
 msgid "Keep memories"
 msgstr "Keep memories"
 
-#: src/pages/RoutineEditor.tsx:550
+#: src/pages/RoutineEditor.tsx:557
 msgid "key"
 msgstr "key"
 
@@ -2500,6 +2504,10 @@ msgstr "Or connect an API key"
 msgid "Or paste an API key"
 msgstr "Or paste an API key"
 
+#: src/pages/RoutineEditor.tsx:570
+msgid "or, if the sender cannot set headers"
+msgstr "or, if the sender cannot set headers"
+
 #: src/pages/AccountSettingsOverlay.tsx:157
 msgid "Organic"
 msgstr "Organic"
@@ -2591,7 +2599,7 @@ msgstr "Pipelines and deals"
 msgid "Playing…"
 msgstr "Playing…"
 
-#: src/pages/RoutineEditor.tsx:543
+#: src/pages/RoutineEditor.tsx:550
 msgid "POST to"
 msgstr "POST to"
 
@@ -2715,7 +2723,7 @@ msgstr "Remove stage"
 msgid "Remove this schedule"
 msgstr "Remove this schedule"
 
-#: src/pages/RoutineEditor.tsx:534
+#: src/pages/RoutineEditor.tsx:541
 msgid "Remove webhook"
 msgstr "Remove webhook"
 
@@ -2807,7 +2815,7 @@ msgstr "Revoking…"
 msgid "Robot"
 msgstr "Robot"
 
-#: src/pages/RoutineEditor.tsx:568
+#: src/pages/RoutineEditor.tsx:581
 msgid "Rotate key"
 msgstr "Rotate key"
 
@@ -2955,6 +2963,10 @@ msgstr "Send it"
 #: src/pages/DocsView.tsx:295
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "Send the token as a bearer header on every call. This lists the workspace's contacts:"
+
+#: src/pages/DocsView.tsx:582
+msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
+msgstr "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 
 #: src/components/AskCard.tsx:97
 #: src/components/AskCard.tsx:126
@@ -3524,7 +3536,11 @@ msgstr "Webhook name"
 msgid "Webhooks"
 msgstr "Webhooks"
 
-#: src/pages/RoutineEditor.tsx:583
+#: src/pages/DocsView.tsx:571
+msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
+msgstr "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
+
+#: src/pages/RoutineEditor.tsx:596
 #: src/pages/RoutineSchedule.tsx:34
 #: src/pages/RoutineSchedule.tsx:90
 msgid "Weekdays"
@@ -3556,7 +3572,7 @@ msgid "When {botName} messages another bot, the exchange shows up here instead o
 msgstr "When {botName} messages another bot, the exchange shows up here instead of in the chat."
 
 #: src/pages/RoutineEditor.tsx:86
-#: src/pages/RoutineEditor.tsx:530
+#: src/pages/RoutineEditor.tsx:537
 msgid "When a webhook fires"
 msgstr "When a webhook fires"
 

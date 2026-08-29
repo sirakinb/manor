@@ -342,7 +342,7 @@ msgstr "Ekleniyor…"
 msgid "Advanced"
 msgstr "Gelişmiş"
 
-#: src/pages/RoutineEditor.tsx:591
+#: src/pages/RoutineEditor.tsx:604
 msgid "Advanced..."
 msgstr "Gelişmiş..."
 
@@ -1600,13 +1600,13 @@ msgstr "her {intervalAmountSelect} {intervalUnitSelect}"
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "Veri oluşturan her <0>POST</0>, bir <1>Idempotency-Key</1> başlığı kabul eder. Aynı anahtarla yeniden denemek yazmayı tekrarlamak yerine özgün sonucu döndürür; bir anahtarı farklı bir yükle yeniden kullanmak <2>409</2> ile başarısız olur."
 
-#: src/pages/RoutineEditor.tsx:581
+#: src/pages/RoutineEditor.tsx:594
 #: src/pages/RoutineSchedule.tsx:32
 #: src/pages/RoutineSchedule.tsx:98
 msgid "Every day"
 msgstr "Her gün"
 
-#: src/pages/RoutineEditor.tsx:579
+#: src/pages/RoutineEditor.tsx:592
 #: src/pages/RoutineSchedule.tsx:30
 #: src/pages/RoutineSchedule.tsx:84
 msgid "Every hour"
@@ -1616,7 +1616,7 @@ msgstr "Her saat"
 msgid "Every Monday"
 msgstr "Her pazartesi"
 
-#: src/pages/RoutineEditor.tsx:587
+#: src/pages/RoutineEditor.tsx:600
 #: src/pages/RoutineSchedule.tsx:38
 msgid "Every month"
 msgstr "Her ay"
@@ -1625,7 +1625,7 @@ msgstr "Her ay"
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "Her istek <0>Authorization: Bearer manor_…</0> taşır. Token'ın kapsamları neye erişebileceğini belirler."
 
-#: src/pages/RoutineEditor.tsx:585
+#: src/pages/RoutineEditor.tsx:598
 #: src/pages/RoutineSchedule.tsx:36
 msgid "Every week"
 msgstr "Her hafta"
@@ -1761,7 +1761,7 @@ msgstr "Önce kapatın, sonra ekrandaki kodu girin."
 msgid "Hang up, then enter the code on screen."
 msgstr "Kapatın, sonra ekrandaki kodu girin."
 
-#: src/pages/RoutineEditor.tsx:557
+#: src/pages/RoutineEditor.tsx:564
 msgid "header"
 msgstr "üstbilgi"
 
@@ -1842,6 +1842,10 @@ msgstr "Bunu duyduysan ses hazır."
 msgid "Import OpenAPI JSON"
 msgstr "OpenAPI JSON içe aktar"
 
+#: src/pages/DocsView.tsx:569
+msgid "Inbound: trigger a bot"
+msgstr "Gelen: bir botu tetikle"
+
 #: src/pages/Shell.tsx:5110
 msgid "Inherit default"
 msgstr "Varsayılanı devral"
@@ -1863,7 +1867,7 @@ msgstr "Talimat"
 msgid "Integrations"
 msgstr "Entegrasyonlar"
 
-#: src/pages/RoutineEditor.tsx:589
+#: src/pages/RoutineEditor.tsx:602
 #: src/pages/RoutineSchedule.tsx:40
 msgid "Interval"
 msgstr "Aralık"
@@ -1901,7 +1905,7 @@ msgstr "az önce"
 msgid "Keep memories"
 msgstr "Hafızayı koru"
 
-#: src/pages/RoutineEditor.tsx:550
+#: src/pages/RoutineEditor.tsx:557
 msgid "key"
 msgstr "anahtar"
 
@@ -2500,6 +2504,10 @@ msgstr "Veya bir API anahtarı bağla"
 msgid "Or paste an API key"
 msgstr "Veya bir API anahtarı yapıştır"
 
+#: src/pages/RoutineEditor.tsx:570
+msgid "or, if the sender cannot set headers"
+msgstr "veya gönderen başlık ayarlayamıyorsa"
+
 #: src/pages/AccountSettingsOverlay.tsx:157
 msgid "Organic"
 msgstr "Organik"
@@ -2591,7 +2599,7 @@ msgstr "Pipeline'lar ve anlaşmalar"
 msgid "Playing…"
 msgstr "Çalınıyor…"
 
-#: src/pages/RoutineEditor.tsx:543
+#: src/pages/RoutineEditor.tsx:550
 msgid "POST to"
 msgstr "POST adresi"
 
@@ -2715,7 +2723,7 @@ msgstr "Aşamayı kaldır"
 msgid "Remove this schedule"
 msgstr "Bu zamanlamayı kaldır"
 
-#: src/pages/RoutineEditor.tsx:534
+#: src/pages/RoutineEditor.tsx:541
 msgid "Remove webhook"
 msgstr "Webhook'u kaldır"
 
@@ -2807,7 +2815,7 @@ msgstr "İptal ediliyor…"
 msgid "Robot"
 msgstr "Robot"
 
-#: src/pages/RoutineEditor.tsx:568
+#: src/pages/RoutineEditor.tsx:581
 msgid "Rotate key"
 msgstr "Anahtarı yenile"
 
@@ -2955,6 +2963,10 @@ msgstr "Gönder"
 #: src/pages/DocsView.tsx:295
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "Token'ı her çağrıda bearer başlığı olarak gönder. Bu, çalışma alanının kişilerini listeler:"
+
+#: src/pages/DocsView.tsx:582
+msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
+msgstr "Başlık ayarlayamayan gönderenler (cal.com, form araçları) anahtarı URL'ye ekleyebilir: <0>?token=<webhook key></0>. Gövdeler 64 KB ile sınırlıdır; <1>text</1> alanı olduğu gibi iletilir, geri kalan her şey JSON olarak aktarılır. Aynı <2>Idempotency-Key</2> başlığına (veya yükteki <3>id</3>/<4>event_id</4> değerine) sahip yinelenen teslimler tekilleştirilir."
 
 #: src/components/AskCard.tsx:97
 #: src/components/AskCard.tsx:126
@@ -3524,7 +3536,11 @@ msgstr "Webhook adı"
 msgid "Webhooks"
 msgstr "Webhook'lar"
 
-#: src/pages/RoutineEditor.tsx:583
+#: src/pages/DocsView.tsx:571
+msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
+msgstr "Webhook'lar diğer yönde de akar — her botun dış servislerin POST edebileceği bir gelen URL'si vardır. Yük mesaj olarak ulaşır ve webhook tetikleyicili her rutin çalışır, böylece bot araçlarıyla harekete geçebilir. Botun rutin düzenleyicisinde ayarla."
+
+#: src/pages/RoutineEditor.tsx:596
 #: src/pages/RoutineSchedule.tsx:34
 #: src/pages/RoutineSchedule.tsx:90
 msgid "Weekdays"
@@ -3556,7 +3572,7 @@ msgid "When {botName} messages another bot, the exchange shows up here instead o
 msgstr "{botName} başka bir bota mesaj gönderdiğinde yazışma sohbet yerine burada görünür."
 
 #: src/pages/RoutineEditor.tsx:86
-#: src/pages/RoutineEditor.tsx:530
+#: src/pages/RoutineEditor.tsx:537
 msgid "When a webhook fires"
 msgstr "Bir webhook tetiklendiğinde"
 

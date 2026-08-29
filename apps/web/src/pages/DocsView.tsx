@@ -566,6 +566,28 @@ x-manor-signature: v1=<hex>
           </Trans>
         </Prose>
       </Section>
+      <Section title={<Trans>Inbound: trigger a bot</Trans>}>
+        <Prose>
+          <Trans>
+            Webhooks also flow the other way — every bot has an inbound URL that external services
+            can POST to. The payload arrives as a message and any routine with a webhook trigger
+            runs, so the bot can act on it with its tools. Set it up in the bot's routine editor.
+          </Trans>
+        </Prose>
+        <Code>{`curl -X POST ${origin}/api/v1/bots/<bot id>/webhook \\
+  -H "Authorization: Bearer <webhook key>" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "event": "booking.created", "attendee": "Jordan Ellis" }'`}</Code>
+        <Prose>
+          <Trans>
+            Senders that cannot set headers (cal.com, form builders) can append the key to the URL
+            instead: <Mono>{"?token=<webhook key>"}</Mono>. Bodies are limited to 64 KB; a{" "}
+            <Mono>text</Mono> field is delivered verbatim, anything else is passed as JSON. Repeat
+            deliveries with the same <Mono>Idempotency-Key</Mono> header (or payload <Mono>id</Mono>
+            /<Mono>event_id</Mono>) are deduplicated.
+          </Trans>
+        </Prose>
+      </Section>
     </>
   );
 }

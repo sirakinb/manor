@@ -160,6 +160,33 @@ describe("inbound webhook HTTP route", () => {
     expect(deps.sendUserMessage).not.toHaveBeenCalled();
   });
 
+  it("accepts the secret as a ?token= query parameter for header-less senders", async () => {
+    const deps = createDeps();
+    const app = mount(deps);
+    const res = await app.request(
+      `/api/v1/bots/bot-1/webhook?token=${encodeURIComponent(SECRET)}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: "hi" }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(deps.sendUserMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a wrong ?token= query parameter", async () => {
+    const deps = createDeps();
+    const app = mount(deps);
+    const res = await app.request("/api/v1/bots/bot-1/webhook?token=wrong-secret", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "hi" }),
+    });
+    expect(res.status).toBe(401);
+    expect(deps.sendUserMessage).not.toHaveBeenCalled();
+  });
+
   it("accepts a valid secret and JSON payload", async () => {
     const deps = createDeps();
     const app = mount(deps);

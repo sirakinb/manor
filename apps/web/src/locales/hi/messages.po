@@ -342,7 +342,7 @@ msgstr "जोड़ा जा रहा है…"
 msgid "Advanced"
 msgstr "उन्नत"
 
-#: src/pages/RoutineEditor.tsx:591
+#: src/pages/RoutineEditor.tsx:604
 msgid "Advanced..."
 msgstr "उन्नत..."
 
@@ -1600,13 +1600,13 @@ msgstr "हर {intervalAmountSelect} {intervalUnitSelect}"
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "डेटा बनाने वाला हर <0>POST</0> एक <1>Idempotency-Key</1> हेडर स्वीकार करता है। उसी की के साथ दोबारा कोशिश करने पर मूल परिणाम मिलता है, लिखने की क्रिया दोहराई नहीं जाती; अलग पेलोड के साथ की दोबारा इस्तेमाल करने पर <2>409</2> मिलता है।"
 
-#: src/pages/RoutineEditor.tsx:581
+#: src/pages/RoutineEditor.tsx:594
 #: src/pages/RoutineSchedule.tsx:32
 #: src/pages/RoutineSchedule.tsx:98
 msgid "Every day"
 msgstr "हर दिन"
 
-#: src/pages/RoutineEditor.tsx:579
+#: src/pages/RoutineEditor.tsx:592
 #: src/pages/RoutineSchedule.tsx:30
 #: src/pages/RoutineSchedule.tsx:84
 msgid "Every hour"
@@ -1616,7 +1616,7 @@ msgstr "हर घंटे"
 msgid "Every Monday"
 msgstr "हर सोमवार"
 
-#: src/pages/RoutineEditor.tsx:587
+#: src/pages/RoutineEditor.tsx:600
 #: src/pages/RoutineSchedule.tsx:38
 msgid "Every month"
 msgstr "हर महीने"
@@ -1625,7 +1625,7 @@ msgstr "हर महीने"
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "हर अनुरोध में <0>Authorization: Bearer manor_…</0> होता है। टोकन के स्कोप तय करते हैं कि वह किस तक पहुंच सकता है।"
 
-#: src/pages/RoutineEditor.tsx:585
+#: src/pages/RoutineEditor.tsx:598
 #: src/pages/RoutineSchedule.tsx:36
 msgid "Every week"
 msgstr "हर सप्ताह"
@@ -1761,7 +1761,7 @@ msgstr "पहले कॉल समाप्त करें, फिर स्
 msgid "Hang up, then enter the code on screen."
 msgstr "कॉल समाप्त करें, फिर स्क्रीन पर दिख रहा कोड दर्ज करें।"
 
-#: src/pages/RoutineEditor.tsx:557
+#: src/pages/RoutineEditor.tsx:564
 msgid "header"
 msgstr "हेडर"
 
@@ -1842,6 +1842,10 @@ msgstr "अगर आपने वह सुना, तो आवाज़ त�
 msgid "Import OpenAPI JSON"
 msgstr "OpenAPI JSON इम्पोर्ट करें"
 
+#: src/pages/DocsView.tsx:569
+msgid "Inbound: trigger a bot"
+msgstr "इनबाउंड: बॉट ट्रिगर करें"
+
 #: src/pages/Shell.tsx:5110
 msgid "Inherit default"
 msgstr "डिफ़ॉल्ट का पालन करें"
@@ -1863,7 +1867,7 @@ msgstr "निर्देश"
 msgid "Integrations"
 msgstr "इंटीग्रेशन"
 
-#: src/pages/RoutineEditor.tsx:589
+#: src/pages/RoutineEditor.tsx:602
 #: src/pages/RoutineSchedule.tsx:40
 msgid "Interval"
 msgstr "अंतराल"
@@ -1901,7 +1905,7 @@ msgstr "अभी-अभी"
 msgid "Keep memories"
 msgstr "मेमोरी रखें"
 
-#: src/pages/RoutineEditor.tsx:550
+#: src/pages/RoutineEditor.tsx:557
 msgid "key"
 msgstr "कुंजी"
 
@@ -2500,6 +2504,10 @@ msgstr "या एक API कुंजी कनेक्ट करें"
 msgid "Or paste an API key"
 msgstr "या एक API कुंजी पेस्ट करें"
 
+#: src/pages/RoutineEditor.tsx:570
+msgid "or, if the sender cannot set headers"
+msgstr "या, अगर भेजने वाला हेडर सेट नहीं कर सकता"
+
 #: src/pages/AccountSettingsOverlay.tsx:157
 msgid "Organic"
 msgstr "ऑर्गेनिक"
@@ -2591,7 +2599,7 @@ msgstr "पाइपलाइन और डील"
 msgid "Playing…"
 msgstr "प्ले हो रहा है…"
 
-#: src/pages/RoutineEditor.tsx:543
+#: src/pages/RoutineEditor.tsx:550
 msgid "POST to"
 msgstr "POST करें"
 
@@ -2715,7 +2723,7 @@ msgstr "चरण हटाएं"
 msgid "Remove this schedule"
 msgstr "यह शेड्यूल हटाएं"
 
-#: src/pages/RoutineEditor.tsx:534
+#: src/pages/RoutineEditor.tsx:541
 msgid "Remove webhook"
 msgstr "वेबहुक हटाएं"
 
@@ -2807,7 +2815,7 @@ msgstr "रद्द हो रहा है…"
 msgid "Robot"
 msgstr "रोबोट"
 
-#: src/pages/RoutineEditor.tsx:568
+#: src/pages/RoutineEditor.tsx:581
 msgid "Rotate key"
 msgstr "कुंजी बदलें"
 
@@ -2955,6 +2963,10 @@ msgstr "इसे भेजें"
 #: src/pages/DocsView.tsx:295
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "हर कॉल में टोकन बेयरर हेडर के रूप में भेजें। यह वर्कस्पेस के संपर्क सूचीबद्ध करता है:"
+
+#: src/pages/DocsView.tsx:582
+msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
+msgstr "जो सेंडर हेडर सेट नहीं कर सकते (cal.com, फ़ॉर्म बिल्डर), वे की को URL में जोड़ सकते हैं: <0>?token=<webhook key></0>। बॉडी 64 KB तक सीमित है; <1>text</1> फ़ील्ड जस का तस पहुँचाया जाता है, बाक़ी सब JSON के रूप में। एक ही <2>Idempotency-Key</2> हेडर (या पेलोड <3>id</3>/<4>event_id</4>) वाली दोहराई गई डिलीवरी डीडुप्लिकेट होती हैं।"
 
 #: src/components/AskCard.tsx:97
 #: src/components/AskCard.tsx:126
@@ -3524,7 +3536,11 @@ msgstr "वेबहुक नाम"
 msgid "Webhooks"
 msgstr "वेबहुक"
 
-#: src/pages/RoutineEditor.tsx:583
+#: src/pages/DocsView.tsx:571
+msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
+msgstr "वेबहुक दूसरी दिशा में भी चलते हैं — हर बॉट के पास एक इनबाउंड URL है जिस पर बाहरी सेवाएँ POST कर सकती हैं। पेलोड संदेश के रूप में आता है और वेबहुक ट्रिगर वाली हर रूटीन चलती है, ताकि बॉट अपने टूल्स से उस पर कार्रवाई कर सके। इसे बॉट के रूटीन एडिटर में सेट करें।"
+
+#: src/pages/RoutineEditor.tsx:596
 #: src/pages/RoutineSchedule.tsx:34
 #: src/pages/RoutineSchedule.tsx:90
 msgid "Weekdays"
@@ -3556,7 +3572,7 @@ msgid "When {botName} messages another bot, the exchange shows up here instead o
 msgstr "जब {botName} किसी दूसरे बॉट को संदेश भेजता है, तो वह आदान-प्रदान चैट के बजाय यहां दिखता है।"
 
 #: src/pages/RoutineEditor.tsx:86
-#: src/pages/RoutineEditor.tsx:530
+#: src/pages/RoutineEditor.tsx:537
 msgid "When a webhook fires"
 msgstr "जब कोई वेबहुक सक्रिय हो"
 

@@ -521,6 +521,13 @@ function WebhookTriggerCard({
       : configured
         ? "Authorization: Bearer …"
         : placeholder;
+  const tokenUrlValue = pending
+    ? placeholder
+    : secret
+      ? `${path}?token=${secret}`
+      : configured
+        ? `${path}?token=…`
+        : placeholder;
 
   return (
     <div className="rounded-[13px] border border-[#26262A] p-3">
@@ -557,6 +564,12 @@ function WebhookTriggerCard({
           <Trans>header</Trans>
           <div className="mt-1 break-all rounded-lg bg-[#24242A] px-2.5 py-1.5 font-mono text-[12.5px] text-[#C9C9CE]">
             {headerValue}
+          </div>
+        </div>
+        <div className="block text-[#7A7A80]">
+          <Trans>or, if the sender cannot set headers</Trans>
+          <div className="mt-1 break-all rounded-lg bg-[#24242A] px-2.5 py-1.5 font-mono text-[12.5px] text-[#C9C9CE]">
+            {tokenUrlValue}
           </div>
         </div>
         {saved && configured && !secret ? (

@@ -134,7 +134,13 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
     } catch {
       return unauthorized();
     }
-    if (!hasValidBearerToken(authorization, expected)) {
+    // Senders like cal.com and form builders cannot set headers — they may
+    // carry the secret as a ?token= query parameter instead.
+    const queryToken = c.req.query("token");
+    const authorized =
+      hasValidBearerToken(authorization, expected) ||
+      (queryToken ? hasValidBearerToken(`Bearer ${queryToken}`, expected) : false);
+    if (!authorized) {
       return unauthorized();
     }
 
