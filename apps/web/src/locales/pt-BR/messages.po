@@ -26,7 +26,7 @@ msgid " Your OS will not ask for extra permission if you let bots run on {hostLa
 msgstr "Seu sistema operacional não pedirá permissão extra se você permitir que os bots sejam executados no {hostLabel} — eles são executados como você."
 
 #. placeholder {0}: contacts.length
-#: src/pages/crm/CrmContactsSheet.tsx:157
+#: src/pages/crm/CrmContactsSheet.tsx:164
 msgid "{0, plural, one {# contact} other {# contacts}}"
 msgstr "{0, plural, one {# contato} other {# contatos}}"
 
@@ -95,11 +95,11 @@ msgstr "O {botName} ainda não enviou mensagens para outro bot."
 msgid "{botName}’s computer"
 msgstr "Computador do {botName}"
 
-#: src/pages/DocsView.tsx:219
+#: src/pages/DocsView.tsx:447
 msgid "{brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude, agents, IDEs — gets the same tools {brandName}'s own bots use."
 msgstr "O {brandName} hospeda um servidor MCP para o CRM. Qualquer cliente que fale HTTP transmissível — Claude, agentes, IDEs — recebe as mesmas ferramentas que os próprios bots do {brandName} usam."
 
-#: src/pages/DocsView.tsx:258
+#: src/pages/DocsView.tsx:502
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → CRM API access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr "O {brandName} envia mudanças do CRM para as URLs que você registrar — em Integrações → Acesso à API do CRM ou via <0>POST /v1/webhooks</0>. Cada endpoint recebe um segredo de assinatura, mostrado uma única vez."
 
@@ -161,10 +161,6 @@ msgstr "{workingBotName} está trabalhando"
 msgid "@{0}"
 msgstr "@{0}"
 
-#: src/pages/DocsView.tsx:198
-msgid "* accepts an <0>idempotency-key</0> header: retrying with the same key returns the original result instead of repeating the write."
-msgstr "* aceita um cabeçalho <0>idempotency-key</0>: repetir com a mesma chave retorna o resultado original em vez de repetir a gravação."
-
 #: src/pages/RoutineSchedule.tsx:150
 msgid "+ Add another schedule"
 msgstr "+ Adicionar outro agendamento"
@@ -185,7 +181,23 @@ msgstr "+ Novo pipeline"
 msgid "+ Teach a task"
 msgstr "+ Ensinar uma tarefa"
 
-#: src/pages/DocsView.tsx:243
+#: src/pages/DocsView.tsx:530
+msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
+msgstr "Eventos <0>record.*</0> disparam para registros de módulos personalizados; o <1>data</1> do payload traz o objeto completo após a mudança."
+
+#: src/pages/DocsView.tsx:280
+msgid "1 · Create a token"
+msgstr "1 · Crie um token"
+
+#: src/pages/DocsView.tsx:293
+msgid "2 · Make a request"
+msgstr "2 · Faça uma requisição"
+
+#: src/pages/DocsView.tsx:320
+msgid "3 · Write something"
+msgstr "3 · Escreva algo"
+
+#: src/pages/DocsView.tsx:475
 msgid "Access"
 msgstr "Acesso"
 
@@ -210,8 +222,8 @@ msgstr "Confirmações de ação"
 msgid "Actions for {0}"
 msgstr "Ações para {0}"
 
-#: src/pages/crm/CrmContactsSheet.tsx:112
-#: src/pages/crm/CrmContactsSheet.tsx:114
+#: src/pages/crm/CrmContactsSheet.tsx:119
+#: src/pages/crm/CrmContactsSheet.tsx:121
 #: src/pages/RoutineEditor.tsx:271
 #: src/pages/VoiceSettingsOverlay.tsx:223
 msgid "Active"
@@ -346,9 +358,9 @@ msgstr "Computador do agente"
 msgid "Agents:"
 msgstr "Agentes:"
 
-#: src/pages/DocsView.tsx:157
-msgid "AI clients can skip REST entirely and connect over MCP — see the MCP tab."
-msgstr "Clientes de IA podem pular o REST e conectar-se via MCP — veja a aba MCP."
+#: src/pages/DocsView.tsx:274
+msgid "All endpoints are under <0>/v1</0>, all payloads are JSON, and everything is scoped to this workspace — a token can never see another workspace's data."
+msgstr "Todos os endpoints ficam sob <0>/v1</0>, todos os payloads são JSON e tudo é limitado a este workspace — um token nunca pode ver dados de outro workspace."
 
 #: src/pages/crm/CrmHome.tsx:99
 msgid "All pipelines"
@@ -456,8 +468,8 @@ msgstr "arquivado"
 
 #: src/pages/crm/CrmContacts.tsx:74
 #: src/pages/crm/CrmContactsSheet.tsx:44
-#: src/pages/crm/CrmContactsSheet.tsx:112
-#: src/pages/crm/CrmContactsSheet.tsx:114
+#: src/pages/crm/CrmContactsSheet.tsx:119
+#: src/pages/crm/CrmContactsSheet.tsx:121
 #: src/pages/Shell.tsx:2181
 msgid "Archived"
 msgstr "Arquivado"
@@ -466,6 +478,7 @@ msgstr "Arquivado"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "Arquivado. Chat, memória e arquivos mantidos."
 
+#: src/pages/DocsView.tsx:474
 #: src/pages/McpServersOverlay.tsx:304
 msgid "Arguments"
 msgstr "Argumentos:"
@@ -524,9 +537,9 @@ msgstr "Escolher arquivo"
 msgid "Attachment"
 msgstr "Anexo"
 
-#: src/pages/DocsView.tsx:227
-msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>."
-msgstr "Autentique com o mesmo token bearer do REST. Ferramentas de leitura exigem <0>crm:read</0>; ferramentas de escrita exigem <1>crm:write</1>."
+#: src/pages/DocsView.tsx:455
+msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>. Tools the token cannot use are not advertised at all."
+msgstr "Autentique com o mesmo token bearer do REST. Ferramentas de leitura exigem <0>crm:read</0>; ferramentas que alteram dados exigem <1>crm:write</1>. Ferramentas que o token não pode usar nem sequer são anunciadas."
 
 #: src/pages/ModelSettingsOverlay.tsx:564
 #: src/pages/Onboarding.tsx:394
@@ -562,7 +575,7 @@ msgstr "Tamanho médio dos negócios"
 msgid "Back"
 msgstr "Voltar"
 
-#: src/pages/DocsView.tsx:141
+#: src/pages/DocsView.tsx:271
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:48
 msgid "Base URL"
 msgstr "URL Base"
@@ -804,7 +817,7 @@ msgstr "Comando"
 
 #: src/pages/crm/CrmContacts.tsx:132
 #: src/pages/crm/CrmContacts.tsx:365
-#: src/pages/crm/CrmContactsSheet.tsx:88
+#: src/pages/crm/CrmContactsSheet.tsx:95
 msgid "Company"
 msgstr "Empresa"
 
@@ -864,7 +877,7 @@ msgstr "Conecte-se com a chave API"
 msgid "Connect ElevenLabs, OpenAI, or Cartesia"
 msgstr "Conecte ElevenLabs, OpenAI ou Cartesia"
 
-#: src/pages/DocsView.tsx:233
+#: src/pages/DocsView.tsx:462
 msgid "Connect from Claude"
 msgstr "Conectar pelo Claude"
 
@@ -940,6 +953,7 @@ msgid "Contact"
 msgstr "Contato"
 
 #: src/pages/crm/CrmView.tsx:30
+#: src/pages/DocsView.tsx:392
 msgid "Contacts"
 msgstr "Contatos"
 
@@ -1252,10 +1266,6 @@ msgstr "Criar"
 msgid "Create a section and move {0} into it."
 msgstr "Crie uma seção e mova {0} para ela."
 
-#: src/pages/DocsView.tsx:144
-msgid "Create a token"
-msgstr "Criar um token"
-
 #: src/pages/Auth.tsx:154
 msgid "Create account"
 msgstr "Criar Conta"
@@ -1314,6 +1324,10 @@ msgstr "Cron"
 #: src/pages/RoutineSchedule.tsx:268
 msgid "Cron expression"
 msgstr "Expressão cron"
+
+#: src/pages/DocsView.tsx:407
+msgid "Custom modules"
+msgstr "Módulos personalizados"
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
 msgid "Date"
@@ -1408,9 +1422,13 @@ msgstr "excluído"
 msgid "Deleting…"
 msgstr "Excluindo…"
 
-#: src/pages/DocsView.tsx:270
+#: src/pages/DocsView.tsx:536
 msgid "Delivery"
 msgstr "Entrega"
+
+#: src/pages/DocsView.tsx:426
+msgid "Delivery format, retries, and signatures are on the Webhooks tab."
+msgstr "Formato de entrega, novas tentativas e assinaturas estão na aba Webhooks."
 
 #: src/components/AskCard.tsx:20
 msgid "Denied"
@@ -1429,6 +1447,7 @@ msgstr "Padrão de implantação"
 msgid "Describe what this bot does"
 msgstr "Descreva o que este bot faz"
 
+#: src/pages/DocsView.tsx:247
 #: src/pages/Onboarding.tsx:534
 #: src/pages/Shell.tsx:4874
 #: src/pages/Shell.tsx:5039
@@ -1469,7 +1488,7 @@ msgstr "Docker (recomendado)"
 msgid "Docker is the default: bots use a shared Team Computer."
 msgstr "O Docker é o padrão: os bots usam um Computador de Equipe compartilhado."
 
-#: src/pages/DocsView.tsx:62
+#: src/pages/DocsView.tsx:170
 #: src/pages/Shell.tsx:2303
 msgid "Documentation"
 msgstr "Documentação"
@@ -1541,7 +1560,7 @@ msgstr "Editar Perfil"
 #: src/pages/Auth.tsx:70
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
-#: src/pages/crm/CrmContactsSheet.tsx:95
+#: src/pages/crm/CrmContactsSheet.tsx:102
 #: src/pages/crm/CrmModuleSheet.tsx:258
 msgid "Email"
 msgstr "E-mail"
@@ -1550,13 +1569,10 @@ msgstr "E-mail"
 msgid "Encrypted static credential saved"
 msgstr "Credencial estática criptografada salva"
 
-#: src/pages/DocsView.tsx:224
+#: src/pages/DocsView.tsx:245
+#: src/pages/DocsView.tsx:452
 msgid "Endpoint"
 msgstr "Endpoint"
-
-#: src/pages/DocsView.tsx:179
-msgid "Endpoints"
-msgstr "Endpoints"
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/ModelSettingsOverlay.tsx:587
@@ -1564,7 +1580,11 @@ msgstr "Endpoints"
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Digite este código em <0>{0}</0>"
 
-#: src/pages/DocsView.tsx:263
+#: src/pages/DocsView.tsx:361
+msgid "Errors"
+msgstr "Erros"
+
+#: src/pages/DocsView.tsx:523
 msgid "Events"
 msgstr "Eventos"
 
@@ -1575,6 +1595,10 @@ msgstr "A cada"
 #: src/pages/RoutineSchedule.tsx:259
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "cada {intervalAmountSelect} {intervalUnitSelect}"
+
+#: src/pages/DocsView.tsx:385
+msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
+msgstr "Todo <0>POST</0> que cria dados aceita um cabeçalho <1>Idempotency-Key</1>. Repetir com a mesma chave devolve o resultado original em vez de repetir a escrita; reutilizar uma chave com payload diferente falha com <2>409</2>."
 
 #: src/pages/RoutineEditor.tsx:581
 #: src/pages/RoutineSchedule.tsx:32
@@ -1597,7 +1621,7 @@ msgstr "Toda segunda-feira"
 msgid "Every month"
 msgstr "A cada mês"
 
-#: src/pages/DocsView.tsx:168
+#: src/pages/DocsView.tsx:356
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "Toda requisição leva <0>Authorization: Bearer manor_…</0>. Os escopos do token decidem o que ele pode acessar."
 
@@ -1635,7 +1659,7 @@ msgstr "Extra alta"
 msgid "Failed"
 msgstr "Falha"
 
-#: src/pages/DocsView.tsx:280
+#: src/pages/DocsView.tsx:546
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr "Entregas com falha são repetidas até 8 vezes com backoff exponencial, com no máximo uma hora entre tentativas. Responda com 2xx em até 10 segundos."
 
@@ -1653,6 +1677,10 @@ msgstr "Não foi possível parar"
 #: src/components/teach/SkillDraftCard.tsx:147
 msgid "Failure handling"
 msgstr "Tratamento de falhas"
+
+#: src/pages/DocsView.tsx:363
+msgid "Failures return a JSON body with a human-readable message:"
+msgstr "Falhas retornam um corpo JSON com uma mensagem legível:"
 
 #: src/pages/crm/CrmModuleSheet.tsx:316
 msgid "Field label"
@@ -1679,7 +1707,7 @@ msgid "Finishing MCP connection…"
 msgstr "Finalizando conexão MCP…"
 
 #: src/pages/crm/CrmContacts.tsx:352
-#: src/pages/crm/CrmContactsSheet.tsx:74
+#: src/pages/crm/CrmContactsSheet.tsx:81
 msgid "First name"
 msgstr "Nome"
 
@@ -1691,7 +1719,7 @@ msgstr "Gratuito"
 msgid "Fullscreen"
 msgstr "Tela Cheia"
 
-#: src/pages/DocsView.tsx:51
+#: src/pages/DocsView.tsx:159
 msgid "Getting started"
 msgstr "Primeiros passos"
 
@@ -1707,7 +1735,7 @@ msgstr "Dê a um cliente MCP um token com escopos de CRM e conecte-o a este endp
 msgid "Give bots extra tools from a remote MCP server, an OpenAPI spec, or Treg."
 msgstr "Dê aos bots ferramentas extras de um servidor MCP remoto, uma especificação OpenAPI ou do Treg."
 
-#: src/pages/DocsView.tsx:175
+#: src/pages/DocsView.tsx:289
 msgid "Grants"
 msgstr "Concede"
 
@@ -1802,6 +1830,10 @@ msgstr "Como verificar"
 msgid "I’m done"
 msgstr "Eu terminei."
 
+#: src/pages/DocsView.tsx:383
+msgid "Idempotency"
+msgstr "Idempotência"
+
 #: src/pages/VoiceSettingsOverlay.tsx:128
 msgid "If you heard that, voice is ready."
 msgstr "Se você ouviu isso, a voz está pronta."
@@ -1884,7 +1916,7 @@ msgid "Language"
 msgstr "Idioma"
 
 #: src/pages/crm/CrmContacts.tsx:358
-#: src/pages/crm/CrmContactsSheet.tsx:81
+#: src/pages/crm/CrmContactsSheet.tsx:88
 msgid "Last name"
 msgstr "Sobrenome"
 
@@ -1895,6 +1927,10 @@ msgstr "Issue do Linear"
 #: src/pages/crm/CrmContacts.tsx:84
 msgid "List"
 msgstr "Lista"
+
+#: src/pages/DocsView.tsx:373
+msgid "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
+msgstr "Endpoints de listagem aceitam <0>limit</0> (1–100, padrão 50) e retornam <1>next_cursor</1>. Envie-o de volta como <2>cursor</2> para buscar a próxima página; um cursor <3>null</3> significa que você já tem tudo. Os cursores são estáveis durante escritas, então sincronizações nunca pulam nem repetem linhas."
 
 #: src/pages/CallView.tsx:245
 msgid "Listening…"
@@ -1970,9 +2006,9 @@ msgstr "Baixo"
 msgid "Machine credentials"
 msgstr "Credenciais de máquina"
 
-#: src/pages/DocsView.tsx:153
-msgid "Make a request"
-msgstr "Fazer uma requisição"
+#: src/pages/DocsView.tsx:193
+msgid "Machine-readable OpenAPI 3.1 document"
+msgstr "Documento OpenAPI 3.1 legível por máquina"
 
 #: src/pages/MemorySettingsOverlay.tsx:138
 msgid "Manage the workspace semantic memory provider."
@@ -2011,6 +2047,10 @@ msgstr "Máximo"
 #: src/pages/PluginsOverlay.tsx:449
 msgid "MCP servers"
 msgstr "Servidores MCP"
+
+#: src/pages/DocsView.tsx:367
+msgid "Meaning"
+msgstr "Significado"
 
 #: src/pages/Shell.tsx:5222
 msgid "Medium"
@@ -2054,10 +2094,6 @@ msgstr "Mensagem…"
 #: src/pages/Shell.tsx:4486
 msgid "Messaged {peer}"
 msgstr "Enviou mensagem para {peer}"
-
-#: src/pages/DocsView.tsx:182
-msgid "Method"
-msgstr "Método"
 
 #: src/pages/CallView.tsx:82
 msgid "Microphone failed"
@@ -2124,6 +2160,10 @@ msgstr "Os modelos usam suas próprias contas e chaves. Entre com ChatGPT, Claud
 #: src/pages/crm/CrmView.tsx:155
 msgid "Module name"
 msgstr "Nome do módulo"
+
+#: src/pages/DocsView.tsx:409
+msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
+msgstr "Módulos são as planilhas definidas pelo usuário no CRM — cada um declara campos tipados (texto, número, data, checkbox, seleção, e-mail, telefone, URL) e guarda registros validados contra eles. O <0>values</0> do registro aceita rótulos ou ids de campo como chaves:"
 
 #: src/pages/RoutineSchedule.tsx:96
 msgid "Monthly"
@@ -2394,7 +2434,7 @@ msgstr "Negócios abertos"
 msgid "Open in full window"
 msgstr "Abrir em janela cheia"
 
-#: src/pages/DocsView.tsx:146
+#: src/pages/DocsView.tsx:282
 msgid "Open Integrations → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
 msgstr "Abra Integrações → Acesso à API do CRM, dê um nome à credencial, escolha os escopos e copie o token — ele é mostrado uma única vez. Tokens começam com <0>manor_</0> e podem ser revogados a qualquer momento."
 
@@ -2402,7 +2442,7 @@ msgstr "Abra Integrações → Acesso à API do CRM, dê um nome à credencial, 
 msgid "Open navigation"
 msgstr "Abrir a navegação"
 
-#: src/pages/crm/SheetGrid.tsx:233
+#: src/pages/crm/SheetGrid.tsx:236
 msgid "Open row"
 msgstr "Abrir linha"
 
@@ -2419,9 +2459,13 @@ msgstr "Trabalho aberto"
 msgid "OpenAI-compatible server URL"
 msgstr "URL do servidor compatível com OpenAI"
 
-#: src/pages/DocsView.tsx:87
-msgid "OpenAPI spec ↗"
-msgstr "Especificação OpenAPI ↗"
+#: src/pages/DocsView.tsx:196
+msgid "OpenAPI (JSON) ↗"
+msgstr "OpenAPI (JSON) ↗"
+
+#: src/pages/DocsView.tsx:429
+msgid "OpenAPI document"
+msgstr "Documento OpenAPI"
 
 #: src/pages/Shell.tsx:4609
 msgid "Opened its thread."
@@ -2477,6 +2521,10 @@ msgstr "Webhooks de saída"
 msgid "PagerDuty incident"
 msgstr "Incidente do PagerDuty"
 
+#: src/pages/DocsView.tsx:371
+msgid "Pagination"
+msgstr "Paginação"
+
 #: src/pages/ScratchpadSection.tsx:142
 #: src/pages/ScratchpadSection.tsx:147
 msgid "Park"
@@ -2500,10 +2548,6 @@ msgstr "Cole o endereço compatível com OpenAI do seu servidor. Rakazo adiciona
 msgid "Paste your API key"
 msgstr "Cole sua chave API"
 
-#: src/pages/DocsView.tsx:183
-msgid "Path"
-msgstr "Caminho"
-
 #: src/pages/RoutineEditor.tsx:84
 msgid "Paused"
 msgstr "Pausada"
@@ -2514,7 +2558,7 @@ msgid "Personal credential"
 msgstr "Senha Pessoal"
 
 #: src/pages/crm/CrmContacts.tsx:377
-#: src/pages/crm/CrmContactsSheet.tsx:102
+#: src/pages/crm/CrmContactsSheet.tsx:109
 #: src/pages/crm/CrmModuleSheet.tsx:259
 msgid "Phone"
 msgstr "Telefone"
@@ -2538,6 +2582,10 @@ msgstr "Nome do pipeline"
 #: src/pages/crm/CrmHome.tsx:141
 msgid "Pipeline value by stage"
 msgstr "Valor do pipeline por etapa"
+
+#: src/pages/DocsView.tsx:395
+msgid "Pipelines and deals"
+msgstr "Pipelines e negócios"
 
 #: src/pages/VoiceSettingsOverlay.tsx:325
 msgid "Playing…"
@@ -2569,7 +2617,7 @@ msgstr "Provedores"
 msgid "Queued"
 msgstr "Na fila"
 
-#: src/pages/DocsView.tsx:246
+#: src/pages/DocsView.tsx:482
 msgid "read / write"
 msgstr "leitura / escrita"
 
@@ -2577,7 +2625,7 @@ msgstr "leitura / escrita"
 msgid "Read replies aloud"
 msgstr "Leia as respostas em voz alta"
 
-#: src/pages/DocsView.tsx:246
+#: src/pages/DocsView.tsx:482
 msgid "read-only"
 msgstr "somente leitura"
 
@@ -2597,6 +2645,10 @@ msgstr "Reconectar OAuth"
 msgid "Reconnecting"
 msgstr "Reconectando"
 
+#: src/pages/DocsView.tsx:486
+msgid "Record tools address modules by name or id, and record <0>values</0> use field labels as keys — an agent can say <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> without ever seeing an internal id."
+msgstr "As ferramentas de registro identificam módulos por nome ou id, e <0>values</0> usa rótulos de campo como chaves — um agente pode dizer <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> sem nunca ver um id interno."
+
 #. placeholder {0}: recording.goal
 #: src/components/teach/TeachRecordingChrome.tsx:43
 #: src/components/teach/TeachRecordingChrome.tsx:61
@@ -2614,6 +2666,14 @@ msgstr "Recuperar substitui um computador inacessível e mantém os arquivos no 
 #: src/components/ComputerMaintenanceActions.tsx:57
 msgid "Recovering…"
 msgstr "Recuperando…"
+
+#: src/pages/DocsView.tsx:507
+msgid "Register an endpoint"
+msgstr "Registrar um endpoint"
+
+#: src/pages/DocsView.tsx:564
+msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
+msgstr "Rejeite entregas cujo timestamp tenha mais do que alguns minutos para bloquear replays."
 
 #: src/pages/Shell.tsx:4297
 msgid "Release"
@@ -2696,10 +2756,6 @@ msgstr "Responder"
 msgid "Replying to {replyName}"
 msgstr "Respondendo a {replyName}"
 
-#: src/pages/DocsView.tsx:204
-msgid "Request and response shapes live in the OpenAPI document at <0>{origin}/v1/openapi.json</0>."
-msgstr "Os formatos de requisição e resposta estão no documento OpenAPI em <0>{origin}/v1/openapi.json</0>."
-
 #: src/components/ComputerMaintenanceActions.tsx:115
 msgid "Reset"
 msgstr "Redefinir"
@@ -2717,7 +2773,7 @@ msgstr "Redefinir o computador?"
 msgid "Resetting…"
 msgstr "Redefinindo…"
 
-#: src/pages/DocsView.tsx:52
+#: src/pages/DocsView.tsx:160
 msgid "REST"
 msgstr "REST"
 
@@ -2839,14 +2895,10 @@ msgstr "Diga alguma coisa. O silêncio manda."
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Diga sim ou não, ou responda em uma frase."
 
-#: src/pages/DocsView.tsx:175
-#: src/pages/DocsView.tsx:184
+#: src/pages/DocsView.tsx:246
+#: src/pages/DocsView.tsx:289
 msgid "Scope"
 msgstr "Escopo"
-
-#: src/pages/DocsView.tsx:173
-msgid "Scopes"
-msgstr "Escopos"
 
 #: src/pages/ModelSettingsOverlay.tsx:940
 #: src/pages/Shell.tsx:2003
@@ -2900,6 +2952,10 @@ msgstr "Enviar resposta"
 msgid "Send it"
 msgstr "Enviar"
 
+#: src/pages/DocsView.tsx:295
+msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
+msgstr "Envie o token como cabeçalho bearer em toda chamada. Isto lista os contatos do workspace:"
+
 #: src/components/AskCard.tsx:97
 #: src/components/AskCard.tsx:126
 #: src/components/AskCard.tsx:150
@@ -2932,7 +2988,7 @@ msgstr "Configurar voz para ligar"
 msgid "Settings"
 msgstr "Configurações"
 
-#: src/pages/DocsView.tsx:235
+#: src/pages/DocsView.tsx:464
 msgid "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 msgstr "Configurações → Conectores → Adicionar conector personalizado. Cole a URL do endpoint e o token, e as ferramentas de CRM aparecem em todas as conversas."
 
@@ -3069,7 +3125,8 @@ msgstr "Iniciando"
 msgid "Starting…"
 msgstr "Iniciando…"
 
-#: src/pages/crm/CrmContactsSheet.tsx:109
+#: src/pages/crm/CrmContactsSheet.tsx:116
+#: src/pages/DocsView.tsx:367
 msgid "Status"
 msgstr "Status"
 
@@ -3136,7 +3193,7 @@ msgstr "Alternando…"
 
 #: src/pages/crm/CrmContacts.tsx:138
 #: src/pages/crm/CrmContacts.tsx:390
-#: src/pages/crm/CrmContactsSheet.tsx:118
+#: src/pages/crm/CrmContactsSheet.tsx:125
 msgid "Tags"
 msgstr "Tags"
 
@@ -3182,9 +3239,9 @@ msgstr "Execução de teste"
 msgid "Text"
 msgstr "Texto"
 
-#: src/pages/DocsView.tsx:136
-msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. The CRM is the first surface it covers; new areas will appear here as they open up."
-msgstr "A API do {brandName} conecta sites, ferramentas de automação e clientes de IA a este workspace. O CRM é a primeira área coberta; novas áreas aparecerão aqui conforme forem liberadas."
+#: src/pages/DocsView.tsx:264
+msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing changes back to you. The CRM is the first surface it covers; new areas will appear here as they open up."
+msgstr "A API do {brandName} conecta sites, ferramentas de automação e clientes de IA a este workspace. Ela fala REST puro para scripts e servidores, MCP para clientes de IA e webhooks para devolver mudanças a você. O CRM é a primeira área coberta; novas áreas aparecerão aqui conforme forem abrindo."
 
 #: src/components/SoftwareUpdateSection.tsx:206
 msgid "The API did not come back. Refresh this page."
@@ -3194,11 +3251,19 @@ msgstr "A API não voltou. Atualize esta página."
 msgid "The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to add the first one."
 msgstr "O painel ganha vida quando os negócios entram no pipeline. Abra a aba Pipeline para adicionar o primeiro."
 
+#: src/pages/DocsView.tsx:431
+msgid "The machine-readable spec lives at <0>{origin}/v1/openapi.json</0> — import it into Postman, Insomnia, or a code generator to get typed clients for everything on this page."
+msgstr "A especificação legível por máquina fica em <0>{origin}/v1/openapi.json</0> — importe-a no Postman, Insomnia ou em um gerador de código para obter clientes tipados de tudo nesta página."
+
+#: src/pages/DocsView.tsx:341
+msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
+msgstr "A aba REST é a referência completa de endpoints — convenções, paginação e todas as rotas. Clientes de IA podem pular o REST e conectar via MCP. Webhooks enviam mudanças aos seus servidores assim que acontecem."
+
 #: src/pages/MemorySettingsOverlay.tsx:218
 msgid "The selected memory provider is not available in this build."
 msgstr "O provedor de memória selecionado não está disponível nesta compilação."
 
-#: src/pages/DocsView.tsx:288
+#: src/pages/DocsView.tsx:554
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "A assinatura é um HMAC-SHA256 de <0><timestamp>.<raw body></0> usando o segredo de assinatura do endpoint:"
 
@@ -3281,7 +3346,7 @@ msgstr "Título"
 msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
 msgstr "Os tokens são mostrados uma única vez. Guarde-os no seu servidor ou plataforma de automação, nunca em código do navegador."
 
-#: src/pages/DocsView.tsx:243
+#: src/pages/DocsView.tsx:473
 msgid "Tool"
 msgstr "Ferramenta"
 
@@ -3289,7 +3354,7 @@ msgstr "Ferramenta"
 msgid "Tool sources"
 msgstr "Fontes de ferramentas"
 
-#: src/pages/DocsView.tsx:241
+#: src/pages/DocsView.tsx:470
 msgid "Tools"
 msgstr "Ferramentas"
 
@@ -3306,7 +3371,7 @@ msgstr "Token Treg"
 msgid "Type {0} to add a row"
 msgstr "Digite {0} para adicionar uma linha"
 
-#: src/pages/crm/CrmContactsSheet.tsx:148
+#: src/pages/crm/CrmContactsSheet.tsx:155
 msgid "Type a name to add a contact"
 msgstr "Digite um nome para adicionar um contato"
 
@@ -3370,6 +3435,10 @@ msgstr "Atualizando…"
 msgid "URL"
 msgstr "URL"
 
+#: src/pages/DocsView.tsx:517
+msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
+msgstr "As URLs devem ser HTTPS. A resposta inclui o endpoint e seu segredo de assinatura — guarde-o; ele não pode ser recuperado de novo."
+
 #: src/pages/AccountSettingsOverlay.tsx:176
 #: src/pages/Shell.tsx:2372
 msgid "Usage"
@@ -3401,7 +3470,7 @@ msgstr "Distribuição de valor"
 msgid "Verify and add"
 msgstr "Verificar e adicionar"
 
-#: src/pages/DocsView.tsx:286
+#: src/pages/DocsView.tsx:552
 msgid "Verify the signature"
 msgstr "Verificar a assinatura"
 
@@ -3443,11 +3512,15 @@ msgstr "Webhook"
 msgid "Webhook HTTPS URL"
 msgstr "URL HTTPS do webhook"
 
+#: src/pages/DocsView.tsx:423
+msgid "Webhook management"
+msgstr "Gerenciamento de webhooks"
+
 #: src/pages/CrmApiAccessPanel.tsx:279
 msgid "Webhook name"
 msgstr "Nome do webhook"
 
-#: src/pages/DocsView.tsx:54
+#: src/pages/DocsView.tsx:162
 msgid "Webhooks"
 msgstr "Webhooks"
 
@@ -3495,6 +3568,10 @@ msgstr "Quando executar"
 msgid "When to use"
 msgstr "Quando usar"
 
+#: src/pages/DocsView.tsx:339
+msgid "Where next"
+msgstr "Próximos passos"
+
 #: src/pages/HostComputerPrompt.tsx:49
 msgid "Where should bots run?"
 msgstr "Onde os bots devem ser executados?"
@@ -3515,6 +3592,10 @@ msgstr "Funcionando"
 #: src/pages/Shell.tsx:5072
 msgid "Workspace default"
 msgstr "Padrão do espaço de trabalho"
+
+#: src/pages/DocsView.tsx:322
+msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
+msgstr "Escritas exigem o escopo <0>crm:write</0>. Upsert é o caminho mais seguro — ele casa por <1>source</1> + <2>external_id</2> (ou e-mail), então repetir a mesma chamada nunca duplica um contato:"
 
 #: src/pages/crm/CrmModuleSheet.tsx:56
 #: src/pages/crm/CrmModuleSheet.tsx:85

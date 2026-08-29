@@ -5,32 +5,138 @@ import { brandName } from "../lib/brand";
 type DocsTab = "start" | "rest" | "mcp" | "webhooks";
 
 const SCOPES = [
-  { scope: "crm:read", grants: "GET /v1/crm/*, read-only MCP tools" },
-  { scope: "crm:write", grants: "CRM mutations over REST and MCP" },
-  { scope: "webhooks:manage", grants: "/v1/webhooks" },
+  { scope: "crm:read", grants: "Read contacts, pipelines, deals, modules, records" },
+  { scope: "crm:write", grants: "Create and update CRM data over REST and MCP" },
+  { scope: "webhooks:manage", grants: "List, create, and delete webhook endpoints" },
 ];
 
-const REST_ENDPOINTS: Array<{ method: string; path: string; scope: string; idempotent?: true }> = [
-  { method: "GET", path: "/v1/crm/contacts", scope: "crm:read" },
-  { method: "GET", path: "/v1/crm/contacts/:id", scope: "crm:read" },
-  { method: "POST", path: "/v1/crm/contacts/upsert", scope: "crm:write", idempotent: true },
-  { method: "GET", path: "/v1/crm/pipelines", scope: "crm:read" },
-  { method: "GET", path: "/v1/crm/deals", scope: "crm:read" },
-  { method: "POST", path: "/v1/crm/deals", scope: "crm:write", idempotent: true },
-  { method: "PATCH", path: "/v1/crm/deals/:id", scope: "crm:write" },
-  { method: "POST", path: "/v1/crm/deals/:id/move", scope: "crm:write" },
-  { method: "GET", path: "/v1/webhooks", scope: "webhooks:manage" },
-  { method: "POST", path: "/v1/webhooks", scope: "webhooks:manage" },
-  { method: "DELETE", path: "/v1/webhooks/:id", scope: "webhooks:manage" },
+const STATUS_CODES = [
+  { code: "400", meaning: "Validation failed; the message says which field" },
+  { code: "401", meaning: "Missing, revoked, or malformed token" },
+  { code: "403", meaning: "Token lacks the required scope" },
+  { code: "404", meaning: "Resource is not in this workspace" },
+  { code: "409", meaning: "Idempotency-Key reused with a different payload" },
+];
+
+type Endpoint = { method: string; path: string; scope: string; summary: string };
+
+const CONTACT_ENDPOINTS: Endpoint[] = [
+  {
+    method: "GET",
+    path: "/v1/crm/contacts",
+    scope: "crm:read",
+    summary: "List contacts; filter with updated_after",
+  },
+  { method: "GET", path: "/v1/crm/contacts/:id", scope: "crm:read", summary: "Get one contact" },
+  {
+    method: "POST",
+    path: "/v1/crm/contacts/upsert",
+    scope: "crm:write",
+    summary: "Create or update by source + external_id or email",
+  },
+];
+
+const DEAL_ENDPOINTS: Endpoint[] = [
+  {
+    method: "GET",
+    path: "/v1/crm/pipelines",
+    scope: "crm:read",
+    summary: "List pipelines with their stages",
+  },
+  { method: "GET", path: "/v1/crm/deals", scope: "crm:read", summary: "List deals" },
+  {
+    method: "POST",
+    path: "/v1/crm/deals",
+    scope: "crm:write",
+    summary: "Create a deal in a pipeline stage",
+  },
+  {
+    method: "PATCH",
+    path: "/v1/crm/deals/:id",
+    scope: "crm:write",
+    summary: "Update title, value, contact, or status",
+  },
+  {
+    method: "POST",
+    path: "/v1/crm/deals/:id/move",
+    scope: "crm:write",
+    summary: "Move a deal to another stage",
+  },
+];
+
+const MODULE_ENDPOINTS: Endpoint[] = [
+  {
+    method: "GET",
+    path: "/v1/crm/modules",
+    scope: "crm:read",
+    summary: "List custom modules and their fields",
+  },
+  {
+    method: "POST",
+    path: "/v1/crm/modules",
+    scope: "crm:write",
+    summary: "Create a module (a user-defined sheet)",
+  },
+  {
+    method: "GET",
+    path: "/v1/crm/modules/:id/records",
+    scope: "crm:read",
+    summary: "List records in a module",
+  },
+  {
+    method: "POST",
+    path: "/v1/crm/modules/:id/records",
+    scope: "crm:write",
+    summary: "Create a record",
+  },
+  {
+    method: "PATCH",
+    path: "/v1/crm/records/:id",
+    scope: "crm:write",
+    summary: "Update record values; null clears a field",
+  },
+  {
+    method: "DELETE",
+    path: "/v1/crm/records/:id",
+    scope: "crm:write",
+    summary: "Delete a record",
+  },
+];
+
+const WEBHOOK_ENDPOINTS: Endpoint[] = [
+  {
+    method: "GET",
+    path: "/v1/webhooks",
+    scope: "webhooks:manage",
+    summary: "List webhook endpoints",
+  },
+  {
+    method: "POST",
+    path: "/v1/webhooks",
+    scope: "webhooks:manage",
+    summary: "Create an endpoint; returns its signing secret once",
+  },
+  {
+    method: "DELETE",
+    path: "/v1/webhooks/:id",
+    scope: "webhooks:manage",
+    summary: "Delete an endpoint",
+  },
 ];
 
 const MCP_TOOLS = [
-  { name: "crm_overview", writes: false },
-  { name: "crm_find_contacts", writes: false },
-  { name: "crm_upsert_contact", writes: true },
-  { name: "crm_create_deal", writes: true },
-  { name: "crm_update_deal", writes: true },
-  { name: "crm_move_deal", writes: true },
+  { name: "crm_overview", args: "—", writes: false },
+  { name: "crm_find_contacts", args: "query", writes: false },
+  { name: "crm_upsert_contact", args: "contact_id?, first_name?, email?, tags?, …", writes: true },
+  { name: "crm_sync_contact", args: "source?, external_id?, email?, …", writes: true },
+  { name: "crm_create_deal", args: "title, value, pipeline?, stage?, contact_name?", writes: true },
+  { name: "crm_update_deal", args: "deal_id, title?, value?, status?", writes: true },
+  { name: "crm_move_deal", args: "deal_id, stage", writes: true },
+  { name: "crm_list_modules", args: "—", writes: false },
+  { name: "crm_create_module", args: "name, fields?", writes: true },
+  { name: "crm_list_records", args: "module, cursor?", writes: false },
+  { name: "crm_upsert_record", args: "module?, record_id?, values", writes: true },
+  { name: "crm_delete_record", args: "record_id", writes: true },
 ];
 
 const WEBHOOK_EVENTS = [
@@ -39,6 +145,8 @@ const WEBHOOK_EVENTS = [
   "deal.created",
   "deal.updated",
   "deal.stage_changed",
+  "record.created",
+  "record.updated",
 ];
 
 /** The Manor API reference. The CRM is the first surface; new areas add tabs here. */
@@ -82,9 +190,10 @@ export function DocsView() {
           href="/v1/openapi.json"
           target="_blank"
           rel="noreferrer"
+          title={t`Machine-readable OpenAPI 3.1 document`}
           className="text-[13px] text-[#AEB5FF] hover:text-[#D1D5FF]"
         >
-          <Trans>OpenAPI spec ↗</Trans>
+          <Trans>OpenAPI (JSON) ↗</Trans>
         </a>
       </div>
 
@@ -93,7 +202,7 @@ export function DocsView() {
           {tab === "start" ? <GettingStarted origin={origin} /> : null}
           {tab === "rest" ? <RestReference origin={origin} /> : null}
           {tab === "mcp" ? <McpReference origin={origin} /> : null}
-          {tab === "webhooks" ? <WebhooksReference /> : null}
+          {tab === "webhooks" ? <WebhooksReference origin={origin} /> : null}
         </div>
       </div>
     </div>
@@ -129,19 +238,46 @@ function Mono({ children }: { children: React.ReactNode }) {
   );
 }
 
+function EndpointTable({ endpoints }: { endpoints: Endpoint[] }) {
+  return (
+    <Table
+      head={[
+        <Trans key="e">Endpoint</Trans>,
+        <Trans key="s">Scope</Trans>,
+        <Trans key="d">Description</Trans>,
+      ]}
+      rows={endpoints.map((row) => [
+        <span key="e" className="whitespace-nowrap font-mono text-[12px]">
+          <span className="text-[#8AB7FF]">{row.method}</span> {row.path}
+        </span>,
+        <Mono key="s">{row.scope}</Mono>,
+        row.summary,
+      ])}
+    />
+  );
+}
+
 function GettingStarted({ origin }: { origin: string }) {
   return (
     <>
       <Prose>
         <Trans>
           The {brandName} API connects websites, automation tools, and AI clients to this workspace.
-          The CRM is the first surface it covers; new areas will appear here as they open up.
+          It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing
+          changes back to you. The CRM is the first surface it covers; new areas will appear here as
+          they open up.
         </Trans>
       </Prose>
       <Section title={<Trans>Base URL</Trans>}>
         <Code>{origin}</Code>
+        <Prose>
+          <Trans>
+            All endpoints are under <Mono>/v1</Mono>, all payloads are JSON, and everything is
+            scoped to this workspace — a token can never see another workspace's data.
+          </Trans>
+        </Prose>
       </Section>
-      <Section title={<Trans>Create a token</Trans>}>
+      <Section title={<Trans>1 · Create a token</Trans>}>
         <Prose>
           <Trans>
             Open Integrations → CRM API access, name the credential, pick its scopes, and copy the
@@ -149,12 +285,64 @@ function GettingStarted({ origin }: { origin: string }) {
             any time.
           </Trans>
         </Prose>
+        <Table
+          head={[<Trans key="s">Scope</Trans>, <Trans key="g">Grants</Trans>]}
+          rows={SCOPES.map((row) => [<Mono key="s">{row.scope}</Mono>, row.grants])}
+        />
       </Section>
-      <Section title={<Trans>Make a request</Trans>}>
-        <Code>{`curl ${origin}/v1/crm/contacts \\
-  -H "Authorization: Bearer manor_..."`}</Code>
+      <Section title={<Trans>2 · Make a request</Trans>}>
         <Prose>
-          <Trans>AI clients can skip REST entirely and connect over MCP — see the MCP tab.</Trans>
+          <Trans>
+            Send the token as a bearer header on every call. This lists the workspace's contacts:
+          </Trans>
+        </Prose>
+        <Code>{`curl ${origin}/v1/crm/contacts \\
+  -H "Authorization: Bearer manor_..."
+
+{
+  "data": [
+    {
+      "id": "cmf…",
+      "first_name": "Ana",
+      "last_name": "Rivera",
+      "company": "Rivera Holdings",
+      "email": null,
+      "phone": null,
+      "status": "active",
+      "tags": ["VIP"],
+      "created_at": "2026-08-29T02:11:00.000Z",
+      "updated_at": "2026-08-29T02:11:00.000Z"
+    }
+  ],
+  "next_cursor": null
+}`}</Code>
+      </Section>
+      <Section title={<Trans>3 · Write something</Trans>}>
+        <Prose>
+          <Trans>
+            Writes need the <Mono>crm:write</Mono> scope. Upsert is the safest way in — it matches
+            on <Mono>source</Mono> + <Mono>external_id</Mono> (or email) so replaying the same call
+            never duplicates a contact:
+          </Trans>
+        </Prose>
+        <Code>{`curl -X POST ${origin}/v1/crm/contacts/upsert \\
+  -H "Authorization: Bearer manor_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "source": "website",
+    "external_id": "form-4821",
+    "first_name": "Jordan",
+    "email": "jordan@example.com",
+    "tags": ["Lead"]
+  }'`}</Code>
+      </Section>
+      <Section title={<Trans>Where next</Trans>}>
+        <Prose>
+          <Trans>
+            The REST tab is the full endpoint reference — conventions, pagination, and every route.
+            AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your
+            servers as they happen.
+          </Trans>
         </Prose>
       </Section>
     </>
@@ -170,40 +358,80 @@ function RestReference({ origin }: { origin: string }) {
           decide what it can reach.
         </Trans>
       </Prose>
-      <Section title={<Trans>Scopes</Trans>}>
+      <Section title={<Trans>Errors</Trans>}>
+        <Prose>
+          <Trans>Failures return a JSON body with a human-readable message:</Trans>
+        </Prose>
+        <Code>{`{ "error": { "message": "Missing crm:write scope" } }`}</Code>
         <Table
-          head={[<Trans key="s">Scope</Trans>, <Trans key="g">Grants</Trans>]}
-          rows={SCOPES.map((row) => [<Mono key="s">{row.scope}</Mono>, row.grants])}
+          head={[<Trans key="c">Status</Trans>, <Trans key="m">Meaning</Trans>]}
+          rows={STATUS_CODES.map((row) => [<Mono key="c">{row.code}</Mono>, row.meaning])}
         />
       </Section>
-      <Section title={<Trans>Endpoints</Trans>}>
-        <Table
-          head={[
-            <Trans key="m">Method</Trans>,
-            <Trans key="p">Path</Trans>,
-            <Trans key="s">Scope</Trans>,
-          ]}
-          rows={REST_ENDPOINTS.map((row) => [
-            <span key="m" className="font-mono text-[12px] text-[#8AB7FF]">
-              {row.method}
-            </span>,
-            <span key="p" className="font-mono text-[12px]">
-              {row.path}
-              {row.idempotent ? " *" : ""}
-            </span>,
-            <Mono key="s">{row.scope}</Mono>,
-          ])}
-        />
+      <Section title={<Trans>Pagination</Trans>}>
         <Prose>
           <Trans>
-            * accepts an <Mono>idempotency-key</Mono> header: retrying with the same key returns the
-            original result instead of repeating the write.
+            List endpoints take <Mono>limit</Mono> (1–100, default 50) and return{" "}
+            <Mono>next_cursor</Mono>. Pass it back as <Mono>cursor</Mono> to fetch the next page; a{" "}
+            <Mono>null</Mono> cursor means you have everything. Cursors are stable across writes, so
+            syncs never skip or repeat rows.
           </Trans>
         </Prose>
+        <Code>{`curl "${origin}/v1/crm/contacts?limit=100&cursor=eyJ…" \\
+  -H "Authorization: Bearer manor_..."`}</Code>
+      </Section>
+      <Section title={<Trans>Idempotency</Trans>}>
         <Prose>
           <Trans>
-            Request and response shapes live in the OpenAPI document at{" "}
-            <Mono>{`${origin}/v1/openapi.json`}</Mono>.
+            Every <Mono>POST</Mono> that creates data accepts an <Mono>Idempotency-Key</Mono>{" "}
+            header. Retrying with the same key returns the original result instead of repeating the
+            write; reusing a key with a different payload fails with <Mono>409</Mono>.
+          </Trans>
+        </Prose>
+      </Section>
+      <Section title={<Trans>Contacts</Trans>}>
+        <EndpointTable endpoints={CONTACT_ENDPOINTS} />
+      </Section>
+      <Section title={<Trans>Pipelines and deals</Trans>}>
+        <EndpointTable endpoints={DEAL_ENDPOINTS} />
+        <Code>{`curl -X POST ${origin}/v1/crm/deals \\
+  -H "Authorization: Bearer manor_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "pipeline_id": "cmf…",
+    "stage_id": "cmf…",
+    "title": "Water heater install — Smith",
+    "value": 1450
+  }'`}</Code>
+      </Section>
+      <Section title={<Trans>Custom modules</Trans>}>
+        <Prose>
+          <Trans>
+            Modules are the user-defined sheets in the CRM — each one declares typed fields (text,
+            number, date, checkbox, select, email, phone, URL) and holds records validated against
+            them. Record <Mono>values</Mono> accept field labels or field ids as keys:
+          </Trans>
+        </Prose>
+        <EndpointTable endpoints={MODULE_ENDPOINTS} />
+        <Code>{`curl -X POST ${origin}/v1/crm/modules/cmf…/records \\
+  -H "Authorization: Bearer manor_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "values": { "Name": "Jordan Ellis", "Rent": 1450, "Move-in ready": true }
+  }'`}</Code>
+      </Section>
+      <Section title={<Trans>Webhook management</Trans>}>
+        <EndpointTable endpoints={WEBHOOK_ENDPOINTS} />
+        <Prose>
+          <Trans>Delivery format, retries, and signatures are on the Webhooks tab.</Trans>
+        </Prose>
+      </Section>
+      <Section title={<Trans>OpenAPI document</Trans>}>
+        <Prose>
+          <Trans>
+            The machine-readable spec lives at <Mono>{`${origin}/v1/openapi.json`}</Mono> — import
+            it into Postman, Insomnia, or a code generator to get typed clients for everything on
+            this page.
           </Trans>
         </Prose>
       </Section>
@@ -226,7 +454,8 @@ function McpReference({ origin }: { origin: string }) {
         <Prose>
           <Trans>
             Authenticate with the same bearer token as REST. Read-only tools need{" "}
-            <Mono>crm:read</Mono>; mutating tools need <Mono>crm:write</Mono>.
+            <Mono>crm:read</Mono>; mutating tools need <Mono>crm:write</Mono>. Tools the token
+            cannot use are not advertised at all.
           </Trans>
         </Prose>
       </Section>
@@ -240,18 +469,33 @@ function McpReference({ origin }: { origin: string }) {
       </Section>
       <Section title={<Trans>Tools</Trans>}>
         <Table
-          head={[<Trans key="t">Tool</Trans>, <Trans key="a">Access</Trans>]}
+          head={[
+            <Trans key="t">Tool</Trans>,
+            <Trans key="r">Arguments</Trans>,
+            <Trans key="a">Access</Trans>,
+          ]}
           rows={MCP_TOOLS.map((tool) => [
             <Mono key="t">{tool.name}</Mono>,
+            <span key="r" className="font-mono text-[12px] text-[#85858A]">
+              {tool.args}
+            </span>,
             tool.writes ? t`read / write` : t`read-only`,
           ])}
         />
+        <Prose>
+          <Trans>
+            Record tools address modules by name or id, and record <Mono>values</Mono> use field
+            labels as keys — an agent can say{" "}
+            <Mono>{`{"module": "Tenants", "values": {"Rent": 1450}}`}</Mono> without ever seeing an
+            internal id.
+          </Trans>
+        </Prose>
       </Section>
     </>
   );
 }
 
-function WebhooksReference() {
+function WebhooksReference({ origin }: { origin: string }) {
   return (
     <>
       <Prose>
@@ -260,12 +504,34 @@ function WebhooksReference() {
           via <Mono>POST /v1/webhooks</Mono>. Each endpoint gets a signing secret, shown once.
         </Trans>
       </Prose>
+      <Section title={<Trans>Register an endpoint</Trans>}>
+        <Code>{`curl -X POST ${origin}/v1/webhooks \\
+  -H "Authorization: Bearer manor_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "CRM sync",
+    "url": "https://example.com/hooks/crm",
+    "events": ["contact.created", "deal.stage_changed"]
+  }'`}</Code>
+        <Prose>
+          <Trans>
+            URLs must be HTTPS. The response includes the endpoint and its signing secret — store
+            it; it cannot be retrieved again.
+          </Trans>
+        </Prose>
+      </Section>
       <Section title={<Trans>Events</Trans>}>
         <div className="mb-3 flex flex-wrap gap-2">
           {WEBHOOK_EVENTS.map((event) => (
             <Mono key={event}>{event}</Mono>
           ))}
         </div>
+        <Prose>
+          <Trans>
+            <Mono>record.*</Mono> events fire for custom module records; the payload's{" "}
+            <Mono>data</Mono> carries the full object after the change.
+          </Trans>
+        </Prose>
       </Section>
       <Section title={<Trans>Delivery</Trans>}>
         <Code>{`POST <your URL>
@@ -294,6 +560,11 @@ x-manor-signature: v1=<hex>
   .update(\`\${timestamp}.\${rawBody}\`)
   .digest("hex");
 // compare with x-manor-signature using a constant-time check`}</Code>
+        <Prose>
+          <Trans>
+            Reject deliveries whose timestamp is more than a few minutes old to block replays.
+          </Trans>
+        </Prose>
       </Section>
     </>
   );

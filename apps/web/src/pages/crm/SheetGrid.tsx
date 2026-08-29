@@ -195,8 +195,11 @@ export function SheetGrid<Row extends { id: string }>({
                     <td
                       key={column.id}
                       onClick={() => {
+                        // Clicks inside an open editor (e.g. a select popup) must
+                        // not refocus the grid — that would blur and close it.
+                        if (isEditing) return;
                         setActive({ r, c });
-                        if (isActive) startEdit({ r, c });
+                        if (isActive || column.options) startEdit({ r, c });
                         else setEditing(null);
                         containerRef.current?.focus();
                       }}
