@@ -95,13 +95,13 @@ msgstr "{botName} ने अभी तक किसी दूसरे बॉट
 msgid "{botName}’s computer"
 msgstr "{botName} का कंप्यूटर"
 
-#: src/pages/DocsView.tsx:341
+#: src/pages/DocsView.tsx:342
 msgid "{brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude, agents, IDEs — gets the same tools {brandName}'s own bots use."
 msgstr "{brandName} CRM के लिए एक MCP सर्वर होस्ट करता है। streamable HTTP बोलने वाला हर क्लाइंट — Claude, एजेंट, IDE — वही टूल पाता है जो {brandName} के अपने बॉट उपयोग करते हैं।"
 
-#: src/pages/DocsView.tsx:405
-msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → CRM API access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
-msgstr "{brandName} आपकी पंजीकृत URL पर CRM बदलाव भेजता है — इंटीग्रेशन → CRM API पहुंच में या <0>POST /v1/webhooks</0> से। हर एंडपॉइंट को एक साइनिंग सीक्रेट मिलता है, जो एक बार दिखाया जाता है।"
+#: src/pages/DocsView.tsx:406
+msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
+msgstr "{brandName} CRM बदलावों को आपकी रजिस्टर की गई URLs पर भेजता है — Integrations → API और एजेंट एक्सेस में या <0>POST /v1/webhooks</0> के ज़रिए। हर एंडपॉइंट को एक साइनिंग सीक्रेट मिलता है, जो एक बार दिखाया जाता है।"
 
 #: src/pages/CrmApiAccessPanel.tsx:300
 msgid "{brandName} signs contact events and retries failed deliveries automatically."
@@ -181,23 +181,23 @@ msgstr "+ नई पाइपलाइन"
 msgid "+ Teach a task"
 msgstr "+ कोई कार्य सिखाएं"
 
-#: src/pages/DocsView.tsx:433
+#: src/pages/DocsView.tsx:434
 msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
 msgstr "<0>record.*</0> इवेंट कस्टम मॉड्यूल रिकॉर्ड के लिए फ़ायर होते हैं; पेलोड का <1>data</1> बदलाव के बाद का पूरा ऑब्जेक्ट रखता है।"
 
-#: src/pages/DocsView.tsx:147
+#: src/pages/DocsView.tsx:157
 msgid "1 · Create a token"
 msgstr "1 · टोकन बनाएँ"
 
-#: src/pages/DocsView.tsx:160
+#: src/pages/DocsView.tsx:170
 msgid "2 · Make a request"
 msgstr "2 · अनुरोध भेजें"
 
-#: src/pages/DocsView.tsx:187
+#: src/pages/DocsView.tsx:197
 msgid "3 · Write something"
 msgstr "3 · कुछ लिखें"
 
-#: src/pages/DocsView.tsx:378
+#: src/pages/DocsView.tsx:379
 msgid "Access"
 msgstr "पहुंच"
 
@@ -336,7 +336,6 @@ msgid "Adding…"
 msgstr "जोड़ा जा रहा है…"
 
 #: src/pages/AccountSettingsOverlay.tsx:199
-#: src/pages/PluginsOverlay.tsx:427
 #: src/pages/RoutineSchedule.tsx:42
 #: src/pages/Shell.tsx:5051
 msgid "Advanced"
@@ -358,7 +357,7 @@ msgstr "एजेंट कंप्यूटर"
 msgid "Agents:"
 msgstr "एजेंट:"
 
-#: src/pages/DocsView.tsx:141
+#: src/pages/DocsView.tsx:151
 msgid "All endpoints are under <0>/v1</0>, all payloads are JSON, and everything is scoped to this workspace — a token can never see another workspace's data."
 msgstr "सभी एंडपॉइंट <0>/v1</0> के अंतर्गत हैं, सभी पेलोड JSON हैं, और सब कुछ इसी वर्कस्पेस तक सीमित है — कोई टोकन कभी दूसरे वर्कस्पेस का डेटा नहीं देख सकता।"
 
@@ -422,6 +421,10 @@ msgstr "उत्तर दिया गया"
 msgid "Answered: {answer}"
 msgstr "उत्तर: {answer}"
 
+#: src/pages/PluginsOverlay.tsx:427
+msgid "API & agent access"
+msgstr "API और एजेंट एक्सेस"
+
 #: src/components/SoftwareUpdateSection.tsx:199
 msgid "API is back, but the update did not finish. Check the host logs."
 msgstr "API वापस आ गया है, लेकिन अपडेट पूरा नहीं हुआ। होस्ट लॉग देखें।"
@@ -478,7 +481,7 @@ msgstr "आर्काइव किया गया"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "आर्काइव किया गया। चैट, मेमोरी और फ़ाइलें सुरक्षित रखी गईं।"
 
-#: src/pages/DocsView.tsx:377
+#: src/pages/DocsView.tsx:378
 #: src/pages/McpServersOverlay.tsx:304
 msgid "Arguments"
 msgstr "आर्ग्युमेंट"
@@ -529,6 +532,10 @@ msgstr "{0} बजे"
 msgid "at {timeSelect}"
 msgstr "{timeSelect} बजे"
 
+#: src/pages/DocsView.tsx:159
+msgid "At the bottom of Integrations, open API & agent access → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
+msgstr "Integrations में सबसे नीचे API और एजेंट एक्सेस → CRM API एक्सेस खोलें, क्रेडेंशियल का नाम रखें, स्कोप चुनें और टोकन कॉपी करें — यह एक बार दिखाया जाता है। टोकन <0>manor_</0> से शुरू होते हैं और कभी भी रद्द किए जा सकते हैं।"
+
 #: src/pages/Shell.tsx:4001
 msgid "Attach file"
 msgstr "फ़ाइल संलग्न करें"
@@ -537,7 +544,7 @@ msgstr "फ़ाइल संलग्न करें"
 msgid "Attachment"
 msgstr "अटैचमेंट"
 
-#: src/pages/DocsView.tsx:349
+#: src/pages/DocsView.tsx:350
 msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>. Tools the token cannot use are not advertised at all."
 msgstr "REST वाले उसी बेयरर टोकन से प्रमाणित करें। केवल-पढ़ने वाले टूल्स को <0>crm:read</0> चाहिए; बदलाव करने वाले टूल्स को <1>crm:write</1>। जिन टूल्स का उपयोग टोकन नहीं कर सकता, वे दिखाए ही नहीं जाते।"
 
@@ -575,7 +582,7 @@ msgstr "औसत डील आकार"
 msgid "Back"
 msgstr "वापस"
 
-#: src/pages/DocsView.tsx:138
+#: src/pages/DocsView.tsx:148
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:48
 msgid "Base URL"
 msgstr "बेस URL"
@@ -865,7 +872,7 @@ msgstr "डिलीट की पुष्टि करें"
 msgid "Connect"
 msgstr "कनेक्ट करें"
 
-#: src/pages/DocsView.tsx:364
+#: src/pages/DocsView.tsx:365
 msgid "Connect a coding agent"
 msgstr "कोडिंग एजेंट कनेक्ट करें"
 
@@ -885,7 +892,7 @@ msgstr "API कुंजी कनेक्ट करें"
 msgid "Connect ElevenLabs, OpenAI, or Cartesia"
 msgstr "ElevenLabs, OpenAI या Cartesia कनेक्ट करें"
 
-#: src/pages/DocsView.tsx:356
+#: src/pages/DocsView.tsx:357
 msgid "Connect from Claude"
 msgstr "Claude से जुड़ें"
 
@@ -961,7 +968,7 @@ msgid "Contact"
 msgstr "संपर्क"
 
 #: src/pages/crm/CrmView.tsx:30
-#: src/pages/DocsView.tsx:286
+#: src/pages/DocsView.tsx:287
 msgid "Contacts"
 msgstr "संपर्क"
 
@@ -976,7 +983,7 @@ msgstr "ईमेल से जारी रखें"
 
 #: src/pages/CrmApiAccessPanel.tsx:264
 #: src/pages/CrmApiAccessPanel.tsx:345
-#: src/pages/DocsView.tsx:241
+#: src/pages/DocsView.tsx:242
 msgid "Copied"
 msgstr "कॉपी हो गया"
 
@@ -994,7 +1001,7 @@ msgstr "इस टोकन के साथ एजेंट सेटअप प
 msgid "Copy integration token"
 msgstr "इंटीग्रेशन टोकन कॉपी करें"
 
-#: src/pages/DocsView.tsx:241
+#: src/pages/DocsView.tsx:242
 msgid "Copy setup prompt"
 msgstr "सेटअप प्रॉम्प्ट कॉपी करें"
 
@@ -1002,9 +1009,13 @@ msgstr "सेटअप प्रॉम्प्ट कॉपी करें"
 msgid "Copy the signing secret now"
 msgstr "साइनिंग सीक्रेट अभी कॉपी करें"
 
-#: src/pages/DocsView.tsx:366
+#: src/pages/DocsView.tsx:367
 msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself."
 msgstr "इस प्रॉम्प्ट को एक टोकन के साथ Claude, Cursor या किसी भी कोडिंग एजेंट में कॉपी करें — वह MCP से कनेक्ट होकर कनेक्शन खुद जाँच लेगा।"
+
+#: src/pages/DocsView.tsx:140
+msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself. Tokens live at the bottom of Integrations, under API & agent access."
+msgstr "इस प्रॉम्प्ट को एक टोकन के साथ Claude, Cursor या किसी भी कोडिंग एजेंट में कॉपी करें — वह MCP से कनेक्ट होकर कनेक्शन खुद जाँच लेगा। टोकन Integrations में सबसे नीचे API और एजेंट एक्सेस में मिलते हैं।"
 
 #: src/pages/CrmApiAccessPanel.tsx:223
 msgid "Copy this token now"
@@ -1346,7 +1357,7 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Cron एक्सप्रेशन"
 
-#: src/pages/DocsView.tsx:301
+#: src/pages/DocsView.tsx:302
 msgid "Custom modules"
 msgstr "कस्टम मॉड्यूल"
 
@@ -1443,11 +1454,11 @@ msgstr "डिलीट किया गया"
 msgid "Deleting…"
 msgstr "डिलीट किया जा रहा है…"
 
-#: src/pages/DocsView.tsx:439
+#: src/pages/DocsView.tsx:440
 msgid "Delivery"
 msgstr "डिलीवरी"
 
-#: src/pages/DocsView.tsx:320
+#: src/pages/DocsView.tsx:321
 msgid "Delivery format, retries, and signatures are on the Webhooks tab."
 msgstr "डिलीवरी फ़ॉर्मैट, रीट्राई और सिग्नेचर Webhooks टैब पर हैं।"
 
@@ -1591,7 +1602,7 @@ msgid "Encrypted static credential saved"
 msgstr "एन्क्रिप्टेड स्टैटिक क्रेडेंशियल सहेजा गया"
 
 #: src/pages/DocsView.tsx:112
-#: src/pages/DocsView.tsx:346
+#: src/pages/DocsView.tsx:347
 msgid "Endpoint"
 msgstr "एंडपॉइंट"
 
@@ -1601,11 +1612,11 @@ msgstr "एंडपॉइंट"
 msgid "Enter this code at <0>{0}</0>"
 msgstr "यह कोड <0>{0}</0> पर दर्ज करें"
 
-#: src/pages/DocsView.tsx:255
+#: src/pages/DocsView.tsx:256
 msgid "Errors"
 msgstr "त्रुटियाँ"
 
-#: src/pages/DocsView.tsx:426
+#: src/pages/DocsView.tsx:427
 msgid "Events"
 msgstr "इवेंट"
 
@@ -1617,7 +1628,7 @@ msgstr "हर"
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "हर {intervalAmountSelect} {intervalUnitSelect}"
 
-#: src/pages/DocsView.tsx:279
+#: src/pages/DocsView.tsx:280
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "डेटा बनाने वाला हर <0>POST</0> एक <1>Idempotency-Key</1> हेडर स्वीकार करता है। उसी की के साथ दोबारा कोशिश करने पर मूल परिणाम मिलता है, लिखने की क्रिया दोहराई नहीं जाती; अलग पेलोड के साथ की दोबारा इस्तेमाल करने पर <2>409</2> मिलता है।"
 
@@ -1642,7 +1653,7 @@ msgstr "हर सोमवार"
 msgid "Every month"
 msgstr "हर महीने"
 
-#: src/pages/DocsView.tsx:250
+#: src/pages/DocsView.tsx:251
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "हर अनुरोध में <0>Authorization: Bearer manor_…</0> होता है। टोकन के स्कोप तय करते हैं कि वह किस तक पहुंच सकता है।"
 
@@ -1680,7 +1691,7 @@ msgstr "अतिरिक्त उच्च"
 msgid "Failed"
 msgstr "विफल"
 
-#: src/pages/DocsView.tsx:449
+#: src/pages/DocsView.tsx:450
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr "विफल डिलीवरी exponential backoff के साथ अधिकतम 8 बार दोहराई जाती हैं, प्रयासों के बीच अधिकतम एक घंटा। 10 सेकंड के भीतर 2xx से जवाब दें।"
 
@@ -1699,7 +1710,7 @@ msgstr "रोकने में विफल"
 msgid "Failure handling"
 msgstr "विफलता प्रबंधन"
 
-#: src/pages/DocsView.tsx:257
+#: src/pages/DocsView.tsx:258
 msgid "Failures return a JSON body with a human-readable message:"
 msgstr "विफलताएँ पढ़ने-योग्य संदेश के साथ JSON बॉडी लौटाती हैं:"
 
@@ -1756,7 +1767,7 @@ msgstr "किसी MCP क्लाइंट को CRM स्कोप वा
 msgid "Give bots extra tools from a remote MCP server, an OpenAPI spec, or Treg."
 msgstr "बॉट्स को रिमोट MCP सर्वर, OpenAPI स्पेक या Treg से अतिरिक्त टूल दें।"
 
-#: src/pages/DocsView.tsx:156
+#: src/pages/DocsView.tsx:166
 msgid "Grants"
 msgstr "अनुमतियां"
 
@@ -1851,7 +1862,7 @@ msgstr "जांच कैसे करें"
 msgid "I’m done"
 msgstr "मेरा काम हो गया"
 
-#: src/pages/DocsView.tsx:277
+#: src/pages/DocsView.tsx:278
 msgid "Idempotency"
 msgstr "आइडेम्पोटेंसी"
 
@@ -1863,11 +1874,7 @@ msgstr "अगर आपने वह सुना, तो आवाज़ त�
 msgid "Import OpenAPI JSON"
 msgstr "OpenAPI JSON इम्पोर्ट करें"
 
-#: src/pages/DocsView.tsx:208
-msgid "In a hurry? Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself."
-msgstr "जल्दी में हैं? इस प्रॉम्प्ट को एक टोकन के साथ Claude, Cursor या किसी भी कोडिंग एजेंट में कॉपी करें — वह MCP से कनेक्ट होकर कनेक्शन खुद जाँच लेगा।"
-
-#: src/pages/DocsView.tsx:472
+#: src/pages/DocsView.tsx:473
 msgid "Inbound: trigger a bot"
 msgstr "इनबाउंड: बॉट ट्रिगर करें"
 
@@ -1957,7 +1964,7 @@ msgstr "Linear इश्यू"
 msgid "List"
 msgstr "सूची"
 
-#: src/pages/DocsView.tsx:267
+#: src/pages/DocsView.tsx:268
 msgid "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
 msgstr "लिस्ट एंडपॉइंट <0>limit</0> (1–100, डिफ़ॉल्ट 50) लेते हैं और <1>next_cursor</1> लौटाते हैं। अगला पेज पाने के लिए इसे <2>cursor</2> के रूप में वापस भेजें; <3>null</3> कर्सर का मतलब है सब कुछ मिल गया। कर्सर लिखने के दौरान भी स्थिर रहते हैं, इसलिए सिंक कभी पंक्तियाँ छोड़ते या दोहराते नहीं।"
 
@@ -2077,7 +2084,7 @@ msgstr "अधिकतम"
 msgid "MCP servers"
 msgstr "MCP सर्वर"
 
-#: src/pages/DocsView.tsx:261
+#: src/pages/DocsView.tsx:262
 msgid "Meaning"
 msgstr "अर्थ"
 
@@ -2190,7 +2197,7 @@ msgstr "मॉडल आपके अपने खातों और कुं�
 msgid "Module name"
 msgstr "मॉड्यूल का नाम"
 
-#: src/pages/DocsView.tsx:303
+#: src/pages/DocsView.tsx:304
 msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
 msgstr "मॉड्यूल CRM की उपयोगकर्ता-परिभाषित शीट हैं — हर मॉड्यूल टाइप्ड फ़ील्ड (टेक्स्ट, संख्या, दिनांक, चेकबॉक्स, सेलेक्ट, ईमेल, फ़ोन, URL) घोषित करता है और उनके अनुसार सत्यापित रिकॉर्ड रखता है। रिकॉर्ड का <0>values</0> फ़ील्ड लेबल या फ़ील्ड id को की के रूप में स्वीकार करता है:"
 
@@ -2467,10 +2474,6 @@ msgstr "खुली डील"
 msgid "Open in full window"
 msgstr "पूरी विंडो में खोलें"
 
-#: src/pages/DocsView.tsx:149
-msgid "Open Integrations → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
-msgstr "इंटीग्रेशन → CRM API पहुंच खोलें, क्रेडेंशियल को नाम दें, उसके स्कोप चुनें और टोकन कॉपी करें — यह एक ही बार दिखाया जाता है। टोकन <0>manor_</0> से शुरू होते हैं और कभी भी रद्द किए जा सकते हैं।"
-
 #: src/pages/Shell.tsx:2419
 msgid "Open navigation"
 msgstr "नेविगेशन खोलें"
@@ -2496,7 +2499,7 @@ msgstr "OpenAI-संगत सर्वर URL"
 msgid "OpenAPI (JSON) ↗"
 msgstr "OpenAPI (JSON) ↗"
 
-#: src/pages/DocsView.tsx:323
+#: src/pages/DocsView.tsx:324
 msgid "OpenAPI document"
 msgstr "OpenAPI दस्तावेज़"
 
@@ -2558,7 +2561,7 @@ msgstr "आउटबाउंड वेबहुक"
 msgid "PagerDuty incident"
 msgstr "PagerDuty इंसिडेंट"
 
-#: src/pages/DocsView.tsx:265
+#: src/pages/DocsView.tsx:266
 msgid "Pagination"
 msgstr "पेजिनेशन"
 
@@ -2620,7 +2623,7 @@ msgstr "पाइपलाइन नाम"
 msgid "Pipeline value by stage"
 msgstr "चरण के अनुसार पाइपलाइन मूल्य"
 
-#: src/pages/DocsView.tsx:289
+#: src/pages/DocsView.tsx:290
 msgid "Pipelines and deals"
 msgstr "पाइपलाइन और डील"
 
@@ -2658,7 +2661,7 @@ msgstr "प्रोवाइडर्स"
 msgid "Queued"
 msgstr "कतार में"
 
-#: src/pages/DocsView.tsx:385
+#: src/pages/DocsView.tsx:386
 msgid "read / write"
 msgstr "पढ़ना / लिखना"
 
@@ -2666,7 +2669,7 @@ msgstr "पढ़ना / लिखना"
 msgid "Read replies aloud"
 msgstr "उत्तर पढ़कर सुनाएं"
 
-#: src/pages/DocsView.tsx:385
+#: src/pages/DocsView.tsx:386
 msgid "read-only"
 msgstr "केवल पढ़ना"
 
@@ -2686,7 +2689,7 @@ msgstr "OAuth पुनः कनेक्ट करें"
 msgid "Reconnecting"
 msgstr "पुनः कनेक्ट हो रहा है"
 
-#: src/pages/DocsView.tsx:389
+#: src/pages/DocsView.tsx:390
 msgid "Record tools address modules by name or id, and record <0>values</0> use field labels as keys — an agent can say <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> without ever seeing an internal id."
 msgstr "रिकॉर्ड टूल मॉड्यूल को नाम या id से संबोधित करते हैं, और <0>values</0> फ़ील्ड लेबल को की के रूप में इस्तेमाल करता है — एजेंट बिना कोई आंतरिक id देखे <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> कह सकता है।"
 
@@ -2708,11 +2711,11 @@ msgstr "रिकवर एक ऐसे कंप्यूटर को बद�
 msgid "Recovering…"
 msgstr "रिकवर हो रहा है…"
 
-#: src/pages/DocsView.tsx:410
+#: src/pages/DocsView.tsx:411
 msgid "Register an endpoint"
 msgstr "एंडपॉइंट रजिस्टर करें"
 
-#: src/pages/DocsView.tsx:467
+#: src/pages/DocsView.tsx:468
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr "रिप्ले रोकने के लिए ऐसी डिलीवरी अस्वीकार करें जिनका टाइमस्टैम्प कुछ मिनट से ज़्यादा पुराना हो।"
 
@@ -2937,7 +2940,7 @@ msgid "Say yes or no, or answer in a sentence."
 msgstr "हां या ना कहें, या एक वाक्य में उत्तर दें।"
 
 #: src/pages/DocsView.tsx:113
-#: src/pages/DocsView.tsx:156
+#: src/pages/DocsView.tsx:166
 msgid "Scope"
 msgstr "स्कोप"
 
@@ -2993,11 +2996,11 @@ msgstr "उत्तर भेजें"
 msgid "Send it"
 msgstr "इसे भेजें"
 
-#: src/pages/DocsView.tsx:162
+#: src/pages/DocsView.tsx:172
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "हर कॉल में टोकन बेयरर हेडर के रूप में भेजें। यह वर्कस्पेस के संपर्क सूचीबद्ध करता है:"
 
-#: src/pages/DocsView.tsx:485
+#: src/pages/DocsView.tsx:486
 msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 msgstr "जो सेंडर हेडर सेट नहीं कर सकते (cal.com, फ़ॉर्म बिल्डर), वे की को URL में जोड़ सकते हैं: <0>?token=<webhook key></0>। बॉडी 64 KB तक सीमित है; <1>text</1> फ़ील्ड जस का तस पहुँचाया जाता है, बाक़ी सब JSON के रूप में। एक ही <2>Idempotency-Key</2> हेडर (या पेलोड <3>id</3>/<4>event_id</4>) वाली दोहराई गई डिलीवरी डीडुप्लिकेट होती हैं।"
 
@@ -3026,7 +3029,7 @@ msgstr "सर्वर URL"
 msgid "Set up voice to call"
 msgstr "कॉल के लिए आवाज़ सेट करें"
 
-#: src/pages/DocsView.tsx:206
+#: src/pages/DocsView.tsx:138
 msgid "Set up with an AI agent"
 msgstr "AI एजेंट से सेटअप करें"
 
@@ -3037,7 +3040,7 @@ msgstr "AI एजेंट से सेटअप करें"
 msgid "Settings"
 msgstr "सेटिंग्स"
 
-#: src/pages/DocsView.tsx:358
+#: src/pages/DocsView.tsx:359
 msgid "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 msgstr "सेटिंग्स → कनेक्टर → कस्टम कनेक्टर जोड़ें। एंडपॉइंट URL और टोकन चिपकाएं, और CRM टूल हर बातचीत में दिखेंगे।"
 
@@ -3175,7 +3178,7 @@ msgid "Starting…"
 msgstr "शुरू हो रहा है…"
 
 #: src/pages/crm/CrmContactsSheet.tsx:116
-#: src/pages/DocsView.tsx:261
+#: src/pages/DocsView.tsx:262
 msgid "Status"
 msgstr "स्टेटस"
 
@@ -3300,11 +3303,11 @@ msgstr "API वापस नहीं आया। यह पेज रीफ़
 msgid "The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to add the first one."
 msgstr "पाइपलाइन में डील आते ही डैशबोर्ड जीवंत हो उठता है। पहली डील जोड़ने के लिए पाइपलाइन टैब खोलें।"
 
-#: src/pages/DocsView.tsx:325
+#: src/pages/DocsView.tsx:326
 msgid "The machine-readable spec lives at <0>{origin}/v1/openapi.json</0> — import it into Postman, Insomnia, or a code generator to get typed clients for everything on this page."
 msgstr "मशीन-पठनीय स्पेसिफ़िकेशन <0>{origin}/v1/openapi.json</0> पर है — इसे Postman, Insomnia या किसी कोड जनरेटर में इंपोर्ट करके इस पेज की हर चीज़ के लिए टाइप्ड क्लाइंट पाएँ।"
 
-#: src/pages/DocsView.tsx:217
+#: src/pages/DocsView.tsx:218
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "REST टैब पूरा एंडपॉइंट संदर्भ है — कन्वेंशन, पेजिनेशन और हर रूट। AI क्लाइंट REST छोड़कर सीधे MCP से जुड़ सकते हैं। वेबहुक बदलाव होते ही आपके सर्वर तक पहुँचाते हैं।"
 
@@ -3312,7 +3315,7 @@ msgstr "REST टैब पूरा एंडपॉइंट संदर्भ 
 msgid "The selected memory provider is not available in this build."
 msgstr "चयनित मेमोरी प्रोवाइडर इस बिल्ड में उपलब्ध नहीं है।"
 
-#: src/pages/DocsView.tsx:457
+#: src/pages/DocsView.tsx:458
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "हस्ताक्षर, एंडपॉइंट के साइनिंग सीक्रेट से <0><timestamp>.<raw body></0> का HMAC-SHA256 है:"
 
@@ -3395,7 +3398,7 @@ msgstr "शीर्षक"
 msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
 msgstr "टोकन एक ही बार दिखाए जाते हैं। इन्हें अपने सर्वर या ऑटोमेशन प्लेटफ़ॉर्म में रखें, ब्राउज़र कोड में कभी नहीं।"
 
-#: src/pages/DocsView.tsx:376
+#: src/pages/DocsView.tsx:377
 msgid "Tool"
 msgstr "टूल"
 
@@ -3403,7 +3406,7 @@ msgstr "टूल"
 msgid "Tool sources"
 msgstr "टूल स्रोत"
 
-#: src/pages/DocsView.tsx:373
+#: src/pages/DocsView.tsx:374
 msgid "Tools"
 msgstr "टूल"
 
@@ -3484,7 +3487,7 @@ msgstr "अपडेट हो रहा है…"
 msgid "URL"
 msgstr "URL"
 
-#: src/pages/DocsView.tsx:420
+#: src/pages/DocsView.tsx:421
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr "URL HTTPS होने चाहिए। जवाब में एंडपॉइंट और उसका साइनिंग सीक्रेट होता है — इसे सहेज लें; यह दोबारा प्राप्त नहीं किया जा सकता।"
 
@@ -3519,7 +3522,7 @@ msgstr "मूल्य वितरण"
 msgid "Verify and add"
 msgstr "पुष्टि करके जोड़ें"
 
-#: src/pages/DocsView.tsx:455
+#: src/pages/DocsView.tsx:456
 msgid "Verify the signature"
 msgstr "हस्ताक्षर सत्यापित करें"
 
@@ -3561,7 +3564,7 @@ msgstr "वेबहुक"
 msgid "Webhook HTTPS URL"
 msgstr "वेबहुक HTTPS URL"
 
-#: src/pages/DocsView.tsx:317
+#: src/pages/DocsView.tsx:318
 msgid "Webhook management"
 msgstr "वेबहुक प्रबंधन"
 
@@ -3573,7 +3576,7 @@ msgstr "वेबहुक नाम"
 msgid "Webhooks"
 msgstr "वेबहुक"
 
-#: src/pages/DocsView.tsx:474
+#: src/pages/DocsView.tsx:475
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "वेबहुक दूसरी दिशा में भी चलते हैं — हर बॉट के पास एक इनबाउंड URL है जिस पर बाहरी सेवाएँ POST कर सकती हैं। पेलोड संदेश के रूप में आता है और वेबहुक ट्रिगर वाली हर रूटीन चलती है, ताकि बॉट अपने टूल्स से उस पर कार्रवाई कर सके। इसे बॉट के रूटीन एडिटर में सेट करें।"
 
@@ -3621,7 +3624,7 @@ msgstr "कब चलाएं"
 msgid "When to use"
 msgstr "कब उपयोग करें"
 
-#: src/pages/DocsView.tsx:215
+#: src/pages/DocsView.tsx:216
 msgid "Where next"
 msgstr "आगे कहाँ"
 
@@ -3646,7 +3649,7 @@ msgstr "काम चल रहा है…"
 msgid "Workspace default"
 msgstr "वर्कस्पेस डिफ़ॉल्ट"
 
-#: src/pages/DocsView.tsx:189
+#: src/pages/DocsView.tsx:199
 msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
 msgstr "लिखने के लिए <0>crm:write</0> स्कोप चाहिए। Upsert सबसे सुरक्षित तरीका है — यह <1>source</1> + <2>external_id</2> (या ईमेल) पर मैच करता है, इसलिए वही कॉल दोहराने से संपर्क कभी डुप्लिकेट नहीं होता:"
 

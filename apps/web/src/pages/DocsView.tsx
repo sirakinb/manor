@@ -135,6 +135,16 @@ function GettingStarted({ origin }: { origin: string }) {
           they open up.
         </Trans>
       </Prose>
+      <Section title={<Trans>Set up with an AI agent</Trans>}>
+        <Prose>
+          <Trans>
+            Copy this prompt into Claude, Cursor, or any coding agent along with a token — it
+            connects over MCP and verifies the connection itself. Tokens live at the bottom of
+            Integrations, under API & agent access.
+          </Trans>
+        </Prose>
+        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin })} />
+      </Section>
       <Section title={<Trans>Base URL</Trans>}>
         <Code>{origin}</Code>
         <Prose>
@@ -147,9 +157,9 @@ function GettingStarted({ origin }: { origin: string }) {
       <Section title={<Trans>1 · Create a token</Trans>}>
         <Prose>
           <Trans>
-            Open Integrations → CRM API access, name the credential, pick its scopes, and copy the
-            token — it is shown once. Tokens start with <Mono>manor_</Mono> and can be revoked at
-            any time.
+            At the bottom of Integrations, open API & agent access → CRM API access, name the
+            credential, pick its scopes, and copy the token — it is shown once. Tokens start with{" "}
+            <Mono>manor_</Mono> and can be revoked at any time.
           </Trans>
         </Prose>
         <Table
@@ -202,15 +212,6 @@ function GettingStarted({ origin }: { origin: string }) {
     "email": "jordan@example.com",
     "tags": ["Lead"]
   }'`}</Code>
-      </Section>
-      <Section title={<Trans>Set up with an AI agent</Trans>}>
-        <Prose>
-          <Trans>
-            In a hurry? Copy this prompt into Claude, Cursor, or any coding agent along with a token
-            — it connects over MCP and verifies the connection itself.
-          </Trans>
-        </Prose>
-        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin })} />
       </Section>
       <Section title={<Trans>Where next</Trans>}>
         <Prose>
@@ -403,8 +404,8 @@ function WebhooksReference({ origin }: { origin: string }) {
     <>
       <Prose>
         <Trans>
-          {brandName} pushes CRM changes to URLs you register — in Integrations → CRM API access or
-          via <Mono>POST /v1/webhooks</Mono>. Each endpoint gets a signing secret, shown once.
+          {brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access
+          or via <Mono>POST /v1/webhooks</Mono>. Each endpoint gets a signing secret, shown once.
         </Trans>
       </Prose>
       <Section title={<Trans>Register an endpoint</Trans>}>

@@ -424,7 +424,7 @@ export function PluginsOverlay({
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14px] text-[#85858A]">
               <span className="text-[#85858A]">
-                <Trans>Advanced</Trans>
+                <Trans>API & agent access</Trans>
               </span>
               <span aria-hidden="true" className="transition-transform group-open:rotate-90">
                 ›
