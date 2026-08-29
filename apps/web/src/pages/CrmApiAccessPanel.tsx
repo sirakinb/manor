@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
+import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import { brandName } from "../lib/brand";
 
 type Credential = {
@@ -217,7 +218,7 @@ export function CrmApiAccessPanel() {
         </fieldset>
         {revealedToken ? (
           <div className="rounded-xl border border-[#3DBB7255] bg-[#3DBB7212] p-4">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-[#8BD7AA]">
                 <Trans>Copy this token now</Trans>
               </span>
@@ -231,6 +232,33 @@ export function CrmApiAccessPanel() {
               </button>
             </div>
             <code className="block break-all text-xs text-[#ECECEE]">{revealedToken}</code>
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#3DBB7233] pt-4">
+              <BuiButton
+                tone="accent"
+                aria-label={t`Copy agent setup prompt with this token`}
+                onClick={() =>
+                  void copy(
+                    buildAgentSetupPrompt({
+                      origin: window.location.origin,
+                      token: revealedToken,
+                    }),
+                    "prompt",
+                  )
+                }
+              >
+                {copied === "prompt" ? (
+                  <Trans>Prompt copied</Trans>
+                ) : (
+                  <Trans>Connect an agent</Trans>
+                )}
+              </BuiButton>
+              <p className="min-w-0 flex-1 text-xs leading-5 text-[#85858A]">
+                <Trans>
+                  One paste into Claude, Cursor, or any coding agent — token included, it connects
+                  over MCP and verifies itself.
+                </Trans>
+              </p>
+            </div>
             {copied === "token" ? (
               <div className="mt-3">
                 <SuccessPop label={t`Copied`} />

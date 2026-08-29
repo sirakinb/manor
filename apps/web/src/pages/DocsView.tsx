@@ -1,153 +1,20 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
+import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
+import {
+  CONTACT_ENDPOINTS,
+  DEAL_ENDPOINTS,
+  type Endpoint,
+  MCP_TOOLS,
+  MODULE_ENDPOINTS,
+  SCOPES,
+  STATUS_CODES,
+  WEBHOOK_ENDPOINTS,
+  WEBHOOK_EVENTS,
+} from "../lib/api-catalog";
 import { brandName } from "../lib/brand";
 
 type DocsTab = "start" | "rest" | "mcp" | "webhooks";
-
-const SCOPES = [
-  { scope: "crm:read", grants: "Read contacts, pipelines, deals, modules, records" },
-  { scope: "crm:write", grants: "Create and update CRM data over REST and MCP" },
-  { scope: "webhooks:manage", grants: "List, create, and delete webhook endpoints" },
-];
-
-const STATUS_CODES = [
-  { code: "400", meaning: "Validation failed; the message says which field" },
-  { code: "401", meaning: "Missing, revoked, or malformed token" },
-  { code: "403", meaning: "Token lacks the required scope" },
-  { code: "404", meaning: "Resource is not in this workspace" },
-  { code: "409", meaning: "Idempotency-Key reused with a different payload" },
-];
-
-type Endpoint = { method: string; path: string; scope: string; summary: string };
-
-const CONTACT_ENDPOINTS: Endpoint[] = [
-  {
-    method: "GET",
-    path: "/v1/crm/contacts",
-    scope: "crm:read",
-    summary: "List contacts; filter with updated_after",
-  },
-  { method: "GET", path: "/v1/crm/contacts/:id", scope: "crm:read", summary: "Get one contact" },
-  {
-    method: "POST",
-    path: "/v1/crm/contacts/upsert",
-    scope: "crm:write",
-    summary: "Create or update by source + external_id or email",
-  },
-];
-
-const DEAL_ENDPOINTS: Endpoint[] = [
-  {
-    method: "GET",
-    path: "/v1/crm/pipelines",
-    scope: "crm:read",
-    summary: "List pipelines with their stages",
-  },
-  { method: "GET", path: "/v1/crm/deals", scope: "crm:read", summary: "List deals" },
-  {
-    method: "POST",
-    path: "/v1/crm/deals",
-    scope: "crm:write",
-    summary: "Create a deal in a pipeline stage",
-  },
-  {
-    method: "PATCH",
-    path: "/v1/crm/deals/:id",
-    scope: "crm:write",
-    summary: "Update title, value, contact, or status",
-  },
-  {
-    method: "POST",
-    path: "/v1/crm/deals/:id/move",
-    scope: "crm:write",
-    summary: "Move a deal to another stage",
-  },
-];
-
-const MODULE_ENDPOINTS: Endpoint[] = [
-  {
-    method: "GET",
-    path: "/v1/crm/modules",
-    scope: "crm:read",
-    summary: "List custom modules and their fields",
-  },
-  {
-    method: "POST",
-    path: "/v1/crm/modules",
-    scope: "crm:write",
-    summary: "Create a module (a user-defined sheet)",
-  },
-  {
-    method: "GET",
-    path: "/v1/crm/modules/:id/records",
-    scope: "crm:read",
-    summary: "List records in a module",
-  },
-  {
-    method: "POST",
-    path: "/v1/crm/modules/:id/records",
-    scope: "crm:write",
-    summary: "Create a record",
-  },
-  {
-    method: "PATCH",
-    path: "/v1/crm/records/:id",
-    scope: "crm:write",
-    summary: "Update record values; null clears a field",
-  },
-  {
-    method: "DELETE",
-    path: "/v1/crm/records/:id",
-    scope: "crm:write",
-    summary: "Delete a record",
-  },
-];
-
-const WEBHOOK_ENDPOINTS: Endpoint[] = [
-  {
-    method: "GET",
-    path: "/v1/webhooks",
-    scope: "webhooks:manage",
-    summary: "List webhook endpoints",
-  },
-  {
-    method: "POST",
-    path: "/v1/webhooks",
-    scope: "webhooks:manage",
-    summary: "Create an endpoint; returns its signing secret once",
-  },
-  {
-    method: "DELETE",
-    path: "/v1/webhooks/:id",
-    scope: "webhooks:manage",
-    summary: "Delete an endpoint",
-  },
-];
-
-const MCP_TOOLS = [
-  { name: "crm_overview", args: "—", writes: false },
-  { name: "crm_find_contacts", args: "query", writes: false },
-  { name: "crm_upsert_contact", args: "contact_id?, first_name?, email?, tags?, …", writes: true },
-  { name: "crm_sync_contact", args: "source?, external_id?, email?, …", writes: true },
-  { name: "crm_create_deal", args: "title, value, pipeline?, stage?, contact_name?", writes: true },
-  { name: "crm_update_deal", args: "deal_id, title?, value?, status?", writes: true },
-  { name: "crm_move_deal", args: "deal_id, stage", writes: true },
-  { name: "crm_list_modules", args: "—", writes: false },
-  { name: "crm_create_module", args: "name, fields?", writes: true },
-  { name: "crm_list_records", args: "module, cursor?", writes: false },
-  { name: "crm_upsert_record", args: "module?, record_id?, values", writes: true },
-  { name: "crm_delete_record", args: "record_id", writes: true },
-];
-
-const WEBHOOK_EVENTS = [
-  "contact.created",
-  "contact.updated",
-  "deal.created",
-  "deal.updated",
-  "deal.stage_changed",
-  "record.created",
-  "record.updated",
-];
 
 /** The Manor API reference. The CRM is the first surface; new areas add tabs here. */
 export function DocsView() {
@@ -336,6 +203,15 @@ function GettingStarted({ origin }: { origin: string }) {
     "tags": ["Lead"]
   }'`}</Code>
       </Section>
+      <Section title={<Trans>Set up with an AI agent</Trans>}>
+        <Prose>
+          <Trans>
+            In a hurry? Copy this prompt into Claude, Cursor, or any coding agent along with a token
+            — it connects over MCP and verifies the connection itself.
+          </Trans>
+        </Prose>
+        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin })} />
+      </Section>
       <Section title={<Trans>Where next</Trans>}>
         <Prose>
           <Trans>
@@ -346,6 +222,24 @@ function GettingStarted({ origin }: { origin: string }) {
         </Prose>
       </Section>
     </>
+  );
+}
+
+function CopyPromptButton({ prompt }: { prompt: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard.writeText(prompt).then(() => {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1_500);
+        });
+      }}
+      className="rounded-full border border-[#7785FF55] bg-[#7785FF18] px-4 py-1.5 text-[13px] text-[#C7CCFF] transition-colors hover:bg-[#7785FF28]"
+    >
+      {copied ? <Trans>Copied</Trans> : <Trans>Copy setup prompt</Trans>}
+    </button>
   );
 }
 
@@ -466,6 +360,15 @@ function McpReference({ origin }: { origin: string }) {
             the CRM tools appear in every conversation.
           </Trans>
         </Prose>
+      </Section>
+      <Section title={<Trans>Connect a coding agent</Trans>}>
+        <Prose>
+          <Trans>
+            Copy this prompt into Claude, Cursor, or any coding agent along with a token — it
+            connects over MCP and verifies the connection itself.
+          </Trans>
+        </Prose>
+        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin })} />
       </Section>
       <Section title={<Trans>Tools</Trans>}>
         <Table
