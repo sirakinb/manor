@@ -22,6 +22,7 @@ export function CrmView() {
   const [error, setError] = useState<string | null>(null);
   const [creatingModule, setCreatingModule] = useState(false);
   const [newModuleName, setNewModuleName] = useState("");
+  const [renamingModule, setRenamingModule] = useState<{ id: string; name: string } | null>(null);
 
   const tabs: Array<{ key: "home" | "pipeline" | "contacts"; label: string }> = [
     { key: "home", label: t`Home` },
@@ -69,6 +70,15 @@ export function CrmView() {
     setTab({ moduleId: module.id });
   }
 
+  async function renameModule() {
+    if (!renamingModule) return;
+    const name = renamingModule.name.trim();
+    setRenamingModule(null);
+    if (!name || name === modules.find((m) => m.id === renamingModule.id)?.name) return;
+    await rpc.crm.modules.update({ moduleId: renamingModule.id, name });
+    await refreshModules();
+  }
+
   const activeModule =
     typeof tab === "object" ? modules.find((module) => module.id === tab.moduleId) : undefined;
 
@@ -92,20 +102,41 @@ export function CrmView() {
                 {entry.label}
               </button>
             ))}
-            {modules.map((module) => (
-              <button
-                key={module.id}
-                type="button"
-                onClick={() => setTab({ moduleId: module.id })}
-                className={`shrink-0 rounded-full px-3.5 py-1 text-[13px] transition-colors ${
-                  activeModule?.id === module.id
-                    ? "bg-[#232326] text-[#ECECEE]"
-                    : "text-[#85858A] hover:text-[#C9C9CE]"
-                }`}
-              >
-                {module.name}
-              </button>
-            ))}
+            {modules.map((module) =>
+              renamingModule?.id === module.id ? (
+                <input
+                  key={module.id}
+                  value={renamingModule.name}
+                  onChange={(event) =>
+                    setRenamingModule({ id: module.id, name: event.target.value })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") void renameModule();
+                    if (event.key === "Escape") setRenamingModule(null);
+                  }}
+                  onBlur={() => void renameModule()}
+                  aria-label={t`Module name`}
+                  className="w-[130px] shrink-0 rounded-full bg-[#232326] px-3 py-1 text-[13px] text-[#ECECEE] outline-none"
+                  // biome-ignore lint/a11y/noAutofocus: the user just asked to rename the module
+                  autoFocus
+                />
+              ) : (
+                <button
+                  key={module.id}
+                  type="button"
+                  onClick={() => setTab({ moduleId: module.id })}
+                  onDoubleClick={() => setRenamingModule({ id: module.id, name: module.name })}
+                  title={t`Double-click to rename`}
+                  className={`shrink-0 rounded-full px-3.5 py-1 text-[13px] transition-colors ${
+                    activeModule?.id === module.id
+                      ? "bg-[#232326] text-[#ECECEE]"
+                      : "text-[#85858A] hover:text-[#C9C9CE]"
+                  }`}
+                >
+                  {module.name}
+                </button>
+              ),
+            )}
             {creatingModule ? (
               <input
                 value={newModuleName}

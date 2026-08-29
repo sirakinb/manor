@@ -105,6 +105,7 @@ export function CrmContacts({
         {view === "sheet" ? (
           <CrmContactsSheet
             contacts={contacts}
+            allTags={overview.tags}
             onChanged={onChanged}
             onOpenRow={(contact) => setOpenId(contact.id)}
           />

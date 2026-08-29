@@ -1,5 +1,5 @@
 import { Plural, useLingui } from "@lingui/react/macro";
-import type { CrmContact } from "@rakazo/contracts";
+import type { CrmContact, CrmTag } from "@rakazo/contracts";
 import { useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
 import { type SheetColumn, SheetGrid } from "./SheetGrid";
@@ -11,10 +11,12 @@ import { type SheetColumn, SheetGrid } from "./SheetGrid";
  */
 export function CrmContactsSheet({
   contacts,
+  allTags,
   onChanged,
   onOpenRow,
 }: {
   contacts: CrmContact[];
+  allTags: CrmTag[];
   onChanged: () => Promise<void>;
   onOpenRow: (contact: CrmContact) => void;
 }) {
@@ -41,6 +43,22 @@ export function CrmContactsSheet({
           contactId: contact.id,
           status: value === t`Archived` || value === "archived" ? "archived" : "active",
         });
+      } else if (columnId === "tags") {
+        const names = [
+          ...new Set(
+            value
+              .split(",")
+              .map((name) => name.trim())
+              .filter(Boolean),
+          ),
+        ];
+        const tagIds: string[] = [];
+        for (const name of names) {
+          const existing = allTags.find((tag) => tag.name.toLowerCase() === name.toLowerCase());
+          const tag = existing ?? (await rpc.crm.tags.create({ name }));
+          if (!tagIds.includes(tag.id)) tagIds.push(tag.id);
+        }
+        await rpc.crm.contacts.update({ contactId: contact.id, tagIds });
       } else {
         await rpc.crm.contacts.update({
           contactId: contact.id,
@@ -106,6 +124,7 @@ export function CrmContactsSheet({
       id: "tags",
       label: t`Tags`,
       width: 200,
+      editable: true,
       getValue: (contact) => contact.tags.map((tag) => tag.name).join(", "),
       render: (contact) => (
         <span className="flex gap-1 overflow-hidden">

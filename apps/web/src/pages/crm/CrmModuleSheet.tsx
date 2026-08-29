@@ -25,6 +25,7 @@ export function CrmModuleSheet({
   const [records, setRecords] = useState<CrmModuleRecord[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [addingField, setAddingField] = useState(false);
+  const [editingField, setEditingField] = useState<CrmModule["fields"][number] | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const load = useCallback(async () => {
@@ -92,6 +93,7 @@ export function CrmModuleSheet({
         label: field.label,
         width: field.type === "checkbox" ? 90 : field.type === "number" ? 120 : 170,
         editable: true,
+        headerEditable: true,
         options:
           field.type === "select"
             ? field.options
@@ -166,14 +168,21 @@ export function CrmModuleSheet({
         )}
       </div>
 
-      {addingField ? (
+      {addingField || editingField ? (
         <FieldForm
+          key={editingField?.id ?? "new"}
           onDone={async () => {
             setAddingField(false);
+            setEditingField(null);
             await onModulesChanged();
+            await load();
           }}
-          onCancel={() => setAddingField(false)}
+          onCancel={() => {
+            setAddingField(false);
+            setEditingField(null);
+          }}
           moduleId={module.id}
+          field={editingField}
         />
       ) : null}
 
@@ -188,6 +197,13 @@ export function CrmModuleSheet({
           columns={columns}
           rows={records}
           onCommit={(record, column, value) => commitCell(record, column.id, value)}
+          onHeaderClick={(column) => {
+            const field = module.fields.find((candidate) => candidate.id === column.id);
+            if (field) {
+              setAddingField(false);
+              setEditingField(field);
+            }
+          }}
           quickAddPlaceholder={
             firstField ? t`Type ${firstField.label.toLowerCase()} to add a row` : undefined
           }
@@ -217,17 +233,20 @@ export function CrmModuleSheet({
 
 function FieldForm({
   moduleId,
+  field,
   onDone,
   onCancel,
 }: {
   moduleId: string;
+  field: CrmModule["fields"][number] | null;
   onDone: () => Promise<void>;
   onCancel: () => void;
 }) {
   const { t } = useLingui();
-  const [label, setLabel] = useState("");
-  const [type, setType] = useState<CrmModuleFieldType>("text");
-  const [options, setOptions] = useState("");
+  const [label, setLabel] = useState(field?.label ?? "");
+  const [type, setType] = useState<CrmModuleFieldType>(field?.type ?? "text");
+  const [options, setOptions] = useState(field?.type === "select" ? field.options.join(", ") : "");
+  const [confirmingFieldDelete, setConfirmingFieldDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const typeLabels: Record<CrmModuleFieldType, string> = {
@@ -250,12 +269,32 @@ function FieldForm({
     if (type === "select" && !parsedOptions.length) return;
     setBusy(true);
     try {
-      await rpc.crm.modules.fields.create({
-        moduleId,
-        label: label.trim(),
-        type,
-        options: type === "select" ? parsedOptions : [],
-      });
+      if (field) {
+        await rpc.crm.modules.fields.update({
+          moduleId,
+          fieldId: field.id,
+          label: label.trim(),
+          options: field.type === "select" ? parsedOptions : undefined,
+        });
+      } else {
+        await rpc.crm.modules.fields.create({
+          moduleId,
+          label: label.trim(),
+          type,
+          options: type === "select" ? parsedOptions : [],
+        });
+      }
+      await onDone();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteField() {
+    if (!field || busy) return;
+    setBusy(true);
+    try {
+      await rpc.crm.modules.fields.delete({ moduleId, fieldId: field.id });
       await onDone();
     } finally {
       setBusy(false);
@@ -279,17 +318,21 @@ function FieldForm({
         // biome-ignore lint/a11y/noAutofocus: the user just asked to add a field
         autoFocus
       />
-      <select
-        value={type}
-        onChange={(event) => setType(event.target.value as CrmModuleFieldType)}
-        className={inputClass}
-      >
-        {CRM_MODULE_FIELD_TYPES.map((candidate) => (
-          <option key={candidate} value={candidate}>
-            {typeLabels[candidate]}
-          </option>
-        ))}
-      </select>
+      {field ? (
+        <span className="text-[12.5px] text-[#5F5B69]">{typeLabels[field.type]}</span>
+      ) : (
+        <select
+          value={type}
+          onChange={(event) => setType(event.target.value as CrmModuleFieldType)}
+          className={inputClass}
+        >
+          {CRM_MODULE_FIELD_TYPES.map((candidate) => (
+            <option key={candidate} value={candidate}>
+              {typeLabels[candidate]}
+            </option>
+          ))}
+        </select>
+      )}
       {type === "select" ? (
         <input
           value={options}
@@ -304,8 +347,36 @@ function FieldForm({
         disabled={!label.trim() || busy || (type === "select" && !options.trim())}
         className="rounded-full bg-[#F1F1EF] px-3 py-1 text-[12.5px] font-medium text-[#17171A] disabled:opacity-40"
       >
-        <Trans>Add field</Trans>
+        {field ? <Trans>Save</Trans> : <Trans>Add field</Trans>}
       </button>
+      {field ? (
+        confirmingFieldDelete ? (
+          <span className="flex items-center gap-2 text-[12.5px]">
+            <button
+              type="button"
+              onClick={() => void deleteField()}
+              className="text-[#F87171] hover:text-[#F87171]"
+            >
+              <Trans>Confirm delete</Trans>
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingFieldDelete(false)}
+              className="text-[#6E6975] hover:text-[#C9C9CE]"
+            >
+              <Trans>Cancel</Trans>
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingFieldDelete(true)}
+            className="text-[12.5px] text-[#6E6975] hover:text-[#F87171]"
+          >
+            <Trans>Delete field</Trans>
+          </button>
+        )
+      ) : null}
       <button
         type="button"
         onClick={onCancel}

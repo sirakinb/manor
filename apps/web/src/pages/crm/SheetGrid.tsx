@@ -21,6 +21,8 @@ export type SheetColumn<Row> = {
   editable?: boolean;
   /// Present → editing shows an in-cell select with these choices.
   options?: string[];
+  /// With onHeaderClick set, clicking this column's header opens its editor.
+  headerEditable?: boolean;
   getValue: (row: Row) => string;
   render?: (row: Row) => ReactNode;
 };
@@ -32,6 +34,7 @@ export function SheetGrid<Row extends { id: string }>({
   rows,
   onCommit,
   onOpenRow,
+  onHeaderClick,
   quickAddPlaceholder,
   onQuickAdd,
 }: {
@@ -39,6 +42,7 @@ export function SheetGrid<Row extends { id: string }>({
   rows: Row[];
   onCommit?: (row: Row, column: SheetColumn<Row>, value: string) => Promise<void>;
   onOpenRow?: (row: Row) => void;
+  onHeaderClick?: (column: SheetColumn<Row>) => void;
   quickAddPlaceholder?: string;
   onQuickAdd?: (value: string) => Promise<void>;
 }) {
@@ -160,9 +164,21 @@ export function SheetGrid<Row extends { id: string }>({
               {columns.map((column) => (
                 <th
                   key={column.id}
-                  className="sticky top-0 z-10 border-b border-r border-[#1C1C1F] bg-[#111113] px-2.5 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5F5B69] last:border-r-0"
+                  className="sticky top-0 z-10 border-b border-r border-[#1C1C1F] bg-[#111113] px-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5F5B69] last:border-r-0"
                 >
-                  {column.label}
+                  {onHeaderClick && column.headerEditable ? (
+                    <button
+                      type="button"
+                      aria-label={t`Edit ${column.label} field`}
+                      onClick={() => onHeaderClick(column)}
+                      className="group/head flex w-full items-center gap-1 px-2.5 py-2 text-left font-semibold uppercase tracking-[0.08em] hover:text-[#C9C9CE]"
+                    >
+                      <span className="truncate">{column.label}</span>
+                      <span className="shrink-0 opacity-0 group-hover/head:opacity-100">✎</span>
+                    </button>
+                  ) : (
+                    <span className="block px-2.5 py-2">{column.label}</span>
+                  )}
                 </th>
               ))}
             </tr>
