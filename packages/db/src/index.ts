@@ -1,6 +1,7 @@
 export * from "./client.js";
 export * from "./computers.js";
 export * from "./crm.js";
+export * from "./crm-modules.js";
 export * from "./events.js";
 export * from "./groups.js";
 export * from "./memory-config.js";

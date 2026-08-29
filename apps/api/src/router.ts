@@ -83,6 +83,7 @@ import {
 } from "@rakazo/core";
 import {
   appendEventInTransaction,
+  CrmModuleValueError,
   createCrmRepos,
   createGroupRepos,
   createRepos,
@@ -315,7 +316,9 @@ export interface RouterDeps {
       | "contact.updated"
       | "deal.created"
       | "deal.updated"
-      | "deal.stage_changed",
+      | "deal.stage_changed"
+      | "record.created"
+      | "record.updated",
     resourceId: string,
     payload: unknown,
   ) => Promise<void>;
@@ -1009,6 +1012,55 @@ export function createRouter(deps: RouterDeps) {
           await crm.deleteDeal(context.actor, input.dealId);
           return { ok: true as const };
         }),
+      },
+      modules: {
+        list: authed.crm.modules.list.handler(async ({ context }) =>
+          crm.listModules(context.actor),
+        ),
+        create: authed.crm.modules.create.handler(async ({ context, input }) =>
+          crm.createModule(context.actor, input),
+        ),
+        update: authed.crm.modules.update.handler(async ({ context, input }) =>
+          crm.updateModule(context.actor, input),
+        ),
+        delete: authed.crm.modules.delete.handler(async ({ context, input }) => {
+          await crm.deleteModule(context.actor, input.moduleId);
+          return { ok: true as const };
+        }),
+        fields: {
+          create: authed.crm.modules.fields.create.handler(async ({ context, input }) =>
+            crm.createModuleField(context.actor, input),
+          ),
+          update: authed.crm.modules.fields.update.handler(async ({ context, input }) =>
+            crm.updateModuleField(context.actor, input),
+          ),
+          delete: authed.crm.modules.fields.delete.handler(async ({ context, input }) =>
+            crm.deleteModuleField(context.actor, input),
+          ),
+        },
+        records: {
+          list: authed.crm.modules.records.list.handler(async ({ context, input }) =>
+            crm.listModuleRecords(context.actor, input),
+          ),
+          create: authed.crm.modules.records.create.handler(async ({ context, input }) => {
+            const record = await moduleRecordWrite(() =>
+              crm.createModuleRecord(context.actor, input),
+            );
+            await deps.crmEvent?.(context.actor.workspaceId, "record.created", record.id, record);
+            return record;
+          }),
+          update: authed.crm.modules.records.update.handler(async ({ context, input }) => {
+            const record = await moduleRecordWrite(() =>
+              crm.updateModuleRecord(context.actor, input),
+            );
+            await deps.crmEvent?.(context.actor.workspaceId, "record.updated", record.id, record);
+            return record;
+          }),
+          delete: authed.crm.modules.records.delete.handler(async ({ context, input }) => {
+            await crm.deleteModuleRecord(context.actor, input.recordId);
+            return { ok: true as const };
+          }),
+        },
       },
     },
     threads: {
@@ -3555,6 +3607,18 @@ function serializeWorkspaceMemoryConfig(config: {
 
 function throwIfAborted(signal?: AbortSignal) {
   if (signal?.aborted) throw signal.reason ?? new Error("Request cancelled");
+}
+
+/** Bad record values are a caller mistake, not a server fault. */
+async function moduleRecordWrite<T>(write: () => Promise<T>): Promise<T> {
+  try {
+    return await write();
+  } catch (error) {
+    if (error instanceof CrmModuleValueError) {
+      throw new ORPCError("BAD_REQUEST", { message: error.message });
+    }
+    throw error;
+  }
 }
 
 function nextRoutineDate(crons: string[], timezone: string): Date {

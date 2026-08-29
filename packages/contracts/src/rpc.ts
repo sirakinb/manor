@@ -2,6 +2,17 @@ import { eventIterator, oc } from "@orpc/contract";
 import * as z from "zod";
 import { ATTACHMENT_MAX_BASE64_LENGTH, ATTACHMENT_MAX_COUNT } from "./attachments.js";
 import {
+  CRM_MODULE_FIELD_LABEL_MAX,
+  CRM_MODULE_FIELD_MAX,
+  CRM_MODULE_NAME_MAX,
+  CRM_MODULE_SELECT_OPTION_MAX,
+  CRM_MODULE_SELECT_OPTIONS_MAX,
+  CrmModuleFieldInput,
+  CrmModuleRecordSchema,
+  CrmModuleSchema,
+  CrmRecordValueSchema,
+} from "./crm-modules.js";
+import {
   ActionApprovalRuleSchema,
   AgentSkillCatalogEntrySchema,
   AgentSkillSchema,
@@ -311,6 +322,78 @@ export const appContract = {
         .output(CrmDealSchema),
       move: oc.input(z.object({ dealId: Id, stageId: Id })).output(CrmDealSchema),
       delete: oc.input(z.object({ dealId: Id })).output(z.object({ ok: z.literal(true) })),
+    },
+    modules: {
+      list: oc.output(z.array(CrmModuleSchema)),
+      create: oc
+        .input(
+          z.object({
+            name: z.string().trim().min(1).max(CRM_MODULE_NAME_MAX),
+            fields: z.array(CrmModuleFieldInput).max(CRM_MODULE_FIELD_MAX).default([]),
+          }),
+        )
+        .output(CrmModuleSchema),
+      update: oc
+        .input(
+          z.object({
+            moduleId: Id,
+            name: z.string().trim().min(1).max(CRM_MODULE_NAME_MAX).optional(),
+          }),
+        )
+        .output(CrmModuleSchema),
+      delete: oc.input(z.object({ moduleId: Id })).output(z.object({ ok: z.literal(true) })),
+      fields: {
+        create: oc
+          .input(z.object({ moduleId: Id }).safeExtend(CrmModuleFieldInput.shape))
+          .output(CrmModuleSchema),
+        update: oc
+          .input(
+            z.object({
+              moduleId: Id,
+              fieldId: Id,
+              label: z.string().trim().min(1).max(CRM_MODULE_FIELD_LABEL_MAX).optional(),
+              options: z
+                .array(z.string().trim().min(1).max(CRM_MODULE_SELECT_OPTION_MAX))
+                .max(CRM_MODULE_SELECT_OPTIONS_MAX)
+                .optional(),
+            }),
+          )
+          .output(CrmModuleSchema),
+        delete: oc.input(z.object({ moduleId: Id, fieldId: Id })).output(CrmModuleSchema),
+      },
+      records: {
+        list: oc
+          .input(
+            z.object({
+              moduleId: Id,
+              cursor: z.string().optional(),
+              limit: z.number().int().min(1).max(200).default(100),
+            }),
+          )
+          .output(
+            z.object({
+              data: z.array(CrmModuleRecordSchema),
+              nextCursor: z.string().nullable(),
+            }),
+          ),
+        create: oc
+          .input(
+            z.object({
+              moduleId: Id,
+              values: z.record(z.string(), CrmRecordValueSchema).default({}),
+            }),
+          )
+          .output(CrmModuleRecordSchema),
+        update: oc
+          .input(
+            z.object({
+              recordId: Id,
+              values: z.record(z.string(), CrmRecordValueSchema),
+            }),
+          )
+          .output(CrmModuleRecordSchema),
+        delete: oc.input(z.object({ recordId: Id })).output(z.object({ ok: z.literal(true) })),
+      },
     },
   },
   threads: {

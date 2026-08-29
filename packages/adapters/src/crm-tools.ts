@@ -1,6 +1,20 @@
 import type { ConnectorTool } from "@rakazo/adapter-kit";
-import type { CrmContact, CrmDeal, CrmOverview, CrmPipeline } from "@rakazo/contracts";
-import { type createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/db";
+import {
+  CRM_MODULE_FIELD_TYPES,
+  type CrmContact,
+  type CrmDeal,
+  type CrmModule,
+  type CrmModuleFieldType,
+  type CrmModuleRecord,
+  type CrmOverview,
+  type CrmPipeline,
+} from "@rakazo/contracts";
+import {
+  CrmModuleValueError,
+  type createCrmRepos,
+  IsolationError,
+  type PrismaClient,
+} from "@rakazo/db";
 
 /**
  * The CRM as agent tools, so chat and voice can read and work the board.
@@ -11,7 +25,12 @@ import { type createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/
 export type CrmRepos = ReturnType<typeof createCrmRepos>;
 export type CrmToolScope = { userId: string; workspaceId: string };
 
-export const CRM_READ_ONLY_TOOL_NAMES = ["crm_overview", "crm_find_contacts"] as const;
+export const CRM_READ_ONLY_TOOL_NAMES = [
+  "crm_overview",
+  "crm_find_contacts",
+  "crm_list_modules",
+  "crm_list_records",
+] as const;
 
 export const crmAgentTools: ConnectorTool[] = [
   {
@@ -100,6 +119,83 @@ export const crmAgentTools: ConnectorTool[] = [
       required: ["deal_id", "stage"],
     },
   },
+  {
+    name: "crm_list_modules",
+    description:
+      "List this workspace's custom CRM modules (user-defined sheets like Tenants or Agent Logs) with their fields, field types, select options, and record counts. Call this before reading or writing module records.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "crm_create_module",
+    description:
+      "Create a custom CRM module (a new sheet) with typed fields. Field types: text, number, date, checkbox, select, email, phone, url. Select fields need options.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: 'Module name, e.g. "Tenants".' },
+        fields: {
+          type: "array",
+          description: "Columns for the sheet.",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" },
+              type: { type: "string", enum: [...CRM_MODULE_FIELD_TYPES] },
+              options: {
+                type: "array",
+                items: { type: "string" },
+                description: 'Choices for "select" fields.',
+              },
+            },
+            required: ["label", "type"],
+          },
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "crm_list_records",
+    description:
+      "List records in a custom CRM module. module is matched by name (case-insensitive) or id. Values are keyed by field label. Pass cursor from a previous page to continue.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        module: { type: "string", description: "Module name or id." },
+        cursor: { type: "string", description: "Opaque cursor from the previous page." },
+      },
+      required: ["module"],
+    },
+  },
+  {
+    name: "crm_upsert_record",
+    description:
+      "Create a record in a custom CRM module, or update one when record_id is given. values maps field labels (or ids) to values; only provided fields change, and null clears a field.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        module: { type: "string", description: "Module name or id. Required when creating." },
+        record_id: { type: "string", description: "Existing record id to update." },
+        values: {
+          type: "object",
+          description: 'Field label → value, e.g. {"Unit": "4B", "Rent": 1450}.',
+          additionalProperties: true,
+        },
+      },
+      required: ["values"],
+    },
+  },
+  {
+    name: "crm_delete_record",
+    description: "Delete a record from a custom CRM module.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        record_id: { type: "string" },
+      },
+      required: ["record_id"],
+    },
+  },
 ];
 
 const CRM_TOOL_NAMES = new Set(crmAgentTools.map((tool) => tool.name));
@@ -170,6 +266,47 @@ function dealSummary(deal: CrmDeal, pipelines: CrmPipeline[]) {
     pipeline: pipeline?.name,
     stage: stage?.name,
     contact_id: deal.contactId,
+  };
+}
+
+function moduleSummary(module: CrmModule) {
+  return {
+    id: module.id,
+    name: module.name,
+    record_count: module.recordCount,
+    fields: module.fields.map((field) => ({
+      id: field.id,
+      label: field.label,
+      type: field.type,
+      ...(field.type === "select" ? { options: field.options } : {}),
+    })),
+  };
+}
+
+/** Values keyed by field label, so agents read the sheet the way a human would. */
+function recordSummary(record: CrmModuleRecord, module: CrmModule) {
+  const values: Record<string, unknown> = {};
+  for (const field of module.fields) {
+    const value = record.values[field.id];
+    if (value !== undefined) values[field.label] = value;
+  }
+  return { id: record.id, values, created_at: record.createdAt, updated_at: record.updatedAt };
+}
+
+async function resolveModule(
+  repos: CrmRepos,
+  actor: { workspaceId: string },
+  ref: string,
+): Promise<CrmModule | { error: string }> {
+  const modules = await repos.listModules(actor);
+  const byId = modules.find((module) => module.id === ref);
+  if (byId) return byId;
+  const wanted = ref.trim().toLowerCase();
+  const matches = modules.filter((module) => module.name.toLowerCase() === wanted);
+  if (matches.length === 1) return matches[0]!;
+  if (matches.length > 1) return { error: `Multiple modules named "${ref}"; pass the module id.` };
+  return {
+    error: `No module named "${ref}". Modules: ${modules.map((m) => m.name).join(", ") || "(none — create one with crm_create_module)"}.`,
   };
 }
 
@@ -349,9 +486,81 @@ export async function executeCrmTool(
       const moved = await repos.moveDeal(actor, dealId, stage.id);
       return { moved: true, deal: dealSummary(moved, overview.pipelines) };
     }
+    if (name === "crm_list_modules") {
+      const modules = await repos.listModules(actor);
+      return { modules: modules.map(moduleSummary) };
+    }
+    if (name === "crm_create_module") {
+      const moduleName = text(args.name);
+      if (!moduleName) return { error: "name is required." };
+      const fields: { label: string; type: string; options: string[] }[] = [];
+      if (args.fields !== undefined) {
+        if (!Array.isArray(args.fields)) return { error: "fields must be an array." };
+        for (const raw of args.fields) {
+          const entry = raw as Record<string, unknown>;
+          const label = text(entry?.label);
+          const type = text(entry?.type) as CrmModuleFieldType | undefined;
+          if (!label || !type || !CRM_MODULE_FIELD_TYPES.includes(type)) {
+            return {
+              error: `Each field needs a label and a type (one of: ${CRM_MODULE_FIELD_TYPES.join(", ")}).`,
+            };
+          }
+          const options = Array.isArray(entry.options)
+            ? entry.options.map((option) => text(option)).filter((o): o is string => Boolean(o))
+            : [];
+          if (type === "select" && !options.length) {
+            return { error: `Select field "${label}" needs at least one option.` };
+          }
+          fields.push({ label, type, options: type === "select" ? options : [] });
+        }
+      }
+      const module = await repos.createModule(actor, { name: moduleName, fields });
+      return { created: true, module: moduleSummary(module) };
+    }
+    if (name === "crm_list_records") {
+      const ref = text(args.module);
+      if (!ref) return { error: "module is required." };
+      const module = await resolveModule(repos, actor, ref);
+      if ("error" in module) return module;
+      const page = await repos.listModuleRecords(actor, {
+        moduleId: module.id,
+        cursor: text(args.cursor),
+      });
+      return {
+        module: module.name,
+        records: page.data.map((record) => recordSummary(record, module)),
+        next_cursor: page.nextCursor,
+      };
+    }
+    if (name === "crm_upsert_record") {
+      const values =
+        args.values && typeof args.values === "object" && !Array.isArray(args.values)
+          ? (args.values as Record<string, unknown>)
+          : undefined;
+      if (!values) return { error: "values must be an object of field label → value." };
+      const recordId = text(args.record_id);
+      if (recordId) {
+        const record = await repos.updateModuleRecord(actor, { recordId, values });
+        const module = await repos.getModule(actor, record.moduleId);
+        return { updated: true, record: recordSummary(record, module) };
+      }
+      const ref = text(args.module);
+      if (!ref) return { error: "module is required to create a record." };
+      const module = await resolveModule(repos, actor, ref);
+      if ("error" in module) return module;
+      const record = await repos.createModuleRecord(actor, { moduleId: module.id, values });
+      return { created: true, record: recordSummary(record, module) };
+    }
+    if (name === "crm_delete_record") {
+      const recordId = text(args.record_id);
+      if (!recordId) return { error: "record_id is required." };
+      await repos.deleteModuleRecord(actor, recordId);
+      return { deleted: true };
+    }
     return undefined;
   } catch (error) {
     if (error instanceof IsolationError) return { error: error.message };
+    if (error instanceof CrmModuleValueError) return { error: error.message };
     throw error;
   }
 }
@@ -362,6 +571,8 @@ export const CRM_WEBHOOK_EVENTS = [
   "deal.created",
   "deal.updated",
   "deal.stage_changed",
+  "record.created",
+  "record.updated",
 ] as const;
 
 export type CrmWebhookEvent = (typeof CRM_WEBHOOK_EVENTS)[number];

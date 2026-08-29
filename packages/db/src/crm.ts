@@ -7,6 +7,7 @@ import type {
   CrmTag,
 } from "@rakazo/contracts";
 import type { PrismaClient } from "./client.js";
+import { createCrmModuleRepos } from "./crm-modules.js";
 import { IsolationError } from "./scope.js";
 
 /**
@@ -144,6 +145,7 @@ export function createCrmRepos(prisma: PrismaClient) {
 
   return {
     overview,
+    ...createCrmModuleRepos(prisma),
 
     /** Case-insensitive search: every word must match a name, company, email, or phone. */
     async searchContacts(actor: CrmActorScope, query: string, limit = 20): Promise<CrmContact[]> {

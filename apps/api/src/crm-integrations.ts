@@ -3,15 +3,23 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
   assertSafeRemoteUrl,
+  CRM_READ_ONLY_TOOL_NAMES,
   createCrmWebhookEmitter,
   createSafeRemoteFetch,
   crmAgentTools,
   type EncryptedSecretStore,
   executeCrmTool,
 } from "@rakazo/adapters";
-import type { Actor } from "@rakazo/contracts";
-import { createCrmRepos, type PrismaClient } from "@rakazo/db";
-import type { Hono } from "hono";
+import {
+  type Actor,
+  CRM_MODULE_FIELD_MAX,
+  CRM_MODULE_FIELD_TYPES,
+  CRM_MODULE_NAME_MAX,
+  type CrmModule,
+  type CrmModuleRecord,
+} from "@rakazo/contracts";
+import { createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/db";
+import type { Context, Hono } from "hono";
 import * as z from "zod";
 
 export const INTEGRATION_SCOPES = ["crm:read", "crm:write", "webhooks:manage"] as const;
@@ -23,6 +31,8 @@ const WEBHOOK_EVENTS = [
   "deal.created",
   "deal.updated",
   "deal.stage_changed",
+  "record.created",
+  "record.updated",
 ] as const;
 
 const ContactUpsertSchema = z
@@ -88,6 +98,35 @@ const DealUpdateSchema = z
   });
 
 const DealMoveSchema = z.object({ stage_id: z.string().trim().min(1) });
+
+const ModuleCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(CRM_MODULE_NAME_MAX),
+    fields: z
+      .array(
+        z.object({
+          label: z.string().trim().min(1).max(80),
+          type: z.enum(CRM_MODULE_FIELD_TYPES),
+          options: z.array(z.string().trim().min(1).max(60)).max(50).default([]),
+        }),
+      )
+      .max(CRM_MODULE_FIELD_MAX)
+      .default([]),
+  })
+  .superRefine((value, context) => {
+    for (const field of value.fields) {
+      if (field.type === "select" && !field.options.length) {
+        context.addIssue({
+          code: "custom",
+          message: `Select field "${field.label}" needs at least one option`,
+        });
+      }
+    }
+  });
+
+const RecordWriteSchema = z.object({
+  values: z.record(z.string(), z.unknown()),
+});
 
 export function parseCrmContactUpsert(value: unknown) {
   return ContactUpsertSchema.safeParse(value);
@@ -540,6 +579,63 @@ export function createCrmIntegrationService(deps: {
     return { moved: true, deal };
   }
 
+  async function listModules(workspaceId: string) {
+    const repos = createCrmRepos(prisma);
+    const modules = await repos.listModules({ workspaceId });
+    return { data: modules.map(publicModule) };
+  }
+
+  async function createModule(workspaceId: string, input: z.infer<typeof ModuleCreateSchema>) {
+    const repos = createCrmRepos(prisma);
+    const module = await repos.createModule({ workspaceId }, input);
+    return { created: true, module: publicModule(module) };
+  }
+
+  async function listModuleRecords(
+    workspaceId: string,
+    moduleId: string,
+    options: { limit: number; cursor?: string },
+  ) {
+    const repos = createCrmRepos(prisma);
+    const page = await repos.listModuleRecords(
+      { workspaceId },
+      { moduleId, cursor: options.cursor, limit: options.limit },
+    );
+    return { data: page.data.map(publicRecord), next_cursor: page.nextCursor };
+  }
+
+  async function createModuleRecord(
+    workspaceId: string,
+    moduleId: string,
+    values: Record<string, unknown>,
+  ) {
+    const repos = createCrmRepos(prisma);
+    const record = publicRecord(
+      await repos.createModuleRecord({ workspaceId }, { moduleId, values }),
+    );
+    await emitWebhook(workspaceId, "record.created", record.id, record);
+    return { created: true, record };
+  }
+
+  async function updateModuleRecord(
+    workspaceId: string,
+    recordId: string,
+    values: Record<string, unknown>,
+  ) {
+    const repos = createCrmRepos(prisma);
+    const record = publicRecord(
+      await repos.updateModuleRecord({ workspaceId }, { recordId, values }),
+    );
+    await emitWebhook(workspaceId, "record.updated", record.id, record);
+    return { updated: true, record };
+  }
+
+  async function deleteModuleRecord(workspaceId: string, recordId: string) {
+    const repos = createCrmRepos(prisma);
+    await repos.deleteModuleRecord({ workspaceId }, recordId);
+    return { ok: true };
+  }
+
   const emitWebhook = createCrmWebhookEmitter(prisma);
 
   async function withIdempotency<T extends object>(
@@ -689,6 +785,12 @@ export function createCrmIntegrationService(deps: {
     createDeal,
     updateDeal,
     moveDeal,
+    listModules,
+    createModule,
+    listModuleRecords,
+    createModuleRecord,
+    updateModuleRecord,
+    deleteModuleRecord,
     emitWebhook,
     withIdempotency,
     deliverPending,
@@ -703,6 +805,34 @@ export function createCrmIntegrationService(deps: {
     parseDealCreate: DealCreateSchema.safeParse,
     parseDealUpdate: DealUpdateSchema.safeParse,
     parseDealMove: DealMoveSchema.safeParse,
+    parseModuleCreate: ModuleCreateSchema.safeParse,
+    parseRecordWrite: RecordWriteSchema.safeParse,
+  };
+}
+
+function publicModule(module: CrmModule) {
+  return {
+    id: module.id,
+    name: module.name,
+    record_count: module.recordCount,
+    fields: module.fields.map((field) => ({
+      id: field.id,
+      label: field.label,
+      type: field.type,
+      options: field.options,
+      position: field.position,
+    })),
+    created_at: module.createdAt,
+  };
+}
+
+function publicRecord(record: CrmModuleRecord) {
+  return {
+    id: record.id,
+    module_id: record.moduleId,
+    values: record.values,
+    created_at: record.createdAt,
+    updated_at: record.updatedAt,
   };
 }
 
@@ -938,6 +1068,115 @@ export function mountCrmIntegrationRoutes(
     }
   });
 
+  const moduleFailure = (c: Context, error: unknown) => {
+    if (error instanceof IsolationError) return c.json(jsonError("Not found", 404).body, 404);
+    const message = error instanceof Error ? error.message : "Invalid request";
+    const status = message.includes("Idempotency-Key") ? 409 : 400;
+    return c.json(jsonError(message, status).body, status as 400 | 409);
+  };
+
+  app.get("/v1/crm/modules", async (c) => {
+    const principal = await service.authenticate(c.req.raw);
+    if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
+    if (!hasScope(principal, "crm:read"))
+      return c.json(jsonError("Missing crm:read scope", 403).body, 403);
+    return c.json(await service.listModules(principal.workspaceId));
+  });
+
+  app.post("/v1/crm/modules", async (c) => {
+    const principal = await service.authenticate(c.req.raw);
+    if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
+    if (!hasScope(principal, "crm:write"))
+      return c.json(jsonError("Missing crm:write scope", 403).body, 403);
+    const parsed = service.parseModuleCreate(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(jsonError(z.prettifyError(parsed.error), 400).body, 400);
+    try {
+      const result = await service.withIdempotency(
+        principal,
+        c.req.header("idempotency-key"),
+        parsed.data,
+        () => service.createModule(principal.workspaceId, parsed.data),
+      );
+      return c.json(result.body, result.status as 200);
+    } catch (error) {
+      return moduleFailure(c, error);
+    }
+  });
+
+  app.get("/v1/crm/modules/:id/records", async (c) => {
+    const principal = await service.authenticate(c.req.raw);
+    if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
+    if (!hasScope(principal, "crm:read"))
+      return c.json(jsonError("Missing crm:read scope", 403).body, 403);
+    const limit = parseCrmPageLimit(c.req.query("limit"));
+    if (!limit.success) {
+      return c.json(jsonError("limit must be an integer from 1 to 100", 400).body, 400);
+    }
+    try {
+      return c.json(
+        await service.listModuleRecords(principal.workspaceId, c.req.param("id"), {
+          limit: limit.data,
+          cursor: c.req.query("cursor"),
+        }),
+      );
+    } catch (error) {
+      return moduleFailure(c, error);
+    }
+  });
+
+  app.post("/v1/crm/modules/:id/records", async (c) => {
+    const principal = await service.authenticate(c.req.raw);
+    if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
+    if (!hasScope(principal, "crm:write"))
+      return c.json(jsonError("Missing crm:write scope", 403).body, 403);
+    const parsed = service.parseRecordWrite(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(jsonError(z.prettifyError(parsed.error), 400).body, 400);
+    try {
+      const result = await service.withIdempotency(
+        principal,
+        c.req.header("idempotency-key"),
+        parsed.data,
+        () =>
+          service.createModuleRecord(principal.workspaceId, c.req.param("id"), parsed.data.values),
+      );
+      return c.json(result.body, result.status as 200);
+    } catch (error) {
+      return moduleFailure(c, error);
+    }
+  });
+
+  app.patch("/v1/crm/records/:id", async (c) => {
+    const principal = await service.authenticate(c.req.raw);
+    if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
+    if (!hasScope(principal, "crm:write"))
+      return c.json(jsonError("Missing crm:write scope", 403).body, 403);
+    const parsed = service.parseRecordWrite(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(jsonError(z.prettifyError(parsed.error), 400).body, 400);
+    try {
+      return c.json(
+        await service.updateModuleRecord(
+          principal.workspaceId,
+          c.req.param("id"),
+          parsed.data.values,
+        ),
+      );
+    } catch (error) {
+      return moduleFailure(c, error);
+    }
+  });
+
+  app.delete("/v1/crm/records/:id", async (c) => {
+    const principal = await service.authenticate(c.req.raw);
+    if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
+    if (!hasScope(principal, "crm:write"))
+      return c.json(jsonError("Missing crm:write scope", 403).body, 403);
+    try {
+      return c.json(await service.deleteModuleRecord(principal.workspaceId, c.req.param("id")));
+    } catch (error) {
+      return moduleFailure(c, error);
+    }
+  });
+
   app.get("/v1/webhooks", async (c) => {
     const actor = await resolveOwner(c.req.raw);
     const principal = actor ? null : await service.authenticate(c.req.raw);
@@ -1030,8 +1269,9 @@ export function mountCrmIntegrationRoutes(
       { instructions: "Use these tools to read and update the authenticated Manor workspace CRM." },
     );
     const toolSchemas = crmMcpSchemas();
+    const readOnly: readonly string[] = CRM_READ_ONLY_TOOL_NAMES;
     for (const tool of crmAgentTools) {
-      const mutating = !tool.name.includes("overview") && !tool.name.includes("find_contacts");
+      const mutating = !readOnly.includes(tool.name);
       const requiredScope: IntegrationScope = mutating ? "crm:write" : "crm:read";
       if (!hasScope(principal, requiredScope)) continue;
       server.registerTool(
@@ -1070,6 +1310,15 @@ export function mountCrmIntegrationRoutes(
                     : "deal.updated",
                 deal.id,
                 deal,
+              );
+            }
+            const record = value.record as { id?: string } | undefined;
+            if (record?.id && (value.created || value.updated)) {
+              await service.emitWebhook(
+                principal.workspaceId,
+                value.created ? "record.created" : "record.updated",
+                record.id,
+                record,
               );
             }
           }
@@ -1163,6 +1412,26 @@ function crmMcpSchemas(): Record<string, Record<string, z.ZodType>> {
       status: z.enum(["open", "won", "lost"]).optional(),
     },
     crm_move_deal: { deal_id: z.string(), stage: z.string() },
+    crm_list_modules: {},
+    crm_create_module: {
+      name: z.string(),
+      fields: z
+        .array(
+          z.object({
+            label: z.string(),
+            type: z.enum(CRM_MODULE_FIELD_TYPES),
+            options: z.array(z.string()).optional(),
+          }),
+        )
+        .optional(),
+    },
+    crm_list_records: { module: z.string(), cursor: z.string().optional() },
+    crm_upsert_record: {
+      module: z.string().optional(),
+      record_id: z.string().optional(),
+      values: z.record(z.string(), z.unknown()),
+    },
+    crm_delete_record: { record_id: z.string() },
   };
 }
 
@@ -1306,6 +1575,98 @@ export function crmOpenApiDocument(origin: string) {
             },
           },
           responses: { "200": { description: "Moved deal" } },
+        },
+      },
+      "/v1/crm/modules": {
+        get: {
+          summary: "List custom modules and their fields",
+          responses: { "200": { description: "Modules" } },
+        },
+        post: {
+          summary: "Create a custom module (a user-defined sheet)",
+          parameters: [{ name: "Idempotency-Key", in: "header", schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["name"],
+                  properties: {
+                    name: { type: "string" },
+                    fields: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        required: ["label", "type"],
+                        properties: {
+                          label: { type: "string" },
+                          type: { type: "string", enum: [...CRM_MODULE_FIELD_TYPES] },
+                          options: { type: "array", items: { type: "string" } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Created module" } },
+        },
+      },
+      "/v1/crm/modules/{id}/records": {
+        get: {
+          summary: "List records in a module",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+            { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100 } },
+            { name: "cursor", in: "query", schema: { type: "string" } },
+          ],
+          responses: { "200": { description: "A page of records" } },
+        },
+        post: {
+          summary: "Create a record; values map field ids or labels to values",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+            { name: "Idempotency-Key", in: "header", schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["values"],
+                  properties: { values: { type: "object", additionalProperties: true } },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Created record" } },
+        },
+      },
+      "/v1/crm/records/{id}": {
+        patch: {
+          summary: "Update a record's values (null clears a field)",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["values"],
+                  properties: { values: { type: "object", additionalProperties: true } },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Updated record" } },
+        },
+        delete: {
+          summary: "Delete a record",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: { "200": { description: "Record deleted" } },
         },
       },
       "/v1/webhooks": {

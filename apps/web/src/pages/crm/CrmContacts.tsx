@@ -2,7 +2,10 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmContact, CrmOverview, CrmTag } from "@rakazo/contracts";
 import { useMemo, useState } from "react";
 import { rpc } from "../../lib/rpc";
+import { CrmContactsSheet } from "./CrmContactsSheet";
 import { formatMoney } from "./theme";
+
+const VIEW_STORAGE_KEY = "manor.crm.contactsView";
 
 /**
  * The people. A data-dense table with search and tags, and a drawer holding
@@ -20,6 +23,14 @@ export function CrmContacts({
   const [showArchived, setShowArchived] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<"list" | "sheet">(() =>
+    localStorage.getItem(VIEW_STORAGE_KEY) === "sheet" ? "sheet" : "list",
+  );
+
+  function switchView(next: "list" | "sheet") {
+    setView(next);
+    localStorage.setItem(VIEW_STORAGE_KEY, next);
+  }
 
   const contacts = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -62,6 +73,26 @@ export function CrmContacts({
             />
             <Trans>Archived</Trans>
           </label>
+          <div className="flex items-center gap-0.5 rounded-full border border-[#202023] bg-[#131315] p-0.5">
+            <button
+              type="button"
+              onClick={() => switchView("list")}
+              className={`rounded-full px-2.5 py-1 text-[12px] transition-colors ${
+                view === "list" ? "bg-[#232326] text-[#ECECEE]" : "text-[#85858A]"
+              }`}
+            >
+              <Trans>List</Trans>
+            </button>
+            <button
+              type="button"
+              onClick={() => switchView("sheet")}
+              className={`rounded-full px-2.5 py-1 text-[12px] transition-colors ${
+                view === "sheet" ? "bg-[#232326] text-[#ECECEE]" : "text-[#85858A]"
+              }`}
+            >
+              <Trans>Sheet</Trans>
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => setCreating(true)}
@@ -71,7 +102,13 @@ export function CrmContacts({
           </button>
         </div>
 
-        {contacts.length === 0 ? (
+        {view === "sheet" ? (
+          <CrmContactsSheet
+            contacts={contacts}
+            onChanged={onChanged}
+            onOpenRow={(contact) => setOpenId(contact.id)}
+          />
+        ) : contacts.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#2A2A2E] p-12 text-center">
             <p className="text-[14px] font-medium text-[#C9C9CE]">
               {search ? <Trans>Nobody matches that search</Trans> : <Trans>No contacts yet</Trans>}

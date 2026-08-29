@@ -137,7 +137,7 @@ function makeFakeRepos() {
 }
 
 describe("crm tool declarations", () => {
-  it("declares six crm_ tools with object schemas", () => {
+  it("declares the crm_ tools with object schemas", () => {
     expect(crmAgentTools.map((tool) => tool.name)).toEqual([
       "crm_overview",
       "crm_find_contacts",
@@ -145,6 +145,11 @@ describe("crm tool declarations", () => {
       "crm_create_deal",
       "crm_update_deal",
       "crm_move_deal",
+      "crm_list_modules",
+      "crm_create_module",
+      "crm_list_records",
+      "crm_upsert_record",
+      "crm_delete_record",
     ]);
     for (const tool of crmAgentTools) expect(tool.inputSchema.type).toBe("object");
   });

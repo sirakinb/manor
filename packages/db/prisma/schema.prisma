@@ -943,6 +943,50 @@ model CrmDeal {
   @@map("crm_deals")
 }
 
+/// User-defined sheet (Airtable/Zoho-style custom module). Owns typed fields;
+/// records store one JSON value per field id.
+model CrmModule {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  fields  CrmModuleField[]
+  records CrmModuleRecord[]
+
+  @@index([workspaceId])
+  @@map("crm_modules")
+}
+
+model CrmModuleField {
+  id        String    @id @default(cuid())
+  moduleId  String
+  module    CrmModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  label     String
+  type      String // text | number | date | checkbox | select | email | phone | url
+  options   Json      @default("[]")
+  position  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([moduleId])
+  @@map("crm_module_fields")
+}
+
+model CrmModuleRecord {
+  id          String    @id @default(cuid())
+  workspaceId String
+  moduleId    String
+  module      CrmModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  values      Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId, moduleId, createdAt])
+  @@map("crm_module_records")
+}
+
 // ── Public integrations ─────────────────────────────────────────────────────
 
 /// High-entropy machine credential. Only its SHA-256 digest is persisted; the
