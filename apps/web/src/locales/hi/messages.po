@@ -25,10 +25,20 @@ msgstr " यदि आप बॉट्स को इस Mac पर चलने 
 msgid " Your OS will not ask for extra permission if you let bots run on {hostLabel} — they run as you."
 msgstr " यदि आप बॉट्स को {hostLabel} पर चलने देते हैं तो आपका OS अतिरिक्त अनुमति नहीं मांगेगा — वे आपके रूप में ही चलते हैं।"
 
+#. placeholder {0}: contacts.length
+#: src/pages/crm/CrmContactsSheet.tsx:145
+msgid "{0, plural, one {# contact} other {# contacts}}"
+msgstr "{0, plural, one {# संपर्क} other {# संपर्क}}"
+
 #. placeholder {0}: group.entries.length
 #: src/pages/ModelSettingsOverlay.tsx:372
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# मॉडल} other {# मॉडल}}"
+
+#. placeholder {0}: records.length
+#: src/pages/crm/CrmModuleSheet.tsx:131
+msgid "{0, plural, one {# record} other {# records}}"
+msgstr "{0, plural, one {# रिकॉर्ड} other {# रिकॉर्ड}}"
 
 #. placeholder {0}: file.name
 #: src/pages/Shell.tsx:1492
@@ -163,6 +173,10 @@ msgstr "+ एक और शेड्यूल जोड़ें"
 msgid "+ Add stage"
 msgstr "+ चरण जोड़ें"
 
+#: src/pages/crm/CrmModuleSheet.tsx:138
+msgid "+ Field"
+msgstr "+ फ़ील्ड"
+
 #: src/pages/crm/CrmPipelineBoard.tsx:143
 msgid "+ New pipeline"
 msgstr "+ नई पाइपलाइन"
@@ -196,6 +210,8 @@ msgstr "कार्रवाई की पुष्टि"
 msgid "Actions for {0}"
 msgstr "{0} के लिए कार्रवाइयां"
 
+#: src/pages/crm/CrmContactsSheet.tsx:101
+#: src/pages/crm/CrmContactsSheet.tsx:103
 #: src/pages/RoutineEditor.tsx:271
 #: src/pages/VoiceSettingsOverlay.tsx:223
 msgid "Active"
@@ -220,12 +236,16 @@ msgstr "सक्रिय आवाज़"
 msgid "Activity"
 msgstr "गतिविधि"
 
-#: src/pages/crm/CrmContacts.tsx:393
+#: src/pages/crm/CrmContacts.tsx:430
 #: src/pages/PluginsOverlay.tsx:289
 #: src/pages/PluginsOverlay.tsx:388
 #: src/pages/ScratchpadSection.tsx:188
 msgid "Add"
 msgstr "जोड़ें"
+
+#: src/pages/crm/CrmModuleSheet.tsx:183
+msgid "Add a field to start this sheet"
+msgstr "इस शीट को शुरू करने के लिए एक फ़ील्ड जोड़ें"
 
 #: src/pages/Shell.tsx:2942
 msgid "Add a run time for this one-shot."
@@ -254,6 +274,10 @@ msgstr "एक stdio कमांड दर्ज करें।"
 #: src/pages/McpServersOverlay.tsx:90
 msgid "Add an HTTPS server URL."
 msgstr "एक HTTPS सर्वर URL दर्ज करें।"
+
+#: src/pages/crm/CrmModuleSheet.tsx:307
+msgid "Add field"
+msgstr "फ़ील्ड जोड़ें"
 
 #: src/pages/ScratchpadSection.tsx:182
 msgid "Add item"
@@ -422,7 +446,7 @@ msgid "Approve this server to let your agent use its tools."
 msgstr "अपने एजेंट को इसके टूल उपयोग करने देने के लिए इस सर्वर को अनुमोदित करें।"
 
 #: src/pages/BotContextMenu.tsx:104
-#: src/pages/crm/CrmContacts.tsx:429
+#: src/pages/crm/CrmContacts.tsx:466
 msgid "Archive"
 msgstr "आर्काइव करें"
 
@@ -430,7 +454,10 @@ msgstr "आर्काइव करें"
 msgid "archived"
 msgstr "आर्काइव किया गया"
 
-#: src/pages/crm/CrmContacts.tsx:63
+#: src/pages/crm/CrmContacts.tsx:74
+#: src/pages/crm/CrmContactsSheet.tsx:42
+#: src/pages/crm/CrmContactsSheet.tsx:101
+#: src/pages/crm/CrmContactsSheet.tsx:103
 #: src/pages/Shell.tsx:2181
 msgid "Archived"
 msgstr "आर्काइव किया गया"
@@ -603,6 +630,8 @@ msgstr "सर्वर तक नहीं पहुंचा जा सका�
 #: src/components/AskCard.tsx:161
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/teach/TeachComputerSection.tsx:122
+#: src/pages/crm/CrmModuleSheet.tsx:155
+#: src/pages/crm/CrmModuleSheet.tsx:314
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
@@ -651,6 +680,10 @@ msgstr "अपडेट जांचें"
 msgid "Check in."
 msgstr "जांच करें।"
 
+#: src/pages/crm/CrmModuleSheet.tsx:237
+msgid "Checkbox"
+msgstr "चेकबॉक्स"
+
 #: src/components/SoftwareUpdateSection.tsx:71
 msgid "Checking…"
 msgstr "जांच हो रही है…"
@@ -682,7 +715,7 @@ msgid "Clearing…"
 msgstr "साफ़ किया जा रहा है…"
 
 #: src/pages/BotContextMenu.tsx:67
-#: src/pages/crm/CrmContacts.tsx:302
+#: src/pages/crm/CrmContacts.tsx:339
 #: src/pages/RoutineEditor.tsx:249
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
@@ -768,8 +801,9 @@ msgstr "जल्द आ रहा है"
 msgid "Command"
 msgstr "कमांड"
 
-#: src/pages/crm/CrmContacts.tsx:94
-#: src/pages/crm/CrmContacts.tsx:327
+#: src/pages/crm/CrmContacts.tsx:131
+#: src/pages/crm/CrmContacts.tsx:364
+#: src/pages/crm/CrmContactsSheet.tsx:77
 msgid "Company"
 msgstr "कंपनी"
 
@@ -806,6 +840,7 @@ msgstr "डिप्लॉयमेंट द्वारा कॉन्फ़�
 msgid "Configured servers"
 msgstr "कॉन्फ़िगर किए गए सर्वर"
 
+#: src/pages/crm/CrmModuleSheet.tsx:148
 #: src/pages/McpServersOverlay.tsx:479
 msgid "Confirm delete"
 msgstr "डिलीट की पुष्टि करें"
@@ -898,11 +933,11 @@ msgstr "कनेक्ट हो रहा है…"
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} से कनेक्शन अभी लंबित है। आप इसे बंद करके बाद में जांच सकते हैं।"
 
-#: src/pages/crm/CrmContacts.tsx:296
+#: src/pages/crm/CrmContacts.tsx:333
 msgid "Contact"
 msgstr "संपर्क"
 
-#: src/pages/crm/CrmView.tsx:25
+#: src/pages/crm/CrmView.tsx:29
 msgid "Contacts"
 msgstr "संपर्क"
 
@@ -1072,7 +1107,7 @@ msgstr "MCP सर्वर लोड नहीं हो सके"
 msgid "Could not load model settings"
 msgstr "मॉडल सेटिंग्स लोड नहीं हो सकीं"
 
-#: src/pages/crm/CrmView.tsx:35
+#: src/pages/crm/CrmView.tsx:40
 msgid "Could not load the CRM"
 msgstr "CRM लोड नहीं हो सका"
 
@@ -1201,7 +1236,7 @@ msgstr "डिफ़ॉल्ट मेमोरी स्कोप अपडे
 msgid "Couldn't update avatars"
 msgstr "अवतार अपडेट नहीं हो सके"
 
-#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmContacts.tsx:485
 #: src/pages/crm/CrmPipelineBoard.tsx:583
 #: src/pages/crm/CrmPipelineBoard.tsx:772
 #: src/pages/Shell.tsx:1968
@@ -1278,6 +1313,10 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Cron एक्सप्रेशन"
 
+#: src/pages/crm/CrmModuleSheet.tsx:236
+msgid "Date"
+msgstr "तारीख़"
+
 #: src/pages/RoutineSchedule.tsx:68
 msgid "day"
 msgstr "दिन"
@@ -1299,7 +1338,7 @@ msgstr "डील स्थिति"
 msgid "Deal title"
 msgstr "डील शीर्षक"
 
-#: src/pages/crm/CrmContacts.tsx:401
+#: src/pages/crm/CrmContacts.tsx:438
 msgid "Deals"
 msgstr "डील"
 
@@ -1312,7 +1351,7 @@ msgid "Default scope"
 msgstr "डिफ़ॉल्ट स्कोप"
 
 #: src/pages/BotContextMenu.tsx:105
-#: src/pages/crm/CrmContacts.tsx:436
+#: src/pages/crm/CrmContacts.tsx:473
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
@@ -1344,6 +1383,14 @@ msgstr "समूह डिलीट करें"
 #: src/pages/Shell.tsx:5486
 msgid "Delete memories too"
 msgstr "मेमोरी भी डिलीट करें"
+
+#: src/pages/crm/CrmModuleSheet.tsx:164
+msgid "Delete module"
+msgstr "मॉड्यूल डिलीट करें"
+
+#: src/pages/crm/CrmModuleSheet.tsx:112
+msgid "Delete row"
+msgstr "पंक्ति डिलीट करें"
 
 #: src/pages/Shell.tsx:4598
 msgid "deleted"
@@ -1477,8 +1524,10 @@ msgid "Edit Profile"
 msgstr "प्रोफ़ाइल संपादित करें"
 
 #: src/pages/Auth.tsx:70
-#: src/pages/crm/CrmContacts.tsx:97
-#: src/pages/crm/CrmContacts.tsx:333
+#: src/pages/crm/CrmContacts.tsx:134
+#: src/pages/crm/CrmContacts.tsx:370
+#: src/pages/crm/CrmContactsSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:239
 msgid "Email"
 msgstr "ईमेल"
 
@@ -1542,7 +1591,7 @@ msgstr "हर अनुरोध में <0>Authorization: Bearer manor_…</
 msgid "Every week"
 msgstr "हर सप्ताह"
 
-#: src/pages/crm/CrmContacts.tsx:81
+#: src/pages/crm/CrmContacts.tsx:118
 msgid "Everyone your business talks to lives here. Add the first one."
 msgstr "आपका व्यवसाय जिनसे बात करता है, वे सब यहां हैं। पहला संपर्क जोड़ें।"
 
@@ -1590,6 +1639,10 @@ msgstr "रोकने में विफल"
 msgid "Failure handling"
 msgstr "विफलता प्रबंधन"
 
+#: src/pages/crm/CrmModuleSheet.tsx:277
+msgid "Field label"
+msgstr "फ़ील्ड लेबल"
+
 #: src/pages/ModelSettingsOverlay.tsx:428
 #: src/pages/Onboarding.tsx:293
 msgid "Find models"
@@ -1610,7 +1663,8 @@ msgstr "<0>{0}</0> पर साइन इन पूरा करें। अ�
 msgid "Finishing MCP connection…"
 msgstr "MCP कनेक्शन पूरा हो रहा है…"
 
-#: src/pages/crm/CrmContacts.tsx:314
+#: src/pages/crm/CrmContacts.tsx:351
+#: src/pages/crm/CrmContactsSheet.tsx:63
 msgid "First name"
 msgstr "पहला नाम"
 
@@ -1705,7 +1759,7 @@ msgstr "बोलने के लिए दबाए रखें"
 msgid "Hold to talk (on-device dictation)"
 msgstr "बोलने के लिए दबाए रखें (डिवाइस पर ही श्रुतलेखन)"
 
-#: src/pages/crm/CrmView.tsx:23
+#: src/pages/crm/CrmView.tsx:27
 msgid "Home"
 msgstr "होम"
 
@@ -1814,13 +1868,18 @@ msgstr "कुंजियां सर्वर पर ही रहती ह�
 msgid "Language"
 msgstr "भाषा"
 
-#: src/pages/crm/CrmContacts.tsx:320
+#: src/pages/crm/CrmContacts.tsx:357
+#: src/pages/crm/CrmContactsSheet.tsx:70
 msgid "Last name"
 msgstr "अंतिम नाम"
 
 #: src/pages/RoutineEditor.tsx:47
 msgid "Linear issue"
 msgstr "Linear इश्यू"
+
+#: src/pages/crm/CrmContacts.tsx:84
+msgid "List"
+msgstr "सूची"
 
 #: src/pages/CallView.tsx:245
 msgid "Listening…"
@@ -1829,6 +1888,10 @@ msgstr "सुना जा रहा है…"
 #: src/pages/Shell.tsx:3617
 msgid "Load earlier messages"
 msgstr "पुराने संदेश लोड करें"
+
+#: src/pages/crm/CrmModuleSheet.tsx:211
+msgid "Load more"
+msgstr "और लोड करें"
 
 #: src/pages/ActivityList.tsx:60
 msgid "Loading activity…"
@@ -1865,7 +1928,8 @@ msgid "Loading voice providers…"
 msgstr "आवाज़ प्रोवाइडर्स लोड हो रहे हैं…"
 
 #: src/App.tsx:51
-#: src/pages/crm/CrmView.tsx:72
+#: src/pages/crm/CrmView.tsx:148
+#: src/pages/crm/CrmView.tsx:166
 #: src/pages/Onboarding.tsx:214
 #: src/pages/Shell.tsx:3617
 msgid "Loading…"
@@ -2041,6 +2105,10 @@ msgstr "सर्वर से मॉडल"
 msgid "Models run on your own accounts and keys. Sign in with ChatGPT, Claude, Copilot, or SuperGrok, paste an API key, or skip if this deployment already has one."
 msgstr "मॉडल आपके अपने खातों और कुंजियों पर चलते हैं। ChatGPT, Claude, Copilot या SuperGrok से साइन इन करें, API कुंजी पेस्ट करें, या यदि इस परिनियोजन में पहले से कुंजी है तो छोड़ें।"
 
+#: src/pages/crm/CrmView.tsx:124
+msgid "Module name"
+msgstr "मॉड्यूल का नाम"
+
 #: src/pages/RoutineSchedule.tsx:96
 msgid "Monthly"
 msgstr "मासिक"
@@ -2060,7 +2128,8 @@ msgstr "यहां ले जाएं"
 
 #: src/components/teach/SkillDraftCard.tsx:82
 #: src/pages/Auth.tsx:57
-#: src/pages/crm/CrmContacts.tsx:91
+#: src/pages/crm/CrmContacts.tsx:128
+#: src/pages/crm/CrmView.tsx:64
 #: src/pages/GroupPanel.tsx:110
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:516
@@ -2097,8 +2166,8 @@ msgstr "नियंत्रण लेना ज़रूरी"
 msgid "New bot"
 msgstr "नया बॉट"
 
-#: src/pages/crm/CrmContacts.tsx:70
-#: src/pages/crm/CrmContacts.tsx:296
+#: src/pages/crm/CrmContacts.tsx:101
+#: src/pages/crm/CrmContacts.tsx:333
 msgid "New contact"
 msgstr "नया संपर्क"
 
@@ -2111,6 +2180,10 @@ msgstr "नई डील"
 #: src/pages/Shell.tsx:1992
 msgid "New group"
 msgstr "नया समूह"
+
+#: src/pages/crm/CrmView.tsx:133
+msgid "New module"
+msgstr "नया मॉड्यूल"
 
 #: src/pages/ScratchpadSection.tsx:183
 msgid "New open-work item"
@@ -2129,9 +2202,15 @@ msgstr "नया रूटीन"
 msgid "New section"
 msgstr "नया सेक्शन"
 
-#: src/pages/crm/CrmContacts.tsx:384
+#: src/pages/crm/CrmContacts.tsx:421
 msgid "New tag"
 msgstr "नया टैग"
+
+#: src/pages/crm/CrmModuleSheet.tsx:57
+#: src/pages/crm/CrmModuleSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:99
+msgid "No"
+msgstr "नहीं"
 
 #: src/pages/PluginsOverlay.tsx:404
 msgid "No apps match your search."
@@ -2155,7 +2234,7 @@ msgstr "{0} के लिए कोई कनेक्शन रिकॉर्�
 msgid "No contact"
 msgstr "कोई संपर्क नहीं"
 
-#: src/pages/crm/CrmContacts.tsx:77
+#: src/pages/crm/CrmContacts.tsx:114
 msgid "No contacts yet"
 msgstr "अभी कोई संपर्क नहीं"
 
@@ -2211,7 +2290,7 @@ msgstr "अभी तक कोई रन नहीं"
 msgid "No trigger"
 msgstr "कोई ट्रिगर नहीं"
 
-#: src/pages/crm/CrmContacts.tsx:77
+#: src/pages/crm/CrmContacts.tsx:114
 msgid "Nobody matches that search"
 msgstr "इस खोज से कोई मेल नहीं खाता"
 
@@ -2236,7 +2315,7 @@ msgstr "प्लगइन कैटलॉग में नहीं"
 msgid "Not now"
 msgstr "अभी नहीं"
 
-#: src/pages/crm/CrmContacts.tsx:345
+#: src/pages/crm/CrmContacts.tsx:382
 msgid "Notes"
 msgstr "नोट्स"
 
@@ -2252,6 +2331,10 @@ msgstr "अभी"
 #: src/pages/ModelSettingsOverlay.tsx:238
 msgid "Now using {0}."
 msgstr "अब {0} उपयोग में है।"
+
+#: src/pages/crm/CrmModuleSheet.tsx:235
+msgid "Number"
+msgstr "संख्या"
 
 #: src/pages/McpOAuthCallback.tsx:24
 msgid "OAuth authorization was cancelled."
@@ -2303,6 +2386,10 @@ msgstr "इंटीग्रेशन → CRM API पहुंच खोले�
 msgid "Open navigation"
 msgstr "नेविगेशन खोलें"
 
+#: src/pages/crm/SheetGrid.tsx:217
+msgid "Open row"
+msgstr "पंक्ति खोलें"
+
 #: src/components/teach/TeachComputerSection.tsx:84
 msgid "Open the computer view on web or desktop to teach a task."
 msgstr "कोई कार्य सिखाने के लिए वेब या डेस्कटॉप पर कंप्यूटर व्यू खोलें।"
@@ -2340,6 +2427,10 @@ msgstr "वैकल्पिक नियंत्रण जिनकी अध
 #: src/pages/McpServersOverlay.tsx:352
 msgid "Optional header value"
 msgstr "वैकल्पिक हेडर मान"
+
+#: src/pages/crm/CrmModuleSheet.tsx:297
+msgid "Options, comma-separated"
+msgstr "विकल्प, कॉमा से अलग करें"
 
 #: src/pages/ModelSettingsOverlay.tsx:648
 msgid "Or connect an API key"
@@ -2406,7 +2497,9 @@ msgstr "रुका हुआ"
 msgid "Personal credential"
 msgstr "व्यक्तिगत क्रेडेंशियल"
 
-#: src/pages/crm/CrmContacts.tsx:339
+#: src/pages/crm/CrmContacts.tsx:376
+#: src/pages/crm/CrmContactsSheet.tsx:91
+#: src/pages/crm/CrmModuleSheet.tsx:240
 msgid "Phone"
 msgstr "फ़ोन"
 
@@ -2418,7 +2511,7 @@ msgstr "एक आवाज़ चुनें"
 msgid "Pin"
 msgstr "पिन करें"
 
-#: src/pages/crm/CrmView.tsx:24
+#: src/pages/crm/CrmView.tsx:28
 msgid "Pipeline"
 msgstr "पाइपलाइन"
 
@@ -2612,7 +2705,7 @@ msgstr "रीसेट हो रहा है…"
 msgid "REST"
 msgstr "REST"
 
-#: src/pages/crm/CrmContacts.tsx:429
+#: src/pages/crm/CrmContacts.tsx:466
 #: src/pages/Shell.tsx:2208
 #: src/pages/Shell.tsx:2238
 msgid "Restore"
@@ -2683,7 +2776,7 @@ msgstr "चल रहा है…"
 
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/components/teach/TeachComputerSection.tsx:183
-#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmContacts.tsx:485
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:676
@@ -2752,7 +2845,7 @@ msgstr "ऐप खोजें"
 msgid "Search models"
 msgstr "मॉडल खोजें"
 
-#: src/pages/crm/CrmContacts.tsx:53
+#: src/pages/crm/CrmContacts.tsx:64
 msgid "Search people, companies, tags"
 msgstr "लोग, कंपनियां, टैग खोजें"
 
@@ -2769,6 +2862,10 @@ msgstr "प्रोवाइडर्स और मॉडल खोजें"
 #: src/pages/WorkspaceSearch.tsx:16
 msgid "Searching…"
 msgstr "खोजा जा रहा है…"
+
+#: src/pages/crm/CrmModuleSheet.tsx:238
+msgid "Select"
+msgstr "सिलेक्ट"
 
 #: src/pages/Shell.tsx:2451
 msgid "Select a bot"
@@ -2839,6 +2936,10 @@ msgstr "सेटअप सहायता"
 #: src/pages/Shell.tsx:5112
 msgid "Shared"
 msgstr "साझा"
+
+#: src/pages/crm/CrmContacts.tsx:93
+msgid "Sheet"
+msgstr "शीट"
 
 #: src/pages/Shell.tsx:2659
 msgid "Show computer"
@@ -2951,6 +3052,10 @@ msgstr "शुरू हो रहा है"
 msgid "Starting…"
 msgstr "शुरू हो रहा है…"
 
+#: src/pages/crm/CrmContactsSheet.tsx:98
+msgid "Status"
+msgstr "स्टेटस"
+
 #: src/components/teach/SkillDraftCard.tsx:110
 msgid "Steps"
 msgstr "चरण"
@@ -3012,8 +3117,9 @@ msgstr "सबमिट किया गया"
 msgid "Switching…"
 msgstr "बदला जा रहा है…"
 
-#: src/pages/crm/CrmContacts.tsx:100
-#: src/pages/crm/CrmContacts.tsx:352
+#: src/pages/crm/CrmContacts.tsx:137
+#: src/pages/crm/CrmContacts.tsx:389
+#: src/pages/crm/CrmContactsSheet.tsx:107
 msgid "Tags"
 msgstr "टैग"
 
@@ -3054,6 +3160,10 @@ msgstr "टेस्ट करें"
 #: src/pages/RoutineEditor.tsx:288
 msgid "Test run"
 msgstr "टेस्ट रन"
+
+#: src/pages/crm/CrmModuleSheet.tsx:234
+msgid "Text"
+msgstr "टेक्स्ट"
 
 #: src/pages/DocsView.tsx:136
 msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. The CRM is the first surface it covers; new areas will appear here as they open up."
@@ -3174,6 +3284,15 @@ msgstr "कुल पाइपलाइन"
 msgid "Treg token"
 msgstr "Treg टोकन"
 
+#. placeholder {0}: firstField.label.toLowerCase()
+#: src/pages/crm/CrmModuleSheet.tsx:192
+msgid "Type {0} to add a row"
+msgstr "पंक्ति जोड़ने के लिए {0} टाइप करें"
+
+#: src/pages/crm/CrmContactsSheet.tsx:136
+msgid "Type a name to add a contact"
+msgstr "संपर्क जोड़ने के लिए नाम टाइप करें"
+
 #: src/components/AskCard.tsx:141
 msgid "Type your answer"
 msgstr "अपना उत्तर लिखें"
@@ -3229,6 +3348,10 @@ msgstr "अपडेट हो गया"
 #: src/components/SoftwareUpdateSection.tsx:75
 msgid "Updating…"
 msgstr "अपडेट हो रहा है…"
+
+#: src/pages/crm/CrmModuleSheet.tsx:241
+msgid "URL"
+msgstr "URL"
 
 #: src/pages/AccountSettingsOverlay.tsx:176
 #: src/pages/Shell.tsx:2372
@@ -3375,6 +3498,12 @@ msgstr "काम चल रहा है…"
 #: src/pages/Shell.tsx:5072
 msgid "Workspace default"
 msgstr "वर्कस्पेस डिफ़ॉल्ट"
+
+#: src/pages/crm/CrmModuleSheet.tsx:55
+#: src/pages/crm/CrmModuleSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:99
+msgid "Yes"
+msgstr "हाँ"
 
 #: src/pages/Shell.tsx:1307
 #: src/pages/Shell.tsx:1901

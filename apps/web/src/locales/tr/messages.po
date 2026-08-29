@@ -25,10 +25,20 @@ msgstr " Botların bu Mac'te çalışmasına izin verirsen macOS ek izin istemez
 msgid " Your OS will not ask for extra permission if you let bots run on {hostLabel} — they run as you."
 msgstr " Botların {hostLabel} üzerinde çalışmasına izin verirsen işletim sistemin ek izin istemez — botlar senin adına çalışır."
 
+#. placeholder {0}: contacts.length
+#: src/pages/crm/CrmContactsSheet.tsx:145
+msgid "{0, plural, one {# contact} other {# contacts}}"
+msgstr "{0, plural, one {# kişi} other {# kişi}}"
+
 #. placeholder {0}: group.entries.length
 #: src/pages/ModelSettingsOverlay.tsx:372
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# model} other {# model}}"
+
+#. placeholder {0}: records.length
+#: src/pages/crm/CrmModuleSheet.tsx:131
+msgid "{0, plural, one {# record} other {# records}}"
+msgstr "{0, plural, one {# kayıt} other {# kayıt}}"
 
 #. placeholder {0}: file.name
 #: src/pages/Shell.tsx:1492
@@ -163,6 +173,10 @@ msgstr "+ Başka zamanlama ekle"
 msgid "+ Add stage"
 msgstr "+ Aşama ekle"
 
+#: src/pages/crm/CrmModuleSheet.tsx:138
+msgid "+ Field"
+msgstr "+ Alan"
+
 #: src/pages/crm/CrmPipelineBoard.tsx:143
 msgid "+ New pipeline"
 msgstr "+ Yeni pipeline"
@@ -196,6 +210,8 @@ msgstr "İşlem onayları"
 msgid "Actions for {0}"
 msgstr "{0} için işlemler"
 
+#: src/pages/crm/CrmContactsSheet.tsx:101
+#: src/pages/crm/CrmContactsSheet.tsx:103
 #: src/pages/RoutineEditor.tsx:271
 #: src/pages/VoiceSettingsOverlay.tsx:223
 msgid "Active"
@@ -220,12 +236,16 @@ msgstr "Etkin ses"
 msgid "Activity"
 msgstr "Etkinlik"
 
-#: src/pages/crm/CrmContacts.tsx:393
+#: src/pages/crm/CrmContacts.tsx:430
 #: src/pages/PluginsOverlay.tsx:289
 #: src/pages/PluginsOverlay.tsx:388
 #: src/pages/ScratchpadSection.tsx:188
 msgid "Add"
 msgstr "Ekle"
+
+#: src/pages/crm/CrmModuleSheet.tsx:183
+msgid "Add a field to start this sheet"
+msgstr "Bu tabloyu başlatmak için bir alan ekle"
 
 #: src/pages/Shell.tsx:2942
 msgid "Add a run time for this one-shot."
@@ -254,6 +274,10 @@ msgstr "Bir stdio komutu gir."
 #: src/pages/McpServersOverlay.tsx:90
 msgid "Add an HTTPS server URL."
 msgstr "Bir HTTPS sunucu URL'si gir."
+
+#: src/pages/crm/CrmModuleSheet.tsx:307
+msgid "Add field"
+msgstr "Alan ekle"
 
 #: src/pages/ScratchpadSection.tsx:182
 msgid "Add item"
@@ -422,7 +446,7 @@ msgid "Approve this server to let your agent use its tools."
 msgstr "Agent'ının bu sunucunun araçlarını kullanabilmesi için sunucuyu onayla."
 
 #: src/pages/BotContextMenu.tsx:104
-#: src/pages/crm/CrmContacts.tsx:429
+#: src/pages/crm/CrmContacts.tsx:466
 msgid "Archive"
 msgstr "Arşivle"
 
@@ -430,7 +454,10 @@ msgstr "Arşivle"
 msgid "archived"
 msgstr "arşivlendi"
 
-#: src/pages/crm/CrmContacts.tsx:63
+#: src/pages/crm/CrmContacts.tsx:74
+#: src/pages/crm/CrmContactsSheet.tsx:42
+#: src/pages/crm/CrmContactsSheet.tsx:101
+#: src/pages/crm/CrmContactsSheet.tsx:103
 #: src/pages/Shell.tsx:2181
 msgid "Archived"
 msgstr "Arşivlendi"
@@ -603,6 +630,8 @@ msgstr "Sunucuya ulaşılamıyor."
 #: src/components/AskCard.tsx:161
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/teach/TeachComputerSection.tsx:122
+#: src/pages/crm/CrmModuleSheet.tsx:155
+#: src/pages/crm/CrmModuleSheet.tsx:314
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
@@ -651,6 +680,10 @@ msgstr "Güncellemeleri kontrol et"
 msgid "Check in."
 msgstr "Durum bildir."
 
+#: src/pages/crm/CrmModuleSheet.tsx:237
+msgid "Checkbox"
+msgstr "Onay kutusu"
+
 #: src/components/SoftwareUpdateSection.tsx:71
 msgid "Checking…"
 msgstr "Kontrol ediliyor…"
@@ -682,7 +715,7 @@ msgid "Clearing…"
 msgstr "Temizleniyor…"
 
 #: src/pages/BotContextMenu.tsx:67
-#: src/pages/crm/CrmContacts.tsx:302
+#: src/pages/crm/CrmContacts.tsx:339
 #: src/pages/RoutineEditor.tsx:249
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
@@ -768,8 +801,9 @@ msgstr "Yakında"
 msgid "Command"
 msgstr "Komut"
 
-#: src/pages/crm/CrmContacts.tsx:94
-#: src/pages/crm/CrmContacts.tsx:327
+#: src/pages/crm/CrmContacts.tsx:131
+#: src/pages/crm/CrmContacts.tsx:364
+#: src/pages/crm/CrmContactsSheet.tsx:77
 msgid "Company"
 msgstr "Şirket"
 
@@ -806,6 +840,7 @@ msgstr "Dağıtım tarafından yapılandırıldı"
 msgid "Configured servers"
 msgstr "Yapılandırılmış sunucular"
 
+#: src/pages/crm/CrmModuleSheet.tsx:148
 #: src/pages/McpServersOverlay.tsx:479
 msgid "Confirm delete"
 msgstr "Silmeyi onayla"
@@ -898,11 +933,11 @@ msgstr "Bağlanıyor…"
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} bağlantısı hâlâ beklemede. Bunu kapatıp daha sonra tekrar kontrol edebilirsin."
 
-#: src/pages/crm/CrmContacts.tsx:296
+#: src/pages/crm/CrmContacts.tsx:333
 msgid "Contact"
 msgstr "Kişi"
 
-#: src/pages/crm/CrmView.tsx:25
+#: src/pages/crm/CrmView.tsx:29
 msgid "Contacts"
 msgstr "Kişiler"
 
@@ -1072,7 +1107,7 @@ msgstr "MCP sunucuları yüklenemedi"
 msgid "Could not load model settings"
 msgstr "Model ayarları yüklenemedi"
 
-#: src/pages/crm/CrmView.tsx:35
+#: src/pages/crm/CrmView.tsx:40
 msgid "Could not load the CRM"
 msgstr "CRM yüklenemedi"
 
@@ -1201,7 +1236,7 @@ msgstr "Varsayılan hafıza kapsamı güncellenemedi"
 msgid "Couldn't update avatars"
 msgstr "Avatarlar güncellenemedi"
 
-#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmContacts.tsx:485
 #: src/pages/crm/CrmPipelineBoard.tsx:583
 #: src/pages/crm/CrmPipelineBoard.tsx:772
 #: src/pages/Shell.tsx:1968
@@ -1278,6 +1313,10 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Cron ifadesi"
 
+#: src/pages/crm/CrmModuleSheet.tsx:236
+msgid "Date"
+msgstr "Tarih"
+
 #: src/pages/RoutineSchedule.tsx:68
 msgid "day"
 msgstr "gün"
@@ -1299,7 +1338,7 @@ msgstr "Fırsat durumu"
 msgid "Deal title"
 msgstr "Fırsat başlığı"
 
-#: src/pages/crm/CrmContacts.tsx:401
+#: src/pages/crm/CrmContacts.tsx:438
 msgid "Deals"
 msgstr "Fırsatlar"
 
@@ -1312,7 +1351,7 @@ msgid "Default scope"
 msgstr "Varsayılan kapsam"
 
 #: src/pages/BotContextMenu.tsx:105
-#: src/pages/crm/CrmContacts.tsx:436
+#: src/pages/crm/CrmContacts.tsx:473
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
@@ -1344,6 +1383,14 @@ msgstr "Grubu sil"
 #: src/pages/Shell.tsx:5486
 msgid "Delete memories too"
 msgstr "Hafızayı da sil"
+
+#: src/pages/crm/CrmModuleSheet.tsx:164
+msgid "Delete module"
+msgstr "Modülü sil"
+
+#: src/pages/crm/CrmModuleSheet.tsx:112
+msgid "Delete row"
+msgstr "Satırı sil"
 
 #: src/pages/Shell.tsx:4598
 msgid "deleted"
@@ -1477,8 +1524,10 @@ msgid "Edit Profile"
 msgstr "Profili Düzenle"
 
 #: src/pages/Auth.tsx:70
-#: src/pages/crm/CrmContacts.tsx:97
-#: src/pages/crm/CrmContacts.tsx:333
+#: src/pages/crm/CrmContacts.tsx:134
+#: src/pages/crm/CrmContacts.tsx:370
+#: src/pages/crm/CrmContactsSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:239
 msgid "Email"
 msgstr "E-posta"
 
@@ -1542,7 +1591,7 @@ msgstr "Her istek <0>Authorization: Bearer manor_…</0> taşır. Token'ın kaps
 msgid "Every week"
 msgstr "Her hafta"
 
-#: src/pages/crm/CrmContacts.tsx:81
+#: src/pages/crm/CrmContacts.tsx:118
 msgid "Everyone your business talks to lives here. Add the first one."
 msgstr "İşletmenizin konuştuğu herkes burada. İlk kişiyi ekleyin."
 
@@ -1590,6 +1639,10 @@ msgstr "Durdurulamadı"
 msgid "Failure handling"
 msgstr "Hata yönetimi"
 
+#: src/pages/crm/CrmModuleSheet.tsx:277
+msgid "Field label"
+msgstr "Alan etiketi"
+
 #: src/pages/ModelSettingsOverlay.tsx:428
 #: src/pages/Onboarding.tsx:293
 msgid "Find models"
@@ -1610,7 +1663,8 @@ msgstr "<0>{0}</0> adresinde oturum açmayı tamamla. Son sayfa yüklenmeyebilir
 msgid "Finishing MCP connection…"
 msgstr "MCP bağlantısı tamamlanıyor…"
 
-#: src/pages/crm/CrmContacts.tsx:314
+#: src/pages/crm/CrmContacts.tsx:351
+#: src/pages/crm/CrmContactsSheet.tsx:63
 msgid "First name"
 msgstr "Ad"
 
@@ -1705,7 +1759,7 @@ msgstr "Konuşmak için basılı tut"
 msgid "Hold to talk (on-device dictation)"
 msgstr "Konuşmak için basılı tut (cihaz üzerinde dikte)"
 
-#: src/pages/crm/CrmView.tsx:23
+#: src/pages/crm/CrmView.tsx:27
 msgid "Home"
 msgstr "Ana sayfa"
 
@@ -1814,13 +1868,18 @@ msgstr "Anahtarlar sunucuda kalır. Uygulama yalnızca bir sağlayıcının yap�
 msgid "Language"
 msgstr "Dil"
 
-#: src/pages/crm/CrmContacts.tsx:320
+#: src/pages/crm/CrmContacts.tsx:357
+#: src/pages/crm/CrmContactsSheet.tsx:70
 msgid "Last name"
 msgstr "Soyad"
 
 #: src/pages/RoutineEditor.tsx:47
 msgid "Linear issue"
 msgstr "Linear kaydı"
+
+#: src/pages/crm/CrmContacts.tsx:84
+msgid "List"
+msgstr "Liste"
 
 #: src/pages/CallView.tsx:245
 msgid "Listening…"
@@ -1829,6 +1888,10 @@ msgstr "Dinliyor…"
 #: src/pages/Shell.tsx:3617
 msgid "Load earlier messages"
 msgstr "Önceki mesajları yükle"
+
+#: src/pages/crm/CrmModuleSheet.tsx:211
+msgid "Load more"
+msgstr "Daha fazla yükle"
 
 #: src/pages/ActivityList.tsx:60
 msgid "Loading activity…"
@@ -1865,7 +1928,8 @@ msgid "Loading voice providers…"
 msgstr "Ses sağlayıcıları yükleniyor…"
 
 #: src/App.tsx:51
-#: src/pages/crm/CrmView.tsx:72
+#: src/pages/crm/CrmView.tsx:148
+#: src/pages/crm/CrmView.tsx:166
 #: src/pages/Onboarding.tsx:214
 #: src/pages/Shell.tsx:3617
 msgid "Loading…"
@@ -2041,6 +2105,10 @@ msgstr "Sunucudan gelen modeller"
 msgid "Models run on your own accounts and keys. Sign in with ChatGPT, Claude, Copilot, or SuperGrok, paste an API key, or skip if this deployment already has one."
 msgstr "Modeller kendi hesaplarınız ve anahtarlarınızla çalışır. ChatGPT, Claude, Copilot veya SuperGrok ile oturum açın, bir API anahtarı yapıştırın veya bu dağıtımda zaten bir anahtar varsa atlayın."
 
+#: src/pages/crm/CrmView.tsx:124
+msgid "Module name"
+msgstr "Modül adı"
+
 #: src/pages/RoutineSchedule.tsx:96
 msgid "Monthly"
 msgstr "Aylık"
@@ -2060,7 +2128,8 @@ msgstr "Taşı"
 
 #: src/components/teach/SkillDraftCard.tsx:82
 #: src/pages/Auth.tsx:57
-#: src/pages/crm/CrmContacts.tsx:91
+#: src/pages/crm/CrmContacts.tsx:128
+#: src/pages/crm/CrmView.tsx:64
 #: src/pages/GroupPanel.tsx:110
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:516
@@ -2097,8 +2166,8 @@ msgstr "Devralma bekliyor"
 msgid "New bot"
 msgstr "Yeni bot"
 
-#: src/pages/crm/CrmContacts.tsx:70
-#: src/pages/crm/CrmContacts.tsx:296
+#: src/pages/crm/CrmContacts.tsx:101
+#: src/pages/crm/CrmContacts.tsx:333
 msgid "New contact"
 msgstr "Yeni kişi"
 
@@ -2111,6 +2180,10 @@ msgstr "Yeni fırsat"
 #: src/pages/Shell.tsx:1992
 msgid "New group"
 msgstr "Yeni grup"
+
+#: src/pages/crm/CrmView.tsx:133
+msgid "New module"
+msgstr "Yeni modül"
 
 #: src/pages/ScratchpadSection.tsx:183
 msgid "New open-work item"
@@ -2129,9 +2202,15 @@ msgstr "Yeni rutin"
 msgid "New section"
 msgstr "Yeni bölüm"
 
-#: src/pages/crm/CrmContacts.tsx:384
+#: src/pages/crm/CrmContacts.tsx:421
 msgid "New tag"
 msgstr "Yeni etiket"
+
+#: src/pages/crm/CrmModuleSheet.tsx:57
+#: src/pages/crm/CrmModuleSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:99
+msgid "No"
+msgstr "Hayır"
 
 #: src/pages/PluginsOverlay.tsx:404
 msgid "No apps match your search."
@@ -2155,7 +2234,7 @@ msgstr "{0} için bağlantı kaydı bulunamadı."
 msgid "No contact"
 msgstr "Kişi yok"
 
-#: src/pages/crm/CrmContacts.tsx:77
+#: src/pages/crm/CrmContacts.tsx:114
 msgid "No contacts yet"
 msgstr "Henüz kişi yok"
 
@@ -2211,7 +2290,7 @@ msgstr "Henüz çalıştırma yok"
 msgid "No trigger"
 msgstr "Tetikleyici yok"
 
-#: src/pages/crm/CrmContacts.tsx:77
+#: src/pages/crm/CrmContacts.tsx:114
 msgid "Nobody matches that search"
 msgstr "Bu aramayla eşleşen kimse yok"
 
@@ -2236,7 +2315,7 @@ msgstr "Eklenti kataloğunda değil"
 msgid "Not now"
 msgstr "Şimdi değil"
 
-#: src/pages/crm/CrmContacts.tsx:345
+#: src/pages/crm/CrmContacts.tsx:382
 msgid "Notes"
 msgstr "Notlar"
 
@@ -2252,6 +2331,10 @@ msgstr "Şimdi"
 #: src/pages/ModelSettingsOverlay.tsx:238
 msgid "Now using {0}."
 msgstr "Artık {0} kullanılıyor."
+
+#: src/pages/crm/CrmModuleSheet.tsx:235
+msgid "Number"
+msgstr "Sayı"
 
 #: src/pages/McpOAuthCallback.tsx:24
 msgid "OAuth authorization was cancelled."
@@ -2303,6 +2386,10 @@ msgstr "Entegrasyonlar → CRM API erişimi'ni açın, kimlik bilgisini adlandı
 msgid "Open navigation"
 msgstr "Gezinmeyi aç"
 
+#: src/pages/crm/SheetGrid.tsx:217
+msgid "Open row"
+msgstr "Satırı aç"
+
 #: src/components/teach/TeachComputerSection.tsx:84
 msgid "Open the computer view on web or desktop to teach a task."
 msgstr "Görev öğretmek için web veya masaüstünde bilgisayar görünümünü aç."
@@ -2340,6 +2427,10 @@ msgstr "Çoğu kişinin hiç ihtiyaç duymadığı isteğe bağlı ayarlar"
 #: src/pages/McpServersOverlay.tsx:352
 msgid "Optional header value"
 msgstr "İsteğe bağlı üstbilgi değeri"
+
+#: src/pages/crm/CrmModuleSheet.tsx:297
+msgid "Options, comma-separated"
+msgstr "Seçenekler, virgülle ayrılmış"
 
 #: src/pages/ModelSettingsOverlay.tsx:648
 msgid "Or connect an API key"
@@ -2406,7 +2497,9 @@ msgstr "Duraklatıldı"
 msgid "Personal credential"
 msgstr "Kişisel kimlik bilgisi"
 
-#: src/pages/crm/CrmContacts.tsx:339
+#: src/pages/crm/CrmContacts.tsx:376
+#: src/pages/crm/CrmContactsSheet.tsx:91
+#: src/pages/crm/CrmModuleSheet.tsx:240
 msgid "Phone"
 msgstr "Telefon"
 
@@ -2418,7 +2511,7 @@ msgstr "Bir ses seç"
 msgid "Pin"
 msgstr "Sabitle"
 
-#: src/pages/crm/CrmView.tsx:24
+#: src/pages/crm/CrmView.tsx:28
 msgid "Pipeline"
 msgstr "Pipeline"
 
@@ -2612,7 +2705,7 @@ msgstr "Sıfırlanıyor…"
 msgid "REST"
 msgstr "REST"
 
-#: src/pages/crm/CrmContacts.tsx:429
+#: src/pages/crm/CrmContacts.tsx:466
 #: src/pages/Shell.tsx:2208
 #: src/pages/Shell.tsx:2238
 msgid "Restore"
@@ -2683,7 +2776,7 @@ msgstr "Çalışıyor…"
 
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/components/teach/TeachComputerSection.tsx:183
-#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmContacts.tsx:485
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:676
@@ -2752,7 +2845,7 @@ msgstr "Uygulama ara"
 msgid "Search models"
 msgstr "Model ara"
 
-#: src/pages/crm/CrmContacts.tsx:53
+#: src/pages/crm/CrmContacts.tsx:64
 msgid "Search people, companies, tags"
 msgstr "Kişi, şirket, etiket ara"
 
@@ -2769,6 +2862,10 @@ msgstr "Sağlayıcı ve model ara"
 #: src/pages/WorkspaceSearch.tsx:16
 msgid "Searching…"
 msgstr "Aranıyor…"
+
+#: src/pages/crm/CrmModuleSheet.tsx:238
+msgid "Select"
+msgstr "Seçim"
 
 #: src/pages/Shell.tsx:2451
 msgid "Select a bot"
@@ -2839,6 +2936,10 @@ msgstr "Kurulum yardımı"
 #: src/pages/Shell.tsx:5112
 msgid "Shared"
 msgstr "Ortak"
+
+#: src/pages/crm/CrmContacts.tsx:93
+msgid "Sheet"
+msgstr "Tablo"
 
 #: src/pages/Shell.tsx:2659
 msgid "Show computer"
@@ -2951,6 +3052,10 @@ msgstr "Başlıyor"
 msgid "Starting…"
 msgstr "Başlatılıyor…"
 
+#: src/pages/crm/CrmContactsSheet.tsx:98
+msgid "Status"
+msgstr "Durum"
+
 #: src/components/teach/SkillDraftCard.tsx:110
 msgid "Steps"
 msgstr "Adımlar"
@@ -3012,8 +3117,9 @@ msgstr "Gönderildi"
 msgid "Switching…"
 msgstr "Geçiliyor…"
 
-#: src/pages/crm/CrmContacts.tsx:100
-#: src/pages/crm/CrmContacts.tsx:352
+#: src/pages/crm/CrmContacts.tsx:137
+#: src/pages/crm/CrmContacts.tsx:389
+#: src/pages/crm/CrmContactsSheet.tsx:107
 msgid "Tags"
 msgstr "Etiketler"
 
@@ -3054,6 +3160,10 @@ msgstr "Dene"
 #: src/pages/RoutineEditor.tsx:288
 msgid "Test run"
 msgstr "Deneme çalıştırması"
+
+#: src/pages/crm/CrmModuleSheet.tsx:234
+msgid "Text"
+msgstr "Metin"
 
 #: src/pages/DocsView.tsx:136
 msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. The CRM is the first surface it covers; new areas will appear here as they open up."
@@ -3174,6 +3284,15 @@ msgstr "Toplam pipeline"
 msgid "Treg token"
 msgstr "Treg token'ı"
 
+#. placeholder {0}: firstField.label.toLowerCase()
+#: src/pages/crm/CrmModuleSheet.tsx:192
+msgid "Type {0} to add a row"
+msgstr "Satır eklemek için {0} yaz"
+
+#: src/pages/crm/CrmContactsSheet.tsx:136
+msgid "Type a name to add a contact"
+msgstr "Kişi eklemek için bir ad yaz"
+
 #: src/components/AskCard.tsx:141
 msgid "Type your answer"
 msgstr "Yanıtını yaz"
@@ -3229,6 +3348,10 @@ msgstr "Güncellendi"
 #: src/components/SoftwareUpdateSection.tsx:75
 msgid "Updating…"
 msgstr "Güncelleniyor…"
+
+#: src/pages/crm/CrmModuleSheet.tsx:241
+msgid "URL"
+msgstr "URL"
 
 #: src/pages/AccountSettingsOverlay.tsx:176
 #: src/pages/Shell.tsx:2372
@@ -3375,6 +3498,12 @@ msgstr "Çalışıyor…"
 #: src/pages/Shell.tsx:5072
 msgid "Workspace default"
 msgstr "Çalışma alanı varsayılanı"
+
+#: src/pages/crm/CrmModuleSheet.tsx:55
+#: src/pages/crm/CrmModuleSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:99
+msgid "Yes"
+msgstr "Evet"
 
 #: src/pages/Shell.tsx:1307
 #: src/pages/Shell.tsx:1901

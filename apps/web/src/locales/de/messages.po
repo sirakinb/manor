@@ -25,10 +25,20 @@ msgstr " Auf diesem Mac fragt macOS nicht nach zusätzlichen Berechtigungen, wen
 msgid " Your OS will not ask for extra permission if you let bots run on {hostLabel} — they run as you."
 msgstr " Auf {hostLabel} fragt dein Betriebssystem nicht nach zusätzlichen Berechtigungen, wenn Bots dort ausgeführt werden – sie handeln mit deinen Rechten."
 
+#. placeholder {0}: contacts.length
+#: src/pages/crm/CrmContactsSheet.tsx:145
+msgid "{0, plural, one {# contact} other {# contacts}}"
+msgstr "{0, plural, one {# Kontakt} other {# Kontakte}}"
+
 #. placeholder {0}: group.entries.length
 #: src/pages/ModelSettingsOverlay.tsx:372
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# Modell} other {# Modelle}}"
+
+#. placeholder {0}: records.length
+#: src/pages/crm/CrmModuleSheet.tsx:131
+msgid "{0, plural, one {# record} other {# records}}"
+msgstr "{0, plural, one {# Eintrag} other {# Einträge}}"
 
 #. placeholder {0}: file.name
 #: src/pages/Shell.tsx:1492
@@ -163,6 +173,10 @@ msgstr "+ Weiteren Zeitplan hinzufügen"
 msgid "+ Add stage"
 msgstr "+ Phase hinzufügen"
 
+#: src/pages/crm/CrmModuleSheet.tsx:138
+msgid "+ Field"
+msgstr "+ Feld"
+
 #: src/pages/crm/CrmPipelineBoard.tsx:143
 msgid "+ New pipeline"
 msgstr "+ Neue Pipeline"
@@ -196,6 +210,8 @@ msgstr "Aktionsbestätigungen"
 msgid "Actions for {0}"
 msgstr "Aktionen für {0}"
 
+#: src/pages/crm/CrmContactsSheet.tsx:101
+#: src/pages/crm/CrmContactsSheet.tsx:103
 #: src/pages/RoutineEditor.tsx:271
 #: src/pages/VoiceSettingsOverlay.tsx:223
 msgid "Active"
@@ -220,12 +236,16 @@ msgstr "Aktive Stimme"
 msgid "Activity"
 msgstr "Aktivität"
 
-#: src/pages/crm/CrmContacts.tsx:393
+#: src/pages/crm/CrmContacts.tsx:430
 #: src/pages/PluginsOverlay.tsx:289
 #: src/pages/PluginsOverlay.tsx:388
 #: src/pages/ScratchpadSection.tsx:188
 msgid "Add"
 msgstr "Hinzufügen"
+
+#: src/pages/crm/CrmModuleSheet.tsx:183
+msgid "Add a field to start this sheet"
+msgstr "Füge ein Feld hinzu, um diese Tabelle zu starten"
 
 #: src/pages/Shell.tsx:2942
 msgid "Add a run time for this one-shot."
@@ -254,6 +274,10 @@ msgstr "Gib einen stdio-Befehl ein."
 #: src/pages/McpServersOverlay.tsx:90
 msgid "Add an HTTPS server URL."
 msgstr "Gib eine HTTPS-Server-URL ein."
+
+#: src/pages/crm/CrmModuleSheet.tsx:307
+msgid "Add field"
+msgstr "Feld hinzufügen"
 
 #: src/pages/ScratchpadSection.tsx:182
 msgid "Add item"
@@ -422,7 +446,7 @@ msgid "Approve this server to let your agent use its tools."
 msgstr "Genehmige diesen Server, damit dein Agent seine Tools verwenden kann."
 
 #: src/pages/BotContextMenu.tsx:104
-#: src/pages/crm/CrmContacts.tsx:429
+#: src/pages/crm/CrmContacts.tsx:466
 msgid "Archive"
 msgstr "Archivieren"
 
@@ -430,7 +454,10 @@ msgstr "Archivieren"
 msgid "archived"
 msgstr "archiviert"
 
-#: src/pages/crm/CrmContacts.tsx:63
+#: src/pages/crm/CrmContacts.tsx:74
+#: src/pages/crm/CrmContactsSheet.tsx:42
+#: src/pages/crm/CrmContactsSheet.tsx:101
+#: src/pages/crm/CrmContactsSheet.tsx:103
 #: src/pages/Shell.tsx:2181
 msgid "Archived"
 msgstr "Archiviert"
@@ -603,6 +630,8 @@ msgstr "Server nicht erreichbar."
 #: src/components/AskCard.tsx:161
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/teach/TeachComputerSection.tsx:122
+#: src/pages/crm/CrmModuleSheet.tsx:155
+#: src/pages/crm/CrmModuleSheet.tsx:314
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
@@ -651,6 +680,10 @@ msgstr "Nach Updates suchen"
 msgid "Check in."
 msgstr "Melde dich."
 
+#: src/pages/crm/CrmModuleSheet.tsx:237
+msgid "Checkbox"
+msgstr "Checkbox"
+
 #: src/components/SoftwareUpdateSection.tsx:71
 msgid "Checking…"
 msgstr "Prüfe…"
@@ -682,7 +715,7 @@ msgid "Clearing…"
 msgstr "Wird geleert…"
 
 #: src/pages/BotContextMenu.tsx:67
-#: src/pages/crm/CrmContacts.tsx:302
+#: src/pages/crm/CrmContacts.tsx:339
 #: src/pages/RoutineEditor.tsx:249
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
@@ -768,8 +801,9 @@ msgstr "Demnächst"
 msgid "Command"
 msgstr "Befehl"
 
-#: src/pages/crm/CrmContacts.tsx:94
-#: src/pages/crm/CrmContacts.tsx:327
+#: src/pages/crm/CrmContacts.tsx:131
+#: src/pages/crm/CrmContacts.tsx:364
+#: src/pages/crm/CrmContactsSheet.tsx:77
 msgid "Company"
 msgstr "Unternehmen"
 
@@ -806,6 +840,7 @@ msgstr "Durch die Bereitstellung konfiguriert"
 msgid "Configured servers"
 msgstr "Konfigurierte Server"
 
+#: src/pages/crm/CrmModuleSheet.tsx:148
 #: src/pages/McpServersOverlay.tsx:479
 msgid "Confirm delete"
 msgstr "Löschen bestätigen"
@@ -898,11 +933,11 @@ msgstr "Verbindung wird hergestellt…"
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "Die Verbindung zu {0} steht noch aus. Du kannst dieses Fenster schließen und später erneut nachsehen."
 
-#: src/pages/crm/CrmContacts.tsx:296
+#: src/pages/crm/CrmContacts.tsx:333
 msgid "Contact"
 msgstr "Kontakt"
 
-#: src/pages/crm/CrmView.tsx:25
+#: src/pages/crm/CrmView.tsx:29
 msgid "Contacts"
 msgstr "Kontakte"
 
@@ -1072,7 +1107,7 @@ msgstr "MCP-Server konnten nicht geladen werden"
 msgid "Could not load model settings"
 msgstr "Modelleinstellungen konnten nicht geladen werden"
 
-#: src/pages/crm/CrmView.tsx:35
+#: src/pages/crm/CrmView.tsx:40
 msgid "Could not load the CRM"
 msgstr "CRM konnte nicht geladen werden"
 
@@ -1201,7 +1236,7 @@ msgstr "Standardbereich für Erinnerungen konnte nicht aktualisiert werden"
 msgid "Couldn't update avatars"
 msgstr "Avatare konnten nicht aktualisiert werden"
 
-#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmContacts.tsx:485
 #: src/pages/crm/CrmPipelineBoard.tsx:583
 #: src/pages/crm/CrmPipelineBoard.tsx:772
 #: src/pages/Shell.tsx:1968
@@ -1278,6 +1313,10 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Cron-Ausdruck"
 
+#: src/pages/crm/CrmModuleSheet.tsx:236
+msgid "Date"
+msgstr "Datum"
+
 #: src/pages/RoutineSchedule.tsx:68
 msgid "day"
 msgstr "Tag"
@@ -1299,7 +1338,7 @@ msgstr "Deal-Status"
 msgid "Deal title"
 msgstr "Deal-Titel"
 
-#: src/pages/crm/CrmContacts.tsx:401
+#: src/pages/crm/CrmContacts.tsx:438
 msgid "Deals"
 msgstr "Deals"
 
@@ -1312,7 +1351,7 @@ msgid "Default scope"
 msgstr "Standardbereich"
 
 #: src/pages/BotContextMenu.tsx:105
-#: src/pages/crm/CrmContacts.tsx:436
+#: src/pages/crm/CrmContacts.tsx:473
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
@@ -1344,6 +1383,14 @@ msgstr "Gruppe löschen"
 #: src/pages/Shell.tsx:5486
 msgid "Delete memories too"
 msgstr "Erinnerungen ebenfalls löschen"
+
+#: src/pages/crm/CrmModuleSheet.tsx:164
+msgid "Delete module"
+msgstr "Modul löschen"
+
+#: src/pages/crm/CrmModuleSheet.tsx:112
+msgid "Delete row"
+msgstr "Zeile löschen"
 
 #: src/pages/Shell.tsx:4598
 msgid "deleted"
@@ -1477,8 +1524,10 @@ msgid "Edit Profile"
 msgstr "Profil bearbeiten"
 
 #: src/pages/Auth.tsx:70
-#: src/pages/crm/CrmContacts.tsx:97
-#: src/pages/crm/CrmContacts.tsx:333
+#: src/pages/crm/CrmContacts.tsx:134
+#: src/pages/crm/CrmContacts.tsx:370
+#: src/pages/crm/CrmContactsSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:239
 msgid "Email"
 msgstr "E-Mail"
 
@@ -1542,7 +1591,7 @@ msgstr "Jede Anfrage trägt <0>Authorization: Bearer manor_…</0>. Die Scopes d
 msgid "Every week"
 msgstr "Jede Woche"
 
-#: src/pages/crm/CrmContacts.tsx:81
+#: src/pages/crm/CrmContacts.tsx:118
 msgid "Everyone your business talks to lives here. Add the first one."
 msgstr "Alle, mit denen dein Unternehmen spricht, leben hier. Füge die erste Person hinzu."
 
@@ -1590,6 +1639,10 @@ msgstr "Stoppen fehlgeschlagen"
 msgid "Failure handling"
 msgstr "Fehlerbehandlung"
 
+#: src/pages/crm/CrmModuleSheet.tsx:277
+msgid "Field label"
+msgstr "Feldbezeichnung"
+
 #: src/pages/ModelSettingsOverlay.tsx:428
 #: src/pages/Onboarding.tsx:293
 msgid "Find models"
@@ -1610,7 +1663,8 @@ msgstr "Schließe die Anmeldung unter <0>{0}</0> ab. Die letzte Seite wird mögl
 msgid "Finishing MCP connection…"
 msgstr "MCP-Verbindung wird abgeschlossen…"
 
-#: src/pages/crm/CrmContacts.tsx:314
+#: src/pages/crm/CrmContacts.tsx:351
+#: src/pages/crm/CrmContactsSheet.tsx:63
 msgid "First name"
 msgstr "Vorname"
 
@@ -1705,7 +1759,7 @@ msgstr "Zum Sprechen gedrückt halten"
 msgid "Hold to talk (on-device dictation)"
 msgstr "Zum Sprechen gedrückt halten (Diktat auf dem Gerät)"
 
-#: src/pages/crm/CrmView.tsx:23
+#: src/pages/crm/CrmView.tsx:27
 msgid "Home"
 msgstr "Start"
 
@@ -1814,13 +1868,18 @@ msgstr "Schlüssel bleiben auf dem Server. Die App erfährt nur, ob ein Anbieter
 msgid "Language"
 msgstr "Sprache"
 
-#: src/pages/crm/CrmContacts.tsx:320
+#: src/pages/crm/CrmContacts.tsx:357
+#: src/pages/crm/CrmContactsSheet.tsx:70
 msgid "Last name"
 msgstr "Nachname"
 
 #: src/pages/RoutineEditor.tsx:47
 msgid "Linear issue"
 msgstr "Linear-Issue"
+
+#: src/pages/crm/CrmContacts.tsx:84
+msgid "List"
+msgstr "Liste"
 
 #: src/pages/CallView.tsx:245
 msgid "Listening…"
@@ -1829,6 +1888,10 @@ msgstr "Hört zu…"
 #: src/pages/Shell.tsx:3617
 msgid "Load earlier messages"
 msgstr "Frühere Nachrichten laden"
+
+#: src/pages/crm/CrmModuleSheet.tsx:211
+msgid "Load more"
+msgstr "Mehr laden"
 
 #: src/pages/ActivityList.tsx:60
 msgid "Loading activity…"
@@ -1865,7 +1928,8 @@ msgid "Loading voice providers…"
 msgstr "Stimmanbieter werden geladen…"
 
 #: src/App.tsx:51
-#: src/pages/crm/CrmView.tsx:72
+#: src/pages/crm/CrmView.tsx:148
+#: src/pages/crm/CrmView.tsx:166
 #: src/pages/Onboarding.tsx:214
 #: src/pages/Shell.tsx:3617
 msgid "Loading…"
@@ -2041,6 +2105,10 @@ msgstr "Modelle vom Server"
 msgid "Models run on your own accounts and keys. Sign in with ChatGPT, Claude, Copilot, or SuperGrok, paste an API key, or skip if this deployment already has one."
 msgstr "Modelle laufen über Ihre eigenen Konten und Schlüssel. Melden Sie sich mit ChatGPT, Claude, Copilot oder SuperGrok an, fügen Sie einen API-Schlüssel ein oder überspringen Sie diesen Schritt, wenn diese Bereitstellung bereits einen hat."
 
+#: src/pages/crm/CrmView.tsx:124
+msgid "Module name"
+msgstr "Modulname"
+
 #: src/pages/RoutineSchedule.tsx:96
 msgid "Monthly"
 msgstr "Monatlich"
@@ -2060,7 +2128,8 @@ msgstr "Verschieben nach"
 
 #: src/components/teach/SkillDraftCard.tsx:82
 #: src/pages/Auth.tsx:57
-#: src/pages/crm/CrmContacts.tsx:91
+#: src/pages/crm/CrmContacts.tsx:128
+#: src/pages/crm/CrmView.tsx:64
 #: src/pages/GroupPanel.tsx:110
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:516
@@ -2097,8 +2166,8 @@ msgstr "Übernahme erforderlich"
 msgid "New bot"
 msgstr "Neuer Bot"
 
-#: src/pages/crm/CrmContacts.tsx:70
-#: src/pages/crm/CrmContacts.tsx:296
+#: src/pages/crm/CrmContacts.tsx:101
+#: src/pages/crm/CrmContacts.tsx:333
 msgid "New contact"
 msgstr "Neuer Kontakt"
 
@@ -2111,6 +2180,10 @@ msgstr "Neuer Deal"
 #: src/pages/Shell.tsx:1992
 msgid "New group"
 msgstr "Neue Gruppe"
+
+#: src/pages/crm/CrmView.tsx:133
+msgid "New module"
+msgstr "Neues Modul"
 
 #: src/pages/ScratchpadSection.tsx:183
 msgid "New open-work item"
@@ -2129,9 +2202,15 @@ msgstr "Neue Routine"
 msgid "New section"
 msgstr "Neuer Abschnitt"
 
-#: src/pages/crm/CrmContacts.tsx:384
+#: src/pages/crm/CrmContacts.tsx:421
 msgid "New tag"
 msgstr "Neuer Tag"
+
+#: src/pages/crm/CrmModuleSheet.tsx:57
+#: src/pages/crm/CrmModuleSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:99
+msgid "No"
+msgstr "Nein"
 
 #: src/pages/PluginsOverlay.tsx:404
 msgid "No apps match your search."
@@ -2155,7 +2234,7 @@ msgstr "Kein Verbindungseintrag für {0} gefunden."
 msgid "No contact"
 msgstr "Kein Kontakt"
 
-#: src/pages/crm/CrmContacts.tsx:77
+#: src/pages/crm/CrmContacts.tsx:114
 msgid "No contacts yet"
 msgstr "Noch keine Kontakte"
 
@@ -2211,7 +2290,7 @@ msgstr "Noch keine Ausführungen"
 msgid "No trigger"
 msgstr "Kein Auslöser"
 
-#: src/pages/crm/CrmContacts.tsx:77
+#: src/pages/crm/CrmContacts.tsx:114
 msgid "Nobody matches that search"
 msgstr "Niemand passt zu dieser Suche"
 
@@ -2236,7 +2315,7 @@ msgstr "Nicht im Plugin-Katalog"
 msgid "Not now"
 msgstr "Jetzt nicht"
 
-#: src/pages/crm/CrmContacts.tsx:345
+#: src/pages/crm/CrmContacts.tsx:382
 msgid "Notes"
 msgstr "Notizen"
 
@@ -2252,6 +2331,10 @@ msgstr "Jetzt"
 #: src/pages/ModelSettingsOverlay.tsx:238
 msgid "Now using {0}."
 msgstr "Jetzt wird {0} verwendet."
+
+#: src/pages/crm/CrmModuleSheet.tsx:235
+msgid "Number"
+msgstr "Zahl"
 
 #: src/pages/McpOAuthCallback.tsx:24
 msgid "OAuth authorization was cancelled."
@@ -2303,6 +2386,10 @@ msgstr "Öffne Integrationen → CRM-API-Zugriff, benenne die Zugangsdaten, wäh
 msgid "Open navigation"
 msgstr "Navigation öffnen"
 
+#: src/pages/crm/SheetGrid.tsx:217
+msgid "Open row"
+msgstr "Zeile öffnen"
+
 #: src/components/teach/TeachComputerSection.tsx:84
 msgid "Open the computer view on web or desktop to teach a task."
 msgstr "Öffne die Computeransicht im Web oder auf dem Desktop, um eine Aufgabe anzulernen."
@@ -2340,6 +2427,10 @@ msgstr "Optionale Einstellungen, die die meisten nie benötigen"
 #: src/pages/McpServersOverlay.tsx:352
 msgid "Optional header value"
 msgstr "Optionaler Header-Wert"
+
+#: src/pages/crm/CrmModuleSheet.tsx:297
+msgid "Options, comma-separated"
+msgstr "Optionen, durch Kommas getrennt"
 
 #: src/pages/ModelSettingsOverlay.tsx:648
 msgid "Or connect an API key"
@@ -2406,7 +2497,9 @@ msgstr "Pausiert"
 msgid "Personal credential"
 msgstr "Persönliche Zugangsdaten"
 
-#: src/pages/crm/CrmContacts.tsx:339
+#: src/pages/crm/CrmContacts.tsx:376
+#: src/pages/crm/CrmContactsSheet.tsx:91
+#: src/pages/crm/CrmModuleSheet.tsx:240
 msgid "Phone"
 msgstr "Telefon"
 
@@ -2418,7 +2511,7 @@ msgstr "Stimme auswählen"
 msgid "Pin"
 msgstr "Anheften"
 
-#: src/pages/crm/CrmView.tsx:24
+#: src/pages/crm/CrmView.tsx:28
 msgid "Pipeline"
 msgstr "Pipeline"
 
@@ -2612,7 +2705,7 @@ msgstr "Setze zurück…"
 msgid "REST"
 msgstr "REST"
 
-#: src/pages/crm/CrmContacts.tsx:429
+#: src/pages/crm/CrmContacts.tsx:466
 #: src/pages/Shell.tsx:2208
 #: src/pages/Shell.tsx:2238
 msgid "Restore"
@@ -2683,7 +2776,7 @@ msgstr "Wird ausgeführt…"
 
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/components/teach/TeachComputerSection.tsx:183
-#: src/pages/crm/CrmContacts.tsx:448
+#: src/pages/crm/CrmContacts.tsx:485
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:676
@@ -2752,7 +2845,7 @@ msgstr "Apps suchen"
 msgid "Search models"
 msgstr "Modelle suchen"
 
-#: src/pages/crm/CrmContacts.tsx:53
+#: src/pages/crm/CrmContacts.tsx:64
 msgid "Search people, companies, tags"
 msgstr "Personen, Unternehmen, Tags durchsuchen"
 
@@ -2769,6 +2862,10 @@ msgstr "Anbieter und Modelle suchen"
 #: src/pages/WorkspaceSearch.tsx:16
 msgid "Searching…"
 msgstr "Suche…"
+
+#: src/pages/crm/CrmModuleSheet.tsx:238
+msgid "Select"
+msgstr "Auswahl"
 
 #: src/pages/Shell.tsx:2451
 msgid "Select a bot"
@@ -2839,6 +2936,10 @@ msgstr "Einrichtungshilfe"
 #: src/pages/Shell.tsx:5112
 msgid "Shared"
 msgstr "Geteilt"
+
+#: src/pages/crm/CrmContacts.tsx:93
+msgid "Sheet"
+msgstr "Tabelle"
 
 #: src/pages/Shell.tsx:2659
 msgid "Show computer"
@@ -2951,6 +3052,10 @@ msgstr "Startet"
 msgid "Starting…"
 msgstr "Wird gestartet…"
 
+#: src/pages/crm/CrmContactsSheet.tsx:98
+msgid "Status"
+msgstr "Status"
+
 #: src/components/teach/SkillDraftCard.tsx:110
 msgid "Steps"
 msgstr "Schritte"
@@ -3012,8 +3117,9 @@ msgstr "Übermittelt"
 msgid "Switching…"
 msgstr "Wird gewechselt…"
 
-#: src/pages/crm/CrmContacts.tsx:100
-#: src/pages/crm/CrmContacts.tsx:352
+#: src/pages/crm/CrmContacts.tsx:137
+#: src/pages/crm/CrmContacts.tsx:389
+#: src/pages/crm/CrmContactsSheet.tsx:107
 msgid "Tags"
 msgstr "Tags"
 
@@ -3054,6 +3160,10 @@ msgstr "Test"
 #: src/pages/RoutineEditor.tsx:288
 msgid "Test run"
 msgstr "Testlauf"
+
+#: src/pages/crm/CrmModuleSheet.tsx:234
+msgid "Text"
+msgstr "Text"
 
 #: src/pages/DocsView.tsx:136
 msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. The CRM is the first surface it covers; new areas will appear here as they open up."
@@ -3174,6 +3284,15 @@ msgstr "Gesamte Pipeline"
 msgid "Treg token"
 msgstr "Treg-Token"
 
+#. placeholder {0}: firstField.label.toLowerCase()
+#: src/pages/crm/CrmModuleSheet.tsx:192
+msgid "Type {0} to add a row"
+msgstr "Tippe {0}, um eine Zeile hinzuzufügen"
+
+#: src/pages/crm/CrmContactsSheet.tsx:136
+msgid "Type a name to add a contact"
+msgstr "Tippe einen Namen, um einen Kontakt hinzuzufügen"
+
 #: src/components/AskCard.tsx:141
 msgid "Type your answer"
 msgstr "Gib deine Antwort ein"
@@ -3229,6 +3348,10 @@ msgstr "Aktualisiert"
 #: src/components/SoftwareUpdateSection.tsx:75
 msgid "Updating…"
 msgstr "Aktualisiere…"
+
+#: src/pages/crm/CrmModuleSheet.tsx:241
+msgid "URL"
+msgstr "URL"
 
 #: src/pages/AccountSettingsOverlay.tsx:176
 #: src/pages/Shell.tsx:2372
@@ -3375,6 +3498,12 @@ msgstr "Wird verarbeitet…"
 #: src/pages/Shell.tsx:5072
 msgid "Workspace default"
 msgstr "Arbeitsbereichsstandard"
+
+#: src/pages/crm/CrmModuleSheet.tsx:55
+#: src/pages/crm/CrmModuleSheet.tsx:84
+#: src/pages/crm/CrmModuleSheet.tsx:99
+msgid "Yes"
+msgstr "Ja"
 
 #: src/pages/Shell.tsx:1307
 #: src/pages/Shell.tsx:1901
