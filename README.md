@@ -83,24 +83,28 @@ pnpm sandbox:build
 pnpm dev
 ```
 
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173), create an account, connect a model, and create
+your first bot.
+
 That runs Manor locally. To put it in the cloud — your own always-on instance behind a Cloudflare Tunnel, like the one this repo was built for — follow the step-by-step guide in [`docs/DEPLOY.md`](./docs/DEPLOY.md). Three accounts (a ~$15/mo VPS, a domain, free Cloudflare), six steps, about 45 minutes.
 
 ### Self-host from published images
 
-No clone required. Create a folder, drop the compose file and env example, set secrets, then pull
-and start:
+No clone or Node install required — you need Docker Engine, the Compose plugin, curl, and OpenSSL.
+Manor tracks upstream's published images:
 
 ```bash
-mkdir rakazo && cd rakazo
-curl -fsSO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/docker-compose.images.yml
-curl -fsSO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/.env.images.example
-cp .env.images.example .env
-# set POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY, SCREEN_PROXY_SECRET, E2B_API_KEY
-# on arm64, pin RAKAZO_IMAGE_TAG to a release (latest / vX.Y.Z); edge is amd64-only
-docker compose --env-file .env -f docker-compose.images.yml up -d
+mkdir -p manor && cd manor &&
+curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+bash install-images.sh
 ```
 
-Details and tag choices: [self-hosting guide](./docs/self-host.md#published-images-no-checkout).
+The installer downloads the Compose files, creates `.env` with random secrets, and starts the stack.
+It preserves an existing `.env` when rerun. Default image tag is `edge` (main builds,
+`linux/amd64`); on arm64, pin `RAKAZO_IMAGE_TAG` to a release (`latest` / `vX.Y.Z`).
+
+For deployment, provider selection, backups, and upgrades, see the
+[self-hosting guide](./docs/self-host.md).
 
 ## Desktop and mobile
 

@@ -59,6 +59,20 @@ describe("window chrome", () => {
     expect(shell).not.toContain("FF5F57");
     expect(welcome).not.toContain("FF5F57");
   });
+
+  it("keeps conversation header controls clickable", () => {
+    const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../pages");
+    const shell = readFileSync(path.join(root, "Shell.tsx"), "utf8");
+    expect(shell).toContain(
+      'className="app-drag flex items-center justify-between border-b border-[#141416]',
+    );
+    expect(shell).toContain('className="app-no-drag grid h-8 w-8');
+    expect(shell).toContain('className="app-no-drag flex min-w-0 items-center gap-3"');
+    // Manor's header carries a third control (the live-activity toggle), so
+    // assert every 30x34 header button is a drag exclusion rather than a count.
+    expect(shell.match(/className="grid h-\[30px\] w-\[34px\]/g)).toBeNull();
+    expect(shell.match(/className="app-no-drag grid h-\[30px\] w-\[34px\]/g)?.length).toBe(3);
+  });
 });
 
 describe("captured OAuth callbacks", () => {

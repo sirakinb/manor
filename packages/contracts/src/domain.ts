@@ -114,6 +114,14 @@ export const BotSchema = z.object({
 });
 export type Bot = z.infer<typeof BotSchema>;
 
+export const ReorderBotsInput = z.object({
+  botIds: z
+    .array(Id)
+    .min(1)
+    .refine((ids) => new Set(ids).size === ids.length, { error: "botIds must be distinct" }),
+});
+export type ReorderBotsInput = z.infer<typeof ReorderBotsInput>;
+
 export const GroupMemberSchema = z.object({
   botId: Id,
   name: z.string(),
@@ -474,6 +482,12 @@ export const ActionApprovalRuleSchema = z.object({
 });
 export type ActionApprovalRule = z.infer<typeof ActionApprovalRuleSchema>;
 
+export const ActionAutoReviewSettingsSchema = z.object({
+  enabled: z.boolean(),
+  checkerAvailable: z.boolean(),
+});
+export type ActionAutoReviewSettings = z.infer<typeof ActionAutoReviewSettingsSchema>;
+
 export const CapabilityInstallSchema = z.object({
   id: Id,
   kind: z.enum(["skill", "plugin", "mcp", "api", "connection"]),
@@ -607,6 +621,32 @@ export type ComputerStatus = z.infer<typeof ComputerStatusSchema>;
 export const ComputerReleaseReasonSchema = z.enum(["done", "skipped"]);
 export type ComputerReleaseReason = z.infer<typeof ComputerReleaseReasonSchema>;
 
+export const PhoneStatusSchema = z.object({
+  enabled: z.boolean(),
+  linked: z.boolean(),
+  phoneE164: z.string().nullable(),
+  botId: Id.nullable(),
+});
+export type PhoneStatus = z.infer<typeof PhoneStatusSchema>;
+
+export const PhoneChannelMembershipSchema = z.object({
+  channelId: Id,
+  name: z.string().nullable(),
+  status: z.enum(["invited", "approved", "declined", "left"]),
+  memberCount: z.number().int().nonnegative(),
+});
+export type PhoneChannelMembership = z.infer<typeof PhoneChannelMembershipSchema>;
+
+export const PhoneAgentConnectionSchema = z.object({
+  id: Id,
+  peerBotName: z.string(),
+  peerOwnerLabel: z.string(),
+  status: z.enum(["pending", "approved", "declined", "revoked"]),
+  /** true when the caller's bot is the target (only the target can respond). */
+  incoming: z.boolean(),
+});
+export type PhoneAgentConnection = z.infer<typeof PhoneAgentConnectionSchema>;
+
 export const RunSchema = z.object({
   id: Id,
   botId: Id,
@@ -622,6 +662,7 @@ export const RunSchema = z.object({
     "skill",
     "bot_message",
     "webhook",
+    "phone",
   ]),
   routineId: Id.nullable(),
   modelProvider: z.string().nullable(),
@@ -795,6 +836,7 @@ export const DeploymentSettingsSchema = z.object({
   defaultModel: z.string().nullable(),
   computerHost: z.enum(["docker", "this-mac"]).nullable(),
   canChooseHostComputer: z.boolean(),
+  sandboxProvider: z.string(),
 });
 
 export const ServerUpdateSourceSchema = z.object({
@@ -908,6 +950,7 @@ export const MeSchema = z.object({
   defaultModel: z.string().nullable(),
   computerHost: z.enum(["docker", "this-mac"]).nullable(),
   canChooseHostComputer: z.boolean(),
+  sandboxProvider: z.string(),
   avatarStyle: AvatarStyleSchema,
 });
 export type Me = z.infer<typeof MeSchema>;

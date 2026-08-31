@@ -1,6 +1,5 @@
-import { randomBytes } from "node:crypto";
 import { emailAllowed, parseAllowlist, signupPolicyFromEnv } from "@rakazo/core";
-import type { PrismaClient } from "@rakazo/db";
+import { bootstrapUserWorkspace, type PrismaClient } from "@rakazo/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
@@ -52,10 +51,6 @@ export async function assertSignupAllowed(
   if (email && !emailAllowed(email, policy.allowlist)) {
     throw new APIError("BAD_REQUEST", { message: "Email is not allowed to register" });
   }
-}
-
-function newId(): string {
-  return randomBytes(16).toString("hex");
 }
 
 export function createAuth(prisma: PrismaClient, env: AuthEnv) {
@@ -111,6 +106,11 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
               where: { ownerUserId: user.id },
               data: { ownerUserId: null },
             }),
+            // Phone identities are deliberately FK-free, so clear them here
+            // or the unique phoneE164 would point at a deleted bot forever.
+            prisma.phoneIdentity.deleteMany({
+              where: { userId: user.id },
+            }),
             prisma.organization.deleteMany({
               where: { id: { in: personalOrganizationIds } },
             }),
@@ -132,59 +132,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
             await assertSignupAllowed(prisma, env, String(user.email ?? ""));
           },
           after: async (user) => {
-            const orgId = newId();
-            await prisma.organization.create({
-              data: {
-                id: orgId,
-                name: "Personal",
-                slug: `user-${user.id.slice(0, 12)}`,
-                createdAt: new Date(),
-              },
-            });
-            await prisma.member.create({
-              data: {
-                id: newId(),
-                organizationId: orgId,
-                userId: user.id,
-                role: "owner",
-                createdAt: new Date(),
-              },
-            });
-            const existing = await prisma.deploymentSettings.findUnique({
-              where: { id: "default" },
-            });
-            if (!existing) {
-              const policy = signupPolicyFromEnv(env);
-              await prisma.deploymentSettings.create({
-                data: {
-                  id: "default",
-                  ownerUserId: user.id,
-                  signupsEnabled: policy.enabled,
-                  signupAllowlist: policy.allowlist.join(","),
-                  signupPolicyInitialized: true,
-                },
-              });
-            } else if (!existing.ownerUserId) {
-              await prisma.deploymentSettings.update({
-                where: { id: "default" },
-                data: { ownerUserId: user.id },
-              });
-            }
-            await prisma.memoryDocument.create({
-              data: {
-                workspaceId: orgId,
-                userId: user.id,
-                scope: "user",
-                path: "MEMORY.md",
-                content: "# User memory\n\nAccount-wide preferences live here.\n",
-              },
-            });
-            await prisma.notificationPreference.create({
-              data: {
-                workspaceId: orgId,
-                userId: user.id,
-              },
-            });
+            await bootstrapUserWorkspace(prisma, user, env);
           },
         },
       },

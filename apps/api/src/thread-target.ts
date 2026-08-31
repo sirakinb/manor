@@ -12,6 +12,7 @@ import {
   isActive,
   projectMessages,
   resolveGroupTargetBotIds,
+  runFailureError,
 } from "@rakazo/core";
 import {
   appendEventInTransaction,
@@ -165,7 +166,7 @@ function sendResult(message: { seq: number }, runs: Array<{ id: string; taskId: 
   };
 }
 
-async function cancelSupersededQueuedRuns(
+export async function cancelSupersededQueuedRuns(
   tx: Prisma.TransactionClient,
   input: { threadId: string; botIds: string[]; keepRunIds: string[] },
 ) {
@@ -174,6 +175,8 @@ async function cancelSupersededQueuedRuns(
       threadId: input.threadId,
       botId: { in: input.botIds },
       status: "queued",
+      trigger: "user",
+      sourceMessage: { role: "user" },
       id: { notIn: input.keepRunIds },
     },
     select: { id: true, taskId: true },
@@ -258,6 +261,15 @@ export async function resolveThreadTarget(
   throw new IsolationError();
 }
 
+export async function threadHead(prisma: PrismaClient, target: ThreadTarget) {
+  const latest = await prisma.event.findFirst({
+    where: { threadId: target.threadId },
+    orderBy: { seq: "desc" },
+    select: { seq: true },
+  });
+  return { threadId: target.threadId, cursor: latest?.seq ?? -1 };
+}
+
 export async function threadSnapshot(
   deps: { prisma: PrismaClient },
   target: ThreadTarget,
@@ -318,7 +330,7 @@ export async function threadSnapshot(
 
   const core = await deps.prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM threads WHERE id = ${target.threadId} FOR SHARE`;
-    const [messagePage, last, activeRuns] = await Promise.all([
+    const [messagePage, last, activeRuns, recentTerminals] = await Promise.all([
       loadMessagePage(tx, target.threadId, undefined, THREAD_MESSAGE_PAGE_SIZE),
       tx.event.findFirst({
         where: { threadId: target.threadId },
@@ -332,6 +344,16 @@ export async function threadSnapshot(
         },
         orderBy: { createdAt: "desc" },
       }),
+      // Recently updated terminals (completion bumps updatedAt). pickLatestTerminalRun then
+      // ranks by completedAt ?? createdAt so null timestamps cannot revive a stale failure.
+      tx.run.findMany({
+        where: {
+          threadId: target.threadId,
+          status: { in: ["failed", "completed", "cancelled"] },
+        },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        take: 50,
+      }),
     ]);
     const liveEvents =
       activeRuns.length > 0
@@ -344,7 +366,13 @@ export async function threadSnapshot(
             orderBy: { seq: "asc" },
           })
         : [];
-    return { messagePage, last, activeRuns, liveEvents };
+    return {
+      messagePage,
+      last,
+      activeRuns,
+      terminalRun: pickLatestTerminalRun(recentTerminals),
+      liveEvents,
+    };
   });
   return {
     groupId: target.groupId,
@@ -354,9 +382,32 @@ export async function threadSnapshot(
     cursor: core.last?.seq ?? -1,
     messages: messagesWithLiveEvents(core.messagePage.messages, core.liveEvents),
     olderCursor: core.messagePage.olderCursor,
-    run: core.activeRuns[0] ? mapRun(core.activeRuns[0]) : null,
+    // Match the live reducer: a failed latest terminal stays in run even while siblings are
+    // still active or start late. A newer completed/cancelled terminal clears it.
+    run:
+      core.terminalRun?.status === "failed"
+        ? mapRun(core.terminalRun)
+        : core.activeRuns[0]
+          ? mapRun(core.activeRuns[0])
+          : null,
     activeRuns: core.activeRuns.map(mapRun),
   };
+}
+
+/** Latest terminal by end time (completedAt, else createdAt), then createdAt, then id. */
+function pickLatestTerminalRun<T extends { id: string; createdAt: Date; completedAt: Date | null }>(
+  runs: T[],
+): T | null {
+  if (runs.length === 0) return null;
+  return runs.reduce((best, run) => {
+    const bestEnd = (best.completedAt ?? best.createdAt).getTime();
+    const runEnd = (run.completedAt ?? run.createdAt).getTime();
+    if (runEnd !== bestEnd) return runEnd > bestEnd ? run : best;
+    if (run.createdAt.getTime() !== best.createdAt.getTime()) {
+      return run.createdAt > best.createdAt ? run : best;
+    }
+    return run.id > best.id ? run : best;
+  });
 }
 
 function messagesWithLiveEvents(
@@ -402,7 +453,11 @@ function mapRun(run: {
     routineId: run.routineId ?? null,
     modelProvider: run.modelProvider,
     modelId: run.modelId,
-    error: run.error,
+    // Same display clamp as live run.failed events so a huge stored error cannot bypass it.
+    error:
+      run.status === "failed"
+        ? runFailureError({ type: "run.failed", payload: { error: run.error } })
+        : run.error,
     startedAt: run.startedAt?.toISOString() ?? null,
     completedAt: run.completedAt?.toISOString() ?? null,
     createdAt: run.createdAt.toISOString(),

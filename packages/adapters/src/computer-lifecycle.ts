@@ -167,6 +167,7 @@ async function reconnectComputer(
   },
   computerId: string,
   computer: {
+    id: string;
     homeKey: string;
     providerRef: string | null;
     kind: string;
@@ -196,7 +197,8 @@ async function reconnectComputer(
     // The provider may hand back a replacement container (the old one was
     // destroyed, say during a deploy). Screen and control calls read the ref
     // from the database, so a stale ref leaves them pointed at a dead
-    // container while the bot happily uses the new one.
+    // container while the bot happily uses the new one. updateMany with the
+    // state guard also survives a concurrent stop instead of throwing.
     await deps.prisma.computer.updateMany({
       where: { id: computerId, state: "running" },
       data: { providerRef: ref.providerRef, kind: ref.kind },

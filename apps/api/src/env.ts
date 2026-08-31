@@ -1,10 +1,12 @@
-import { resolveDeploymentModel } from "@rakazo/adapters";
+import { resolveDeploymentModel, resolveSandboxProvider } from "@rakazo/adapters";
 import {
   resolveAuthSecret,
   resolveEncryptionKey,
   resolveScreenProxySecret,
   resolveSupervisorToken,
 } from "@rakazo/core";
+
+export { resolveSandboxProvider } from "@rakazo/adapters";
 
 export interface AppEnv {
   databaseUrl: string;
@@ -37,6 +39,10 @@ export interface AppEnv {
   pipedreamClientSecret: string | undefined;
   pipedreamProjectId: string | undefined;
   pipedreamEnvironment: "development" | "production";
+  sendblueApiKeyId: string | undefined;
+  sendblueApiSecret: string | undefined;
+  sendblueSigningSecret: string | undefined;
+  sendbluePhoneNumber: string | undefined;
   defaultProvider: string;
   defaultModel: string;
   wakeupDriver: string;
@@ -54,7 +60,7 @@ export interface AppEnv {
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const authSecret = resolveAuthSecret(source);
-  const sandboxProvider = source.SANDBOX_PROVIDER ?? "docker";
+  const sandboxProvider = resolveSandboxProvider(source);
   const deploymentModel = resolveDeploymentModel(source);
   const updaterUrl = optional(source.RAKAZO_UPDATER_URL);
   const updaterToken = optional(source.RAKAZO_UPDATER_TOKEN);
@@ -92,6 +98,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     pipedreamProjectId: optional(source.PIPEDREAM_PROJECT_ID),
     pipedreamEnvironment:
       source.PIPEDREAM_ENVIRONMENT === "production" ? "production" : "development",
+    sendblueApiKeyId: optional(source.SENDBLUE_API_KEY_ID),
+    sendblueApiSecret: optional(source.SENDBLUE_API_SECRET),
+    sendblueSigningSecret: optional(source.SENDBLUE_SIGNING_SECRET),
+    sendbluePhoneNumber: optional(source.SENDBLUE_PHONE_NUMBER),
     defaultProvider: deploymentModel.provider,
     defaultModel: deploymentModel.model,
     wakeupDriver: source.WAKEUP_DRIVER ?? "graphile",

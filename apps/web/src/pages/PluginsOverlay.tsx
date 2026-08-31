@@ -123,7 +123,7 @@ export function PluginsOverlay({
         displayName: item.name,
       });
       if (started.authorizationUrl)
-        window.open(started.authorizationUrl, "_blank", "noopener,noreferrer");
+        window.open(started.authorizationUrl, "manor-plugin-connect", "noopener,noreferrer");
       if (started.accountLink) {
         const linked = await authClient.linkSocial({
           provider: started.accountLink.provider,

@@ -45,6 +45,8 @@ export const ProductEventType = z.enum([
 export type ProductEventType = z.infer<typeof ProductEventType>;
 
 export const MessageRole = z.enum(["user", "bot", "system"]);
+export const BotMessageIntent = z.enum(["request", "result", "question", "status", "fyi"]);
+export type BotMessageIntent = z.infer<typeof BotMessageIntent>;
 
 export const MAX_CHART_DATA_ROWS = 5_000;
 
@@ -195,6 +197,17 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     fromBotId: Id,
     toBotId: Id,
     text: z.string(),
+    /** Links ownership transfers in one user-started group turn. */
+    hop: z.number().int().positive().optional(),
+  }),
+  z.object({
+    /** An iMessage group message delivered into a member bot's own thread. */
+    kind: z.literal("phone_channel_message"),
+    channelId: Id,
+    fromNumber: z.string(),
+    fromLabel: z.string(),
+    text: z.string(),
+    hop: z.number().int().nonnegative().optional(),
   }),
   z.object({
     /** Shown in the sending bot's own chat, so the user can see what it sent. */
@@ -202,6 +215,7 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     toBotId: Id,
     toBotName: z.string(),
     text: z.string(),
+    intent: BotMessageIntent.optional(),
   }),
   z.object({
     /** Delivered into the receiving bot's own chat as the prompt that woke it. */
@@ -209,6 +223,9 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     fromBotId: Id,
     fromBotName: z.string(),
     text: z.string(),
+    intent: BotMessageIntent.optional(),
+    /** Sender-thread echo this delivery answers, when applicable. */
+    returnToMessageId: Id.optional(),
     /** Links in a bot-started chain; absent when a person started it. */
     hop: z.number().int().nonnegative().optional(),
   }),

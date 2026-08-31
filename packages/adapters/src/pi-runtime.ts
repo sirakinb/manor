@@ -139,6 +139,7 @@ export class PiAgentRuntime implements AgentRuntime {
           nestedAgents,
           subagentGate: createGate(MAX_PARALLEL_SUBAGENTS),
           toolCallBudget: { count: 0, exceeded: false, limit: maxToolCallsPerTurn() },
+          toolCallSeq: { value: 0 },
           abortTurn: () => undefined,
           signal,
           depth: 0,
@@ -264,7 +265,7 @@ export class PiAgentRuntime implements AgentRuntime {
             queue.push({ type: "text", text: fallback });
             streamed = fallback;
           } else if (toolCalls === 0 && !request.allowSilentEmpty) {
-            streamed = "No response. Try again.";
+            streamed = request.emptyResponseText?.trim() || "No response. Try again.";
             queue.push({ type: "text", text: streamed });
           }
         }
@@ -385,6 +386,8 @@ export function describeToolActivity(toolName: string, args: unknown): string {
   if (toolName === "computer_act") return "Operating the computer";
   if (toolName === "run_subagent") return `Delegating to helper: ${detail(record.name)}`;
   if (toolName === "remember") return "Saving a note to memory";
+  if (toolName === "web_search") return `Searching the web: ${detail(record.query)}`;
+  if (toolName === "web_fetch") return `Reading page: ${detail(redactActivityUrl(record.url))}`;
   if (toolName === "skill_read") return `Reading skill: ${detail(record.name)}`;
   if (toolName === "skill_create") return `Creating skill: ${detail(record.name ?? "skill")}`;
   if (toolName === "skill_update")
@@ -535,7 +538,8 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
     },
     execute: async (toolCallId, params) => {
       const args = (params ?? {}) as Record<string, unknown>;
-      const executionId = toolCallId || `${host.request.runId}:${tool.name}`;
+      const executionId =
+        toolCallId || `${host.request.runId}:${tool.name}:${host.toolCallSeq.value++}`;
       host.queue.push({ type: "tool", name: tool.name, args, executionId });
       if (tool.name === "request_takeover") {
         host.queue.push({
@@ -919,6 +923,23 @@ function sanitizeSensitiveText(message: string) {
     .replace(/((?:auth|authorization)\s*[=:]\s*)(?!Bearer\b)[^\s"',;&]+/gi, "$1[redacted]");
 }
 
+/** Origin + path only for activity chips; drop userinfo, query, and fragment. */
+function redactActivityUrl(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return raw;
+  try {
+    const url = new URL(raw);
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    // Never echo unparsed input — it may still contain userinfo/secrets.
+    return "[invalid URL]";
+  }
+}
+
 function sanitizeError(message: string) {
   return sanitizeSensitiveText(message);
 }
@@ -939,6 +960,8 @@ interface ToolHost {
   nestedAgents: Set<Agent>;
   subagentGate: { acquire(): Promise<void>; release(): void };
   toolCallBudget: { count: number; exceeded: boolean; limit: number };
+  /** Shared fallback uniqueness when the model omits toolCallId (nested hosts reuse this). */
+  toolCallSeq: { value: number };
   abortTurn(): void;
   signal: AbortSignal;
   depth: number;

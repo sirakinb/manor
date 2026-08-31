@@ -8,26 +8,27 @@ datasource db {
 }
 
 model User {
-  id                     String                  @id
-  name                   String
-  email                  String
-  emailVerified          Boolean                 @default(false)
-  image                  String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  avatarStyle            String                  @default("robot")
-  sessions               Session[]
-  accounts               Account[]
-  members                Member[]
-  invitations            Invitation[]
-  modelCredentials       UserModelCredential[]
-  voiceCredentials       UserVoiceCredential[]
-  secrets                Secret[]
-  mcpServers             McpServer[]
-  botSections            BotSection[]
-  actionApprovalRules    ActionApprovalRule[]
-  integrationCredentials IntegrationCredential[]
-  crmWebhookEndpoints    CrmWebhookEndpoint[]
+  id                          String                       @id
+  name                        String
+  email                       String
+  emailVerified               Boolean                      @default(false)
+  image                       String?
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  avatarStyle                 String                       @default("robot")
+  sessions                    Session[]
+  accounts                    Account[]
+  members                     Member[]
+  invitations                 Invitation[]
+  modelCredentials            UserModelCredential[]
+  voiceCredentials            UserVoiceCredential[]
+  secrets                     Secret[]
+  mcpServers                  McpServer[]
+  botSections                 BotSection[]
+  actionApprovalRules         ActionApprovalRule[]
+  integrationCredentials      IntegrationCredential[]
+  crmWebhookEndpoints         CrmWebhookEndpoint[]
+  actionAutoReviewPreferences ActionAutoReviewPreference[]
 
   @@unique([email])
   @@map("user")
@@ -83,44 +84,45 @@ model Verification {
 }
 
 model Organization {
-  id                         String                      @id
-  name                       String
-  slug                       String
-  logo                       String?
-  createdAt                  DateTime
-  metadata                   String?
-  members                    Member[]
-  invitations                Invitation[]
-  bots                       Bot[]
-  botSections                BotSection[]
-  botDeletions               BotDeletion[]
-  threads                    Thread[]
-  events                     Event[]
-  tasks                      Task[]
-  runs                       Run[]
-  routines                   Routine[]
-  scratchpadItems            ScratchpadItem[]
-  taughtSkills               TaughtSkill[]
-  agentSkills                AgentSkill[]
-  connections                Connection[]
-  capabilities               CapabilityInstall[]
-  memoryDocuments            MemoryDocument[]
-  agentHomes                 AgentHome[]
-  browserProfiles            BrowserProfile[]
-  artifacts                  Artifact[]
-  usageRecords               UsageRecord[]
-  notificationPreferences    NotificationPreference[]
-  computers                  Computer[]
-  externalEffects            ExternalEffect[]
-  mcpServers                 McpServer[]
-  actionApprovalRules        ActionApprovalRule[]
-  workspaceMemoryConfig      WorkspaceMemoryConfig?
-  chatGroups                 ChatGroup[]
-  integrationCredentials     IntegrationCredential[]
-  integrationIdempotencyKeys IntegrationIdempotencyKey[]
-  crmContactExternalIds      CrmContactExternalId[]
-  crmWebhookEndpoints        CrmWebhookEndpoint[]
-  crmWebhookEvents           CrmWebhookEvent[]
+  id                          String                       @id
+  name                        String
+  slug                        String
+  logo                        String?
+  createdAt                   DateTime
+  metadata                    String?
+  members                     Member[]
+  invitations                 Invitation[]
+  bots                        Bot[]
+  botSections                 BotSection[]
+  botDeletions                BotDeletion[]
+  threads                     Thread[]
+  events                      Event[]
+  tasks                       Task[]
+  runs                        Run[]
+  routines                    Routine[]
+  scratchpadItems             ScratchpadItem[]
+  taughtSkills                TaughtSkill[]
+  agentSkills                 AgentSkill[]
+  connections                 Connection[]
+  capabilities                CapabilityInstall[]
+  memoryDocuments             MemoryDocument[]
+  agentHomes                  AgentHome[]
+  browserProfiles             BrowserProfile[]
+  artifacts                   Artifact[]
+  usageRecords                UsageRecord[]
+  notificationPreferences     NotificationPreference[]
+  computers                   Computer[]
+  externalEffects             ExternalEffect[]
+  mcpServers                  McpServer[]
+  actionApprovalRules         ActionApprovalRule[]
+  workspaceMemoryConfig       WorkspaceMemoryConfig?
+  chatGroups                  ChatGroup[]
+  integrationCredentials      IntegrationCredential[]
+  integrationIdempotencyKeys  IntegrationIdempotencyKey[]
+  crmContactExternalIds       CrmContactExternalId[]
+  crmWebhookEndpoints         CrmWebhookEndpoint[]
+  crmWebhookEvents            CrmWebhookEvent[]
+  actionAutoReviewPreferences ActionAutoReviewPreference[]
 
   @@unique([slug])
   @@map("organization")
@@ -140,6 +142,20 @@ model ActionApprovalRule {
   @@unique([workspaceId, createdByUserId, effect, matchKind, matchValue])
   @@index([workspaceId, createdByUserId])
   @@map("action_approval_rules")
+}
+
+model ActionAutoReviewPreference {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled     Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@map("action_auto_review_preferences")
 }
 
 model Member {
@@ -266,6 +282,7 @@ model Bot {
   runs              Run[]
   mcpServers        BotMcpServer[]
   groupMembers      ChatGroupMember[]
+  position          Int               @default(0)
 
   @@unique([workspaceId, spawnKey])
   @@index([workspaceId, userId, archivedAt, pinned, updatedAt])
@@ -360,6 +377,7 @@ model Thread {
   events                      Event[]
   tasks                       Task[]
   runs                        Run[]
+  routines                    Routine[]
 
   @@index([workspaceId])
   @@map("threads")
@@ -428,41 +446,43 @@ model Task {
 }
 
 model Run {
-  id              String           @id @default(cuid())
-  workspaceId     String
-  workspace       Organization     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  botId           String
-  bot             Bot              @relation(fields: [botId], references: [id], onDelete: Cascade)
-  threadId        String
-  thread          Thread           @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  taskId          String
-  task            Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId          String
-  status          String
-  trigger         String
-  modelProvider   String?
-  modelId         String?
-  error           String?
-  leaseOwner      String?
-  leaseFence      Int              @default(0)
-  leaseExpiresAt  DateTime?
-  checkpoint      String?
-  clientNonce     String?
-  sourceMessageId String?
-  sourceMessage   Message?         @relation("RunSourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)
-  routineId       String?
-  routine         Routine?         @relation(fields: [routineId], references: [id], onDelete: SetNull)
-  startedAt       DateTime?
-  completedAt     DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  attempts        Attempt[]
-  effects         ExternalEffect[]
-  usageRecords    UsageRecord[]
+  id                   String           @id @default(cuid())
+  workspaceId          String
+  workspace            Organization     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  botId                String
+  bot                  Bot              @relation(fields: [botId], references: [id], onDelete: Cascade)
+  threadId             String
+  thread               Thread           @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  taskId               String
+  task                 Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId               String
+  status               String
+  trigger              String
+  modelProvider        String?
+  modelId              String?
+  error                String?
+  leaseOwner           String?
+  leaseFence           Int              @default(0)
+  leaseExpiresAt       DateTime?
+  checkpoint           String?
+  clientNonce          String?
+  sourceMessageId      String?
+  sourceMessage        Message?         @relation("RunSourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)
+  routineId            String?
+  routine              Routine?         @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  attempts             Attempt[]
+  effects              ExternalEffect[]
+  usageRecords         UsageRecord[]
+  botOutcomeReturnedAt DateTime?
 
   @@unique([workspaceId, clientNonce])
   @@index([status, leaseExpiresAt])
   @@index([status, updatedAt, id])
+  @@index([botOutcomeReturnedAt, status])
   @@index([workspaceId, botId])
   @@index([sourceMessageId])
   @@index([threadId, status, createdAt])
@@ -497,6 +517,9 @@ model ExternalEffect {
   result         Json?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  reviewDecision String?
+  reviewReason   String?
+  reviewModel    String?
 
   @@unique([idempotencyKey])
   @@index([runId, status])
@@ -510,6 +533,8 @@ model Routine {
   botId          String
   bot            Bot          @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId         String
+  threadId       String?
+  thread         Thread?      @relation(fields: [threadId], references: [id], onDelete: SetNull)
   name           String
   prompt         String
   crons          String[]
@@ -1146,4 +1171,79 @@ model BotMcpServer {
   @@unique([botId, serverId])
   @@index([workspaceId, userId, botId])
   @@map("bot_mcp_servers")
+}
+
+model PhoneIdentity {
+  id                   String    @id @default(cuid())
+  phoneE164            String    @unique
+  userId               String
+  workspaceId          String
+  botId                String    @unique
+  verifiedAt           DateTime?
+  lastInboundAt        DateTime?
+  outboundSinceInbound Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("phone_identities")
+}
+
+model PhoneChannel {
+  id              String               @id @default(cuid())
+  providerGroupId String               @unique
+  name            String?
+  introPostedAt   DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  members         PhoneChannelMember[]
+
+  @@map("phone_channels")
+}
+
+model PhoneChannelMember {
+  id         String       @id @default(cuid())
+  channelId  String
+  channel    PhoneChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  phoneE164  String
+  identityId String?
+  status     String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([channelId, phoneE164])
+  @@index([identityId])
+  @@map("phone_channel_members")
+}
+
+model PhoneOutbound {
+  id              String    @id @default(cuid())
+  idempotencyKey  String    @unique
+  kind            String
+  toNumber        String?
+  providerGroupId String?
+  body            String
+  status          String    @default("pending")
+  attempts        Int       @default(0)
+  nextAttemptAt   DateTime?
+  providerHandle  String?
+  sourceMessageId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@map("phone_outbound")
+}
+
+model AgentConnection {
+  id             String   @id @default(cuid())
+  requesterBotId String
+  targetBotId    String
+  status         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([requesterBotId, targetBotId])
+  @@index([targetBotId, status])
+  @@map("agent_connections")
 }

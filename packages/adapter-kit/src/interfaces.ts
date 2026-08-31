@@ -28,6 +28,12 @@ import type {
   MemorySearchRequest,
   MemorySearchResult,
   MemorySnapshot,
+  MessagingCapabilities,
+  MessagingDirectRequest,
+  MessagingGroup,
+  MessagingGroupRequest,
+  MessagingSendResult,
+  MessagingTypingRequest,
   NotificationMessage,
   PortableFile,
   ProcessEvent,
@@ -48,6 +54,12 @@ import type {
   VoiceSynthesizeRequest,
   VoiceTranscribeRequest,
   VoiceVerifyResult,
+  WebFetchCapabilities,
+  WebFetchRequest,
+  WebFetchResult,
+  WebSearchCapabilities,
+  WebSearchHit,
+  WebSearchRequest,
 } from "./types.js";
 
 export interface SandboxProvider {
@@ -269,4 +281,49 @@ export interface VoiceProvider {
   listVoices(apiKey: string, context: AdapterContext): Promise<VoiceInfo[]>;
   synthesize(request: VoiceSynthesizeRequest, context: AdapterContext): Promise<SpeechClip>;
   transcribe?(request: VoiceTranscribeRequest, context: AdapterContext): Promise<{ text: string }>;
+}
+
+/**
+ * Deployment-wide text messaging surface (one phone line for the whole
+ * deployment). Webhook parsing/verification stays an exported pure function
+ * on the vendor module — that is HTTP shape, not transport.
+ */
+export interface MessagingProvider {
+  describe(): AdapterDescriptor<MessagingCapabilities>;
+  sendDirect(
+    request: MessagingDirectRequest,
+    context: AdapterContext,
+  ): Promise<MessagingSendResult>;
+  sendGroup(request: MessagingGroupRequest, context: AdapterContext): Promise<MessagingSendResult>;
+  getGroup(groupId: string, context: AdapterContext): Promise<MessagingGroup>;
+  /**
+   * Best-effort "…" typing bubbles for 1:1 chats. Optional because vendors
+   * may not support it in groups; it is cosmetic and must never gate message
+   * delivery.
+   */
+  sendTypingIndicator?(request: MessagingTypingRequest, context: AdapterContext): Promise<void>;
+}
+
+/**
+ * Provider-neutral web search. Builtin `web_search` routes here so backends
+ * (keyless HTTP, model-native search, future paid APIs) can be swapped without
+ * changing tool names or the executor.
+ */
+export interface WebSearchProvider {
+  describe(): AdapterDescriptor<WebSearchCapabilities>;
+  search(request: WebSearchRequest, context: AdapterContext): Promise<WebSearchHit[]>;
+}
+
+/**
+ * Provider-neutral page fetch. Builtin `web_fetch` routes here. Read-only:
+ * no JS execution, no headless browser.
+ */
+export interface WebFetchProvider {
+  describe(): AdapterDescriptor<WebFetchCapabilities>;
+  fetch(request: WebFetchRequest, context: AdapterContext): Promise<WebFetchResult>;
+}
+
+/** Convenience when one adapter owns both search and fetch. */
+export interface WebProvider extends WebSearchProvider, WebFetchProvider {
+  describe(): AdapterDescriptor<WebSearchCapabilities & WebFetchCapabilities>;
 }

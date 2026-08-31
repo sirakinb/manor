@@ -330,6 +330,8 @@ export interface AgentRunRequest {
    * When set, skip synthetic empty-turn fallbacks.
    */
   allowSilentEmpty?: boolean;
+  /** Contextual fallback when a non-silent run produces no written response. */
+  emptyResponseText?: string;
   executeTool?: (
     name: string,
     args: Record<string, unknown>,
@@ -417,6 +419,7 @@ export interface BackgroundJobPayloads {
   "computer.control-expire": { computerId: string; leaseId: string };
   "skill.teaching-expire": { skillId: string };
   "history.compact": { threadId: string };
+  "phone.deliver": { runId?: string };
 }
 
 export type BackgroundJobName = keyof BackgroundJobPayloads;
@@ -451,4 +454,94 @@ export interface NotificationMessage {
   body: string;
   botId: string;
   threadId: string;
+}
+
+export interface MessagingCapabilities {
+  direct: boolean;
+  groups: boolean;
+  typing: boolean;
+}
+
+export interface MessagingDirectRequest {
+  to: string;
+  body: string;
+}
+
+export interface MessagingGroupRequest {
+  groupId: string;
+  body: string;
+}
+
+export interface MessagingTypingRequest {
+  to: string;
+}
+
+export interface MessagingSendResult {
+  handle: string;
+}
+
+export interface MessagingGroup {
+  id: string;
+  name: string | null;
+  participants: string[];
+}
+
+/** Provider-neutral inbound message after vendor webhook parsing. */
+export interface MessagingInboundMessage {
+  type: "message";
+  handle: string;
+  fromNumber: string;
+  groupId: string | null;
+  groupName: string | null;
+  participants: string[];
+  content: string;
+  mediaUrl: string | null;
+}
+
+/** Provider-neutral outbound delivery status after vendor webhook parsing. */
+export interface MessagingOutboundStatus {
+  type: "status";
+  handle: string;
+  status: string;
+}
+
+export type MessagingInboundEvent = MessagingInboundMessage | MessagingOutboundStatus;
+
+export interface WebSearchCapabilities {
+  search: boolean;
+  /** True when results come from the active model’s native search, not a third-party API. */
+  native?: boolean;
+  /** True when search works without a hosted search vendor or API key. */
+  keyless?: boolean;
+}
+
+export interface WebFetchCapabilities {
+  fetch: boolean;
+  /** True when readable extraction runs without executing page JavaScript. */
+  readability: boolean;
+}
+
+export interface WebSearchRequest {
+  query: string;
+  maxResults?: number;
+  signal?: AbortSignal;
+}
+
+export interface WebSearchHit {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface WebFetchRequest {
+  url: string;
+  maxChars?: number;
+  signal?: AbortSignal;
+}
+
+export interface WebFetchResult {
+  url: string;
+  title: string;
+  text: string;
+  truncated: boolean;
 }

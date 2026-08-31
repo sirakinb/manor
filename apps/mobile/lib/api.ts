@@ -14,10 +14,13 @@ import {
   prependThreadHistoryPage,
   progressMessageId,
   reduceLiveMessageBlocks,
+  runFailureError,
   type ThreadHistory,
+  upsertMessageById,
 } from "@rakazo/core";
 import * as SecureStore from "expo-secure-store";
 import { defaultApiBase, type EndpointResult, normalizeApiBase } from "./endpoint";
+import { resumeLiveNotifications } from "./live-notifications";
 import {
   clearSessionToken,
   loadSessionToken,
@@ -26,6 +29,7 @@ import {
 } from "./session";
 
 const ENDPOINT_KEY = "rakazo.api_base";
+const RPC_TIMEOUT_MS = 8_000;
 
 let cachedApiBase: string | undefined;
 
@@ -98,9 +102,11 @@ export async function signIn(email: string, password: string) {
   const token = tokenFromAuthResponse(res, body);
   if (!token) throw new Error("Sign-in did not return a session");
   await saveSessionToken(token);
+  await resumeLiveNotifications(currentApiBase(), token).catch(() => undefined);
 }
 
 export async function signOut() {
+  await rpc("notifications/unregisterPush").catch(() => undefined);
   const headers = await authHeaders();
   await fetch(`${currentApiBase()}/api/auth/sign-out`, {
     method: "POST",
@@ -110,6 +116,7 @@ export async function signOut() {
 }
 
 export async function deleteAccount(password: string) {
+  await rpc("notifications/unregisterPush").catch(() => undefined);
   const res = await fetch(`${currentApiBase()}/api/auth/delete-user`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "rakazo://", ...(await authHeaders()) },
@@ -125,21 +132,32 @@ export async function deleteAccount(password: string) {
 export async function rpc<T>(
   proc: string,
   body: unknown = {},
-  options: { signal?: AbortSignal } = {},
+  options: { signal?: AbortSignal; timeoutMs?: number | null } = {},
 ): Promise<T> {
-  const res = await fetch(`${currentApiBase()}/rpc/${proc}`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      origin: "rakazo://",
-      ...(await authHeaders()),
-    },
-    body: JSON.stringify({ json: body }),
-    signal: options.signal,
-  });
-  const parsed = (await res.json()) as { json?: T; error?: { message?: string } };
-  if (!res.ok || parsed.error) throw new Error(parsed.error?.message ?? `rpc ${proc} failed`);
-  return parsed.json as T;
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (options.signal?.aborted) abort();
+  else options.signal?.addEventListener("abort", abort, { once: true });
+  const timer =
+    options.timeoutMs === null ? undefined : setTimeout(abort, options.timeoutMs ?? RPC_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${currentApiBase()}/rpc/${proc}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "rakazo://",
+        ...(await authHeaders()),
+      },
+      body: JSON.stringify({ json: body }),
+      signal: controller.signal,
+    });
+    const parsed = (await res.json()) as { json?: T; error?: { message?: string } };
+    if (!res.ok || parsed.error) throw new Error(parsed.error?.message ?? `rpc ${proc} failed`);
+    return parsed.json as T;
+  } finally {
+    if (timer) clearTimeout(timer);
+    options.signal?.removeEventListener("abort", abort);
+  }
 }
 
 export type MobileBot = Pick<
@@ -149,6 +167,8 @@ export type MobileBot = Pick<
   | "preview"
   | "title"
   | "color"
+  | "notifyOnFinish"
+  | "threadId"
   | "pinned"
   | "status"
   | "sectionId"
@@ -208,8 +228,8 @@ export type MobileSnapshot = {
   cursor?: number;
   messages: MobileMessage[];
   olderCursor: number | null;
-  run: { id: string; status: string } | null;
-  activeRuns?: Array<{ id: string; status: string }>;
+  run: { id: string; botId?: string; status: string; error?: string | null } | null;
+  activeRuns?: Array<{ id: string; botId?: string; status: string }>;
   members?: MobileGroup["members"];
   computer?: {
     state: string;
@@ -255,6 +275,9 @@ export function prependMobileMessagePage(
 export function blockText(message: MobileMessage) {
   return message.blocks
     .map((block) => {
+      if (block.kind === "phone_channel_message") {
+        return `iMessage · ${block.fromLabel}: ${block.text}`;
+      }
       if (block.kind === "subagent") {
         return `${block.name ?? "subagent"}: ${block.result || block.progress || block.task || ""}`;
       }
@@ -385,11 +408,22 @@ export function applyMobileThreadEvent(
   }
   if (isRunTerminalEvent(event)) {
     const activeRuns = prev.activeRuns?.filter((candidate) => candidate.id !== event.runId);
+    const failure = runFailureError(event);
+    const primaryEnded = prev.run?.id === event.runId ? prev.run : null;
+    // A group member run can fail while another is displayed; see reduceThreadSnapshot.
+    const endedRun =
+      primaryEnded ?? prev.activeRuns?.find((candidate) => candidate.id === event.runId) ?? null;
     return {
       ...prev,
       cursor: event.seq ?? prev.cursor,
       messages: prev.messages.filter((message) => message.id !== progressMessageId(event)),
-      run: prev.run?.id === event.runId ? (activeRuns?.[0] ?? null) : prev.run,
+      // A failed run stays in run so the thread can say why it stopped (see reduceThreadSnapshot).
+      run:
+        endedRun && failure
+          ? { ...endedRun, status: "failed", error: failure }
+          : primaryEnded
+            ? (activeRuns?.[0] ?? null)
+            : prev.run,
       activeRuns,
     };
   }
@@ -472,10 +506,9 @@ export function applyMobileThreadEvent(
     return {
       ...prev,
       cursor: event.seq ?? prev.cursor,
-      messages: [
-        ...remaining.filter(
+      messages: upsertMessageById(
+        remaining.filter(
           (message) =>
-            message.id !== next.id &&
             !(
               message.id.startsWith("subagent:") &&
               next.blocks.some(
@@ -484,7 +517,7 @@ export function applyMobileThreadEvent(
             ),
         ),
         next,
-      ],
+      ),
     };
   }
   return prev;

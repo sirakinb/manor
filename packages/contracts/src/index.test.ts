@@ -12,6 +12,7 @@ import {
   ModelOAuthBeginSchema,
   normalizeCreateBotProfile,
   ProductEventType,
+  ReorderBotsInput,
   RunActivityRowSchema,
   RunSchema,
   UpdateBotInput,
@@ -107,6 +108,7 @@ describe("contracts", () => {
     expect(appContract.bootstrap).toBeTruthy();
     expect(appContract.models.completeOAuth).toBeTruthy();
     expect(appContract.bots.create).toBeTruthy();
+    expect(appContract.bots.reorder).toBeTruthy();
     expect(appContract.bots.archive).toBeTruthy();
     expect(appContract.bots.restore).toBeTruthy();
     expect(appContract.bots.remove).toBeTruthy();
@@ -142,6 +144,12 @@ describe("contracts", () => {
     });
   });
 
+  it("requires a distinct, non-empty bot order", () => {
+    expect(ReorderBotsInput.safeParse({ botIds: ["bot-2", "bot-1"] }).success).toBe(true);
+    expect(ReorderBotsInput.safeParse({ botIds: [] }).success).toBe(false);
+    expect(ReorderBotsInput.safeParse({ botIds: ["bot-1", "bot-1"] }).success).toBe(false);
+  });
+
   it("accepts bot-to-bot runs in thread snapshots and activity rows", () => {
     const run = {
       id: "run-1",
@@ -170,6 +178,7 @@ describe("contracts", () => {
         threadId: run.threadId,
         status: run.status,
         trigger: run.trigger,
+        notificationsEnabled: true,
         promptSnippet: "Review the report",
         updatedAt: "2026-08-26T00:00:01.000Z",
       }).success,

@@ -1,3 +1,4 @@
+import console from "node:console";
 import { Composio } from "@composio/core";
 import type {
   AdapterContext,
@@ -100,16 +101,18 @@ export async function collectPages<T>(
   return items;
 }
 
-export function executeSessionKey(toolkits: string[]): string {
-  return [...new Set(toolkits.map((slug) => slug.trim()).filter(Boolean))].sort().join(",");
+function composioSlugKey(slug: string): string {
+  return slug.trim().toLowerCase();
 }
 
-export function isToolPreloadCapError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const text = JSON.stringify(
-    (error as { error?: unknown }).error ?? (error as Error).message ?? "",
-  );
-  return text.includes("ToolRouterV2_BadRequest") || text.includes("supports up to");
+export function executeSessionKey(toolkits: string[]): string {
+  const unique = new Map<string, string>();
+  for (const slug of toolkits) {
+    const trimmed = slug.trim();
+    const key = composioSlugKey(trimmed);
+    if (key && !unique.has(key)) unique.set(key, trimmed);
+  }
+  return [...unique.values()].sort().join(",");
 }
 
 export type PluginConnectionRow = {
@@ -127,16 +130,21 @@ export function mergeConnectedPlugins(
   rows: { provider: string; displayName: string; status?: string }[],
   liveSlugs: string[],
 ): { provider: string; displayName: string }[] {
-  const live = new Set(liveSlugs.filter(Boolean));
+  const live = new Set(liveSlugs.map((slug) => composioSlugKey(slug)).filter(Boolean));
   const byProvider = new Map<string, { provider: string; displayName: string }>();
   for (const row of rows) {
     if (!row.provider) continue;
     const include =
-      row.status === "connected" || row.status === undefined || live.has(row.provider);
+      row.status === "connected" ||
+      row.status === undefined ||
+      live.has(composioSlugKey(row.provider));
     if (!include) continue;
-    const current = byProvider.get(row.provider);
-    if (!current || current.displayName === row.provider) {
-      byProvider.set(row.provider, { provider: row.provider, displayName: row.displayName });
+    const current = byProvider.get(composioSlugKey(row.provider));
+    if (!current || composioSlugKey(current.displayName) === composioSlugKey(current.provider)) {
+      byProvider.set(composioSlugKey(row.provider), {
+        provider: row.provider,
+        displayName: row.displayName,
+      });
     }
   }
   return [...byProvider.values()];
@@ -146,14 +154,14 @@ export function planLiveConnectionSync(
   rows: PluginConnectionRow[],
   liveSlugs: string[],
 ): { connectIds: string[]; revokeIds: string[] } {
-  const live = new Set(liveSlugs.filter(Boolean));
+  const live = new Set(liveSlugs.map(composioSlugKey).filter(Boolean));
   const connectIds: string[] = [];
   const connectedProviders = new Set(
-    rows.filter((row) => row.status === "connected").map((row) => row.provider),
+    rows.filter((row) => row.status === "connected").map((row) => composioSlugKey(row.provider)),
   );
   for (const slug of live) {
     if (connectedProviders.has(slug)) continue;
-    const matches = rows.filter((row) => row.provider === slug);
+    const matches = rows.filter((row) => composioSlugKey(row.provider) === slug);
     const reusable =
       matches.find((row) => row.status === "pending" || row.status === "error") ??
       matches.find((row) => row.status === "revoked") ??
@@ -204,7 +212,8 @@ export class ComposioConnector implements ComposioProvider {
   }
 
   async sessionForExecute(userId: string, toolkits: string[]): Promise<ComposioSession> {
-    const key = executeSessionKey(toolkits);
+    const canonicalToolkits = await this.canonicalizeToolkits(toolkits);
+    const key = executeSessionKey(canonicalToolkits);
     if (!key) return this.sessionFor(userId);
     const composio = this.sdk();
     const existing = this.executeSessions.get(userId);
@@ -215,24 +224,13 @@ export class ComposioConnector implements ComposioProvider {
         this.executeSessions.delete(userId);
       }
     }
-    let session: ComposioSession;
-    try {
-      session = await composio.create(userId, {
-        manageConnections: false,
-        sandbox: { enable: false },
-        toolkits: key.split(","),
-        sessionPreset: "direct_tools",
-      });
-    } catch (error) {
-      if (!isToolPreloadCapError(error)) throw error;
-      // Too many connected toolkits to preload every tool; fall back to
-      // Composio's meta tools (search + execute), which scale to any count.
-      session = await composio.create(userId, {
-        manageConnections: false,
-        sandbox: { enable: false },
-        toolkits: key.split(","),
-      });
-    }
+    // No sessionPreset: Composio's meta tools (search + execute) scale to any
+    // number of connected toolkits, where preloading every tool hits a cap.
+    const session = await composio.create(userId, {
+      manageConnections: false,
+      sandbox: { enable: false },
+      toolkits: canonicalToolkits,
+    });
     this.executeSessions.set(userId, { sessionId: session.sessionId, key });
     return session;
   }
@@ -249,6 +247,20 @@ export class ComposioConnector implements ComposioProvider {
 
   async warmDirectory(): Promise<void> {
     await this.directory();
+  }
+
+  private async canonicalizeToolkits(toolkits: string[]): Promise<string[]> {
+    const directory = await this.directory().catch(() => []);
+    const canonical = new Map(directory.map((item) => [composioSlugKey(item.slug), item.slug]));
+    const unique = new Map<string, string>();
+    for (const toolkit of toolkits) {
+      const trimmed = toolkit.trim();
+      const key = composioSlugKey(trimmed);
+      if (key && !unique.has(key)) {
+        unique.set(key, canonical.get(key) ?? trimmed.toUpperCase());
+      }
+    }
+    return [...unique.values()].sort();
   }
 
   private async directory(): Promise<ToolkitDirectoryEntry[]> {
@@ -337,7 +349,7 @@ export class ComposioConnector implements ComposioProvider {
   async connectionReady(context: AdapterContext, slug: string): Promise<boolean> {
     const session = await this.sessionFor(context.userId);
     const page = await session.toolkits({ search: slug, limit: 50 });
-    const match = page.items.find((item) => item.slug === slug);
+    const match = page.items.find((item) => composioSlugKey(item.slug) === composioSlugKey(slug));
     if (!match) return false;
     return Boolean(match.connection?.isActive) || Boolean(match.isNoAuth);
   }
@@ -357,7 +369,8 @@ export class ComposioConnector implements ComposioProvider {
   async connectedAccountId(userId: string, slug: string): Promise<string | undefined> {
     const session = await this.sessionFor(userId);
     const toolkits = await session.toolkits({ isConnected: true });
-    return toolkits.items.find((item) => item.slug === slug)?.connection?.connectedAccount?.id;
+    return toolkits.items.find((item) => composioSlugKey(item.slug) === composioSlugKey(slug))
+      ?.connection?.connectedAccount?.id;
   }
 
   private sdk(): Composio {
@@ -409,9 +422,7 @@ export class ConnectorRegistry implements ConnectorProvider {
         } catch (error) {
           // Without plugin tools the model silently falls back to the computer,
           // so make this failure visible in server logs.
-          console.warn(
-            `${connectorId} discoverTools failed for user ${context.userId}: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          console.error("connector discovery failed", connectorId, sanitizeComposioError(error));
           return [connectorId, []] as const;
         }
       }),

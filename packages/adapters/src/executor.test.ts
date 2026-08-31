@@ -1,15 +1,111 @@
 import { ONCE_ROUTINE_CRON } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
-import { createRunExecutor } from "./executor.js";
+import {
+  createRunExecutor,
+  runNotificationsEnabled,
+  selectBuiltinToolsForRun,
+  threadContextForRun,
+} from "./executor.js";
+
+describe("run tool selection", () => {
+  const toolNames = (trigger: string, groupId: string | null = null) =>
+    selectBuiltinToolsForRun({
+      graphicalToolsAllowed: true,
+      groupId,
+      trigger,
+      semanticMemoryEnabled: false,
+    }).map((tool) => tool.name);
+
+  it("withholds schedule creation only from routine-triggered runs", () => {
+    expect(toolNames("routine")).not.toContain("schedule_create");
+    expect(toolNames("routine")).toEqual(
+      expect.arrayContaining(["schedule_list", "schedule_cancel"]),
+    );
+    expect(toolNames("user")).toContain("schedule_create");
+  });
+
+  it("keeps schedule tools in group chats and still blocks create on routines", () => {
+    expect(toolNames("user", "group-1")).toEqual(
+      expect.arrayContaining(["schedule_create", "schedule_list", "schedule_cancel"]),
+    );
+    expect(toolNames("routine", "group-1")).not.toContain("schedule_create");
+    expect(toolNames("routine", "group-1")).toEqual(
+      expect.arrayContaining(["schedule_list", "schedule_cancel"]),
+    );
+  });
+});
+
+describe("run notification preference", () => {
+  it("silences direct messages but leaves group notifications enabled", async () => {
+    let source: { bot: { notifyOnFinish: boolean }; thread: { groupId: string | null } } | null = {
+      bot: { notifyOnFinish: false },
+      thread: { groupId: null },
+    };
+    const findFirst = vi.fn(async () => source);
+    const prisma = { run: { findFirst } } as unknown as PrismaClient;
+
+    await expect(
+      runNotificationsEnabled(prisma, {
+        botId: "bot-1",
+        threadId: "thread-1",
+        workspaceId: "workspace-1",
+        userId: "user-1",
+      }),
+    ).resolves.toBe(false);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        botId: "bot-1",
+        threadId: "thread-1",
+        workspaceId: "workspace-1",
+        userId: "user-1",
+      },
+      select: {
+        bot: { select: { notifyOnFinish: true } },
+        thread: { select: { groupId: true } },
+      },
+    });
+
+    source = { bot: { notifyOnFinish: false }, thread: { groupId: "group-1" } };
+    await expect(
+      runNotificationsEnabled(prisma, {
+        botId: "bot-1",
+        threadId: "thread-1",
+        workspaceId: "workspace-1",
+        userId: "user-1",
+      }),
+    ).resolves.toBe(true);
+  });
+});
 
 describe("createRunExecutor", () => {
+  it("isolates routine runs from every thread-history source", () => {
+    const threadContext = {
+      messages: [{ role: "user", content: "Create this routine" }],
+      summary: "The user just configured this routine.",
+      historyCompactedUpToSeq: 4,
+    };
+
+    expect(threadContextForRun("routine", threadContext)).toEqual({
+      messages: [],
+      summary: null,
+      historyCompactedUpToSeq: null,
+      includeSemanticRecall: false,
+    });
+    expect(threadContextForRun("user", threadContext)).toEqual({
+      ...threadContext,
+      includeSemanticRecall: true,
+    });
+  });
+
   it("deactivates one-shot routines after wake without scheduling another wakeup", async () => {
     const scheduledAt = new Date(Date.now() - 1_000);
     const enqueue = vi.fn(async () => undefined);
     const cancel = vi.fn(async () => undefined);
     const append = vi.fn(async () => undefined);
     const updateMany = vi.fn(async () => ({ count: 1 }));
+    const taskCreate = vi.fn(async () => ({ id: "task-1" }));
+    const runCreate = vi.fn(async () => ({ id: "run-1" }));
     const prisma = {
       routine: {
         findUnique: vi.fn(async () => ({
@@ -22,6 +118,7 @@ describe("createRunExecutor", () => {
           timezone: "UTC",
           active: true,
           nextRunAt: scheduledAt,
+          threadId: "group-thread-1",
         })),
       },
       bot: {
@@ -30,14 +127,17 @@ describe("createRunExecutor", () => {
           thread: { id: "thread-1" },
         })),
       },
+      thread: {
+        findFirst: vi.fn(async () => ({ id: "group-thread-1" })),
+      },
       agentSkill: {
         findMany: vi.fn(async () => []),
       },
       $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
         callback({
           routine: { updateMany },
-          task: { create: vi.fn(async () => ({ id: "task-1" })) },
-          run: { create: vi.fn(async () => ({ id: "run-1" })) },
+          task: { create: taskCreate },
+          run: { create: runCreate },
         }),
       ),
     } as unknown as PrismaClient;
@@ -57,8 +157,148 @@ describe("createRunExecutor", () => {
     expect(cancel).toHaveBeenCalledWith("routine:routine-1");
     expect(enqueue).toHaveBeenCalledTimes(1);
     expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({ name: "run.continue" }));
+    expect(taskCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ threadId: "group-thread-1" }) }),
+    );
+    expect(runCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ threadId: "group-thread-1" }) }),
+    );
     expect(append).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "routine.fired", runId: "run-1" }),
+      expect.objectContaining({
+        type: "routine.fired",
+        runId: "run-1",
+        threadId: "group-thread-1",
+      }),
+    );
+  });
+
+  it("wakes a tool-created group routine into the group thread, not the bot DM", async () => {
+    const scheduledAt = new Date(Date.now() - 1_000);
+    const taskCreate = vi.fn(async () => ({ id: "task-1" }));
+    const runCreate = vi.fn(async () => ({ id: "run-1" }));
+    const append = vi.fn(async () => undefined);
+    const findFirst = vi.fn(async () => ({ id: "group-thread-1" }));
+    const prisma = {
+      routine: {
+        findUnique: vi.fn(async () => ({
+          id: "routine-1",
+          workspaceId: "ws-1",
+          botId: "bot-1",
+          userId: "user-1",
+          prompt: "remind the group",
+          crons: [ONCE_ROUTINE_CRON],
+          timezone: "UTC",
+          active: true,
+          nextRunAt: scheduledAt,
+          threadId: "group-thread-1",
+        })),
+      },
+      bot: {
+        findUnique: vi.fn(async () => ({
+          id: "bot-1",
+          thread: { id: "dm-thread-1" },
+        })),
+      },
+      thread: { findFirst },
+      agentSkill: { findMany: vi.fn(async () => []) },
+      $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback({
+          routine: { updateMany: vi.fn(async () => ({ count: 1 })) },
+          task: { create: taskCreate },
+          run: { create: runCreate },
+        }),
+      ),
+    } as unknown as PrismaClient;
+    const executor = createRunExecutor({
+      prisma,
+      jobs: {
+        enqueue: vi.fn(async () => undefined),
+        cancel: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      },
+      events: { append },
+    } as unknown as Parameters<typeof createRunExecutor>[0]);
+
+    await executor.wakeRoutine("routine-1", scheduledAt.toISOString());
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: "group-thread-1", workspaceId: "ws-1" }),
+      }),
+    );
+    expect(taskCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ threadId: "group-thread-1" }) }),
+    );
+    expect(runCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ threadId: "group-thread-1" }) }),
+    );
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "routine.fired", threadId: "group-thread-1" }),
+    );
+  });
+
+  it("wakes a tool-created 1:1 routine into the bot DM thread", async () => {
+    const scheduledAt = new Date(Date.now() - 1_000);
+    const taskCreate = vi.fn(async () => ({ id: "task-1" }));
+    const runCreate = vi.fn(async () => ({ id: "run-1" }));
+    const append = vi.fn(async () => undefined);
+    const findFirst = vi.fn(async () => ({ id: "dm-thread-1" }));
+    const prisma = {
+      routine: {
+        findUnique: vi.fn(async () => ({
+          id: "routine-1",
+          workspaceId: "ws-1",
+          botId: "bot-1",
+          userId: "user-1",
+          prompt: "remind me",
+          crons: [ONCE_ROUTINE_CRON],
+          timezone: "UTC",
+          active: true,
+          nextRunAt: scheduledAt,
+          threadId: "dm-thread-1",
+        })),
+      },
+      bot: {
+        findUnique: vi.fn(async () => ({
+          id: "bot-1",
+          thread: { id: "dm-thread-1" },
+        })),
+      },
+      thread: { findFirst },
+      agentSkill: { findMany: vi.fn(async () => []) },
+      $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback({
+          routine: { updateMany: vi.fn(async () => ({ count: 1 })) },
+          task: { create: taskCreate },
+          run: { create: runCreate },
+        }),
+      ),
+    } as unknown as PrismaClient;
+    const executor = createRunExecutor({
+      prisma,
+      jobs: {
+        enqueue: vi.fn(async () => undefined),
+        cancel: vi.fn(async () => undefined),
+        close: vi.fn(async () => undefined),
+      },
+      events: { append },
+    } as unknown as Parameters<typeof createRunExecutor>[0]);
+
+    await executor.wakeRoutine("routine-1", scheduledAt.toISOString());
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: "dm-thread-1", workspaceId: "ws-1" }),
+      }),
+    );
+    expect(taskCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ threadId: "dm-thread-1" }) }),
+    );
+    expect(runCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ threadId: "dm-thread-1" }) }),
+    );
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "routine.fired", threadId: "dm-thread-1" }),
     );
   });
 

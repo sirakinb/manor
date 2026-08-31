@@ -271,6 +271,40 @@ export const builtinAgentTools: ConnectorTool[] = [
       required: ["content"],
     },
   },
+  {
+    name: "web_search",
+    description:
+      "Search the public web. Returns titles, URLs, and snippets. Use when you need current information or links; follow with web_fetch to read a page. Does not need a computer.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search query." },
+        maxResults: {
+          type: "number",
+          description: "Max results to return (default 5, max 10).",
+        },
+      },
+      required: ["query"],
+    },
+    readOnly: true,
+  },
+  {
+    name: "web_fetch",
+    description:
+      "Fetch a public http(s) page and return readable text (title + content). Read-only; no JavaScript. Use after web_search when you need the page itself.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "Page URL (http or https)." },
+        maxChars: {
+          type: "number",
+          description: "Max characters of body text (default 8000).",
+        },
+      },
+      required: ["url"],
+    },
+    readOnly: true,
+  },
   // Semantic-memory tools: exposed by selectMemoryTools() only when a
   // workspace memory provider is configured (which hides `remember`).
   {
@@ -548,6 +582,11 @@ export const builtinAgentTools: ConnectorTool[] = [
           description: "Exact name of the target bot when bot_id is omitted.",
         },
         message: { type: "string", description: "What to send." },
+        intent: {
+          type: "string",
+          enum: ["request", "result", "question", "status", "fyi"],
+          description: "What the recipient should do with this message. Defaults to request.",
+        },
       },
       required: ["message"],
     },
@@ -555,7 +594,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "handoff_to_bot",
     description:
-      "In a group chat only: hand the next stage to another current member. Appends a visible handoff in the shared thread and starts that bot asynchronously.",
+      "In a group chat only: transfer a genuinely distinct next stage to another current member. Appends a visible handoff and starts that bot asynchronously. Do not hand a stage back merely to report or repeat the same work; post results in the shared thread.",
     inputSchema: {
       type: "object",
       properties: {
@@ -570,4 +609,51 @@ export const builtinAgentTools: ConnectorTool[] = [
     },
   },
   ...crmAgentTools,
+];
+
+/** Agent-connection tools, exposed only when the phone surface is enabled. */
+export const agentConnectionTools: ConnectorTool[] = [
+  {
+    name: "connect_agent",
+    description:
+      "Request a standing connection to another person's agent by their phone number. The other owner must approve before either agent can message the other. Only for agents whose owner texted the deployment's phone line.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        phone: {
+          type: "string",
+          description: "E.164 phone number of the agent's owner, e.g. +15551234567.",
+        },
+      },
+      required: ["phone"],
+    },
+  },
+  {
+    name: "respond_agent_connection",
+    description:
+      "Approve or decline the newest pending agent connection request addressed to you. Use only on your owner's explicit instruction.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        accept: { type: "boolean", description: "true to approve, false to decline." },
+      },
+      required: ["accept"],
+    },
+  },
+  {
+    name: "message_agent",
+    description:
+      "Send a useful update, question, or result to another person's agent over an approved connection. Delivery is async and does not end your turn. Continue independent work; do not poll or send ack-only messages.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        phone: {
+          type: "string",
+          description: "E.164 phone number of the connected agent's owner.",
+        },
+        message: { type: "string", description: "What to send." },
+      },
+      required: ["phone", "message"],
+    },
+  },
 ];

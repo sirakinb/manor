@@ -8,10 +8,12 @@ import {
   createConnectorStack,
   createCrmWebhookEmitter,
   createJobReconciler,
+  createPhoneContextLoader,
   createPostgresReconciliationLeadership,
   createRunExecutor,
   createRunSandbox,
   createRunSecretWriter,
+  createWebProvider,
   EncryptedSecretStore,
   ExpoPushProvider,
   GraphileJobPublisher,
@@ -19,6 +21,7 @@ import {
   InMemoryJobQueue,
   InstalledConnectorProvider,
   isComposioEnabled,
+  isPhoneSurfaceEnabled,
   isPipedreamEnabled,
   LocalAgentHomeStore,
   LocalArtifactStore,
@@ -29,10 +32,13 @@ import {
   PostgresRealtimeFanout,
   pipedreamConfigFromEnv,
   resolveDeploymentModel,
+  resolveSandboxProvider,
   ScriptedAgentRuntime,
+  SendBlueMessagingProvider,
+  sendBlueConfigFromEnv,
   WorkspaceMemoryProviderResolver,
 } from "@rakazo/adapters";
-import { resolveEncryptionKey } from "@rakazo/core";
+import { resolveEncryptionKey, resolveSupervisorToken } from "@rakazo/core";
 import { createDb, createThreadEvents } from "@rakazo/db";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 
@@ -53,8 +59,10 @@ async function main() {
   const dataDir = process.env.DATA_DIR ?? "./data";
   // Same resolver the API uses, so both processes agree on provider, model and key.
   const { key: deploymentModelKey } = resolveDeploymentModel();
-  const sandbox = createRunSandbox(process.env.SANDBOX_PROVIDER ?? "docker", {
+  const sandboxProvider = resolveSandboxProvider(process.env);
+  const sandbox = createRunSandbox(sandboxProvider, {
     supervisorUrl: process.env.SANDBOX_SUPERVISOR_URL ?? "http://127.0.0.1:7091",
+    supervisorToken: sandboxProvider === "docker" ? resolveSupervisorToken(process.env) : undefined,
     e2bApiKey: process.env.E2B_API_KEY,
     daytonaApiKey: process.env.DAYTONA_API_KEY,
     daytonaApiUrl: process.env.DAYTONA_API_URL,
@@ -86,6 +94,15 @@ async function main() {
   });
   const pipedream = isPipedreamEnabled(pipedreamConfig)
     ? new PipedreamConnector(pipedreamConfig)
+    : undefined;
+  const sendBlueConfig = sendBlueConfigFromEnv({
+    sendblueApiKeyId: process.env.SENDBLUE_API_KEY_ID,
+    sendblueApiSecret: process.env.SENDBLUE_API_SECRET,
+    sendblueSigningSecret: process.env.SENDBLUE_SIGNING_SECRET,
+    sendbluePhoneNumber: process.env.SENDBLUE_PHONE_NUMBER,
+  });
+  const messaging = isPhoneSurfaceEnabled(sendBlueConfig, deploymentModelKey)
+    ? new SendBlueMessagingProvider(sendBlueConfig)
     : undefined;
   const stack = createConnectorStack(isComposioEnabled(process.env.COMPOSIO_API_KEY), undefined, [
     new InstalledConnectorProvider(prisma, secrets),
@@ -119,6 +136,8 @@ async function main() {
     jobs,
     events,
     crmEvent: createCrmWebhookEmitter(prisma),
+    phone: messaging ? createPhoneContextLoader(prisma) : undefined,
+    web: createWebProvider(),
   });
 
   const jobHandlers = createBackgroundJobHandlers({
@@ -133,11 +152,13 @@ async function main() {
     secretStore: secrets,
     memoryProviders,
     deploymentModelKey,
+    messaging,
   });
   await jobHost.start(jobHandlers);
   const reconciler = createJobReconciler({
     prisma,
     jobs,
+    events,
     leadership: createPostgresReconciliationLeadership(pool),
   });
   reconciler.start();
