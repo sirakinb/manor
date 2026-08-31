@@ -102,6 +102,21 @@
 
   <div class="entry sync">
     <div class="date">2026-08-31</div>
+    <h2>Upstream sync #9 &mdash; private spaces</h2>
+    <ul>
+      <li>Spaces land: every account can now hold multiple isolated workspaces &mdash; separate bots, memory, threads, and computers &mdash; with a switcher in the sidebar. Under the hood the whole schema re-parented from organizations to spaces; existing data migrated in place with no rewrites.</li>
+      <li>Manor's CRM and integrations moved to the same space boundary, so a client space gets its own CRM, invisible to every other space.</li>
+      <li>Delegation chatter between bots now folds into quiet peer receipts instead of flooding the transcript, and messages take a persistent 👍.</li>
+      <li>Agent computers stay awake through long background work instead of idling out mid-task.</li>
+      <li>Manor's dark sign-in kept its look and learned upstream's keyboard manners on Android.</li>
+      <li>All 10 new strings translated &mdash; every locale still at zero missing.</li>
+      <li>Kept through the merge: the CRM, phone surface with Manor branding, activity feed, skin, and the Team Computer fixes.</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span><span class="tag new">feature</span><span class="tag mobile">mobile</span></div>
+  </div>
+
+  <div class="entry sync">
+    <div class="date">2026-08-31</div>
     <h2>Upstream sync #8 &mdash; agents you can text, and a browser of their own</h2>
     <ul>
       <li>Upstream landed a phone surface: people text a shared number and get an agent back over iMessage, with approval-gated group channels and cross-workspace agent-to-agent connections. It ships off by default behind a provider-neutral messaging adapter, so nothing changes until Manor turns it on.</li>
