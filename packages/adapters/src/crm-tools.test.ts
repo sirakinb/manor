@@ -9,7 +9,7 @@ import {
   summarizeOverview,
 } from "./crm-tools.js";
 
-const SCOPE = { userId: "user-1", workspaceId: "ws-1" };
+const SCOPE = { userId: "user-1", spaceId: "ws-1" };
 
 function makeFakeRepos() {
   let nextId = 1;
@@ -298,7 +298,7 @@ describe("executeCrmTool", () => {
       stage: "Proposal",
     });
     const summary = summarizeOverview(
-      await (repos.overview as CrmRepos["overview"])({ workspaceId: "ws-1" }),
+      await (repos.overview as CrmRepos["overview"])({ spaceId: "ws-1" }),
     );
     expect(summary.totals).toMatchObject({ open_deals: 2, open_value: 350 });
     const lead = summary.pipelines[0]!.stages.find((stage) => stage.name === "Lead");

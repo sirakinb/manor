@@ -19,7 +19,7 @@ describeWithDatabase("CRM public integrations", () => {
   let app: App;
   let cookie: string;
   let token: string;
-  let workspaceId: string;
+  let spaceId: string;
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const dataDir = mkdtempSync(path.join(tmpdir(), "rakazo-crm-integrations-"));
 
@@ -46,9 +46,9 @@ describeWithDatabase("CRM public integrations", () => {
     expect(response.status).toBe(201);
     const created = (await response.json()) as { id: string; token: string };
     token = created.token;
-    workspaceId = (
+    spaceId = (
       await handles.prisma.integrationCredential.findUniqueOrThrow({ where: { id: created.id } })
-    ).workspaceId;
+    ).spaceId;
   });
 
   afterAll(async () => {
@@ -177,7 +177,7 @@ describeWithDatabase("CRM public integrations", () => {
   it("lists pipelines and creates, updates, and moves deals", async () => {
     const pipeline = await handles.prisma.crmPipeline.create({
       data: {
-        workspaceId,
+        spaceId,
         name: `Public API ${stamp}`,
         stages: {
           create: [

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth";
 import { brand, brandName } from "../lib/brand";
+import { clearSpaceSelection } from "../lib/rpc";
 
 export function AuthPage({ mode }: { mode: "in" | "up" }) {
   const { t } = useLingui();
@@ -40,6 +41,7 @@ export function AuthPage({ mode }: { mode: "in" | "up" }) {
       setError(result.error.message ?? t`Could not continue`);
       return;
     }
+    clearSpaceSelection();
     navigate(mode === "up" ? "/onboarding" : "/app");
   }
 

@@ -47,8 +47,8 @@ import {
   type RemoteConnectorDependencies,
   ScriptedAgentRuntime,
   SendBlueMessagingProvider,
+  SpaceMemoryProviderResolver,
   sendBlueConfigFromEnv,
-  WorkspaceMemoryProviderResolver,
 } from "@rakazo/adapters";
 import { blockedAuthPaths, createAuth } from "@rakazo/auth";
 import { brandOrigins } from "@rakazo/brands";
@@ -165,7 +165,7 @@ export async function createApp(
   });
   const crmIntegrationService = createCrmIntegrationService({ prisma, secrets });
   const mcpOAuth = new McpOAuthBroker(prisma, secrets, remoteConnectors);
-  const memoryProviders = new WorkspaceMemoryProviderResolver(prisma, secrets);
+  const memoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
   const oauthLogins = new PiOAuthLogins();
   const home = new LocalAgentHomeStore(env.dataDir);
   const artifacts = new LocalArtifactStore(env.dataDir);
@@ -212,7 +212,7 @@ export async function createApp(
     beforeDeleteUser: async (userId) => {
       const bots = await prisma.bot.findMany({
         where: { userId },
-        select: { id: true, workspaceId: true, name: true, archivedAt: true },
+        select: { id: true, spaceId: true, name: true, archivedAt: true },
       });
       await Promise.all(
         bots.map((bot) =>
@@ -222,7 +222,7 @@ export async function createApp(
             {
               operationId: `account-delete:${userId}`,
               traceId: `account-delete:${userId}`,
-              workspaceId: bot.workspaceId,
+              spaceId: bot.spaceId,
               userId,
               botId: bot.id,
               signal: new AbortController().signal,
@@ -359,8 +359,9 @@ export async function createApp(
   });
   app.use("/rpc/*", async (c, next) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
+    const requestedSpaceId = c.req.header("x-rakazo-space-id");
     const actor = session?.user
-      ? await requireMembership(prisma, session.user.id).catch(() => null)
+      ? await requireMembership(prisma, session.user.id, requestedSpaceId).catch(() => null)
       : null;
     const { matched, response } = await rpc.handle(c.req.raw, {
       prefix: "/rpc",
@@ -373,7 +374,9 @@ export async function createApp(
   mountVoiceHttpRoutes(app, { prisma, secrets }, async (c) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
     if (!session?.user) return null;
-    return requireMembership(prisma, session.user.id).catch(() => null);
+    return requireMembership(prisma, session.user.id, c.req.header("x-rakazo-space-id")).catch(
+      () => null,
+    );
   });
   mountWebhookHttpRoutes(app, { prisma, secrets, events, jobs });
   // The phone webhook only exists when the messaging surface is enabled.
@@ -403,7 +406,7 @@ export async function createApp(
               {
                 operationId,
                 traceId: operationId,
-                workspaceId: "",
+                spaceId: "",
                 userId: "",
                 // Cosmetic side call: bound it so a stalled vendor response
                 // can never pin the webhook handler's event loop slot.

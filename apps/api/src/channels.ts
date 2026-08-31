@@ -125,7 +125,7 @@ export function mountChannelRoutes(app: Hono, deps: ChannelDeps) {
       where: { id: botId },
       select: {
         id: true,
-        workspaceId: true,
+        spaceId: true,
         userId: true,
         archivedAt: true,
         thread: { select: { id: true } },
@@ -138,7 +138,7 @@ export function mountChannelRoutes(app: Hono, deps: ChannelDeps) {
     const nonce = messageId ? `${provider}:${messageId}` : undefined;
     if (nonce) {
       const existing = await deps.prisma.run.findFirst({
-        where: { workspaceId: bot.workspaceId, clientNonce: nonce },
+        where: { spaceId: bot.spaceId, clientNonce: nonce },
         select: { id: true, taskId: true },
       });
       if (existing) {
@@ -150,7 +150,7 @@ export function mountChannelRoutes(app: Hono, deps: ChannelDeps) {
 
     const prompt = `${originPreamble(provider, chatId, from)}\n\n${text}`;
     const sent = await deps.events.sendUserMessage({
-      workspaceId: bot.workspaceId,
+      spaceId: bot.spaceId,
       threadId: bot.thread.id,
       botId: bot.id,
       userId: bot.userId,

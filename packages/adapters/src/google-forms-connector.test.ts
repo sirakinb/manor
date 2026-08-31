@@ -9,7 +9,7 @@ import {
 const context: AdapterContext = {
   operationId: "google-forms-test",
   traceId: "google-forms-test",
-  workspaceId: "workspace-example",
+  spaceId: "workspace-example",
   userId: "user-example",
   signal: new AbortController().signal,
 };

@@ -172,7 +172,7 @@ describe("CRM integration contract", () => {
       service: {
         authenticate: vi.fn(async () => ({
           credentialId: "credential_1",
-          workspaceId: "workspace_1",
+          spaceId: "workspace_1",
           userId: "user_1",
           scopes: ["crm:read"],
         })),

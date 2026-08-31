@@ -96,6 +96,7 @@ async function main() {
           "packages/testkit/src/search.test.ts",
           "packages/testkit/src/executor-lifecycle.test.ts",
           "packages/testkit/src/connections.test.ts",
+          "packages/db/src/space-membership.postgres.test.ts",
           "packages/testkit/src/crm-integrations.test.ts",
           "packages/adapters/src/wakeup.postgres.test.ts",
           "packages/adapters/src/realtime.postgres.test.ts",
@@ -219,7 +220,7 @@ async function main() {
               {
                 operationId: "e2e-cleanup",
                 traceId: "e2e-cleanup",
-                workspaceId: computer.workspaceId,
+                spaceId: computer.spaceId,
                 userId: computer.userId,
                 signal: new AbortController().signal,
               },
@@ -250,7 +251,7 @@ async function managedComputers(handles: AppHandles) {
   if (!["e2b", "daytona", "box"].includes(sandboxProvider)) return [];
   return handles.prisma.computer.findMany({
     where: { providerRef: { not: null } },
-    select: { homeKey: true, kind: true, providerRef: true, userId: true, workspaceId: true },
+    select: { homeKey: true, kind: true, providerRef: true, userId: true, spaceId: true },
   });
 }
 

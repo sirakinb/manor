@@ -1,6 +1,7 @@
 export * from "./bootstrap-user.js";
 export * from "./client.js";
 export * from "./computers.js";
+export * from "./credential-secrets.js";
 export * from "./crm.js";
 export * from "./crm-modules.js";
 export * from "./events.js";
@@ -11,5 +12,6 @@ export * from "./model-credentials.js";
 export * from "./phone.js";
 export * from "./repos.js";
 export * from "./scope.js";
+export * from "./spaces.js";
 export * from "./transaction-retry.js";
 export * from "./voice-credentials.js";

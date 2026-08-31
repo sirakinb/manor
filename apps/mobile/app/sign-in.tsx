@@ -3,13 +3,16 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -56,6 +59,7 @@ export default function SignIn() {
   if (hasSession) return <Redirect href="/" />;
 
   async function submit() {
+    if (pending) return;
     setPending(true);
     setError(null);
     try {
@@ -73,55 +77,70 @@ export default function SignIn() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: manor.page }}>
       <StatusBar style="light" />
-      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
-        {/* The server picker only matters to self-hosters and to us in dev, so it
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: "center",
+              paddingHorizontal: 24,
+            }}
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* The server picker only matters to self-hosters and to us in dev, so it
             hides behind the mark rather than sitting on the login screen. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Manor"
-          accessibilityHint="Double tap and hold to choose a custom server"
-          delayLongPress={600}
-          onLongPress={() => setServerOpen(true)}
-          style={{ alignItems: "center", marginBottom: 34 }}
-        >
-          <Image
-            source={require("../assets/manor-mark.png")}
-            resizeMode="contain"
-            style={{ width: 74, height: 74 }}
-          />
-          <Text style={styles.wordmark}>Manor</Text>
-          <Text style={styles.byline}>By Pentridge</Text>
-        </Pressable>
-        <TextInput
-          autoCapitalize="none"
-          keyboardType="email-address"
-          keyboardAppearance="dark"
-          placeholder="Email"
-          placeholderTextColor={manor.muted2}
-          value={email}
-          onChangeText={setEmail}
-          style={styles.field}
-        />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor={manor.muted2}
-          keyboardAppearance="dark"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={[styles.field, { marginTop: 12 }]}
-        />
-        {error ? <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text> : null}
-        <Pressable
-          onPress={() => void submit()}
-          disabled={pending}
-          style={({ pressed }) => [styles.submit, pressed && { backgroundColor: manor.accent }]}
-        >
-          <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
-            {pending ? "Working…" : "Continue with email"}
-          </Text>
-        </Pressable>
-      </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Manor"
+              accessibilityHint="Double tap and hold to choose a custom server"
+              delayLongPress={600}
+              onLongPress={() => setServerOpen(true)}
+              style={{ alignItems: "center", marginBottom: 34 }}
+            >
+              <Image
+                source={require("../assets/manor-mark.png")}
+                resizeMode="contain"
+                style={{ width: 74, height: 74 }}
+              />
+              <Text style={styles.wordmark}>Manor</Text>
+              <Text style={styles.byline}>By Pentridge</Text>
+            </Pressable>
+            <TextInput
+              autoCapitalize="none"
+              keyboardType="email-address"
+              keyboardAppearance="dark"
+              placeholder="Email"
+              placeholderTextColor={manor.muted2}
+              value={email}
+              onChangeText={setEmail}
+              style={styles.field}
+            />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor={manor.muted2}
+              keyboardAppearance="dark"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              style={[styles.field, { marginTop: 12 }]}
+            />
+            {error ? <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text> : null}
+            <Pressable
+              onPress={() => void submit()}
+              disabled={pending}
+              style={({ pressed }) => [styles.submit, pressed && { backgroundColor: manor.accent }]}
+            >
+              <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
+                {pending ? "Working…" : "Continue with email"}
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
       {custom ? (
         <Pressable
           accessibilityRole="button"

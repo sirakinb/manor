@@ -6,6 +6,7 @@ export const ProductEventType = z.enum([
   "thread.message.created",
   "thread.cleared",
   "thread.message.updated",
+  "thread.message.reaction",
   "thread.progress",
   "thread.artifact",
   "thread.ask",
@@ -94,7 +95,15 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     input: z.enum(["text", "secret"]).optional(),
     status: z.enum(["pending", "answered"]).optional(),
     answer: z.string().optional(),
-    actions: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
+    actions: z
+      .array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          outcome: z.enum(["created", "cancelled"]).optional(),
+        }),
+      )
+      .optional(),
   }),
   z.object({
     kind: z.literal("choice"),
@@ -234,7 +243,7 @@ export type MessageBlock = z.infer<typeof MessageBlock>;
 
 export const ProductEventSchema = z.object({
   id: Id,
-  workspaceId: Id,
+  spaceId: Id,
   threadId: Id,
   botId: Id,
   seq: z.number().int().nonnegative(),
@@ -254,6 +263,15 @@ export const ThreadMessageSchema = z.object({
   botId: Id.optional(),
   replyToMessageId: Id.optional(),
   runId: Id.optional(),
+  thumbsUp: z.boolean().optional(),
   createdAt: z.string(),
 });
 export type ThreadMessage = z.infer<typeof ThreadMessageSchema>;
+
+export function canReactToThreadMessage(message: Pick<ThreadMessage, "id" | "blocks">): boolean {
+  return (
+    !message.id.startsWith("progress:") &&
+    !message.id.startsWith("subagent:") &&
+    !message.blocks.some((block) => block.kind === "phone_channel_message")
+  );
+}

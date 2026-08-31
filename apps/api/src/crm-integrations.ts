@@ -151,7 +151,7 @@ export function signCrmWebhook(secret: string, timestamp: string, body: string) 
 
 type IntegrationPrincipal = {
   credentialId: string;
-  workspaceId: string;
+  spaceId: string;
   userId: string;
   scopes: IntegrationScope[];
 };
@@ -320,7 +320,7 @@ export function createCrmIntegrationService(deps: {
       .catch(() => undefined);
     return {
       credentialId: row.id,
-      workspaceId: row.workspaceId,
+      spaceId: row.spaceId,
       userId: row.createdByUserId,
       scopes: scopeList(row.scopes),
     };
@@ -330,7 +330,7 @@ export function createCrmIntegrationService(deps: {
     const token = `manor_${randomBytes(30).toString("base64url")}`;
     const row = await prisma.integrationCredential.create({
       data: {
-        workspaceId: actor.workspaceId,
+        spaceId: actor.spaceId,
         createdByUserId: actor.userId,
         name: input.name,
         tokenPrefix: `${token.slice(0, 14)}…`,
@@ -342,19 +342,19 @@ export function createCrmIntegrationService(deps: {
     return { ...integrationCredentialDto(row), token };
   }
 
-  async function upsertContact(workspaceId: string, input: ContactUpsert) {
+  async function upsertContact(spaceId: string, input: ContactUpsert) {
     const source = input.source?.toLowerCase();
     const lockIdentity = source
       ? `${source}:${input.external_id}`
       : `email:${input.email?.toLowerCase()}`;
     const result = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`crm-upsert:${workspaceId}:${lockIdentity}`}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`crm-upsert:${spaceId}:${lockIdentity}`}))`;
       const linked =
         source && input.external_id
           ? await tx.crmContactExternalId.findUnique({
               where: {
-                workspaceId_source_externalId: {
-                  workspaceId,
+                spaceId_source_externalId: {
+                  spaceId,
                   source,
                   externalId: input.external_id,
                 },
@@ -365,7 +365,7 @@ export function createCrmIntegrationService(deps: {
       const byEmail =
         !linked && input.email
           ? await tx.crmContact.findFirst({
-              where: { workspaceId, email: { equals: input.email, mode: "insensitive" } },
+              where: { spaceId, email: { equals: input.email, mode: "insensitive" } },
               include: PUBLIC_CONTACT_INCLUDE,
               orderBy: { createdAt: "asc" },
             })
@@ -380,8 +380,8 @@ export function createCrmIntegrationService(deps: {
               async (name) =>
                 (
                   await tx.crmTag.upsert({
-                    where: { workspaceId_name: { workspaceId, name } },
-                    create: { workspaceId, name },
+                    where: { spaceId_name: { spaceId, name } },
+                    create: { spaceId, name },
                     update: {},
                   })
                 ).id,
@@ -407,7 +407,7 @@ export function createCrmIntegrationService(deps: {
           })
         : await tx.crmContact.create({
             data: {
-              workspaceId,
+              spaceId,
               firstName: input.first_name!,
               lastName: input.last_name ?? "",
               email: input.email ?? null,
@@ -422,13 +422,13 @@ export function createCrmIntegrationService(deps: {
       if (source && input.external_id) {
         await tx.crmContactExternalId.upsert({
           where: {
-            workspaceId_source_externalId: {
-              workspaceId,
+            spaceId_source_externalId: {
+              spaceId,
               source,
               externalId: input.external_id,
             },
           },
-          create: { workspaceId, contactId: contact.id, source, externalId: input.external_id },
+          create: { spaceId, contactId: contact.id, source, externalId: input.external_id },
           update: { contactId: contact.id },
         });
       }
@@ -439,7 +439,7 @@ export function createCrmIntegrationService(deps: {
       return { created: !existing, contact: publicContact(hydrated) };
     });
     await emitWebhook(
-      workspaceId,
+      spaceId,
       result.created ? "contact.created" : "contact.updated",
       result.contact.id,
       result.contact,
@@ -448,14 +448,14 @@ export function createCrmIntegrationService(deps: {
   }
 
   async function listContacts(
-    workspaceId: string,
+    spaceId: string,
     options: { limit: number; cursor?: string; updatedAfter?: Date },
   ) {
     const cursor = decodeCursor(options.cursor);
     if (options.cursor && !cursor) throw new Error("cursor is invalid");
     const rows = await prisma.crmContact.findMany({
       where: {
-        workspaceId,
+        spaceId,
         ...(options.updatedAfter ? { updatedAt: { gt: options.updatedAfter } } : {}),
         ...(cursor
           ? {
@@ -479,25 +479,25 @@ export function createCrmIntegrationService(deps: {
     };
   }
 
-  async function getContact(workspaceId: string, contactId: string) {
+  async function getContact(spaceId: string, contactId: string) {
     const row = await prisma.crmContact.findFirst({
-      where: { id: contactId, workspaceId },
+      where: { id: contactId, spaceId },
       include: PUBLIC_CONTACT_INCLUDE,
     });
     return row ? publicContact(row) : null;
   }
 
-  async function listPipelines(workspaceId: string) {
+  async function listPipelines(spaceId: string) {
     return prisma.crmPipeline.findMany({
-      where: { workspaceId },
+      where: { spaceId },
       include: { stages: { orderBy: { position: "asc" } } },
       orderBy: { position: "asc" },
     });
   }
 
-  async function listDeals(workspaceId: string, limit: number) {
+  async function listDeals(spaceId: string, limit: number) {
     const rows = await prisma.crmDeal.findMany({
-      where: { workspaceId },
+      where: { spaceId },
       include: {
         pipeline: { select: { name: true } },
         stage: { select: { name: true } },
@@ -509,10 +509,10 @@ export function createCrmIntegrationService(deps: {
     return { data: rows.map(publicDeal) };
   }
 
-  async function createDeal(workspaceId: string, input: z.infer<typeof DealCreateSchema>) {
+  async function createDeal(spaceId: string, input: z.infer<typeof DealCreateSchema>) {
     const repos = createCrmRepos(prisma);
     const created = await repos.createDeal(
-      { workspaceId },
+      { spaceId },
       {
         pipelineId: input.pipeline_id,
         stageId: input.stage_id,
@@ -530,18 +530,18 @@ export function createCrmIntegrationService(deps: {
       },
     });
     const deal = publicDeal(row);
-    await emitWebhook(workspaceId, "deal.created", deal.id, deal);
+    await emitWebhook(spaceId, "deal.created", deal.id, deal);
     return { created: true, deal };
   }
 
   async function updateDeal(
-    workspaceId: string,
+    spaceId: string,
     dealId: string,
     input: z.infer<typeof DealUpdateSchema>,
   ) {
     const repos = createCrmRepos(prisma);
     await repos.updateDeal(
-      { workspaceId },
+      { spaceId },
       {
         dealId,
         title: input.title,
@@ -559,13 +559,13 @@ export function createCrmIntegrationService(deps: {
       },
     });
     const deal = publicDeal(row);
-    await emitWebhook(workspaceId, "deal.updated", deal.id, deal);
+    await emitWebhook(spaceId, "deal.updated", deal.id, deal);
     return { updated: true, deal };
   }
 
-  async function moveDeal(workspaceId: string, dealId: string, stageId: string) {
+  async function moveDeal(spaceId: string, dealId: string, stageId: string) {
     const repos = createCrmRepos(prisma);
-    await repos.moveDeal({ workspaceId }, dealId, stageId);
+    await repos.moveDeal({ spaceId }, dealId, stageId);
     const row = await prisma.crmDeal.findUniqueOrThrow({
       where: { id: dealId },
       include: {
@@ -575,64 +575,60 @@ export function createCrmIntegrationService(deps: {
       },
     });
     const deal = publicDeal(row);
-    await emitWebhook(workspaceId, "deal.stage_changed", deal.id, deal);
+    await emitWebhook(spaceId, "deal.stage_changed", deal.id, deal);
     return { moved: true, deal };
   }
 
-  async function listModules(workspaceId: string) {
+  async function listModules(spaceId: string) {
     const repos = createCrmRepos(prisma);
-    const modules = await repos.listModules({ workspaceId });
+    const modules = await repos.listModules({ spaceId });
     return { data: modules.map(publicModule) };
   }
 
-  async function createModule(workspaceId: string, input: z.infer<typeof ModuleCreateSchema>) {
+  async function createModule(spaceId: string, input: z.infer<typeof ModuleCreateSchema>) {
     const repos = createCrmRepos(prisma);
-    const module = await repos.createModule({ workspaceId }, input);
+    const module = await repos.createModule({ spaceId }, input);
     return { created: true, module: publicModule(module) };
   }
 
   async function listModuleRecords(
-    workspaceId: string,
+    spaceId: string,
     moduleId: string,
     options: { limit: number; cursor?: string },
   ) {
     const repos = createCrmRepos(prisma);
     const page = await repos.listModuleRecords(
-      { workspaceId },
+      { spaceId },
       { moduleId, cursor: options.cursor, limit: options.limit },
     );
     return { data: page.data.map(publicRecord), next_cursor: page.nextCursor };
   }
 
   async function createModuleRecord(
-    workspaceId: string,
+    spaceId: string,
     moduleId: string,
     values: Record<string, unknown>,
   ) {
     const repos = createCrmRepos(prisma);
-    const record = publicRecord(
-      await repos.createModuleRecord({ workspaceId }, { moduleId, values }),
-    );
-    await emitWebhook(workspaceId, "record.created", record.id, record);
+    const record = publicRecord(await repos.createModuleRecord({ spaceId }, { moduleId, values }));
+    await emitWebhook(spaceId, "record.created", record.id, record);
     return { created: true, record };
   }
 
   async function updateModuleRecord(
-    workspaceId: string,
+    spaceId: string,
     recordId: string,
     values: Record<string, unknown>,
   ) {
     const repos = createCrmRepos(prisma);
-    const record = publicRecord(
-      await repos.updateModuleRecord({ workspaceId }, { recordId, values }),
-    );
-    await emitWebhook(workspaceId, "record.updated", record.id, record);
+    const record = publicRecord(await repos.updateModuleRecord({ spaceId }, { recordId, values }));
+    await emitWebhook(spaceId, "record.updated", record.id, record);
     return { updated: true, record };
   }
 
-  async function deleteModuleRecord(workspaceId: string, recordId: string) {
+  async function deleteModuleRecord(spaceId: string, recordId: string) {
     const repos = createCrmRepos(prisma);
-    await repos.deleteModuleRecord({ workspaceId }, recordId);
+    await repos.deleteModuleRecord({ spaceId }, recordId);
     return { ok: true };
   }
 
@@ -667,7 +663,7 @@ export function createCrmIntegrationService(deps: {
     try {
       await prisma.integrationIdempotencyKey.create({
         data: {
-          workspaceId: principal.workspaceId,
+          spaceId: principal.spaceId,
           credentialId: principal.credentialId,
           key,
           requestHash: hash,
@@ -876,7 +872,7 @@ export function mountCrmIntegrationRoutes(
     const actor = await deps.resolveActor(request);
     if (!actor) return null;
     const member = await deps.prisma.member.findFirst({
-      where: { organizationId: actor.workspaceId, userId: actor.userId },
+      where: { organizationId: actor.spaceId, userId: actor.userId },
       select: { role: true },
     });
     return member?.role.split(",").some((role) => role.trim() === "owner") ? actor : null;
@@ -888,7 +884,7 @@ export function mountCrmIntegrationRoutes(
     const actor = await resolveOwner(c.req.raw);
     if (!actor) return c.json(jsonError("Authentication required", 401).body, 401);
     const rows = await deps.prisma.integrationCredential.findMany({
-      where: { workspaceId: actor.workspaceId },
+      where: { spaceId: actor.spaceId },
       orderBy: { createdAt: "desc" },
     });
     return c.json({ data: rows.map(integrationCredentialDto) });
@@ -906,7 +902,7 @@ export function mountCrmIntegrationRoutes(
     const actor = await resolveOwner(c.req.raw);
     if (!actor) return c.json(jsonError("Authentication required", 401).body, 401);
     const changed = await deps.prisma.integrationCredential.updateMany({
-      where: { id: c.req.param("id"), workspaceId: actor.workspaceId, revokedAt: null },
+      where: { id: c.req.param("id"), spaceId: actor.spaceId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
     return changed.count
@@ -929,7 +925,7 @@ export function mountCrmIntegrationRoutes(
     }
     try {
       return c.json(
-        await service.listContacts(principal.workspaceId, {
+        await service.listContacts(principal.spaceId, {
           limit: limit.data,
           cursor: c.req.query("cursor"),
           updatedAfter: updatedAfter.data,
@@ -955,7 +951,7 @@ export function mountCrmIntegrationRoutes(
         principal,
         c.req.header("idempotency-key"),
         parsed.data,
-        () => service.upsertContact(principal.workspaceId, parsed.data),
+        () => service.upsertContact(principal.spaceId, parsed.data),
       );
       return c.json(result.body, result.status as 200);
     } catch (error) {
@@ -972,7 +968,7 @@ export function mountCrmIntegrationRoutes(
     if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
     if (!hasScope(principal, "crm:read"))
       return c.json(jsonError("Missing crm:read scope", 403).body, 403);
-    const contact = await service.getContact(principal.workspaceId, c.req.param("id"));
+    const contact = await service.getContact(principal.spaceId, c.req.param("id"));
     return contact ? c.json(contact) : c.json(jsonError("Contact not found", 404).body, 404);
   });
 
@@ -981,7 +977,7 @@ export function mountCrmIntegrationRoutes(
     if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
     if (!hasScope(principal, "crm:read"))
       return c.json(jsonError("Missing crm:read scope", 403).body, 403);
-    const rows = await service.listPipelines(principal.workspaceId);
+    const rows = await service.listPipelines(principal.spaceId);
     return c.json({
       data: rows.map((pipeline) => ({
         id: pipeline.id,
@@ -1005,7 +1001,7 @@ export function mountCrmIntegrationRoutes(
     if (!limit.success) {
       return c.json(jsonError("limit must be an integer from 1 to 100", 400).body, 400);
     }
-    return c.json(await service.listDeals(principal.workspaceId, limit.data));
+    return c.json(await service.listDeals(principal.spaceId, limit.data));
   });
 
   app.post("/v1/crm/deals", async (c) => {
@@ -1020,7 +1016,7 @@ export function mountCrmIntegrationRoutes(
         principal,
         c.req.header("idempotency-key"),
         parsed.data,
-        () => service.createDeal(principal.workspaceId, parsed.data),
+        () => service.createDeal(principal.spaceId, parsed.data),
       );
       return c.json(result.body, result.status as 200);
     } catch (error) {
@@ -1038,9 +1034,7 @@ export function mountCrmIntegrationRoutes(
     const parsed = service.parseDealUpdate(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json(jsonError(z.prettifyError(parsed.error), 400).body, 400);
     try {
-      return c.json(
-        await service.updateDeal(principal.workspaceId, c.req.param("id"), parsed.data),
-      );
+      return c.json(await service.updateDeal(principal.spaceId, c.req.param("id"), parsed.data));
     } catch (error) {
       return c.json(
         jsonError(error instanceof Error ? error.message : "Could not update deal", 400).body,
@@ -1058,7 +1052,7 @@ export function mountCrmIntegrationRoutes(
     if (!parsed.success) return c.json(jsonError(z.prettifyError(parsed.error), 400).body, 400);
     try {
       return c.json(
-        await service.moveDeal(principal.workspaceId, c.req.param("id"), parsed.data.stage_id),
+        await service.moveDeal(principal.spaceId, c.req.param("id"), parsed.data.stage_id),
       );
     } catch (error) {
       return c.json(
@@ -1080,7 +1074,7 @@ export function mountCrmIntegrationRoutes(
     if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
     if (!hasScope(principal, "crm:read"))
       return c.json(jsonError("Missing crm:read scope", 403).body, 403);
-    return c.json(await service.listModules(principal.workspaceId));
+    return c.json(await service.listModules(principal.spaceId));
   });
 
   app.post("/v1/crm/modules", async (c) => {
@@ -1095,7 +1089,7 @@ export function mountCrmIntegrationRoutes(
         principal,
         c.req.header("idempotency-key"),
         parsed.data,
-        () => service.createModule(principal.workspaceId, parsed.data),
+        () => service.createModule(principal.spaceId, parsed.data),
       );
       return c.json(result.body, result.status as 200);
     } catch (error) {
@@ -1114,7 +1108,7 @@ export function mountCrmIntegrationRoutes(
     }
     try {
       return c.json(
-        await service.listModuleRecords(principal.workspaceId, c.req.param("id"), {
+        await service.listModuleRecords(principal.spaceId, c.req.param("id"), {
           limit: limit.data,
           cursor: c.req.query("cursor"),
         }),
@@ -1136,8 +1130,7 @@ export function mountCrmIntegrationRoutes(
         principal,
         c.req.header("idempotency-key"),
         parsed.data,
-        () =>
-          service.createModuleRecord(principal.workspaceId, c.req.param("id"), parsed.data.values),
+        () => service.createModuleRecord(principal.spaceId, c.req.param("id"), parsed.data.values),
       );
       return c.json(result.body, result.status as 200);
     } catch (error) {
@@ -1154,11 +1147,7 @@ export function mountCrmIntegrationRoutes(
     if (!parsed.success) return c.json(jsonError(z.prettifyError(parsed.error), 400).body, 400);
     try {
       return c.json(
-        await service.updateModuleRecord(
-          principal.workspaceId,
-          c.req.param("id"),
-          parsed.data.values,
-        ),
+        await service.updateModuleRecord(principal.spaceId, c.req.param("id"), parsed.data.values),
       );
     } catch (error) {
       return moduleFailure(c, error);
@@ -1171,7 +1160,7 @@ export function mountCrmIntegrationRoutes(
     if (!hasScope(principal, "crm:write"))
       return c.json(jsonError("Missing crm:write scope", 403).body, 403);
     try {
-      return c.json(await service.deleteModuleRecord(principal.workspaceId, c.req.param("id")));
+      return c.json(await service.deleteModuleRecord(principal.spaceId, c.req.param("id")));
     } catch (error) {
       return moduleFailure(c, error);
     }
@@ -1180,13 +1169,13 @@ export function mountCrmIntegrationRoutes(
   app.get("/v1/webhooks", async (c) => {
     const actor = await resolveOwner(c.req.raw);
     const principal = actor ? null : await service.authenticate(c.req.raw);
-    const workspaceId = actor?.workspaceId ?? principal?.workspaceId;
-    if (!workspaceId) return c.json(jsonError("Authentication required", 401).body, 401);
+    const spaceId = actor?.spaceId ?? principal?.spaceId;
+    if (!spaceId) return c.json(jsonError("Authentication required", 401).body, 401);
     if (principal && !hasScope(principal, "webhooks:manage")) {
       return c.json(jsonError("Missing webhooks:manage scope", 403).body, 403);
     }
     const rows = await deps.prisma.crmWebhookEndpoint.findMany({
-      where: { workspaceId },
+      where: { spaceId },
       orderBy: { createdAt: "desc" },
     });
     return c.json({ data: rows.map(webhookDto) });
@@ -1195,9 +1184,9 @@ export function mountCrmIntegrationRoutes(
   app.post("/v1/webhooks", async (c) => {
     const actor = await resolveOwner(c.req.raw);
     const principal = actor ? null : await service.authenticate(c.req.raw);
-    const workspaceId = actor?.workspaceId ?? principal?.workspaceId;
+    const spaceId = actor?.spaceId ?? principal?.spaceId;
     const userId = actor?.userId ?? principal?.userId;
-    if (!workspaceId || !userId) return c.json(jsonError("Authentication required", 401).body, 401);
+    if (!spaceId || !userId) return c.json(jsonError("Authentication required", 401).body, 401);
     if (principal && !hasScope(principal, "webhooks:manage")) {
       return c.json(jsonError("Missing webhooks:manage scope", 403).body, 403);
     }
@@ -1223,9 +1212,9 @@ export function mountCrmIntegrationRoutes(
     const encrypted = await deps.secrets.put(
       signingSecret,
       {
-        operationId: `webhook-create:${workspaceId}`,
-        traceId: `webhook-create:${workspaceId}`,
-        workspaceId,
+        operationId: `webhook-create:${spaceId}`,
+        traceId: `webhook-create:${spaceId}`,
+        spaceId,
         userId,
         signal: c.req.raw.signal,
       },
@@ -1234,7 +1223,7 @@ export function mountCrmIntegrationRoutes(
     const row = await deps.prisma.crmWebhookEndpoint.create({
       data: {
         id: endpointId,
-        workspaceId,
+        spaceId,
         createdByUserId: userId,
         name: parsed.data.name,
         url: parsed.data.url,
@@ -1248,13 +1237,13 @@ export function mountCrmIntegrationRoutes(
   app.delete("/v1/webhooks/:id", async (c) => {
     const actor = await resolveOwner(c.req.raw);
     const principal = actor ? null : await service.authenticate(c.req.raw);
-    const workspaceId = actor?.workspaceId ?? principal?.workspaceId;
-    if (!workspaceId) return c.json(jsonError("Authentication required", 401).body, 401);
+    const spaceId = actor?.spaceId ?? principal?.spaceId;
+    if (!spaceId) return c.json(jsonError("Authentication required", 401).body, 401);
     if (principal && !hasScope(principal, "webhooks:manage")) {
       return c.json(jsonError("Missing webhooks:manage scope", 403).body, 403);
     }
     const changed = await deps.prisma.crmWebhookEndpoint.deleteMany({
-      where: { id: c.req.param("id"), workspaceId },
+      where: { id: c.req.param("id"), spaceId },
     });
     return changed.count
       ? c.json({ ok: true })
@@ -1284,7 +1273,7 @@ export function mountCrmIntegrationRoutes(
         async (args) => {
           const result = await executeCrmTool(
             createCrmRepos(deps.prisma),
-            { workspaceId: principal.workspaceId, userId: principal.userId },
+            { spaceId: principal.spaceId, userId: principal.userId },
             tool.name,
             args,
           );
@@ -1294,7 +1283,7 @@ export function mountCrmIntegrationRoutes(
             const deal = value.deal as { id?: string } | undefined;
             if (contact?.id && (value.created || value.updated)) {
               await service.emitWebhook(
-                principal.workspaceId,
+                principal.spaceId,
                 value.created ? "contact.created" : "contact.updated",
                 contact.id,
                 contact,
@@ -1302,7 +1291,7 @@ export function mountCrmIntegrationRoutes(
             }
             if (deal?.id && (value.created || value.updated || value.moved)) {
               await service.emitWebhook(
-                principal.workspaceId,
+                principal.spaceId,
                 value.created
                   ? "deal.created"
                   : value.moved
@@ -1315,7 +1304,7 @@ export function mountCrmIntegrationRoutes(
             const record = value.record as { id?: string } | undefined;
             if (record?.id && (value.created || value.updated)) {
               await service.emitWebhook(
-                principal.workspaceId,
+                principal.spaceId,
                 value.created ? "record.created" : "record.updated",
                 record.id,
                 record,
@@ -1353,7 +1342,7 @@ export function mountCrmIntegrationRoutes(
               isError: true,
             };
           }
-          const result = await service.upsertContact(principal.workspaceId, parsed.data);
+          const result = await service.upsertContact(principal.spaceId, parsed.data);
           return { content: [{ type: "text", text: JSON.stringify(result) }] };
         },
       );

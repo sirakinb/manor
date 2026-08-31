@@ -6,6 +6,14 @@ import { describe, expect, it } from "vitest";
 const mobileRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("Android mobile platform contract", () => {
+  it("keeps authentication actions reachable while the keyboard is open", () => {
+    const signIn = readFileSync(resolve(mobileRoot, "app/sign-in.tsx"), "utf8");
+    expect(signIn).toContain("KeyboardAvoidingView");
+    expect(signIn).toContain("Keyboard.dismiss");
+    expect(signIn).toContain("keyboardDismissMode");
+    expect(signIn).toContain("ScrollView");
+  });
+
   it("pins the thread footer above the keyboard and device safe area", () => {
     const config = JSON.parse(readFileSync(resolve(mobileRoot, "app.json"), "utf8"));
     const packageJson = JSON.parse(readFileSync(resolve(mobileRoot, "package.json"), "utf8"));
@@ -37,7 +45,7 @@ describe("Android mobile platform contract", () => {
     const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
     expect(service).toContain("android.requestPromotedOngoing");
     expect(service).toContain("liveStatusIcon(primary, avatarStyle)");
-    expect(service).toContain('rpc(endpoint, token, "me"');
+    expect(service).toContain('rpc(endpoint, token, spaceId, "me"');
     expect(service).not.toContain("showStarting");
     expect(service).not.toContain("catch (_: IOException) {\n        stop()");
     expect(service).toContain("Expo push owns background completion and attention delivery");
@@ -47,6 +55,7 @@ describe("Android mobile platform contract", () => {
     expect(module).not.toContain("settings.copy(liveConnection = false)");
     expect(module).toContain("RakazoNotificationService.clearSession(context)");
     expect(module).toContain("isAllowedNotificationEndpoint(endpoint)");
+    expect(module).toContain("storage.spaceId = spaceId");
     expect(allowlist).toContain("isAllowedNotificationEndpoint");
     expect(allowlist).toContain('scheme == "https"');
     expect(allowlist).toContain("isLanOrLocalHost");
@@ -54,6 +63,12 @@ describe("Android mobile platform contract", () => {
     expect(live).toMatch(
       /export async function resumeLiveNotifications[\s\S]*normalizeApiBase\(endpoint\)[\s\S]*nativeNotifications\.resume\(parsed\.url/,
     );
+    expect(service).toContain('connection.setRequestProperty("x-rakazo-space-id", spaceId)');
+    expect(service).toContain("storage.spaceId.isBlank()");
+    expect(service).toContain("private fun prepareHistorySpace(");
+    expect(service).toContain("knownCompleted.clear()");
+    expect(service).toContain("alertedAttention.clear()");
+    expect(service).toContain("SEEN_RUNS_SPACE_ID");
     expect(service).toContain(
       "getSharedPreferences(STATE_PREFERENCES, MODE_PRIVATE).edit().clear()",
     );
@@ -83,6 +98,11 @@ describe("Android mobile platform contract", () => {
     );
     expect(service).not.toContain("private fun postCompletion(");
     expect(service).toContain('"rakazo://group-thread?groupId=');
+    expect(service).toMatch(/&spaceId=\$\{Uri\.encode\(run\.spaceId\)\}/);
+    expect(service).toContain('putString("rakazo.spaceId", run.spaceId)');
+    expect(thread).toContain("export default function ThreadRoute()");
+    expect(thread).toContain("selectSpace(requestedSpaceId)");
+    expect(thread).toContain("routeMatchesSelectedSpace) return <Thread />");
     expect(service).toContain('if (run.groupId != null) put("groupId", run.groupId)');
     expect(service).toContain('if (message.optString("runId") != run.runId) continue');
     expect(service).toContain('if (block.optString("kind") == "handoff") return null');

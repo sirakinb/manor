@@ -42,6 +42,7 @@ import {
   containerActionSteps,
   demuxDockerStream,
   ensureScreenCommand,
+  hasComputerIdentity,
   hasValidBearerToken,
   interactiveScreenCommand,
   isComputerControlUnavailable,
@@ -108,13 +109,13 @@ app.post("/computers", async (c) => {
     .object({
       botId: z.string().min(1),
       homePath: z.string().min(1),
-      workspaceId: z.string().min(1),
+      spaceId: z.string().min(1),
     })
     .parse(await c.req.json());
   try {
-    assertRequestIdentity(c.req.header("x-rakazo-bot-id"), c.req.header("x-rakazo-workspace-id"), {
+    assertRequestIdentity(c.req.header("x-rakazo-bot-id"), c.req.header("x-rakazo-space-id"), {
       botId: body.botId,
-      workspaceId: body.workspaceId,
+      spaceId: body.spaceId,
     });
     return await withBotLifecycleLock(body.botId, async () => {
       await ensureComputerImage();
@@ -130,7 +131,7 @@ app.post("/computers", async (c) => {
       if (hostUid !== 0) await mkdir(serviceHomePath, { recursive: true });
       const homePath = hostHomePath(serviceHomePath, runtimeInfo);
       const computerUser = runtimeInfo ? COMPUTER_USER : hostComputerUser(hostUid, hostGid);
-      const existing = await findBotContainer(body.botId, body.workspaceId);
+      const existing = await findBotContainer(body.botId, body.spaceId);
       if (existing) {
         const info = await existing.inspect();
         const desired = await docker.getImage(COMPUTER_IMAGE).inspect();
@@ -177,7 +178,7 @@ app.post("/computers", async (c) => {
           name,
           image: COMPUTER_IMAGE,
           botId: body.botId,
-          workspaceId: body.workspaceId,
+          spaceId: body.spaceId,
           homePath,
           user: computerUser,
           networkMode,
@@ -206,7 +207,7 @@ app.get("/computers/:id", async (c) => {
     const { container, info } = await managedContainer(
       id,
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
     );
     const screenUrl = await publishedScreenUrl(container, info);
     return c.json({
@@ -235,7 +236,7 @@ app.post("/computers/:id/exec", async (c) => {
     const { container } = await managedContainer(
       id,
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
     );
     const screenId = c.req.header("x-rakazo-screen-id") || c.req.header("x-rakazo-bot-id") || id;
     const screenIndex = computerScreens.get(id)?.get(screenId)?.index ?? 0;
@@ -268,7 +269,7 @@ app.post("/computers/:id/observe", async (c) => {
     const { container, info, layout } = await managedScreen(
       c.req.param("id"),
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
       c.req.header("x-rakazo-screen-id"),
       c.req.header("x-rakazo-screen-lease-id"),
     );
@@ -302,7 +303,7 @@ app.post("/computers/:id/actions", async (c) => {
     const { container, info, layout } = await managedScreen(
       c.req.param("id"),
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
       c.req.header("x-rakazo-screen-id"),
       c.req.header("x-rakazo-screen-lease-id"),
     );
@@ -345,7 +346,7 @@ app.get("/computers/:id/files", async (c) => {
     const { container } = await managedContainer(
       c.req.param("id"),
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
     );
     const relative = normalizeWorkspaceRelative(c.req.query("path") ?? "");
     const target = workspaceTarget(relative);
@@ -414,7 +415,7 @@ app.post("/computers/:id/files", async (c) => {
     const { container } = await managedContainer(
       c.req.param("id"),
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
     );
     const target = workspaceTarget(normalizeWorkspaceRelative(body.path));
     await writeContainerFile(
@@ -436,7 +437,7 @@ app.get("/computers/:id/screen", async (c) => {
     const { container, info, layout } = await managedScreen(
       id,
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
       c.req.header("x-rakazo-screen-id"),
       c.req.header("x-rakazo-screen-lease-id"),
     );
@@ -465,7 +466,7 @@ app.post("/computers/:id/screen-mode", async (c) => {
     const { container, info, layout } = await managedScreen(
       c.req.param("id"),
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
       c.req.header("x-rakazo-screen-id"),
       c.req.header("x-rakazo-screen-lease-id"),
     );
@@ -506,7 +507,7 @@ app.post("/computers/:id/input", async (c) => {
     const { container, layout } = await managedScreen(
       id,
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
       c.req.header("x-rakazo-screen-id"),
       c.req.header("x-rakazo-screen-lease-id"),
     );
@@ -530,7 +531,7 @@ app.delete("/computers/:id/screen", async (c) => {
     const { container } = await managedContainer(
       c.req.param("id"),
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
     );
     const screenId =
       c.req.header("x-rakazo-screen-id") || c.req.header("x-rakazo-bot-id") || c.req.param("id");
@@ -560,7 +561,7 @@ app.post("/computers/:id/stop", async (c) => {
     const { container } = await managedContainer(
       id,
       c.req.header("x-rakazo-bot-id"),
-      c.req.header("x-rakazo-workspace-id"),
+      c.req.header("x-rakazo-space-id"),
     );
     await container.stop().catch(() => undefined);
     clearComputerScreenRegistry(computerScreens, id);
@@ -576,11 +577,7 @@ app.delete("/computers/:id", async (c) => {
   try {
     if (!botId) throw new Error("missing computer identity");
     return await withBotLifecycleLock(botId, async () => {
-      const { container } = await managedContainer(
-        id,
-        botId,
-        c.req.header("x-rakazo-workspace-id"),
-      );
+      const { container } = await managedContainer(id, botId, c.req.header("x-rakazo-space-id"));
       await container.remove({ force: true }).catch(() => undefined);
       clearComputerScreenRegistry(computerScreens, id);
       if (screenNetworkMode !== "internal") {
@@ -648,37 +645,39 @@ async function ensureComputerImage() {
   await imageReady;
 }
 
-async function findBotContainer(botId: string, workspaceId: string) {
+async function findBotContainer(botId: string, spaceId: string) {
   const listed = await docker.listContainers({
     all: true,
     filters: {
-      label: [`rakazo.botId=${botId}`, `rakazo.workspaceId=${workspaceId}`],
+      // Space IDs were preserved when workspaces became Spaces. Search by the
+      // stable bot label, then validate either generation of the Space label.
+      label: [`rakazo.botId=${botId}`],
     },
   });
   for (const item of listed) {
     const container = docker.getContainer(item.Id);
     const info = await container.inspect();
-    if (isRakazoContainer(info, botId, workspaceId)) return container;
+    if (isRakazoContainer(info, botId, spaceId)) return container;
   }
   return undefined;
 }
 
-async function managedContainer(id: string, botId?: string, workspaceId?: string) {
-  if (!botId || !workspaceId) throw new Error("missing computer identity");
+async function managedContainer(id: string, botId?: string, spaceId?: string) {
+  if (!botId || !spaceId) throw new Error("missing computer identity");
   const container = docker.getContainer(id);
   const info = await container.inspect();
-  if (!isRakazoContainer(info, botId, workspaceId)) throw new Error("computer identity mismatch");
+  if (!isRakazoContainer(info, botId, spaceId)) throw new Error("computer identity mismatch");
   return { container, info };
 }
 
 async function managedScreen(
   id: string,
   botId: string | undefined,
-  workspaceId: string | undefined,
+  spaceId: string | undefined,
   screenId: string | undefined,
   screenLeaseId: string | undefined,
 ) {
-  const { container, info } = await managedContainer(id, botId, workspaceId);
+  const { container, info } = await managedContainer(id, botId, spaceId);
   let assigned = computerScreens.get(id);
   if (!assigned) {
     assigned = new Map();
@@ -694,12 +693,10 @@ async function managedScreen(
   return { container, info, layout };
 }
 
-function isRakazoContainer(info: Docker.ContainerInspectInfo, botId: string, workspaceId: string) {
+function isRakazoContainer(info: Docker.ContainerInspectInfo, botId: string, spaceId: string) {
   const labels = info.Config.Labels ?? {};
   const managed = labels["rakazo.managed"] === "true" || info.Config.Image === COMPUTER_IMAGE;
-  return (
-    managed && labels["rakazo.botId"] === botId && labels["rakazo.workspaceId"] === workspaceId
-  );
+  return managed && hasComputerIdentity(labels, botId, spaceId);
 }
 
 function assertBotHomePath(homePath: string, botId: string) {

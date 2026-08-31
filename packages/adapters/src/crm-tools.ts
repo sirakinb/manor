@@ -23,7 +23,7 @@ import {
  */
 
 export type CrmRepos = ReturnType<typeof createCrmRepos>;
-export type CrmToolScope = { userId: string; workspaceId: string };
+export type CrmToolScope = { userId: string; spaceId: string };
 
 export const CRM_READ_ONLY_TOOL_NAMES = [
   "crm_overview",
@@ -295,7 +295,7 @@ function recordSummary(record: CrmModuleRecord, module: CrmModule) {
 
 async function resolveModule(
   repos: CrmRepos,
-  actor: { workspaceId: string },
+  actor: { spaceId: string },
   ref: string,
 ): Promise<CrmModule | { error: string }> {
   const modules = await repos.listModules(actor);
@@ -349,7 +349,7 @@ export async function executeCrmTool(
   args: Record<string, unknown>,
 ): Promise<unknown | undefined> {
   if (!CRM_TOOL_NAMES.has(name)) return undefined;
-  const actor = { workspaceId: scope.workspaceId };
+  const actor = { spaceId: scope.spaceId };
   try {
     if (name === "crm_overview") {
       return summarizeOverview(await repos.overview(actor));
@@ -578,7 +578,7 @@ export const CRM_WEBHOOK_EVENTS = [
 export type CrmWebhookEvent = (typeof CRM_WEBHOOK_EVENTS)[number];
 
 export type CrmWebhookEmitter = (
-  workspaceId: string,
+  spaceId: string,
   type: CrmWebhookEvent,
   resourceId: string,
   payload: unknown,
@@ -592,10 +592,10 @@ export type CrmWebhookEmitter = (
 export function createCrmWebhookEmitter(
   prisma: Pick<PrismaClient, "crmWebhookEndpoint" | "crmWebhookEvent">,
 ): CrmWebhookEmitter {
-  return async (workspaceId, type, resourceId, payload) => {
+  return async (spaceId, type, resourceId, payload) => {
     try {
       const endpoints = await prisma.crmWebhookEndpoint.findMany({
-        where: { workspaceId, enabled: true },
+        where: { spaceId, enabled: true },
         select: { id: true, events: true },
       });
       const matching = endpoints.filter(
@@ -604,7 +604,7 @@ export function createCrmWebhookEmitter(
       if (!matching.length) return;
       await prisma.crmWebhookEvent.create({
         data: {
-          workspaceId,
+          spaceId,
           type,
           resourceId,
           payload: payload as never,
