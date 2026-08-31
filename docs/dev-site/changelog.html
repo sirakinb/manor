@@ -101,6 +101,22 @@
        date, pick tags (new / fix / sync / mobile), keep bullets short. -->
 
   <div class="entry sync">
+    <div class="date">2026-08-31</div>
+    <h2>Upstream sync #8 &mdash; agents you can text, and a browser of their own</h2>
+    <ul>
+      <li>Upstream landed a phone surface: people text a shared number and get an agent back over iMessage, with approval-gated group channels and cross-workspace agent-to-agent connections. It ships off by default behind a provider-neutral messaging adapter, so nothing changes until Manor turns it on.</li>
+      <li>Agents get builtin <code>web_search</code> and <code>web_fetch</code> instead of driving a browser for every lookup.</li>
+      <li>Auto Review flags consequential actions nobody asked for, and a new Approval Rules setting controls it.</li>
+      <li>Mobile: Android chat parity, a rebuilt thread list that stays responsive on long conversations, live notifications, and avatars that animate while a bot works &mdash; Manor's sprite avatars sit on top of the new motion.</li>
+      <li>Desktop: the conversation header is draggable again, and external links open in the real browser.</li>
+      <li>Fixes worth having: run failures surface in the composer instead of the turn ending silently, sidebar bot order persists across reloads, scheduled routines stop recursing, and Docker browsers survive a crash without the restore-pages bubble.</li>
+      <li>All 25 new strings translated in de, ko, tr, hi and pt-BR &mdash; every locale back to zero missing.</li>
+      <li>Kept through the merge: the CRM, the API docs page, Manor's skin and sprites, channel messaging, the activity feed, and the four Team Computer fixes.</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span><span class="tag new">feature</span><span class="tag fix">fix</span><span class="tag mobile">mobile</span></div>
+  </div>
+
+  <div class="entry sync">
     <div class="date">2026-08-28</div>
     <h2>Upstream sync #7 — webhook triggers and quieter failures</h2>
     <ul>

@@ -45,6 +45,7 @@ git merge upstream/main                   # resolve by the policy table below
 | Manor identity | `README.md`, `Shell.tsx`, `Onboarding.tsx`, mobile skin | Keep **Manor's** look and branding, weave in upstream's new logic. |
 | High-care files | `router.ts`, `schema.prisma`, `app.ts`, `voice.ts` | Hand-union: keep both sides' routes/models/wiring. |
 | Mechanical | `pnpm-lock.yaml` | Take upstream, then `pnpm install` and commit the delta. |
+| Generated catalogs | `apps/web/src/locales/*/messages.po` | Conflicts are only `#:` line refs. Take upstream, then **carry Manor's `msgstr` values over from `ORIG_HEAD`** before `intl:extract` — `--theirs` alone silently drops ~270 Manor-only translations per locale. |
 
 Known Manor deltas to preserve through any resolution:
 
@@ -55,8 +56,19 @@ Known Manor deltas to preserve through any resolution:
   ref-persist `updateMany` in `packages/adapters/src/computer-lifecycle.ts`, boot-reconcile in
   `router.ts`, try/catch around both `setScreenControl` revocations.
 - Channel messaging: the `send_channel_message` filter and dispatch in
-  `executor.ts`, `builtin-tools.ts`.
-- The activity feed and Manor's skin throughout the web + mobile apps.
+  `executor.ts`, `builtin-tools.ts`. Since sync #8 the filter rides on top of
+  upstream's `selectBuiltinToolsForRun`, not Manor's own filter chain.
+- The activity feed and Manor's skin throughout the web + mobile apps,
+  including the mobile sprite avatars (which now wrap upstream's animated
+  `OrganicAvatar` rather than replacing it).
+
+Deltas retired in sync #8, so do not resurrect them:
+
+- Manor's Composio `direct_tools` try/catch fallback. Upstream's #383 fixes the
+  same preload cap by dropping `sessionPreset` outright; that is canonical now.
+- `KeyboardAvoider` in `apps/mobile/app/thread.tsx`. Upstream's
+  `react-native-keyboard-controller` handles the header offset natively. The
+  component stays only because Manor's CRM screens still use it.
 
 ## Verification checklist (before main advances)
 
