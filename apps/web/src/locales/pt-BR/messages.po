@@ -678,8 +678,8 @@ msgstr "Não é possível acessar o servidor."
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
-#: src/pages/KnowledgeSection.tsx:168
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:196
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
 #: src/pages/Shell.tsx:6075
 #: src/pages/Shell.tsx:6157
@@ -767,7 +767,7 @@ msgstr "Limpeza"
 
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PeerMessagesOverlay.tsx:150
 #: src/pages/PeerMessagesOverlay.tsx:154
 #: src/pages/PeerMessagesOverlay.tsx:209
@@ -801,7 +801,7 @@ msgstr "Fechar integrações"
 msgid "Close MCP servers"
 msgstr "Fechar servidores MCP"
 
-#: src/pages/MemorySettingsOverlay.tsx:144
+#: src/pages/MemorySettingsOverlay.tsx:145
 msgid "Close memory settings"
 msgstr "Fechar configurações de memória"
 
@@ -963,7 +963,7 @@ msgid "Connect websites and automation tools with REST, webhooks, or the hosted 
 msgstr "Conecte sites e ferramentas de automação com REST, webhooks ou o endpoint MCP hospedado."
 
 #: src/pages/McpOAuthCallback.tsx:54
-#: src/pages/MemorySettingsOverlay.tsx:163
+#: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
 #: src/pages/Shell.tsx:6636
 #: src/pages/VoiceSettingsOverlay.tsx:227
@@ -1100,7 +1100,7 @@ msgid "Could not connect"
 msgstr "Não foi possível conectar"
 
 #. placeholder {0}: registration.name
-#: src/pages/MemorySettingsOverlay.tsx:94
+#: src/pages/MemorySettingsOverlay.tsx:95
 msgid "Could not connect {0}"
 msgstr "Não foi possível conectar o {0}"
 
@@ -1160,11 +1160,11 @@ msgstr "Não foi possível excluir o servidor MCP"
 msgid "Could not delete routine"
 msgstr "Não foi possível excluir a rotina"
 
-#: src/pages/KnowledgeSection.tsx:276
+#: src/pages/KnowledgeSection.tsx:301
 msgid "Could not delete skill"
 msgstr "Não foi possível excluir a habilidade"
 
-#: src/pages/MemorySettingsOverlay.tsx:108
+#: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "Não foi possível desconectar o provedor de memória"
 
@@ -1181,7 +1181,7 @@ msgstr "Não foi possível baixar o {0}. Tente novamente."
 msgid "Could not download {name}. Try again."
 msgstr "Não foi possível baixar o {name}. Tente novamente."
 
-#: src/pages/KnowledgeSection.tsx:106
+#: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "Não foi possível exportar"
 
@@ -1209,7 +1209,7 @@ msgstr "Não foi possível carregar os servidores MCP"
 msgid "Could not load model settings"
 msgstr "Não foi possível carregar as configurações do modelo"
 
-#: src/pages/KnowledgeSection.tsx:243
+#: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
 msgstr "Não foi possível carregar a habilidade"
 
@@ -1278,7 +1278,7 @@ msgstr "Não foi possível revogar a credencial"
 msgid "Could not run routine"
 msgstr "Não foi possível executar a rotina"
 
-#: src/pages/KnowledgeSection.tsx:87
+#: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:5950
 msgid "Could not save"
 msgstr "Não foi possível salvar"
@@ -1303,7 +1303,7 @@ msgstr "Não foi possível salvar a rotina"
 msgid "Could not save rule"
 msgstr "Não foi possível salvar"
 
-#: src/pages/KnowledgeSection.tsx:261
+#: src/pages/KnowledgeSection.tsx:286
 msgid "Could not save skill"
 msgstr "Não foi possível salvar a habilidade"
 
@@ -1351,7 +1351,7 @@ msgstr "Não foi possível atualizar o computador"
 msgid "Could not update reaction"
 msgstr "Não foi possível atualizar a reação"
 
-#: src/pages/MemorySettingsOverlay.tsx:122
+#: src/pages/MemorySettingsOverlay.tsx:123
 msgid "Could not update the default memory scope"
 msgstr "Não foi possível atualizar o escopo de memória padrão"
 
@@ -1496,14 +1496,14 @@ msgstr "Recusar"
 msgid "Default (medium)"
 msgstr "Padrão (médio)"
 
-#: src/pages/MemorySettingsOverlay.tsx:24
+#: src/pages/MemorySettingsOverlay.tsx:25
 msgid "Default scope"
 msgstr "Escopo padrão"
 
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
 #: src/pages/crm/CrmPipelineBoard.tsx:368
-#: src/pages/KnowledgeSection.tsx:358
+#: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
 #: src/pages/Shell.tsx:2741
@@ -1594,11 +1594,11 @@ msgid "Dictate"
 msgstr "Ditar"
 
 #: src/pages/McpServersOverlay.tsx:468
-#: src/pages/MemorySettingsOverlay.tsx:186
+#: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: src/pages/MemorySettingsOverlay.tsx:184
+#: src/pages/MemorySettingsOverlay.tsx:185
 msgid "Disconnecting…"
 msgstr "Desconectando…"
 
@@ -1659,7 +1659,7 @@ msgstr "Baixar {0}"
 msgid "Download {name}"
 msgstr "Baixar {name}"
 
-#: src/pages/KnowledgeSection.tsx:185
+#: src/pages/KnowledgeSection.tsx:210
 msgid "Download as markdown"
 msgstr "Baixar como markdown"
 
@@ -2046,7 +2046,7 @@ msgstr "Quantidade Intervalo"
 msgid "Interval unit"
 msgstr "Unidade do intervalo:"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5873
 msgid "Isolated"
 msgstr "Isolado"
@@ -2131,7 +2131,7 @@ msgstr "Carregando minha atividade"
 msgid "Loading integrations…"
 msgstr "Carregando integrações…"
 
-#: src/pages/MemorySettingsOverlay.tsx:158
+#: src/pages/MemorySettingsOverlay.tsx:159
 msgid "Loading memory settings…"
 msgstr "Carregando configurações de memória..."
 
@@ -2189,7 +2189,7 @@ msgstr "Documento OpenAPI 3.1 legível por máquina"
 msgid "Manage phone settings"
 msgstr "Gerenciar configurações de telefone"
 
-#: src/pages/MemorySettingsOverlay.tsx:138
+#: src/pages/MemorySettingsOverlay.tsx:139
 msgid "Manage the Space semantic memory provider."
 msgstr "Gerencie o provedor de memória semântica do espaço de trabalho."
 
@@ -2243,8 +2243,8 @@ msgstr "Membros ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "Membros (escolha {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 
-#: src/pages/KnowledgeSection.tsx:24
-#: src/pages/MemorySettingsOverlay.tsx:134
+#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/MemorySettingsOverlay.tsx:135
 #: src/pages/Shell.tsx:2872
 msgid "Memory"
 msgstr "Memória"
@@ -2462,7 +2462,7 @@ msgstr "Nova rotina"
 msgid "New section"
 msgstr "Nova seção"
 
-#: src/pages/KnowledgeSection.tsx:375
+#: src/pages/KnowledgeSection.tsx:400
 msgid "New skill"
 msgstr "Nova habilidade"
 
@@ -2567,7 +2567,7 @@ msgstr "Nenhum resultado"
 msgid "No runs yet"
 msgstr "Nenhuma execução ainda"
 
-#: src/pages/KnowledgeSection.tsx:288
+#: src/pages/KnowledgeSection.tsx:313
 msgid "No skills yet"
 msgstr "Ainda não há habilidades"
 
@@ -2608,7 +2608,8 @@ msgstr "Agora não"
 msgid "Notes"
 msgstr "Notas"
 
-#: src/pages/KnowledgeSection.tsx:119
+#: src/pages/KnowledgeSection.tsx:46
+#: src/pages/KnowledgeSection.tsx:66
 msgid "Nothing remembered yet"
 msgstr "Nada memorizado ainda"
 
@@ -2856,7 +2857,7 @@ msgstr "Privado"
 msgid "Prompt copied"
 msgstr "Prompt copiado"
 
-#: src/pages/MemorySettingsOverlay.tsx:194
+#: src/pages/MemorySettingsOverlay.tsx:195
 msgid "Provider"
 msgstr "Provedor"
 
@@ -2878,7 +2879,7 @@ msgid "Read replies aloud"
 msgstr "Leia as respostas em voz alta"
 
 #: src/pages/DocsView.tsx:386
-#: src/pages/KnowledgeSection.tsx:305
+#: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "somente leitura"
 
@@ -3054,7 +3055,7 @@ msgid "Return to {brandName}"
 msgstr "Voltar ao {brandName}"
 
 #. placeholder {0}: doc.revision
-#: src/pages/KnowledgeSection.tsx:141
+#: src/pages/KnowledgeSection.tsx:169
 msgid "rev {0}"
 msgstr "rev {0}"
 
@@ -3116,8 +3117,8 @@ msgstr "Executando..."
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
-#: src/pages/KnowledgeSection.tsx:161
-#: src/pages/KnowledgeSection.tsx:338
+#: src/pages/KnowledgeSection.tsx:189
+#: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:476
 #: src/pages/Shell.tsx:5955
@@ -3279,10 +3280,14 @@ msgstr "Configurações: Uso"
 msgid "Setup help"
 msgstr "Ajuda"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5874
 msgid "Shared"
 msgstr "Compartilhado"
+
+#: src/pages/KnowledgeSection.tsx:61
+msgid "Shared documents"
+msgstr "Documentos compartilhados"
 
 #: src/pages/crm/CrmContacts.tsx:93
 msgid "Sheet"
@@ -3324,7 +3329,7 @@ msgstr "Cadastre-se"
 msgid "Skill {0}"
 msgstr "Habilidade {0}"
 
-#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/KnowledgeSection.tsx:26
 msgid "Skills"
 msgstr "Habilidades"
 
@@ -3361,10 +3366,6 @@ msgstr "Padrão do espaço"
 #: src/pages/CallView.tsx:285
 msgid "Space stops it · Esc hangs up"
 msgstr "Espaço para parar · Esc para desligar"
-
-#: src/pages/KnowledgeSection.tsx:124
-msgid "Space-wide"
-msgstr "Todo o espaço"
 
 #: src/pages/Shell.tsx:5188
 #: src/pages/Shell.tsx:5465
@@ -3550,7 +3551,7 @@ msgstr "A especificação legível por máquina fica em <0>{origin}/v1/openapi.j
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "A aba REST é a referência completa de endpoints — convenções, paginação e todas as rotas. Clientes de IA podem pular o REST e conectar via MCP. Webhooks enviam mudanças aos seus servidores assim que acontecem."
 
-#: src/pages/MemorySettingsOverlay.tsx:218
+#: src/pages/MemorySettingsOverlay.tsx:219
 msgid "The selected memory provider is not available in this build."
 msgstr "O provedor de memória selecionado não está disponível nesta compilação."
 
@@ -3561,10 +3562,6 @@ msgstr "A assinatura é um HMAC-SHA256 de <0><timestamp>.<raw body></0> usando o
 #: src/pages/Shell.tsx:5851
 msgid "Thinking"
 msgstr "Pensando"
-
-#: src/pages/KnowledgeSection.tsx:123
-msgid "This agent"
-msgstr "Este agente"
 
 #: src/pages/Shell.tsx:3217
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."

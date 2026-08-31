@@ -678,8 +678,8 @@ msgstr "Sunucuya ulaşılamıyor."
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
-#: src/pages/KnowledgeSection.tsx:168
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:196
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
 #: src/pages/Shell.tsx:6075
 #: src/pages/Shell.tsx:6157
@@ -767,7 +767,7 @@ msgstr "Temizleniyor…"
 
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PeerMessagesOverlay.tsx:150
 #: src/pages/PeerMessagesOverlay.tsx:154
 #: src/pages/PeerMessagesOverlay.tsx:209
@@ -801,7 +801,7 @@ msgstr "Entegrasyonları kapat"
 msgid "Close MCP servers"
 msgstr "MCP sunucularını kapat"
 
-#: src/pages/MemorySettingsOverlay.tsx:144
+#: src/pages/MemorySettingsOverlay.tsx:145
 msgid "Close memory settings"
 msgstr "Hafıza ayarlarını kapat"
 
@@ -963,7 +963,7 @@ msgid "Connect websites and automation tools with REST, webhooks, or the hosted 
 msgstr "Web sitelerini ve otomasyon araçlarını REST, webhook veya barındırılan MCP uç noktasıyla bağlayın."
 
 #: src/pages/McpOAuthCallback.tsx:54
-#: src/pages/MemorySettingsOverlay.tsx:163
+#: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
 #: src/pages/Shell.tsx:6636
 #: src/pages/VoiceSettingsOverlay.tsx:227
@@ -1100,7 +1100,7 @@ msgid "Could not connect"
 msgstr "Bağlanılamadı"
 
 #. placeholder {0}: registration.name
-#: src/pages/MemorySettingsOverlay.tsx:94
+#: src/pages/MemorySettingsOverlay.tsx:95
 msgid "Could not connect {0}"
 msgstr "{0} bağlanamadı"
 
@@ -1160,11 +1160,11 @@ msgstr "MCP sunucusu silinemedi"
 msgid "Could not delete routine"
 msgstr "Rutin silinemedi"
 
-#: src/pages/KnowledgeSection.tsx:276
+#: src/pages/KnowledgeSection.tsx:301
 msgid "Could not delete skill"
 msgstr "Beceri silinemedi"
 
-#: src/pages/MemorySettingsOverlay.tsx:108
+#: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "Hafıza sağlayıcısının bağlantısı kesilemedi"
 
@@ -1181,7 +1181,7 @@ msgstr "{0} indirilemedi. Tekrar dene."
 msgid "Could not download {name}. Try again."
 msgstr "{name} indirilemedi. Tekrar dene."
 
-#: src/pages/KnowledgeSection.tsx:106
+#: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "Dışa aktarılamadı"
 
@@ -1209,7 +1209,7 @@ msgstr "MCP sunucuları yüklenemedi"
 msgid "Could not load model settings"
 msgstr "Model ayarları yüklenemedi"
 
-#: src/pages/KnowledgeSection.tsx:243
+#: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
 msgstr "Beceri yüklenemedi"
 
@@ -1278,7 +1278,7 @@ msgstr "Kimlik bilgisi iptal edilemedi"
 msgid "Could not run routine"
 msgstr "Rutin çalıştırılamadı"
 
-#: src/pages/KnowledgeSection.tsx:87
+#: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:5950
 msgid "Could not save"
 msgstr "Kaydedilemedi"
@@ -1303,7 +1303,7 @@ msgstr "Rutin kaydedilemedi"
 msgid "Could not save rule"
 msgstr "Kural kaydedilemedi"
 
-#: src/pages/KnowledgeSection.tsx:261
+#: src/pages/KnowledgeSection.tsx:286
 msgid "Could not save skill"
 msgstr "Beceri kaydedilemedi"
 
@@ -1351,7 +1351,7 @@ msgstr "Bilgisayar güncellenemedi"
 msgid "Could not update reaction"
 msgstr "Tepki güncellenemedi"
 
-#: src/pages/MemorySettingsOverlay.tsx:122
+#: src/pages/MemorySettingsOverlay.tsx:123
 msgid "Could not update the default memory scope"
 msgstr "Varsayılan hafıza kapsamı güncellenemedi"
 
@@ -1496,14 +1496,14 @@ msgstr "Reddet"
 msgid "Default (medium)"
 msgstr "Varsayılan (orta)"
 
-#: src/pages/MemorySettingsOverlay.tsx:24
+#: src/pages/MemorySettingsOverlay.tsx:25
 msgid "Default scope"
 msgstr "Varsayılan kapsam"
 
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
 #: src/pages/crm/CrmPipelineBoard.tsx:368
-#: src/pages/KnowledgeSection.tsx:358
+#: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
 #: src/pages/Shell.tsx:2741
@@ -1594,11 +1594,11 @@ msgid "Dictate"
 msgstr "Dikte et"
 
 #: src/pages/McpServersOverlay.tsx:468
-#: src/pages/MemorySettingsOverlay.tsx:186
+#: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
 
-#: src/pages/MemorySettingsOverlay.tsx:184
+#: src/pages/MemorySettingsOverlay.tsx:185
 msgid "Disconnecting…"
 msgstr "Bağlantı kesiliyor…"
 
@@ -1659,7 +1659,7 @@ msgstr "{0} indir"
 msgid "Download {name}"
 msgstr "{name} indir"
 
-#: src/pages/KnowledgeSection.tsx:185
+#: src/pages/KnowledgeSection.tsx:210
 msgid "Download as markdown"
 msgstr "Markdown olarak indir"
 
@@ -2046,7 +2046,7 @@ msgstr "Aralık miktarı"
 msgid "Interval unit"
 msgstr "Aralık birimi"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5873
 msgid "Isolated"
 msgstr "Yalıtılmış"
@@ -2131,7 +2131,7 @@ msgstr "Etkinlik yükleniyor…"
 msgid "Loading integrations…"
 msgstr "Entegrasyonlar yükleniyor…"
 
-#: src/pages/MemorySettingsOverlay.tsx:158
+#: src/pages/MemorySettingsOverlay.tsx:159
 msgid "Loading memory settings…"
 msgstr "Hafıza ayarları yükleniyor…"
 
@@ -2189,7 +2189,7 @@ msgstr "Makine tarafından okunabilir OpenAPI 3.1 belgesi"
 msgid "Manage phone settings"
 msgstr "Telefon ayarlarını yönet"
 
-#: src/pages/MemorySettingsOverlay.tsx:138
+#: src/pages/MemorySettingsOverlay.tsx:139
 msgid "Manage the Space semantic memory provider."
 msgstr "Çalışma alanının semantik hafıza sağlayıcısını yönet."
 
@@ -2243,8 +2243,8 @@ msgstr "Üyeler ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "Üyeler ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} seç)"
 
-#: src/pages/KnowledgeSection.tsx:24
-#: src/pages/MemorySettingsOverlay.tsx:134
+#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/MemorySettingsOverlay.tsx:135
 #: src/pages/Shell.tsx:2872
 msgid "Memory"
 msgstr "Hafıza"
@@ -2462,7 +2462,7 @@ msgstr "Yeni rutin"
 msgid "New section"
 msgstr "Yeni bölüm"
 
-#: src/pages/KnowledgeSection.tsx:375
+#: src/pages/KnowledgeSection.tsx:400
 msgid "New skill"
 msgstr "Yeni beceri"
 
@@ -2567,7 +2567,7 @@ msgstr "Sonuç yok"
 msgid "No runs yet"
 msgstr "Henüz çalıştırma yok"
 
-#: src/pages/KnowledgeSection.tsx:288
+#: src/pages/KnowledgeSection.tsx:313
 msgid "No skills yet"
 msgstr "Henüz beceri yok"
 
@@ -2608,7 +2608,8 @@ msgstr "Şimdi değil"
 msgid "Notes"
 msgstr "Notlar"
 
-#: src/pages/KnowledgeSection.tsx:119
+#: src/pages/KnowledgeSection.tsx:46
+#: src/pages/KnowledgeSection.tsx:66
 msgid "Nothing remembered yet"
 msgstr "Henüz hatırlanan bir şey yok"
 
@@ -2856,7 +2857,7 @@ msgstr "Özel"
 msgid "Prompt copied"
 msgstr "Prompt kopyalandı"
 
-#: src/pages/MemorySettingsOverlay.tsx:194
+#: src/pages/MemorySettingsOverlay.tsx:195
 msgid "Provider"
 msgstr "Sağlayıcı"
 
@@ -2878,7 +2879,7 @@ msgid "Read replies aloud"
 msgstr "Yanıtları sesli oku"
 
 #: src/pages/DocsView.tsx:386
-#: src/pages/KnowledgeSection.tsx:305
+#: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "salt okunur"
 
@@ -3054,7 +3055,7 @@ msgid "Return to {brandName}"
 msgstr "{brandName}'a dön"
 
 #. placeholder {0}: doc.revision
-#: src/pages/KnowledgeSection.tsx:141
+#: src/pages/KnowledgeSection.tsx:169
 msgid "rev {0}"
 msgstr "rev {0}"
 
@@ -3116,8 +3117,8 @@ msgstr "Çalışıyor…"
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
-#: src/pages/KnowledgeSection.tsx:161
-#: src/pages/KnowledgeSection.tsx:338
+#: src/pages/KnowledgeSection.tsx:189
+#: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:476
 #: src/pages/Shell.tsx:5955
@@ -3279,10 +3280,14 @@ msgstr "Ayarlar: Kullanım"
 msgid "Setup help"
 msgstr "Kurulum yardımı"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5874
 msgid "Shared"
 msgstr "Ortak"
+
+#: src/pages/KnowledgeSection.tsx:61
+msgid "Shared documents"
+msgstr "Paylaşılan belgeler"
 
 #: src/pages/crm/CrmContacts.tsx:93
 msgid "Sheet"
@@ -3324,7 +3329,7 @@ msgstr "Kaydol"
 msgid "Skill {0}"
 msgstr "Beceri: {0}"
 
-#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/KnowledgeSection.tsx:26
 msgid "Skills"
 msgstr "Beceriler"
 
@@ -3361,10 +3366,6 @@ msgstr "Alan varsayılanı"
 #: src/pages/CallView.tsx:285
 msgid "Space stops it · Esc hangs up"
 msgstr "Boşluk durdurur · Esc kapatır"
-
-#: src/pages/KnowledgeSection.tsx:124
-msgid "Space-wide"
-msgstr "Alan geneli"
 
 #: src/pages/Shell.tsx:5188
 #: src/pages/Shell.tsx:5465
@@ -3550,7 +3551,7 @@ msgstr "Makine tarafından okunabilir şartname <0>{origin}/v1/openapi.json</0> 
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "REST sekmesi eksiksiz uç nokta başvurusudur — kurallar, sayfalama ve tüm rotalar. Yapay zeka istemcileri REST'i tamamen atlayıp MCP üzerinden bağlanabilir. Webhook'lar değişiklikleri gerçekleştiği anda sunucularına iletir."
 
-#: src/pages/MemorySettingsOverlay.tsx:218
+#: src/pages/MemorySettingsOverlay.tsx:219
 msgid "The selected memory provider is not available in this build."
 msgstr "Seçilen hafıza sağlayıcısı bu sürümde kullanılamıyor."
 
@@ -3561,10 +3562,6 @@ msgstr "İmza, uç noktanın imzalama sırrı kullanılarak <0><timestamp>.<raw 
 #: src/pages/Shell.tsx:5851
 msgid "Thinking"
 msgstr "Düşünüyor"
-
-#: src/pages/KnowledgeSection.tsx:123
-msgid "This agent"
-msgstr "Bu ajan"
 
 #: src/pages/Shell.tsx:3217
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."

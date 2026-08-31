@@ -678,8 +678,8 @@ msgstr "서버에 연결할 수 없습니다."
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
-#: src/pages/KnowledgeSection.tsx:168
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:196
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
 #: src/pages/Shell.tsx:6075
 #: src/pages/Shell.tsx:6157
@@ -767,7 +767,7 @@ msgstr "비우는 중…"
 
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PeerMessagesOverlay.tsx:150
 #: src/pages/PeerMessagesOverlay.tsx:154
 #: src/pages/PeerMessagesOverlay.tsx:209
@@ -801,7 +801,7 @@ msgstr "앱·도구 연동 닫기"
 msgid "Close MCP servers"
 msgstr "MCP 서버 설정 닫기"
 
-#: src/pages/MemorySettingsOverlay.tsx:144
+#: src/pages/MemorySettingsOverlay.tsx:145
 msgid "Close memory settings"
 msgstr "기억 설정 닫기"
 
@@ -963,7 +963,7 @@ msgid "Connect websites and automation tools with REST, webhooks, or the hosted 
 msgstr "REST, 웹훅 또는 호스팅된 MCP 엔드포인트로 웹사이트와 자동화 도구를 연결하세요."
 
 #: src/pages/McpOAuthCallback.tsx:54
-#: src/pages/MemorySettingsOverlay.tsx:163
+#: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
 #: src/pages/Shell.tsx:6636
 #: src/pages/VoiceSettingsOverlay.tsx:227
@@ -1100,7 +1100,7 @@ msgid "Could not connect"
 msgstr "연결하지 못했습니다."
 
 #. placeholder {0}: registration.name
-#: src/pages/MemorySettingsOverlay.tsx:94
+#: src/pages/MemorySettingsOverlay.tsx:95
 msgid "Could not connect {0}"
 msgstr "{0}에 연결하지 못했습니다."
 
@@ -1160,11 +1160,11 @@ msgstr "MCP 서버를 삭제하지 못했습니다."
 msgid "Could not delete routine"
 msgstr "자동 실행을 삭제하지 못했습니다."
 
-#: src/pages/KnowledgeSection.tsx:276
+#: src/pages/KnowledgeSection.tsx:301
 msgid "Could not delete skill"
 msgstr "스킬을 삭제하지 못했습니다"
 
-#: src/pages/MemorySettingsOverlay.tsx:108
+#: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "기억 서비스 연결을 해제하지 못했습니다."
 
@@ -1181,7 +1181,7 @@ msgstr "{0}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 msgid "Could not download {name}. Try again."
 msgstr "{name}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 
-#: src/pages/KnowledgeSection.tsx:106
+#: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "내보내기에 실패했습니다"
 
@@ -1209,7 +1209,7 @@ msgstr "MCP 서버 목록을 불러오지 못했습니다."
 msgid "Could not load model settings"
 msgstr "AI 모델 설정을 불러오지 못했습니다."
 
-#: src/pages/KnowledgeSection.tsx:243
+#: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
 msgstr "스킬을 불러오지 못했습니다"
 
@@ -1278,7 +1278,7 @@ msgstr "자격 증명을 취소하지 못했습니다"
 msgid "Could not run routine"
 msgstr "루틴을 실행할 수 없습니다"
 
-#: src/pages/KnowledgeSection.tsx:87
+#: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:5950
 msgid "Could not save"
 msgstr "저장하지 못했습니다."
@@ -1303,7 +1303,7 @@ msgstr "자동 실행을 저장하지 못했습니다."
 msgid "Could not save rule"
 msgstr "확인 규칙을 저장하지 못했습니다."
 
-#: src/pages/KnowledgeSection.tsx:261
+#: src/pages/KnowledgeSection.tsx:286
 msgid "Could not save skill"
 msgstr "스킬을 저장하지 못했습니다"
 
@@ -1351,7 +1351,7 @@ msgstr "컴퓨터를 업데이트하지 못했습니다"
 msgid "Could not update reaction"
 msgstr "반응을 업데이트하지 못했습니다"
 
-#: src/pages/MemorySettingsOverlay.tsx:122
+#: src/pages/MemorySettingsOverlay.tsx:123
 msgid "Could not update the default memory scope"
 msgstr "기본 기억 범위를 변경하지 못했습니다."
 
@@ -1496,14 +1496,14 @@ msgstr "거절"
 msgid "Default (medium)"
 msgstr "기본(보통)"
 
-#: src/pages/MemorySettingsOverlay.tsx:24
+#: src/pages/MemorySettingsOverlay.tsx:25
 msgid "Default scope"
 msgstr "기본 기억 범위"
 
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
 #: src/pages/crm/CrmPipelineBoard.tsx:368
-#: src/pages/KnowledgeSection.tsx:358
+#: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
 #: src/pages/Shell.tsx:2741
@@ -1594,11 +1594,11 @@ msgid "Dictate"
 msgstr "음성 입력"
 
 #: src/pages/McpServersOverlay.tsx:468
-#: src/pages/MemorySettingsOverlay.tsx:186
+#: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "연결 해제"
 
-#: src/pages/MemorySettingsOverlay.tsx:184
+#: src/pages/MemorySettingsOverlay.tsx:185
 msgid "Disconnecting…"
 msgstr "연결 해제 중…"
 
@@ -1659,7 +1659,7 @@ msgstr "{0} 다운로드"
 msgid "Download {name}"
 msgstr "{name} 다운로드"
 
-#: src/pages/KnowledgeSection.tsx:185
+#: src/pages/KnowledgeSection.tsx:210
 msgid "Download as markdown"
 msgstr "마크다운으로 다운로드"
 
@@ -2046,7 +2046,7 @@ msgstr "간격 숫자"
 msgid "Interval unit"
 msgstr "간격 단위"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5873
 msgid "Isolated"
 msgstr "이 Bot만 사용"
@@ -2131,7 +2131,7 @@ msgstr "활동을 불러오는 중…"
 msgid "Loading integrations…"
 msgstr "연동 목록을 불러오는 중…"
 
-#: src/pages/MemorySettingsOverlay.tsx:158
+#: src/pages/MemorySettingsOverlay.tsx:159
 msgid "Loading memory settings…"
 msgstr "기억 설정을 불러오는 중…"
 
@@ -2189,7 +2189,7 @@ msgstr "기계가 읽는 OpenAPI 3.1 문서"
 msgid "Manage phone settings"
 msgstr "전화 설정 관리"
 
-#: src/pages/MemorySettingsOverlay.tsx:138
+#: src/pages/MemorySettingsOverlay.tsx:139
 msgid "Manage the Space semantic memory provider."
 msgstr "작업공간에서 사용할 장기 기억 서비스를 관리합니다."
 
@@ -2243,8 +2243,8 @@ msgstr "참여 Bot ({GROUP_MEMBER_MIN}~{GROUP_MEMBER_MAX}개)"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "참여 Bot ({GROUP_MEMBER_MIN}~{GROUP_MEMBER_MAX}개 선택)"
 
-#: src/pages/KnowledgeSection.tsx:24
-#: src/pages/MemorySettingsOverlay.tsx:134
+#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/MemorySettingsOverlay.tsx:135
 #: src/pages/Shell.tsx:2872
 msgid "Memory"
 msgstr "기억"
@@ -2462,7 +2462,7 @@ msgstr "새 자동 실행"
 msgid "New section"
 msgstr "새 섹션"
 
-#: src/pages/KnowledgeSection.tsx:375
+#: src/pages/KnowledgeSection.tsx:400
 msgid "New skill"
 msgstr "새 스킬"
 
@@ -2567,7 +2567,7 @@ msgstr "검색 결과가 없습니다"
 msgid "No runs yet"
 msgstr "아직 실행 없음"
 
-#: src/pages/KnowledgeSection.tsx:288
+#: src/pages/KnowledgeSection.tsx:313
 msgid "No skills yet"
 msgstr "아직 스킬이 없습니다"
 
@@ -2608,7 +2608,8 @@ msgstr "나중에"
 msgid "Notes"
 msgstr "메모"
 
-#: src/pages/KnowledgeSection.tsx:119
+#: src/pages/KnowledgeSection.tsx:46
+#: src/pages/KnowledgeSection.tsx:66
 msgid "Nothing remembered yet"
 msgstr "아직 기억한 내용이 없습니다"
 
@@ -2856,7 +2857,7 @@ msgstr "Bot 전용"
 msgid "Prompt copied"
 msgstr "프롬프트 복사됨"
 
-#: src/pages/MemorySettingsOverlay.tsx:194
+#: src/pages/MemorySettingsOverlay.tsx:195
 msgid "Provider"
 msgstr "서비스"
 
@@ -2878,7 +2879,7 @@ msgid "Read replies aloud"
 msgstr "답변을 자동으로 읽기"
 
 #: src/pages/DocsView.tsx:386
-#: src/pages/KnowledgeSection.tsx:305
+#: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "읽기 전용"
 
@@ -3054,7 +3055,7 @@ msgid "Return to {brandName}"
 msgstr "{brandName}로 돌아가기"
 
 #. placeholder {0}: doc.revision
-#: src/pages/KnowledgeSection.tsx:141
+#: src/pages/KnowledgeSection.tsx:169
 msgid "rev {0}"
 msgstr "리비전 {0}"
 
@@ -3116,8 +3117,8 @@ msgstr "실행 중…"
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
-#: src/pages/KnowledgeSection.tsx:161
-#: src/pages/KnowledgeSection.tsx:338
+#: src/pages/KnowledgeSection.tsx:189
+#: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:476
 #: src/pages/Shell.tsx:5955
@@ -3279,10 +3280,14 @@ msgstr "설정: 사용량"
 msgid "Setup help"
 msgstr "설정 도움말"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5874
 msgid "Shared"
 msgstr "함께 사용"
+
+#: src/pages/KnowledgeSection.tsx:61
+msgid "Shared documents"
+msgstr "공유 문서"
 
 #: src/pages/crm/CrmContacts.tsx:93
 msgid "Sheet"
@@ -3324,7 +3329,7 @@ msgstr "가입하기"
 msgid "Skill {0}"
 msgstr "작업 기술 {0}"
 
-#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/KnowledgeSection.tsx:26
 msgid "Skills"
 msgstr "스킬"
 
@@ -3361,10 +3366,6 @@ msgstr "스페이스 기본값"
 #: src/pages/CallView.tsx:285
 msgid "Space stops it · Esc hangs up"
 msgstr "스페이스로 중지 · Esc로 통화 종료"
-
-#: src/pages/KnowledgeSection.tsx:124
-msgid "Space-wide"
-msgstr "스페이스 전체"
 
 #: src/pages/Shell.tsx:5188
 #: src/pages/Shell.tsx:5465
@@ -3550,7 +3551,7 @@ msgstr "기계가 읽는 사양은 <0>{origin}/v1/openapi.json</0>에 있습니�
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "REST 탭은 전체 엔드포인트 레퍼런스입니다 — 규약, 페이지네이션, 모든 라우트. AI 클라이언트는 REST를 건너뛰고 MCP로 바로 연결할 수 있습니다. 웹훅은 변경이 일어나는 즉시 서버로 전달합니다."
 
-#: src/pages/MemorySettingsOverlay.tsx:218
+#: src/pages/MemorySettingsOverlay.tsx:219
 msgid "The selected memory provider is not available in this build."
 msgstr "선택한 기억 서비스는 현재 빌드에서 사용할 수 없습니다."
 
@@ -3561,10 +3562,6 @@ msgstr "서명은 엔드포인트의 서명 시크릿으로 <0><timestamp>.<raw 
 #: src/pages/Shell.tsx:5851
 msgid "Thinking"
 msgstr "생각 깊이"
-
-#: src/pages/KnowledgeSection.tsx:123
-msgid "This agent"
-msgstr "이 에이전트"
 
 #: src/pages/Shell.tsx:3217
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."

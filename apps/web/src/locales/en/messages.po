@@ -678,8 +678,8 @@ msgstr "Can't reach the server."
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
-#: src/pages/KnowledgeSection.tsx:168
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:196
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
 #: src/pages/Shell.tsx:6075
 #: src/pages/Shell.tsx:6157
@@ -767,7 +767,7 @@ msgstr "Clearing…"
 
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PeerMessagesOverlay.tsx:150
 #: src/pages/PeerMessagesOverlay.tsx:154
 #: src/pages/PeerMessagesOverlay.tsx:209
@@ -801,7 +801,7 @@ msgstr "Close integrations"
 msgid "Close MCP servers"
 msgstr "Close MCP servers"
 
-#: src/pages/MemorySettingsOverlay.tsx:144
+#: src/pages/MemorySettingsOverlay.tsx:145
 msgid "Close memory settings"
 msgstr "Close memory settings"
 
@@ -963,7 +963,7 @@ msgid "Connect websites and automation tools with REST, webhooks, or the hosted 
 msgstr "Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint."
 
 #: src/pages/McpOAuthCallback.tsx:54
-#: src/pages/MemorySettingsOverlay.tsx:163
+#: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
 #: src/pages/Shell.tsx:6636
 #: src/pages/VoiceSettingsOverlay.tsx:227
@@ -1100,7 +1100,7 @@ msgid "Could not connect"
 msgstr "Could not connect"
 
 #. placeholder {0}: registration.name
-#: src/pages/MemorySettingsOverlay.tsx:94
+#: src/pages/MemorySettingsOverlay.tsx:95
 msgid "Could not connect {0}"
 msgstr "Could not connect {0}"
 
@@ -1160,11 +1160,11 @@ msgstr "Could not delete MCP server"
 msgid "Could not delete routine"
 msgstr "Could not delete routine"
 
-#: src/pages/KnowledgeSection.tsx:276
+#: src/pages/KnowledgeSection.tsx:301
 msgid "Could not delete skill"
 msgstr "Could not delete skill"
 
-#: src/pages/MemorySettingsOverlay.tsx:108
+#: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "Could not disconnect memory provider"
 
@@ -1181,7 +1181,7 @@ msgstr "Could not download {0}. Try again."
 msgid "Could not download {name}. Try again."
 msgstr "Could not download {name}. Try again."
 
-#: src/pages/KnowledgeSection.tsx:106
+#: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "Could not export"
 
@@ -1209,7 +1209,7 @@ msgstr "Could not load MCP servers"
 msgid "Could not load model settings"
 msgstr "Could not load model settings"
 
-#: src/pages/KnowledgeSection.tsx:243
+#: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
 msgstr "Could not load skill"
 
@@ -1278,7 +1278,7 @@ msgstr "Could not revoke credential"
 msgid "Could not run routine"
 msgstr "Could not run routine"
 
-#: src/pages/KnowledgeSection.tsx:87
+#: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:5950
 msgid "Could not save"
 msgstr "Could not save"
@@ -1303,7 +1303,7 @@ msgstr "Could not save routine"
 msgid "Could not save rule"
 msgstr "Could not save rule"
 
-#: src/pages/KnowledgeSection.tsx:261
+#: src/pages/KnowledgeSection.tsx:286
 msgid "Could not save skill"
 msgstr "Could not save skill"
 
@@ -1351,7 +1351,7 @@ msgstr "Could not update computer"
 msgid "Could not update reaction"
 msgstr "Could not update reaction"
 
-#: src/pages/MemorySettingsOverlay.tsx:122
+#: src/pages/MemorySettingsOverlay.tsx:123
 msgid "Could not update the default memory scope"
 msgstr "Could not update the default memory scope"
 
@@ -1496,14 +1496,14 @@ msgstr "Decline"
 msgid "Default (medium)"
 msgstr "Default (medium)"
 
-#: src/pages/MemorySettingsOverlay.tsx:24
+#: src/pages/MemorySettingsOverlay.tsx:25
 msgid "Default scope"
 msgstr "Default scope"
 
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
 #: src/pages/crm/CrmPipelineBoard.tsx:368
-#: src/pages/KnowledgeSection.tsx:358
+#: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
 #: src/pages/Shell.tsx:2741
@@ -1594,11 +1594,11 @@ msgid "Dictate"
 msgstr "Dictate"
 
 #: src/pages/McpServersOverlay.tsx:468
-#: src/pages/MemorySettingsOverlay.tsx:186
+#: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "Disconnect"
 
-#: src/pages/MemorySettingsOverlay.tsx:184
+#: src/pages/MemorySettingsOverlay.tsx:185
 msgid "Disconnecting…"
 msgstr "Disconnecting…"
 
@@ -1659,7 +1659,7 @@ msgstr "Download {0}"
 msgid "Download {name}"
 msgstr "Download {name}"
 
-#: src/pages/KnowledgeSection.tsx:185
+#: src/pages/KnowledgeSection.tsx:210
 msgid "Download as markdown"
 msgstr "Download as markdown"
 
@@ -2046,7 +2046,7 @@ msgstr "Interval amount"
 msgid "Interval unit"
 msgstr "Interval unit"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5873
 msgid "Isolated"
 msgstr "Isolated"
@@ -2131,7 +2131,7 @@ msgstr "Loading activity…"
 msgid "Loading integrations…"
 msgstr "Loading integrations…"
 
-#: src/pages/MemorySettingsOverlay.tsx:158
+#: src/pages/MemorySettingsOverlay.tsx:159
 msgid "Loading memory settings…"
 msgstr "Loading memory settings…"
 
@@ -2189,7 +2189,7 @@ msgstr "Machine-readable OpenAPI 3.1 document"
 msgid "Manage phone settings"
 msgstr "Manage phone settings"
 
-#: src/pages/MemorySettingsOverlay.tsx:138
+#: src/pages/MemorySettingsOverlay.tsx:139
 msgid "Manage the Space semantic memory provider."
 msgstr "Manage the Space semantic memory provider."
 
@@ -2243,8 +2243,8 @@ msgstr "Members ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 
-#: src/pages/KnowledgeSection.tsx:24
-#: src/pages/MemorySettingsOverlay.tsx:134
+#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/MemorySettingsOverlay.tsx:135
 #: src/pages/Shell.tsx:2872
 msgid "Memory"
 msgstr "Memory"
@@ -2462,7 +2462,7 @@ msgstr "New routine"
 msgid "New section"
 msgstr "New section"
 
-#: src/pages/KnowledgeSection.tsx:375
+#: src/pages/KnowledgeSection.tsx:400
 msgid "New skill"
 msgstr "New skill"
 
@@ -2567,7 +2567,7 @@ msgstr "No results"
 msgid "No runs yet"
 msgstr "No runs yet"
 
-#: src/pages/KnowledgeSection.tsx:288
+#: src/pages/KnowledgeSection.tsx:313
 msgid "No skills yet"
 msgstr "No skills yet"
 
@@ -2608,7 +2608,8 @@ msgstr "Not now"
 msgid "Notes"
 msgstr "Notes"
 
-#: src/pages/KnowledgeSection.tsx:119
+#: src/pages/KnowledgeSection.tsx:46
+#: src/pages/KnowledgeSection.tsx:66
 msgid "Nothing remembered yet"
 msgstr "Nothing remembered yet"
 
@@ -2856,7 +2857,7 @@ msgstr "Private"
 msgid "Prompt copied"
 msgstr "Prompt copied"
 
-#: src/pages/MemorySettingsOverlay.tsx:194
+#: src/pages/MemorySettingsOverlay.tsx:195
 msgid "Provider"
 msgstr "Provider"
 
@@ -2878,7 +2879,7 @@ msgid "Read replies aloud"
 msgstr "Read replies aloud"
 
 #: src/pages/DocsView.tsx:386
-#: src/pages/KnowledgeSection.tsx:305
+#: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "read-only"
 
@@ -3054,7 +3055,7 @@ msgid "Return to {brandName}"
 msgstr "Return to {brandName}"
 
 #. placeholder {0}: doc.revision
-#: src/pages/KnowledgeSection.tsx:141
+#: src/pages/KnowledgeSection.tsx:169
 msgid "rev {0}"
 msgstr "rev {0}"
 
@@ -3116,8 +3117,8 @@ msgstr "Running…"
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
-#: src/pages/KnowledgeSection.tsx:161
-#: src/pages/KnowledgeSection.tsx:338
+#: src/pages/KnowledgeSection.tsx:189
+#: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:476
 #: src/pages/Shell.tsx:5955
@@ -3279,10 +3280,14 @@ msgstr "Settings: Usage"
 msgid "Setup help"
 msgstr "Setup help"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5874
 msgid "Shared"
 msgstr "Shared"
+
+#: src/pages/KnowledgeSection.tsx:61
+msgid "Shared documents"
+msgstr "Shared documents"
 
 #: src/pages/crm/CrmContacts.tsx:93
 msgid "Sheet"
@@ -3324,7 +3329,7 @@ msgstr "Sign up"
 msgid "Skill {0}"
 msgstr "Skill {0}"
 
-#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/KnowledgeSection.tsx:26
 msgid "Skills"
 msgstr "Skills"
 
@@ -3361,10 +3366,6 @@ msgstr "Space default"
 #: src/pages/CallView.tsx:285
 msgid "Space stops it · Esc hangs up"
 msgstr "Space stops it · Esc hangs up"
-
-#: src/pages/KnowledgeSection.tsx:124
-msgid "Space-wide"
-msgstr "Space-wide"
 
 #: src/pages/Shell.tsx:5188
 #: src/pages/Shell.tsx:5465
@@ -3550,7 +3551,7 @@ msgstr "The machine-readable spec lives at <0>{origin}/v1/openapi.json</0> — i
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 
-#: src/pages/MemorySettingsOverlay.tsx:218
+#: src/pages/MemorySettingsOverlay.tsx:219
 msgid "The selected memory provider is not available in this build."
 msgstr "The selected memory provider is not available in this build."
 
@@ -3561,10 +3562,6 @@ msgstr "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using t
 #: src/pages/Shell.tsx:5851
 msgid "Thinking"
 msgstr "Thinking"
-
-#: src/pages/KnowledgeSection.tsx:123
-msgid "This agent"
-msgstr "This agent"
 
 #: src/pages/Shell.tsx:3217
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."

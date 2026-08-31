@@ -11,8 +11,9 @@ function rowClass(open: boolean): string {
 }
 
 /**
- * What the agent knows, editable: its memory documents and the space's agent
- * skills. Rides entirely on the existing memory.* and agentSkills.* RPCs.
+ * What the agent knows, editable: its own memory document and the space's
+ * agent skills. Space-wide memory lives in the Memory settings overlay.
+ * Rides entirely on the existing memory.* and agentSkills.* RPCs.
  */
 export function KnowledgeSection({ botId }: { botId: string }) {
   const [tab, setTab] = useState<"memory" | "skills">("memory");
@@ -38,12 +39,48 @@ export function KnowledgeSection({ botId }: { botId: string }) {
           </button>
         ))}
       </div>
-      {tab === "memory" ? <MemoryDocuments botId={botId} /> : <AgentSkills />}
+      {tab === "memory" ? (
+        <MemoryDocumentList
+          load={() => rpc.memory.list({ botId, scope: "bot" })}
+          exportDownload={{ request: { botId }, filename: "memory.md" }}
+          emptyLabel={<Trans>Nothing remembered yet</Trans>}
+          testId="bot-knowledge-memory"
+        />
+      ) : (
+        <AgentSkills />
+      )}
     </div>
   );
 }
 
-function MemoryDocuments({ botId }: { botId: string }) {
+/** The space's shared memory documents, mounted in the Memory settings overlay. */
+export function SpaceMemorySection() {
+  return (
+    <div className="mt-6" data-testid="space-memory-documents">
+      <div className="mb-2 text-[12.5px] uppercase tracking-[0.08em] text-[#6C6C70]">
+        <Trans>Shared documents</Trans>
+      </div>
+      <MemoryDocumentList
+        load={() => rpc.memory.list({ scope: "user" })}
+        exportDownload={{ request: {}, filename: "space-memory.md" }}
+        emptyLabel={<Trans>Nothing remembered yet</Trans>}
+        testId="space-memory-list"
+      />
+    </div>
+  );
+}
+
+function MemoryDocumentList({
+  load,
+  exportDownload,
+  emptyLabel,
+  testId,
+}: {
+  load: () => Promise<MemoryDocument[]>;
+  exportDownload: { request: { botId?: string }; filename: string };
+  emptyLabel: ReactNode;
+  testId: string;
+}) {
   const { t } = useLingui();
   const [docs, setDocs] = useState<MemoryDocument[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -51,14 +88,16 @@ function MemoryDocuments({ botId }: { botId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
+  const loadRef = useRef(load);
+  loadRef.current = load;
 
   useEffect(() => {
     const current = ++generation.current;
-    void Promise.all([rpc.memory.list({ botId }), rpc.memory.list({ scope: "user" })])
-      .then(([botDocs, spaceDocs]) => {
+    void loadRef
+      .current()
+      .then((list) => {
         if (current !== generation.current) return;
-        const seen = new Set(botDocs.map((doc) => doc.id));
-        setDocs([...botDocs, ...spaceDocs.filter((doc) => !seen.has(doc.id))]);
+        setDocs(list);
       })
       .catch(() => {
         if (current !== generation.current) return;
@@ -67,7 +106,7 @@ function MemoryDocuments({ botId }: { botId: string }) {
     return () => {
       generation.current += 1;
     };
-  }, [botId]);
+  }, []);
 
   function openDoc(doc: MemoryDocument) {
     setOpenId(doc.id);
@@ -95,11 +134,11 @@ function MemoryDocuments({ botId }: { botId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const markdown = await rpc.memory.exportMarkdown({ botId });
+      const markdown = await rpc.memory.exportMarkdown(exportDownload.request);
       const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = "memory.md";
+      link.download = exportDownload.filename;
       link.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -109,72 +148,58 @@ function MemoryDocuments({ botId }: { botId: string }) {
     }
   }
 
-  const botDocs = docs.filter((doc) => doc.scope === "bot");
-  const spaceDocs = docs.filter((doc) => doc.scope === "user");
   return (
-    <div data-testid="bot-knowledge-memory">
+    <div data-testid={testId}>
       {error ? <div className="px-2.5 pb-2 text-[13px] text-[#E65707]">{error}</div> : null}
       {docs.length === 0 && !error ? (
-        <div className="px-2.5 py-1 text-[13.5px] text-[#6C6C70]">
-          <Trans>Nothing remembered yet</Trans>
-        </div>
+        <div className="px-2.5 py-1 text-[13.5px] text-[#6C6C70]">{emptyLabel}</div>
       ) : null}
-      {[
-        { key: "bot", label: <Trans>This agent</Trans>, entries: botDocs },
-        { key: "space", label: <Trans>Space-wide</Trans>, entries: spaceDocs },
-      ].map((group) =>
-        group.entries.length ? (
-          <div key={group.key} className={group.key === "space" ? "mt-3" : undefined}>
-            <div className="px-2.5 pb-1 text-[12px] text-[#6C6C70]">{group.label}</div>
-            {group.entries.map((doc) => (
-              <div key={doc.id}>
+      {docs.map((doc) => (
+        <div key={doc.id}>
+          <button
+            type="button"
+            onClick={() => (openId === doc.id ? setOpenId(null) : openDoc(doc))}
+            className={rowClass(openId === doc.id)}
+          >
+            <span className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 truncate text-[14px] text-[#ECECEE]" dir="auto">
+                {doc.path}
+              </span>
+              <span className="shrink-0 text-[12px] text-[#6C6C70]">
+                <Trans>rev {doc.revision}</Trans>
+              </span>
+            </span>
+          </button>
+          {openId === doc.id ? (
+            <div className="px-2.5 pb-2">
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                rows={Math.min(16, Math.max(4, draft.split("\n").length + 1))}
+                className={fieldClass}
+                dir="auto"
+              />
+              <div className="mt-2 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => (openId === doc.id ? setOpenId(null) : openDoc(doc))}
-                  className={rowClass(openId === doc.id)}
+                  disabled={busy || draft === doc.content}
+                  onClick={() => void save(doc)}
+                  className="rounded-lg bg-[#1B1B1E] px-3 py-1.5 text-[13px] text-[#ECECEE] disabled:opacity-50"
                 >
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate text-[14px] text-[#ECECEE]" dir="auto">
-                      {doc.path}
-                    </span>
-                    <span className="shrink-0 text-[12px] text-[#6C6C70]">
-                      <Trans>rev {doc.revision}</Trans>
-                    </span>
-                  </span>
+                  <Trans>Save</Trans>
                 </button>
-                {openId === doc.id ? (
-                  <div className="px-2.5 pb-2">
-                    <textarea
-                      value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
-                      rows={Math.min(16, Math.max(4, draft.split("\n").length + 1))}
-                      className={fieldClass}
-                      dir="auto"
-                    />
-                    <div className="mt-2 flex gap-2">
-                      <button
-                        type="button"
-                        disabled={busy || draft === doc.content}
-                        onClick={() => void save(doc)}
-                        className="rounded-lg bg-[#1B1B1E] px-3 py-1.5 text-[13px] text-[#ECECEE] disabled:opacity-50"
-                      >
-                        <Trans>Save</Trans>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOpenId(null)}
-                        className="rounded-lg px-3 py-1.5 text-[13px] text-[#85858A]"
-                      >
-                        <Trans>Cancel</Trans>
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setOpenId(null)}
+                  className="rounded-lg px-3 py-1.5 text-[13px] text-[#85858A]"
+                >
+                  <Trans>Cancel</Trans>
+                </button>
               </div>
-            ))}
-          </div>
-        ) : null,
-      )}
+            </div>
+          ) : null}
+        </div>
+      ))}
       {docs.length ? (
         <button
           type="button"

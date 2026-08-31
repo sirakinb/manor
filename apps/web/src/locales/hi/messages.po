@@ -678,8 +678,8 @@ msgstr "सर्वर तक नहीं पहुंचा जा सका�
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
-#: src/pages/KnowledgeSection.tsx:168
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:196
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
 #: src/pages/Shell.tsx:6075
 #: src/pages/Shell.tsx:6157
@@ -767,7 +767,7 @@ msgstr "साफ़ किया जा रहा है…"
 
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PeerMessagesOverlay.tsx:150
 #: src/pages/PeerMessagesOverlay.tsx:154
 #: src/pages/PeerMessagesOverlay.tsx:209
@@ -801,7 +801,7 @@ msgstr "इंटीग्रेशन बंद करें"
 msgid "Close MCP servers"
 msgstr "MCP सर्वर बंद करें"
 
-#: src/pages/MemorySettingsOverlay.tsx:144
+#: src/pages/MemorySettingsOverlay.tsx:145
 msgid "Close memory settings"
 msgstr "मेमोरी सेटिंग्स बंद करें"
 
@@ -963,7 +963,7 @@ msgid "Connect websites and automation tools with REST, webhooks, or the hosted 
 msgstr "REST, वेबहुक या होस्टेड MCP एंडपॉइंट से वेबसाइटें और ऑटोमेशन टूल जोड़ें।"
 
 #: src/pages/McpOAuthCallback.tsx:54
-#: src/pages/MemorySettingsOverlay.tsx:163
+#: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
 #: src/pages/Shell.tsx:6636
 #: src/pages/VoiceSettingsOverlay.tsx:227
@@ -1100,7 +1100,7 @@ msgid "Could not connect"
 msgstr "कनेक्ट नहीं हो सका"
 
 #. placeholder {0}: registration.name
-#: src/pages/MemorySettingsOverlay.tsx:94
+#: src/pages/MemorySettingsOverlay.tsx:95
 msgid "Could not connect {0}"
 msgstr "{0} कनेक्ट नहीं हो सका"
 
@@ -1160,11 +1160,11 @@ msgstr "MCP सर्वर डिलीट नहीं किया जा स
 msgid "Could not delete routine"
 msgstr "रूटीन डिलीट नहीं किया जा सका"
 
-#: src/pages/KnowledgeSection.tsx:276
+#: src/pages/KnowledgeSection.tsx:301
 msgid "Could not delete skill"
 msgstr "स्किल हटाई नहीं जा सकी"
 
-#: src/pages/MemorySettingsOverlay.tsx:108
+#: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "मेमोरी प्रोवाइडर डिस्कनेक्ट नहीं हो सका"
 
@@ -1181,7 +1181,7 @@ msgstr "{0} डाउनलोड नहीं हो सका। पुनः 
 msgid "Could not download {name}. Try again."
 msgstr "{name} डाउनलोड नहीं हो सका। पुनः प्रयास करें।"
 
-#: src/pages/KnowledgeSection.tsx:106
+#: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "एक्सपोर्ट नहीं हो सका"
 
@@ -1209,7 +1209,7 @@ msgstr "MCP सर्वर लोड नहीं हो सके"
 msgid "Could not load model settings"
 msgstr "मॉडल सेटिंग्स लोड नहीं हो सकीं"
 
-#: src/pages/KnowledgeSection.tsx:243
+#: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
 msgstr "स्किल लोड नहीं हो सकी"
 
@@ -1278,7 +1278,7 @@ msgstr "क्रेडेंशियल रद्द नहीं हो स�
 msgid "Could not run routine"
 msgstr "रूटीन नहीं चलाया जा सका"
 
-#: src/pages/KnowledgeSection.tsx:87
+#: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:5950
 msgid "Could not save"
 msgstr "सहेजा नहीं जा सका"
@@ -1303,7 +1303,7 @@ msgstr "रूटीन सहेजा नहीं जा सका"
 msgid "Could not save rule"
 msgstr "नियम सहेजा नहीं जा सका"
 
-#: src/pages/KnowledgeSection.tsx:261
+#: src/pages/KnowledgeSection.tsx:286
 msgid "Could not save skill"
 msgstr "स्किल सहेजी नहीं जा सकी"
 
@@ -1351,7 +1351,7 @@ msgstr "कंप्यूटर अपडेट नहीं हो सका"
 msgid "Could not update reaction"
 msgstr "रिएक्शन अपडेट नहीं हो सका"
 
-#: src/pages/MemorySettingsOverlay.tsx:122
+#: src/pages/MemorySettingsOverlay.tsx:123
 msgid "Could not update the default memory scope"
 msgstr "डिफ़ॉल्ट मेमोरी स्कोप अपडेट नहीं हो सका"
 
@@ -1496,14 +1496,14 @@ msgstr "अस्वीकार करें"
 msgid "Default (medium)"
 msgstr "डिफ़ॉल्ट (मध्यम)"
 
-#: src/pages/MemorySettingsOverlay.tsx:24
+#: src/pages/MemorySettingsOverlay.tsx:25
 msgid "Default scope"
 msgstr "डिफ़ॉल्ट स्कोप"
 
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
 #: src/pages/crm/CrmPipelineBoard.tsx:368
-#: src/pages/KnowledgeSection.tsx:358
+#: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
 #: src/pages/Shell.tsx:2741
@@ -1594,11 +1594,11 @@ msgid "Dictate"
 msgstr "बोलकर लिखें"
 
 #: src/pages/McpServersOverlay.tsx:468
-#: src/pages/MemorySettingsOverlay.tsx:186
+#: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "डिस्कनेक्ट करें"
 
-#: src/pages/MemorySettingsOverlay.tsx:184
+#: src/pages/MemorySettingsOverlay.tsx:185
 msgid "Disconnecting…"
 msgstr "डिस्कनेक्ट हो रहा है…"
 
@@ -1659,7 +1659,7 @@ msgstr "{0} डाउनलोड करें"
 msgid "Download {name}"
 msgstr "{name} डाउनलोड करें"
 
-#: src/pages/KnowledgeSection.tsx:185
+#: src/pages/KnowledgeSection.tsx:210
 msgid "Download as markdown"
 msgstr "मार्कडाउन के रूप में डाउनलोड करें"
 
@@ -2046,7 +2046,7 @@ msgstr "अंतराल मात्रा"
 msgid "Interval unit"
 msgstr "अंतराल इकाई"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5873
 msgid "Isolated"
 msgstr "पृथक"
@@ -2131,7 +2131,7 @@ msgstr "गतिविधि लोड हो रही है…"
 msgid "Loading integrations…"
 msgstr "इंटीग्रेशन लोड हो रहे हैं…"
 
-#: src/pages/MemorySettingsOverlay.tsx:158
+#: src/pages/MemorySettingsOverlay.tsx:159
 msgid "Loading memory settings…"
 msgstr "मेमोरी सेटिंग्स लोड हो रही हैं…"
 
@@ -2189,7 +2189,7 @@ msgstr "मशीन-पठनीय OpenAPI 3.1 दस्तावेज़"
 msgid "Manage phone settings"
 msgstr "फ़ोन सेटिंग्स प्रबंधित करें"
 
-#: src/pages/MemorySettingsOverlay.tsx:138
+#: src/pages/MemorySettingsOverlay.tsx:139
 msgid "Manage the Space semantic memory provider."
 msgstr "वर्कस्पेस के सिमेंटिक मेमोरी प्रोवाइडर को प्रबंधित करें।"
 
@@ -2243,8 +2243,8 @@ msgstr "सदस्य ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "सदस्य ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} चुनें)"
 
-#: src/pages/KnowledgeSection.tsx:24
-#: src/pages/MemorySettingsOverlay.tsx:134
+#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/MemorySettingsOverlay.tsx:135
 #: src/pages/Shell.tsx:2872
 msgid "Memory"
 msgstr "मेमोरी"
@@ -2462,7 +2462,7 @@ msgstr "नया रूटीन"
 msgid "New section"
 msgstr "नया सेक्शन"
 
-#: src/pages/KnowledgeSection.tsx:375
+#: src/pages/KnowledgeSection.tsx:400
 msgid "New skill"
 msgstr "नई स्किल"
 
@@ -2567,7 +2567,7 @@ msgstr "कोई परिणाम नहीं"
 msgid "No runs yet"
 msgstr "अभी तक कोई रन नहीं"
 
-#: src/pages/KnowledgeSection.tsx:288
+#: src/pages/KnowledgeSection.tsx:313
 msgid "No skills yet"
 msgstr "अभी तक कोई स्किल नहीं"
 
@@ -2608,7 +2608,8 @@ msgstr "अभी नहीं"
 msgid "Notes"
 msgstr "नोट्स"
 
-#: src/pages/KnowledgeSection.tsx:119
+#: src/pages/KnowledgeSection.tsx:46
+#: src/pages/KnowledgeSection.tsx:66
 msgid "Nothing remembered yet"
 msgstr "अभी तक कुछ याद नहीं किया गया"
 
@@ -2856,7 +2857,7 @@ msgstr "निजी"
 msgid "Prompt copied"
 msgstr "प्रॉम्प्ट कॉपी हो गया"
 
-#: src/pages/MemorySettingsOverlay.tsx:194
+#: src/pages/MemorySettingsOverlay.tsx:195
 msgid "Provider"
 msgstr "प्रोवाइडर"
 
@@ -2878,7 +2879,7 @@ msgid "Read replies aloud"
 msgstr "उत्तर पढ़कर सुनाएं"
 
 #: src/pages/DocsView.tsx:386
-#: src/pages/KnowledgeSection.tsx:305
+#: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "केवल पढ़ना"
 
@@ -3054,7 +3055,7 @@ msgid "Return to {brandName}"
 msgstr "{brandName} पर लौटें"
 
 #. placeholder {0}: doc.revision
-#: src/pages/KnowledgeSection.tsx:141
+#: src/pages/KnowledgeSection.tsx:169
 msgid "rev {0}"
 msgstr "रिवीज़न {0}"
 
@@ -3116,8 +3117,8 @@ msgstr "चल रहा है…"
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
-#: src/pages/KnowledgeSection.tsx:161
-#: src/pages/KnowledgeSection.tsx:338
+#: src/pages/KnowledgeSection.tsx:189
+#: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:476
 #: src/pages/Shell.tsx:5955
@@ -3279,10 +3280,14 @@ msgstr "सेटिंग्स: उपयोग"
 msgid "Setup help"
 msgstr "सेटअप सहायता"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5874
 msgid "Shared"
 msgstr "साझा"
+
+#: src/pages/KnowledgeSection.tsx:61
+msgid "Shared documents"
+msgstr "साझा दस्तावेज़"
 
 #: src/pages/crm/CrmContacts.tsx:93
 msgid "Sheet"
@@ -3324,7 +3329,7 @@ msgstr "साइन अप करें"
 msgid "Skill {0}"
 msgstr "स्किल {0}"
 
-#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/KnowledgeSection.tsx:26
 msgid "Skills"
 msgstr "स्किल्स"
 
@@ -3361,10 +3366,6 @@ msgstr "स्पेस डिफ़ॉल्ट"
 #: src/pages/CallView.tsx:285
 msgid "Space stops it · Esc hangs up"
 msgstr "Space रोकता है · Esc कॉल समाप्त करता है"
-
-#: src/pages/KnowledgeSection.tsx:124
-msgid "Space-wide"
-msgstr "पूरे स्पेस में"
 
 #: src/pages/Shell.tsx:5188
 #: src/pages/Shell.tsx:5465
@@ -3550,7 +3551,7 @@ msgstr "मशीन-पठनीय स्पेसिफ़िकेशन <0>
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "REST टैब पूरा एंडपॉइंट संदर्भ है — कन्वेंशन, पेजिनेशन और हर रूट। AI क्लाइंट REST छोड़कर सीधे MCP से जुड़ सकते हैं। वेबहुक बदलाव होते ही आपके सर्वर तक पहुँचाते हैं।"
 
-#: src/pages/MemorySettingsOverlay.tsx:218
+#: src/pages/MemorySettingsOverlay.tsx:219
 msgid "The selected memory provider is not available in this build."
 msgstr "चयनित मेमोरी प्रोवाइडर इस बिल्ड में उपलब्ध नहीं है।"
 
@@ -3561,10 +3562,6 @@ msgstr "हस्ताक्षर, एंडपॉइंट के साइ�
 #: src/pages/Shell.tsx:5851
 msgid "Thinking"
 msgstr "सोच रहा है"
-
-#: src/pages/KnowledgeSection.tsx:123
-msgid "This agent"
-msgstr "यह एजेंट"
 
 #: src/pages/Shell.tsx:3217
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."

@@ -678,8 +678,8 @@ msgstr "Server nicht erreichbar."
 #: src/pages/crm/CrmPipelineBoard.tsx:575
 #: src/pages/crm/CrmPipelineBoard.tsx:663
 #: src/pages/crm/CrmPipelineBoard.tsx:764
-#: src/pages/KnowledgeSection.tsx:168
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:196
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
 #: src/pages/Shell.tsx:6075
 #: src/pages/Shell.tsx:6157
@@ -767,7 +767,7 @@ msgstr "Wird geleert…"
 
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
-#: src/pages/KnowledgeSection.tsx:349
+#: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PeerMessagesOverlay.tsx:150
 #: src/pages/PeerMessagesOverlay.tsx:154
 #: src/pages/PeerMessagesOverlay.tsx:209
@@ -801,7 +801,7 @@ msgstr "Integrationen schließen"
 msgid "Close MCP servers"
 msgstr "MCP-Server schließen"
 
-#: src/pages/MemorySettingsOverlay.tsx:144
+#: src/pages/MemorySettingsOverlay.tsx:145
 msgid "Close memory settings"
 msgstr "Erinnerungseinstellungen schließen"
 
@@ -963,7 +963,7 @@ msgid "Connect websites and automation tools with REST, webhooks, or the hosted 
 msgstr "Verbinde Websites und Automatisierungstools über REST, Webhooks oder den gehosteten MCP-Endpunkt."
 
 #: src/pages/McpOAuthCallback.tsx:54
-#: src/pages/MemorySettingsOverlay.tsx:163
+#: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
 #: src/pages/Shell.tsx:6636
 #: src/pages/VoiceSettingsOverlay.tsx:227
@@ -1100,7 +1100,7 @@ msgid "Could not connect"
 msgstr "Verbindung fehlgeschlagen"
 
 #. placeholder {0}: registration.name
-#: src/pages/MemorySettingsOverlay.tsx:94
+#: src/pages/MemorySettingsOverlay.tsx:95
 msgid "Could not connect {0}"
 msgstr "Verbindung mit {0} fehlgeschlagen"
 
@@ -1160,11 +1160,11 @@ msgstr "MCP-Server konnte nicht gelöscht werden"
 msgid "Could not delete routine"
 msgstr "Routine konnte nicht gelöscht werden"
 
-#: src/pages/KnowledgeSection.tsx:276
+#: src/pages/KnowledgeSection.tsx:301
 msgid "Could not delete skill"
 msgstr "Skill konnte nicht gelöscht werden"
 
-#: src/pages/MemorySettingsOverlay.tsx:108
+#: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "Erinnerungsanbieter konnte nicht getrennt werden"
 
@@ -1181,7 +1181,7 @@ msgstr "{0} konnte nicht heruntergeladen werden. Versuche es erneut."
 msgid "Could not download {name}. Try again."
 msgstr "{name} konnte nicht heruntergeladen werden. Versuche es erneut."
 
-#: src/pages/KnowledgeSection.tsx:106
+#: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "Export fehlgeschlagen"
 
@@ -1209,7 +1209,7 @@ msgstr "MCP-Server konnten nicht geladen werden"
 msgid "Could not load model settings"
 msgstr "Modelleinstellungen konnten nicht geladen werden"
 
-#: src/pages/KnowledgeSection.tsx:243
+#: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
 msgstr "Skill konnte nicht geladen werden"
 
@@ -1278,7 +1278,7 @@ msgstr "Zugangsdaten konnten nicht widerrufen werden"
 msgid "Could not run routine"
 msgstr "Routine konnte nicht ausgeführt werden"
 
-#: src/pages/KnowledgeSection.tsx:87
+#: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:5950
 msgid "Could not save"
 msgstr "Speichern fehlgeschlagen"
@@ -1303,7 +1303,7 @@ msgstr "Routine konnte nicht gespeichert werden"
 msgid "Could not save rule"
 msgstr "Regel konnte nicht gespeichert werden"
 
-#: src/pages/KnowledgeSection.tsx:261
+#: src/pages/KnowledgeSection.tsx:286
 msgid "Could not save skill"
 msgstr "Skill konnte nicht gespeichert werden"
 
@@ -1351,7 +1351,7 @@ msgstr "Computer konnte nicht aktualisiert werden"
 msgid "Could not update reaction"
 msgstr "Reaktion konnte nicht aktualisiert werden"
 
-#: src/pages/MemorySettingsOverlay.tsx:122
+#: src/pages/MemorySettingsOverlay.tsx:123
 msgid "Could not update the default memory scope"
 msgstr "Standardbereich für Erinnerungen konnte nicht aktualisiert werden"
 
@@ -1496,14 +1496,14 @@ msgstr "Ablehnen"
 msgid "Default (medium)"
 msgstr "Standard (mittel)"
 
-#: src/pages/MemorySettingsOverlay.tsx:24
+#: src/pages/MemorySettingsOverlay.tsx:25
 msgid "Default scope"
 msgstr "Standardbereich"
 
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
 #: src/pages/crm/CrmPipelineBoard.tsx:368
-#: src/pages/KnowledgeSection.tsx:358
+#: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:280
 #: src/pages/Shell.tsx:2741
@@ -1594,11 +1594,11 @@ msgid "Dictate"
 msgstr "Diktieren"
 
 #: src/pages/McpServersOverlay.tsx:468
-#: src/pages/MemorySettingsOverlay.tsx:186
+#: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "Trennen"
 
-#: src/pages/MemorySettingsOverlay.tsx:184
+#: src/pages/MemorySettingsOverlay.tsx:185
 msgid "Disconnecting…"
 msgstr "Verbindung wird getrennt…"
 
@@ -1659,7 +1659,7 @@ msgstr "{0} herunterladen"
 msgid "Download {name}"
 msgstr "{name} herunterladen"
 
-#: src/pages/KnowledgeSection.tsx:185
+#: src/pages/KnowledgeSection.tsx:210
 msgid "Download as markdown"
 msgstr "Als Markdown herunterladen"
 
@@ -2046,7 +2046,7 @@ msgstr "Intervallwert"
 msgid "Interval unit"
 msgstr "Intervalleinheit"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5873
 msgid "Isolated"
 msgstr "Isoliert"
@@ -2131,7 +2131,7 @@ msgstr "Aktivität wird geladen…"
 msgid "Loading integrations…"
 msgstr "Integrationen werden geladen…"
 
-#: src/pages/MemorySettingsOverlay.tsx:158
+#: src/pages/MemorySettingsOverlay.tsx:159
 msgid "Loading memory settings…"
 msgstr "Erinnerungseinstellungen werden geladen…"
 
@@ -2189,7 +2189,7 @@ msgstr "Maschinenlesbares OpenAPI-3.1-Dokument"
 msgid "Manage phone settings"
 msgstr "Telefoneinstellungen verwalten"
 
-#: src/pages/MemorySettingsOverlay.tsx:138
+#: src/pages/MemorySettingsOverlay.tsx:139
 msgid "Manage the Space semantic memory provider."
 msgstr "Verwalte den Anbieter für semantische Erinnerungen des Arbeitsbereichs."
 
@@ -2243,8 +2243,8 @@ msgstr "Mitglieder ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "Mitglieder ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} auswählen)"
 
-#: src/pages/KnowledgeSection.tsx:24
-#: src/pages/MemorySettingsOverlay.tsx:134
+#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/MemorySettingsOverlay.tsx:135
 #: src/pages/Shell.tsx:2872
 msgid "Memory"
 msgstr "Erinnerungen"
@@ -2462,7 +2462,7 @@ msgstr "Neue Routine"
 msgid "New section"
 msgstr "Neuer Abschnitt"
 
-#: src/pages/KnowledgeSection.tsx:375
+#: src/pages/KnowledgeSection.tsx:400
 msgid "New skill"
 msgstr "Neuer Skill"
 
@@ -2567,7 +2567,7 @@ msgstr "Keine Ergebnisse"
 msgid "No runs yet"
 msgstr "Noch keine Ausführungen"
 
-#: src/pages/KnowledgeSection.tsx:288
+#: src/pages/KnowledgeSection.tsx:313
 msgid "No skills yet"
 msgstr "Noch keine Skills"
 
@@ -2608,7 +2608,8 @@ msgstr "Jetzt nicht"
 msgid "Notes"
 msgstr "Notizen"
 
-#: src/pages/KnowledgeSection.tsx:119
+#: src/pages/KnowledgeSection.tsx:46
+#: src/pages/KnowledgeSection.tsx:66
 msgid "Nothing remembered yet"
 msgstr "Noch nichts gemerkt"
 
@@ -2856,7 +2857,7 @@ msgstr "Privat"
 msgid "Prompt copied"
 msgstr "Prompt kopiert"
 
-#: src/pages/MemorySettingsOverlay.tsx:194
+#: src/pages/MemorySettingsOverlay.tsx:195
 msgid "Provider"
 msgstr "Anbieter"
 
@@ -2878,7 +2879,7 @@ msgid "Read replies aloud"
 msgstr "Antworten vorlesen"
 
 #: src/pages/DocsView.tsx:386
-#: src/pages/KnowledgeSection.tsx:305
+#: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "nur Lesen"
 
@@ -3054,7 +3055,7 @@ msgid "Return to {brandName}"
 msgstr "Zurück zu {brandName}"
 
 #. placeholder {0}: doc.revision
-#: src/pages/KnowledgeSection.tsx:141
+#: src/pages/KnowledgeSection.tsx:169
 msgid "rev {0}"
 msgstr "Rev. {0}"
 
@@ -3116,8 +3117,8 @@ msgstr "Wird ausgeführt…"
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
-#: src/pages/KnowledgeSection.tsx:161
-#: src/pages/KnowledgeSection.tsx:338
+#: src/pages/KnowledgeSection.tsx:189
+#: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:476
 #: src/pages/Shell.tsx:5955
@@ -3279,10 +3280,14 @@ msgstr "Einstellungen: Nutzung"
 msgid "Setup help"
 msgstr "Einrichtungshilfe"
 
-#: src/pages/MemorySettingsOverlay.tsx:39
+#: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:5874
 msgid "Shared"
 msgstr "Geteilt"
+
+#: src/pages/KnowledgeSection.tsx:61
+msgid "Shared documents"
+msgstr "Geteilte Dokumente"
 
 #: src/pages/crm/CrmContacts.tsx:93
 msgid "Sheet"
@@ -3324,7 +3329,7 @@ msgstr "Registrieren"
 msgid "Skill {0}"
 msgstr "Skill {0}"
 
-#: src/pages/KnowledgeSection.tsx:25
+#: src/pages/KnowledgeSection.tsx:26
 msgid "Skills"
 msgstr "Skills"
 
@@ -3361,10 +3366,6 @@ msgstr "Space-Standard"
 #: src/pages/CallView.tsx:285
 msgid "Space stops it · Esc hangs up"
 msgstr "Leertaste stoppt · Esc legt auf"
-
-#: src/pages/KnowledgeSection.tsx:124
-msgid "Space-wide"
-msgstr "Space-weit"
 
 #: src/pages/Shell.tsx:5188
 #: src/pages/Shell.tsx:5465
@@ -3550,7 +3551,7 @@ msgstr "Die maschinenlesbare Spezifikation liegt unter <0>{origin}/v1/openapi.js
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "Der REST-Tab ist die vollständige Endpunkt-Referenz — Konventionen, Paginierung und jede Route. KI-Clients können REST komplett überspringen und sich über MCP verbinden. Webhooks schieben Änderungen zu deinen Servern, sobald sie passieren."
 
-#: src/pages/MemorySettingsOverlay.tsx:218
+#: src/pages/MemorySettingsOverlay.tsx:219
 msgid "The selected memory provider is not available in this build."
 msgstr "Der ausgewählte Erinnerungsanbieter ist in diesem Build nicht verfügbar."
 
@@ -3561,10 +3562,6 @@ msgstr "Die Signatur ist ein HMAC-SHA256 von <0><timestamp>.<raw body></0> mit d
 #: src/pages/Shell.tsx:5851
 msgid "Thinking"
 msgstr "Denkmodus"
-
-#: src/pages/KnowledgeSection.tsx:123
-msgid "This agent"
-msgstr "Dieser Agent"
 
 #: src/pages/Shell.tsx:3217
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
