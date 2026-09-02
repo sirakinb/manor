@@ -76,6 +76,7 @@ import {
   ArrowDown,
   ArrowUp,
   Bell,
+  Blend,
   BookOpen,
   Box,
   ChevronDown,
@@ -94,7 +95,6 @@ import {
   Puzzle,
   Reply,
   Settings,
-  Sparkles,
   Square,
   ThumbsUp,
   Volume2,
@@ -4946,7 +4946,7 @@ function ToolRoutingIcon({
 }) {
   if (mode === "vm") return <Cpu size={size} strokeWidth={1.7} className={className} />;
   if (mode === "plugins") return <Puzzle size={size} strokeWidth={1.7} className={className} />;
-  return <Sparkles size={size} strokeWidth={1.7} className={className} />;
+  return <Blend size={size} strokeWidth={1.7} className={className} />;
 }
 
 function toolRoutingLabel(mode: ToolRoutingMode) {
