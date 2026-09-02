@@ -5,6 +5,7 @@ import {
   createRunExecutor,
   runNotificationsEnabled,
   selectBuiltinToolsForRun,
+  selectToolsForRoutingMode,
   threadContextForRun,
 } from "./executor.js";
 
@@ -32,6 +33,59 @@ describe("run tool selection", () => {
     expect(toolNames("routine", "group-1")).not.toContain("schedule_create");
     expect(toolNames("routine", "group-1")).toEqual(
       expect.arrayContaining(["schedule_list", "schedule_cancel"]),
+    );
+  });
+});
+
+describe("tool routing mode", () => {
+  const builtins = [
+    { name: "computer_act" },
+    { name: "shell" },
+    { name: "remember" },
+    { name: "web_search" },
+    { name: "run_subagent" },
+  ];
+  const connectorTools = [{ name: "GMAIL_SEND_EMAIL" }, { name: "GOOGLESHEETS_UPDATE_ROW" }];
+
+  it("offers both the computer and plugin tools by default (auto)", () => {
+    const tools = selectToolsForRoutingMode(
+      { computerToolsAvailable: true, pluginToolsAvailable: true },
+      builtins,
+      connectorTools,
+    );
+    expect(tools.map((tool) => tool.name)).toEqual([
+      "computer_act",
+      "shell",
+      "remember",
+      "web_search",
+      "run_subagent",
+      "GMAIL_SEND_EMAIL",
+      "GOOGLESHEETS_UPDATE_ROW",
+    ]);
+  });
+
+  it("pins to the VM: drops connector tools and the computer surface's non-computer builtins stay", () => {
+    const tools = selectToolsForRoutingMode(
+      { computerToolsAvailable: true, pluginToolsAvailable: false },
+      builtins,
+      connectorTools,
+    );
+    const names = tools.map((tool) => tool.name);
+    expect(names).toEqual(["computer_act", "shell", "remember", "web_search", "run_subagent"]);
+    expect(names).not.toContain("GMAIL_SEND_EMAIL");
+  });
+
+  it("pins to plugins: drops only the computer-surface builtins, not memory/subagent/search", () => {
+    const tools = selectToolsForRoutingMode(
+      { computerToolsAvailable: false, pluginToolsAvailable: true },
+      builtins,
+      connectorTools,
+    );
+    const names = tools.map((tool) => tool.name);
+    expect(names).not.toContain("computer_act");
+    expect(names).not.toContain("shell");
+    expect(names).toEqual(
+      expect.arrayContaining(["remember", "web_search", "run_subagent", "GMAIL_SEND_EMAIL"]),
     );
   });
 });

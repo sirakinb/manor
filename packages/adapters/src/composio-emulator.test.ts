@@ -32,7 +32,9 @@ describe("ComposioEmulator", () => {
     await emulator.begin({ provider: "GMAIL", redirectUrl: "http://example.test" }, context);
 
     await expect(emulator.connectionReady(context, "GMAIL")).resolves.toBe(true);
-    await expect(emulator.listConnectedSlugs(context.userId)).resolves.toEqual(["GMAIL"]);
+    await expect(emulator.listConnectedSlugs(context.userId, context.spaceId)).resolves.toEqual([
+      "GMAIL",
+    ]);
     await expect(emulator.connectionReady({ ...context, userId: "user-2" }, "GMAIL")).resolves.toBe(
       false,
     );
@@ -42,6 +44,17 @@ describe("ComposioEmulator", () => {
 
     await emulator.revoke("GMAIL", context);
     await expect(emulator.connectionReady(context, "GMAIL")).resolves.toBe(false);
+  });
+
+  it("isolates connection state by space, not just by user", async () => {
+    const emulator = new ComposioEmulator();
+    await emulator.begin({ provider: "GMAIL", redirectUrl: "http://example.test" }, context);
+
+    await expect(emulator.connectionReady(context, "GMAIL")).resolves.toBe(true);
+    await expect(
+      emulator.connectionReady({ ...context, spaceId: "other-space" }, "GMAIL"),
+    ).resolves.toBe(false);
+    await expect(emulator.listConnectedSlugs(context.userId, "other-space")).resolves.toEqual([]);
   });
 
   it("discovers and executes deterministic tools for connected apps", async () => {

@@ -25,6 +25,7 @@ import type {
   ThinkingLevel,
   ThreadMessage,
   ThreadSnapshot,
+  ToolRoutingMode,
   VoiceInfo,
   VoiceStatus,
 } from "@rakazo/contracts";
@@ -37,6 +38,7 @@ import {
   BOT_TITLE_MAX_LENGTH,
   canReactToThreadMessage,
   normalizeCreateBotProfile,
+  TOOL_ROUTING_MODES,
 } from "@rakazo/contracts";
 import {
   abortableDelay,
@@ -92,6 +94,7 @@ import {
   Puzzle,
   Reply,
   Settings,
+  Sparkles,
   Square,
   ThumbsUp,
   Volume2,
@@ -1936,7 +1939,7 @@ export function ShellPage() {
     setPendingAttachments((current) => current.filter((item) => item.id !== attachment.id));
   }, []);
   const sendMessage = useCallback(
-    async (text: string, mentions: ComposerMention[] = []) => {
+    async (text: string, mentions: ComposerMention[] = [], toolRoutingMode?: ToolRoutingMode) => {
       const initialBotTarget = activeBotId.current;
       const initialGroupTarget = activeGroupId.current;
       if ((!initialBotTarget && !initialGroupTarget) || sending) return;
@@ -2016,6 +2019,7 @@ export function ShellPage() {
             mentions: plan.mentionPayload.length ? plan.mentionPayload : undefined,
             artifactIds: artifactIds.length ? artifactIds : undefined,
             replyToMessageId: reroutedToGroup ? undefined : activeReplyTarget?.id,
+            toolRoutingMode: toolRoutingMode === "auto" ? undefined : toolRoutingMode,
           });
         } else if (botTarget) {
           await rpc.threads.send({
@@ -2024,6 +2028,7 @@ export function ShellPage() {
             mentions: plan.mentionPayload.length ? plan.mentionPayload : undefined,
             artifactIds: artifactIds.length ? artifactIds : undefined,
             replyToMessageId: activeReplyTarget?.id,
+            toolRoutingMode: toolRoutingMode === "auto" ? undefined : toolRoutingMode,
           });
         }
         setReplyTarget(null);
@@ -4303,7 +4308,11 @@ const Composer = memo(function Composer({
   fileInputRef: RefObject<HTMLInputElement | null>;
   onAttachmentPick: (files: FileList | null) => void | Promise<void>;
   onRemoveAttachment: (attachment: PendingAttachment) => void;
-  onSend: (text: string, mentions?: ComposerMention[]) => Promise<void>;
+  onSend: (
+    text: string,
+    mentions?: ComposerMention[],
+    toolRoutingMode?: ToolRoutingMode,
+  ) => Promise<void>;
   onStop: () => Promise<void>;
   replyTarget?: ThreadMessage | null;
   replyTargetName?: string;
@@ -4328,6 +4337,17 @@ const Composer = memo(function Composer({
   const mentionListboxId = useId();
   const dragDepth = useRef(0);
   const [draggingFiles, setDraggingFiles] = useState(false);
+  const [toolRoutingMode, setToolRoutingMode] = useState<ToolRoutingMode>("auto");
+  const [routingPickerOpen, setRoutingPickerOpen] = useState(false);
+  const routingPickerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!routingPickerOpen) return;
+    const closeIfOutside = (event: MouseEvent) => {
+      if (!routingPickerRef.current?.contains(event.target as Node)) setRoutingPickerOpen(false);
+    };
+    document.addEventListener("mousedown", closeIfOutside);
+    return () => document.removeEventListener("mousedown", closeIfOutside);
+  }, [routingPickerOpen]);
   const canSend =
     draft.trim().length > 0 ||
     selectedSkill !== null ||
@@ -4463,7 +4483,7 @@ const Composer = memo(function Composer({
     setSelectedSkill(null);
     const mentions = selectedMentions;
     setSelectedMentions([]);
-    void onSend(text, mentions);
+    void onSend(text, mentions, toolRoutingMode);
   }
 
   function handleDragEnter(event: DragEvent<HTMLFieldSetElement>) {
@@ -4727,6 +4747,56 @@ const Composer = memo(function Composer({
         >
           <Mic size={16} strokeWidth={1.8} />
         </button>
+        <div ref={routingPickerRef} className="relative shrink-0">
+          <button
+            type="button"
+            aria-label={toolRoutingLabel(toolRoutingMode)}
+            aria-pressed={toolRoutingMode !== "auto"}
+            onClick={() => setRoutingPickerOpen((open) => !open)}
+            title={toolRoutingLabel(toolRoutingMode)}
+            className={`grid h-[34px] w-[34px] place-items-center rounded-full border ${
+              toolRoutingMode === "auto"
+                ? "border-[#26262A] text-[#9A9AA0]"
+                : "border-[#6C6C70] bg-[#1A1A1D] text-[#ECECEE]"
+            }`}
+          >
+            <ToolRoutingIcon mode={toolRoutingMode} size={16} />
+          </button>
+          {routingPickerOpen ? (
+            <div
+              role="listbox"
+              aria-label={t`Tool routing`}
+              data-testid="tool-routing-picker"
+              className="absolute bottom-full mb-2 w-56 overflow-hidden rounded-[14px] border border-[#26262A] bg-[#17171A]"
+            >
+              {TOOL_ROUTING_MODES.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="option"
+                  aria-selected={toolRoutingMode === mode}
+                  onClick={() => {
+                    setToolRoutingMode(mode);
+                    setRoutingPickerOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-start hover:bg-[#1F1F22] ${
+                    toolRoutingMode === mode ? "bg-[#1F1F22]" : ""
+                  }`}
+                >
+                  <ToolRoutingIcon mode={mode} size={15} className="shrink-0 text-[#9A9AA0]" />
+                  <span className="min-w-0">
+                    <span className="block text-[14px] text-[#ECECEE]">
+                      {toolRoutingLabel(mode)}
+                    </span>
+                    <span className="block truncate text-[12.5px] text-[#85858A]">
+                      {toolRoutingDescription(mode)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         <div className="flex min-w-0 flex-1 flex-wrap items-end gap-1.5">
           {selectedSkill ? (
             <span
@@ -4864,6 +4934,42 @@ const Composer = memo(function Composer({
     </fieldset>
   );
 });
+
+function ToolRoutingIcon({
+  mode,
+  size,
+  className,
+}: {
+  mode: ToolRoutingMode;
+  size: number;
+  className?: string;
+}) {
+  if (mode === "vm") return <Cpu size={size} strokeWidth={1.7} className={className} />;
+  if (mode === "plugins") return <Puzzle size={size} strokeWidth={1.7} className={className} />;
+  return <Sparkles size={size} strokeWidth={1.7} className={className} />;
+}
+
+function toolRoutingLabel(mode: ToolRoutingMode) {
+  switch (mode) {
+    case "vm":
+      return t`Computer only`;
+    case "plugins":
+      return t`Plugins only`;
+    default:
+      return t`Auto`;
+  }
+}
+
+function toolRoutingDescription(mode: ToolRoutingMode) {
+  switch (mode) {
+    case "vm":
+      return t`Only use the computer and sandbox, never connected plugins`;
+    case "plugins":
+      return t`Only use connected plugins, never the computer`;
+    default:
+      return t`Uses whichever fits the task`;
+  }
+}
 
 function slashActionLabel(id: SlashActionId) {
   switch (id) {

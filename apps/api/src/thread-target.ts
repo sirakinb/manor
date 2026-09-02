@@ -6,6 +6,7 @@ import {
   type GroupMember,
   type RunStatus,
   type ThreadSnapshot,
+  type ToolRoutingMode,
 } from "@rakazo/contracts";
 import {
   ACTIVE_RUN_STATUSES,
@@ -496,6 +497,7 @@ export async function sendThreadMessage(
     mentions?: MentionTargetInput[];
     replyToMessageId?: string;
     clientNonce?: string;
+    toolRoutingMode?: ToolRoutingMode;
   },
 ) {
   const existing = await replayExistingSend(deps, target.threadId, input.clientNonce);
@@ -553,6 +555,7 @@ export async function sendThreadMessage(
             trigger: "user",
             clientNonce: sendRunClientNonce(input.clientNonce, message.id),
             sourceMessageId: message.id,
+            toolRoutingMode: input.toolRoutingMode,
           },
         });
         await tx.message.update({ where: { id: message.id }, data: { runId: run.id } });
@@ -628,6 +631,7 @@ export async function sendThreadMessage(
             trigger: "user",
             clientNonce: sendRunClientNonce(input.clientNonce, message.id, botId),
             sourceMessageId: message.id,
+            toolRoutingMode: input.toolRoutingMode,
           },
         });
         runs.push(run);

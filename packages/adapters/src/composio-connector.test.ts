@@ -275,7 +275,7 @@ describe("composio tool mapping", () => {
       })),
     ).toEqual([
       { userId: "__rakazo_catalog__", toolkits: undefined, sessionPreset: undefined },
-      { userId: "user-1", toolkits: ["GITHUB"], sessionPreset: undefined },
+      { userId: "user-1::workspace", toolkits: ["GITHUB"], sessionPreset: undefined },
     ]);
 
     const events: ConnectorEvent[] = [];
@@ -294,7 +294,34 @@ describe("composio tool mapping", () => {
       { tool: "GITHUB_GET_REPOS", args: { owner: "composio" } },
     ]);
     await expect(connector.connectionReady(context, "github")).resolves.toBe(true);
-    await expect(connector.connectedAccountId("user-1", "github")).resolves.toBe("ca-github");
+    await expect(connector.connectedAccountId("user-1", "workspace", "github")).resolves.toBe(
+      "ca-github",
+    );
+  });
+
+  it("scopes Composio sessions to userId+spaceId so one space cannot see another's connections", async () => {
+    composioSdkState.created.length = 0;
+    composioSdkState.sessions.clear();
+    composioToolkitDirectory.invalidate();
+
+    const connector = new ComposioConnector();
+    const spaceA: AdapterContext = {
+      operationId: "space-a",
+      traceId: "space-a",
+      spaceId: "space-a",
+      userId: "user-1",
+      signal: new AbortController().signal,
+    };
+    const spaceB: AdapterContext = { ...spaceA, spaceId: "space-b" };
+
+    await connector.catalog(spaceA);
+    await connector.catalog(spaceB);
+
+    const entityIds = composioSdkState.created
+      .map(({ userId }) => userId)
+      .filter((userId) => userId !== "__rakazo_catalog__");
+    expect(entityIds).toEqual(["user-1::space-a", "user-1::space-b"]);
+    expect(new Set(entityIds).size).toBe(2);
   });
 
   it("uses Composio slug casing when the toolkit directory is unavailable", async () => {

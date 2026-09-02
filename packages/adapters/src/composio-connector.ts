@@ -72,7 +72,7 @@ export type ComposioCatalogItem = Omit<ConnectorCatalogItem, "connectorId">;
 
 export interface ComposioProvider extends ManagedConnectorProvider {
   warmDirectory(): Promise<void>;
-  listConnectedSlugs(userId: string): Promise<string[]>;
+  listConnectedSlugs(userId: string, spaceId: string): Promise<string[]>;
 }
 
 export function filterCatalog<T extends Pick<ComposioCatalogItem, "name" | "slug">>(
@@ -103,6 +103,16 @@ export async function collectPages<T>(
 
 function composioSlugKey(slug: string): string {
   return slug.trim().toLowerCase();
+}
+
+/**
+ * Composio's "entity" is the identity an OAuth grant is authorized against.
+ * Scope it to userId+spaceId so connecting Gmail/Sheets/Drive in one space
+ * never shows as connected (or silently completes a pending row) in another
+ * space the same user belongs to.
+ */
+export function composioEntityId(userId: string, spaceId: string): string {
+  return `${userId}::${spaceId}`;
 }
 
 export function executeSessionKey(toolkits: string[]): string {
@@ -193,52 +203,53 @@ export class ComposioConnector implements ComposioProvider {
     };
   }
 
-  async sessionFor(userId: string): Promise<ComposioSession> {
+  /** @param entityId The Composio entity id — use composioEntityId(userId, spaceId) for a real run. */
+  async sessionFor(entityId: string): Promise<ComposioSession> {
     const composio = this.sdk();
-    const existing = this.catalogSessions.get(userId);
+    const existing = this.catalogSessions.get(entityId);
     if (existing) {
       try {
         return await composio.sessions.use(existing);
       } catch {
-        this.catalogSessions.delete(userId);
+        this.catalogSessions.delete(entityId);
       }
     }
-    const session = await composio.create(userId, {
+    const session = await composio.create(entityId, {
       manageConnections: false,
       sandbox: { enable: false },
     });
-    this.catalogSessions.set(userId, session.sessionId);
+    this.catalogSessions.set(entityId, session.sessionId);
     return session;
   }
 
-  async sessionForExecute(userId: string, toolkits: string[]): Promise<ComposioSession> {
+  async sessionForExecute(entityId: string, toolkits: string[]): Promise<ComposioSession> {
     const canonicalToolkits = await this.canonicalizeToolkits(toolkits);
     const key = executeSessionKey(canonicalToolkits);
-    if (!key) return this.sessionFor(userId);
+    if (!key) return this.sessionFor(entityId);
     const composio = this.sdk();
-    const existing = this.executeSessions.get(userId);
+    const existing = this.executeSessions.get(entityId);
     if (existing?.key === key) {
       try {
         return await composio.sessions.use(existing.sessionId);
       } catch {
-        this.executeSessions.delete(userId);
+        this.executeSessions.delete(entityId);
       }
     }
     // No sessionPreset: Composio's meta tools (search + execute) scale to any
     // number of connected toolkits, where preloading every tool hits a cap.
-    const session = await composio.create(userId, {
+    const session = await composio.create(entityId, {
       manageConnections: false,
       sandbox: { enable: false },
       toolkits: canonicalToolkits,
     });
-    this.executeSessions.set(userId, { sessionId: session.sessionId, key });
+    this.executeSessions.set(entityId, { sessionId: session.sessionId, key });
     return session;
   }
 
   async catalog(context: AdapterContext, query?: string): Promise<ConnectorCatalogItem[]> {
     const [directory, connected] = await Promise.all([
       this.directory(),
-      this.listConnectedSlugs(context.userId),
+      this.listConnectedSlugs(context.userId, context.spaceId),
     ]);
     return filterCatalog(mergeCatalogWithConnected(directory, connected), query ?? "").map(
       (item) => ({ ...item, connectorId: "composio" }),
@@ -278,8 +289,8 @@ export class ComposioConnector implements ComposioProvider {
     }));
   }
 
-  async listConnectedSlugs(userId: string): Promise<string[]> {
-    const session = await this.sessionFor(userId);
+  async listConnectedSlugs(userId: string, spaceId: string): Promise<string[]> {
+    const session = await this.sessionFor(composioEntityId(userId, spaceId));
     const connected = await collectPages((cursor) =>
       session.toolkits({ isConnected: true, limit: 50, cursor }),
     );
@@ -287,13 +298,16 @@ export class ComposioConnector implements ComposioProvider {
   }
 
   async listConnectedExternalIds(context: AdapterContext): Promise<string[]> {
-    return this.listConnectedSlugs(context.userId);
+    return this.listConnectedSlugs(context.userId, context.spaceId);
   }
 
   async discoverTools(context: AdapterContext): Promise<ConnectorTool[]> {
     const toolkits = connectedComposioExternalIds(context);
     if (toolkits.length === 0) return [];
-    const session = await this.sessionForExecute(context.userId, toolkits);
+    const session = await this.sessionForExecute(
+      composioEntityId(context.userId, context.spaceId),
+      toolkits,
+    );
     const raw = await session.tools();
     return asConnectorTools(raw);
   }
@@ -301,7 +315,7 @@ export class ComposioConnector implements ComposioProvider {
   async *execute(call: ConnectorCall, context: AdapterContext): AsyncIterable<ConnectorEvent> {
     try {
       const session = await this.sessionForExecute(
-        context.userId,
+        composioEntityId(context.userId, context.spaceId),
         connectedComposioExternalIds(context),
       );
       const result = await session.execute(call.tool, call.args ?? {});
@@ -326,7 +340,7 @@ export class ComposioConnector implements ComposioProvider {
     request: { provider: string; redirectUrl: string },
     context: AdapterContext,
   ): Promise<{ authorizationUrl: string | null; state: string }> {
-    const session = await this.sessionFor(context.userId);
+    const session = await this.sessionFor(composioEntityId(context.userId, context.spaceId));
     try {
       const connectionRequest = await session.authorize(request.provider, {
         callbackUrl: request.redirectUrl,
@@ -347,7 +361,7 @@ export class ComposioConnector implements ComposioProvider {
   }
 
   async connectionReady(context: AdapterContext, slug: string): Promise<boolean> {
-    const session = await this.sessionFor(context.userId);
+    const session = await this.sessionFor(composioEntityId(context.userId, context.spaceId));
     const page = await session.toolkits({ search: slug, limit: 50 });
     const match = page.items.find((item) => composioSlugKey(item.slug) === composioSlugKey(slug));
     if (!match) return false;
@@ -362,12 +376,16 @@ export class ComposioConnector implements ComposioProvider {
   }
 
   async revoke(connectionRef: string, context: AdapterContext): Promise<void> {
-    const accountId = await this.connectedAccountId(context.userId, connectionRef);
+    const accountId = await this.connectedAccountId(context.userId, context.spaceId, connectionRef);
     if (accountId) await this.sdk().connectedAccounts.delete(accountId);
   }
 
-  async connectedAccountId(userId: string, slug: string): Promise<string | undefined> {
-    const session = await this.sessionFor(userId);
+  async connectedAccountId(
+    userId: string,
+    spaceId: string,
+    slug: string,
+  ): Promise<string | undefined> {
+    const session = await this.sessionFor(composioEntityId(userId, spaceId));
     const toolkits = await session.toolkits({ isConnected: true });
     return toolkits.items.find((item) => composioSlugKey(item.slug) === composioSlugKey(slug))
       ?.connection?.connectedAccount?.id;

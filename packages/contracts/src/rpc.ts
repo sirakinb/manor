@@ -113,6 +113,15 @@ const structuredMentionTarget = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("connector"), id: Id }),
 ]);
 
+/**
+ * Pins which tools a run may use instead of leaving the choice to the model:
+ * "vm" offers only computer/sandbox tools, "plugins" offers only connected
+ * plugin tools, "auto" (the default) offers both.
+ */
+export const TOOL_ROUTING_MODES = ["auto", "vm", "plugins"] as const;
+export type ToolRoutingMode = (typeof TOOL_ROUTING_MODES)[number];
+const toolRoutingMode = z.enum(TOOL_ROUTING_MODES);
+
 const threadSendInput = threadTarget
   .safeExtend({
     text: z.string().optional(),
@@ -124,6 +133,7 @@ const threadSendInput = threadTarget
       .optional(),
     replyToMessageId: Id.optional(),
     clientNonce: z.string().min(1).max(200).optional(),
+    toolRoutingMode: toolRoutingMode.optional(),
   })
   .superRefine((input, ctx) => {
     const text = input.text?.trim() ?? "";
