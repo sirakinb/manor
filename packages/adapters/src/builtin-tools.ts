@@ -148,11 +148,28 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "request_takeover",
     description:
-      "Ask the user to take over the computer screen for passwords, 2FA, CAPTCHA, payment, passkeys, or other protected input. Never ask the user to paste protected values in chat.",
+      "Ask the user to take over the computer screen for a CAPTCHA, passkey, payment, or a login code you have no way to obtain. Do not use it for usernames, passwords, or 2FA codes the user already gave you or stored as a credential — type those yourself (use_credential for stored ones). Never ask the user to paste protected values in chat.",
     inputSchema: {
       type: "object",
       properties: { reason: { type: "string" } },
       required: ["reason"],
+    },
+  },
+  {
+    name: "use_credential",
+    description:
+      "Type one field of a stored sign-in credential into the currently focused input on the computer: the username, the password, or the current 2FA (TOTP) code. The value is typed for you and never shown. Click the input first, then call this, then press Enter or click submit with computer_act. Available credentials are listed in your instructions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        credential: {
+          type: "string",
+          description: "Credential label (or id) from your instructions.",
+        },
+        field: { type: "string", enum: ["username", "password", "totp"] },
+        settle_ms: { type: "number" },
+      },
+      required: ["credential", "field"],
     },
   },
   {
@@ -177,7 +194,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "request_secret",
     description:
-      "Collect a one-shot OTP, password, or API key in a masked field that never reaches the chat transcript or model. For website logins, CAPTCHA, passkeys, or anything that needs the live desktop, call request_takeover instead.",
+      "Collect a one-shot OTP, password, or API key in a masked field that never reaches the chat transcript or model. Use it for connector setup, not website logins on the computer; for a CAPTCHA, passkey, or anything that needs the live desktop, call request_takeover instead.",
     inputSchema: {
       type: "object",
       properties: {

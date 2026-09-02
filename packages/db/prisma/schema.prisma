@@ -24,6 +24,7 @@ model User {
   voiceCredentials            UserVoiceCredential[]
   secrets                     Secret[]
   mcpServers                  McpServer[]
+  botCredentials              BotCredential[]
   botSections                 BotSection[]
   actionApprovalRules         ActionApprovalRule[]
   actionAutoReviewPreferences ActionAutoReviewPreference[]
@@ -189,6 +190,7 @@ model Space {
   computers                   Computer[]
   externalEffects             ExternalEffect[]
   mcpServers                  McpServer[]
+  botCredentials              BotCredential[]
   mcpOAuthSessions            McpOAuthSession[]
   botMcpServers               BotMcpServer[]
   messagingIdentities         MessagingIdentity[]
@@ -371,6 +373,7 @@ model Bot {
   steeringMessages  SteeringMessage[]
   mcpServers        BotMcpServer[]
   groupMembers      ChatGroupMember[]
+  credentials       BotCredential[]
 
   @@unique([spaceId, spawnKey])
   @@index([spaceId, userId, archivedAt, pinned, updatedAt])
@@ -959,6 +962,7 @@ model Secret {
   createdAt         DateTime           @default(now())
   mcpServers        McpServer[]
   spaceMemoryConfig SpaceMemoryConfig?
+  botCredentials    BotCredential[]
 
   @@index([userId, spaceId])
   @@map("secrets")
@@ -991,6 +995,31 @@ model McpServer {
   @@unique([spaceId, userId, slug])
   @@index([spaceId, userId])
   @@map("mcp_servers")
+}
+
+/// A stored website login a bot may use on its computer. Username/site/notes are
+/// plain; password and TOTP seed live encrypted in `secret` and never reach the model.
+model BotCredential {
+  id        String   @id @default(cuid())
+  spaceId   String
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  site      String   @default("")
+  username  String   @default("")
+  notes     String   @default("")
+  hasPassword Boolean @default(false)
+  hasTotp   Boolean  @default(false)
+  secretId  String?
+  secret    Secret?  @relation(fields: [secretId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([spaceId, botId])
+  @@map("bot_credentials")
 }
 
 model McpOAuthSession {

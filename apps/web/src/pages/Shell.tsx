@@ -120,6 +120,7 @@ import {
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { AskCard } from "../components/AskCard";
+import { BotCredentialsSettings } from "../components/BotCredentialsSettings";
 import {
   ActiveBotGlyph,
   CollaborationMarker,
@@ -6039,6 +6040,7 @@ function BotSettings({
           </label>
         ) : null}
       </details>
+      <BotCredentialsSettings botId={bot.id} />
       {error ? <p className="mt-2 text-[13px] text-[#EF4444]">{error}</p> : null}
       <div className="mt-5 flex flex-col items-start gap-3">
         <button

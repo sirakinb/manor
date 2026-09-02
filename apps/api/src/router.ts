@@ -19,6 +19,7 @@ import {
   acquireComputerExecutionLease,
   applyTeachingDesktopInput,
   archiveBot,
+  BOT_CREDENTIAL_SECRET_KIND,
   buildMcpCredentialBlob,
   buildModelConnectPlaintext,
   type ComposioProvider,
@@ -41,6 +42,7 @@ import {
   isScratchpadStatus,
   listPiCatalog,
   listScratchpadItems,
+  loadBotCredentialSecret,
   McpOAuthBroker,
   type MemoryProviderResolver,
   mapScratchpadItem,
@@ -62,6 +64,7 @@ import {
   scheduleComputerSleep,
   screenLeaseIdForRun,
   scriptedCatalogEntry,
+  serializeBotCredentialSecret,
   serializeModelSecret,
   takeoverLeaseMs,
   toComputerRef,
@@ -226,6 +229,33 @@ function computerContext(actor: Actor, botId: string, operationId: string): Adap
     userId: actor.userId,
     botId,
     signal: new AbortController().signal,
+  };
+}
+
+function botCredentialDto(row: {
+  id: string;
+  botId: string;
+  label: string;
+  site: string;
+  username: string;
+  notes: string;
+  hasPassword: boolean;
+  hasTotp: boolean;
+  secretId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: row.id,
+    botId: row.botId,
+    label: row.label,
+    site: row.site,
+    username: row.username,
+    notes: row.notes,
+    hasPassword: row.hasPassword,
+    hasTotp: row.hasTotp,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -2013,6 +2043,139 @@ export function createRouter(deps: RouterDeps) {
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
           ),
         );
+        return { ok: true as const };
+      }),
+    },
+    credentials: {
+      list: authed.credentials.list.handler(async ({ context, input }) => {
+        await repos.getBot(context.actor, input.botId);
+        const rows = await deps.prisma.botCredential.findMany({
+          where: { botId: input.botId, spaceId: context.actor.spaceId },
+          orderBy: { createdAt: "asc" },
+        });
+        return rows.map(botCredentialDto);
+      }),
+      create: authed.credentials.create.handler(async ({ context, input }) => {
+        await repos.getBot(context.actor, input.botId);
+        const payload = serializeBotCredentialSecret({
+          password: input.password,
+          totp: input.totpSecret,
+        });
+        const stored = payload
+          ? await deps.secrets.put(
+              payload,
+              computerContext(context.actor, input.botId, "credentials.create"),
+            )
+          : null;
+        const row = await deps.prisma.$transaction(async (tx) => {
+          if (stored) {
+            await tx.secret.create({
+              data: {
+                id: stored.id,
+                userId: context.actor.userId,
+                spaceId: context.actor.spaceId,
+                kind: BOT_CREDENTIAL_SECRET_KIND,
+                ciphertext: stored.ciphertext,
+              },
+            });
+          }
+          return tx.botCredential.create({
+            data: {
+              spaceId: context.actor.spaceId,
+              botId: input.botId,
+              userId: context.actor.userId,
+              label: input.label,
+              site: input.site,
+              username: input.username,
+              notes: input.notes,
+              hasPassword: Boolean(input.password),
+              hasTotp: Boolean(input.totpSecret),
+              secretId: stored?.id,
+            },
+          });
+        });
+        return botCredentialDto(row);
+      }),
+      update: authed.credentials.update.handler(async ({ context, input }) => {
+        const existing = await deps.prisma.botCredential.findFirst({
+          where: { id: input.credentialId, spaceId: context.actor.spaceId },
+        });
+        if (!existing) throw new IsolationError();
+        const secretChanged = input.password !== undefined || input.totpSecret !== undefined;
+        const current = secretChanged
+          ? await loadBotCredentialSecret(
+              deps.prisma,
+              deps.secrets,
+              { spaceId: context.actor.spaceId, userId: existing.userId },
+              existing.secretId,
+            )
+          : {};
+        const nextSecret = secretChanged
+          ? {
+              password: input.password ?? current.password,
+              totp: input.totpSecret ?? current.totp,
+            }
+          : null;
+        const payload = nextSecret ? serializeBotCredentialSecret(nextSecret) : null;
+        const stored = payload
+          ? await deps.secrets.put(
+              payload,
+              computerContext(context.actor, existing.botId, "credentials.update"),
+            )
+          : null;
+        const row = await deps.prisma.$transaction(async (tx) => {
+          if (stored) {
+            await tx.secret.create({
+              data: {
+                id: stored.id,
+                userId: context.actor.userId,
+                spaceId: context.actor.spaceId,
+                kind: BOT_CREDENTIAL_SECRET_KIND,
+                ciphertext: stored.ciphertext,
+              },
+            });
+          }
+          const updated = await tx.botCredential.update({
+            where: { id: existing.id },
+            data: {
+              label: input.label,
+              site: input.site,
+              username: input.username,
+              notes: input.notes,
+              ...(secretChanged
+                ? {
+                    hasPassword: Boolean(nextSecret?.password),
+                    hasTotp: Boolean(nextSecret?.totp),
+                    secretId: stored?.id ?? null,
+                  }
+                : {}),
+            },
+          });
+          if (secretChanged && existing.secretId) {
+            await tx.secret.deleteMany({
+              where: { id: existing.secretId, spaceId: context.actor.spaceId },
+            });
+          }
+          return updated;
+        });
+        return botCredentialDto(row);
+      }),
+      remove: authed.credentials.remove.handler(async ({ context, input }) => {
+        const existing = await deps.prisma.botCredential.findFirst({
+          where: { id: input.credentialId, spaceId: context.actor.spaceId },
+          select: { id: true, secretId: true },
+        });
+        if (!existing) throw new IsolationError();
+        await deps.prisma.$transaction([
+          deps.prisma.botCredential.delete({ where: { id: existing.id } }),
+          ...(existing.secretId
+            ? [
+                deps.prisma.secret.deleteMany({
+                  where: { id: existing.secretId, spaceId: context.actor.spaceId },
+                }),
+              ]
+            : []),
+        ]);
         return { ok: true as const };
       }),
     },

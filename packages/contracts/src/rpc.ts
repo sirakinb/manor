@@ -21,6 +21,7 @@ import {
   ArtifactSchema,
   ArtifactWithContentSchema,
   AvatarStyleSchema,
+  BotCredentialSchema,
   BotMcpServerSchema,
   BotSchema,
   BotSectionSchema,
@@ -31,6 +32,7 @@ import {
   ConnectionCatalogItemSchema,
   ConnectionSchema,
   CreateAgentSkillInput,
+  CreateBotCredentialInput,
   CreateBotInput,
   CreateGroupInput,
   CreateRoutineInput,
@@ -74,6 +76,7 @@ import {
   ThreadMessagePageSchema,
   ThreadSnapshotSchema,
   UpdateAgentSkillInput,
+  UpdateBotCredentialInput,
   UpdateBotInput,
   UpdateGroupInput,
   UsageRecordSchema,
@@ -546,6 +549,12 @@ export const appContract = {
       .input(z.object({ defaultMemoryScope: MemoryScopeSchema }))
       .output(SpaceMemoryConfigSchema),
     disconnectProvider: oc.output(z.object({ ok: z.literal(true) })),
+  },
+  credentials: {
+    list: oc.input(botId).output(z.array(BotCredentialSchema)),
+    create: oc.input(CreateBotCredentialInput).output(BotCredentialSchema),
+    update: oc.input(UpdateBotCredentialInput).output(BotCredentialSchema),
+    remove: oc.input(z.object({ credentialId: Id })).output(z.object({ ok: z.literal(true) })),
   },
   routines: {
     list: oc.input(botId).output(z.array(RoutineSchema)),
