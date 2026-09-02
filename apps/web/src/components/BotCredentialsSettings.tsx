@@ -229,7 +229,7 @@ export function BotCredentialsSettings({ botId }: { botId: string }) {
             <Trans>Label</Trans>
             <input
               className={inputClass}
-              placeholder={t`Philly Water portal`}
+              placeholder={t`Utility portal, bank, property software…`}
               required
               maxLength={80}
               autoComplete="off"

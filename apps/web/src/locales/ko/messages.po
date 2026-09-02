@@ -2964,10 +2964,6 @@ msgstr "일시 중지됨"
 msgid "Personal credential"
 msgstr "내 인증 정보"
 
-#: src/components/BotCredentialsSettings.tsx:232
-msgid "Philly Water portal"
-msgstr ""
-
 #: src/pages/crm/CrmContacts.tsx:377
 #: src/pages/crm/CrmContactsSheet.tsx:109
 #: src/pages/crm/CrmModuleSheet.tsx:259
@@ -3985,6 +3981,10 @@ msgstr ""
 
 #: src/pages/Shell.tsx:5030
 msgid "Uses whichever fits the task"
+msgstr ""
+
+#: src/components/BotCredentialsSettings.tsx:232
+msgid "Utility portal, bank, property software…"
 msgstr ""
 
 #: src/pages/crm/CrmPipelineBoard.tsx:525

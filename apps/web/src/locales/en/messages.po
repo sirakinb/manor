@@ -2964,10 +2964,6 @@ msgstr "Paused"
 msgid "Personal credential"
 msgstr "Personal credential"
 
-#: src/components/BotCredentialsSettings.tsx:232
-msgid "Philly Water portal"
-msgstr "Philly Water portal"
-
 #: src/pages/crm/CrmContacts.tsx:377
 #: src/pages/crm/CrmContactsSheet.tsx:109
 #: src/pages/crm/CrmModuleSheet.tsx:259
@@ -3986,6 +3982,10 @@ msgstr "Username or email"
 #: src/pages/Shell.tsx:5030
 msgid "Uses whichever fits the task"
 msgstr "Uses whichever fits the task"
+
+#: src/components/BotCredentialsSettings.tsx:232
+msgid "Utility portal, bank, property software…"
+msgstr "Utility portal, bank, property software…"
 
 #: src/pages/crm/CrmPipelineBoard.tsx:525
 #: src/pages/crm/CrmPipelineBoard.tsx:637
