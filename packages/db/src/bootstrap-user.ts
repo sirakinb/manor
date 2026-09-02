@@ -32,7 +32,7 @@ export async function bootstrapUserSpace(
   user: { id: string },
   env: SignupPolicyEnv,
   options: { claimDeploymentOwner?: boolean } = {},
-): Promise<{ spaceId: string }> {
+): Promise<{ spaceId: string; organizationId: string }> {
   const claimDeploymentOwner = options.claimDeploymentOwner ?? true;
   // Concurrent bootstraps for the same user (e.g. overlapping first phone
   // inbounds) race on every unique key below; each step either wins or
@@ -135,5 +135,5 @@ export async function bootstrapUserSpace(
     .catch((error: unknown) => {
       if (!isUniqueViolation(error)) throw error;
     });
-  return { spaceId: orgId };
+  return { spaceId: orgId, organizationId: orgId };
 }

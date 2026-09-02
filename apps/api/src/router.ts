@@ -1022,12 +1022,22 @@ export function createRouter(deps: RouterDeps) {
       contacts: {
         create: authed.crm.contacts.create.handler(async ({ context, input }) => {
           const contact = await crm.createContact(context.actor, input);
-          await deps.crmEvent?.(context.actor.spaceId, "contact.created", contact.id, contact);
+          await deps.crmEvent?.(
+            context.actor.organizationId,
+            "contact.created",
+            contact.id,
+            contact,
+          );
           return contact;
         }),
         update: authed.crm.contacts.update.handler(async ({ context, input }) => {
           const contact = await crm.updateContact(context.actor, input);
-          await deps.crmEvent?.(context.actor.spaceId, "contact.updated", contact.id, contact);
+          await deps.crmEvent?.(
+            context.actor.organizationId,
+            "contact.updated",
+            contact.id,
+            contact,
+          );
           return contact;
         }),
         delete: authed.crm.contacts.delete.handler(async ({ context, input }) => {
@@ -1055,17 +1065,17 @@ export function createRouter(deps: RouterDeps) {
       deals: {
         create: authed.crm.deals.create.handler(async ({ context, input }) => {
           const deal = await crm.createDeal(context.actor, input);
-          await deps.crmEvent?.(context.actor.spaceId, "deal.created", deal.id, deal);
+          await deps.crmEvent?.(context.actor.organizationId, "deal.created", deal.id, deal);
           return deal;
         }),
         update: authed.crm.deals.update.handler(async ({ context, input }) => {
           const deal = await crm.updateDeal(context.actor, input);
-          await deps.crmEvent?.(context.actor.spaceId, "deal.updated", deal.id, deal);
+          await deps.crmEvent?.(context.actor.organizationId, "deal.updated", deal.id, deal);
           return deal;
         }),
         move: authed.crm.deals.move.handler(async ({ context, input }) => {
           const deal = await crm.moveDeal(context.actor, input.dealId, input.stageId);
-          await deps.crmEvent?.(context.actor.spaceId, "deal.stage_changed", deal.id, deal);
+          await deps.crmEvent?.(context.actor.organizationId, "deal.stage_changed", deal.id, deal);
           return deal;
         }),
         delete: authed.crm.deals.delete.handler(async ({ context, input }) => {
@@ -1106,14 +1116,24 @@ export function createRouter(deps: RouterDeps) {
             const record = await moduleRecordWrite(() =>
               crm.createModuleRecord(context.actor, input),
             );
-            await deps.crmEvent?.(context.actor.spaceId, "record.created", record.id, record);
+            await deps.crmEvent?.(
+              context.actor.organizationId,
+              "record.created",
+              record.id,
+              record,
+            );
             return record;
           }),
           update: authed.crm.modules.records.update.handler(async ({ context, input }) => {
             const record = await moduleRecordWrite(() =>
               crm.updateModuleRecord(context.actor, input),
             );
-            await deps.crmEvent?.(context.actor.spaceId, "record.updated", record.id, record);
+            await deps.crmEvent?.(
+              context.actor.organizationId,
+              "record.updated",
+              record.id,
+              record,
+            );
             return record;
           }),
           delete: authed.crm.modules.records.delete.handler(async ({ context, input }) => {

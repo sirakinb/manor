@@ -99,13 +99,13 @@ export function createCrmModuleRepos(prisma: PrismaClient) {
       where: { id: moduleId },
       include: MODULE_INCLUDE,
     });
-    if (!row || row.spaceId !== actor.spaceId) throw new IsolationError();
+    if (!row || row.organizationId !== actor.organizationId) throw new IsolationError();
     return row;
   }
 
   async function requireRecord(actor: CrmActorScope, recordId: string) {
     const row = await prisma.crmModuleRecord.findUnique({ where: { id: recordId } });
-    if (!row || row.spaceId !== actor.spaceId) throw new IsolationError();
+    if (!row || row.organizationId !== actor.organizationId) throw new IsolationError();
     return row;
   }
 
@@ -118,7 +118,7 @@ export function createCrmModuleRepos(prisma: PrismaClient) {
 
     async listModules(actor: CrmActorScope): Promise<CrmModule[]> {
       const rows = await prisma.crmModule.findMany({
-        where: { spaceId: actor.spaceId },
+        where: { organizationId: actor.organizationId },
         include: MODULE_INCLUDE,
         orderBy: { position: "asc" },
       });
@@ -130,13 +130,13 @@ export function createCrmModuleRepos(prisma: PrismaClient) {
       input: { name: string; fields: { label: string; type: string; options: string[] }[] },
     ): Promise<CrmModule> {
       const last = await prisma.crmModule.findFirst({
-        where: { spaceId: actor.spaceId },
+        where: { organizationId: actor.organizationId },
         orderBy: { position: "desc" },
         select: { position: true },
       });
       const row = await prisma.crmModule.create({
         data: {
-          spaceId: actor.spaceId,
+          organizationId: actor.organizationId,
           name: input.name,
           position: (last?.position ?? -1) + 1,
           fields: {
@@ -225,7 +225,7 @@ export function createCrmModuleRepos(prisma: PrismaClient) {
       const after = input.cursor ? decodeCursor(input.cursor) : null;
       const rows = await prisma.crmModuleRecord.findMany({
         where: {
-          spaceId: actor.spaceId,
+          organizationId: actor.organizationId,
           moduleId: input.moduleId,
           ...(after
             ? {
@@ -259,7 +259,7 @@ export function createCrmModuleRepos(prisma: PrismaClient) {
         if (value !== null) values[key] = value;
       }
       const row = await prisma.crmModuleRecord.create({
-        data: { spaceId: actor.spaceId, moduleId: input.moduleId, values },
+        data: { organizationId: actor.organizationId, moduleId: input.moduleId, values },
       });
       return mapRecord(row);
     },

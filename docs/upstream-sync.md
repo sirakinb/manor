@@ -51,7 +51,13 @@ Known Manor deltas to preserve through any resolution:
 
 - The CRM: `packages/db/src/crm.ts`, `packages/adapters/src/crm-tools.ts`,
   CRM routes in `router.ts`, CRM pages, the `/app/crm` redirect guard in
-  `Shell.tsx`'s `refreshBots`.
+  `Shell.tsx`'s `refreshBots`. **The CRM is organization-scoped, not
+  space-scoped** (`crm_*` tables key on `organizationId`, migration
+  `20260902120000_crm_account_wide`) — a deliberate divergence from
+  upstream's space-everything model, added after upstream's private-spaces
+  sync moved it to `spaceId` (`20260831120000_manor_tables_to_spaces`). If a
+  future sync's schema union re-adds `spaceId` to any `crm_*` table, that's
+  wrong; keep `organizationId`.
 - The four Team Computer fixes: owner-change rule in `screen-lease.ts`,
   ref-persist `updateMany` in `packages/adapters/src/computer-lifecycle.ts`, boot-reconcile in
   `router.ts`, try/catch around both `setScreenControl` revocations.

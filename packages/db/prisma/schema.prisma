@@ -95,6 +95,18 @@ model Organization {
   invitations Invitation[]
   spaces      Space[]
 
+  // The CRM is account-wide (one board per organization), not per-space, so
+  // it hangs off Organization rather than Space like every other feature.
+  crmContacts           CrmContact[]
+  crmContactExternalIds CrmContactExternalId[]
+  crmTags               CrmTag[]
+  crmPipelines          CrmPipeline[]
+  crmDeals              CrmDeal[]
+  crmModules            CrmModule[]
+  crmModuleRecords      CrmModuleRecord[]
+  crmWebhookEndpoints   CrmWebhookEndpoint[]
+  crmWebhookEvents      CrmWebhookEvent[]
+
   @@unique([slug])
   @@map("organization")
 }
@@ -187,9 +199,6 @@ model Space {
   chatGroups                  ChatGroup[]
   integrationCredentials      IntegrationCredential[]
   integrationIdempotencyKeys  IntegrationIdempotencyKey[]
-  crmContactExternalIds       CrmContactExternalId[]
-  crmWebhookEndpoints         CrmWebhookEndpoint[]
-  crmWebhookEvents            CrmWebhookEvent[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
@@ -1118,51 +1127,53 @@ model IntegrationIdempotencyKey {
 }
 
 model CrmContact {
-  id        String   @id @default(cuid())
-  spaceId   String
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  company   String?
-  notes     String?
-  status    String   @default("active") // active | archived
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  company        String?
+  notes          String?
+  status         String       @default("active") // active | archived
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   tags        CrmContactTag[]
   deals       CrmDeal[]
   externalIds CrmContactExternalId[]
 
-  @@index([spaceId, status])
+  @@index([organizationId, status])
   @@map("crm_contacts")
 }
 
 model CrmContactExternalId {
-  id         String     @id @default(cuid())
-  spaceId    String
-  space      Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  contactId  String
-  contact    CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  source     String
-  externalId String
-  createdAt  DateTime   @default(now())
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contactId      String
+  contact        CrmContact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  source         String
+  externalId     String
+  createdAt      DateTime     @default(now())
 
-  @@unique([spaceId, source, externalId])
+  @@unique([organizationId, source, externalId])
   @@index([contactId])
   @@map("crm_contact_external_ids")
 }
 
 model CrmTag {
-  id        String   @id @default(cuid())
-  spaceId   String
-  name      String
-  color     String?
-  createdAt DateTime @default(now())
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  color          String?
+  createdAt      DateTime     @default(now())
 
   contacts CrmContactTag[]
 
-  @@unique([spaceId, name])
+  @@unique([organizationId, name])
   @@map("crm_tags")
 }
 
@@ -1177,17 +1188,18 @@ model CrmContactTag {
 }
 
 model CrmPipeline {
-  id        String   @id @default(cuid())
-  spaceId   String
-  name      String
-  position  Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   stages CrmStage[]
   deals  CrmDeal[]
 
-  @@index([spaceId])
+  @@index([organizationId])
   @@map("crm_pipelines")
 }
 
@@ -1207,38 +1219,40 @@ model CrmStage {
 }
 
 model CrmDeal {
-  id         String      @id @default(cuid())
-  spaceId    String
-  pipelineId String
-  pipeline   CrmPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  stageId    String
-  stage      CrmStage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  contactId  String?
-  contact    CrmContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  title      String
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pipelineId     String
+  pipeline       CrmPipeline  @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stageId        String
+  stage          CrmStage     @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  contactId      String?
+  contact        CrmContact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  title          String
   // Whole dollars. Service-business deal sizes don't need cents, and whole
   // numbers keep every rollup on the dashboard exact.
-  value      Int         @default(0)
-  status     String      @default("open") // open | won | lost
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  value          Int          @default(0)
+  status         String       @default("open") // open | won | lost
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  @@index([spaceId, pipelineId])
+  @@index([organizationId, pipelineId])
   @@map("crm_deals")
 }
 
 model CrmModule {
-  id        String   @id @default(cuid())
-  spaceId   String
-  name      String
-  position  Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  position       Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   fields  CrmModuleField[]
   records CrmModuleRecord[]
 
-  @@index([spaceId])
+  @@index([organizationId])
   @@map("crm_modules")
 }
 
@@ -1257,50 +1271,51 @@ model CrmModuleField {
 }
 
 model CrmModuleRecord {
-  id        String    @id @default(cuid())
-  spaceId   String
-  moduleId  String
-  module    CrmModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  values    Json      @default("{}")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  moduleId       String
+  module         CrmModule    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  values         Json         @default("{}")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  @@index([spaceId, moduleId, createdAt])
+  @@index([organizationId, moduleId, createdAt])
   @@map("crm_module_records")
 }
 
 model CrmWebhookEndpoint {
-  id              String   @id @default(cuid())
-  spaceId         String
-  space           Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUserId String
-  createdByUser   User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  createdByUser   User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   name            String
   url             String
   signingSecret   String
   events          Json
-  enabled         Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  enabled         Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   deliveries CrmWebhookDelivery[]
 
-  @@index([spaceId, enabled])
+  @@index([organizationId, enabled])
   @@map("crm_webhook_endpoints")
 }
 
 model CrmWebhookEvent {
-  id         String   @id @default(cuid())
-  spaceId    String
-  space      Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  type       String
-  resourceId String
-  payload    Json
-  createdAt  DateTime @default(now())
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           String
+  resourceId     String
+  payload        Json
+  createdAt      DateTime     @default(now())
 
   deliveries CrmWebhookDelivery[]
 
-  @@index([spaceId, createdAt])
+  @@index([organizationId, createdAt])
   @@map("crm_webhook_events")
 }
 

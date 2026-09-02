@@ -4767,7 +4767,7 @@ const Composer = memo(function Composer({
               role="listbox"
               aria-label={t`Tool routing`}
               data-testid="tool-routing-picker"
-              className="absolute bottom-full mb-2 w-56 overflow-hidden rounded-[14px] border border-[#26262A] bg-[#17171A]"
+              className="absolute bottom-full mb-2 w-72 rounded-[14px] border border-[#26262A] bg-[#17171A] overflow-hidden"
             >
               {TOOL_ROUTING_MODES.map((mode) => (
                 <button
@@ -4788,7 +4788,7 @@ const Composer = memo(function Composer({
                     <span className="block text-[14px] text-[#ECECEE]">
                       {toolRoutingLabel(mode)}
                     </span>
-                    <span className="block truncate text-[12.5px] text-[#85858A]">
+                    <span className="block text-wrap text-[12.5px] text-[#85858A]">
                       {toolRoutingDescription(mode)}
                     </span>
                   </span>

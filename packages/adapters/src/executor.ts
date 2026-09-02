@@ -74,6 +74,7 @@ import {
   type Prisma,
   type PrismaClient,
   parseComputerMode,
+  resolveOrganizationId,
   SpaceLimitError,
   type ThreadEvents,
 } from "@rakazo/db";
@@ -403,7 +404,7 @@ export interface ExecutorDeps {
   phone?: { hasIdentity(botId: string): Promise<boolean> };
   listConnectedPluginSlugs?: (userId: string, spaceId: string) => Promise<string[]>;
   crmEvent?: (
-    spaceId: string,
+    organizationId: string,
     type:
       | "contact.created"
       | "contact.updated"
@@ -1847,9 +1848,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }, finish);
           }
           if (name.startsWith("crm_")) {
+            const organizationId = await resolveOrganizationId(deps.prisma, run.spaceId);
             const crmResult = await executeCrmTool(
               createCrmRepos(deps.prisma),
-              { userId: run.userId, spaceId: run.spaceId },
+              { userId: run.userId, organizationId },
               name,
               args,
             );
@@ -1860,7 +1862,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 const deal = value.deal as { id?: string } | undefined;
                 if (contact?.id && (value.created || value.updated)) {
                   await deps.crmEvent(
-                    run.spaceId,
+                    organizationId,
                     value.created ? "contact.created" : "contact.updated",
                     contact.id,
                     contact,
@@ -1868,7 +1870,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 }
                 if (deal?.id && (value.created || value.updated || value.moved)) {
                   await deps.crmEvent(
-                    run.spaceId,
+                    organizationId,
                     value.created
                       ? "deal.created"
                       : value.moved

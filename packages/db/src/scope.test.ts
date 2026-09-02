@@ -10,6 +10,7 @@ function prismaForMembership(found: boolean) {
           ? {
               userId: where.userId,
               spaceId: where.spaceId ?? "space-default",
+              organizationId: "org-1",
               member: { user: { email: "owner@example.test" } },
             }
           : null,
@@ -28,6 +29,7 @@ describe("requireMembership", () => {
     await expect(requireMembership(prisma, "user-1", "space-support")).resolves.toEqual({
       userId: "user-1",
       spaceId: "space-support",
+      organizationId: "org-1",
       email: "owner@example.test",
       isDeploymentOwner: true,
     });

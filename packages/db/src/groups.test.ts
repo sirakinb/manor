@@ -33,6 +33,7 @@ describe("listSpaceGroupsForSpaces", () => {
     const repos = createGroupRepos({ chatGroup: { findMany } } as unknown as PrismaClient);
     const actor = {
       spaceId: "workspace-1",
+      organizationId: "org-1",
       userId: "user-1",
       email: "user@example.test",
       isDeploymentOwner: false,
@@ -64,6 +65,7 @@ describe("listSpaceGroupsForSpaces", () => {
 describe("archiveGroup", () => {
   const actor = {
     spaceId: "workspace-1",
+    organizationId: "org-1",
     userId: "user-1",
     email: "user@example.com",
     isDeploymentOwner: true,

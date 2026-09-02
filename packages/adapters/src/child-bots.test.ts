@@ -50,6 +50,9 @@ describe("spawned bot creation", () => {
         findFirst: vi.fn().mockResolvedValue({ id: "parent-1" }),
         findUnique,
       },
+      space: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({ organizationId: "org-1" }),
+      },
       deploymentSettings: { findUnique: vi.fn().mockResolvedValue(null) },
       run: { findUnique: vi.fn().mockResolvedValue({ id: "child-run-1" }) },
       $transaction: vi.fn().mockRejectedValue(new Error("unique spawn key")),

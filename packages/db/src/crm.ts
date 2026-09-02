@@ -12,12 +12,13 @@ import { IsolationError } from "./scope.js";
 
 /**
  * CRM data access. Every function takes the actor and scopes by its
- * workspace; a row that belongs to someone else is treated as not existing
- * at all, the same rule the rest of the repos follow.
+ * organization -- one CRM per account, shared by every space under it; a
+ * row that belongs to someone else is treated as not existing at all, the
+ * same rule the rest of the repos follow.
  */
 
-/** Only the workspace matters for scoping, so agent runs can act without a full Actor. */
-export type CrmActorScope = Pick<Actor, "spaceId">;
+/** Only the organization matters for scoping, so agent runs can act without a full Actor. */
+export type CrmActorScope = Pick<Actor, "organizationId">;
 
 /** The board a workspace starts with, so the pipeline is never an empty screen. */
 const DEFAULT_PIPELINE = {
@@ -100,13 +101,13 @@ const CONTACT_INCLUDE = { tags: { include: { tag: true } } } as const;
 export function createCrmRepos(prisma: PrismaClient) {
   async function requireContact(actor: CrmActorScope, contactId: string) {
     const row = await prisma.crmContact.findUnique({ where: { id: contactId } });
-    if (!row || row.spaceId !== actor.spaceId) throw new IsolationError();
+    if (!row || row.organizationId !== actor.organizationId) throw new IsolationError();
     return row;
   }
 
   async function requireDeal(actor: CrmActorScope, dealId: string) {
     const row = await prisma.crmDeal.findUnique({ where: { id: dealId } });
-    if (!row || row.spaceId !== actor.spaceId) throw new IsolationError();
+    if (!row || row.organizationId !== actor.organizationId) throw new IsolationError();
     return row;
   }
 
@@ -115,12 +116,12 @@ export function createCrmRepos(prisma: PrismaClient) {
       where: { id: pipelineId },
       include: { stages: true },
     });
-    if (!row || row.spaceId !== actor.spaceId) throw new IsolationError();
+    if (!row || row.organizationId !== actor.organizationId) throw new IsolationError();
     return row;
   }
 
   async function overview(actor: CrmActorScope): Promise<CrmOverview> {
-    const where = { spaceId: actor.spaceId };
+    const where = { organizationId: actor.organizationId };
     const [pipelines, deals, contacts, tags] = await Promise.all([
       prisma.crmPipeline.findMany({
         where,
@@ -153,7 +154,7 @@ export function createCrmRepos(prisma: PrismaClient) {
       if (!terms.length) return [];
       const rows = await prisma.crmContact.findMany({
         where: {
-          spaceId: actor.spaceId,
+          organizationId: actor.organizationId,
           AND: terms.map((term) => ({
             OR: [
               { firstName: { contains: term, mode: "insensitive" as const } },
@@ -178,14 +179,14 @@ export function createCrmRepos(prisma: PrismaClient) {
      */
     async seedDefaultPipeline(actor: CrmActorScope): Promise<CrmOverview> {
       await prisma.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`crm-seed-${actor.spaceId}`}))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`crm-seed-${actor.organizationId}`}))`;
         const existing = await tx.crmPipeline.count({
-          where: { spaceId: actor.spaceId },
+          where: { organizationId: actor.organizationId },
         });
         if (existing > 0) return;
         await tx.crmPipeline.create({
           data: {
-            spaceId: actor.spaceId,
+            organizationId: actor.organizationId,
             name: DEFAULT_PIPELINE.name,
             stages: {
               create: DEFAULT_PIPELINE.stages.map((name, position) => ({ name, position })),
@@ -211,7 +212,7 @@ export function createCrmRepos(prisma: PrismaClient) {
       const tagIds = await ownedTagIds(prisma, actor, input.tagIds);
       const row = await prisma.crmContact.create({
         data: {
-          spaceId: actor.spaceId,
+          organizationId: actor.organizationId,
           firstName: input.firstName,
           lastName: input.lastName,
           email: input.email || null,
@@ -271,8 +272,12 @@ export function createCrmRepos(prisma: PrismaClient) {
       input: { name: string; color?: string },
     ): Promise<CrmTag> {
       const row = await prisma.crmTag.upsert({
-        where: { spaceId_name: { spaceId: actor.spaceId, name: input.name } },
-        create: { spaceId: actor.spaceId, name: input.name, color: input.color ?? null },
+        where: { organizationId_name: { organizationId: actor.organizationId, name: input.name } },
+        create: {
+          organizationId: actor.organizationId,
+          name: input.name,
+          color: input.color ?? null,
+        },
         update: {},
       });
       return { id: row.id, name: row.name, color: row.color };
@@ -283,13 +288,13 @@ export function createCrmRepos(prisma: PrismaClient) {
       input: { name: string; stages: { name: string }[] },
     ): Promise<CrmPipeline> {
       const last = await prisma.crmPipeline.findFirst({
-        where: { spaceId: actor.spaceId },
+        where: { organizationId: actor.organizationId },
         orderBy: { position: "desc" },
         select: { position: true },
       });
       const row = await prisma.crmPipeline.create({
         data: {
-          spaceId: actor.spaceId,
+          organizationId: actor.organizationId,
           name: input.name,
           position: (last?.position ?? -1) + 1,
           stages: {
@@ -323,7 +328,7 @@ export function createCrmRepos(prisma: PrismaClient) {
       if (input.contactId) await requireContact(actor, input.contactId);
       const row = await prisma.crmDeal.create({
         data: {
-          spaceId: actor.spaceId,
+          organizationId: actor.organizationId,
           pipelineId: input.pipelineId,
           stageId: input.stageId,
           title: input.title,
@@ -383,7 +388,7 @@ async function ownedTagIds(
 ): Promise<string[]> {
   if (!tagIds?.length) return [];
   const rows = await prisma.crmTag.findMany({
-    where: { id: { in: tagIds }, spaceId: actor.spaceId },
+    where: { id: { in: tagIds }, organizationId: actor.organizationId },
     select: { id: true },
   });
   return rows.map((row) => row.id);

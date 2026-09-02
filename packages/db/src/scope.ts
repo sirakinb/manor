@@ -30,9 +30,22 @@ export async function requireMembership(
   return {
     userId: membership.userId,
     spaceId: membership.spaceId,
+    organizationId: membership.organizationId,
     email: membership.member.user.email,
     isDeploymentOwner: settings?.ownerUserId === membership.userId,
   };
+}
+
+/** The organization a space belongs to. Every crm_ row is scoped by this, not spaceId. */
+export async function resolveOrganizationId(
+  prisma: Pick<PrismaClient, "space">,
+  spaceId: string,
+): Promise<string> {
+  const space = await prisma.space.findUniqueOrThrow({
+    where: { id: spaceId },
+    select: { organizationId: true },
+  });
+  return space.organizationId;
 }
 
 export function scoped<T extends { spaceId: string; userId?: string }>(

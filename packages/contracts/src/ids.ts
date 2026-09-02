@@ -6,6 +6,7 @@ export const IsoDate = z.string().datetime({ offset: true });
 export const ActorSchema = z.object({
   userId: Id,
   spaceId: Id,
+  organizationId: Id,
   email: z.string().email(),
   isDeploymentOwner: z.boolean(),
 });

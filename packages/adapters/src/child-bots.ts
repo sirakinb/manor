@@ -15,6 +15,7 @@ import {
   createThreadMessageInTransaction,
   type Prisma,
   type PrismaClient,
+  resolveOrganizationId,
   withTransactionRetry,
 } from "@rakazo/db";
 import { toComputerRef } from "./computer-support.js";
@@ -57,6 +58,7 @@ export async function spawnBot(
   const actor: Actor = {
     userId: input.spawnedBy.userId,
     spaceId: input.spawnedBy.spaceId,
+    organizationId: await resolveOrganizationId(deps.prisma, input.spawnedBy.spaceId),
     email: "",
     isDeploymentOwner: false,
   };

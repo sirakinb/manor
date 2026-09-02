@@ -67,13 +67,11 @@ export async function provisionPhoneIdentity(
   }
 
   const membership = await prisma.spaceMember.findFirst({ where: { userId: user.id } });
-  const spaceId =
-    membership?.spaceId ??
-    (
-      await bootstrapUserSpace(prisma, user, env, {
-        claimDeploymentOwner: false,
-      })
-    ).spaceId;
+  const bootstrapped = membership
+    ? null
+    : await bootstrapUserSpace(prisma, user, env, { claimDeploymentOwner: false });
+  const spaceId = membership?.spaceId ?? bootstrapped!.spaceId;
+  const organizationId = membership?.organizationId ?? bootstrapped!.organizationId;
 
   // A previous attempt may have died between createBot and the identity row;
   // phone users only ever get bots here, so an existing bot is the phone bot.
@@ -89,6 +87,7 @@ export async function provisionPhoneIdentity(
       {
         userId: user.id,
         spaceId,
+        organizationId,
         email: user.email,
         isDeploymentOwner: false,
       },
