@@ -1,3 +1,4 @@
+import type { TransactionalEmail, TransactionalEmailProvider } from "@rakazo/adapter-kit";
 import { emailAllowed, parseAllowlist, signupPolicyFromEnv } from "@rakazo/core";
 import { bootstrapUserSpace, type PrismaClient } from "@rakazo/db";
 import { betterAuth } from "better-auth";
@@ -14,6 +15,8 @@ export interface AuthEnv {
   googleClientId?: string;
   googleClientSecret?: string;
   extraOrigins?: string[];
+  email?: TransactionalEmailProvider;
+  onEmailError?: (error: unknown) => void;
   beforeDeleteUser?: (userId: string) => Promise<void>;
 }
 
@@ -66,6 +69,17 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       // Signup policy is mutable deployment state, so the user-create hook below
       // enforces it instead of freezing an environment value at process start.
       disableSignUp: false,
+      revokeSessionsOnPasswordReset: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: env.email
+        ? async ({ user, url }) => {
+            // Keep the response timing generic. Production providers track and retry the promise,
+            // while the composition root drains accepted delivery during graceful shutdown.
+            void env.email
+              ?.send(passwordResetEmail(user, url))
+              .catch((error) => env.onEmailError?.(error));
+          }
+        : undefined,
     },
     account: {
       encryptOAuthTokens: true,
@@ -106,9 +120,9 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
               where: { ownerUserId: user.id },
               data: { ownerUserId: null },
             }),
-            // Phone identities are deliberately FK-free, so clear them here
-            // or the unique phoneE164 would point at a deleted bot forever.
-            prisma.phoneIdentity.deleteMany({
+            // Messaging identities are deliberately FK-free, so clear them
+            // here or the unique address would point at a deleted bot forever.
+            prisma.messagingIdentity.deleteMany({
               where: { userId: user.id },
             }),
             prisma.organization.deleteMany({
@@ -138,6 +152,36 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       },
     },
   });
+}
+
+export function passwordResetEmail(
+  user: { id: string; email: string; name: string },
+  resetUrl: string,
+): TransactionalEmail {
+  const name = user.name.trim() || "there";
+  const safeName = escapeHtml(name);
+  const safeUrl = escapeHtml(resetUrl);
+  return {
+    to: user.email,
+    subject: "Reset your Rakazo password",
+    text: [
+      `Hi ${name},`,
+      "",
+      "Reset your Rakazo password using this link:",
+      resetUrl,
+      "",
+      "This link expires in one hour. If you did not request this, you can ignore this email.",
+    ].join("\n"),
+    html: `<p>Hi ${safeName},</p><p>Reset your Rakazo password:</p><p><a href="${safeUrl}">Reset password</a></p><p>This link expires in one hour. If you did not request this, you can ignore this email.</p>`,
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!,
+  );
 }
 
 export type Auth = ReturnType<typeof createAuth>;

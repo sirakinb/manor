@@ -4,11 +4,12 @@ import { loadRootEnv } from "@rakazo/core/node/load-root-env";
 loadRootEnv();
 
 import {
+  ChatSdkMessagingSurface,
   createBackgroundJobHandlers,
   createConnectorStack,
   createCrmWebhookEmitter,
   createJobReconciler,
-  createPhoneContextLoader,
+  createMessagingContextLoader,
   createPostgresReconciliationLeadership,
   createRunExecutor,
   createRunSandbox,
@@ -21,12 +22,14 @@ import {
   InMemoryJobQueue,
   InstalledConnectorProvider,
   isComposioEnabled,
-  isPhoneSurfaceEnabled,
+  isMessagingSurfaceEnabled,
   isPipedreamEnabled,
   LocalAgentHomeStore,
   LocalArtifactStore,
   McpConnector,
   McpOAuthBroker,
+  messagingEnvFromProcess,
+  messagingPlatformsFromEnv,
   PiAgentRuntime,
   PipedreamConnector,
   PostgresRealtimeFanout,
@@ -34,9 +37,7 @@ import {
   resolveDeploymentModel,
   resolveSandboxProvider,
   ScriptedAgentRuntime,
-  SendBlueMessagingProvider,
   SpaceMemoryProviderResolver,
-  sendBlueConfigFromEnv,
 } from "@rakazo/adapters";
 import { resolveEncryptionKey, resolveSupervisorToken } from "@rakazo/core";
 import { createDb, createThreadEvents } from "@rakazo/db";
@@ -95,14 +96,12 @@ async function main() {
   const pipedream = isPipedreamEnabled(pipedreamConfig)
     ? new PipedreamConnector(pipedreamConfig)
     : undefined;
-  const sendBlueConfig = sendBlueConfigFromEnv({
-    sendblueApiKeyId: process.env.SENDBLUE_API_KEY_ID,
-    sendblueApiSecret: process.env.SENDBLUE_API_SECRET,
-    sendblueSigningSecret: process.env.SENDBLUE_SIGNING_SECRET,
-    sendbluePhoneNumber: process.env.SENDBLUE_PHONE_NUMBER,
-  });
-  const messaging = isPhoneSurfaceEnabled(sendBlueConfig, deploymentModelKey)
-    ? new SendBlueMessagingProvider(sendBlueConfig)
+  const messagingPlatforms = messagingPlatformsFromEnv(messagingEnvFromProcess(process.env));
+  const messaging = isMessagingSurfaceEnabled(messagingPlatforms, {
+    deploymentModelKey,
+    openSignup: process.env.MESSAGING_OPEN_SIGNUP === "true",
+  })
+    ? new ChatSdkMessagingSurface(messagingPlatforms)
     : undefined;
   const stack = createConnectorStack(isComposioEnabled(process.env.COMPOSIO_API_KEY), undefined, [
     new InstalledConnectorProvider(prisma, secrets),
@@ -136,7 +135,7 @@ async function main() {
     jobs,
     events,
     crmEvent: createCrmWebhookEmitter(prisma),
-    phone: messaging ? createPhoneContextLoader(prisma) : undefined,
+    messaging: messaging ? createMessagingContextLoader(prisma) : undefined,
     web: createWebProvider(),
   });
 

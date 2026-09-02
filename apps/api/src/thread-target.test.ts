@@ -230,7 +230,11 @@ describe("threadSnapshot", () => {
       createdAt: new Date("2026-08-23T00:00:00.000Z"),
     };
     const findManyEvents = vi.fn();
-    const findFirstRun = vi.fn().mockResolvedValueOnce(run).mockResolvedValueOnce(null);
+    const findFirstRun = vi
+      .fn()
+      .mockResolvedValueOnce(run)
+      // The failure is itself the newest terminal run, so it stays visible.
+      .mockResolvedValueOnce({ id: run.id });
     const tx = {
       $queryRaw: vi.fn().mockResolvedValue([{ id: "thread-1" }]),
       message: { findMany: vi.fn().mockResolvedValue([]) },
@@ -319,9 +323,10 @@ describe("threadSnapshot", () => {
       2,
       expect.objectContaining({
         where: expect.objectContaining({
-          status: { in: ["completed", "cancelled"] },
-          createdAt: { gt: failed.createdAt },
+          trigger: { not: "bot_message" },
+          status: { in: ["failed", "completed", "cancelled"] },
         }),
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       }),
     );
     expect(snapshot.run).toBeNull();
@@ -742,7 +747,8 @@ function groupTarget() {
 describe("stopThreadRuns", () => {
   it("releases every active group member screen immediately", async () => {
     const releaseScreen = vi.fn().mockResolvedValue(undefined);
-    const prisma = {
+    const transaction = {
+      $queryRaw: vi.fn(),
       run: {
         findMany: vi.fn().mockResolvedValue([
           { id: "run-a", botId: "bot-a" },
@@ -750,6 +756,12 @@ describe("stopThreadRuns", () => {
         ]),
         updateMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
+      steeringMessage: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (client: typeof transaction) => unknown) =>
+        callback(transaction),
+      ),
       computer: {
         findMany: vi.fn().mockResolvedValue([
           {

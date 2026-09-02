@@ -23,16 +23,22 @@ import {
   displayApiHost,
   loadSessionToken,
   normalizeApiBase,
+  type PasswordResetCapabilities,
+  passwordResetCapabilities,
   probeApiBase,
+  requestPasswordReset,
   resetApiBase,
   saveApiBase,
   signIn,
+  signUp,
   usesCustomApiBase,
 } from "../lib/api";
 import { brandType, manor } from "../lib/native";
 
 export default function SignIn() {
   const router = useRouter();
+  const [mode, setMode] = useState<"in" | "up" | "forgot">("in");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +47,8 @@ export default function SignIn() {
   const [hasSession, setHasSession] = useState(false);
   const [apiBase, setApiBase] = useState(() => currentApiBase());
   const [serverOpen, setServerOpen] = useState(false);
+  const [reset, setReset] = useState<PasswordResetCapabilities | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     void loadSessionToken().then((token) => {
@@ -48,6 +56,19 @@ export default function SignIn() {
       setReady(true);
     });
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setReset(null);
+    void passwordResetCapabilities()
+      .then((capabilities) => {
+        if (active) setReset(capabilities);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [apiBase]);
 
   if (!ready) {
     return (
@@ -63,10 +84,23 @@ export default function SignIn() {
     setPending(true);
     setError(null);
     try {
-      await signIn(email.trim(), password);
+      if (mode === "forgot") {
+        if (!reset?.passwordReset || !reset.resetUrl) {
+          throw new Error("Password recovery is not configured for this server");
+        }
+        await requestPasswordReset(email.trim(), reset.resetUrl);
+        setResetSent(true);
+        return;
+      }
+      if (mode === "up") {
+        const trimmedEmail = email.trim();
+        await signUp(trimmedEmail, password, name.trim() || trimmedEmail.split("@")[0] || "User");
+      } else {
+        await signIn(email.trim(), password);
+      }
       router.replace("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not sign in");
+      setError(err instanceof Error ? err.message : "Could not continue");
     } finally {
       setPending(false);
     }
@@ -82,79 +116,183 @@ export default function SignIn() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <ScrollView
-            contentContainerStyle={{
-              flexGrow: 1,
-              justifyContent: "center",
-              paddingHorizontal: 24,
-            }}
-            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* The server picker only matters to self-hosters and to us in dev, so it
-            hides behind the mark rather than sitting on the login screen. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Manor"
-              accessibilityHint="Double tap and hold to choose a custom server"
-              delayLongPress={600}
-              onLongPress={() => setServerOpen(true)}
-              style={{ alignItems: "center", marginBottom: 34 }}
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: "center",
+                paddingHorizontal: 24,
+                paddingVertical: 24,
+              }}
+              keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+              keyboardShouldPersistTaps="handled"
             >
-              <Image
-                source={require("../assets/manor-mark.png")}
-                resizeMode="contain"
-                style={{ width: 74, height: 74 }}
-              />
-              <Text style={styles.wordmark}>Manor</Text>
-              <Text style={styles.byline}>By Pentridge</Text>
-            </Pressable>
-            <TextInput
-              autoCapitalize="none"
-              keyboardType="email-address"
-              keyboardAppearance="dark"
-              placeholder="Email"
-              placeholderTextColor={manor.muted2}
-              value={email}
-              onChangeText={setEmail}
-              style={styles.field}
-            />
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor={manor.muted2}
-              keyboardAppearance="dark"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              style={[styles.field, { marginTop: 12 }]}
-            />
-            {error ? <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text> : null}
-            <Pressable
-              onPress={() => void submit()}
-              disabled={pending}
-              style={({ pressed }) => [styles.submit, pressed && { backgroundColor: manor.accent }]}
-            >
-              <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
-                {pending ? "Working…" : "Continue with email"}
-              </Text>
-            </Pressable>
-          </ScrollView>
+              {/* The server picker only matters to self-hosters and to us in dev, so it
+              hides behind the mark rather than sitting on the login screen. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Manor"
+                accessibilityHint="Double tap and hold to choose a custom server"
+                delayLongPress={600}
+                onLongPress={() => setServerOpen(true)}
+                style={{ alignItems: "center", marginBottom: 34 }}
+              >
+                <Image
+                  source={require("../assets/manor-mark.png")}
+                  resizeMode="contain"
+                  style={{ width: 74, height: 74 }}
+                />
+                <Text style={styles.wordmark}>Manor</Text>
+                <Text style={styles.byline}>By Pentridge</Text>
+              </Pressable>
+              {resetSent ? (
+                <View style={{ alignItems: "center", marginTop: 6 }}>
+                  <Text style={{ color: manor.ink, fontSize: 17 }}>Check your email</Text>
+                  <Text
+                    style={{ color: manor.muted, fontSize: 15, marginTop: 10, textAlign: "center" }}
+                  >
+                    If an account exists for that address, we sent a password reset link.
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setMode("in");
+                      setResetSent(false);
+                    }}
+                    style={{ marginTop: 22 }}
+                  >
+                    <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
+                      Back to sign in
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <>
+                  {mode === "up" ? (
+                    <TextInput
+                      autoComplete="name"
+                      placeholder="Name"
+                      placeholderTextColor={manor.muted2}
+                      keyboardAppearance="dark"
+                      value={name}
+                      onChangeText={setName}
+                      style={[styles.field, { marginBottom: 12 }]}
+                    />
+                  ) : null}
+                  <TextInput
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    keyboardAppearance="dark"
+                    placeholder="Email"
+                    placeholderTextColor={manor.muted2}
+                    value={email}
+                    onChangeText={setEmail}
+                    style={styles.field}
+                  />
+                  {mode === "in" && reset?.passwordReset && reset.resetUrl ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      hitSlop={8}
+                      onPress={() => {
+                        setMode("forgot");
+                        setError(null);
+                      }}
+                      style={{ alignSelf: "flex-end", marginTop: 10 }}
+                    >
+                      <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
+                        Forgot password?
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                  {mode !== "forgot" ? (
+                    <TextInput
+                      placeholder="Password"
+                      placeholderTextColor={manor.muted2}
+                      keyboardAppearance="dark"
+                      autoComplete={mode === "in" ? "current-password" : "new-password"}
+                      returnKeyType="go"
+                      secureTextEntry
+                      value={password}
+                      onChangeText={setPassword}
+                      onSubmitEditing={() => void submit()}
+                      style={[styles.field, { marginTop: 12 }]}
+                    />
+                  ) : null}
+                  {error ? (
+                    <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text>
+                  ) : null}
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void submit()}
+                    disabled={pending}
+                    style={({ pressed }) => [
+                      styles.submit,
+                      pressed && { backgroundColor: manor.accent },
+                    ]}
+                  >
+                    <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
+                      {pending
+                        ? "Working…"
+                        : mode === "in"
+                          ? "Continue with email"
+                          : mode === "up"
+                            ? "Sign up"
+                            : "Send reset link"}
+                    </Text>
+                  </Pressable>
+                  {mode !== "forgot" ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginTop: 24,
+                      }}
+                    >
+                      <Text style={{ color: manor.muted2, fontSize: 15 }}>
+                        {mode === "in" ? "Don’t have an account?" : "Already have an account?"}
+                      </Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        hitSlop={8}
+                        onPress={() => {
+                          setMode((current) => (current === "in" ? "up" : "in"));
+                          setError(null);
+                        }}
+                        style={{ marginLeft: 5 }}
+                      >
+                        <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
+                          {mode === "in" ? "Sign up" : "Sign in"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </>
+              )}
+            </ScrollView>
+            {custom ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Custom server ${displayApiHost(apiBase)}`}
+                hitSlop={12}
+                onPress={() => setServerOpen(true)}
+                style={{
+                  alignItems: "center",
+                  paddingHorizontal: 24,
+                  paddingBottom: 12,
+                  paddingTop: 8,
+                }}
+              >
+                <Text style={styles.footnoteLabel}>Custom server</Text>
+                <Text style={{ color: manor.muted2, fontSize: 13, marginTop: 3 }}>
+                  {displayApiHost(apiBase)}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      {custom ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Custom server ${displayApiHost(apiBase)}`}
-          hitSlop={12}
-          onPress={() => setServerOpen(true)}
-          style={{ alignItems: "center", paddingHorizontal: 24, paddingBottom: 12, paddingTop: 8 }}
-        >
-          <Text style={styles.footnoteLabel}>Custom server</Text>
-          <Text style={{ color: manor.muted2, fontSize: 13, marginTop: 3 }}>
-            {displayApiHost(apiBase)}
-          </Text>
-        </Pressable>
-      ) : null}
       <ServerSheet
         visible={serverOpen}
         current={apiBase}

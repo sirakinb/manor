@@ -16,7 +16,9 @@ export const tokens = {
   accent: "#A855F7",
   accentStrong: "#9333EA",
   accentSoft: "#C084FC",
-  danger: "#E65707",
+  danger: "#EF4444",
+  dangerStrong: "#DC2626",
+  dangerSoft: "#FCA5A5",
   success: "#30A24B",
   successSoft: "#4ECB71",
 } as const;
