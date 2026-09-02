@@ -100,6 +100,30 @@
   <!-- Newest entries go directly below this line. Copy an .entry block, set the
        date, pick tags (new / fix / sync / mobile), keep bullets short. -->
 
+  <div class="entry sync">
+    <div class="date">2026-09-02</div>
+    <h2>Upstream sync #10 &mdash; account creation, password reset, and a rebuilt chat surface</h2>
+    <ul>
+      <li>Sign-up and password reset land on web and mobile, dark-themed to match Manor throughout, including the new &ldquo;Forgot password?&rdquo; flow and its confirmation screen.</li>
+      <li>The phone/iMessage surface was rebuilt on the open-source Chat SDK as a provider-neutral messaging layer (still backed by SendBlue) &mdash; ready for Slack, WhatsApp, and Telegram surfaces later without another rewrite. Manor's branded intro/invite copy carried over to the new files.</li>
+      <li>Bots can now be steered mid-turn instead of only interrupted, with tappable choice prompts for quick replies.</li>
+      <li>Simplified Chinese (简体中文) joins the UI language list.</li>
+      <li>Error red unified to one shade across web and mobile; Manor's own purple accent and dark theme kept everywhere else.</li>
+      <li>Kept through the merge: the account-wide CRM, the Team Computer fixes, channel messaging, Manor's skin, and the composio space-scoping fix (this sync's <code>listConnectedPluginSlugs</code> stayed space-aware &mdash; upstream's own version had dropped that param).</li>
+    </ul>
+    <div class="tags"><span class="tag sync">upstream sync</span><span class="tag new">feature</span><span class="tag mobile">mobile</span></div>
+  </div>
+
+  <div class="entry">
+    <div class="date">2026-09-02</div>
+    <h2>CRM goes account-wide, and a composer fix</h2>
+    <ul>
+      <li>The CRM is now scoped to the account, not the space &mdash; one CRM even when a client has several spaces under them, matching how billing and membership already work. All <code>crm_*</code> tables re-keyed from <code>spaceId</code> to <code>organizationId</code>, six of them gaining a real database-level foreign key they never had before.</li>
+      <li>Tool-routing popover in the composer no longer clips its description text.</li>
+    </ul>
+    <div class="tags"><span class="tag fix">fix</span></div>
+  </div>
+
   <div class="entry">
     <div class="date">2026-08-31</div>
     <h2>Knowledge panel &mdash; read and edit what your agents know</h2>
