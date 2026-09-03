@@ -85,6 +85,8 @@ export interface DesktopReachability {
  * narrower `rakazoDesktop` bridge so a connected server can never re-point the app.
  */
 export interface RakazoSetup {
+  /** Used only to reserve space for native window controls in the local setup UI. */
+  platform: string;
   state: () => Promise<DesktopSetupState>;
   test: (url: string) => Promise<DesktopReachability>;
   save: (setup: DesktopSetup) => Promise<{ ok: boolean; error?: string }>;
