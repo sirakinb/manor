@@ -34,6 +34,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     dbus-x11 \
     xdg-utils \
+    git \
+    curl \
+    openssh-client \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd --gid 1000 rakazo \
   && useradd --uid 1000 --gid rakazo --create-home --shell /bin/bash rakazo \
@@ -43,6 +46,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && ln -sfn /bin/true /usr/bin/xmessage
 ENV DISPLAY=:1
 ENV HOME=/home/rakazo
+# Coding agents, installed system-wide so they survive the per-bot /home/rakazo bind
+# mount. Each bot signs in once from its own home (~/.claude, ~/.codex, ~/.config/cursor).
+# Node 22 for the npm-distributed CLIs; the Cursor CLI ships as a tarball that its
+# installer unpacks under $HOME, so run it with a build-time HOME and symlink the binary.
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+  && apt-get install -y --no-install-recommends nodejs \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install -g --no-fund --no-audit @anthropic-ai/claude-code @openai/codex \
+  && npm cache clean --force \
+  && mkdir -p /opt/cursor \
+  && HOME=/opt/cursor bash -c "curl -fsSL https://cursor.com/install | bash" \
+  && ln -sfn "$(ls -d /opt/cursor/.local/share/cursor-agent/versions/*/ | head -1)cursor-agent" /usr/local/bin/cursor-agent \
+  && ln -sfn /usr/local/bin/cursor-agent /usr/local/bin/agent \
+  && chmod -R a+rX /opt/cursor \
+  && claude --version && codex --version && cursor-agent --version
 WORKDIR /home/rakazo
 # --chmod normalizes modes: a restrictive host umask (e.g. 077 on hardened hosts) would
 # otherwise leave these files unreadable to USER 1000 at runtime.
