@@ -369,6 +369,8 @@ export interface ScriptedTurn {
 
 export type AgentRuntimeEvent =
   | { type: "text"; text: string }
+  /** Model reasoning streamed as it happens; `done` closes the current thought. */
+  | { type: "thinking"; text: string; done?: boolean }
   | { type: "progress"; text: string }
   | { type: "tool"; name: string; args: Record<string, unknown>; executionId: string }
   | {

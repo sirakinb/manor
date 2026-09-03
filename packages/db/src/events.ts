@@ -721,7 +721,9 @@ export async function pauseRunForInput(
       runId: input.runId,
       payload: {},
     });
-    await tx.event.deleteMany({ where: { runId: input.runId, type: "thread.progress" } });
+    await tx.event.deleteMany({
+      where: { runId: input.runId, type: { in: ["thread.progress", "thread.thinking"] } },
+    });
     return { threadId: waitingEvent.threadId, seq: waitingEvent.seq };
   });
 
@@ -775,7 +777,9 @@ export async function pauseRunForTakeover(
       runId: input.runId,
       payload: { reason: input.reason },
     });
-    await tx.event.deleteMany({ where: { runId: input.runId, type: "thread.progress" } });
+    await tx.event.deleteMany({
+      where: { runId: input.runId, type: { in: ["thread.progress", "thread.thinking"] } },
+    });
     return { threadId: waitingEvent.threadId, seq: waitingEvent.seq };
   });
 
@@ -986,7 +990,9 @@ async function finalizeRunOnce(
       runId: input.runId,
       payload: input.outcome === "completed" ? {} : { error: input.error },
     });
-    await tx.event.deleteMany({ where: { runId: input.runId, type: "thread.progress" } });
+    await tx.event.deleteMany({
+      where: { runId: input.runId, type: { in: ["thread.progress", "thread.thinking"] } },
+    });
     if (input.outcome === "completed") {
       await tx.steeringMessage.deleteMany({
         where: { runId: input.runId, claimedAt: { not: null } },

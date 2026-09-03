@@ -1300,12 +1300,21 @@ export function createRunExecutor(deps: ExecutorDeps) {
         let pendingProgress = "";
         let lastProgressAt = 0;
         let hasStreamedText = false;
+        // Reasoning streams beside the reply: deltas batch into thread.thinking events,
+        // and the finished thought becomes a durable "thinking" block placed before the
+        // text that followed it.
+        let currentThinking = "";
+        let pendingThinking = "";
+        let thinkingStartedAt = 0;
+        let lastThinkingAt = 0;
+        let thinkingStreamed = false;
         let toolCallStreak: ToolCallStreak = { key: undefined, count: 0 };
         let lastComputerFrameId: string | undefined;
         let terminalCheckpointComplete = false;
         let approvalPausePending = false;
         let handedOff = false;
         let progressRedactor = createStreamingRedactor(runSecrets);
+        let thinkingRedactor = createStreamingRedactor(runSecrets);
         const scripted = deps.runtime.describe().capabilities.scripted;
         const script = scripted ? inferScript(task.prompt, takeoverResume?.checkpoint) : undefined;
         const flushProgress = async () => {
@@ -1325,6 +1334,47 @@ export function createRunExecutor(deps: ExecutorDeps) {
           hasStreamedText = true;
           pendingProgress = "";
           lastProgressAt = Date.now();
+        };
+        const flushThinking = async () => {
+          if (scripted || !pendingThinking) return;
+          await deps.events.append({
+            spaceId: run.spaceId,
+            threadId: thread.id,
+            botId: bot.id,
+            type: "thread.thinking",
+            runId,
+            payload: thinkingStreamed
+              ? { delta: pendingThinking, streaming: true }
+              : { text: pendingThinking, streaming: true },
+          });
+          thinkingStreamed = true;
+          pendingThinking = "";
+          lastThinkingAt = Date.now();
+        };
+        const finishThinking = async () => {
+          if (!currentThinking) return;
+          pendingThinking += thinkingRedactor.finish();
+          thinkingRedactor = createStreamingRedactor(runSecrets);
+          await flushThinking();
+          const durationMs = Math.max(0, Date.now() - thinkingStartedAt);
+          messageSegments = [
+            ...messageSegments,
+            { kind: "thinking", text: redactSecrets(currentThinking, runSecrets), durationMs },
+          ];
+          if (!scripted && thinkingStreamed) {
+            await deps.events.append({
+              spaceId: run.spaceId,
+              threadId: thread.id,
+              botId: bot.id,
+              type: "thread.thinking",
+              runId,
+              payload: { done: true, durationMs },
+            });
+          }
+          currentThinking = "";
+          pendingThinking = "";
+          thinkingStreamed = false;
+          thinkingStartedAt = 0;
         };
         const formatObservation = (
           observation: Awaited<ReturnType<SandboxProvider["observe"]>>,
@@ -3108,7 +3158,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
               }
             }
 
-            if (event.type === "text") {
+            if (event.type === "thinking") {
+              if (event.done) {
+                await finishThinking();
+              } else if (event.text) {
+                if (!currentThinking) {
+                  // The thought goes after everything streamed so far, on both sides.
+                  flushPendingTools();
+                  await flushProgress();
+                  thinkingStartedAt = Date.now();
+                }
+                currentThinking += event.text;
+                pendingThinking += thinkingRedactor.push(event.text);
+                if (!scripted && pendingThinking && Date.now() - lastThinkingAt >= 250) {
+                  await flushThinking();
+                }
+              }
+            } else if (event.type === "text") {
+              if (currentThinking) await finishThinking();
               assembled += event.text;
               currentTextSegment += event.text;
               toolCallStreak = { key: undefined, count: 0 };
@@ -3119,6 +3186,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 await flushProgress();
               }
             } else if (event.type === "progress") {
+              if (currentThinking) await finishThinking();
               toolCallStreak = { key: undefined, count: 0 };
               // Flush batched text deltas first so an activity line cannot land
               // ahead of text the model streamed before the tool call.
@@ -3229,6 +3297,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               });
               return;
             } else if (event.type === "tool") {
+              if (currentThinking) await finishThinking();
               // Preserve event ordering when the throttle still holds recent narration: the
               // client must see that text before the tool call it describes.
               await flushProgress();
@@ -3355,6 +3424,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
           if (approvalPausePending) return;
           approvedEffectReplays.assertDrained();
+          await finishThinking();
           pendingProgress += progressRedactor.finish();
           await flushProgress();
 
@@ -3840,6 +3910,9 @@ function redactBlocks(blocks: MessageBlock[], secrets: string[]): MessageBlock[]
   return blocks.map((block) => {
     if (block.kind === "text") {
       return { kind: "text" as const, text: redactSecrets(block.text, secrets) };
+    }
+    if (block.kind === "thinking") {
+      return { ...block, text: redactSecrets(block.text, secrets) };
     }
     if (block.kind === "bot_message_sent" || block.kind === "bot_message_received") {
       return { ...block, text: redactSecrets(block.text, secrets) };

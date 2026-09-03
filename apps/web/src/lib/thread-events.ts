@@ -214,6 +214,7 @@ export function isThreadSnapshotEvent(event: ProductEvent): boolean {
   return (
     event.type === "thread.cleared" ||
     event.type === "thread.progress" ||
+    event.type === "thread.thinking" ||
     event.type === "thread.subagent" ||
     event.type === "agent.tool.called" ||
     event.type === "thread.message.created" ||
@@ -335,6 +336,25 @@ export function reduceThreadSnapshot(
     const { previous, remaining } = takeLiveMessage(prev.messages, liveId);
     const blocks = reduceLiveMessageBlocks(previous?.blocks ?? [], {
       type: "progress",
+      payload: event.payload,
+    });
+    const streaming: ThreadMessage = {
+      id: liveId,
+      threadId: event.threadId,
+      seq: event.seq,
+      role: "bot",
+      blocks,
+      botId: event.botId,
+      runId: event.runId,
+      createdAt: event.createdAt,
+    };
+    return { ...prev, cursor: event.seq, messages: [...remaining, streaming] };
+  }
+  if (event.type === "thread.thinking") {
+    const liveId = progressMessageId(event);
+    const { previous, remaining } = takeLiveMessage(prev.messages, liveId);
+    const blocks = reduceLiveMessageBlocks(previous?.blocks ?? [], {
+      type: "thinking",
       payload: event.payload,
     });
     const streaming: ThreadMessage = {

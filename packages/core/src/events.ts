@@ -86,6 +86,17 @@ export function projectMessages(
       };
       continue;
     }
+    if (event.type === "thread.thinking") {
+      const live = liveProjection(event, createdAt);
+      live.blocks = reduceLiveMessageBlocks(live.blocks, { type: "thinking", payload });
+      live.meta = {
+        ...live.meta,
+        seq: event.seq,
+        botId: event.botId ?? undefined,
+        createdAt,
+      };
+      continue;
+    }
     if (event.type === "agent.tool.called") {
       const live = liveProjection(event, createdAt);
       live.blocks = reduceLiveMessageBlocks(live.blocks, {
@@ -178,6 +189,7 @@ export function runFailureError(event: {
 
 export type LiveMessageUpdate =
   | { type: "progress"; payload: Record<string, unknown> | undefined }
+  | { type: "thinking"; payload: Record<string, unknown> | undefined }
   | { type: "tool"; name: string };
 
 export function reduceLiveMessageBlocks(
@@ -186,6 +198,7 @@ export function reduceLiveMessageBlocks(
 ): MessageBlock[] {
   const tail = blocks.at(-1);
   const segments = tail?.kind === "progress" ? blocks.slice(0, -1) : blocks;
+  if (update.type === "thinking") return reduceThinking(segments, tail, update.payload);
   const priorText = liveMessageText(blocks);
   const flushedLength =
     tail?.kind === "progress" ? priorText.length - tail.text.length : priorText.length;
@@ -214,6 +227,47 @@ export function reduceLiveMessageBlocks(
       ...(pendingToolNames.length > 0 ? { pendingToolNames } : {}),
     },
   ];
+}
+
+/**
+ * A thought lands after whatever text is live, grows while the model reasons,
+ * and closes (durationMs) when the reply or a tool call begins. Text and
+ * progress offsets ignore thinking blocks, so liveMessageText stays exact.
+ */
+function reduceThinking(
+  segments: readonly MessageBlock[],
+  tail: MessageBlock | undefined,
+  payload: Record<string, unknown> | undefined,
+): MessageBlock[] {
+  const tailProgress = tail?.kind === "progress" ? tail : undefined;
+  let next = tailProgress?.text ? appendTextSegment(segments, tailProgress.text) : [...segments];
+  const delta = typeof payload?.delta === "string" ? payload.delta : undefined;
+  const text = typeof payload?.text === "string" ? payload.text : undefined;
+  const done = payload?.done === true;
+  const durationMs =
+    typeof payload?.durationMs === "number" && payload.durationMs >= 0
+      ? Math.round(payload.durationMs)
+      : undefined;
+  const last = next.at(-1);
+  if (last?.kind === "thinking" && last.durationMs === undefined) {
+    const merged = delta !== undefined ? last.text + delta : (text ?? last.text);
+    next = [
+      ...next.slice(0, -1),
+      { kind: "thinking", text: merged, ...(done ? { durationMs: durationMs ?? 0 } : {}) },
+    ];
+  } else {
+    const fresh = delta ?? text ?? "";
+    if (fresh) {
+      next = [
+        ...next,
+        { kind: "thinking", text: fresh, ...(done ? { durationMs: durationMs ?? 0 } : {}) },
+      ];
+    }
+  }
+  const pendingToolNames = tailProgress?.pendingToolNames ?? [];
+  return pendingToolNames.length > 0
+    ? [...next, { kind: "progress", text: "", pendingToolNames }]
+    : next;
 }
 
 function liveMessageText(blocks: readonly MessageBlock[]): string {

@@ -8,6 +8,7 @@ export const ProductEventType = z.enum([
   "thread.message.updated",
   "thread.message.reaction",
   "thread.progress",
+  "thread.thinking",
   "thread.artifact",
   "thread.ask",
   "thread.choice",
@@ -147,6 +148,12 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     kind: z.literal("progress"),
     text: z.string(),
     pendingToolNames: z.array(z.string()).optional(),
+  }),
+  z.object({
+    /** A stretch of the bot's reasoning; durationMs is set once the thought is complete. */
+    kind: z.literal("thinking"),
+    text: z.string(),
+    durationMs: z.number().int().nonnegative().optional(),
   }),
   z.object({
     kind: z.literal("steps"),

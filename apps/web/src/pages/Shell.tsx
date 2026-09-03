@@ -133,6 +133,7 @@ import {
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
+import { ThinkingDisclosure } from "../components/ThinkingDisclosure";
 import { ToolActivityDisclosure, ToolSteps } from "../components/ToolActivityDisclosure";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
@@ -4386,7 +4387,8 @@ const Transcript = memo(function Transcript({
             {!messages.some(
               (message) =>
                 message.id.startsWith("progress:") &&
-                message.blocks[0]?.kind === "progress" &&
+                (message.blocks[0]?.kind === "progress" ||
+                  message.blocks[0]?.kind === "thinking") &&
                 message.blocks[0].text,
             ) ? (
               <ActiveBotGlyph bots={workingBots} label={workingLabel} />
@@ -5396,7 +5398,11 @@ const MessageView = memo(function MessageView({
     message.role === "bot" &&
     message.blocks.length > 0 &&
     message.blocks.every(
-      (block) => block.kind === "text" || block.kind === "progress" || block.kind === "steps",
+      (block) =>
+        block.kind === "text" ||
+        block.kind === "progress" ||
+        block.kind === "steps" ||
+        block.kind === "thinking",
     );
   const isLive = message.id.startsWith("progress:");
   const parentJumpId = replyPreview?.id ?? replyToMessageId;
@@ -5451,6 +5457,22 @@ const MessageView = memo(function MessageView({
                   <div key={i}>
                     <ChatMarkdown streaming={block.kind === "progress"}>{block.text}</ChatMarkdown>
                   </div>
+                );
+              }
+              if (block.kind === "thinking") {
+                const stillThinking =
+                  isLive &&
+                  block.durationMs === undefined &&
+                  !message.blocks
+                    .slice(i + 1)
+                    .some((later) => later.kind !== "progress" || later.text);
+                return (
+                  <ThinkingDisclosure
+                    key={i}
+                    text={block.text}
+                    live={stillThinking}
+                    durationMs={block.durationMs}
+                  />
                 );
               }
               return null;
@@ -5767,6 +5789,13 @@ const MessageView = memo(function MessageView({
           return (
             <div key={i} className="flex justify-start">
               <SkillDraftCard block={block} onRefresh={onRefresh} onAddRoutine={onAddRoutine} />
+            </div>
+          );
+        }
+        if (block.kind === "thinking") {
+          return (
+            <div key={i} className="max-w-[74%]">
+              <ThinkingDisclosure text={block.text} live={false} durationMs={block.durationMs} />
             </div>
           );
         }

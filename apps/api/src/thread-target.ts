@@ -366,7 +366,14 @@ export async function threadSnapshot(
                 where: {
                   threadId: target.threadId,
                   runId: currentRun.id,
-                  type: { in: ["thread.progress", "thread.subagent", "agent.tool.called"] },
+                  type: {
+                    in: [
+                      "thread.progress",
+                      "thread.thinking",
+                      "thread.subagent",
+                      "agent.tool.called",
+                    ],
+                  },
                 },
                 orderBy: { seq: "asc" },
               })
@@ -420,7 +427,9 @@ export async function threadSnapshot(
             where: {
               threadId: target.threadId,
               runId: { in: activeRuns.map((run) => run.id) },
-              type: { in: ["thread.progress", "thread.subagent", "agent.tool.called"] },
+              type: {
+                in: ["thread.progress", "thread.thinking", "thread.subagent", "agent.tool.called"],
+              },
             },
             orderBy: { seq: "asc" },
           })
@@ -906,7 +915,7 @@ export async function stopThreadRuns(
   );
   await deps.prisma.event.deleteMany({
     where: {
-      type: "thread.progress",
+      type: { in: ["thread.progress", "thread.thinking"] },
       runId: { in: runIds },
     },
   });
