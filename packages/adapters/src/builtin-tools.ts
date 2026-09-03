@@ -156,6 +156,20 @@ export const builtinAgentTools: ConnectorTool[] = [
     },
   },
   {
+    name: "share_preview",
+    description:
+      "Show the user a web app that is running inside your computer, in the chat's Preview pane. Start the server first (bind it to 0.0.0.0 or all interfaces, not only localhost), then call this with its port. Prefer a built/static site or a server that serves relative asset paths; absolute paths in HTML and CSS are rewritten for you.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        port: { type: "number", description: "Port the app listens on inside your computer." },
+        path: { type: "string", description: "Path to open, default /." },
+        title: { type: "string", description: "Short label for the preview card." },
+      },
+      required: ["port"],
+    },
+  },
+  {
     name: "use_credential",
     description:
       "Type one field of a stored sign-in credential into the currently focused input on the computer: the username, the password, or the current 2FA (TOTP) code. The value is typed for you and never shown. Click the input first, then call this, then press Enter or click submit with computer_act. Available credentials are listed in your instructions.",

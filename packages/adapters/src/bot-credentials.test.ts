@@ -148,3 +148,16 @@ describe("use_credential tool exposure", () => {
     expect(offered).toContain("use_credential");
   });
 });
+
+describe("share_preview tool exposure", () => {
+  it("is part of the computer surface and needs a port", () => {
+    const tool = builtinAgentTools.find((item) => item.name === "share_preview");
+    expect(tool?.inputSchema.required).toEqual(["port"]);
+    const pinnedToPlugins = selectToolsForRoutingMode(
+      { computerToolsAvailable: false, pluginToolsAvailable: true },
+      builtinAgentTools,
+      [],
+    ).map((item) => item.name);
+    expect(pinnedToPlugins).not.toContain("share_preview");
+  });
+});

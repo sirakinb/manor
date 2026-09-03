@@ -11,6 +11,9 @@ import { brandHostnames } from "../../packages/brands/src/index.ts";
 import { resolveScreenProxySecret } from "../../packages/core/src/secrets-guard.ts";
 import {
   resolveNovncTarget,
+  resolvePreviewTarget,
+  rewritePreviewCss,
+  rewritePreviewHtml,
   safeProxyHeaders,
   safeProxyResponseHeaders,
   stripSensitiveHandshakeHeaders,
@@ -115,6 +118,125 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string)
   });
 }
 
+const PREVIEW_REWRITE_LIMIT = 4 * 1024 * 1024;
+
+/**
+ * `/preview/…` → an app port inside a bot computer (signed capability minted by
+ * the API). HTML and CSS bodies are rewritten so absolute asset paths resolve
+ * under the proxy prefix; everything else streams through untouched.
+ */
+function attachPreviewProxy(server: ViteDevServer | PreviewServer, secret: string) {
+  server.middlewares.use((req, res, next) => {
+    if (!req.url?.startsWith("/preview/")) {
+      next();
+      return;
+    }
+    const target = resolvePreviewTarget(req.url, secret);
+    if (!target) {
+      res.statusCode = 403;
+      res.end("Invalid or expired preview link");
+      return;
+    }
+    const headers = {
+      ...safeProxyHeaders(req.headers),
+      host: `${target.hostname}:${target.port}`,
+      // Ask for identity so HTML/CSS can be rewritten; other bodies stream through.
+      "accept-encoding": "identity",
+    };
+    const upstream = http.request(
+      {
+        hostname: target.hostname,
+        port: target.port,
+        path: target.path,
+        method: req.method,
+        headers,
+      },
+      (incoming) => {
+        const contentType = String(incoming.headers["content-type"] ?? "").toLowerCase();
+        const rewrite = contentType.includes("text/html")
+          ? rewritePreviewHtml
+          : contentType.includes("text/css")
+            ? rewritePreviewCss
+            : null;
+        const responseHeaders: Record<string, string | string[]> = {
+          ...safeProxyResponseHeaders(incoming.headers),
+        };
+        // Upstream redirects to absolute paths must stay under the prefix.
+        const location = incoming.headers.location;
+        if (
+          typeof location === "string" &&
+          location.startsWith("/") &&
+          !location.startsWith("//")
+        ) {
+          responseHeaders.location = `${target.prefix}${location}`;
+        }
+        delete responseHeaders["content-security-policy"];
+        delete responseHeaders["x-frame-options"];
+        if (!rewrite || incoming.headers["content-encoding"]) {
+          res.writeHead(incoming.statusCode ?? 502, responseHeaders);
+          incoming.pipe(res);
+          return;
+        }
+        const chunks: Buffer[] = [];
+        let size = 0;
+        incoming.on("data", (chunk: Buffer) => {
+          chunks.push(chunk);
+          size += chunk.length;
+        });
+        incoming.on("end", () => {
+          const body = Buffer.concat(chunks, size);
+          const out =
+            size > PREVIEW_REWRITE_LIMIT
+              ? body
+              : Buffer.from(rewrite(body.toString("utf8"), target.prefix), "utf8");
+          delete responseHeaders["content-length"];
+          delete responseHeaders["transfer-encoding"];
+          res.writeHead(incoming.statusCode ?? 502, {
+            ...responseHeaders,
+            "content-length": String(out.length),
+          });
+          res.end(out);
+        });
+        incoming.on("error", () => {
+          if (!res.headersSent) res.statusCode = 502;
+          res.end();
+        });
+      },
+    );
+    upstream.on("error", (error) => {
+      res.statusCode = 502;
+      res.end(`Preview is not reachable on port ${target.port}: ${error.message}`);
+    });
+    req.pipe(upstream);
+  });
+
+  // Dev servers use a websocket for live reload; tunnel it like the screen proxy does.
+  server.httpServer?.on("upgrade", (req, socket, head) => {
+    if (!req.url?.startsWith("/preview/")) return;
+    const target = resolvePreviewTarget(req.url, secret);
+    if (!target) {
+      socket.destroy();
+      return;
+    }
+    const upstream = net.connect(target.port, target.hostname);
+    upstream.once("connect", () => {
+      const headerLines = [
+        `${req.method ?? "GET"} ${target.path} HTTP/1.1`,
+        `Host: ${target.hostname}:${target.port}`,
+      ];
+      for (const [key, value] of Object.entries(safeProxyHeaders(req.headers))) {
+        headerLines.push(`${key}: ${Array.isArray(value) ? value.join(",") : value}`);
+      }
+      upstream.write(`${headerLines.join("\r\n")}\r\n\r\n`);
+      if (head.length) upstream.write(head);
+      socket.pipe(upstream);
+      upstream.pipe(socket);
+    });
+    upstream.on("error", () => socket.destroy());
+    socket.on("error", () => upstream.destroy());
+  });
+}
+
 export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, "../.."), "");
   const api = process.env.API_PROXY_TARGET ?? rootEnv.API_PROXY_TARGET ?? "http://127.0.0.1:3100";
@@ -144,7 +266,7 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use((req, _res, next) => {
             const pathname = req.url?.split("?", 1)[0] ?? "/";
             if (
-              ["/api", "/rpc", "/v1", "/mcp/crm", "/novnc"].some((prefix) =>
+              ["/api", "/rpc", "/v1", "/mcp/crm", "/novnc", "/preview"].some((prefix) =>
                 pathname.startsWith(prefix),
               )
             ) {
@@ -159,6 +281,11 @@ export default defineConfig(({ mode }) => {
         name: "rakazo-novnc-proxy",
         configureServer: (server) => attachNovncProxy(server, screenProxySecret()),
         configurePreviewServer: (server) => attachNovncProxy(server, screenProxySecret()),
+      },
+      {
+        name: "rakazo-preview-proxy",
+        configureServer: (server) => attachPreviewProxy(server, screenProxySecret()),
+        configurePreviewServer: (server) => attachPreviewProxy(server, screenProxySecret()),
       },
     ],
     server: {

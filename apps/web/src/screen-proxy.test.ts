@@ -132,3 +132,77 @@ describe("noVNC proxy authorization", () => {
     );
   });
 });
+
+describe("preview proxy", () => {
+  const secret = "preview-secret";
+  const now = 1_700_000_000_000;
+  function previewPath(port: number, expiresAt: number, rest = "/", hostname = "172.31.240.23") {
+    const signature = createHmac("sha256", secret)
+      .update(`${hostname}:${port}:app:${expiresAt}`)
+      .digest("base64url");
+    const target = Buffer.from(hostname).toString("base64url");
+    return `/preview/${target}/${port}/${expiresAt}.${signature}${rest}`;
+  }
+
+  it("resolves a signed app capability and exposes its prefix", async () => {
+    const { resolvePreviewTarget } = await import("./screen-proxy.js");
+    const url = previewPath(3000, now + 60_000, "/dashboard?tab=1");
+    const target = resolvePreviewTarget(url, secret, now);
+    expect(target).toMatchObject({
+      hostname: "172.31.240.23",
+      port: 3000,
+      path: "/dashboard?tab=1",
+    });
+    expect(target?.prefix).toBe(url.slice(0, url.indexOf("/dashboard")));
+  });
+
+  it("rejects expired, tampered, and screen-policy capabilities", async () => {
+    const { resolvePreviewTarget } = await import("./screen-proxy.js");
+    expect(resolvePreviewTarget(previewPath(3000, now - 1), secret, now)).toBeNull();
+    expect(resolvePreviewTarget(previewPath(3000, now + 60_000), "other", now)).toBeNull();
+    const screenSigned = previewPath(3000, now + 60_000).replace(/\/preview\//, "/novnc/");
+    expect(resolvePreviewTarget(screenSigned, secret, now)).toBeNull();
+    // A screen capability (policy "view") must not validate as an app capability.
+    const viewSig = createHmac("sha256", secret)
+      .update(`172.31.240.23:3000:view:${now + 60_000}`)
+      .digest("base64url");
+    const host = Buffer.from("172.31.240.23").toString("base64url");
+    expect(
+      resolvePreviewTarget(`/preview/${host}/3000/${now + 60_000}.${viewSig}/`, secret, now),
+    ).toBeNull();
+  });
+
+  it("refuses hosts outside the sandbox networks", async () => {
+    const { resolvePreviewTarget } = await import("./screen-proxy.js");
+    expect(
+      resolvePreviewTarget(previewPath(3000, now + 60_000, "/", "example.com"), secret, now),
+    ).toBeNull();
+  });
+
+  it("rewrites absolute asset paths in HTML and CSS under the prefix", async () => {
+    const { rewritePreviewCss, rewritePreviewHtml } = await import("./screen-proxy.js");
+    const prefix = "/preview/abc/3000/1.sig";
+    const html = rewritePreviewHtml(
+      '<html><head><link href="/style.css"><script src="/app.js"></script></head>' +
+        '<body><img src="./rel.png"><img srcset="/a.png 1x, /b.png 2x"><a href="//cdn.example/x">x</a>' +
+        '<form action="/submit"></form></body></html>',
+      prefix,
+    );
+    expect(html).toContain(`<head><base href="${prefix}/">`);
+    expect(html).toContain(`href="${prefix}/style.css"`);
+    expect(html).toContain(`src="${prefix}/app.js"`);
+    expect(html).toContain(`action="${prefix}/submit"`);
+    expect(html).toContain(`srcset="${prefix}/a.png 1x, ${prefix}/b.png 2x"`);
+    expect(html).toContain('src="./rel.png"');
+    expect(html).toContain('href="//cdn.example/x"');
+    expect(
+      rewritePreviewCss("a{background:url(/img.png)} b{background:url('/x.png')}", prefix),
+    ).toBe(`a{background:url(${prefix}/img.png)} b{background:url('${prefix}/x.png')}`);
+  });
+
+  it("does not add a second <base>", async () => {
+    const { rewritePreviewHtml } = await import("./screen-proxy.js");
+    const out = rewritePreviewHtml('<head><base href="/x/"></head>', "/preview/p");
+    expect(out.match(/<base/g)?.length).toBe(1);
+  });
+});

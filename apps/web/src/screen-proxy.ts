@@ -149,3 +149,75 @@ export function stripSensitiveHandshakeHeaders(response: Buffer) {
     response.subarray(end + 4),
   ]);
 }
+
+const PREVIEW_POLICY = "app";
+
+export interface PreviewTarget {
+  hostname: string;
+  port: number;
+  path: string;
+  /** Proxy prefix (no trailing slash) that maps to "/" on the app, for rewriting absolute URLs. */
+  prefix: string;
+}
+
+/**
+ * `/preview/{host}/{port}/{expiresAt}.{sig}{path}` → an app port inside a bot
+ * computer. Signed with the "app" policy; the screen proxy's view/control
+ * capabilities do not validate here.
+ */
+export function resolvePreviewTarget(
+  url: string | undefined,
+  secret: string,
+  now = Date.now(),
+): PreviewTarget | null {
+  const match = url?.match(
+    /^\/preview\/([A-Za-z0-9_-]+)\/(\d+)\/(\d+)\.([A-Za-z0-9_-]{43})(\/[^?]*)?(\?.*)?$/,
+  );
+  if (!match) return null;
+  const hostname = Buffer.from(match[1]!, "base64url").toString("utf8");
+  const port = Number(match[2]);
+  const expiresAt = Number(match[3]);
+  const signature = match[4]!;
+  if (!isAllowedTargetName(hostname)) return null;
+  if (!Number.isInteger(port) || port < 1024 || port > 65_535 || expiresAt < now) return null;
+  const expected = createHmac("sha256", secret)
+    .update(`${hostname}:${port}:${PREVIEW_POLICY}:${expiresAt}`)
+    .digest("base64url");
+  const suppliedBytes = Buffer.from(signature);
+  const expectedBytes = Buffer.from(expected);
+  if (
+    suppliedBytes.length !== expectedBytes.length ||
+    !timingSafeEqual(suppliedBytes, expectedBytes)
+  ) {
+    return null;
+  }
+  return {
+    hostname,
+    port,
+    path: `${match[5] || "/"}${match[6] || ""}`,
+    prefix: `/preview/${match[1]}/${match[2]}/${match[3]}.${match[4]}`,
+  };
+}
+
+/**
+ * Apps served under the proxy prefix usually reference assets by absolute
+ * path ("/assets/app.js"). Point those at the prefix and add a <base> so
+ * relative references resolve under it too. Only HTML is rewritten; scripts
+ * that build absolute URLs at runtime are the app's responsibility.
+ */
+export function rewritePreviewHtml(html: string, prefix: string): string {
+  const withAttrs = html.replace(
+    /(\s(?:src|href|action|poster|data-src)\s*=\s*["'])\/(?!\/)/gi,
+    `$1${prefix}/`,
+  );
+  const withSrcset = withAttrs.replace(
+    /(\ssrcset\s*=\s*["'])([^"']*)/gi,
+    (_m, lead, list) => `${lead}${String(list).replace(/(^|,\s*)\/(?!\/)/g, `$1${prefix}/`)}`,
+  );
+  if (/<base\s/i.test(withSrcset)) return withSrcset;
+  return withSrcset.replace(/<head(\s[^>]*)?>/i, (m) => `${m}<base href="${prefix}/">`);
+}
+
+export function rewritePreviewCss(css: string, prefix: string): string {
+  return css.replace(/url\(\s*(["']?)\/(?!\/)/gi, `url($1${prefix}/`);
+}

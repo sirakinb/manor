@@ -135,6 +135,13 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     state: z.string(),
     text: z.string(),
   }),
+  z.object({
+    /** A web app the bot is serving inside its computer; the UI opens it in the Preview pane. */
+    kind: z.literal("preview"),
+    port: z.number().int(),
+    path: z.string().optional(),
+    title: z.string().optional(),
+  }),
   z.object({ kind: z.literal("meta"), text: z.string() }),
   z.object({
     kind: z.literal("progress"),

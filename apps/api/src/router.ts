@@ -130,7 +130,7 @@ import {
 import { buildMcpUpdateMaterial } from "./mcp-material.js";
 import { chooseFocus, markAppConnected, startOnboarding } from "./onboarding.js";
 import { listSpaceRuns } from "./runs.js";
-import { addScreenProxyCapability } from "./screen-proxy.js";
+import { addPreviewProxyCapability, addScreenProxyCapability } from "./screen-proxy.js";
 import { querySpaceSearch } from "./search.js";
 import { withSerializableRetry } from "./serializable-retry.js";
 import {
@@ -1933,6 +1933,39 @@ export function createRouter(deps: RouterDeps) {
             deps.env.webOrigin,
             undefined,
             { proxyExternal: bot.computer.kind === "box" },
+          ),
+        };
+      }),
+      previewUrl: authed.computer.previewUrl.handler(async ({ context, input }) => {
+        const bot = await repos.getBot(context.actor, input.botId);
+        const computer = bot.computer;
+        if (!computer?.providerRef || computer.state !== "running" || computer.kind !== "docker") {
+          return { url: null };
+        }
+        // The app port lives on the same host as the screen; reuse the screen
+        // session to learn that host instead of teaching providers a new call.
+        const session = await deps.sandbox
+          .connectScreen(
+            toComputerRef(computer),
+            { view: "stream", interactive: false },
+            await computerScreenContext(deps.prisma, context.actor, computer.id, bot.id, "preview"),
+          )
+          .catch(() => null);
+        if (!session?.url) return { url: null };
+        let hostname: string;
+        try {
+          hostname = new URL(session.url).hostname;
+        } catch {
+          return { url: null };
+        }
+        if (!hostname) return { url: null };
+        scheduleComputerSleep(deps.jobs, computer.id);
+        return {
+          url: addPreviewProxyCapability(
+            { hostname, port: input.port },
+            deps.env.screenProxySecret,
+            deps.env.webOrigin,
+            input.path ?? "/",
           ),
         };
       }),

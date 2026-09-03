@@ -84,6 +84,7 @@ import {
   Copy,
   Cpu,
   Gauge,
+  Globe,
   Lock,
   LogOut,
   Maximize2,
@@ -245,6 +246,7 @@ const KnowledgeSection = lazy(() =>
 
 type Panel =
   | "computer"
+  | "preview"
   | "settings"
   | "routine"
   | "create"
@@ -485,6 +487,15 @@ export function ShellPage() {
   const [routineError, setRoutineError] = useState<string | null>(null);
   const [screenUrl, setScreenUrl] = useState<string | null>(null);
   const [computerOpen, setComputerOpen] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<{
+    botId: string;
+    messageId: string;
+    port: number;
+    path?: string;
+    title?: string;
+  } | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const lastPreviewMessage = useRef<string | null>(null);
   const [, setComputerError] = useState<string | null>(null);
   useEffect(() => {
     if (!session.data?.user) return;
@@ -2386,6 +2397,72 @@ export function ShellPage() {
     }
   }
 
+  const activePreview = active && previewTarget?.botId === active.id ? previewTarget : null;
+  // Mint a fresh signed preview link while the pane is open; links expire after an hour.
+  useEffect(() => {
+    if (panel !== "preview" || !activePreview || computer?.state !== "running") {
+      setPreviewUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const mint = () => {
+      void rpc.computer
+        .previewUrl({
+          botId: activePreview.botId,
+          port: activePreview.port,
+          ...(activePreview.path ? { path: activePreview.path } : {}),
+        })
+        .then((result) => {
+          if (!cancelled) setPreviewUrl(result.url);
+        })
+        .catch(() => {
+          if (!cancelled) setPreviewUrl(null);
+        });
+    };
+    mint();
+    const timer = setInterval(mint, 45 * 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [panel, activePreview, computer?.state]);
+  // A bot calling share_preview opens the pane; older previews stay one click away.
+  useEffect(() => {
+    const messages = snapshot?.messages;
+    if (!messages || !active || (snapshot?.botId && snapshot.botId !== active.id)) return;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index]!;
+      if (message.role !== "bot") continue;
+      const block = message.blocks.find((item) => item.kind === "preview");
+      if (!block || block.kind !== "preview") continue;
+      if (lastPreviewMessage.current === message.id) return;
+      lastPreviewMessage.current = message.id;
+      setPreviewTarget({
+        botId: active.id,
+        messageId: message.id,
+        port: block.port,
+        ...(block.path ? { path: block.path } : {}),
+        ...(block.title ? { title: block.title } : {}),
+      });
+      if (Date.now() - new Date(message.createdAt).getTime() < 5 * 60_000) setPanel("preview");
+      return;
+    }
+  }, [snapshot?.messages, snapshot?.botId, active]);
+  const openPreview = useCallback(
+    (block: { port: number; path?: string; title?: string }, messageId: string) => {
+      if (!active) return;
+      lastPreviewMessage.current = messageId;
+      setPreviewTarget({
+        botId: active.id,
+        messageId,
+        port: block.port,
+        ...(block.path ? { path: block.path } : {}),
+        ...(block.title ? { title: block.title } : {}),
+      });
+      setPanel("preview");
+    },
+    [active],
+  );
   const embeddedScreenUrl = embeddableScreenUrl(screenUrl);
   const hasControl = userHoldsComputerControl(computer, active?.id);
 
@@ -3144,6 +3221,7 @@ export function ShellPage() {
               onRefresh={refreshActiveThread}
               onBotChanged={refreshBots}
               onAddRoutine={addSkillRoutine}
+              onOpenPreview={openPreview}
               voiceReady={Boolean(voiceStatus?.ready)}
               speakingMessageId={speakingMessageId}
               onSpeak={speakMessage}
@@ -3231,6 +3309,8 @@ export function ShellPage() {
                 <span className="text-[13.5px] text-[#85858A]">
                   {panel === "settings" ? (
                     <Trans>Settings</Trans>
+                  ) : panel === "preview" ? (
+                    <Trans>Preview</Trans>
                   ) : active ? (
                     (computer?.state ?? active.status)
                   ) : (
@@ -3238,6 +3318,20 @@ export function ShellPage() {
                   )}
                 </span>
                 <div className="flex gap-3.5">
+                  {active && activePreview ? (
+                    <button
+                      type="button"
+                      aria-label={panel === "preview" ? t`Show computer` : t`Show preview`}
+                      onClick={() => setPanel(panel === "preview" ? "computer" : "preview")}
+                      className={
+                        panel === "preview"
+                          ? "text-[#ECECEE]"
+                          : "text-[#85858A] hover:text-[#ECECEE]"
+                      }
+                    >
+                      <Globe size={16} strokeWidth={1.7} />
+                    </button>
+                  ) : null}
                   {active ? (
                     <button
                       type="button"
@@ -3255,6 +3349,46 @@ export function ShellPage() {
                   <button type="button" aria-label={t`Close panel`} onClick={() => setPanel(null)}>
                     <X size={16} strokeWidth={1.8} />
                   </button>
+                </div>
+              </div>
+            ) : null}
+            {panel === "preview" && active && activePreview ? (
+              <div>
+                <div
+                  data-testid="app-preview"
+                  className="relative aspect-[3/4] overflow-hidden rounded-[14px] bg-[#0E0E10]"
+                >
+                  {computer?.state === "running" && previewUrl ? (
+                    <iframe
+                      title={activePreview.title || t`App preview`}
+                      src={previewUrl}
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                      className="h-full w-full border-0 bg-white"
+                    />
+                  ) : (
+                    <div className="grid h-full place-items-center px-6 text-center text-sm text-[#6C6C70]">
+                      {computer?.state === "running" ? (
+                        <Trans>Connecting to the preview…</Trans>
+                      ) : (
+                        <Trans>Start the computer to load the preview.</Trans>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="truncate text-[13.5px] text-[#85858A]" dir="auto">
+                    {activePreview.title || t`Port ${activePreview.port}`}
+                  </p>
+                  {previewUrl ? (
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 text-[13px] text-[#A855F7] hover:underline"
+                    >
+                      <Trans>Open in new tab</Trans>
+                    </a>
+                  ) : null}
                 </div>
               </div>
             ) : null}
@@ -4024,6 +4158,7 @@ const Transcript = memo(function Transcript({
   onRefresh,
   onBotChanged,
   onAddRoutine,
+  onOpenPreview,
   voiceReady,
   speakingMessageId,
   onSpeak,
@@ -4049,6 +4184,10 @@ const Transcript = memo(function Transcript({
   onRefresh: () => Promise<void>;
   onBotChanged: () => Promise<void>;
   onAddRoutine: (name: string, prompt: string) => void;
+  onOpenPreview?: (
+    block: { port: number; path?: string; title?: string },
+    messageId: string,
+  ) => void;
   voiceReady: boolean;
   speakingMessageId: string | null;
   onSpeak: (message: ThreadMessage) => void;
@@ -4221,6 +4360,7 @@ const Transcript = memo(function Transcript({
                 onRefresh={onRefresh}
                 onBotChanged={onBotChanged}
                 onAddRoutine={onAddRoutine}
+                onOpenPreview={onOpenPreview}
                 voiceReady={voiceReady}
                 speaking={speakingMessageId === message.id}
                 onSpeak={() => onSpeak(message)}
@@ -5223,6 +5363,7 @@ const MessageView = memo(function MessageView({
   onRefresh,
   onBotChanged,
   onAddRoutine,
+  onOpenPreview,
   voiceReady,
   speaking,
   onSpeak,
@@ -5242,6 +5383,10 @@ const MessageView = memo(function MessageView({
   onRefresh: () => Promise<void>;
   onBotChanged: () => Promise<void>;
   onAddRoutine: (name: string, prompt: string) => void;
+  onOpenPreview?: (
+    block: { port: number; path?: string; title?: string },
+    messageId: string,
+  ) => void;
   voiceReady: boolean;
   speaking: boolean;
   onSpeak: () => void;
@@ -5622,6 +5767,33 @@ const MessageView = memo(function MessageView({
           return (
             <div key={i} className="flex justify-start">
               <SkillDraftCard block={block} onRefresh={onRefresh} onAddRoutine={onAddRoutine} />
+            </div>
+          );
+        }
+        if (block.kind === "preview") {
+          return (
+            <div
+              key={i}
+              className="w-[340px] rounded-[18px] border border-[#232326] bg-[#17171A] px-[18px] py-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[15px] font-medium text-[#ECECEE]">
+                    <Trans>Preview</Trans>
+                  </div>
+                  <div className="truncate text-[13px] text-[#85858A]" dir="auto">
+                    {block.title || t`Port ${block.port}`}
+                    {block.path ? ` · ${block.path}` : ""}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenPreview?.(block, message.id)}
+                  className="shrink-0 rounded-full bg-[rgba(168,85,247,.16)] px-3.5 py-1.5 text-[13px] text-[#C084FC] hover:bg-[rgba(168,85,247,.26)]"
+                >
+                  <Trans>Open</Trans>
+                </button>
+              </div>
             </div>
           );
         }

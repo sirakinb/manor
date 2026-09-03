@@ -3,6 +3,8 @@ import { createCipheriv, createHash, createHmac, randomBytes } from "node:crypto
 const SCREEN_PROXY_TTL_MS = 60 * 60_000;
 const SCREEN_PROXY_CIPHER = "aes-256-gcm";
 const SCREEN_PROXY_REMOTE_PREFIX = "/novnc/remote";
+const PREVIEW_PROXY_PREFIX = "/preview";
+const PREVIEW_POLICY = "app";
 
 export interface ScreenProxyOptions {
   /** Keep provider desktop secrets server-side and enforce the view/control policy in the proxy. */
@@ -55,4 +57,26 @@ function sealScreenTarget(
 
 function screenProxyKey(secret: string) {
   return createHash("sha256").update(secret).digest();
+}
+
+/**
+ * Signed capability for an app port inside a bot's computer (a dev server, a
+ * static site). Same HMAC scheme as the screen proxy but a distinct policy, so
+ * a screen capability can never be replayed against an app port or vice versa.
+ */
+export function addPreviewProxyCapability(
+  target: { hostname: string; port: number },
+  secret: string,
+  proxyOrigin: string,
+  requestPath = "/",
+  now = Date.now(),
+): string {
+  const expiresAt = now + SCREEN_PROXY_TTL_MS;
+  const host = Buffer.from(target.hostname).toString("base64url");
+  const signature = createHmac("sha256", secret)
+    .update(`${target.hostname}:${target.port}:${PREVIEW_POLICY}:${expiresAt}`)
+    .digest("base64url");
+  const origin = new URL(proxyOrigin).origin;
+  const path = requestPath.startsWith("/") ? requestPath : `/${requestPath}`;
+  return `${origin}${PREVIEW_PROXY_PREFIX}/${host}/${target.port}/${expiresAt}.${signature}${path}`;
 }

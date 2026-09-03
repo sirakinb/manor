@@ -524,6 +524,15 @@ export const appContract = {
       )
       .output(z.object({ path: z.string() })),
     screenUrl: oc.input(botId).output(z.object({ url: z.string().nullable() })),
+    previewUrl: oc
+      .input(
+        z.object({
+          botId: Id,
+          port: z.number().int().min(1024).max(65_535),
+          path: z.string().max(2000).optional(),
+        }),
+      )
+      .output(z.object({ url: z.string().nullable() })),
     heartbeat: oc.input(botId).output(z.object({ ok: z.literal(true) })),
   },
   memory: {
