@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { authClient } from "../lib/auth";
 import { brand, brandName } from "../lib/brand";
 import { clearSpaceSelection } from "../lib/rpc";
@@ -100,7 +101,16 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           alt=""
           className={brand.logo.wide ? "h-12 w-auto" : "h-[74px] w-[74px]"}
         />
-        <h1 className="rk-serif mb-[38px] mt-[30px] text-center text-[38px]">{title}</h1>
+        {brand.id === "manor" ? (
+          <div className="mt-5 w-[300px]">
+            <ParticleWordmark text="MANOR" fontSize={40} gap={2} label="Manor" />
+          </div>
+        ) : null}
+        <h1
+          className={`rk-serif mb-[38px] text-center text-[38px] ${brand.id === "manor" ? "mt-3" : "mt-[30px]"}`}
+        >
+          {title}
+        </h1>
         {sent ? (
           <div role="status" className="w-full text-center">
             <p className="text-[17px] text-[#F1F0F3]">

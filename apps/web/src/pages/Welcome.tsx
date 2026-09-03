@@ -1,5 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
+import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
+import { brand } from "../lib/brand";
 import { WindowChrome } from "./WindowChrome";
 
 export function WelcomePage() {
@@ -47,6 +49,14 @@ export function WelcomePage() {
       </header>
 
       <main className="relative z-10 flex min-h-[calc(100dvh-108px)] flex-col justify-end px-5 pb-24 sm:px-8 sm:pb-36">
+        {brand.id === "manor" ? (
+          <div
+            aria-hidden="true"
+            className="lp-wordmark absolute top-[15%] left-1/2 w-[min(720px,88vw)] -translate-x-1/2 sm:top-[17%]"
+          >
+            <ParticleWordmark text="MANOR" fontSize={112} gap={3} label="Manor" />
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => setDemoOpen(true)}

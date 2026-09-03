@@ -277,3 +277,11 @@ body,
     animation: none;
   }
 }
+
+.lp-wordmark {
+  pointer-events: none;
+  filter: drop-shadow(0 0 18px rgba(168, 85, 247, 0.28));
+}
+.lp-wordmark canvas {
+  pointer-events: auto;
+}

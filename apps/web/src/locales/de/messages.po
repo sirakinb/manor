@@ -431,7 +431,7 @@ msgstr "Kaufaktionen ohne Nachfrage erlauben"
 msgid "Allowed once"
 msgstr "Einmal erlaubt"
 
-#: src/pages/Auth.tsx:245
+#: src/pages/Auth.tsx:255
 msgid "Already have an account?"
 msgstr "Du hast bereits ein Konto?"
 
@@ -627,9 +627,9 @@ msgstr "Ø Dealgröße"
 msgid "Back"
 msgstr "Zurück"
 
-#: src/pages/Auth.tsx:113
-#: src/pages/Auth.tsx:252
-#: src/pages/Auth.tsx:344
+#: src/pages/Auth.tsx:123
+#: src/pages/Auth.tsx:262
+#: src/pages/Auth.tsx:354
 msgid "Back to sign in"
 msgstr "Zurück zur Anmeldung"
 
@@ -646,7 +646,7 @@ msgstr ""
 msgid "Bearer token"
 msgstr "Bearer-Token"
 
-#: src/pages/Welcome.tsx:45
+#: src/pages/Welcome.tsx:47
 msgid "Book demo"
 msgstr "Demo buchen"
 
@@ -787,7 +787,7 @@ msgstr "Nach Updates suchen"
 msgid "Check in."
 msgstr "Melde dich."
 
-#: src/pages/Auth.tsx:107
+#: src/pages/Auth.tsx:117
 msgid "Check your email"
 msgstr "Prüfe deine E-Mails"
 
@@ -807,7 +807,7 @@ msgstr "Der Checkout hat lokale Änderungen. Bereinige ihn vor dem Update."
 msgid "Choose a bot…"
 msgstr ""
 
-#: src/pages/Auth.tsx:305
+#: src/pages/Auth.tsx:315
 msgid "Choose a new password"
 msgstr "Wähle ein neues Passwort"
 
@@ -860,8 +860,8 @@ msgstr "Diagramm schließen"
 msgid "Close computer"
 msgstr "Computer schließen"
 
-#: src/pages/Welcome.tsx:115
-#: src/pages/Welcome.tsx:142
+#: src/pages/Welcome.tsx:125
+#: src/pages/Welcome.tsx:152
 msgid "Close demo"
 msgstr "Demo schließen"
 
@@ -990,7 +990,7 @@ msgid "Confirm delete"
 msgstr "Löschen bestätigen"
 
 #: src/pages/AccountSettingsOverlay.tsx:320
-#: src/pages/Auth.tsx:326
+#: src/pages/Auth.tsx:336
 msgid "Confirm password"
 msgstr "Passwort bestätigen"
 
@@ -1108,7 +1108,7 @@ msgstr "Kontakte"
 msgid "Continue"
 msgstr "Weiter"
 
-#: src/pages/Auth.tsx:228
+#: src/pages/Auth.tsx:238
 msgid "Continue with email"
 msgstr "Mit E-Mail fortfahren"
 
@@ -1209,7 +1209,7 @@ msgstr "Anbieter konnte nicht verbunden werden"
 msgid "Could not connect this voice provider"
 msgstr "Stimmanbieter konnte nicht verbunden werden"
 
-#: src/pages/Auth.tsx:83
+#: src/pages/Auth.tsx:84
 msgid "Could not continue"
 msgstr "Fortfahren fehlgeschlagen"
 
@@ -1339,8 +1339,8 @@ msgid "Could not play a test clip"
 msgstr "Testclip konnte nicht abgespielt werden"
 
 #: src/pages/AccountSettingsOverlay.tsx:295
-#: src/pages/Auth.tsx:89
-#: src/pages/Auth.tsx:291
+#: src/pages/Auth.tsx:90
+#: src/pages/Auth.tsx:301
 msgid "Could not reach the server"
 msgstr "Server konnte nicht erreicht werden"
 
@@ -1377,7 +1377,7 @@ msgstr "Webhook konnte nicht entfernt werden"
 msgid "Could not render chart"
 msgstr "Diagramm konnte nicht angezeigt werden"
 
-#: src/pages/Auth.tsx:286
+#: src/pages/Auth.tsx:296
 msgid "Could not reset password"
 msgstr "Passwort konnte nicht zurückgesetzt werden"
 
@@ -1438,7 +1438,7 @@ msgstr "Stimme konnte nicht gespeichert werden"
 msgid "Could not save this choice"
 msgstr "Diese Auswahl konnte nicht gespeichert werden"
 
-#: src/pages/Auth.tsx:68
+#: src/pages/Auth.tsx:69
 msgid "Could not send reset email"
 msgstr "E-Mail zum Zurücksetzen konnte nicht gesendet werden"
 
@@ -1512,7 +1512,7 @@ msgstr "Erstellen"
 msgid "Create a section and move {0} into it."
 msgstr "Erstelle einen Abschnitt und verschiebe {0} dorthin."
 
-#: src/pages/Auth.tsx:232
+#: src/pages/Auth.tsx:242
 msgid "Create account"
 msgstr "Konto erstellen"
 
@@ -1534,7 +1534,7 @@ msgstr "Space erstellen"
 msgid "Create token"
 msgstr "Token erstellen"
 
-#: src/pages/Auth.tsx:30
+#: src/pages/Auth.tsx:31
 msgid "Create your {brandName} account"
 msgstr "Erstelle dein {brandName}-Konto"
 
@@ -1542,7 +1542,7 @@ msgstr "Erstelle dein {brandName}-Konto"
 msgid "Create your first bot"
 msgstr "Ersten Bot erstellen"
 
-#: src/pages/Auth.tsx:28
+#: src/pages/Auth.tsx:29
 msgid "Create your Manor"
 msgstr "Erstelle dein Manor"
 
@@ -1780,7 +1780,7 @@ msgstr "Dokumentation"
 msgid "Documentation ↗"
 msgstr "Dokumentation ↗"
 
-#: src/pages/Auth.tsx:238
+#: src/pages/Auth.tsx:248
 msgid "Don’t have an account?"
 msgstr "Du hast noch kein Konto?"
 
@@ -1845,7 +1845,7 @@ msgstr "Zuerst bearbeiten"
 msgid "Edit Profile"
 msgstr "Profil bearbeiten"
 
-#: src/pages/Auth.tsx:133
+#: src/pages/Auth.tsx:143
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
@@ -2013,7 +2013,7 @@ msgstr "Vorname"
 msgid "Flag unexpected actions"
 msgstr "Unerwartete Aktionen markieren"
 
-#: src/pages/Auth.tsx:209
+#: src/pages/Auth.tsx:219
 msgid "Forgot password?"
 msgstr "Passwort vergessen?"
 
@@ -2093,7 +2093,7 @@ msgstr "Hallo, so klinge ich, wenn ich Antworten vorlese."
 msgid "Hide live activity"
 msgstr "Live-Aktivität ausblenden"
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Hide password"
 msgstr "Passwort verbergen"
 
@@ -2141,7 +2141,7 @@ msgstr "Ich bin fertig"
 msgid "Idempotency"
 msgstr "Idempotenz"
 
-#: src/pages/Auth.tsx:110
+#: src/pages/Auth.tsx:120
 msgid "If an account exists for that address, we sent a password reset link."
 msgstr "Wenn ein Konto mit dieser Adresse existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet."
 
@@ -2346,7 +2346,7 @@ msgstr ""
 msgid "Manage the Space semantic memory provider."
 msgstr "Verwalte den Anbieter für semantische Erinnerungen des Arbeitsbereichs."
 
-#: src/pages/Welcome.tsx:123
+#: src/pages/Welcome.tsx:133
 msgid "Manor demo"
 msgstr "Manor-Demo"
 
@@ -2538,7 +2538,7 @@ msgid "Move to"
 msgstr "Verschieben nach"
 
 #: src/components/teach/SkillDraftCard.tsx:82
-#: src/pages/Auth.tsx:120
+#: src/pages/Auth.tsx:130
 #: src/pages/crm/CrmContacts.tsx:129
 #: src/pages/crm/CrmView.tsx:65
 #: src/pages/GroupPanel.tsx:110
@@ -2602,7 +2602,7 @@ msgid "New open-work item"
 msgstr "Neuer offener Arbeitspunkt"
 
 #: src/pages/AccountSettingsOverlay.tsx:314
-#: src/pages/Auth.tsx:320
+#: src/pages/Auth.tsx:330
 msgid "New password"
 msgstr "Neues Passwort"
 
@@ -2944,22 +2944,22 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:253
 #: src/pages/AccountSettingsOverlay.tsx:304
-#: src/pages/Auth.tsx:149
-#: src/pages/Auth.tsx:158
+#: src/pages/Auth.tsx:159
+#: src/pages/Auth.tsx:168
 msgid "Password"
 msgstr "Passwort"
 
-#: src/pages/Auth.tsx:60
+#: src/pages/Auth.tsx:61
 msgid "Password recovery is not configured for this server"
 msgstr "Die Passwortwiederherstellung ist für diesen Server nicht konfiguriert"
 
 #: src/pages/AccountSettingsOverlay.tsx:339
-#: src/pages/Auth.tsx:310
+#: src/pages/Auth.tsx:320
 msgid "Password updated"
 msgstr "Passwort aktualisiert"
 
 #: src/pages/AccountSettingsOverlay.tsx:274
-#: src/pages/Auth.tsx:278
+#: src/pages/Auth.tsx:288
 msgid "Passwords do not match"
 msgstr "Die Passwörter stimmen nicht überein"
 
@@ -3249,11 +3249,11 @@ msgstr "Computer zurücksetzen"
 msgid "Reset computer?"
 msgstr "Computer zurücksetzen?"
 
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:351
 msgid "Reset password"
 msgstr "Passwort zurücksetzen"
 
-#: src/pages/Auth.tsx:33
+#: src/pages/Auth.tsx:34
 msgid "Reset your password"
 msgstr "Setze dein Passwort zurück"
 
@@ -3455,7 +3455,7 @@ msgstr "Antwort senden"
 msgid "Send it"
 msgstr "Senden"
 
-#: src/pages/Auth.tsx:230
+#: src/pages/Auth.tsx:240
 msgid "Send reset link"
 msgstr "Link zum Zurücksetzen senden"
 
@@ -3542,7 +3542,7 @@ msgstr "Computer anzeigen"
 msgid "Show live activity"
 msgstr "Live-Aktivität anzeigen"
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Show password"
 msgstr "Passwort anzeigen"
 
@@ -3555,18 +3555,18 @@ msgid "Show settings"
 msgstr "Einstellungen anzeigen"
 
 #: src/lib/localized-provider-hint.ts:7
-#: src/pages/Auth.tsx:247
-#: src/pages/Auth.tsx:313
+#: src/pages/Auth.tsx:257
+#: src/pages/Auth.tsx:323
 #: src/pages/ModelSettingsOverlay.tsx:619
 #: src/pages/Onboarding.tsx:105
 msgid "Sign in"
 msgstr "Anmelden"
 
-#: src/pages/Auth.tsx:25
+#: src/pages/Auth.tsx:26
 msgid "Sign in to {brandName}"
 msgstr "Bei {brandName} anmelden"
 
-#: src/pages/Auth.tsx:240
+#: src/pages/Auth.tsx:250
 msgid "Sign up"
 msgstr "Registrieren"
 
@@ -3859,7 +3859,7 @@ msgstr "Dies entfernt dauerhaft alle Nachrichten und stoppt laufende Arbeit. Der
 msgid "This provider cannot paste a key here. Skip if this deployment already has credentials."
 msgstr "Bei diesem Anbieter kann hier kein Schlüssel eingefügt werden. Überspringe diesen Schritt, wenn die Bereitstellung bereits Zugangsdaten enthält."
 
-#: src/pages/Auth.tsx:270
+#: src/pages/Auth.tsx:280
 msgid "This reset link is invalid or expired"
 msgstr "Dieser Link zum Zurücksetzen ist ungültig oder abgelaufen"
 
@@ -4081,7 +4081,7 @@ msgstr "Warte darauf, dass die API zurückkommt…"
 msgid "Waiting…"
 msgstr "Warten…"
 
-#: src/pages/Welcome.tsx:61
+#: src/pages/Welcome.tsx:71
 msgid "Watch it work"
 msgstr "Sieh zu, wie es arbeitet"
 
@@ -4169,8 +4169,8 @@ msgstr "Gewonnener Umsatz"
 msgid "Working"
 msgstr ""
 
-#: src/pages/Auth.tsx:226
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:236
+#: src/pages/Auth.tsx:351
 #: src/pages/CallView.tsx:244
 #: src/pages/Shell.tsx:5563
 msgid "Working…"
@@ -4203,7 +4203,7 @@ msgstr "Du kannst dieses Fenster schließen."
 msgid "You have control"
 msgstr "Du hast die Kontrolle"
 
-#: src/pages/Auth.tsx:140
+#: src/pages/Auth.tsx:150
 msgid "Your email address"
 msgstr "Deine E-Mail-Adresse"
 
@@ -4211,10 +4211,10 @@ msgstr "Deine E-Mail-Adresse"
 msgid "Your key or subscription token is stored securely and is never shown here."
 msgstr "Dein Schlüssel oder Abonnementtoken wird sicher gespeichert und hier nie angezeigt."
 
-#: src/pages/Auth.tsx:127
+#: src/pages/Auth.tsx:137
 msgid "Your name"
 msgstr "Dein Name"
 
-#: src/pages/Welcome.tsx:65
+#: src/pages/Welcome.tsx:75
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "Dein Team aus <0>Always-on-KI-Agenten</0>,<1/>denen du <2>echte Arbeit</2> geben kannst."

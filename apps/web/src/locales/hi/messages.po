@@ -431,7 +431,7 @@ msgstr "खरीद कार्रवाइयों को बिना प�
 msgid "Allowed once"
 msgstr "एक बार अनुमति दी गई"
 
-#: src/pages/Auth.tsx:245
+#: src/pages/Auth.tsx:255
 msgid "Already have an account?"
 msgstr "पहले से खाता है?"
 
@@ -627,9 +627,9 @@ msgstr "औसत डील आकार"
 msgid "Back"
 msgstr "वापस"
 
-#: src/pages/Auth.tsx:113
-#: src/pages/Auth.tsx:252
-#: src/pages/Auth.tsx:344
+#: src/pages/Auth.tsx:123
+#: src/pages/Auth.tsx:262
+#: src/pages/Auth.tsx:354
 msgid "Back to sign in"
 msgstr "साइन इन पर वापस जाएँ"
 
@@ -646,7 +646,7 @@ msgstr ""
 msgid "Bearer token"
 msgstr "बियरर टोकन"
 
-#: src/pages/Welcome.tsx:45
+#: src/pages/Welcome.tsx:47
 msgid "Book demo"
 msgstr "डेमो बुक करें"
 
@@ -787,7 +787,7 @@ msgstr "अपडेट जांचें"
 msgid "Check in."
 msgstr "जांच करें।"
 
-#: src/pages/Auth.tsx:107
+#: src/pages/Auth.tsx:117
 msgid "Check your email"
 msgstr "अपना ईमेल देखें"
 
@@ -807,7 +807,7 @@ msgstr "चेकआउट में स्थानीय बदलाव ह�
 msgid "Choose a bot…"
 msgstr ""
 
-#: src/pages/Auth.tsx:305
+#: src/pages/Auth.tsx:315
 msgid "Choose a new password"
 msgstr "नया पासवर्ड चुनें"
 
@@ -860,8 +860,8 @@ msgstr "चार्ट बंद करें"
 msgid "Close computer"
 msgstr "कंप्यूटर बंद करें"
 
-#: src/pages/Welcome.tsx:115
-#: src/pages/Welcome.tsx:142
+#: src/pages/Welcome.tsx:125
+#: src/pages/Welcome.tsx:152
 msgid "Close demo"
 msgstr "डेमो बंद करें"
 
@@ -990,7 +990,7 @@ msgid "Confirm delete"
 msgstr "डिलीट की पुष्टि करें"
 
 #: src/pages/AccountSettingsOverlay.tsx:320
-#: src/pages/Auth.tsx:326
+#: src/pages/Auth.tsx:336
 msgid "Confirm password"
 msgstr "पासवर्ड की पुष्टि करें"
 
@@ -1108,7 +1108,7 @@ msgstr "संपर्क"
 msgid "Continue"
 msgstr "जारी रखें"
 
-#: src/pages/Auth.tsx:228
+#: src/pages/Auth.tsx:238
 msgid "Continue with email"
 msgstr "ईमेल से जारी रखें"
 
@@ -1209,7 +1209,7 @@ msgstr "यह प्रोवाइडर कनेक्ट नहीं ह�
 msgid "Could not connect this voice provider"
 msgstr "यह आवाज़ प्रोवाइडर कनेक्ट नहीं हो सका"
 
-#: src/pages/Auth.tsx:83
+#: src/pages/Auth.tsx:84
 msgid "Could not continue"
 msgstr "जारी नहीं रखा जा सका"
 
@@ -1339,8 +1339,8 @@ msgid "Could not play a test clip"
 msgstr "टेस्ट क्लिप नहीं चलाई जा सकी"
 
 #: src/pages/AccountSettingsOverlay.tsx:295
-#: src/pages/Auth.tsx:89
-#: src/pages/Auth.tsx:291
+#: src/pages/Auth.tsx:90
+#: src/pages/Auth.tsx:301
 msgid "Could not reach the server"
 msgstr "सर्वर से संपर्क नहीं हो सका"
 
@@ -1377,7 +1377,7 @@ msgstr "वेबहुक हटाया नहीं जा सका"
 msgid "Could not render chart"
 msgstr "चार्ट रेंडर नहीं हो सका"
 
-#: src/pages/Auth.tsx:286
+#: src/pages/Auth.tsx:296
 msgid "Could not reset password"
 msgstr "पासवर्ड रीसेट नहीं किया जा सका"
 
@@ -1438,7 +1438,7 @@ msgstr "वह आवाज़ सहेजी नहीं जा सकी"
 msgid "Could not save this choice"
 msgstr "यह विकल्प सहेजा नहीं जा सका"
 
-#: src/pages/Auth.tsx:68
+#: src/pages/Auth.tsx:69
 msgid "Could not send reset email"
 msgstr "रीसेट ईमेल नहीं भेजा जा सका"
 
@@ -1512,7 +1512,7 @@ msgstr "बनाएं"
 msgid "Create a section and move {0} into it."
 msgstr "एक सेक्शन बनाएं और {0} को उसमें ले जाएं।"
 
-#: src/pages/Auth.tsx:232
+#: src/pages/Auth.tsx:242
 msgid "Create account"
 msgstr "खाता बनाएं"
 
@@ -1534,7 +1534,7 @@ msgstr "स्पेस बनाएं"
 msgid "Create token"
 msgstr "टोकन बनाएं"
 
-#: src/pages/Auth.tsx:30
+#: src/pages/Auth.tsx:31
 msgid "Create your {brandName} account"
 msgstr "अपना {brandName} खाता बनाएं"
 
@@ -1542,7 +1542,7 @@ msgstr "अपना {brandName} खाता बनाएं"
 msgid "Create your first bot"
 msgstr "अपना पहला बॉट बनाएं"
 
-#: src/pages/Auth.tsx:28
+#: src/pages/Auth.tsx:29
 msgid "Create your Manor"
 msgstr "अपना Manor बनाएं"
 
@@ -1780,7 +1780,7 @@ msgstr "दस्तावेज़ीकरण"
 msgid "Documentation ↗"
 msgstr "दस्तावेज़ीकरण ↗"
 
-#: src/pages/Auth.tsx:238
+#: src/pages/Auth.tsx:248
 msgid "Don’t have an account?"
 msgstr "खाता नहीं है?"
 
@@ -1845,7 +1845,7 @@ msgstr "पहले संपादित करें"
 msgid "Edit Profile"
 msgstr "प्रोफ़ाइल संपादित करें"
 
-#: src/pages/Auth.tsx:133
+#: src/pages/Auth.tsx:143
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
@@ -2013,7 +2013,7 @@ msgstr "पहला नाम"
 msgid "Flag unexpected actions"
 msgstr "अप्रत्याशित कार्रवाइयों को चिह्नित करें"
 
-#: src/pages/Auth.tsx:209
+#: src/pages/Auth.tsx:219
 msgid "Forgot password?"
 msgstr "पासवर्ड भूल गए?"
 
@@ -2093,7 +2093,7 @@ msgstr "नमस्ते, उत्तर पढ़कर सुनाते �
 msgid "Hide live activity"
 msgstr "लाइव गतिविधि छिपाएं"
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Hide password"
 msgstr "पासवर्ड छिपाएं"
 
@@ -2141,7 +2141,7 @@ msgstr "मेरा काम हो गया"
 msgid "Idempotency"
 msgstr "आइडेम्पोटेंसी"
 
-#: src/pages/Auth.tsx:110
+#: src/pages/Auth.tsx:120
 msgid "If an account exists for that address, we sent a password reset link."
 msgstr "यदि उस पते के लिए कोई खाता मौजूद है, तो हमने पासवर्ड रीसेट लिंक भेज दिया है।"
 
@@ -2346,7 +2346,7 @@ msgstr ""
 msgid "Manage the Space semantic memory provider."
 msgstr "वर्कस्पेस के सिमेंटिक मेमोरी प्रोवाइडर को प्रबंधित करें।"
 
-#: src/pages/Welcome.tsx:123
+#: src/pages/Welcome.tsx:133
 msgid "Manor demo"
 msgstr "Manor डेमो"
 
@@ -2538,7 +2538,7 @@ msgid "Move to"
 msgstr "यहां ले जाएं"
 
 #: src/components/teach/SkillDraftCard.tsx:82
-#: src/pages/Auth.tsx:120
+#: src/pages/Auth.tsx:130
 #: src/pages/crm/CrmContacts.tsx:129
 #: src/pages/crm/CrmView.tsx:65
 #: src/pages/GroupPanel.tsx:110
@@ -2602,7 +2602,7 @@ msgid "New open-work item"
 msgstr "नया खुला-कार्य आइटम"
 
 #: src/pages/AccountSettingsOverlay.tsx:314
-#: src/pages/Auth.tsx:320
+#: src/pages/Auth.tsx:330
 msgid "New password"
 msgstr "नया पासवर्ड"
 
@@ -2944,22 +2944,22 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:253
 #: src/pages/AccountSettingsOverlay.tsx:304
-#: src/pages/Auth.tsx:149
-#: src/pages/Auth.tsx:158
+#: src/pages/Auth.tsx:159
+#: src/pages/Auth.tsx:168
 msgid "Password"
 msgstr "पासवर्ड"
 
-#: src/pages/Auth.tsx:60
+#: src/pages/Auth.tsx:61
 msgid "Password recovery is not configured for this server"
 msgstr "इस सर्वर के लिए पासवर्ड पुनर्प्राप्ति कॉन्फ़िगर नहीं है"
 
 #: src/pages/AccountSettingsOverlay.tsx:339
-#: src/pages/Auth.tsx:310
+#: src/pages/Auth.tsx:320
 msgid "Password updated"
 msgstr "पासवर्ड अपडेट हो गया"
 
 #: src/pages/AccountSettingsOverlay.tsx:274
-#: src/pages/Auth.tsx:278
+#: src/pages/Auth.tsx:288
 msgid "Passwords do not match"
 msgstr "पासवर्ड मेल नहीं खाते"
 
@@ -3249,11 +3249,11 @@ msgstr "कंप्यूटर रीसेट करें"
 msgid "Reset computer?"
 msgstr "कंप्यूटर रीसेट करें?"
 
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:351
 msgid "Reset password"
 msgstr "पासवर्ड रीसेट करें"
 
-#: src/pages/Auth.tsx:33
+#: src/pages/Auth.tsx:34
 msgid "Reset your password"
 msgstr "अपना पासवर्ड रीसेट करें"
 
@@ -3455,7 +3455,7 @@ msgstr "उत्तर भेजें"
 msgid "Send it"
 msgstr "इसे भेजें"
 
-#: src/pages/Auth.tsx:230
+#: src/pages/Auth.tsx:240
 msgid "Send reset link"
 msgstr "रीसेट लिंक भेजें"
 
@@ -3542,7 +3542,7 @@ msgstr "कंप्यूटर दिखाएं"
 msgid "Show live activity"
 msgstr "लाइव गतिविधि दिखाएं"
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Show password"
 msgstr "पासवर्ड दिखाएं"
 
@@ -3555,18 +3555,18 @@ msgid "Show settings"
 msgstr "सेटिंग्स दिखाएं"
 
 #: src/lib/localized-provider-hint.ts:7
-#: src/pages/Auth.tsx:247
-#: src/pages/Auth.tsx:313
+#: src/pages/Auth.tsx:257
+#: src/pages/Auth.tsx:323
 #: src/pages/ModelSettingsOverlay.tsx:619
 #: src/pages/Onboarding.tsx:105
 msgid "Sign in"
 msgstr "साइन इन करें"
 
-#: src/pages/Auth.tsx:25
+#: src/pages/Auth.tsx:26
 msgid "Sign in to {brandName}"
 msgstr "{brandName} में साइन इन करें"
 
-#: src/pages/Auth.tsx:240
+#: src/pages/Auth.tsx:250
 msgid "Sign up"
 msgstr "साइन अप करें"
 
@@ -3859,7 +3859,7 @@ msgstr "यह सभी संदेशों को स्थायी रू�
 msgid "This provider cannot paste a key here. Skip if this deployment already has credentials."
 msgstr "यह प्रोवाइडर यहां कुंजी पेस्ट नहीं कर सकता। यदि इस डिप्लॉयमेंट में पहले से क्रेडेंशियल हैं तो छोड़ दें।"
 
-#: src/pages/Auth.tsx:270
+#: src/pages/Auth.tsx:280
 msgid "This reset link is invalid or expired"
 msgstr "यह रीसेट लिंक अमान्य है या इसकी समय-सीमा समाप्त हो गई है"
 
@@ -4081,7 +4081,7 @@ msgstr "API के लौटने की प्रतीक्षा हो र
 msgid "Waiting…"
 msgstr "प्रतीक्षा…"
 
-#: src/pages/Welcome.tsx:61
+#: src/pages/Welcome.tsx:71
 msgid "Watch it work"
 msgstr "इसे काम करते देखें"
 
@@ -4169,8 +4169,8 @@ msgstr "जीता हुआ राजस्व"
 msgid "Working"
 msgstr ""
 
-#: src/pages/Auth.tsx:226
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:236
+#: src/pages/Auth.tsx:351
 #: src/pages/CallView.tsx:244
 #: src/pages/Shell.tsx:5563
 msgid "Working…"
@@ -4203,7 +4203,7 @@ msgstr "आप यह विंडो बंद कर सकते हैं।
 msgid "You have control"
 msgstr "नियंत्रण आपके पास है"
 
-#: src/pages/Auth.tsx:140
+#: src/pages/Auth.tsx:150
 msgid "Your email address"
 msgstr "आपका ईमेल पता"
 
@@ -4211,10 +4211,10 @@ msgstr "आपका ईमेल पता"
 msgid "Your key or subscription token is stored securely and is never shown here."
 msgstr "आपकी कुंजी या सब्सक्रिप्शन टोकन सुरक्षित रूप से संग्रहीत है और यहां कभी नहीं दिखाया जाता।"
 
-#: src/pages/Auth.tsx:127
+#: src/pages/Auth.tsx:137
 msgid "Your name"
 msgstr "आपका नाम"
 
-#: src/pages/Welcome.tsx:65
+#: src/pages/Welcome.tsx:75
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>हमेशा सक्रिय AI एजेंटों</0> की आपकी टीम,<1/>जिसे आप <2>असली काम</2> सौंप सकते हैं।"

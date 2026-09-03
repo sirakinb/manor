@@ -431,7 +431,7 @@ msgstr "Satın alma işlemlerine sormadan izin ver"
 msgid "Allowed once"
 msgstr "Bir kez izin verildi"
 
-#: src/pages/Auth.tsx:245
+#: src/pages/Auth.tsx:255
 msgid "Already have an account?"
 msgstr "Zaten hesabın var mı?"
 
@@ -627,9 +627,9 @@ msgstr "Ort. fırsat büyüklüğü"
 msgid "Back"
 msgstr "Geri"
 
-#: src/pages/Auth.tsx:113
-#: src/pages/Auth.tsx:252
-#: src/pages/Auth.tsx:344
+#: src/pages/Auth.tsx:123
+#: src/pages/Auth.tsx:262
+#: src/pages/Auth.tsx:354
 msgid "Back to sign in"
 msgstr "Oturum açmaya geri dön"
 
@@ -646,7 +646,7 @@ msgstr ""
 msgid "Bearer token"
 msgstr "Bearer token"
 
-#: src/pages/Welcome.tsx:45
+#: src/pages/Welcome.tsx:47
 msgid "Book demo"
 msgstr "Demo planla"
 
@@ -787,7 +787,7 @@ msgstr "Güncellemeleri kontrol et"
 msgid "Check in."
 msgstr "Durum bildir."
 
-#: src/pages/Auth.tsx:107
+#: src/pages/Auth.tsx:117
 msgid "Check your email"
 msgstr "E-postanızı kontrol edin"
 
@@ -807,7 +807,7 @@ msgstr "Çalışma kopyasında yerel değişiklikler var. Güncellemeden önce t
 msgid "Choose a bot…"
 msgstr ""
 
-#: src/pages/Auth.tsx:305
+#: src/pages/Auth.tsx:315
 msgid "Choose a new password"
 msgstr "Yeni bir parola seçin"
 
@@ -860,8 +860,8 @@ msgstr "Grafiği kapat"
 msgid "Close computer"
 msgstr "Bilgisayarı kapat"
 
-#: src/pages/Welcome.tsx:115
-#: src/pages/Welcome.tsx:142
+#: src/pages/Welcome.tsx:125
+#: src/pages/Welcome.tsx:152
 msgid "Close demo"
 msgstr "Demoyu kapat"
 
@@ -990,7 +990,7 @@ msgid "Confirm delete"
 msgstr "Silmeyi onayla"
 
 #: src/pages/AccountSettingsOverlay.tsx:320
-#: src/pages/Auth.tsx:326
+#: src/pages/Auth.tsx:336
 msgid "Confirm password"
 msgstr "Parolayı doğrulayın"
 
@@ -1108,7 +1108,7 @@ msgstr "Kişiler"
 msgid "Continue"
 msgstr "Devam"
 
-#: src/pages/Auth.tsx:228
+#: src/pages/Auth.tsx:238
 msgid "Continue with email"
 msgstr "E-posta ile devam et"
 
@@ -1209,7 +1209,7 @@ msgstr "Bu sağlayıcı bağlanamadı"
 msgid "Could not connect this voice provider"
 msgstr "Bu ses sağlayıcısı bağlanamadı"
 
-#: src/pages/Auth.tsx:83
+#: src/pages/Auth.tsx:84
 msgid "Could not continue"
 msgstr "Devam edilemedi"
 
@@ -1339,8 +1339,8 @@ msgid "Could not play a test clip"
 msgstr "Deneme sesi çalınamadı"
 
 #: src/pages/AccountSettingsOverlay.tsx:295
-#: src/pages/Auth.tsx:89
-#: src/pages/Auth.tsx:291
+#: src/pages/Auth.tsx:90
+#: src/pages/Auth.tsx:301
 msgid "Could not reach the server"
 msgstr "Sunucuya ulaşılamadı"
 
@@ -1377,7 +1377,7 @@ msgstr "Webhook kaldırılamadı"
 msgid "Could not render chart"
 msgstr "Grafik çizilemedi"
 
-#: src/pages/Auth.tsx:286
+#: src/pages/Auth.tsx:296
 msgid "Could not reset password"
 msgstr "Parola sıfırlanamadı"
 
@@ -1438,7 +1438,7 @@ msgstr "Bu ses kaydedilemedi"
 msgid "Could not save this choice"
 msgstr "Bu seçim kaydedilemedi"
 
-#: src/pages/Auth.tsx:68
+#: src/pages/Auth.tsx:69
 msgid "Could not send reset email"
 msgstr "Sıfırlama e-postası gönderilemedi"
 
@@ -1512,7 +1512,7 @@ msgstr "Oluştur"
 msgid "Create a section and move {0} into it."
 msgstr "Bir bölüm oluştur ve {0} botunu içine taşı."
 
-#: src/pages/Auth.tsx:232
+#: src/pages/Auth.tsx:242
 msgid "Create account"
 msgstr "Hesap oluştur"
 
@@ -1534,7 +1534,7 @@ msgstr "Alan oluştur"
 msgid "Create token"
 msgstr "Token oluştur"
 
-#: src/pages/Auth.tsx:30
+#: src/pages/Auth.tsx:31
 msgid "Create your {brandName} account"
 msgstr "{brandName} hesabınızı oluşturun"
 
@@ -1542,7 +1542,7 @@ msgstr "{brandName} hesabınızı oluşturun"
 msgid "Create your first bot"
 msgstr "İlk botunu oluştur"
 
-#: src/pages/Auth.tsx:28
+#: src/pages/Auth.tsx:29
 msgid "Create your Manor"
 msgstr "Manor'unu oluştur"
 
@@ -1780,7 +1780,7 @@ msgstr "Dokümantasyon"
 msgid "Documentation ↗"
 msgstr "Dokümantasyon ↗"
 
-#: src/pages/Auth.tsx:238
+#: src/pages/Auth.tsx:248
 msgid "Don’t have an account?"
 msgstr "Hesabın yok mu?"
 
@@ -1845,7 +1845,7 @@ msgstr "Önce düzenle"
 msgid "Edit Profile"
 msgstr "Profili Düzenle"
 
-#: src/pages/Auth.tsx:133
+#: src/pages/Auth.tsx:143
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
@@ -2013,7 +2013,7 @@ msgstr "Ad"
 msgid "Flag unexpected actions"
 msgstr "Beklenmeyen eylemleri işaretle"
 
-#: src/pages/Auth.tsx:209
+#: src/pages/Auth.tsx:219
 msgid "Forgot password?"
 msgstr "Parolanızı mı unuttunuz?"
 
@@ -2093,7 +2093,7 @@ msgstr "Merhaba, yanıtları sesli okuduğumda böyle duyulacağım."
 msgid "Hide live activity"
 msgstr "Canlı etkinliği gizle"
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Hide password"
 msgstr "Şifreyi gizle"
 
@@ -2141,7 +2141,7 @@ msgstr "Bitirdim"
 msgid "Idempotency"
 msgstr "İdempotentlik"
 
-#: src/pages/Auth.tsx:110
+#: src/pages/Auth.tsx:120
 msgid "If an account exists for that address, we sent a password reset link."
 msgstr "Bu adres için bir hesap varsa parola sıfırlama bağlantısı gönderdik."
 
@@ -2346,7 +2346,7 @@ msgstr ""
 msgid "Manage the Space semantic memory provider."
 msgstr "Çalışma alanının semantik hafıza sağlayıcısını yönet."
 
-#: src/pages/Welcome.tsx:123
+#: src/pages/Welcome.tsx:133
 msgid "Manor demo"
 msgstr "Manor demosu"
 
@@ -2538,7 +2538,7 @@ msgid "Move to"
 msgstr "Taşı"
 
 #: src/components/teach/SkillDraftCard.tsx:82
-#: src/pages/Auth.tsx:120
+#: src/pages/Auth.tsx:130
 #: src/pages/crm/CrmContacts.tsx:129
 #: src/pages/crm/CrmView.tsx:65
 #: src/pages/GroupPanel.tsx:110
@@ -2602,7 +2602,7 @@ msgid "New open-work item"
 msgstr "Yeni açık iş öğesi"
 
 #: src/pages/AccountSettingsOverlay.tsx:314
-#: src/pages/Auth.tsx:320
+#: src/pages/Auth.tsx:330
 msgid "New password"
 msgstr "Yeni parola"
 
@@ -2944,22 +2944,22 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:253
 #: src/pages/AccountSettingsOverlay.tsx:304
-#: src/pages/Auth.tsx:149
-#: src/pages/Auth.tsx:158
+#: src/pages/Auth.tsx:159
+#: src/pages/Auth.tsx:168
 msgid "Password"
 msgstr "Parola"
 
-#: src/pages/Auth.tsx:60
+#: src/pages/Auth.tsx:61
 msgid "Password recovery is not configured for this server"
 msgstr "Bu sunucu için parola kurtarma yapılandırılmamış"
 
 #: src/pages/AccountSettingsOverlay.tsx:339
-#: src/pages/Auth.tsx:310
+#: src/pages/Auth.tsx:320
 msgid "Password updated"
 msgstr "Parola güncellendi"
 
 #: src/pages/AccountSettingsOverlay.tsx:274
-#: src/pages/Auth.tsx:278
+#: src/pages/Auth.tsx:288
 msgid "Passwords do not match"
 msgstr "Parolalar eşleşmiyor"
 
@@ -3249,11 +3249,11 @@ msgstr "Bilgisayarı sıfırla"
 msgid "Reset computer?"
 msgstr "Bilgisayar sıfırlansın mı?"
 
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:351
 msgid "Reset password"
 msgstr "Parolayı sıfırla"
 
-#: src/pages/Auth.tsx:33
+#: src/pages/Auth.tsx:34
 msgid "Reset your password"
 msgstr "Parolanızı sıfırlayın"
 
@@ -3455,7 +3455,7 @@ msgstr "Yanıtı gönder"
 msgid "Send it"
 msgstr "Gönder"
 
-#: src/pages/Auth.tsx:230
+#: src/pages/Auth.tsx:240
 msgid "Send reset link"
 msgstr "Sıfırlama bağlantısı gönder"
 
@@ -3542,7 +3542,7 @@ msgstr "Bilgisayarı göster"
 msgid "Show live activity"
 msgstr "Canlı etkinliği göster"
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Show password"
 msgstr "Şifreyi göster"
 
@@ -3555,18 +3555,18 @@ msgid "Show settings"
 msgstr "Ayarları göster"
 
 #: src/lib/localized-provider-hint.ts:7
-#: src/pages/Auth.tsx:247
-#: src/pages/Auth.tsx:313
+#: src/pages/Auth.tsx:257
+#: src/pages/Auth.tsx:323
 #: src/pages/ModelSettingsOverlay.tsx:619
 #: src/pages/Onboarding.tsx:105
 msgid "Sign in"
 msgstr "Oturum aç"
 
-#: src/pages/Auth.tsx:25
+#: src/pages/Auth.tsx:26
 msgid "Sign in to {brandName}"
 msgstr "{brandName}'a giriş yap"
 
-#: src/pages/Auth.tsx:240
+#: src/pages/Auth.tsx:250
 msgid "Sign up"
 msgstr "Kaydol"
 
@@ -3859,7 +3859,7 @@ msgstr "Bu, tüm mesajları kalıcı olarak kaldırır ve mevcut çalışmayı d
 msgid "This provider cannot paste a key here. Skip if this deployment already has credentials."
 msgstr "Bu sağlayıcı için buraya anahtar yapıştırılamaz. Bu dağıtımda kimlik bilgileri zaten varsa atla."
 
-#: src/pages/Auth.tsx:270
+#: src/pages/Auth.tsx:280
 msgid "This reset link is invalid or expired"
 msgstr "Bu sıfırlama bağlantısı geçersiz veya süresi dolmuş"
 
@@ -4081,7 +4081,7 @@ msgstr "API'nin geri gelmesi bekleniyor…"
 msgid "Waiting…"
 msgstr "Bekleniyor…"
 
-#: src/pages/Welcome.tsx:61
+#: src/pages/Welcome.tsx:71
 msgid "Watch it work"
 msgstr "Çalışmasını izleyin"
 
@@ -4169,8 +4169,8 @@ msgstr "Kazanılan gelir"
 msgid "Working"
 msgstr ""
 
-#: src/pages/Auth.tsx:226
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:236
+#: src/pages/Auth.tsx:351
 #: src/pages/CallView.tsx:244
 #: src/pages/Shell.tsx:5563
 msgid "Working…"
@@ -4203,7 +4203,7 @@ msgstr "Bu pencereyi kapatabilirsin."
 msgid "You have control"
 msgstr "Kontrol sende"
 
-#: src/pages/Auth.tsx:140
+#: src/pages/Auth.tsx:150
 msgid "Your email address"
 msgstr "E-posta adresin"
 
@@ -4211,10 +4211,10 @@ msgstr "E-posta adresin"
 msgid "Your key or subscription token is stored securely and is never shown here."
 msgstr "Anahtarın veya abonelik token'ın güvenle saklanır ve burada asla gösterilmez."
 
-#: src/pages/Auth.tsx:127
+#: src/pages/Auth.tsx:137
 msgid "Your name"
 msgstr "Adın"
 
-#: src/pages/Welcome.tsx:65
+#: src/pages/Welcome.tsx:75
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>Her zaman açık yapay zeka ajanlarından</0> oluşan,<1/><2>gerçek işler</2> verebileceğiniz ekibiniz."

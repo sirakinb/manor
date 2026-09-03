@@ -430,7 +430,7 @@ msgstr "允许购买操作，无需询问"
 msgid "Allowed once"
 msgstr "已允许一次"
 
-#: src/pages/Auth.tsx:245
+#: src/pages/Auth.tsx:255
 msgid "Already have an account?"
 msgstr "已有账户？"
 
@@ -626,9 +626,9 @@ msgstr ""
 msgid "Back"
 msgstr "返回"
 
-#: src/pages/Auth.tsx:113
-#: src/pages/Auth.tsx:252
-#: src/pages/Auth.tsx:344
+#: src/pages/Auth.tsx:123
+#: src/pages/Auth.tsx:262
+#: src/pages/Auth.tsx:354
 msgid "Back to sign in"
 msgstr "返回登录"
 
@@ -645,7 +645,7 @@ msgstr ""
 msgid "Bearer token"
 msgstr "Bearer token"
 
-#: src/pages/Welcome.tsx:45
+#: src/pages/Welcome.tsx:47
 msgid "Book demo"
 msgstr ""
 
@@ -786,7 +786,7 @@ msgstr "检查更新"
 msgid "Check in."
 msgstr "报到。"
 
-#: src/pages/Auth.tsx:107
+#: src/pages/Auth.tsx:117
 msgid "Check your email"
 msgstr "请查看邮箱"
 
@@ -806,7 +806,7 @@ msgstr "工作副本有本地更改。请先清理再更新。"
 msgid "Choose a bot…"
 msgstr "选择 Bot…"
 
-#: src/pages/Auth.tsx:305
+#: src/pages/Auth.tsx:315
 msgid "Choose a new password"
 msgstr "设置新密码"
 
@@ -859,8 +859,8 @@ msgstr "关闭图表"
 msgid "Close computer"
 msgstr "关闭电脑"
 
-#: src/pages/Welcome.tsx:115
-#: src/pages/Welcome.tsx:142
+#: src/pages/Welcome.tsx:125
+#: src/pages/Welcome.tsx:152
 msgid "Close demo"
 msgstr ""
 
@@ -989,7 +989,7 @@ msgid "Confirm delete"
 msgstr "确认删除"
 
 #: src/pages/AccountSettingsOverlay.tsx:320
-#: src/pages/Auth.tsx:326
+#: src/pages/Auth.tsx:336
 msgid "Confirm password"
 msgstr "确认密码"
 
@@ -1107,7 +1107,7 @@ msgstr ""
 msgid "Continue"
 msgstr "继续"
 
-#: src/pages/Auth.tsx:228
+#: src/pages/Auth.tsx:238
 msgid "Continue with email"
 msgstr "使用邮箱继续"
 
@@ -1208,7 +1208,7 @@ msgstr "无法连接此提供方"
 msgid "Could not connect this voice provider"
 msgstr "无法连接此语音提供方"
 
-#: src/pages/Auth.tsx:83
+#: src/pages/Auth.tsx:84
 msgid "Could not continue"
 msgstr "无法继续"
 
@@ -1338,8 +1338,8 @@ msgid "Could not play a test clip"
 msgstr "无法播放测试片段"
 
 #: src/pages/AccountSettingsOverlay.tsx:295
-#: src/pages/Auth.tsx:89
-#: src/pages/Auth.tsx:291
+#: src/pages/Auth.tsx:90
+#: src/pages/Auth.tsx:301
 msgid "Could not reach the server"
 msgstr "无法连接服务器"
 
@@ -1376,7 +1376,7 @@ msgstr ""
 msgid "Could not render chart"
 msgstr "无法渲染图表"
 
-#: src/pages/Auth.tsx:286
+#: src/pages/Auth.tsx:296
 msgid "Could not reset password"
 msgstr "无法重置密码"
 
@@ -1437,7 +1437,7 @@ msgstr "无法保存该语音"
 msgid "Could not save this choice"
 msgstr "无法保存此选择"
 
-#: src/pages/Auth.tsx:68
+#: src/pages/Auth.tsx:69
 msgid "Could not send reset email"
 msgstr "无法发送重置邮件"
 
@@ -1511,7 +1511,7 @@ msgstr "创建"
 msgid "Create a section and move {0} into it."
 msgstr "创建分组并把 {0} 移入。"
 
-#: src/pages/Auth.tsx:232
+#: src/pages/Auth.tsx:242
 msgid "Create account"
 msgstr "创建账户"
 
@@ -1533,7 +1533,7 @@ msgstr "创建工作区"
 msgid "Create token"
 msgstr ""
 
-#: src/pages/Auth.tsx:30
+#: src/pages/Auth.tsx:31
 msgid "Create your {brandName} account"
 msgstr ""
 
@@ -1541,7 +1541,7 @@ msgstr ""
 msgid "Create your first bot"
 msgstr "创建你的第一个 Bot"
 
-#: src/pages/Auth.tsx:28
+#: src/pages/Auth.tsx:29
 msgid "Create your Manor"
 msgstr ""
 
@@ -1779,7 +1779,7 @@ msgstr ""
 msgid "Documentation ↗"
 msgstr ""
 
-#: src/pages/Auth.tsx:238
+#: src/pages/Auth.tsx:248
 msgid "Don’t have an account?"
 msgstr "还没有账户？"
 
@@ -1844,7 +1844,7 @@ msgstr "先编辑"
 msgid "Edit Profile"
 msgstr "编辑资料"
 
-#: src/pages/Auth.tsx:133
+#: src/pages/Auth.tsx:143
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
@@ -2012,7 +2012,7 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "标记异常操作"
 
-#: src/pages/Auth.tsx:209
+#: src/pages/Auth.tsx:219
 msgid "Forgot password?"
 msgstr "忘记密码？"
 
@@ -2092,7 +2092,7 @@ msgstr "你好，这是我朗读回复时的声音。"
 msgid "Hide live activity"
 msgstr ""
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Hide password"
 msgstr "隐藏密码"
 
@@ -2140,7 +2140,7 @@ msgstr "我做完了"
 msgid "Idempotency"
 msgstr ""
 
-#: src/pages/Auth.tsx:110
+#: src/pages/Auth.tsx:120
 msgid "If an account exists for that address, we sent a password reset link."
 msgstr "如果该地址有账户，我们已发送密码重置链接。"
 
@@ -2345,7 +2345,7 @@ msgstr "管理消息设置"
 msgid "Manage the Space semantic memory provider."
 msgstr "管理工作区语义记忆提供方。"
 
-#: src/pages/Welcome.tsx:123
+#: src/pages/Welcome.tsx:133
 msgid "Manor demo"
 msgstr ""
 
@@ -2537,7 +2537,7 @@ msgid "Move to"
 msgstr "移动到"
 
 #: src/components/teach/SkillDraftCard.tsx:82
-#: src/pages/Auth.tsx:120
+#: src/pages/Auth.tsx:130
 #: src/pages/crm/CrmContacts.tsx:129
 #: src/pages/crm/CrmView.tsx:65
 #: src/pages/GroupPanel.tsx:110
@@ -2601,7 +2601,7 @@ msgid "New open-work item"
 msgstr "新的待办"
 
 #: src/pages/AccountSettingsOverlay.tsx:314
-#: src/pages/Auth.tsx:320
+#: src/pages/Auth.tsx:330
 msgid "New password"
 msgstr "新密码"
 
@@ -2943,22 +2943,22 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:253
 #: src/pages/AccountSettingsOverlay.tsx:304
-#: src/pages/Auth.tsx:149
-#: src/pages/Auth.tsx:158
+#: src/pages/Auth.tsx:159
+#: src/pages/Auth.tsx:168
 msgid "Password"
 msgstr "密码"
 
-#: src/pages/Auth.tsx:60
+#: src/pages/Auth.tsx:61
 msgid "Password recovery is not configured for this server"
 msgstr "此服务器未配置密码恢复"
 
 #: src/pages/AccountSettingsOverlay.tsx:339
-#: src/pages/Auth.tsx:310
+#: src/pages/Auth.tsx:320
 msgid "Password updated"
 msgstr "密码已更新"
 
 #: src/pages/AccountSettingsOverlay.tsx:274
-#: src/pages/Auth.tsx:278
+#: src/pages/Auth.tsx:288
 msgid "Passwords do not match"
 msgstr "两次密码不一致"
 
@@ -3248,11 +3248,11 @@ msgstr "重置电脑"
 msgid "Reset computer?"
 msgstr "重置电脑？"
 
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:351
 msgid "Reset password"
 msgstr "重置密码"
 
-#: src/pages/Auth.tsx:33
+#: src/pages/Auth.tsx:34
 msgid "Reset your password"
 msgstr "重置你的密码"
 
@@ -3454,7 +3454,7 @@ msgstr "发送回答"
 msgid "Send it"
 msgstr "发送"
 
-#: src/pages/Auth.tsx:230
+#: src/pages/Auth.tsx:240
 msgid "Send reset link"
 msgstr "发送重置链接"
 
@@ -3541,7 +3541,7 @@ msgstr "显示电脑"
 msgid "Show live activity"
 msgstr ""
 
-#: src/pages/Auth.tsx:167
+#: src/pages/Auth.tsx:177
 msgid "Show password"
 msgstr "显示密码"
 
@@ -3554,18 +3554,18 @@ msgid "Show settings"
 msgstr "显示设置"
 
 #: src/lib/localized-provider-hint.ts:7
-#: src/pages/Auth.tsx:247
-#: src/pages/Auth.tsx:313
+#: src/pages/Auth.tsx:257
+#: src/pages/Auth.tsx:323
 #: src/pages/ModelSettingsOverlay.tsx:619
 #: src/pages/Onboarding.tsx:105
 msgid "Sign in"
 msgstr "登录"
 
-#: src/pages/Auth.tsx:25
+#: src/pages/Auth.tsx:26
 msgid "Sign in to {brandName}"
 msgstr ""
 
-#: src/pages/Auth.tsx:240
+#: src/pages/Auth.tsx:250
 msgid "Sign up"
 msgstr "注册"
 
@@ -3858,7 +3858,7 @@ msgstr "将永久删除全部消息并停止当前工作。聊天仍可使用。
 msgid "This provider cannot paste a key here. Skip if this deployment already has credentials."
 msgstr "此提供方不能在这里粘贴密钥。若部署已有凭据，请跳过。"
 
-#: src/pages/Auth.tsx:270
+#: src/pages/Auth.tsx:280
 msgid "This reset link is invalid or expired"
 msgstr "此重置链接无效或已过期"
 
@@ -4080,7 +4080,7 @@ msgstr "正在等待 API 恢复…"
 msgid "Waiting…"
 msgstr "等待中…"
 
-#: src/pages/Welcome.tsx:61
+#: src/pages/Welcome.tsx:71
 msgid "Watch it work"
 msgstr ""
 
@@ -4168,8 +4168,8 @@ msgstr ""
 msgid "Working"
 msgstr ""
 
-#: src/pages/Auth.tsx:226
-#: src/pages/Auth.tsx:341
+#: src/pages/Auth.tsx:236
+#: src/pages/Auth.tsx:351
 #: src/pages/CallView.tsx:244
 #: src/pages/Shell.tsx:5563
 msgid "Working…"
@@ -4202,7 +4202,7 @@ msgstr "可以关闭此窗口。"
 msgid "You have control"
 msgstr "你已接管"
 
-#: src/pages/Auth.tsx:140
+#: src/pages/Auth.tsx:150
 msgid "Your email address"
 msgstr "你的邮箱"
 
@@ -4210,10 +4210,10 @@ msgstr "你的邮箱"
 msgid "Your key or subscription token is stored securely and is never shown here."
 msgstr "你的密钥或订阅令牌已安全存储，不会显示在这里。"
 
-#: src/pages/Auth.tsx:127
+#: src/pages/Auth.tsx:137
 msgid "Your name"
 msgstr "你的名字"
 
-#: src/pages/Welcome.tsx:65
+#: src/pages/Welcome.tsx:75
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr ""
