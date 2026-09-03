@@ -1,5 +1,6 @@
 import { BotAvatar, GroupAvatar, type GroupAvatarMember } from "@rakazo/ui-web";
-import { LoadingState } from "./primitives";
+import { ManorOrb } from "./ManorOrb";
+import { Shimmer } from "./primitives";
 
 /** Lightweight peer event shown without exposing the exchanged message body. */
 export function CollaborationMarker({
@@ -36,7 +37,13 @@ export function CollaborationMarker({
 export function ActiveBotGlyph({ bots, label }: { bots: GroupAvatarMember[]; label: string }) {
   return (
     <div className="flex min-h-10 items-center px-1">
-      <LoadingState indicator={<GroupAvatar members={bots} size={28} />} label={label} />
+      <span role="status" className="flex w-fit items-center gap-2.5">
+        <ManorOrb size={28} label={label} />
+        <GroupAvatar members={bots} size={22} />
+        <span className="text-[13.5px] font-medium">
+          <Shimmer>{label}</Shimmer>
+        </span>
+      </span>
     </div>
   );
 }

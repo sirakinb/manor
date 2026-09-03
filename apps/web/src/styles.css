@@ -210,14 +210,6 @@ body,
   color: transparent;
   animation: rkTlShimmer 2.2s linear infinite;
 }
-.rk-tl-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #a855f7;
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.7);
-  animation: rkPulse 1.1s ease-in-out infinite;
-}
 .rk-tl-body {
   padding-inline-start: 2px;
 }

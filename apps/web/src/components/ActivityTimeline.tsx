@@ -4,6 +4,7 @@ import type { MessageBlock } from "@rakazo/contracts";
 import { formatDurationMs } from "@rakazo/core";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { ManorOrb } from "./beautiful-ui/ManorOrb";
 import { ToolSteps } from "./ToolActivityDisclosure";
 
 export type ActivityItem = Extract<MessageBlock, { kind: "thinking" } | { kind: "steps" }>;
@@ -97,8 +98,8 @@ export function ActivityTimeline({ items, live }: { items: ActivityItem[]; live:
     return (
       <div data-testid="activity-timeline" data-live className="rk-tl">
         <div className="rk-tl-label">
+          <ManorOrb size={20} />
           <span className="rk-tl-shimmer">{liveLabel}</span>
-          <span className="rk-tl-dot" aria-hidden />
         </div>
         <div ref={bodyRef} className="rk-tl-body rk-tl-body-live">
           {rail}

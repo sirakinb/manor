@@ -151,11 +151,11 @@ msgstr "{remaining} शेष · बॉट देख रहा है, कार
 msgid "{size} B"
 msgstr "{size} B"
 
-#: src/components/ActivityTimeline.tsx:64
+#: src/components/ActivityTimeline.tsx:65
 msgid "{thoughtPart} · {actions} actions"
 msgstr ""
 
-#: src/components/ActivityTimeline.tsx:63
+#: src/components/ActivityTimeline.tsx:64
 msgid "{thoughtPart} · 1 action"
 msgstr ""
 
@@ -3809,7 +3809,7 @@ msgstr "चयनित मेमोरी प्रोवाइडर इस �
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "हस्ताक्षर, एंडपॉइंट के साइनिंग सीक्रेट से <0><timestamp>.<raw body></0> का HMAC-SHA256 है:"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 #: src/pages/Shell.tsx:6164
 msgid "Thinking"
 msgstr "सोच रहा है"
@@ -3883,11 +3883,11 @@ msgstr "यह सर्वर ब्राउज़र साइन-इन क�
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr "यह सदस्यता साइन-इन अभी {brandName} में उपलब्ध नहीं है। परिनियोजन क्रेडेंशियल उपयोग करें या कोई और प्रदाता चुनें।"
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for {duration}"
 msgstr ""
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for a moment"
 msgstr ""
 
@@ -4165,7 +4165,7 @@ msgstr "जीती हुई"
 msgid "Won revenue"
 msgstr "जीता हुआ राजस्व"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 msgid "Working"
 msgstr ""
 

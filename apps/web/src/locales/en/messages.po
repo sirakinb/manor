@@ -151,11 +151,11 @@ msgstr "{remaining} left · bot is watching, not acting"
 msgid "{size} B"
 msgstr "{size} B"
 
-#: src/components/ActivityTimeline.tsx:64
+#: src/components/ActivityTimeline.tsx:65
 msgid "{thoughtPart} · {actions} actions"
 msgstr "{thoughtPart} · {actions} actions"
 
-#: src/components/ActivityTimeline.tsx:63
+#: src/components/ActivityTimeline.tsx:64
 msgid "{thoughtPart} · 1 action"
 msgstr "{thoughtPart} · 1 action"
 
@@ -3809,7 +3809,7 @@ msgstr "The selected memory provider is not available in this build."
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 #: src/pages/Shell.tsx:6164
 msgid "Thinking"
 msgstr "Thinking"
@@ -3883,11 +3883,11 @@ msgstr "This server uses browser sign-in. Authorize it to let your agents use it
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for {duration}"
 msgstr "Thought for {duration}"
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for a moment"
 msgstr "Thought for a moment"
 
@@ -4165,7 +4165,7 @@ msgstr "Won"
 msgid "Won revenue"
 msgstr "Won revenue"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 msgid "Working"
 msgstr "Working"
 

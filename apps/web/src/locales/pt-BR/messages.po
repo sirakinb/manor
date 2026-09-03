@@ -151,11 +151,11 @@ msgstr "{remaining} restantes · o bot está observando, não agindo"
 msgid "{size} B"
 msgstr "{size} B"
 
-#: src/components/ActivityTimeline.tsx:64
+#: src/components/ActivityTimeline.tsx:65
 msgid "{thoughtPart} · {actions} actions"
 msgstr ""
 
-#: src/components/ActivityTimeline.tsx:63
+#: src/components/ActivityTimeline.tsx:64
 msgid "{thoughtPart} · 1 action"
 msgstr ""
 
@@ -3809,7 +3809,7 @@ msgstr "O provedor de memória selecionado não está disponível nesta compila�
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "A assinatura é um HMAC-SHA256 de <0><timestamp>.<raw body></0> usando o segredo de assinatura do endpoint:"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 #: src/pages/Shell.tsx:6164
 msgid "Thinking"
 msgstr "Pensando"
@@ -3883,11 +3883,11 @@ msgstr "Este servidor usa o login do navegador. Autorize-o a permitir que seus a
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr "Este login por assinatura ainda não está disponível no {brandName}. Use uma credencial da implantação ou escolha outro provedor."
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for {duration}"
 msgstr ""
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for a moment"
 msgstr ""
 
@@ -4165,7 +4165,7 @@ msgstr "Ganho"
 msgid "Won revenue"
 msgstr "Receita ganha"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 msgid "Working"
 msgstr ""
 

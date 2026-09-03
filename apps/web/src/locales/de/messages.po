@@ -151,11 +151,11 @@ msgstr "Noch {remaining} · Bot beobachtet nur"
 msgid "{size} B"
 msgstr "{size} B"
 
-#: src/components/ActivityTimeline.tsx:64
+#: src/components/ActivityTimeline.tsx:65
 msgid "{thoughtPart} · {actions} actions"
 msgstr ""
 
-#: src/components/ActivityTimeline.tsx:63
+#: src/components/ActivityTimeline.tsx:64
 msgid "{thoughtPart} · 1 action"
 msgstr ""
 
@@ -3809,7 +3809,7 @@ msgstr "Der ausgewählte Erinnerungsanbieter ist in diesem Build nicht verfügba
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "Die Signatur ist ein HMAC-SHA256 von <0><timestamp>.<raw body></0> mit dem Signatur-Secret des Endpunkts:"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 #: src/pages/Shell.tsx:6164
 msgid "Thinking"
 msgstr "Denkmodus"
@@ -3883,11 +3883,11 @@ msgstr "Dieser Server verwendet die Browseranmeldung. Autorisiere ihn, damit dei
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr "Diese Abo-Anmeldung ist in {brandName} noch nicht verfügbar. Verwende Deployment-Zugangsdaten oder wähle einen anderen Anbieter."
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for {duration}"
 msgstr ""
 
-#: src/components/ActivityTimeline.tsx:58
+#: src/components/ActivityTimeline.tsx:59
 msgid "Thought for a moment"
 msgstr ""
 
@@ -4165,7 +4165,7 @@ msgstr "Gewonnen"
 msgid "Won revenue"
 msgstr "Gewonnener Umsatz"
 
-#: src/components/ActivityTimeline.tsx:65
+#: src/components/ActivityTimeline.tsx:66
 msgid "Working"
 msgstr ""
 
