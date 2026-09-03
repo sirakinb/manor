@@ -190,58 +190,77 @@ body,
   }
 }
 
-/* Reasoning stream: a quieter voice than the reply, in the serif. */
-.rk-think {
+/* Activity timeline: the bot's reasoning and actions on one rail. */
+.rk-tl {
   max-width: 100%;
 }
-.rk-think-label {
+.rk-tl-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-height: 24px;
   font-size: 13px;
   font-weight: 500;
 }
-.rk-think-shimmer {
-  background: linear-gradient(90deg, #6e6975 0%, #d9d3e8 45%, #a855f7 55%, #6e6975 100%);
+.rk-tl-shimmer {
+  background: linear-gradient(90deg, #6e6975 0%, #e4dff0 45%, #a855f7 55%, #6e6975 100%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: rkThinkShimmer 2.2s linear infinite;
+  animation: rkTlShimmer 2.2s linear infinite;
 }
-.rk-think-body {
-  border-inline-start: 1.5px solid rgba(168, 85, 247, 0.28);
-  padding-inline-start: 12px;
-}
-.rk-think-body-live {
-  max-height: 240px;
-  overflow: hidden;
-  mask-image: linear-gradient(to bottom, transparent 0, #000 28px, #000 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28px, #000 100%);
-}
-.rk-think-text {
-  font-family: Fraunces, Georgia, serif;
-  font-size: 14.5px;
-  line-height: 1.62;
-  color: #aaa5b9;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.rk-think-text-in {
-  animation: rkThinkIn 0.28s ease-out;
-}
-.rk-think-caret {
-  display: inline-block;
+.rk-tl-dot {
   width: 6px;
   height: 6px;
-  margin-inline-start: 6px;
   border-radius: 999px;
   background: #a855f7;
-  vertical-align: middle;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.7);
   animation: rkPulse 1.1s ease-in-out infinite;
 }
-@keyframes rkThinkShimmer {
+.rk-tl-body {
+  padding-inline-start: 2px;
+}
+.rk-tl-body-live {
+  max-height: 280px;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 32px, #000 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 32px, #000 100%);
+}
+.rk-tl-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-inline-start: 1.5px solid rgba(168, 85, 247, 0.28);
+  padding-inline-start: 14px;
+}
+.rk-tl-thought .rk-chat-markdown {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #a9a4b8;
+}
+.rk-tl-thought .rk-chat-markdown p {
+  margin: 0 0 6px;
+}
+.rk-tl-thought .rk-chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+.rk-tl-thought .rk-chat-markdown strong {
+  display: block;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #ddd7ec;
+}
+.rk-tl-thought-live {
+  animation: rkTlIn 0.3s ease-out;
+}
+.rk-tl-steps {
+  padding-block: 2px;
+}
+@keyframes rkTlShimmer {
   from {
     background-position: 200% 0;
   }
@@ -249,9 +268,9 @@ body,
     background-position: -20% 0;
   }
 }
-@keyframes rkThinkIn {
+@keyframes rkTlIn {
   from {
-    opacity: 0.55;
+    opacity: 0.5;
     transform: translateY(2px);
   }
   to {
@@ -260,9 +279,9 @@ body,
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rk-think-shimmer,
-  .rk-think-text-in,
-  .rk-think-caret {
+  .rk-tl-shimmer,
+  .rk-tl-thought-live,
+  .rk-tl-dot {
     animation: none;
   }
 }

@@ -119,6 +119,7 @@ import {
   useState,
 } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ActivityTimeline, groupNarrationBlocks } from "../components/ActivityTimeline";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { AskCard } from "../components/AskCard";
 import { BotCredentialsSettings } from "../components/BotCredentialsSettings";
@@ -133,7 +134,6 @@ import {
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
-import { ThinkingDisclosure } from "../components/ThinkingDisclosure";
 import { ToolActivityDisclosure, ToolSteps } from "../components/ToolActivityDisclosure";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
@@ -5436,47 +5436,36 @@ const MessageView = memo(function MessageView({
             className="max-w-[74%] space-y-2.5 rounded-[20px] bg-[#1A1A1D] px-[18px] py-3 text-[15.5px] leading-[1.5] text-[#DFDFE2]"
             dir="auto"
           >
-            {message.blocks.map((block, i) => {
-              if (block.kind === "steps") {
-                const isCurrentBlock = isLive && i === message.blocks.length - 1;
-                return (
-                  <ToolActivityDisclosure
-                    key={i}
-                    live={isLive}
-                    label={isLive ? t`Working…` : toolActivityLabel(block.durationMs, false)}
-                  >
-                    <ToolSteps
-                      steps={block.steps}
-                      currentIndex={isCurrentBlock ? block.steps.length - 1 : undefined}
+            {(() => {
+              const entries = groupNarrationBlocks(message.blocks);
+              const trailingActivity = entries.reduce(
+                (found, entry, index) =>
+                  entry.kind === "activity" ||
+                  (entry.kind === "prose" && entry.block.kind === "progress" && !entry.block.text)
+                    ? found
+                    : index,
+                -1,
+              );
+              return entries.map((entry, i) => {
+                if (entry.kind === "activity") {
+                  return (
+                    <ActivityTimeline
+                      key={i}
+                      items={entry.items}
+                      live={isLive && i > trailingActivity}
                     />
-                  </ToolActivityDisclosure>
-                );
-              }
-              if (block.kind === "text" || block.kind === "progress") {
+                  );
+                }
+                if (!entry.block.text) return null;
                 return (
                   <div key={i}>
-                    <ChatMarkdown streaming={block.kind === "progress"}>{block.text}</ChatMarkdown>
+                    <ChatMarkdown streaming={entry.block.kind === "progress"}>
+                      {entry.block.text}
+                    </ChatMarkdown>
                   </div>
                 );
-              }
-              if (block.kind === "thinking") {
-                const stillThinking =
-                  isLive &&
-                  block.durationMs === undefined &&
-                  !message.blocks
-                    .slice(i + 1)
-                    .some((later) => later.kind !== "progress" || later.text);
-                return (
-                  <ThinkingDisclosure
-                    key={i}
-                    text={block.text}
-                    live={stillThinking}
-                    durationMs={block.durationMs}
-                  />
-                );
-              }
-              return null;
-            })}
+              });
+            })()}
             {!isLive && voiceReady && message.blocks.some((block) => block.kind === "text") ? (
               <button
                 type="button"
@@ -5795,7 +5784,7 @@ const MessageView = memo(function MessageView({
         if (block.kind === "thinking") {
           return (
             <div key={i} className="max-w-[74%]">
-              <ThinkingDisclosure text={block.text} live={false} durationMs={block.durationMs} />
+              <ActivityTimeline items={[block]} live={false} />
             </div>
           );
         }
