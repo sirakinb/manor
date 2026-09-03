@@ -127,6 +127,7 @@ import {
   ActiveBotGlyph,
   CollaborationMarker,
 } from "../components/beautiful-ui/CollaborationMarker";
+import { ManorOrb } from "../components/beautiful-ui/ManorOrb";
 import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
 import { ComputerMaintenanceActions } from "../components/ComputerMaintenanceActions";
 import {
@@ -3424,11 +3425,19 @@ export function ShellPage() {
                       {computersAreUnavailable(bootstrapMe?.sandboxProvider) ? (
                         <ComputersUnavailableHint />
                       ) : (
-                        computerPlaceholder(
-                          computer?.state,
-                          booting,
-                          computerLabel(computer?.mode, active.name),
-                        )
+                        <div className="flex flex-col items-center gap-3">
+                          <ManorOrb
+                            size={96}
+                            speed={computer?.state === "booting" || booting ? 1.6 : 0.35}
+                          />
+                          <span>
+                            {computerPlaceholder(
+                              computer?.state,
+                              booting,
+                              computerLabel(computer?.mode, active.name),
+                            )}
+                          </span>
+                        </div>
                       )}
                     </div>
                   )}

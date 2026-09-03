@@ -1,7 +1,9 @@
 /// <reference lib="dom" />
+
 import * as Plot from "@observablehq/plot";
 import { MAX_CHART_DATA_ROWS } from "@rakazo/contracts";
 import { autoType, csvParse, tsvParse } from "d3-dsv";
+import { isGaugeSpec, renderGaugeSvg } from "./gauge.js";
 
 /**
  * Declarative, JSON-only surface over Observable Plot for the render_plot
@@ -138,7 +140,7 @@ const TRANSFORMS = {
 
 export function supportedPlotNames(): { marks: string[]; transforms: string[] } {
   return {
-    marks: [...Object.keys(DATA_MARKS), ...Object.keys(DATALESS_MARKS)].sort(),
+    marks: [...Object.keys(DATA_MARKS), ...Object.keys(DATALESS_MARKS), "gauge"].sort(),
     transforms: Object.keys(TRANSFORMS).sort(),
   };
 }
@@ -335,6 +337,7 @@ export function renderPlotSpecToSvg(
   data: unknown[] | undefined,
   document: Document,
 ): string {
+  if (isGaugeSpec(spec)) return renderGaugeSvg(spec, data);
   const { svg, title, swatches, width, height } = buildPlotParts(spec, data, document);
   const titleHeight = title ? 28 : 0;
   const legendHeight = swatches.length > 0 ? 24 : 0;
@@ -410,6 +413,33 @@ const MEASURES = [
 ];
 
 export const CHART_CATALOG: ChartCatalogEntry[] = [
+  {
+    name: "gauge",
+    when: "Show one KPI against its range: occupancy, utilisation, a score, progress to a target",
+    keywords: "gauge dial meter kpi speedometer progress target percent utilisation score",
+    spec: {
+      title: "This month",
+      data: [
+        { metric: "Occupancy", value: 92, max: 100, unit: "%" },
+        { metric: "Collected", value: 41800, max: 48000, unit: "$" },
+      ],
+      marks: [
+        {
+          type: "gauge",
+          options: {
+            value: "value",
+            max: "max",
+            label: "metric",
+            bands: [
+              { to: 60, color: "#ef4444" },
+              { to: 85, color: "#f59e0b" },
+              { to: 100, color: "#22c55e" },
+            ],
+          },
+        },
+      ],
+    },
+  },
   {
     name: "bar",
     when: "Compare one value across categories",
@@ -688,6 +718,11 @@ attaches it to the chat.
 3. Call render_plot with {"spec": {...}, "data": [...]} or
    {"spec": {...}, "data_path": "sales.csv"}.
 4. The tool attaches the PNG to the chat automatically (attach: false to skip)
+
+Gauges: for a single KPI against its range use {"type": "gauge"} marks. Options
+take numbers or column names: value, min (0), max (100), label, unit, decimals,
+and bands [{to, color}] to colour ranges. One gauge per row when value names a
+column; several gauge marks render side by side (max 8).
    and returns the output path, for example charts/plot-1.png.
 5. Iterate: adjust marks, scales, and facets until the chart answers the
    question. Prefer several small focused charts over one crowded chart.
@@ -759,3 +794,6 @@ order categories by value. Transforms wrap a mark's options:
 
 Call render_plot with {"help": true} anytime to reread this guide.
 `;
+
+export type { GaugeBand, GaugeDial, GaugeOptions } from "./gauge.js";
+export { gaugeDials, isGaugeSpec, renderGaugeSvg } from "./gauge.js";
