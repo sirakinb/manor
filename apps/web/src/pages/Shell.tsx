@@ -2434,7 +2434,7 @@ export function ShellPage() {
       const message = messages[index]!;
       if (message.role !== "bot") continue;
       const block = message.blocks.find((item) => item.kind === "preview");
-      if (!block || block.kind !== "preview") continue;
+      if (block?.kind !== "preview") continue;
       if (lastPreviewMessage.current === message.id) return;
       lastPreviewMessage.current = message.id;
       setPreviewTarget({
