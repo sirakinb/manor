@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
+import { HeroSky } from "../components/beautiful-ui/HeroSky";
 import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { brand } from "../lib/brand";
 import { WindowChrome } from "./WindowChrome";
@@ -14,6 +15,7 @@ export function WelcomePage() {
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-90"
         />
+        <HeroSky className="lp-sky absolute inset-0 h-full w-full" />
         <div className="lp-veil absolute inset-0 bg-[radial-gradient(80%_70%_at_78%_72%,rgba(128,51,204,0.22),transparent_55%),linear-gradient(to_top,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.18)_42%,rgba(0,0,0,0.45)_100%)]" />
         <div className="lp-grain" />
       </div>
@@ -60,7 +62,7 @@ export function WelcomePage() {
         <button
           type="button"
           onClick={() => setDemoOpen(true)}
-          className="lp-glass app-no-drag absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-[58%] items-center gap-2 rounded-full px-5 py-2.5 text-sm text-[#fafafa] transition hover:bg-white/15"
+          className="lp-lumen app-no-drag absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-[58%] items-center gap-2 rounded-full px-5 py-2.5 text-sm text-[#fafafa] transition"
         >
           <span
             aria-hidden="true"

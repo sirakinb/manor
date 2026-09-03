@@ -5111,15 +5111,17 @@ const Composer = memo(function Composer({
             >
               <ArrowUp size={18} strokeWidth={2} />
             </button>
-            <button
-              type="button"
-              aria-label={t`Stop`}
-              disabled={sending}
-              onClick={() => void onStop()}
-              className="grid h-10 w-10 place-items-center rounded-full border border-[#34343A] text-[#C9C9CE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A6A6AD] disabled:opacity-50"
-            >
-              <Square size={12} strokeWidth={0} fill="currentColor" />
-            </button>
+            <span className="rk-thinking-ring">
+              <button
+                type="button"
+                aria-label={t`Stop`}
+                disabled={sending}
+                onClick={() => void onStop()}
+                className="relative grid h-10 w-10 place-items-center rounded-full border border-[#34343A] bg-[#0E0E10] text-[#C9C9CE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A6A6AD] disabled:opacity-50"
+              >
+                <Square size={12} strokeWidth={0} fill="currentColor" />
+              </button>
+            </span>
           </>
         ) : (
           <button

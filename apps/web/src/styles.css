@@ -285,3 +285,89 @@ body,
 .lp-wordmark canvas {
   pointer-events: auto;
 }
+
+/* Landing: living sky layer over the painting (additive). */
+.lp-sky {
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+
+/* Lumen CTA: six-stop violet pill, hairline inner highlight, soft cast glow. */
+.lp-lumen {
+  background: linear-gradient(
+    180deg,
+    #2a1247 0%,
+    #4c1d95 22%,
+    #7c3aed 48%,
+    #9333ea 66%,
+    #b57cf5 88%,
+    #d8c4fa 100%
+  );
+  border: 1px solid rgba(216, 196, 250, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 10px 30px rgba(147, 51, 234, 0.35),
+    0 0 0 1px rgba(147, 51, 234, 0.25);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    filter 0.18s ease;
+}
+.lp-lumen:hover {
+  transform: translate(-50%, -58%) translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 14px 38px rgba(168, 85, 247, 0.5),
+    0 0 0 1px rgba(168, 85, 247, 0.35);
+}
+
+/* Thinking button: a luminous trace orbiting the stop control while a run is live. */
+.rk-thinking-ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  padding: 2px;
+  isolation: isolate;
+}
+.rk-thinking-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(168, 85, 247, 0) 200deg,
+    rgba(168, 85, 247, 0.85) 300deg,
+    #e9d5ff 340deg,
+    transparent 360deg
+  );
+  animation: rkThinkingOrbit 1.6s linear infinite;
+  z-index: -1;
+}
+.rk-thinking-ring::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.28), transparent 70%);
+  animation: rkPulse 1.6s ease-in-out infinite;
+  z-index: -2;
+}
+@keyframes rkThinkingOrbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-thinking-ring::before,
+  .rk-thinking-ring::after {
+    animation: none;
+  }
+}
