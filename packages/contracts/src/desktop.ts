@@ -66,6 +66,8 @@ export interface DesktopSetupState {
   defaultLocalUrl: string;
   /** Hosted server a fresh install connects to; prefilled in the setup form. */
   defaultServerUrl?: string;
+  /** Whether the developer-only "This computer" choice is offered; false in packaged builds. */
+  showLocalOption?: boolean;
   saved: DesktopSetup | null;
   /** Present when a saved or newly selected server could not be reopened. */
   error?: string;

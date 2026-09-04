@@ -110,6 +110,12 @@
       if (state === null) throw new Error("Setup is not active");
       localUrl.value = state.defaultLocalUrl;
       if (typeof state.defaultServerUrl === "string") serverUrl.value = state.defaultServerUrl;
+      if (state.showLocalOption === false) {
+        const localChoice = document.querySelector('label[for="mode-new"]');
+        if (localChoice !== null) localChoice.hidden = true;
+        const existingChoice = document.getElementById("mode-existing");
+        if (existingChoice !== null) existingChoice.checked = true;
+      }
       if (state.saved !== null) {
         const modeInput = document.querySelector(`input[name="mode"][value="${state.saved.mode}"]`);
         if (modeInput !== null) modeInput.checked = true;

@@ -912,6 +912,8 @@ app.whenReady().then(async () => {
     return {
       defaultLocalUrl: DEFAULT_LOCAL_WEB_URL,
       defaultServerUrl: bundledServerUrl() ?? undefined,
+      // Customers only ever connect to a hosted server; the local stack is a developer flow.
+      showLocalOption: !app.isPackaged || process.env.MANOR_SHOW_LOCAL_OPTION === "1",
       saved: currentSetup,
       error: setupError ?? undefined,
     };
