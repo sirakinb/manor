@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  appEntryUrl,
   DEFAULT_LOCAL_WEB_URL,
   isRakazoHealth,
   normalizeServerUrl,
@@ -221,5 +222,18 @@ describe("bundled server", () => {
       kind: "setup",
     });
     expect(resolveStartupTarget({ bundledUrl: null })).toEqual({ kind: "setup" });
+  });
+});
+
+describe("appEntryUrl", () => {
+  it("opens the app route on the server origin", () => {
+    expect(appEntryUrl("https://manor.pentridgemedia.com")).toBe(
+      "https://manor.pentridgemedia.com/app",
+    );
+    expect(appEntryUrl("http://127.0.0.1:5173")).toBe("http://127.0.0.1:5173/app");
+  });
+
+  it("leaves non-http targets such as e2e fixtures untouched", () => {
+    expect(appEntryUrl("file:///tmp/fixture.html")).toBe("file:///tmp/fixture.html");
   });
 });

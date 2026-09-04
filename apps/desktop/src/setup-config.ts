@@ -124,6 +124,17 @@ export function probeFailureMessage(error: unknown): string {
   return "Could not reach that address.";
 }
 
+/**
+ * Where the app window lands on a server. The root of a Manor server is the
+ * marketing page, which offers nothing to sign in with; `/app` shows the shell
+ * when a session exists and redirects to sign-in otherwise, so the renderer
+ * readiness check always finds a real surface.
+ */
+export function appEntryUrl(origin: string): string {
+  if (!servesBundledRenderer(origin)) return origin;
+  return new URL("/app", origin).toString();
+}
+
 /** The bundled renderer only stands in for a real http(s) origin. */
 export function servesBundledRenderer(targetUrl: string): boolean {
   try {

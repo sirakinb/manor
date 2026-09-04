@@ -17,6 +17,7 @@ import {
   isRendererAssetMiss,
 } from "./renderer-assets.js";
 import {
+  appEntryUrl,
   BUNDLED_SERVER_URL,
   DEFAULT_LOCAL_WEB_URL,
   isRakazoHealth,
@@ -711,7 +712,7 @@ async function openAppOnce(targetUrl: string) {
       throw new Error(documentError);
     }
     await installBundledRenderer(targetUrl, target.value, target.partition);
-    const created = createWindow(targetUrl, target.partition);
+    const created = createWindow(appEntryUrl(targetUrl), target.partition);
     win = created.win;
     await created.loaded;
     currentTargetUrl = targetUrl;
