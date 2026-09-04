@@ -288,6 +288,7 @@ jobs:
           merge-multiple: true
       - name: Verify the complete stable update feed
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_SHA: ${{ needs.validate.outputs.sha }}
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
