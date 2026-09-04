@@ -68,10 +68,10 @@ describe("window chrome", () => {
     );
     expect(shell).toContain('className="app-no-drag grid h-8 w-8');
     expect(shell).toContain('className="app-no-drag flex min-w-0 items-center gap-3"');
-    // Manor's header carries a third control (the live-activity toggle), so
-    // assert every 30x34 header button is a drag exclusion rather than a count.
+    // Manor's header carries extra controls (the live-activity toggle and the
+    // Files panel), so assert every 30x34 header button is a drag exclusion.
     expect(shell.match(/className="grid h-\[30px\] w-\[34px\]/g)).toBeNull();
-    expect(shell.match(/className="app-no-drag grid h-\[30px\] w-\[34px\]/g)?.length).toBe(3);
+    expect(shell.match(/className="app-no-drag grid h-\[30px\] w-\[34px\]/g)?.length).toBe(4);
   });
 });
 

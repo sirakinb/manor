@@ -82,6 +82,7 @@ import {
   Clock,
   Copy,
   Cpu,
+  FolderTree,
   Gauge,
   Globe,
   Lock,
@@ -137,6 +138,7 @@ import {
   ComputersUnavailableHint,
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
+import { FilesPanel } from "../components/FilesPanel";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
@@ -252,6 +254,7 @@ const KnowledgeSection = lazy(() =>
 type Panel =
   | "computer"
   | "preview"
+  | "files"
   | "settings"
   | "routine"
   | "create"
@@ -3189,6 +3192,18 @@ export function ShellPage() {
                     <Monitor size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
                   </button>
                 ) : null}
+                {!inGroup ? (
+                  <button
+                    type="button"
+                    title={t`Files`}
+                    data-testid="files-trigger"
+                    onClick={() => setPanel(panel === "files" ? null : "files")}
+                    className="app-no-drag grid h-[30px] w-[34px] place-items-center rounded-[9px] hover:bg-[#1B1B1E]"
+                    style={{ background: panel === "files" ? "#1B1B1E" : "transparent" }}
+                  >
+                    <FolderTree size={18} strokeWidth={1.6} className="text-[#A8A8AD]" />
+                  </button>
+                ) : null}
               </div>
             </div>
             <Transcript
@@ -3326,12 +3341,18 @@ export function ShellPage() {
         data-panel={panel ?? "closed"}
         className={`absolute inset-y-0 end-0 z-20 flex min-h-0 shrink-0 flex-col overflow-hidden bg-[#0A0A0B] transition-[width] duration-150 ease-out md:relative ${
           panel && (active || activeGroup)
-            ? "w-full max-w-[384px] border-s border-[#141416] md:w-[384px] md:max-w-none"
+            ? panel === "files"
+              ? "w-full max-w-[560px] border-s border-[#141416] md:w-[560px] md:max-w-none"
+              : "w-full max-w-[384px] border-s border-[#141416] md:w-[384px] md:max-w-none"
             : "pointer-events-none w-0"
         }`}
       >
         {panel && (active || activeGroup) ? (
-          <div className="rk-scroll h-full w-full overflow-y-auto px-5 py-[17px] md:w-[384px]">
+          <div
+            className={`rk-scroll h-full w-full overflow-y-auto px-5 py-[17px] ${
+              panel === "files" ? "flex flex-col md:w-[560px]" : "md:w-[384px]"
+            }`}
+          >
             {panel !== "routine" &&
             panel !== "create" &&
             panel !== "create-group" &&
@@ -3342,6 +3363,8 @@ export function ShellPage() {
                     <Trans>Settings</Trans>
                   ) : panel === "preview" ? (
                     <Trans>Preview</Trans>
+                  ) : panel === "files" ? (
+                    <Trans>Files</Trans>
                   ) : active ? (
                     (computer?.state ?? active.status)
                   ) : (
@@ -3366,6 +3389,18 @@ export function ShellPage() {
                   {active ? (
                     <button
                       type="button"
+                      aria-label={panel === "files" ? t`Show computer` : t`Show files`}
+                      onClick={() => setPanel(panel === "files" ? "computer" : "files")}
+                      className={
+                        panel === "files" ? "text-[#ECECEE]" : "text-[#85858A] hover:text-[#ECECEE]"
+                      }
+                    >
+                      <FolderTree size={16} strokeWidth={1.7} />
+                    </button>
+                  ) : null}
+                  {active ? (
+                    <button
+                      type="button"
                       aria-label={panel === "settings" ? t`Show computer` : t`Show settings`}
                       onClick={() => setPanel(panel === "settings" ? "computer" : "settings")}
                       className={
@@ -3382,6 +3417,19 @@ export function ShellPage() {
                   </button>
                 </div>
               </div>
+            ) : null}
+            {panel === "files" && active ? (
+              <FilesPanel
+                botId={active.id}
+                computerState={computer?.state}
+                running={transcriptRunning}
+                onWake={() => {
+                  void rpc.computer
+                    .boot({ botId: active.id })
+                    .then(() => refreshThread(active.id))
+                    .catch(() => undefined);
+                }}
+              />
             ) : null}
             {panel === "preview" && active && activePreview ? (
               <div>

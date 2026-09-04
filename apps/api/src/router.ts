@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import path from "node:path";
 import { implement, ORPCError } from "@orpc/server";
 import {
   type AdapterContext,
@@ -57,6 +58,7 @@ import {
   releaseComputerExecutionLease,
   replaceComputer,
   resolveAutoReviewChecker,
+  resolveBotWorkspaceCwd,
   resolveBotWorkspacePath,
   sanitizeComposioError,
   savePushToken,
@@ -122,6 +124,17 @@ import {
 } from "@rakazo/db";
 import { createAgentSkillsService } from "./agent-skills.js";
 import { createOwnedArtifact, getOwnedArtifact, getSpaceArtifact } from "./artifacts.js";
+import {
+  findGitRepositoriesArgv,
+  gitDiffArgv,
+  gitStatusArgv,
+  isSafeRepoRelativePath,
+  parseGitStatus,
+  parseRepositoryList,
+  runInComputer,
+  truncateDiff,
+  type WorkspaceRepo,
+} from "./computer-changes.js";
 import {
   executionBlocksUserTakeover,
   resolveBusyBotName,
@@ -1862,6 +1875,91 @@ export function createRouter(deps: RouterDeps) {
           }
         }
         return { path: input.path, content };
+      }),
+      writeFile: authed.computer.writeFile.handler(async ({ context, input }) => {
+        const bot = await repos.getBot(context.actor, input.botId);
+        if (!bot.computer) throw new IsolationError();
+        const activeRun = await deps.prisma.run.findFirst({
+          where: { botId: bot.id, status: { in: [...ACTIVE_RUN_STATUSES] } },
+          select: { id: true },
+        });
+        if (activeRun) {
+          throw new ORPCError("CONFLICT", {
+            message: "The bot is working. Wait for the run to finish before editing files.",
+          });
+        }
+        const computerMode = parseComputerMode(bot.computer.scope);
+        const ctx = computerContext(context.actor, bot.id, "write");
+        const storedPath = resolveBotWorkspacePath(computerMode, bot.id, input.path);
+        if (bot.computer.state === "running" && bot.computer.providerRef) {
+          await deps.prisma.computer.updateMany({
+            where: { id: bot.computer.id, state: "running" },
+            data: { updatedAt: new Date() },
+          });
+          scheduleComputerSleep(deps.jobs, bot.computer.id);
+          await deps.sandbox.writeFile(
+            toComputerRef(bot.computer),
+            { path: storedPath, content: Buffer.from(input.content, "utf8") },
+            ctx,
+          );
+        } else {
+          await deps.home.writeFile(bot.computer.homeKey, storedPath, input.content, ctx);
+        }
+        return { path: input.path };
+      }),
+      changes: authed.computer.changes.handler(async ({ context, input }) => {
+        const bot = await repos.getBot(context.actor, input.botId);
+        if (!bot.computer) throw new IsolationError();
+        if (bot.computer.state !== "running" || !bot.computer.providerRef) {
+          return { available: false, repos: [] };
+        }
+        const computerMode = parseComputerMode(bot.computer.scope);
+        const ctx = computerContext(context.actor, bot.id, "changes");
+        const ref = toComputerRef(bot.computer);
+        const root = resolveBotWorkspaceCwd(computerMode, bot.id, undefined);
+        const found = await runInComputer(deps.sandbox, ref, findGitRepositoriesArgv(), root, ctx);
+        const collected: WorkspaceRepo[] = [];
+        for (const repoPath of parseRepositoryList(found.stdout)) {
+          const cwd = repoPath ? path.posix.join(root ?? "", repoPath) : root;
+          const status = await runInComputer(deps.sandbox, ref, gitStatusArgv(), cwd, ctx);
+          if (status.code !== 0) continue;
+          collected.push({ path: repoPath, files: parseGitStatus(status.stdout) });
+        }
+        return { available: true, repos: collected };
+      }),
+      diff: authed.computer.diff.handler(async ({ context, input }) => {
+        const bot = await repos.getBot(context.actor, input.botId);
+        if (!bot.computer) throw new IsolationError();
+        if (
+          !isSafeRepoRelativePath(input.path) ||
+          (input.repo !== "" && !isSafeRepoRelativePath(input.repo))
+        ) {
+          throw new ORPCError("BAD_REQUEST", { message: "invalid path" });
+        }
+        if (bot.computer.state !== "running" || !bot.computer.providerRef) {
+          throw new ORPCError("BAD_REQUEST", { message: "The computer is asleep" });
+        }
+        const computerMode = parseComputerMode(bot.computer.scope);
+        const ctx = computerContext(context.actor, bot.id, "diff");
+        const ref = toComputerRef(bot.computer);
+        const root = resolveBotWorkspaceCwd(computerMode, bot.id, undefined);
+        const cwd = input.repo ? path.posix.join(root ?? "", input.repo) : root;
+        const status = await runInComputer(
+          deps.sandbox,
+          ref,
+          [...gitStatusArgv(), "--", input.path],
+          cwd,
+          ctx,
+        );
+        const change = parseGitStatus(status.stdout).find((item) => item.path === input.path);
+        const diff = await runInComputer(
+          deps.sandbox,
+          ref,
+          gitDiffArgv(change?.status ?? "modified", input.path),
+          cwd,
+          ctx,
+        );
+        return truncateDiff(diff.stdout);
       }),
       upload: authed.computer.upload.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);

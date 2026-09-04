@@ -1,6 +1,17 @@
 import { eventIterator, oc } from "@orpc/contract";
 import * as z from "zod";
 import { ATTACHMENT_MAX_BASE64_LENGTH, ATTACHMENT_MAX_COUNT } from "./attachments.js";
+
+export const WorkspaceChangeStatusSchema = z.enum([
+  "added",
+  "modified",
+  "deleted",
+  "renamed",
+  "untracked",
+  "conflict",
+]);
+export type WorkspaceChangeStatus = z.infer<typeof WorkspaceChangeStatusSchema>;
+
 import {
   CRM_MODULE_FIELD_LABEL_MAX,
   CRM_MODULE_FIELD_MAX,
@@ -514,6 +525,24 @@ export const appContract = {
     readFile: oc
       .input(z.object({ botId: Id, path: z.string() }))
       .output(z.object({ path: z.string(), content: z.string() })),
+    writeFile: oc
+      .input(z.object({ botId: Id, path: z.string().min(1), content: z.string().max(2_000_000) }))
+      .output(z.object({ path: z.string() })),
+    /** Uncommitted work in every git repository inside the bot's workspace. */
+    changes: oc.input(botId).output(
+      z.object({
+        available: z.boolean(),
+        repos: z.array(
+          z.object({
+            path: z.string(),
+            files: z.array(z.object({ path: z.string(), status: WorkspaceChangeStatusSchema })),
+          }),
+        ),
+      }),
+    ),
+    diff: oc
+      .input(z.object({ botId: Id, repo: z.string(), path: z.string().min(1) }))
+      .output(z.object({ diff: z.string(), truncated: z.boolean() })),
     upload: oc
       .input(
         z.object({
