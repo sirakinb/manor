@@ -1232,15 +1232,47 @@ function createQueue(): EventQueue {
   };
 }
 
+// OpenAI never returns raw reasoning, only summaries. Pi's streamSimple asks
+// for the "auto" summary, a one-line headline per thought ("Planning source
+// selection"); "detailed" gives the paragraph-length narration the chat's
+// reasoning rail is built to show. streamSimple drops unknown options, so the
+// summary level is set on the request body through the payload hook instead.
+const OPENAI_SUMMARY_APIS = new Set<string>([
+  "openai-responses",
+  "openai-codex-responses",
+  "azure-openai-responses",
+]);
+
+type OnPayload = NonNullable<SimpleStreamOptions["onPayload"]>;
+
+export function detailedReasoningSummary(payload: unknown): unknown {
+  if (!payload || typeof payload !== "object") return payload;
+  const reasoning = (payload as { reasoning?: unknown }).reasoning;
+  if (!reasoning || typeof reasoning !== "object") return payload;
+  return { ...payload, reasoning: { ...reasoning, summary: "detailed" } };
+}
+
+function withDetailedReasoningSummary(options?: SimpleStreamOptions): SimpleStreamOptions {
+  const previous = options?.onPayload;
+  const onPayload: OnPayload = async (payload, model) => {
+    const next = previous ? await previous(payload, model) : undefined;
+    return detailedReasoningSummary(next === undefined ? payload : next);
+  };
+  return { ...options, onPayload };
+}
+
 export function reliableStreamOptions(
   model: Pick<Model<Api>, "api" | "provider">,
   options?: SimpleStreamOptions,
 ): SimpleStreamOptions | undefined {
+  const shaped = OPENAI_SUMMARY_APIS.has(model.api)
+    ? withDetailedReasoningSummary(options)
+    : options;
   if (model.provider !== "openai-codex" && model.api !== "openai-codex-responses") {
-    return options;
+    return shaped;
   }
   // Pi cannot fall back after a WebSocket has emitted its start event. Long tool
   // runs then surface abnormal close 1006 as a terminal model error. SSE has
   // bounded network retries and no long-lived connection between tool turns.
-  return { ...options, transport: "sse" };
+  return { ...shaped, transport: "sse" };
 }
