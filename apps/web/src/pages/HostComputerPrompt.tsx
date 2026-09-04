@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { Me } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { desktopBridge } from "../lib/desktop";
+import { isLocalServer } from "../lib/local-server";
 import { rpc } from "../lib/rpc";
 
 export function HostComputerPrompt({ initialMe }: { initialMe?: Me }) {
@@ -15,6 +16,9 @@ export function HostComputerPrompt({ initialMe }: { initialMe?: Me }) {
 
   useEffect(() => {
     if (!desktop) return;
+    // "This Mac" means the machine the API runs on. Against a hosted server that is
+    // the VPS, not the user's laptop, so the choice only applies to a local install.
+    if (!isLocalServer(window.location.hostname)) return;
     if (initialMe) {
       if (initialMe.canChooseHostComputer && initialMe.computerHost == null) setOpen(true);
       return;
