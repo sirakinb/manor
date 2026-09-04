@@ -327,6 +327,9 @@ jobs:
               xargs -0 sha256sum > SHA256SUMS
           )
       - name: Attest release provenance
+        # GitHub does not offer attestations on user-owned private repositories; keep the
+        # step so it starts working the moment the source repo becomes public or org-owned.
+        continue-on-error: true
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: release-artifacts/*
