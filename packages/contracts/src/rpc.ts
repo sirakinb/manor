@@ -1,6 +1,29 @@
 import { eventIterator, oc } from "@orpc/contract";
 import * as z from "zod";
 import { ATTACHMENT_MAX_BASE64_LENGTH, ATTACHMENT_MAX_COUNT } from "./attachments.js";
+import {
+  AvailableRentalsSchema,
+  EmailCampaignDetailSchema,
+  EmailPerformanceSchema,
+  EmailWindowSchema,
+  LeasingSnapshotSchema,
+  ListingFilterSchema,
+  SocialSnapshotSchema,
+  UtilitiesOverviewSchema,
+  VoiceAgentTypeSchema,
+  VoiceCallDetailSchema,
+  VoiceCallRowSchema,
+  VoiceStatsSchema,
+  WorkspaceActivitySchema,
+  WorkspaceContextEntrySchema,
+  WorkspaceOverviewSchema,
+  WorkspacePipeSchema,
+  WorkspaceReportRowSchema,
+  WorkspaceReportSchema,
+  WorkspaceSkillRowSchema,
+  WorkspaceSkillSchema,
+  WorkspaceSummarySchema,
+} from "./workspace.js";
 
 export const WorkspaceChangeStatusSchema = z.enum([
   "added",
@@ -274,6 +297,80 @@ export const appContract = {
     create: oc
       .input(threadTarget.safeExtend({ name: z.string().trim().min(1).max(60) }))
       .output(BotSectionSchema),
+  },
+  /// The client's operations warehouse. `status` is cheap and drives the nav;
+  /// `overview` is the one round trip the pipeline map needs.
+  workspace: {
+    status: oc.output(z.object({ workspace: WorkspaceSummarySchema.nullable() })),
+    overview: oc.output(WorkspaceOverviewSchema),
+    system: oc.output(z.object({ pipes: z.array(WorkspacePipeSchema) })),
+    voice: {
+      stats: oc
+        .input(
+          z.object({
+            days: z.number().int().min(1).max(365).default(30),
+            agentType: VoiceAgentTypeSchema.optional(),
+          }),
+        )
+        .output(VoiceStatsSchema),
+      calls: oc
+        .input(
+          z.object({
+            days: z.number().int().min(1).max(365).default(30),
+            agentType: VoiceAgentTypeSchema.optional(),
+            search: z.string().trim().max(120).optional(),
+            callbackOnly: z.boolean().default(false),
+            limit: z.number().int().min(1).max(200).default(50),
+          }),
+        )
+        .output(z.object({ calls: z.array(VoiceCallRowSchema) })),
+      call: oc.input(z.object({ callId: Id })).output(VoiceCallDetailSchema),
+    },
+    reports: {
+      list: oc.output(z.array(WorkspaceReportRowSchema)),
+      get: oc.input(z.object({ reportId: Id })).output(WorkspaceReportSchema),
+    },
+    email: {
+      performance: oc
+        .input(z.object({ window: EmailWindowSchema.default("12m") }))
+        .output(EmailPerformanceSchema),
+      campaign: oc
+        .input(z.object({ sourceCampaignId: z.string().min(1) }))
+        .output(EmailCampaignDetailSchema),
+    },
+    social: {
+      snapshot: oc
+        .input(z.object({ days: z.number().int().min(1).max(365).default(30) }))
+        .output(SocialSnapshotSchema),
+    },
+    leasing: {
+      snapshot: oc.output(LeasingSnapshotSchema),
+      rentals: oc
+        .input(z.object({ filter: ListingFilterSchema.default("all") }))
+        .output(AvailableRentalsSchema),
+    },
+    utilities: {
+      overview: oc.output(UtilitiesOverviewSchema),
+    },
+    activities: {
+      list: oc
+        .input(
+          z.object({
+            channel: z.string().trim().max(40).optional(),
+            limit: z.number().int().min(1).max(200).default(50),
+          }),
+        )
+        .output(z.array(WorkspaceActivitySchema)),
+    },
+    skills: {
+      list: oc.output(z.array(WorkspaceSkillRowSchema)),
+      get: oc
+        .input(z.object({ name: z.string().min(1), version: z.number().int().optional() }))
+        .output(WorkspaceSkillSchema),
+    },
+    context: {
+      list: oc.output(z.array(WorkspaceContextEntrySchema)),
+    },
   },
   crm: {
     overview: oc.output(CrmOverviewSchema),

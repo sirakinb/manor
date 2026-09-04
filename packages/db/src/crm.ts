@@ -1,14 +1,7 @@
-import type {
-  Actor,
-  CrmContact,
-  CrmDeal,
-  CrmOverview,
-  CrmPipeline,
-  CrmTag,
-} from "@rakazo/contracts";
+import type { CrmContact, CrmDeal, CrmOverview, CrmPipeline, CrmTag } from "@rakazo/contracts";
 import type { PrismaClient } from "./client.js";
 import { createCrmModuleRepos } from "./crm-modules.js";
-import { IsolationError } from "./scope.js";
+import { IsolationError, type OrganizationScope } from "./scope.js";
 
 /**
  * CRM data access. Every function takes the actor and scopes by its
@@ -17,8 +10,7 @@ import { IsolationError } from "./scope.js";
  * same rule the rest of the repos follow.
  */
 
-/** Only the organization matters for scoping, so agent runs can act without a full Actor. */
-export type CrmActorScope = Pick<Actor, "organizationId">;
+export type CrmActorScope = OrganizationScope;
 
 /** The board a workspace starts with, so the pipeline is never an empty screen. */
 const DEFAULT_PIPELINE = {

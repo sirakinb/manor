@@ -1,6 +1,9 @@
 import type { Actor } from "@rakazo/contracts";
 import type { PrismaClient } from "./client.js";
 
+/** Only the organization matters for account-wide data (CRM, Workspace), so agent runs can act without a full Actor. */
+export type OrganizationScope = Pick<Actor, "organizationId">;
+
 export class IsolationError extends Error {
   constructor(message = "Resource not found") {
     super(message);

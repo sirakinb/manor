@@ -9,3 +9,4 @@ export * from "./openai-compatible-ui.js";
 export * from "./rpc.js";
 export * from "./runs.js";
 export * from "./search.js";
+export * from "./workspace.js";

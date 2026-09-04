@@ -58,6 +58,11 @@ Known Manor deltas to preserve through any resolution:
   sync moved it to `spaceId` (`20260831120000_manor_tables_to_spaces`). If a
   future sync's schema union re-adds `spaceId` to any `crm_*` table, that's
   wrong; keep `organizationId`.
+- The Workspace domain: `Workspace` + `workspace_*` tables in the Prisma
+  schema (migration `20260904190458_workspace_core`), `packages/db/src/workspace.ts`,
+  `packages/db/src/workspace-pipes.ts`, the `workspace.*` contract and router
+  section, and `packages/db/scripts/*pentridge-workspace*`. Organization-scoped
+  like the CRM (`workspaces.organizationId` is unique); see `docs/workspace.md`.
 - The four Team Computer fixes: owner-change rule in `screen-lease.ts`,
   ref-persist `updateMany` in `packages/adapters/src/computer-lifecycle.ts`, boot-reconcile in
   `router.ts`, try/catch around both `setScreenControl` revocations.

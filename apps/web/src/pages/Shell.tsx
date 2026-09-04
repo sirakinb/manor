@@ -27,6 +27,7 @@ import type {
   ToolRoutingMode,
   VoiceInfo,
   VoiceStatus,
+  WorkspaceSummary,
 } from "@rakazo/contracts";
 import {
   ATTACHMENT_ALLOWED_MIME_TYPES,
@@ -100,6 +101,7 @@ import {
   Square,
   ThumbsUp,
   Volume2,
+  Waypoints,
   X,
 } from "lucide-react";
 import {
@@ -189,10 +191,11 @@ import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
 import { CrmView } from "./crm/CrmView";
 import { DocsView } from "./DocsView";
+import { WorkspaceView } from "./workspace/WorkspaceView";
 
 /** Routes that render a full-pane place instead of a bot thread. */
 function isPlaceRoute(pathname: string): boolean {
-  return pathname === "/app/crm" || pathname === "/app/docs";
+  return pathname === "/app/crm" || pathname === "/app/docs" || pathname === "/app/workspace";
 }
 
 import { accentColor, brand } from "../lib/brand";
@@ -327,6 +330,16 @@ export function ShellPage() {
   const placePathname = useLocation().pathname;
   const crmOpen = placePathname === "/app/crm";
   const docsOpen = placePathname === "/app/docs";
+  const workspaceOpen = placePathname === "/app/workspace";
+  // The Workspace place exists only for accounts with a connected warehouse;
+  // one cheap status read on mount decides whether the nav shows it.
+  const [workspace, setWorkspace] = useState<WorkspaceSummary | null>(null);
+  useEffect(() => {
+    rpc.workspace
+      .status()
+      .then((result) => setWorkspace(result.workspace))
+      .catch(() => setWorkspace(null));
+  }, []);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
   const [archivedGroups, setArchivedGroups] = useState<Group[]>([]);
@@ -2913,6 +2926,22 @@ export function ShellPage() {
             </div>
           ) : null}
         </div>
+        {workspace ? (
+          <button
+            type="button"
+            onClick={() => navigate("/app/workspace")}
+            className={`mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315] ${
+              workspaceOpen ? "bg-[#131315]" : ""
+            }`}
+          >
+            <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
+              <Waypoints size={15} strokeWidth={1.7} />
+            </span>
+            <span className="text-[14.5px] text-[#C9C9CE]">
+              <Trans>Workspace</Trans>
+            </span>
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => navigate("/app/crm")}
@@ -3076,7 +3105,9 @@ export function ShellPage() {
         inert={mobileSidebarOpen}
         className="flex min-w-0 flex-1 flex-col bg-[#0D0D0E]"
       >
-        {crmOpen ? (
+        {workspaceOpen ? (
+          <WorkspaceView />
+        ) : crmOpen ? (
           <CrmView />
         ) : docsOpen ? (
           <DocsView />

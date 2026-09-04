@@ -108,6 +108,10 @@ model Organization {
   crmWebhookEndpoints   CrmWebhookEndpoint[]
   crmWebhookEvents      CrmWebhookEvent[]
 
+  // A client's operations warehouse. One per organization; every workspace_*
+  // row hangs off it, so the organization is the tenant key by construction.
+  workspace Workspace?
+
   @@unique([slug])
   @@map("organization")
 }
@@ -475,22 +479,22 @@ model Thread {
 }
 
 model Message {
-  id               String    @id @default(cuid())
+  id               String            @id @default(cuid())
   threadId         String
-  thread           Thread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread           Thread            @relation(fields: [threadId], references: [id], onDelete: Cascade)
   seq              Int
   role             String
   blocks           Json
   botId            String?
   replyToMessageId String?
-  replyTo          Message?  @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies          Message[] @relation("MessageReplies")
+  replyTo          Message?          @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies          Message[]         @relation("MessageReplies")
   runId            String?
   clientNonce      String?
-  thumbsUp         Boolean   @default(false)
-  sourceRuns       Run[]     @relation("RunSourceMessage")
+  thumbsUp         Boolean           @default(false)
+  sourceRuns       Run[]             @relation("RunSourceMessage")
   steeringMessages SteeringMessage[]
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime          @default(now())
 
   @@unique([threadId, seq])
   @@unique([threadId, clientNonce])
@@ -539,15 +543,15 @@ model Task {
 }
 
 model Run {
-  id                   String           @id @default(cuid())
+  id                   String            @id @default(cuid())
   spaceId              String
-  space                Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  space                Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   botId                String
-  bot                  Bot              @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot                  Bot               @relation(fields: [botId], references: [id], onDelete: Cascade)
   threadId             String
-  thread               Thread           @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread               Thread            @relation(fields: [threadId], references: [id], onDelete: Cascade)
   taskId               String
-  task                 Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task                 Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
   userId               String
   status               String
   trigger              String
@@ -557,20 +561,20 @@ model Run {
   toolRoutingMode      String?
   error                String?
   leaseOwner           String?
-  leaseFence           Int              @default(0)
+  leaseFence           Int               @default(0)
   leaseExpiresAt       DateTime?
   checkpoint           String?
   clientNonce          String?
   sourceMessageId      String?
-  sourceMessage        Message?         @relation("RunSourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)
+  sourceMessage        Message?          @relation("RunSourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)
   routineId            String?
-  routine              Routine?         @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  routine              Routine?          @relation(fields: [routineId], references: [id], onDelete: SetNull)
   startedAt            DateTime?
   completedAt          DateTime?
   botOutcomeReturnedAt DateTime?
   messagingMirroredAt  DateTime?
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
   attempts             Attempt[]
   effects              ExternalEffect[]
   usageRecords         UsageRecord[]
@@ -589,16 +593,16 @@ model Run {
 }
 
 model SteeringMessage {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   messageId String
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
   botId     String
-  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot       Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
   userId    String
   runId     String?
-  run       Run?     @relation(fields: [runId], references: [id], onDelete: SetNull)
+  run       Run?      @relation(fields: [runId], references: [id], onDelete: SetNull)
   claimedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@unique([messageId, botId])
   @@index([botId, runId, createdAt])
@@ -1000,23 +1004,23 @@ model McpServer {
 /// A stored website login a bot may use on its computer. Username/site/notes are
 /// plain; password and TOTP seed live encrypted in `secret` and never reach the model.
 model BotCredential {
-  id        String   @id @default(cuid())
-  spaceId   String
-  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  botId     String
-  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label     String
-  site      String   @default("")
-  username  String   @default("")
-  notes     String   @default("")
-  hasPassword Boolean @default(false)
-  hasTotp   Boolean  @default(false)
-  secretId  String?
-  secret    Secret?  @relation(fields: [secretId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  spaceId     String
+  space       Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  botId       String
+  bot         Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String
+  site        String   @default("")
+  username    String   @default("")
+  notes       String   @default("")
+  hasPassword Boolean  @default(false)
+  hasTotp     Boolean  @default(false)
+  secretId    String?
+  secret      Secret?  @relation(fields: [secretId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([spaceId, botId])
   @@map("bot_credentials")
@@ -1080,28 +1084,28 @@ model MessagingIdentity {
 }
 
 model MessagingChannel {
-  id            String              @id @default(cuid())
+  id            String                   @id @default(cuid())
   provider      String
   /// Opaque provider thread id of the group conversation.
-  threadId      String              @unique
+  threadId      String                   @unique
   name          String?
   introPostedAt DateTime?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
   members       MessagingChannelMember[]
 
   @@map("messaging_channels")
 }
 
 model MessagingChannelMember {
-  id         String      @id @default(cuid())
+  id         String           @id @default(cuid())
   channelId  String
   channel    MessagingChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   address    String
   identityId String?
   status     String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@unique([channelId, address])
   @@index([identityId])
@@ -1411,4 +1415,650 @@ model CrmWebhookDelivery {
   @@unique([endpointId, eventId])
   @@index([status, nextAttemptAt])
   @@map("crm_webhook_deliveries")
+}
+
+// ── Workspace ────────────────────────────────────────────────────────────────
+// A client's operations warehouse: the data its channels (voice, email, social,
+// leasing, utilities) produce, the sources that fill it, and what the AI team
+// did with it. Ported from the Pentridge Agent Workspace. Exactly one per
+// organization, so scoping is "resolve the org's workspace once, then filter
+// by workspaceId". Tables carry their source's shape (Buildium, Zoho, REMA)
+// because rewriting eight working pipelines buys nothing visible.
+
+model Workspace {
+  id               String       @id @default(cuid())
+  organizationId   String       @unique
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name             String
+  slug             String       @unique
+  channels         String[]     @default([]) // voice | email | social | leasing | utilities
+  activityApproval String       @default("manual") // manual | auto
+
+  monthlyVoiceReportsEnabled Boolean   @default(false)
+  monthlyVoiceReportDay      Int       @default(0) // 0 = last day of month, 1-28 = that day
+  monthlyVoiceReportHour     Int       @default(9)
+  monthlyVoiceLastSentOn     DateTime? @db.Date
+  weeklyEmailReportsEnabled  Boolean   @default(false)
+  weeklyEmailReportDay       Int       @default(1) // 0 = Sunday
+  weeklyEmailReportHour      Int       @default(9)
+  weeklyEmailLastSentOn      DateTime? @db.Date
+  reportRecipient            String?
+  reportReviewerEmail        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources              WorkspaceSource[]
+  syncRuns             WorkspaceSyncRun[]
+  voiceCalls           WorkspaceVoiceCall[]
+  voiceTranscripts     WorkspaceVoiceTranscript[]
+  voiceCallAnalyses    WorkspaceVoiceCallAnalysis[]
+  reports              WorkspaceReport[]
+  emailCampaigns       WorkspaceEmailCampaign[]
+  emailCampaignLinks   WorkspaceEmailCampaignLink[]
+  instagramDaily       WorkspaceInstagramDaily[]
+  instagramMedia       WorkspaceInstagramMedia[]
+  instagramStats       WorkspaceInstagramStats[]
+  buildiumApplications WorkspaceBuildiumApplication[]
+  buildiumLeases       WorkspaceBuildiumLease[]
+  buildiumProperties   WorkspaceBuildiumProperty[]
+  buildiumListings     WorkspaceBuildiumListing[]
+  buildiumUnits        WorkspaceBuildiumUnit[]
+  buildiumFiles        WorkspaceBuildiumFile[]
+  remaListings         WorkspaceRemaListing[]
+  sheetListings        WorkspaceSheetListing[]
+  utilityProperties    WorkspaceUtilityProperty[]
+  waterBills           WorkspaceWaterBill[]
+  waterBillChargePosts WorkspaceWaterBillChargePost[]
+  activities           WorkspaceActivity[]
+  skills               WorkspaceSkill[]
+  context              WorkspaceContext[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceSource {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name             String
+  sourceType       String? // voice | email | social | leasing | utilities
+  status           String    @default("planned") // planned | connected | error
+  connectionMethod String?
+  lastSyncedAt     DateTime?
+  config           Json      @default("{}")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  syncRuns WorkspaceSyncRun[]
+
+  @@unique([workspaceId, name])
+  @@map("workspace_sources")
+}
+
+model WorkspaceSyncRun {
+  id            String           @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceId      String?
+  source        WorkspaceSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  status        String           @default("running") // running | success | error
+  startedAt     DateTime         @default(now())
+  finishedAt    DateTime?
+  recordsLoaded Int              @default(0)
+  errorMessage  String?
+  metadata      Json             @default("{}")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([workspaceId, startedAt])
+  @@index([sourceId, startedAt])
+  @@map("workspace_sync_runs")
+}
+
+model WorkspaceVoiceCall {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceCallId      String
+  sourceSystem      String    @default("retell")
+  agentType         String    @default("tenant") // tenant | landlord
+  callerName        String?
+  callerPhone       String?
+  callStartedAt     DateTime?
+  durationSeconds   Int?
+  callbackRequested Boolean?
+  aiResolved        Boolean?
+  aiResolutionNotes String?
+  recordingUrl      String?
+  sourceCreatedAt   DateTime?
+  raw               Json      @default("{}")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  transcript WorkspaceVoiceTranscript?
+  analysis   WorkspaceVoiceCallAnalysis?
+
+  @@unique([workspaceId, sourceCallId])
+  @@index([workspaceId, callStartedAt])
+  @@index([workspaceId, agentType, callStartedAt])
+  @@map("workspace_voice_calls")
+}
+
+model WorkspaceVoiceTranscript {
+  id              String             @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  voiceCallId     String             @unique
+  voiceCall       WorkspaceVoiceCall @relation(fields: [voiceCallId], references: [id], onDelete: Cascade)
+  transcriptText  String?
+  speakerSegments Json?
+  raw             Json               @default("{}")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([workspaceId])
+  @@map("workspace_voice_transcripts")
+}
+
+model WorkspaceVoiceCallAnalysis {
+  id               String             @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  voiceCallId      String             @unique
+  voiceCall        WorkspaceVoiceCall @relation(fields: [voiceCallId], references: [id], onDelete: Cascade)
+  summary          String?
+  callReason       String?
+  sentiment        String?
+  followUpRequired Boolean?
+  tags             String[]           @default([])
+  raw              Json               @default("{}")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([workspaceId])
+  @@map("workspace_voice_call_analyses")
+}
+
+model WorkspaceReport {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  reportType       String // voice | voice_monthly | email
+  title            String
+  status           String    @default("draft") // draft | generating | final | error
+  dateRangeStart   DateTime?
+  dateRangeEnd     DateTime?
+  generatedBy      String?
+  generatedAt      DateTime?
+  summary          String?
+  report           Json      @default("{}")
+  shareToken       String    @unique @default(cuid())
+  editedAt         DateTime?
+  editedBy         String?
+  approvedAt       DateTime?
+  approvedBy       String?
+  sentAt           DateTime?
+  sentTo           String?
+  reviewRemindedOn DateTime? @db.Date
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([workspaceId, reportType, createdAt])
+  @@index([workspaceId, approvedAt])
+  @@map("workspace_reports")
+}
+
+model WorkspaceEmailCampaign {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceCampaignId String
+  campaignKey      String?
+  name             String?
+  subject          String?
+  preheader        String?
+  topic            String?
+  fromEmail        String?
+  senderName       String?
+  replyTo          String?
+  status           String?
+  campaignType     String?
+  sentAt           DateTime?
+  sourceCreatedAt  DateTime?
+  emailsSent       Int?
+  delivered        Int?
+  opens            Int?
+  unopened         Int?
+  uniqueClicks     Int?
+  bounces          Int?
+  hardBounces      Int?
+  softBounces      Int?
+  unsubscribes     Int?
+  spam             Int?
+  complaints       Int?
+  forwards         Int?
+  deliveredPercent Float?
+  openPercent      Float?
+  clickPercent     Float?
+  clicksPerOpen    Float?
+  bouncePercent    Float?
+  unsubPercent     Float?
+  useragentStats   Json?
+  statsSyncedAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([workspaceId, sourceCampaignId])
+  @@index([workspaceId, sentAt])
+  @@map("workspace_email_campaigns")
+}
+
+model WorkspaceEmailCampaignLink {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceCampaignId String
+  url              String
+  uniqueClickers   Int       @default(0)
+  totalClicks      Int       @default(0)
+  syncedAt         DateTime  @default(now())
+
+  @@unique([workspaceId, sourceCampaignId, url])
+  @@map("workspace_email_campaign_links")
+}
+
+model WorkspaceInstagramDaily {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  igUserId     String
+  date         DateTime  @db.Date
+  followers    Int?
+  follows      Int?
+  mediaCount   Int?
+  reach        Int?
+  newFollowers Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([workspaceId, igUserId, date])
+  @@index([workspaceId, date])
+  @@map("workspace_instagram_daily")
+}
+
+model WorkspaceInstagramMedia {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  igUserId          String
+  mediaId           String
+  mediaType         String?
+  caption           String?
+  permalink         String?
+  thumbnailUrl      String?
+  postedAt          DateTime?
+  likeCount         Int?
+  commentsCount     Int?
+  reach             Int?
+  views             Int?
+  saved             Int?
+  shares            Int?
+  totalInteractions Int?
+  statsSyncedAt     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([workspaceId, mediaId])
+  @@index([workspaceId, postedAt])
+  @@map("workspace_instagram_media")
+}
+
+model WorkspaceInstagramStats {
+  id                   String    @id @default(cuid())
+  workspaceId          String
+  workspace            Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  igUserId             String
+  username             String?
+  name                 String?
+  biography            String?
+  profilePictureUrl    String?
+  followers            Int?
+  follows              Int?
+  mediaCount           Int?
+  reach28d             Int?
+  profileViews28d      Int?
+  accountsEngaged28d   Int?
+  totalInteractions28d Int?
+  demographics         Json?
+  capturedAt           DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([workspaceId, igUserId])
+  @@map("workspace_instagram_stats")
+}
+
+model WorkspaceBuildiumApplication {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  applicantId       Int
+  applicationId     Int?
+  applicationNumber String?
+  status            String?
+  applicationStatus String?
+  propertyId        Int?
+  unitId            Int?
+  tenantId          Int?
+  submittedAt       DateTime?
+  lastUpdated       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([workspaceId, applicantId])
+  @@index([workspaceId, submittedAt])
+  @@index([workspaceId, status])
+  @@map("workspace_buildium_applications")
+}
+
+model WorkspaceBuildiumLease {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leaseId           Int
+  propertyId        Int?
+  unitId            Int?
+  unitNumber        String?
+  status            String? // Active | Past | Future
+  leaseType         String?
+  termType          String? // Fixed | AtWill
+  leaseFrom         DateTime? @db.Date
+  leaseTo           DateTime? @db.Date
+  rent              Float?
+  securityDeposit   Float?
+  numberOfOccupants Int?
+  isEvictionPending Boolean?
+  sourceCreatedAt   DateTime?
+  lastUpdated       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([workspaceId, leaseId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, leaseTo])
+  @@map("workspace_buildium_leases")
+}
+
+model WorkspaceBuildiumProperty {
+  id                     String    @id @default(cuid())
+  workspaceId            String
+  workspace              Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  propertyId             Int
+  name                   String?
+  addressLine            String?
+  city                   String?
+  state                  String?
+  postalCode             String?
+  isActive               Boolean?
+  rentalType             String?
+  rentalSubType          String?
+  numberUnits            Int?
+  yearBuilt              Int?
+  structureDescription   String?
+  operatingBankAccountId Int?
+  reserve                Float?
+  rentalManager          String?
+  updatedAt              DateTime  @updatedAt
+
+  @@unique([workspaceId, propertyId])
+  @@map("workspace_buildium_properties")
+}
+
+model WorkspaceBuildiumListing {
+  id                  String    @id @default(cuid())
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  unitId              Int
+  propertyId          Int?
+  propertyName        String?
+  addressLine         String?
+  city                String?
+  state               String?
+  postalCode          String?
+  unitNumber          String?
+  bedrooms            String?
+  bathrooms           String?
+  unitSize            Int?
+  rent                Float?
+  deposit             Float?
+  leaseTerms          String?
+  availableDate       DateTime? @db.Date
+  listingDate         DateTime? @db.Date
+  isSection8          Boolean?
+  isManagedExternally Boolean?
+  applicationUrl      String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([workspaceId, unitId])
+  @@index([workspaceId, isSection8])
+  @@map("workspace_buildium_listings")
+}
+
+model WorkspaceBuildiumUnit {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  unitId       Int
+  propertyId   Int?
+  buildingName String?
+  unitNumber   String?
+  description  String?
+  marketRent   Float?
+  addressLine  String?
+  city         String?
+  state        String?
+  postalCode   String?
+  bedrooms     String?
+  bathrooms    String?
+  unitSize     Int?
+  isListed     Boolean?
+  isOccupied   Boolean?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([workspaceId, unitId])
+  @@index([workspaceId, propertyId])
+  @@map("workspace_buildium_units")
+}
+
+model WorkspaceBuildiumFile {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  fileId           Int
+  entityId         Int?
+  entityType       String?
+  categoryId       Int?
+  title            String?
+  description      String?
+  physicalFileName String?
+  uploadedAt       DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([workspaceId, fileId])
+  @@index([workspaceId, entityType, entityId])
+  @@index([workspaceId, uploadedAt])
+  @@map("workspace_buildium_files")
+}
+
+model WorkspaceRemaListing {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listableUid   String
+  title         String?
+  streetAddress String
+  unit          String?
+  fullAddress   String
+  streetNorm    String // normalizeStreetAddress(streetAddress), kept for matching
+  rent          Float?
+  bedBath       String?
+  available     String?
+  detailUrl     String
+  isSection8    Boolean   @default(false)
+  scrapedAt     DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([workspaceId, listableUid])
+  @@index([workspaceId, streetNorm])
+  @@map("workspace_rema_listings")
+}
+
+model WorkspaceSheetListing {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  rawName       String
+  streetAddress String
+  streetNorm    String
+  unitNote      String?
+  rentText      String?
+  rent          Float?
+  isSection8    Boolean   @default(false)
+  beds          String?
+  baths         String?
+  scrapedAt     DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  @@unique([workspaceId, rawName])
+  @@index([workspaceId, streetNorm])
+  @@map("workspace_sheet_listings")
+}
+
+model WorkspaceUtilityProperty {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  utility     String    @default("water")
+  address     String
+  addressNorm String
+  billingMode String    @default("pass_through") // pass_through | tenant_direct | owner_sends_bill | blocked
+  propertyId  Int?
+  active      Boolean   @default(true)
+  splitEvenly Boolean   @default(false)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, utility, address])
+  @@index([workspaceId, utility, addressNorm])
+  @@map("workspace_utility_properties")
+}
+
+model WorkspaceWaterBill {
+  id                 String    @id @default(cuid())
+  workspaceId        String
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  utility            String    @default("water")
+  gmailMessageId     String
+  billIndex          Int       @default(0)
+  receivedAt         DateTime?
+  sourceSender       String?
+  serviceAddress     String?
+  serviceAddressNorm String?
+  accountBalance     Float?
+  amountDue          Float?
+  dueDate            DateTime? @db.Date
+  billingMonth       DateTime? @db.Date
+  parseStatus        String    @default("parsed") // parsed | needs_review | ignored
+  parseNotes         String?
+  rawSnippet         String?
+  createdAt          DateTime  @default(now())
+
+  chargePosts WorkspaceWaterBillChargePost[]
+
+  @@unique([workspaceId, gmailMessageId, billIndex])
+  @@index([workspaceId, serviceAddressNorm])
+  @@index([workspaceId, billingMonth])
+  @@map("workspace_water_bills")
+}
+
+model WorkspaceWaterBillChargePost {
+  id               String             @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  waterBillId      String
+  waterBill        WorkspaceWaterBill @relation(fields: [waterBillId], references: [id], onDelete: Cascade)
+  leaseId          Int
+  amount           Float
+  memo             String?
+  glAccountId      Int?
+  status           String             @default("pending") // pending | posted | skipped | error
+  buildiumChargeId Int?
+  error            String?
+  postedAt         DateTime?
+  postedBy         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@unique([waterBillId, leaseId])
+  @@index([workspaceId, status])
+  @@map("workspace_water_bill_charge_posts")
+}
+
+model WorkspaceActivity {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channel        String
+  kind           String
+  title          String
+  summary        String?
+  payload        Json?
+  status         String    @default("completed")
+  actor          String
+  verification   String    @default("pending") // pending | approved | rejected | auto
+  verifiedBy     String?
+  verifiedAt     DateTime?
+  idempotencyKey String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([workspaceId, idempotencyKey])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, channel, createdAt])
+  @@index([workspaceId, verification])
+  @@map("workspace_activities")
+}
+
+model WorkspaceSkill {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  kind        String    @default("skill")
+  version     Int       @default(1)
+  content     String
+  notes       String?
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  @@unique([workspaceId, name, version])
+  @@index([workspaceId, name])
+  @@map("workspace_skills")
+}
+
+model WorkspaceContext {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  key         String
+  content     String
+  updatedBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, key])
+  @@map("workspace_context")
 }

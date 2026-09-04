@@ -102,6 +102,10 @@ export function App() {
             element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
           />
           <Route
+            path="/app/workspace"
+            element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
+          />
+          <Route
             path="/app/crm"
             element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
           />

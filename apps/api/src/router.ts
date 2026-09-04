@@ -101,6 +101,7 @@ import {
   createRepos,
   createSpaceForMember,
   createThreadMessageInTransaction,
+  createWorkspaceRepos,
   deleteUnreferencedCredentialSecret,
   findDefaultModelCredential,
   findDefaultVoiceCredential,
@@ -411,6 +412,7 @@ export function createRouter(deps: RouterDeps) {
   const mcpOAuth = deps.mcpOAuth ?? new McpOAuthBroker(deps.prisma, deps.secrets);
   const groupRepos = createGroupRepos(deps.prisma);
   const crm = createCrmRepos(deps.prisma);
+  const workspace = createWorkspaceRepos(deps.prisma);
   const taughtSkills = createTaughtSkillsService({
     prisma: deps.prisma,
     events: deps.events,
@@ -1061,6 +1063,80 @@ export function createRouter(deps: RouterDeps) {
       create: authed.botSections.create.handler(async ({ context, input }) =>
         repos.createBotSection(context.actor, input),
       ),
+    },
+    workspace: {
+      status: authed.workspace.status.handler(async ({ context }) =>
+        workspace.status(context.actor),
+      ),
+      overview: authed.workspace.overview.handler(async ({ context }) =>
+        workspace.overview(context.actor),
+      ),
+      system: authed.workspace.system.handler(async ({ context }) =>
+        workspace.system(context.actor),
+      ),
+      voice: {
+        stats: authed.workspace.voice.stats.handler(async ({ context, input }) =>
+          workspace.voiceStats(context.actor, input),
+        ),
+        calls: authed.workspace.voice.calls.handler(async ({ context, input }) =>
+          workspace.voiceCalls(context.actor, input),
+        ),
+        call: authed.workspace.voice.call.handler(async ({ context, input }) =>
+          workspace.voiceCall(context.actor, input.callId),
+        ),
+      },
+      reports: {
+        list: authed.workspace.reports.list.handler(async ({ context }) =>
+          workspace.listReports(context.actor),
+        ),
+        get: authed.workspace.reports.get.handler(async ({ context, input }) =>
+          workspace.getReport(context.actor, input.reportId),
+        ),
+      },
+      email: {
+        performance: authed.workspace.email.performance.handler(async ({ context, input }) =>
+          workspace.emailPerformance(context.actor, input),
+        ),
+        campaign: authed.workspace.email.campaign.handler(async ({ context, input }) =>
+          workspace.emailCampaign(context.actor, input.sourceCampaignId),
+        ),
+      },
+      social: {
+        snapshot: authed.workspace.social.snapshot.handler(async ({ context, input }) =>
+          workspace.socialSnapshot(context.actor, input),
+        ),
+      },
+      leasing: {
+        snapshot: authed.workspace.leasing.snapshot.handler(async ({ context }) =>
+          workspace.leasingSnapshot(context.actor),
+        ),
+        rentals: authed.workspace.leasing.rentals.handler(async ({ context, input }) =>
+          workspace.availableRentals(context.actor, input),
+        ),
+      },
+      utilities: {
+        overview: authed.workspace.utilities.overview.handler(async ({ context }) =>
+          workspace.utilitiesOverview(context.actor),
+        ),
+      },
+      activities: {
+        list: authed.workspace.activities.list.handler(async ({ context, input }) =>
+          workspace.listActivities(context.actor, input),
+        ),
+      },
+      skills: {
+        list: authed.workspace.skills.list.handler(async ({ context }) =>
+          workspace.listSkills(context.actor),
+        ),
+        get: authed.workspace.skills.get.handler(async ({ context, input }) =>
+          workspace.getSkill(context.actor, input),
+        ),
+      },
+      context: {
+        list: authed.workspace.context.list.handler(async ({ context }) =>
+          workspace.listContext(context.actor),
+        ),
+      },
     },
     crm: {
       overview: authed.crm.overview.handler(async ({ context }) => crm.overview(context.actor)),
