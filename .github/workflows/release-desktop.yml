@@ -63,7 +63,9 @@ jobs:
             echo "The workflow revision does not match the tagged commit." >&2
             exit 1
           fi
-          git fetch --no-tags origin main
+          # The source repository is private and checkout drops credentials on purpose,
+          # so fetch with the workflow token on the URL rather than the bare remote.
+          git fetch --no-tags "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main:refs/remotes/origin/main
           if ! git merge-base --is-ancestor "$tag_sha" origin/main; then
             echo "Desktop releases must point to a commit already on main." >&2
             exit 1
@@ -293,7 +295,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          git fetch --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
           if [[ "$(git rev-parse "${RELEASE_TAG}^{commit}")" != "$RELEASE_SHA" ]]; then
             echo "The release tag moved after the build started." >&2
             exit 1
