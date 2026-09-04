@@ -2,10 +2,8 @@ import { useLingui } from "@lingui/react/macro";
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { MessageBlock } from "@rakazo/contracts";
 import { formatDurationMs } from "@rakazo/core";
-import { ChevronRight } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { ManorOrb } from "./beautiful-ui/ManorOrb";
-import { ToolSteps } from "./ToolActivityDisclosure";
 
 export type ActivityItem = Extract<MessageBlock, { kind: "thinking" } | { kind: "steps" }>;
 
@@ -33,93 +31,88 @@ export function groupNarrationBlocks(blocks: readonly MessageBlock[]): Narration
 }
 
 /**
- * The bot's reasoning and actions for one stretch of a turn, on a single
- * rail. Live: open, the current thought flowing in and the current action
- * pulsing. Done: one line, "Thought for 32s · 6 actions", expandable.
+ * Prose is "interim" when the bot keeps working after it: it shares the rail
+ * with the reasoning instead of reading as the final answer.
+ */
+export function isInterimProse(entries: readonly NarrationEntry[], index: number): boolean {
+  return entries.slice(index + 1).some((entry) => entry.kind === "activity");
+}
+
+/**
+ * The bot's reasoning and actions for one stretch of a turn, always in the
+ * open: thoughts as quiet italic paragraphs behind a hairline, tool calls as
+ * plain one-line steps. Nothing folds away once the turn completes.
  */
 export function ActivityTimeline({ items, live }: { items: ActivityItem[]; live: boolean }) {
-  const { t } = useLingui();
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-  const current = live ? items.at(-1) : undefined;
-  const thinkingMs = items.reduce(
-    (total, item) => total + (item.kind === "thinking" ? (item.durationMs ?? 0) : 0),
-    0,
-  );
-  const stepsMs = items.reduce(
-    (total, item) => total + (item.kind === "steps" ? (item.durationMs ?? 0) : 0),
-    0,
-  );
-  const actions = items.reduce(
-    (total, item) =>
-      total + (item.kind === "steps" ? item.steps.reduce((n, step) => n + step.count, 0) : 0),
-    0,
-  );
-  const duration = formatDurationMs(thinkingMs + stepsMs);
-  const thoughtPart =
-    thinkingMs + stepsMs < 1000 || !duration ? t`Thought for a moment` : t`Thought for ${duration}`;
-  const doneLabel =
-    actions === 0
-      ? thoughtPart
-      : actions === 1
-        ? t`${thoughtPart} · 1 action`
-        : t`${thoughtPart} · ${actions} actions`;
-  const liveLabel = current?.kind === "steps" ? t`Working` : t`Thinking`;
-  const lastText = items.map((item) => (item.kind === "thinking" ? item.text.length : 0)).join();
-
-  useEffect(() => {
-    if (!live || !bodyRef.current) return;
-    bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-  }, [live, lastText]);
-
-  const rail = (
-    <div className="rk-tl-rail">
-      {items.map((item, index) => {
-        const isCurrent = live && index === items.length - 1;
-        if (item.kind === "thinking") {
+  return (
+    <div data-testid="activity-timeline" data-live={live || undefined} className="rk-tl">
+      <div className="rk-tl-rail">
+        {items.map((item, index) => {
+          const isCurrent = live && index === items.length - 1;
+          if (item.kind === "thinking") {
+            return (
+              <div
+                key={index}
+                data-testid="thought"
+                className={`rk-tl-thought${isCurrent ? " rk-tl-thought-live" : ""}`}
+              >
+                <ChatMarkdown streaming={isCurrent}>{item.text}</ChatMarkdown>
+              </div>
+            );
+          }
           return (
-            <div key={index} className={`rk-tl-thought${isCurrent ? " rk-tl-thought-live" : ""}`}>
-              <ChatMarkdown streaming={isCurrent}>{item.text}</ChatMarkdown>
+            <div key={index} className="rk-tl-steps" data-testid="tool-rows">
+              {item.steps.map((step, stepIndex) => {
+                const stepLive = isCurrent && stepIndex === item.steps.length - 1;
+                return (
+                  <div
+                    key={stepIndex}
+                    className={`rk-tl-step${stepLive ? " rk-tl-step-live" : ""}`}
+                    dir="auto"
+                  >
+                    {step.label}
+                    {step.count > 1 ? ` ×${step.count}` : ""}
+                    {stepLive ? "…" : ""}
+                  </div>
+                );
+              })}
             </div>
           );
-        }
-        return (
-          <div key={index} className="rk-tl-steps">
-            <ToolSteps
-              steps={item.steps}
-              currentIndex={isCurrent ? item.steps.length - 1 : undefined}
-            />
-          </div>
-        );
-      })}
+        })}
+      </div>
     </div>
   );
+}
 
-  if (live) {
-    return (
-      <div data-testid="activity-timeline" data-live className="rk-tl">
-        <div className="rk-tl-label">
-          <ManorOrb size={20} />
-          <span className="rk-tl-shimmer">{liveLabel}</span>
-        </div>
-        <div ref={bodyRef} className="rk-tl-body rk-tl-body-live">
-          {rail}
-        </div>
-      </div>
-    );
-  }
+function useElapsed(startedAt: string | null | undefined): string {
+  const [now, setNow] = useState(() => Date.now());
+  const [mountedAt] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const start = startedAt ? Date.parse(startedAt) : mountedAt;
+  return formatDurationMs(Math.max(0, now - (Number.isFinite(start) ? start : mountedAt))) ?? "0s";
+}
 
+/** The footer under a live turn: the orb, elapsed time, and who we are waiting on. */
+export function LiveStatusLine({
+  startedAt,
+  name,
+}: {
+  startedAt: string | null | undefined;
+  name: string;
+}) {
+  const { t } = useLingui();
+  const elapsed = useElapsed(startedAt);
   return (
-    <details data-testid="activity-timeline" className="group rk-tl">
-      <summary className="flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-md py-0.5 pe-1.5 text-[13px] font-medium text-[#85858A] outline-none hover:text-[#C9C9CE] focus-visible:ring-2 focus-visible:ring-[#85858A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1D]">
-        <ChevronRight
-          aria-hidden
-          size={14}
-          strokeWidth={1.8}
-          className="transition-transform duration-150 group-open:rotate-90 motion-reduce:transition-none"
-        />
-        {doneLabel}
-      </summary>
-      <div className="rk-tl-body mt-2">{rail}</div>
-    </details>
+    <div data-testid="live-status" className="rk-tl-status">
+      <ManorOrb size={18} />
+      <span className="rk-tl-status-text">
+        <span>{elapsed}</span>
+        <span aria-hidden> · </span>
+        <span>{t`Waiting for ${name}…`}</span>
+      </span>
+    </div>
   );
 }

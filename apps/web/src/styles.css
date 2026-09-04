@@ -190,75 +190,77 @@ body,
   }
 }
 
-/* Activity timeline: the bot's reasoning and actions on one rail. */
+/* Narration rail: the bot's reasoning and actions, always in the open.
+   Thoughts are quiet italic paragraphs behind a hairline; interim prose shares
+   the rail in full color; tool calls are plain one-line steps. */
 .rk-tl {
   max-width: 100%;
-}
-.rk-tl-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 24px;
-  font-size: 13px;
-  font-weight: 500;
-}
-.rk-tl-shimmer {
-  background: linear-gradient(90deg, #6e6975 0%, #e4dff0 45%, #a855f7 55%, #6e6975 100%);
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: rkTlShimmer 2.2s linear infinite;
-}
-.rk-tl-body {
-  padding-inline-start: 2px;
-}
-.rk-tl-body-live {
-  max-height: 280px;
-  overflow: hidden;
-  mask-image: linear-gradient(to bottom, transparent 0, #000 32px, #000 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 32px, #000 100%);
+  min-width: 0;
 }
 .rk-tl-rail {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border-inline-start: 1.5px solid rgba(168, 85, 247, 0.28);
-  padding-inline-start: 14px;
+  gap: 14px;
+}
+.rk-tl-thought,
+.rk-tl-interim {
+  border-inline-start: 1.5px solid #2c2c31;
+  padding-inline-start: 16px;
 }
 .rk-tl-thought .rk-chat-markdown {
-  font-family: Fraunces, Georgia, serif;
-  font-size: 14.5px;
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  font-style: italic;
+  font-size: 15px;
   line-height: 1.6;
-  color: #a9a4b8;
+  color: #7b7b81;
 }
-.rk-tl-thought .rk-chat-markdown p {
-  margin: 0 0 6px;
+.rk-tl-thought .rk-chat-markdown p,
+.rk-tl-thought .rk-chat-markdown ul,
+.rk-tl-thought .rk-chat-markdown ol {
+  margin: 0 0 14px;
 }
-.rk-tl-thought .rk-chat-markdown p:last-child {
+.rk-tl-thought .rk-chat-markdown > :last-child {
   margin-bottom: 0;
 }
 .rk-tl-thought .rk-chat-markdown strong {
-  display: block;
-  font-family: Fraunces, Georgia, serif;
-  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: #ddd7ec;
+  color: #9a9aa0;
+}
+.rk-tl-thought .rk-chat-markdown code,
+.rk-tl-thought .rk-chat-markdown pre {
+  font-style: normal;
 }
 .rk-tl-thought-live {
   animation: rkTlIn 0.3s ease-out;
 }
-.rk-tl-steps {
-  padding-block: 2px;
+.rk-tl-interim {
+  color: #dfdfe2;
 }
-@keyframes rkTlShimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -20% 0;
-  }
+.rk-tl-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rk-tl-step {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #c9c9ce;
+}
+.rk-tl-step-live {
+  color: #ececee;
+}
+.rk-tl-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+  font-size: 14px;
+  color: #85858a;
+}
+.rk-tl-status-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
 }
 @keyframes rkTlIn {
   from {
@@ -271,9 +273,7 @@ body,
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rk-tl-shimmer,
-  .rk-tl-thought-live,
-  .rk-tl-dot {
+  .rk-tl-thought-live {
     animation: none;
   }
 }
@@ -368,6 +368,32 @@ body,
 @media (prefers-reduced-motion: reduce) {
   .rk-thinking-ring::before,
   .rk-thinking-ring::after {
+    animation: none;
+  }
+}
+
+/* Whole-pane file drop target: a soft violet field with a dashed edge. */
+.rk-drop-zone {
+  border: 1.5px dashed rgba(139, 92, 246, 0.55);
+  background:
+    radial-gradient(60% 50% at 50% 50%, rgba(139, 92, 246, 0.16), transparent 70%),
+    rgba(13, 13, 14, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: rkDropIn 0.16s ease-out;
+}
+@keyframes rkDropIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-drop-zone {
     animation: none;
   }
 }

@@ -61,7 +61,6 @@ import {
   searchHitThreadTarget,
   serializeComposerPrompt,
   speechFromBlocks,
-  toolActivityLabel,
   truncateSlashDescription,
   userVisibleMessages,
 } from "@rakazo/core";
@@ -103,7 +102,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  type DragEvent,
   lazy,
   type MutableRefObject,
   memo,
@@ -119,7 +117,12 @@ import {
   useState,
 } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ActivityTimeline, groupNarrationBlocks } from "../components/ActivityTimeline";
+import {
+  ActivityTimeline,
+  groupNarrationBlocks,
+  isInterimProse,
+  LiveStatusLine,
+} from "../components/ActivityTimeline";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { AskCard } from "../components/AskCard";
 import { BotCredentialsSettings } from "../components/BotCredentialsSettings";
@@ -135,7 +138,6 @@ import {
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
-import { ToolActivityDisclosure, ToolSteps } from "../components/ToolActivityDisclosure";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
 import { TeachComputerOverlayControl } from "../components/teach/TeachComputerOverlay";
@@ -155,7 +157,7 @@ import { localTimezone } from "../lib/local-timezone";
 import { connectMcpOauth } from "../lib/mcp-connect";
 import { copyableMessageText } from "../lib/message-text";
 import { providerLabel } from "../lib/messaging";
-import { isFileDrag, revokePendingAttachmentPreviews } from "../lib/pending-attachments";
+import { pastedFiles, revokePendingAttachmentPreviews } from "../lib/pending-attachments";
 import { markAfterPaint, markOnce } from "../lib/performance";
 import { clearSpaceSelection, rpc, selectedSpaceId, selectSpace } from "../lib/rpc";
 import { readSeenRunErrorIds, rememberSeenRunErrorId } from "../lib/run-error-storage";
@@ -180,6 +182,7 @@ import {
   transcriptMovedDown,
 } from "../lib/transcript-scroll";
 import { speaker } from "../lib/tts";
+import { useFileDropZone } from "../lib/use-file-drop";
 import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
 import { CrmView } from "./crm/CrmView";
@@ -1967,6 +1970,10 @@ export function ShellPage() {
     },
     [pendingAttachments, t],
   );
+  const paneDrop = useFileDropZone<HTMLDivElement>({
+    disabled: Boolean(recordingSkill) || (!active && !activeGroup),
+    onFiles: (files) => void onAttachmentPick(files),
+  });
   const removeAttachment = useCallback((attachment: PendingAttachment) => {
     revokePendingAttachmentPreviews([attachment]);
     setPendingAttachments((current) => current.filter((item) => item.id !== attachment.id));
@@ -3071,7 +3078,21 @@ export function ShellPage() {
         ) : docsOpen ? (
           <DocsView />
         ) : (
-          <>
+          <div
+            data-testid="chat-pane"
+            data-dragging={paneDrop.dragging ? "files" : undefined}
+            {...paneDrop.handlers}
+            className="relative flex min-h-0 flex-1 flex-col"
+          >
+            {paneDrop.dragging ? (
+              <FileDropOverlay
+                name={
+                  inGroup
+                    ? (activeGroup?.name ?? activeSnapshot?.groupName ?? t`this group`)
+                    : (active?.name ?? t`this bot`)
+                }
+              />
+            ) : null}
             <div className="app-drag flex items-center justify-between border-b border-[#141416] px-3 py-[17px] md:px-[22px]">
               <div className="flex min-w-0 items-center gap-2">
                 <button
@@ -3179,6 +3200,14 @@ export function ShellPage() {
               loadingOlder={loadingOlder}
               answerableAskMessageId={answerableAskMessageId}
               running={transcriptRunning}
+              liveRun={
+                activeSnapshot?.run && isActive(activeSnapshot.run.status)
+                  ? {
+                      startedAt: activeSnapshot.run.startedAt,
+                      name: active?.name ?? activeGroup?.name ?? activeSnapshot.groupName ?? "",
+                    }
+                  : undefined
+              }
               workingBots={workingBots}
               activityFeed={
                 showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
@@ -3288,7 +3317,7 @@ export function ShellPage() {
               }}
               onDictateStop={() => dictation.submitHold()}
             />
-          </>
+          </div>
         )}
       </main>
 
@@ -4154,6 +4183,7 @@ const Transcript = memo(function Transcript({
   loadingOlder,
   answerableAskMessageId,
   running,
+  liveRun,
   activityFeed,
   workingBots,
   onLoadOlder,
@@ -4180,6 +4210,7 @@ const Transcript = memo(function Transcript({
   loadingOlder: boolean;
   answerableAskMessageId: string | null;
   running: boolean;
+  liveRun?: { startedAt: string | null; name: string };
   activityFeed?: ReactNode;
   workingBots: GroupAvatarMember[];
   onLoadOlder: () => void | Promise<void>;
@@ -4349,6 +4380,7 @@ const Transcript = memo(function Transcript({
               <MessageView
                 artifactTarget={artifactTarget}
                 message={message}
+                liveRun={liveRun}
                 canAnswer={message.id === answerableAskMessageId}
                 onOpenBot={onOpenBot}
                 onOpenPeerMessages={onOpenPeerMessages}
@@ -4421,6 +4453,29 @@ const Transcript = memo(function Transcript({
     </div>
   );
 });
+
+function FileDropOverlay({ name }: { name: string }) {
+  const { t } = useLingui();
+  return (
+    <div
+      data-testid="file-drop-overlay"
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-40 p-3 md:p-4"
+    >
+      <div className="rk-drop-zone flex h-full w-full flex-col items-center justify-center gap-3 rounded-[22px]">
+        <span className="grid h-12 w-12 place-items-center rounded-full border border-[#8B5CF6]/40 bg-[#8B5CF6]/15 text-[#C4B5FD]">
+          <Paperclip size={20} strokeWidth={1.8} />
+        </span>
+        <span className="text-[16px] font-medium text-[#ECECEE]" dir="auto">
+          {t`Drop to attach to ${name}`}
+        </span>
+        <span className="text-[13px] text-[#85858A]">
+          {t`Images, PDFs and text files · up to ${ATTACHMENT_MAX_COUNT}`}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 const Composer = memo(function Composer({
   activeName,
@@ -4496,8 +4551,6 @@ const Composer = memo(function Composer({
   const runErrorRef = useRef<HTMLDivElement>(null);
   const presentedRunErrorIdRef = useRef<string | null>(null);
   const mentionListboxId = useId();
-  const dragDepth = useRef(0);
-  const [draggingFiles, setDraggingFiles] = useState(false);
   const [toolRoutingMode, setToolRoutingMode] = useState<ToolRoutingMode>("auto");
   const [routingPickerOpen, setRoutingPickerOpen] = useState(false);
   const routingPickerRef = useRef<HTMLDivElement>(null);
@@ -4681,52 +4734,6 @@ const Composer = memo(function Composer({
     void onSend(text, mentions, toolRoutingMode);
   }
 
-  function handleDragEnter(event: DragEvent<HTMLFieldSetElement>) {
-    const dataTransfer = event.dataTransfer;
-    if (!isFileDrag(dataTransfer)) return;
-    event.preventDefault();
-    if (disabled) {
-      dragDepth.current = 0;
-      setDraggingFiles(false);
-      return;
-    }
-    dragDepth.current += 1;
-    setDraggingFiles(true);
-  }
-
-  function handleDragOver(event: DragEvent<HTMLFieldSetElement>) {
-    const dataTransfer = event.dataTransfer;
-    if (!isFileDrag(dataTransfer)) return;
-    event.preventDefault();
-    dataTransfer.dropEffect = disabled ? "none" : "copy";
-    if (disabled) {
-      dragDepth.current = 0;
-      setDraggingFiles(false);
-      return;
-    }
-    setDraggingFiles(true);
-  }
-
-  function handleDragLeave(event: DragEvent<HTMLFieldSetElement>) {
-    if (!isFileDrag(event.dataTransfer)) return;
-    if (disabled) {
-      dragDepth.current = 0;
-      setDraggingFiles(false);
-      return;
-    }
-    dragDepth.current = Math.max(0, dragDepth.current - 1);
-    if (dragDepth.current === 0) setDraggingFiles(false);
-  }
-
-  function handleDrop(event: DragEvent<HTMLFieldSetElement>) {
-    const dataTransfer = event.dataTransfer;
-    if (!isFileDrag(dataTransfer)) return;
-    event.preventDefault();
-    dragDepth.current = 0;
-    setDraggingFiles(false);
-    if (!disabled) void onAttachmentPick(dataTransfer.files);
-  }
-
   const showComposerPlaceholder =
     draft.length === 0 && selectedSkill === null && selectedMentions.length === 0;
   const replyName = replyTarget ? (replyTargetName ?? previewMessageText(replyTarget)) : "";
@@ -4734,14 +4741,7 @@ const Composer = memo(function Composer({
   return (
     <fieldset
       aria-label={t`Message composer`}
-      data-dragging={draggingFiles ? "files" : undefined}
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={`relative z-30 m-0 min-w-0 border-0 px-3 pb-4 pt-3 md:px-6 md:pb-6 ${
-        draggingFiles ? "rounded-[14px] ring-2 ring-inset ring-[#8B5CF6]" : ""
-      }`}
+      className="relative z-30 m-0 min-w-0 border-0 px-3 pb-4 pt-3 md:px-6 md:pb-6"
     >
       {sendError || dictationError || runError ? (
         <div
@@ -5047,6 +5047,15 @@ const Composer = memo(function Composer({
             ref={textareaRef}
             value={draft}
             onChange={(event) => updateDraft(event.target.value)}
+            onPaste={(event) => {
+              if (disabled) return;
+              const files = pastedFiles(event.clipboardData);
+              if (!files.length) return;
+              event.preventDefault();
+              const transfer = new DataTransfer();
+              for (const file of files) transfer.items.add(file);
+              void onAttachmentPick(transfer.files);
+            }}
             onKeyDown={(event) => {
               if (
                 event.key === "Backspace" &&
@@ -5364,6 +5373,7 @@ const MessageView = memo(function MessageView({
   artifactTarget,
   canAnswer,
   message,
+  liveRun,
   onAnswer,
   onOpenBot,
   onOpenPeerMessages,
@@ -5384,6 +5394,7 @@ const MessageView = memo(function MessageView({
   artifactTarget: ArtifactTarget;
   canAnswer: boolean;
   message: ThreadMessage;
+  liveRun?: { startedAt: string | null; name: string };
   onAnswer: (message: ThreadMessage, text: string) => Promise<void>;
   onOpenBot: (botId: string) => void;
   onOpenPeerMessages: (peer: { peerBotId: string; peerBotName: string }) => void;
@@ -5444,7 +5455,8 @@ const MessageView = memo(function MessageView({
         {messageContext}
         <div className="flex justify-start">
           <div
-            className="max-w-[74%] space-y-2.5 rounded-[20px] bg-[#1A1A1D] px-[18px] py-3 text-[15.5px] leading-[1.5] text-[#DFDFE2]"
+            data-testid="narration"
+            className="rk-narration w-full min-w-0 space-y-4 text-[15.5px] leading-[1.6] text-[#DFDFE2]"
             dir="auto"
           >
             {(() => {
@@ -5468,8 +5480,9 @@ const MessageView = memo(function MessageView({
                   );
                 }
                 if (!entry.block.text) return null;
+                const interim = isInterimProse(entries, i);
                 return (
-                  <div key={i}>
+                  <div key={i} className={interim ? "rk-tl-interim" : undefined}>
                     <ChatMarkdown streaming={entry.block.kind === "progress"}>
                       {entry.block.text}
                     </ChatMarkdown>
@@ -5477,6 +5490,12 @@ const MessageView = memo(function MessageView({
                 );
               });
             })()}
+            {isLive ? (
+              <LiveStatusLine
+                startedAt={liveRun?.startedAt ?? null}
+                name={speakerName ?? liveRun?.name ?? t`the bot`}
+              />
+            ) : null}
             {!isLive && voiceReady && message.blocks.some((block) => block.kind === "text") ? (
               <button
                 type="button"
@@ -5564,21 +5583,8 @@ const MessageView = memo(function MessageView({
         }
         if (block.kind === "steps") {
           return (
-            <div key={i} className="flex justify-start">
-              <div
-                className="max-w-[74%] space-y-1.5 rounded-[20px] bg-[#1A1A1D] px-[18px] py-3"
-                dir="ltr"
-              >
-                <ToolActivityDisclosure
-                  live={isLive}
-                  label={isLive ? t`Working…` : toolActivityLabel(block.durationMs, false)}
-                >
-                  <ToolSteps
-                    steps={block.steps}
-                    currentIndex={isLive ? block.steps.length - 1 : undefined}
-                  />
-                </ToolActivityDisclosure>
-              </div>
+            <div key={i} className="w-full">
+              <ActivityTimeline items={[block]} live={isLive} />
             </div>
           );
         }
@@ -5794,7 +5800,7 @@ const MessageView = memo(function MessageView({
         }
         if (block.kind === "thinking") {
           return (
-            <div key={i} className="max-w-[74%]">
+            <div key={i} className="w-full">
               <ActivityTimeline items={[block]} live={false} />
             </div>
           );

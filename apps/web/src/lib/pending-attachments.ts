@@ -17,3 +17,18 @@ export function revokePendingAttachmentPreviews(
     if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
   }
 }
+
+/**
+ * Files carried by a paste (screenshots, copied images). Browsers expose them
+ * both as `files` and as `items` of kind "file"; prefer the former and fall
+ * back to the latter for clipboards that only fill one of them.
+ */
+export function pastedFiles(clipboardData: Pick<DataTransfer, "files" | "items"> | null): File[] {
+  if (!clipboardData) return [];
+  const files = Array.from(clipboardData.files ?? []);
+  if (files.length) return files;
+  return Array.from(clipboardData.items ?? [])
+    .filter((item) => item.kind === "file")
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null);
+}
