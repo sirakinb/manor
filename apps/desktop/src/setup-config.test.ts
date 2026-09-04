@@ -196,3 +196,30 @@ describe("probe failures", () => {
     expect(probeFailureMessage(new Error(message))).toBe(expected);
   });
 });
+
+describe("bundled server", () => {
+  it("opens the hosted server on a first launch with nothing saved", () => {
+    expect(
+      resolveStartupTarget({ saved: null, bundledUrl: "https://manor.pentridgemedia.com" }),
+    ).toEqual({ kind: "app", url: "https://manor.pentridgemedia.com", source: "bundled" });
+  });
+
+  it("prefers a saved server over the bundled one", () => {
+    expect(
+      resolveStartupTarget({
+        saved: { mode: "existing", serverUrl: "https://client.example.com" },
+        bundledUrl: "https://manor.pentridgemedia.com",
+      }),
+    ).toEqual({ kind: "app", url: "https://client.example.com", source: "saved" });
+  });
+
+  it("still asks when setup is forced or the bundled address is unusable", () => {
+    expect(
+      resolveStartupTarget({ forceSetup: true, bundledUrl: "https://manor.pentridgemedia.com" }),
+    ).toEqual({ kind: "setup" });
+    expect(resolveStartupTarget({ bundledUrl: "http://manor.pentridgemedia.com" })).toEqual({
+      kind: "setup",
+    });
+    expect(resolveStartupTarget({ bundledUrl: null })).toEqual({ kind: "setup" });
+  });
+});

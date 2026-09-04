@@ -76,8 +76,8 @@ describe("desktop release workflow", () => {
 
   it("pins every platform update feed to the official GitHub owner and repo", () => {
     expect(workflow).toContain('grep -Fqx "provider: github"');
-    expect(workflow).toContain('grep -Fqx "owner: elie222"');
-    expect(workflow).toContain('grep -Fqx "repo: rakazo"');
+    expect(workflow).toContain('grep -Fqx "owner: sirakinb"');
+    expect(workflow).toContain('grep -Fqx "repo: manor-desktop"');
     expect(workflow).toContain("Verify Linux update feed is pinned to the official GitHub channel");
     expect(workflow).toContain("Windows update config missing");
     expect(workflow).toContain("RELEASE_VERSION:");
@@ -93,5 +93,19 @@ describe("desktop release workflow", () => {
     expect(workflow).toContain("latest-linux.yml");
     expect(workflow).toContain("--draft --generate-notes");
     expect(workflow).toContain("--draft=false --latest");
+  });
+
+  it("publishes to the public release repository with its own token", () => {
+    expect(workflow).toContain("RELEASE_REPO: sirakinb/manor-desktop");
+    expect(workflow).toContain('--repo "$RELEASE_REPO"');
+    expect(workflow).toContain(
+      'gh release edit "$RELEASE_TAG" --repo "$RELEASE_REPO" --draft=false --latest',
+    );
+    expect(workflow).not.toContain("--verify-tag");
+    // Publishing never uses the source repository's token: it cannot write elsewhere.
+    for (const line of workflow.split("\n").filter((entry) => entry.includes("gh release "))) {
+      expect(line).not.toContain("GITHUB_TOKEN");
+    }
+    expect(workflow.match(/GH_TOKEN: \$\{\{ secrets\.DESKTOP_RELEASE_TOKEN \}\}/g)).toHaveLength(3);
   });
 });

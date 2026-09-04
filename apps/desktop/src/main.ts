@@ -17,6 +17,7 @@ import {
   isRendererAssetMiss,
 } from "./renderer-assets.js";
 import {
+  BUNDLED_SERVER_URL,
   DEFAULT_LOCAL_WEB_URL,
   isRakazoHealth,
   normalizeServerUrl,
@@ -557,7 +558,7 @@ function restoreAppWindowAfterSetup() {
 function installApplicationMenu() {
   const changeServer: Electron.MenuItemConstructorOptions = {
     id: "change-rakazo-server",
-    label: "Change Rakazo Server…",
+    label: "Change Server…",
     accelerator: "CmdOrCtrl+Shift+K",
     click: () => showSetupWindow(),
   };
@@ -618,7 +619,7 @@ async function probeServer(rawUrl: string): Promise<DesktopReachability> {
         ok: false,
         status: response.status,
         url,
-        error: "That address redirects elsewhere. Enter the final Rakazo server address.",
+        error: "That address redirects elsewhere. Enter the final Manor server address.",
       };
     }
     if (!response.ok) {
@@ -635,7 +636,7 @@ async function probeServer(rawUrl: string): Promise<DesktopReachability> {
         ok: false,
         status: response.status,
         url,
-        error: "That address did not respond like a Rakazo server.",
+        error: "That address did not respond like a Manor server.",
       };
     }
     return {
@@ -836,6 +837,7 @@ app.whenReady().then(async () => {
     envUrl: process.env.RAKAZO_WEB_URL,
     saved: currentSetup,
     forceSetup: process.env.RAKAZO_FORCE_SETUP === "1",
+    bundledUrl: BUNDLED_SERVER_URL,
   });
   if (process.env.RAKAZO_PERFORMANCE_CLEAR_CACHE === "1") {
     const cacheSessions = new Set<Session>([session.defaultSession]);
@@ -898,6 +900,7 @@ app.whenReady().then(async () => {
     if (!fromSetupWindow(event)) return null;
     return {
       defaultLocalUrl: DEFAULT_LOCAL_WEB_URL,
+      defaultServerUrl: BUNDLED_SERVER_URL,
       saved: currentSetup,
       error: setupError ?? undefined,
     };
@@ -1017,6 +1020,25 @@ app.whenReady().then(async () => {
       }
     } else {
       showSetupWindow(`Could not reconnect to the saved server. ${reachability.error}`);
+    }
+  } else if (target.source === "bundled") {
+    // First launch of a customer install: go straight to the hosted server and
+    // remember it, so later launches behave like any saved setup. If it cannot be
+    // reached, fall back to the setup window with the address already filled in.
+    const reachability = await probeServer(target.url);
+    if (reachability.ok) {
+      const setup: DesktopSetup = { mode: "existing", serverUrl: target.url };
+      currentSetup = setup;
+      if (await openApp(target.url)) {
+        commitPendingAppSwitch();
+        destroySetupWindow();
+        await writeSetup(userDataDir, setup).catch(() => undefined);
+      } else {
+        currentSetup = null;
+        showSetupWindow("Could not open Manor. Check the connection and try again.");
+      }
+    } else {
+      showSetupWindow(`Could not reach Manor. ${reachability.error}`);
     }
   } else {
     if (await openApp(target.url)) {

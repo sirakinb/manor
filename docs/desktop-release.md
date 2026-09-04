@@ -1,8 +1,22 @@
-# Desktop releases
+# Desktop releases (Manor)
 
 The `release-desktop` workflow builds, signs, notarizes, attests, and publishes
-the Electron app from a `vMAJOR.MINOR.PATCH` tag on `main`. Publishing the
-Docker images triggers from the same tag.
+the Manor desktop app from a `vMAJOR.MINOR.PATCH` tag on `main` of the private
+source repository. Installers and the auto-update feed land in the public
+release repository `sirakinb/manor-desktop`, which the app's updater reads
+without any token. The app ships pointed at `https://manor.pentridgemedia.com`
+(`BUNDLED_SERVER_URL` in `apps/desktop/src/setup-config.ts`); a fresh install
+opens straight to sign-in, and **Change Server…** in the app menu covers
+self-hosters and white-label clients.
+
+## Release repository
+
+Create `sirakinb/manor-desktop` as a public repository with one commit (a
+README is enough). Then create a fine-grained personal access token limited to
+that repository with **Contents: read and write**, and store it as
+`DESKTOP_RELEASE_TOKEN` on the source repository. The workflow refuses to
+publish without it and never uses the source repository's own token for
+publishing.
 
 ## Repository secrets
 
@@ -10,6 +24,7 @@ macOS (required):
 
 | Secret | Value |
 | --- | --- |
+| `DESKTOP_RELEASE_TOKEN` | Fine-grained PAT with Contents write on `sirakinb/manor-desktop` |
 | `DESKTOP_MAC_CSC_LINK` | Base64 of the `Developer ID Application` certificate exported as `.p12` |
 | `DESKTOP_MAC_CSC_KEY_PASSWORD` | Password used when exporting the `.p12` |
 | `APPLE_API_KEY_ID` | App Store Connect API key ID (the `XXXXXXXXXX` in `AuthKey_XXXXXXXXXX.p8`) |

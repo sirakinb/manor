@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # Public repository that holds the installers and update feed. The app's updater reads it
+  # without a token, which a private source repository cannot offer.
+  RELEASE_REPO: sirakinb/manor-desktop
+
 concurrency:
   # Stable releases must validate and publish serially. Per-tag concurrency would let an older
   # release validate before a newer one publishes, then overwrite GitHub's "latest" pointer.
@@ -63,13 +68,13 @@ jobs:
             echo "Desktop releases must point to a commit already on main." >&2
             exit 1
           fi
-          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+          if gh api "repos/${RELEASE_REPO}/releases/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
             echo "A release already exists for $RELEASE_TAG; refusing to replace it." >&2
             exit 1
           fi
 
           latest_tag="$(
-            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' |
+            (gh api --paginate "repos/${RELEASE_REPO}/releases?per_page=100" --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' || true) |
               sed -nE '/^v[0-9]+\.[0-9]+\.[0-9]+$/p' |
               sort -V |
               tail -n 1
@@ -166,13 +171,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app="apps/desktop/out/mac-universal/Rakazo.app"
+          app="apps/desktop/out/mac-universal/Manor.app"
           codesign --verify --deep --strict --verbose=2 "$app"
           xcrun stapler validate "$app"
           spctl --assess --type execute --verbose=2 "$app"
           grep -Fqx "provider: github" "$app/Contents/Resources/app-update.yml"
-          grep -Fqx "owner: elie222" "$app/Contents/Resources/app-update.yml"
-          grep -Fqx "repo: rakazo" "$app/Contents/Resources/app-update.yml"
+          grep -Fqx "owner: sirakinb" "$app/Contents/Resources/app-update.yml"
+          grep -Fqx "repo: manor-desktop" "$app/Contents/Resources/app-update.yml"
 
       - name: Require Windows signing credentials
         if: runner.os == 'Windows'
@@ -213,7 +218,7 @@ jobs:
             throw "Windows update config is not bound to the signing publisher."
           }
           $feed = Get-Content -Raw $config
-          foreach ($expected in @("provider: github", "owner: elie222", "repo: rakazo")) {
+          foreach ($expected in @("provider: github", "owner: sirakinb", "repo: manor-desktop")) {
             if ($feed -notmatch "(?m)^$([regex]::Escape($expected))\r?$") {
               throw "Windows update config missing '$expected'."
             }
@@ -238,8 +243,8 @@ jobs:
           test -n "$config"
           test -f "$config"
           grep -Fqx "provider: github" "$config"
-          grep -Fqx "owner: elie222" "$config"
-          grep -Fqx "repo: rakazo" "$config"
+          grep -Fqx "owner: sirakinb" "$config"
+          grep -Fqx "repo: manor-desktop" "$config"
           test -f apps/desktop/out/latest-linux.yml
           grep -Fqx "version: $RELEASE_VERSION" apps/desktop/out/latest-linux.yml
 
@@ -322,26 +327,32 @@ jobs:
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: release-artifacts/*
+      - name: Require the release repository token
+        env:
+          DESKTOP_RELEASE_TOKEN: ${{ secrets.DESKTOP_RELEASE_TOKEN }}
+        shell: bash
+        run: test -n "$DESKTOP_RELEASE_TOKEN"
       - name: Create draft and upload every platform
         id: create_release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DESKTOP_RELEASE_TOKEN }}
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+        # The release repository carries no source, so the tag is created there on publish.
         run: >-
           gh release create "$RELEASE_TAG" release-artifacts/*
-          --draft --generate-notes --title "Rakazo $RELEASE_TAG" --verify-tag
+          --repo "$RELEASE_REPO" --draft --generate-notes --title "Manor $RELEASE_TAG"
       - name: Publish the completed release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DESKTOP_RELEASE_TOKEN }}
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
-        run: gh release edit "$RELEASE_TAG" --draft=false --latest
+        run: gh release edit "$RELEASE_TAG" --repo "$RELEASE_REPO" --draft=false --latest
       - name: Remove an incomplete draft
         if: failure() && steps.create_release.outcome != 'skipped'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DESKTOP_RELEASE_TOKEN }}
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
         shell: bash
         run: |
-          if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq .draft 2>/dev/null)" == "true" ]]; then
-            gh release delete "$RELEASE_TAG" --yes
+          if [[ "$(gh api "repos/${RELEASE_REPO}/releases/tags/${RELEASE_TAG}" --jq .draft 2>/dev/null)" == "true" ]]; then
+            gh release delete "$RELEASE_TAG" --repo "$RELEASE_REPO" --yes
           fi

@@ -51,7 +51,7 @@
       const result = await bridge.test(value);
       if (result.ok) {
         activeField().value = result.url;
-        setStatus(`Rakazo answered at ${result.url}.`, "ok");
+        setStatus(`Manor answered at ${result.url}.`, "ok");
       } else {
         setStatus(result.error ?? "Could not reach that address.", "error");
       }
@@ -108,6 +108,7 @@
       const state = await bridge.state();
       if (state === null) throw new Error("Setup is not active");
       localUrl.value = state.defaultLocalUrl;
+      if (typeof state.defaultServerUrl === "string") serverUrl.value = state.defaultServerUrl;
       if (state.saved !== null) {
         const modeInput = document.querySelector(`input[name="mode"][value="${state.saved.mode}"]`);
         if (modeInput !== null) modeInput.checked = true;

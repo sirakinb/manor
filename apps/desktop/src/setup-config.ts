@@ -2,13 +2,19 @@ import { createHash } from "node:crypto";
 import { isIP } from "node:net";
 import type { DesktopSetup } from "@rakazo/contracts";
 
-/** Where `pnpm dev` serves the Rakazo web app on this machine. */
+/** Where `pnpm dev` serves the Manor web app on this machine. */
 export const DEFAULT_LOCAL_WEB_URL = "http://127.0.0.1:5173";
+
+/**
+ * The hosted Manor server a fresh install connects to without asking. Self-hosters
+ * and white-label clients pick a different server from the app menu.
+ */
+export const BUNDLED_SERVER_URL = "https://manor.pentridgemedia.com";
 
 export const SETUP_FILE_NAME = "setup.json";
 
 export type StartupTarget =
-  | { kind: "app"; url: string; source: "env" | "saved" }
+  | { kind: "app"; url: string; source: "env" | "saved" | "bundled" }
   | { kind: "setup" };
 
 const SCHEME = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//;
@@ -81,6 +87,8 @@ export function resolveStartupTarget(input: {
   envUrl?: string;
   saved?: DesktopSetup | null;
   forceSetup?: boolean;
+  /** Hosted server a first launch opens without setup; omit to always ask. */
+  bundledUrl?: string | null;
 }): StartupTarget {
   if (input.forceSetup === true) return { kind: "setup" };
 
@@ -91,6 +99,8 @@ export function resolveStartupTarget(input: {
     const saved = parseSetupInput(input.saved);
     if (saved !== null) return { kind: "app", url: saved.serverUrl, source: "saved" };
   }
+  const bundled = input.bundledUrl ? normalizeServerUrl(input.bundledUrl) : null;
+  if (bundled !== null) return { kind: "app", url: bundled, source: "bundled" };
   return { kind: "setup" };
 }
 

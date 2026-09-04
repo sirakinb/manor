@@ -6,47 +6,41 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'none'; base-uri 'none'"
     />
-    <title>Set up Rakazo</title>
+    <title>Set up Manor</title>
     <link rel="stylesheet" href="setup.css" />
   </head>
   <body>
     <header class="titlebar">
-      <span class="titlebar-name">Rakazo</span>
-      <button id="quit" class="titlebar-quit" type="button" title="Quit Rakazo">Quit</button>
+      <span class="titlebar-name">Manor</span>
+      <button id="quit" class="titlebar-quit" type="button" title="Quit Manor">Quit</button>
     </header>
 
     <main class="shell">
-      <h1 class="heading">Welcome to Rakazo</h1>
+      <h1 class="heading">Welcome to Manor</h1>
       <p class="subheading">Choose which server this app should use.</p>
 
       <form id="setup" class="card" novalidate>
         <fieldset class="choices">
           <legend class="sr-only">Instance</legend>
 
-          <label class="choice" for="mode-new">
-            <input id="mode-new" type="radio" name="mode" value="new" checked />
+          <label class="choice" for="mode-existing">
+            <input id="mode-existing" type="radio" name="mode" value="existing" checked />
             <span class="choice-body">
-              <span class="choice-title">This computer</span>
-              <span class="choice-note">Local Rakazo stack.</span>
+              <span class="choice-title">Manor Cloud</span>
+              <span class="choice-note">Your account at manor.pentridgemedia.com, or a server your team runs.</span>
             </span>
           </label>
 
-          <label class="choice" for="mode-existing">
-            <input id="mode-existing" type="radio" name="mode" value="existing" />
+          <label class="choice" for="mode-new">
+            <input id="mode-new" type="radio" name="mode" value="new" />
             <span class="choice-body">
-              <span class="choice-title">Existing instance</span>
-              <span class="choice-note">A server you already run.</span>
+              <span class="choice-title">This computer</span>
+              <span class="choice-note">For developers running the local stack.</span>
             </span>
           </label>
         </fieldset>
 
-        <section id="panel-new" class="panel">
-          <label class="field-label" for="local-url">Local address</label>
-          <input id="local-url" class="field" type="text" spellcheck="false" autocomplete="off" />
-          <p class="hint">If it isn’t running yet, start with <code>pnpm dev</code>.</p>
-        </section>
-
-        <section id="panel-existing" class="panel" hidden>
+        <section id="panel-existing" class="panel">
           <label class="field-label" for="server-url">Server address</label>
           <input
             id="server-url"
@@ -54,9 +48,15 @@
             type="text"
             spellcheck="false"
             autocomplete="off"
-            placeholder="https://rakazo.example.com"
+            placeholder="https://manor.pentridgemedia.com"
           />
           <p class="hint">Same address you open in a browser.</p>
+        </section>
+
+        <section id="panel-new" class="panel" hidden>
+          <label class="field-label" for="local-url">Local address</label>
+          <input id="local-url" class="field" type="text" spellcheck="false" autocomplete="off" />
+          <p class="hint">If it isn’t running yet, start with <code>pnpm dev</code>.</p>
         </section>
 
         <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -67,7 +67,7 @@
         </div>
       </form>
 
-      <p class="footnote">Change later from the Rakazo menu (⌘/Ctrl+Shift+K).</p>
+      <p class="footnote">Change later from the Manor menu (⌘/Ctrl+Shift+K).</p>
     </main>
 
     <script src="setup.js"></script>

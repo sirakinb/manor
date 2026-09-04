@@ -26,8 +26,8 @@
     "vitest": "^4.1.10"
   },
   "build": {
-    "appId": "dev.rakazo.desktop",
-    "productName": "Rakazo",
+    "appId": "com.pentridgemedia.manor",
+    "productName": "Manor",
     "directories": {
       "output": "out",
       "buildResources": "assets"
@@ -70,8 +70,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "elie222",
-        "repo": "rakazo"
+        "owner": "sirakinb",
+        "repo": "manor-desktop"
       }
     ]
   }

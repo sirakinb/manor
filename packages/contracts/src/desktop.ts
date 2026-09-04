@@ -64,6 +64,8 @@ export interface DesktopSetup {
 
 export interface DesktopSetupState {
   defaultLocalUrl: string;
+  /** Hosted server a fresh install connects to; prefilled in the setup form. */
+  defaultServerUrl?: string;
   saved: DesktopSetup | null;
   /** Present when a saved or newly selected server could not be reopened. */
   error?: string;
