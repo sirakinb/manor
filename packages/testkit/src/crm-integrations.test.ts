@@ -19,7 +19,7 @@ describeWithDatabase("CRM public integrations", () => {
   let app: App;
   let cookie: string;
   let token: string;
-  let spaceId: string;
+  let organizationId: string;
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const dataDir = mkdtempSync(path.join(tmpdir(), "rakazo-crm-integrations-"));
 
@@ -46,9 +46,13 @@ describeWithDatabase("CRM public integrations", () => {
     expect(response.status).toBe(201);
     const created = (await response.json()) as { id: string; token: string };
     token = created.token;
-    spaceId = (
-      await handles.prisma.integrationCredential.findUniqueOrThrow({ where: { id: created.id } })
-    ).spaceId;
+    // The CRM is account-wide: pipelines hang off the organization, not the space.
+    const credential = await handles.prisma.integrationCredential.findUniqueOrThrow({
+      where: { id: created.id },
+    });
+    organizationId = (
+      await handles.prisma.space.findUniqueOrThrow({ where: { id: credential.spaceId } })
+    ).organizationId;
   });
 
   afterAll(async () => {
@@ -177,7 +181,7 @@ describeWithDatabase("CRM public integrations", () => {
   it("lists pipelines and creates, updates, and moves deals", async () => {
     const pipeline = await handles.prisma.crmPipeline.create({
       data: {
-        spaceId,
+        organizationId,
         name: `Public API ${stamp}`,
         stages: {
           create: [
