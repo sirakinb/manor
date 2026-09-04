@@ -830,6 +830,16 @@ function safeOrigin(targetUrl: string) {
   }
 }
 
+/**
+ * The hosted server a first launch opens. `MANOR_BUNDLED_SERVER_URL` overrides
+ * it; setting it empty disables the shortcut so setup always asks (test harnesses).
+ */
+function bundledServerUrl(): string | null {
+  const override = process.env.MANOR_BUNDLED_SERVER_URL;
+  if (override === undefined) return BUNDLED_SERVER_URL;
+  return override.trim() === "" ? null : override.trim();
+}
+
 app.whenReady().then(async () => {
   const userDataDir = app.getPath("userData");
   currentSetup = await readSetup(userDataDir);
@@ -837,7 +847,7 @@ app.whenReady().then(async () => {
     envUrl: process.env.RAKAZO_WEB_URL,
     saved: currentSetup,
     forceSetup: process.env.RAKAZO_FORCE_SETUP === "1",
-    bundledUrl: BUNDLED_SERVER_URL,
+    bundledUrl: bundledServerUrl(),
   });
   if (process.env.RAKAZO_PERFORMANCE_CLEAR_CACHE === "1") {
     const cacheSessions = new Set<Session>([session.defaultSession]);
@@ -900,7 +910,7 @@ app.whenReady().then(async () => {
     if (!fromSetupWindow(event)) return null;
     return {
       defaultLocalUrl: DEFAULT_LOCAL_WEB_URL,
-      defaultServerUrl: BUNDLED_SERVER_URL,
+      defaultServerUrl: bundledServerUrl() ?? undefined,
       saved: currentSetup,
       error: setupError ?? undefined,
     };

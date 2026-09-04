@@ -61,7 +61,12 @@ test.afterEach(async () => {
 });
 
 function launch(extraEnv: Record<string, string> = {}) {
-  const env = { ...process.env, RAKAZO_PERFORMANCE_USER_DATA: userData };
+  const env = {
+    ...process.env,
+    RAKAZO_PERFORMANCE_USER_DATA: userData,
+    // The hosted-server shortcut would skip setup; tests opt into it explicitly.
+    MANOR_BUNDLED_SERVER_URL: "",
+  };
   // A stale RAKAZO_WEB_URL from the developer's shell would bypass setup entirely.
   delete env.RAKAZO_WEB_URL;
   return electron.launch({
@@ -76,11 +81,13 @@ test("first run asks whether to use a local or existing instance", async () => {
   const setup = await app.firstWindow();
 
   await expect(setup.getByRole("heading", { name: "Welcome to Manor" })).toBeVisible();
+  await expect(setup.getByText("Manor Cloud")).toBeVisible();
   await expect(setup.getByText("This computer")).toBeVisible();
-  await expect(setup.getByText("Existing instance")).toBeVisible();
 
-  // A new instance is the default and points at the local development stack.
-  await expect(setup.getByRole("radio", { name: /This computer/ })).toBeChecked();
+  // The hosted server is the default; the local stack is the developer path.
+  await expect(setup.getByRole("radio", { name: /Manor Cloud/ })).toBeChecked();
+  await expect(setup.locator("#panel-new")).toBeHidden();
+  await setup.getByRole("radio", { name: /This computer/ }).check();
   await expect(setup.locator("#local-url")).toHaveValue("http://127.0.0.1:5173");
   await expect(setup.locator("#panel-existing")).toBeHidden();
 
@@ -89,11 +96,27 @@ test("first run asks whether to use a local or existing instance", async () => {
   });
 });
 
+test("a bundled hosted server opens without setup and is remembered", async () => {
+  app = await launch({ MANOR_BUNDLED_SERVER_URL: serverUrl });
+  const appWindow = await app.firstWindow();
+
+  await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
+  await expect
+    .poll(async () => {
+      try {
+        return JSON.parse(await readFile(path.join(userData, "setup.json"), "utf8"));
+      } catch {
+        return null;
+      }
+    })
+    .toEqual({ mode: "existing", serverUrl });
+});
+
 test("connecting to an existing instance verifies, saves, and opens it", async () => {
   app = await launch();
   const setup = await app.firstWindow();
 
-  await setup.getByRole("radio", { name: /Existing instance/ }).check();
+  await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
   await expect(setup.locator("#panel-new")).toBeHidden();
 
   await setup.locator("#server-url").fill(serverUrl);
@@ -130,7 +153,7 @@ test("connecting to an existing instance verifies, saves, and opens it", async (
 test("Continue verifies and remembers the instance so setup does not run again", async () => {
   app = await launch();
   const setup = await app.firstWindow();
-  await setup.getByRole("radio", { name: /Existing instance/ }).check();
+  await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
   await setup.locator("#server-url").fill(serverUrl);
   const firstRun = await Promise.all([
     app.waitForEvent("window"),
@@ -159,7 +182,7 @@ test("an unreachable address is reported instead of being saved", async () => {
   app = await launch();
   const setup = await app.firstWindow();
 
-  await setup.getByRole("radio", { name: /Existing instance/ }).check();
+  await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
   await setup.locator("#server-url").fill(closedUrl);
   await setup.getByRole("button", { name: "Check connection" }).click();
 
@@ -192,7 +215,7 @@ test("an HTTP error document is not accepted after a healthy probe", async () =>
   try {
     app = await launch();
     const setup = await app.firstWindow();
-    await setup.getByRole("radio", { name: /Existing instance/ }).check();
+    await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
     await setup.locator("#server-url").fill(`http://127.0.0.1:${address.port}`);
     await setup.getByRole("button", { name: "Continue" }).click();
 
@@ -227,7 +250,7 @@ test("a session-pending shell skeleton is not accepted as a ready app", async ()
   try {
     app = await launch();
     const setup = await app.firstWindow();
-    await setup.getByRole("radio", { name: /Existing instance/ }).check();
+    await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
     await setup.locator("#server-url").fill(`http://127.0.0.1:${address.port}`);
     await setup.getByRole("button", { name: "Continue" }).click();
 
@@ -265,7 +288,7 @@ test("a post-session ready app mount is accepted", async () => {
   try {
     app = await launch();
     const setup = await app.firstWindow();
-    await setup.getByRole("radio", { name: /Existing instance/ }).check();
+    await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
     await setup.locator("#server-url").fill(`http://127.0.0.1:${address.port}`);
     const appWindow = await Promise.all([
       app.waitForEvent("window"),
@@ -312,7 +335,7 @@ test("a shell mount before workspace bootstrap is not accepted", async () => {
   try {
     app = await launch();
     const setup = await app.firstWindow();
-    await setup.getByRole("radio", { name: /Existing instance/ }).check();
+    await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
     await setup.locator("#server-url").fill(`http://127.0.0.1:${address.port}`);
     await setup.getByRole("button", { name: "Continue" }).click();
 
@@ -349,7 +372,7 @@ test("a session-ready marker without a route surface is not accepted", async () 
   try {
     app = await launch();
     const setup = await app.firstWindow();
-    await setup.getByRole("radio", { name: /Existing instance/ }).check();
+    await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
     await setup.locator("#server-url").fill(`http://127.0.0.1:${address.port}`);
     await setup.getByRole("button", { name: "Continue" }).click();
 
@@ -370,7 +393,7 @@ test("a malformed address is rejected before anything is written", async () => {
   app = await launch();
   const setup = await app.firstWindow();
 
-  await setup.getByRole("radio", { name: /Existing instance/ }).check();
+  await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
   await setup.locator("#server-url").fill("not a server");
   await setup.getByRole("button", { name: "Continue" }).click();
 
@@ -392,7 +415,7 @@ test("a generic web page is not accepted as a Rakazo server", async () => {
   try {
     app = await launch();
     const setup = await app.firstWindow();
-    await setup.getByRole("radio", { name: /Existing instance/ }).check();
+    await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
     await setup.locator("#server-url").fill(`http://127.0.0.1:${address.port}`);
     await setup.getByRole("button", { name: "Continue" }).click();
 
@@ -423,7 +446,7 @@ test("the setup probe refuses redirects instead of following them", async () => 
   try {
     app = await launch();
     const setup = await app.firstWindow();
-    await setup.getByRole("radio", { name: /Existing instance/ }).check();
+    await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
     await setup.locator("#server-url").fill(`http://127.0.0.1:${address.port}`);
     await setup.getByRole("button", { name: "Continue" }).click();
 
@@ -451,7 +474,7 @@ test("an unreachable saved server falls back to setup with a recovery message", 
   const setup = await app.firstWindow();
 
   await expect(setup.getByRole("heading", { name: "Welcome to Manor" })).toBeVisible();
-  await expect(setup.getByRole("radio", { name: /Existing instance/ })).toBeChecked();
+  await expect(setup.getByRole("radio", { name: /Manor Cloud/ })).toBeChecked();
   await expect(setup.locator("#server-url")).toHaveValue(closedUrl);
   await expect(setup.locator("#status")).toContainText("Could not reconnect to the saved server.");
   await setup.screenshot({
