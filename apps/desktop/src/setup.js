@@ -111,8 +111,11 @@
       localUrl.value = state.defaultLocalUrl;
       if (typeof state.defaultServerUrl === "string") serverUrl.value = state.defaultServerUrl;
       if (state.showLocalOption === false) {
+        // `hidden` loses to the choice's display rule; remove it from layout outright.
         const localChoice = document.querySelector('label[for="mode-new"]');
-        if (localChoice !== null) localChoice.hidden = true;
+        if (localChoice !== null) localChoice.style.display = "none";
+        const localInput = document.getElementById("mode-new");
+        if (localInput !== null) localInput.disabled = true;
         const existingChoice = document.getElementById("mode-existing");
         if (existingChoice !== null) existingChoice.checked = true;
       }
