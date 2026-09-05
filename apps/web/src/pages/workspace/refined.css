@@ -1,0 +1,48 @@
+/* Local to the operations screens; the rest of the shell keeps its tokens. */
+.ws-refined {
+  color-scheme: dark;
+  --bui-accent: #83bfb1;
+  --bui-hover: #24292b;
+  --bui-surface: #141819;
+  --bui-green: #5c9f8e;
+  --ws-good: #94c4b6;
+  --ws-warn: #d3b783;
+  --ws-bad: #dc9b94;
+  --ws-dim: #a2aaad;
+  --ws-accent: #83bfb1;
+  --ws-pill-bg: #ffffff05;
+  --ws-muted: #98a3a7;
+}
+
+.ws-refined .ws-card,
+.ws-refined .ws-kpi {
+  border-color: #282d2f;
+  background: #141819;
+  box-shadow: 0 1px 0 #ffffff03 inset;
+}
+
+.ws-refined .ws-kpi {
+  padding: 14px 16px;
+}
+
+.ws-refined [data-tone] {
+  background: #ffffff05;
+  border: 1px solid #ffffff09;
+  border-radius: 6px;
+}
+
+.ws-refined .ws-chart svg {
+  height: 150px;
+}
+
+.ws-refined .ws-chart svg text {
+  fill: #9ca6a8;
+}
+
+.ws-refined summary::-webkit-details-marker {
+  display: none;
+}
+
+.ws-refined details[open] > summary .ws-expand {
+  transform: rotate(180deg);
+}

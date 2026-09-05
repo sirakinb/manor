@@ -21,6 +21,7 @@ import { computePipeStatus, WORKSPACE_PIPES } from "./workspace-pipes.js";
  */
 
 export interface AutomationSpec {
+  defaultEnabled?: boolean;
   key: WorkspaceAutomationKey;
   channel: WorkspaceChannel;
   label: string;
@@ -37,6 +38,17 @@ export interface AutomationSpec {
 export const DEFAULT_AUTOMATION_TIMEZONE = "America/New_York";
 
 export const WORKSPACE_AUTOMATIONS: readonly AutomationSpec[] = [
+  {
+    key: "email-recap",
+    channel: "email",
+    label: "Weekly email recap",
+    pipeline: "email-recap",
+    crons: ["0 * * * *"],
+    credentials: ["openrouter"],
+    sourceName: null,
+    sourceType: null,
+    defaultEnabled: false,
+  },
   {
     key: "voice",
     channel: "voice",
@@ -215,8 +227,11 @@ export async function ensureDefaultAutomations(
       pipeline: spec.pipeline,
       crons: spec.crons,
       timezone: DEFAULT_AUTOMATION_TIMEZONE,
-      enabled: true,
-      nextRunAt: automationNextRunAt(spec.crons, DEFAULT_AUTOMATION_TIMEZONE, now),
+      enabled: spec.defaultEnabled ?? true,
+      nextRunAt:
+        spec.defaultEnabled === false
+          ? null
+          : automationNextRunAt(spec.crons, DEFAULT_AUTOMATION_TIMEZONE, now),
     })),
     skipDuplicates: true,
   });

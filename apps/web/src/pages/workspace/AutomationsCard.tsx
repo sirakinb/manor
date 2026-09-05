@@ -62,7 +62,7 @@ export function useRunAutomation(reload: () => void) {
   };
 }
 
-export function AutomationsCard() {
+export function AutomationsCard({ platformOnly = false }: { platformOnly?: boolean }) {
   const { t } = useLingui();
   const cronWords = useCronWords();
   const { data, error, loading, reload, setData } = useSectionData(
@@ -70,6 +70,9 @@ export function AutomationsCard() {
     "automations",
   );
   const runner = useRunAutomation(reload);
+  const automations = data?.filter(
+    (automation) => !platformOnly || !automation.key.includes("recap"),
+  );
   const [toggleErrors, setToggleErrors] = useState<Record<string, string>>({});
   const statusLabel: Record<WorkspaceAutomation["status"], string> = {
     flowing: t`Flowing`,
@@ -97,19 +100,19 @@ export function AutomationsCard() {
   return (
     <Card
       className="@container"
-      title={t`Automations`}
-      subtitle={t`Scheduled pipelines and their newest run`}
+      title={platformOnly ? t`Platform syncs` : t`Automations`}
+      subtitle={platformOnly ? undefined : t`Scheduled pipelines and their newest run`}
     >
       {error ? <ErrorLine message={error} /> : null}
       {loading ? <Loading /> : null}
-      {data ? (
-        data.length === 0 ? (
+      {automations ? (
+        automations.length === 0 ? (
           <Empty>
             <Trans>No automations yet</Trans>
           </Empty>
         ) : (
           <ul className="divide-y divide-[#1C1C1F]" data-testid="workspace-automations">
-            {data.map((automation) => {
+            {automations.map((automation) => {
               const rowError = runner.errors[automation.key] || toggleErrors[automation.key];
               const lastRun = automation.lastRun;
               return (
@@ -124,7 +127,7 @@ export function AutomationsCard() {
                       </span>
                       <StatusPill tone="dim">{automation.channel}</StatusPill>
                     </p>
-                    <p className="mt-0.5 text-[#6E6975]">
+                    <p className="mt-0.5 text-[var(--ws-muted,#6E6975)]">
                       {cronWords(automation.crons)} · {automation.timezone}
                     </p>
                   </div>
@@ -150,7 +153,7 @@ export function AutomationsCard() {
                         t`No runs yet`
                       )}
                     </p>
-                    <p className="truncate text-[11.5px] text-[#6E6975]">
+                    <p className="truncate text-[11.5px] text-[var(--ws-muted,#6E6975)]">
                       {automation.nextRunAt
                         ? t`Next ${formatDateTime(automation.nextRunAt)}`
                         : automation.enabled

@@ -91,3 +91,4 @@ export * from "./web-tools.js";
 export * from "./workspace-automation-request.js";
 export * from "./workspace-automation-runner.js";
 export * from "./workspace-credentials.js";
+export * from "./workspace-report-runner.js";

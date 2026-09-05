@@ -59,6 +59,22 @@ export interface PipeSpec {
 
 export const WORKSPACE_PIPES: readonly PipeSpec[] = [
   {
+    key: "email-recap",
+    label: "Weekly email recap",
+    source: "Campaign rollup",
+    channel: "email",
+    cadence: "weekly",
+    maxAgeHours: 24 * 8,
+    mechanism: {
+      kind: "freshness",
+      table: "workspaceReport",
+      column: "generatedAt",
+      filter: { column: "reportType", value: "email" },
+    },
+    sourceNames: [],
+    internal: true,
+  },
+  {
     key: "voice",
     label: "Voice calls",
     source: "Zoho CRM",

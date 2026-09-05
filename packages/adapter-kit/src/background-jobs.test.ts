@@ -10,6 +10,7 @@ import type { BackgroundJobHandlers } from "./types.js";
 
 function handlers(): BackgroundJobHandlers {
   return {
+    "workspace.report.generate": vi.fn(async () => undefined),
     "run.continue": vi.fn(async () => undefined),
     "routine.wakeup": vi.fn(async () => undefined),
     "computer.sleep": vi.fn(async () => undefined),

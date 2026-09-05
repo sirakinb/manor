@@ -1127,6 +1127,12 @@ export function createRouter(deps: RouterDeps) {
         ),
       },
       reports: {
+        generate: authed.workspace.reports.generate.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.generateReport(context.actor, input)),
+        ),
+        testEmail: authed.workspace.reports.testEmail.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.testReportEmail(context.actor, input)),
+        ),
         list: authed.workspace.reports.list.handler(async ({ context }) =>
           workspace.listReports(context.actor),
         ),

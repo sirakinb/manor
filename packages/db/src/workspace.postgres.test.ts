@@ -251,6 +251,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       overview.pipes.map((pipe) => [pipe.key, [pipe.sourceId, pipe.internal]]),
     );
     expect(byPipe).toEqual({
+      "email-recap": [null, true],
       voice: [zoho.id, false],
       email: [null, false],
       instagram: [null, false],

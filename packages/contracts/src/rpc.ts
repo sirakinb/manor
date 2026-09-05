@@ -11,6 +11,7 @@ import {
   EmailWindowSchema,
   LeasingSnapshotSchema,
   ListingFilterSchema,
+  ReportGenerateInputSchema,
   ReportSendResultSchema,
   ReportUpdateInputSchema,
   SocialSnapshotSchema,
@@ -343,6 +344,10 @@ export const appContract = {
     },
     reports: {
       list: oc.output(z.array(WorkspaceReportRowSchema)),
+      generate: oc.input(ReportGenerateInputSchema).output(WorkspaceReportSchema),
+      testEmail: oc
+        .input(z.object({ reportId: Id, to: z.string().trim().email().max(320) }))
+        .output(z.object({ ok: z.literal(true) })),
       get: oc.input(z.object({ reportId: Id })).output(WorkspaceReportSchema),
       /// Rewrite the human-editable prose; refused once the report is approved.
       update: oc.input(ReportUpdateInputSchema).output(WorkspaceReportSchema),

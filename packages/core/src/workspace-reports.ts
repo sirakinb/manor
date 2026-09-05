@@ -298,6 +298,12 @@ function voiceBody(json: Record<string, unknown>): string {
     ]) +
     (reasons ? section(SECTION_TITLES.top_call_reasons!, reasons) : "") +
     (categories ? section("Call mix", categories) : "") +
+    (synthesis.what_worked
+      ? section(SECTION_TITLES.what_worked!, bullets(synthesis.what_worked))
+      : "") +
+    (synthesis.what_underperformed
+      ? section(SECTION_TITLES.what_underperformed!, bullets(synthesis.what_underperformed))
+      : "") +
     (synthesis.urgent_followups
       ? section(SECTION_TITLES.urgent_followups!, bullets(synthesis.urgent_followups))
       : "") +

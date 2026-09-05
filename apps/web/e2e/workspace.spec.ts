@@ -48,7 +48,7 @@ test("workspace appears once the organization has one and its map opens sections
         organizationId: member.organizationId,
         name: "Harbor Homes",
         slug: `harbor-homes-${stamp}`,
-        channels: ["voice", "utilities"],
+        channels: ["voice", "utilities", "email", "social"],
         sources: {
           create: {
             name: "Retell",
@@ -169,6 +169,77 @@ test("workspace appears once the organization has one and its map opens sections
         updatedBy: "import",
       },
     });
+    await prisma.workspaceInstagramStats.create({
+      data: {
+        workspaceId: workspace.id,
+        igUserId: "example-account",
+        username: "harborhomes",
+        followers: 1840,
+        reach28d: 12500,
+        mediaCount: 48,
+        profileViews28d: 890,
+        totalInteractions28d: 640,
+      },
+    });
+    await prisma.workspaceInstagramDaily.createMany({
+      data: Array.from({ length: 14 }, (_, index) => ({
+        workspaceId: workspace.id,
+        igUserId: "example-account",
+        date: new Date(Date.now() - (13 - index) * 86400000),
+        reach: 200 + (index % 5) * 120,
+        followers: 1800 + index * 3,
+        newFollowers: index === 4 ? null : index % 5,
+      })),
+    });
+    await prisma.workspaceInstagramMedia.createMany({
+      data: [
+        "A first look at our new waterfront homes",
+        "Three ways to make your next move easier",
+        "Inside a bright, welcoming studio",
+      ].map((caption, index) => ({
+        workspaceId: workspace.id,
+        igUserId: "example-account",
+        mediaId: `example-post-${index}`,
+        caption,
+        postedAt: new Date(),
+        reach: 1500 - index * 200,
+        likeCount: 80 - index * 10,
+        commentsCount: 12 - index,
+      })),
+    });
+    await prisma.workspaceReport.create({
+      data: {
+        workspaceId: workspace.id,
+        reportType: "email",
+        title: "Weekly email recap · Sample",
+        status: "draft",
+        dateRangeStart: new Date("2026-08-24"),
+        dateRangeEnd: new Date("2026-08-30"),
+        generatedAt: new Date(),
+        summary: "A concise review of two recent campaigns.",
+        report: {
+          agg: {
+            campaigns: 2,
+            delivered: 2400,
+            openRate: 38,
+            clicks: 160,
+            ctor: 18,
+            deliveredRate: 99,
+          },
+          synthesis: {
+            summary: "Two campaigns reached the community.",
+            what_worked: [
+              {
+                title: "Clear subject lines",
+                detail: "The rental update led this week's results.",
+              },
+            ],
+            what_underperformed: [],
+            recommended_actions: [],
+          },
+        },
+      },
+    });
   } finally {
     await prisma.$disconnect();
     await pool.end();
@@ -232,6 +303,8 @@ test("workspace appears once the organization has one and its map opens sections
   const automations = page.getByTestId("workspace-automations");
   const voiceAutomation = automations.locator("li").filter({ hasText: "Voice calls" });
   await expect(voiceAutomation).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Platform syncs", exact: true })).toBeVisible();
+  await expect(automations.getByText("Monthly recap", { exact: true })).toHaveCount(0);
   await captureScreenshot(page, testInfo, "workspace-team");
   await page.getByRole("button", { name: "Knowledge", exact: true }).first().click();
   const knowledge = page.getByTestId("bot-knowledge");
@@ -255,6 +328,12 @@ test("workspace appears once the organization has one and its map opens sections
   await page.waitForURL(/\/app\/workspace\/utilities$/);
   const bill = page.getByTestId("workspace-bill").filter({ hasText: "12 Harbor Way" });
   await expect(bill).toBeVisible();
+  await expect(bill.getByRole("button", { name: "Post to Buildium" })).toBeHidden();
+  await captureScreenshot(page, testInfo, "workspace-utilities-queue");
+  await page.getByRole("textbox", { name: "Search properties or bills" }).fill("no-such-address");
+  await expect(page.getByText("No bills match these filters")).toBeVisible();
+  await page.getByRole("textbox", { name: "Search properties or bills" }).fill("");
+  await bill.locator("summary").click();
   await expect(bill.getByRole("button", { name: "Post to Buildium" })).toBeVisible();
   await bill.getByRole("button", { name: "Skip" }).click();
   await expect(bill.getByText("Skipped", { exact: true })).toBeVisible();
@@ -262,6 +341,45 @@ test("workspace appears once the organization has one and its map opens sections
   await bill.getByRole("button", { name: "Restore" }).click();
   await expect(bill.getByRole("button", { name: "Skip" })).toBeVisible();
   await expect(bill.getByText("Skipped", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Properties", exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "Property", exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-utilities-properties");
+
+  await tabs.getByRole("button", { name: "Social", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Instagram performance" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "New followers by day" })).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-social");
+
+  await tabs.getByRole("button", { name: "Reports", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Scheduled reports" })).toBeVisible();
+  await page
+    .getByLabel("Client recipients", { exact: true })
+    .fill("owner@example.test, ops@example.test");
+  await page.getByLabel("Draft reviewer", { exact: true }).fill("reviewer@example.test");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Client recipients", { exact: true })).toHaveValue(
+    "owner@example.test, ops@example.test",
+  );
+  await captureScreenshot(page, testInfo, "workspace-reports");
+  await page.getByText("Weekly email recap · Sample", { exact: true }).click();
+  await page.getByRole("button", { name: "Test email", exact: true }).click();
+  await expect(page.getByLabel("Test recipient", { exact: true })).toHaveValue(
+    "reviewer@example.test",
+  );
+  await captureScreenshot(page, testInfo, "workspace-report-test-email");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  const desktop = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/app/workspace/team");
+  await expect(page.getByRole("heading", { name: "Your AI team" })).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-team-narrow");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.setViewportSize(desktop);
 
   // Settings: the water GL account persists across a reload.
   await page.getByRole("button", { name: "Workspace settings" }).click();

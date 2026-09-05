@@ -8,6 +8,7 @@ import {
   type WorkspaceSummary,
 } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { BuiButton } from "../../../components/beautiful-ui/primitives";
 import { rpc } from "../../../lib/rpc";
 import {
@@ -69,7 +70,12 @@ export function SettingsSection({
       {settings.loading ? <Loading /> : null}
       {settings.data ? (
         <div className="space-y-4">
-          <ReportsCard settings={settings.data} onSaved={settings.setData} />
+          <Link
+            to="/app/workspace/reports"
+            className="block text-[13px] text-[#A6A6AD] hover:text-[#ECECEE]"
+          >
+            <Trans>Report recipients and schedules</Trans> →
+          </Link>
           <UtilitiesCard settings={settings.data} onSaved={settings.setData} />
         </div>
       ) : null}
@@ -138,12 +144,16 @@ function SaveRow({
   );
 }
 
-function ReportsCard({
+export function ReportSchedulesCard({
   settings,
   onSaved,
+  channels,
+  previews,
 }: {
   settings: WorkspaceSettings;
   onSaved: (next: WorkspaceSettings) => void;
+  channels: WorkspaceSummary["channels"];
+  previews: { voice: React.ReactNode; email: React.ReactNode };
 }) {
   const { t } = useLingui();
   const [draft, setDraft] = useState(settings);
@@ -166,98 +176,104 @@ function ReportsCard({
     new Date(2000, 0, 1, hour).toLocaleTimeString(undefined, { hour: "numeric" });
 
   return (
-    <Card title={t`Reports`}>
+    <Card title={t`Scheduled reports`} subtitle={t`Drafts for review · Eastern time`}>
       <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[13px] text-[#ECECEE]">
-              <Trans>Monthly voice recap</Trans>
-            </span>
-            <Toggle
-              label={t`Monthly voice recap`}
-              checked={draft.monthlyVoiceReportsEnabled}
-              onChange={(value) => setDraft({ ...draft, monthlyVoiceReportsEnabled: value })}
-            />
+        {channels.includes("voice") ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[13px] text-[#ECECEE]">
+                <Trans>Monthly voice recap</Trans>
+              </span>
+              <Toggle
+                label={t`Monthly voice recap`}
+                checked={draft.monthlyVoiceReportsEnabled}
+                onChange={(value) => setDraft({ ...draft, monthlyVoiceReportsEnabled: value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t`Generate on`}>
+                <select
+                  className={INPUT}
+                  value={draft.monthlyVoiceReportDay}
+                  onChange={(event) =>
+                    setDraft({ ...draft, monthlyVoiceReportDay: Number(event.target.value) })
+                  }
+                >
+                  <option value={0}>{t`Last day of month`}</option>
+                  {Array.from({ length: 28 }, (_, index) => index + 1).map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t`At`}>
+                <select
+                  className={INPUT}
+                  value={draft.monthlyVoiceReportHour}
+                  onChange={(event) =>
+                    setDraft({ ...draft, monthlyVoiceReportHour: Number(event.target.value) })
+                  }
+                >
+                  {hours.map((hour) => (
+                    <option key={hour} value={hour}>
+                      {hourLabel(hour)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            {previews.voice}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t`Send on`}>
-              <select
-                className={INPUT}
-                value={draft.monthlyVoiceReportDay}
-                onChange={(event) =>
-                  setDraft({ ...draft, monthlyVoiceReportDay: Number(event.target.value) })
-                }
-              >
-                <option value={0}>{t`Last day of month`}</option>
-                {Array.from({ length: 28 }, (_, index) => index + 1).map((day) => (
-                  <option key={day} value={day}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t`At`}>
-              <select
-                className={INPUT}
-                value={draft.monthlyVoiceReportHour}
-                onChange={(event) =>
-                  setDraft({ ...draft, monthlyVoiceReportHour: Number(event.target.value) })
-                }
-              >
-                {hours.map((hour) => (
-                  <option key={hour} value={hour}>
-                    {hourLabel(hour)}
-                  </option>
-                ))}
-              </select>
-            </Field>
+        ) : null}
+        {channels.includes("email") ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[13px] text-[#ECECEE]">
+                <Trans>Weekly email recap</Trans>
+              </span>
+              <Toggle
+                label={t`Weekly email recap`}
+                checked={draft.weeklyEmailReportsEnabled}
+                onChange={(value) => setDraft({ ...draft, weeklyEmailReportsEnabled: value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t`Generate on`}>
+                <select
+                  className={INPUT}
+                  value={draft.weeklyEmailReportDay}
+                  onChange={(event) =>
+                    setDraft({ ...draft, weeklyEmailReportDay: Number(event.target.value) })
+                  }
+                >
+                  {weekdays.map((name, index) => (
+                    <option key={name} value={index}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t`At`}>
+                <select
+                  className={INPUT}
+                  value={draft.weeklyEmailReportHour}
+                  onChange={(event) =>
+                    setDraft({ ...draft, weeklyEmailReportHour: Number(event.target.value) })
+                  }
+                >
+                  {hours.map((hour) => (
+                    <option key={hour} value={hour}>
+                      {hourLabel(hour)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            {previews.email}
           </div>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[13px] text-[#ECECEE]">
-              <Trans>Weekly email recap</Trans>
-            </span>
-            <Toggle
-              label={t`Weekly email recap`}
-              checked={draft.weeklyEmailReportsEnabled}
-              onChange={(value) => setDraft({ ...draft, weeklyEmailReportsEnabled: value })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t`Send on`}>
-              <select
-                className={INPUT}
-                value={draft.weeklyEmailReportDay}
-                onChange={(event) =>
-                  setDraft({ ...draft, weeklyEmailReportDay: Number(event.target.value) })
-                }
-              >
-                {weekdays.map((name, index) => (
-                  <option key={name} value={index}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t`At`}>
-              <select
-                className={INPUT}
-                value={draft.weeklyEmailReportHour}
-                onChange={(event) =>
-                  setDraft({ ...draft, weeklyEmailReportHour: Number(event.target.value) })
-                }
-              >
-                {hours.map((hour) => (
-                  <option key={hour} value={hour}>
-                    {hourLabel(hour)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        </div>
-        <Field label={t`Recipients`}>
+        ) : null}
+        <Field label={t`Client recipients`}>
           <input
             className={INPUT}
             value={draft.reportRecipient ?? ""}
@@ -278,10 +294,14 @@ function ReportsCard({
         {...saver}
         onSave={() =>
           void saver.run({
-            monthlyVoiceReportsEnabled: draft.monthlyVoiceReportsEnabled,
+            monthlyVoiceReportsEnabled: channels.includes("voice")
+              ? draft.monthlyVoiceReportsEnabled
+              : undefined,
             monthlyVoiceReportDay: draft.monthlyVoiceReportDay,
             monthlyVoiceReportHour: draft.monthlyVoiceReportHour,
-            weeklyEmailReportsEnabled: draft.weeklyEmailReportsEnabled,
+            weeklyEmailReportsEnabled: channels.includes("email")
+              ? draft.weeklyEmailReportsEnabled
+              : undefined,
             weeklyEmailReportDay: draft.weeklyEmailReportDay,
             weeklyEmailReportHour: draft.weeklyEmailReportHour,
             reportRecipient: draft.reportRecipient?.trim() || null,

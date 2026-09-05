@@ -16,6 +16,7 @@ import type {
   Actor,
   ChargePostBatch,
   ChargePostResult,
+  ReportGenerateInput,
   ReportSendResult,
   ReportUpdateInput,
   UtilitiesOverview,
@@ -25,6 +26,7 @@ import type {
   WorkspaceSettings,
   WorkspaceSettingsUpdate,
 } from "@rakazo/contracts";
+import { ReportGenerateInputSchema } from "@rakazo/contracts";
 import {
   applyReportSectionEdits,
   mergeRecipients,
@@ -33,6 +35,7 @@ import {
   renderReportEmailText,
 } from "@rakazo/core";
 import {
+  automationNextRunAt,
   createWorkspaceRepos,
   ensureDefaultAutomations,
   IsolationError,
@@ -377,7 +380,19 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
     // ── Settings ─────────────────────────────────────────────────────────
 
     async getSettings(actor: WorkspaceActorScope): Promise<WorkspaceSettings> {
-      return mapSettings(await requireWorkspace(actor));
+      const workspace = await requireWorkspace(actor);
+      const automations = await prisma.workspaceAutomation.findMany({
+        where: { workspaceId: workspace.id, key: { in: ["recap", "email-recap"] } },
+      });
+      return {
+        ...mapSettings(workspace),
+        monthlyVoiceReportsEnabled:
+          workspace.monthlyVoiceReportsEnabled &&
+          (automations.find((row) => row.key === "recap")?.enabled ?? true),
+        weeklyEmailReportsEnabled:
+          workspace.weeklyEmailReportsEnabled &&
+          (automations.find((row) => row.key === "email-recap")?.enabled ?? false),
+      };
     },
 
     async updateSettings(
@@ -386,25 +401,53 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
     ): Promise<WorkspaceSettings> {
       const workspace = await requireWorkspace(actor);
       await requireManager(actor);
-      const row = await prisma.workspace.update({
-        where: { id: workspace.id },
-        data: {
-          activityApproval: input.activityApproval,
-          monthlyVoiceReportsEnabled: input.monthlyVoiceReportsEnabled,
-          monthlyVoiceReportDay: input.monthlyVoiceReportDay,
-          monthlyVoiceReportHour: input.monthlyVoiceReportHour,
-          weeklyEmailReportsEnabled: input.weeklyEmailReportsEnabled,
-          weeklyEmailReportDay: input.weeklyEmailReportDay,
-          weeklyEmailReportHour: input.weeklyEmailReportHour,
-          reportRecipient:
-            input.reportRecipient === undefined ? undefined : input.reportRecipient || null,
-          reportReviewerEmail:
-            input.reportReviewerEmail === undefined ? undefined : input.reportReviewerEmail || null,
-          waterGlAccountId: input.waterGlAccountId,
-          buildiumChargeDescription: input.buildiumChargeDescription,
-        },
+      if (
+        input.monthlyVoiceReportsEnabled !== undefined ||
+        input.weeklyEmailReportsEnabled !== undefined
+      )
+        await ensureDefaultAutomations(prisma, workspace, now());
+      await prisma.$transaction(async (tx) => {
+        await tx.workspace.update({
+          where: { id: workspace.id },
+          data: {
+            activityApproval: input.activityApproval,
+            monthlyVoiceReportsEnabled: input.monthlyVoiceReportsEnabled,
+            monthlyVoiceReportDay: input.monthlyVoiceReportDay,
+            monthlyVoiceReportHour: input.monthlyVoiceReportHour,
+            weeklyEmailReportsEnabled: input.weeklyEmailReportsEnabled,
+            weeklyEmailReportDay: input.weeklyEmailReportDay,
+            weeklyEmailReportHour: input.weeklyEmailReportHour,
+            reportRecipient:
+              input.reportRecipient === undefined ? undefined : input.reportRecipient || null,
+            reportReviewerEmail:
+              input.reportReviewerEmail === undefined
+                ? undefined
+                : input.reportReviewerEmail || null,
+            waterGlAccountId: input.waterGlAccountId,
+            buildiumChargeDescription: input.buildiumChargeDescription,
+          },
+        });
+        for (const [key, enabled] of [
+          ["recap", input.monthlyVoiceReportsEnabled],
+          ["email-recap", input.weeklyEmailReportsEnabled],
+        ] as const) {
+          if (enabled === undefined) continue;
+          const automation = await tx.workspaceAutomation.findUnique({
+            where: { workspaceId_key: { workspaceId: workspace.id, key } },
+          });
+          if (automation)
+            await tx.workspaceAutomation.update({
+              where: { id: automation.id },
+              data: {
+                enabled,
+                nextRunAt: enabled
+                  ? automationNextRunAt(automation.crons, automation.timezone, now())
+                  : null,
+              },
+            });
+        }
       });
-      return mapSettings(row);
+      return this.getSettings(actor);
     },
 
     // ── Credentials ──────────────────────────────────────────────────────
@@ -593,8 +636,89 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
 
     // ── Reports ──────────────────────────────────────────────────────────
 
+    async generateReport(actor: ChargeActor, input: ReportGenerateInput): Promise<WorkspaceReport> {
+      await requireManager(actor);
+      const parsed = ReportGenerateInputSchema.safeParse(input);
+      if (!parsed.success)
+        throw new WorkspaceActionError(
+          "Choose a valid report audience and date range (up to 366 days)",
+        );
+      const workspace = await requireWorkspace(actor);
+      const channel = input.kind === "email" ? "email" : "voice";
+      if (!workspace.channels.includes(channel))
+        throw new WorkspaceActionError("This report channel is not enabled");
+      if (!deps.jobs) throw new WorkspaceActionError("Report generation is not configured");
+      const credential =
+        (await loadWorkspaceCredential(prisma, secrets, workspace.id, "openai")) ??
+        (await loadWorkspaceCredential(prisma, secrets, workspace.id, "openrouter"));
+      if (!credential?.apiKey)
+        throw new WorkspaceActionError(
+          "Add a narrative provider in workspace settings before generating reports",
+        );
+      if (
+        input.kind === "monthly_voice" &&
+        (input.from.slice(8) !== "01" ||
+          input.from.slice(0, 7) !== input.to.slice(0, 7) ||
+          new Date(Date.parse(input.to) + 86_400_000).getUTCDate() !== 1)
+      )
+        throw new WorkspaceActionError("A monthly recap needs a complete calendar month");
+      const row = await prisma.workspaceReport.create({
+        data: {
+          workspaceId: workspace.id,
+          reportType: channel,
+          title: `${channel === "email" ? "Email campaign report" : input.kind === "monthly_voice" ? "Monthly voice recap" : "Voice report"}${input.agentType ? ` (${input.agentType === "tenant" ? "Tenants" : "Landlords"})` : ""} · ${input.from} – ${input.to}`,
+          status: "queued",
+          dateRangeStart: new Date(input.from),
+          dateRangeEnd: new Date(input.to),
+          report: { request: parsed.data },
+          generatedBy: actor.email,
+        },
+      });
+      try {
+        await deps.jobs.enqueue({
+          name: "workspace.report.generate",
+          payload: { reportId: row.id },
+          replaceKey: `workspace-report:${row.id}`,
+        });
+      } catch {
+        await prisma.workspaceReport.update({
+          where: { id: row.id },
+          data: { status: "error", summary: "Could not queue this report. Generate it again." },
+        });
+        throw new WorkspaceActionError("Could not queue the report. Please try again.");
+      }
+      return mapReport(row);
+    },
+
+    async testReportEmail(
+      actor: ChargeActor,
+      input: { reportId: string; to: string },
+    ): Promise<{ ok: true }> {
+      await requireManager(actor);
+      const { workspace, row } = await requireReport(actor, input.reportId);
+      if (!["draft", "final"].includes(row.status))
+        throw new WorkspaceActionError("Wait for a finished report before testing email");
+      if (!deps.email) throw new WorkspaceActionError("Email sending is not configured");
+      const report = mapReport(row);
+      try {
+        await deps.email.send({
+          to: input.to,
+          subject: `[Test] ${workspace.name} — ${row.title}`,
+          html: renderReportEmailHtml({ workspaceName: workspace.name, report }),
+          text: renderReportEmailText({ workspaceName: workspace.name, report }),
+        });
+      } catch {
+        throw new WorkspaceActionError(
+          "The test email could not be sent. Check email configuration and try again.",
+        );
+      }
+      return { ok: true };
+    },
+
     async updateReport(actor: ChargeActor, input: ReportUpdateInput): Promise<WorkspaceReport> {
       const { row } = await requireReport(actor, input.reportId);
+      if (!["draft", "final"].includes(row.status))
+        throw new WorkspaceActionError("This report is not ready to edit");
       if (row.approvedAt) {
         throw new WorkspaceActionError(
           "This report was already approved and sent; it can no longer be edited",
@@ -624,6 +748,8 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
 
     async approveReport(actor: ChargeActor, reportId: string): Promise<WorkspaceReport> {
       const { row } = await requireReport(actor, reportId);
+      if (!["draft", "final"].includes(row.status))
+        throw new WorkspaceActionError("This report is not ready to approve");
       if (row.approvedAt) return mapReport(row);
       const updated = await prisma.workspaceReport.update({
         where: { id: row.id },
@@ -642,6 +768,8 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
       input: { reportId: string; to: string[] },
     ): Promise<ReportSendResult> {
       const { workspace, row } = await requireReport(actor, input.reportId);
+      if (!["draft", "final"].includes(row.status))
+        throw new WorkspaceActionError("This report is not ready to send");
       if (!deps.email) {
         throw new WorkspaceActionError(
           "Email sending is not configured on this deployment (set SMTP_URL and EMAIL_FROM)",

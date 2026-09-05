@@ -7,6 +7,7 @@ import type {
 } from "./types.js";
 
 const payloadSchemas = {
+  "workspace.report.generate": z.object({ reportId: z.string().min(1) }),
   "run.continue": z.object({ runId: z.string().min(1) }),
   "routine.wakeup": z.object({
     routineId: z.string().min(1),

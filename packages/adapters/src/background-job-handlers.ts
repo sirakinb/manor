@@ -18,6 +18,7 @@ import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-d
 import type { EncryptedSecretStore } from "./secrets.js";
 import { expireTaughtSkillTeaching } from "./teaching-session.js";
 import { runWorkspaceAutomation } from "./workspace-automation-runner.js";
+import { runWorkspaceReport } from "./workspace-report-runner.js";
 
 export function createBackgroundJobHandlers(deps: {
   executor: ReturnType<typeof createRunExecutor>;
@@ -51,6 +52,12 @@ export function createBackgroundJobHandlers(deps: {
   };
 
   return {
+    "workspace.report.generate": async ({ reportId }) => {
+      await runWorkspaceReport(
+        { prisma: deps.prisma, secrets: deps.secretStore, ingestion: deps.ingestion },
+        reportId,
+      );
+    },
     "run.continue": async (payload) => {
       await deps.executor.continueRun(payload.runId, deps.workerId);
       // Automatic messaging mirror: once the run's bot messages are durable,

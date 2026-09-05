@@ -4,11 +4,12 @@ import {
   REPORT_BULLET_SECTIONS,
   REPORT_EDIT_LIMITS,
   type ReportEditItem,
+  type ReportGenerateInput,
   type WorkspaceReport,
   type WorkspaceReportRow,
   type WorkspaceSummary,
 } from "@rakazo/contracts";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BuiButton, SuccessPop } from "../../../components/beautiful-ui/primitives";
 import { rpc } from "../../../lib/rpc";
 import {
@@ -33,6 +34,8 @@ import {
   useSectionData,
 } from "../bits";
 import type { WorkspaceTab } from "../WorkspaceView";
+import { ReportCreateCard, reportPreviewRange } from "./ReportCreateCard";
+import { ReportSchedulesCard } from "./SettingsSection";
 
 /** Sent beats approved beats the row's own status ("draft", "final", "generating", "error"). */
 function stageOf(row: WorkspaceReportRow): { label: string; tone: PillTone; key: string } {
@@ -52,6 +55,7 @@ function StagePill({ row }: { row: WorkspaceReportRow }) {
     draft: t`Draft`,
     final: t`Final`,
     generating: t`Generating`,
+    queued: t`Queued`,
     error: t`Error`,
   };
   return <StatusPill tone={stage.tone}>{known[stage.key] ?? stage.label}</StatusPill>;
@@ -70,18 +74,94 @@ export function ReportsSection({
 }) {
   const { t } = useLingui();
   const { data, error, loading } = useSectionData(() => rpc.workspace.reports.list(), "reports");
+  const settings = useSectionData(() => rpc.workspace.settings.get(), "report-settings");
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  async function generate(input: ReportGenerateInput) {
+    setGenerating(true);
+    setGenerateError(null);
+    try {
+      const report = await rpc.workspace.reports.generate(input);
+      onOpen("reports", report.id);
+    } catch (cause) {
+      setGenerateError(errorMessage(cause, t`Could not generate the report`));
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   if (reportId) return <ReportDetail reportId={reportId} onBack={() => onOpen("reports")} />;
 
   return (
-    <div>
-      <PageHeader
-        eyebrow={eyebrow}
-        title={t`Reports`}
-        subtitle={t`${workspace.name} · AI-synthesized reports across channels`}
-      />
+    <div className="ws-refined space-y-4">
+      <PageHeader eyebrow={eyebrow} title={t`Reports`} subtitle={workspace.name} />
       {error ? <ErrorLine message={error} /> : null}
       {loading ? <Loading /> : null}
+      {generateError ? <ErrorLine message={generateError} /> : null}
+      <div className="grid gap-4 xl:grid-cols-2">
+        {workspace.channels
+          .filter((channel) => channel === "voice" || channel === "email")
+          .map((channel) => (
+            <ReportCreateCard
+              key={channel}
+              channel={channel}
+              busy={generating}
+              onGenerate={(input) => void generate(input)}
+            />
+          ))}
+      </div>
+      {settings.error ? <ErrorLine message={settings.error} /> : null}
+      {settings.data ? (
+        <ReportSchedulesCard
+          settings={settings.data}
+          onSaved={settings.setData}
+          channels={workspace.channels}
+          previews={{
+            voice: (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={generating}
+                  className={`text-[12px] text-[#A6A6AD] disabled:opacity-50 ${CLICKABLE_TEXT}`}
+                  onClick={() =>
+                    void generate({
+                      kind: "monthly_voice",
+                      agentType: "tenant",
+                      ...reportPreviewRange("monthly_voice"),
+                    })
+                  }
+                >
+                  <Trans>Preview tenant recap</Trans>
+                </button>
+                <button
+                  type="button"
+                  disabled={generating}
+                  className={`text-[12px] text-[#A6A6AD] disabled:opacity-50 ${CLICKABLE_TEXT}`}
+                  onClick={() =>
+                    void generate({
+                      kind: "monthly_voice",
+                      agentType: "landlord",
+                      ...reportPreviewRange("monthly_voice"),
+                    })
+                  }
+                >
+                  <Trans>Preview landlord recap</Trans>
+                </button>
+              </div>
+            ),
+            email: (
+              <button
+                type="button"
+                disabled={generating}
+                className={`text-[12px] text-[#A6A6AD] disabled:opacity-50 ${CLICKABLE_TEXT}`}
+                onClick={() => void generate({ kind: "email", ...reportPreviewRange("email") })}
+              >
+                <Trans>Preview email recap</Trans>
+              </button>
+            ),
+          }}
+        />
+      ) : null}
       {data ? (
         <Card title={t`Generated reports`} subtitle={t`${data.length} on record`}>
           <Table<WorkspaceReportRow>
@@ -108,7 +188,7 @@ export function ReportsSection({
                 nowrap: true,
                 render: (row) =>
                   row.dateRangeStart || row.dateRangeEnd
-                    ? `${formatDate(row.dateRangeStart)} – ${formatDate(row.dateRangeEnd)}`
+                    ? `${formatDate(row.dateRangeStart?.slice(0, 10))} – ${formatDate(row.dateRangeEnd?.slice(0, 10))}`
                     : "—",
               },
               {
@@ -124,7 +204,7 @@ export function ReportsSection({
                 render: (row) => (
                   <span className="flex items-center gap-2">
                     <StagePill row={row} />
-                    <span className="text-[11.5px] text-[#6E6975]">
+                    <span className="text-[11.5px] text-[var(--ws-muted,#6E6975)]">
                       {row.sentAt
                         ? formatDate(row.sentAt)
                         : row.approvedAt
@@ -144,11 +224,11 @@ export function ReportsSection({
 
 // ── Detail ───────────────────────────────────────────────────────────────────
 
-type Mode = "view" | "edit" | "approve" | "send" | "delete";
+type Mode = "view" | "edit" | "approve" | "send" | "delete" | "test";
 
 function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => void }) {
   const { t } = useLingui();
-  const { data, error, loading, setData } = useSectionData<WorkspaceReport>(
+  const { data, error, loading, setData, reload } = useSectionData<WorkspaceReport>(
     () => rpc.workspace.reports.get({ reportId }),
     reportId,
   );
@@ -156,6 +236,13 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string[] | null>(null);
+  const [testSent, setTestSent] = useState(false);
+  const pending = data?.status === "queued" || data?.status === "generating";
+  useEffect(() => {
+    if (!pending) return;
+    const timer = window.setInterval(reload, 3000);
+    return () => window.clearInterval(timer);
+  }, [pending, reload]);
 
   async function act(action: () => Promise<WorkspaceReport | null>) {
     setBusy(true);
@@ -172,7 +259,8 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
   }
 
   const report = data;
-  const editable = report ? !report.approvedAt : false;
+  const ready = report?.status === "draft" || report?.status === "final";
+  const editable = ready && !report?.approvedAt;
   const synthesis =
     report && isRecord(report.report) && isRecord(report.report.synthesis)
       ? report.report.synthesis
@@ -182,7 +270,7 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
     : [];
 
   return (
-    <div>
+    <div className="ws-refined">
       <button
         type="button"
         onClick={onBack}
@@ -196,12 +284,12 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
         <>
           <PageHeader
             title={report.title}
-            subtitle={`${humanizeKey(report.reportType)} · ${formatDate(report.dateRangeStart)} – ${formatDate(report.dateRangeEnd)}${
+            subtitle={`${humanizeKey(report.reportType)} · ${formatDate(report.dateRangeStart?.slice(0, 10))} – ${formatDate(report.dateRangeEnd?.slice(0, 10))}${
               report.sentTo ? ` · ${t`Sent to ${report.sentTo}`}` : ""
             }`}
           >
             <StagePill row={report} />
-            {mode === "view" ? (
+            {mode === "view" && ready ? (
               <>
                 {editable ? (
                   <BuiButton disabled={busy} onClick={() => setMode("edit")}>
@@ -215,6 +303,9 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
                 ) : null}
                 <BuiButton tone="accent" disabled={busy} onClick={() => setMode("send")}>
                   {report.sentAt ? t`Send again` : t`Send`}
+                </BuiButton>
+                <BuiButton disabled={busy} onClick={() => setMode("test")}>
+                  <Trans>Test email</Trans>
                 </BuiButton>
                 {report.status === "draft" ? (
                   <button
@@ -231,6 +322,30 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
           </PageHeader>
 
           {actionError && mode === "view" ? <ErrorLine message={actionError} /> : null}
+          {pending ? (
+            <div role="status">
+              <Loading />
+            </div>
+          ) : null}
+          {testSent ? (
+            <div className="mb-3" role="status">
+              <SuccessPop label={t`Test email sent`} />
+            </div>
+          ) : null}
+          {mode === "test" ? (
+            <TestEmailCard
+              busy={busy}
+              error={actionError}
+              onCancel={() => setMode("view")}
+              onSend={(to) =>
+                void act(async () => {
+                  await rpc.workspace.reports.testEmail({ reportId, to });
+                  setTestSent(true);
+                  return null;
+                })
+              }
+            />
+          ) : null}
           {sentTo ? (
             <div className="mb-3 flex items-center gap-3">
               <SuccessPop label={t`Sent to ${sentTo.join(", ")}`} />
@@ -323,7 +438,7 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
                   </p>
                 </Section>
               ) : null}
-              <ReportBody report={report.report} />
+              {ready ? <ReportBody report={report.report} /> : null}
             </div>
           )}
         </>
@@ -333,6 +448,63 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
 }
 
 // ── Send ─────────────────────────────────────────────────────────────────────
+
+function TestEmailCard({
+  busy,
+  error,
+  onSend,
+  onCancel,
+}: {
+  busy: boolean;
+  error: string | null;
+  onSend: (to: string) => void;
+  onCancel: () => void;
+}) {
+  const { t } = useLingui();
+  const settings = useSectionData(() => rpc.workspace.settings.get(), "test-recipient");
+  const [address, setAddress] = useState<string | null>(null);
+  const to = address ?? settings.data?.reportReviewerEmail ?? "";
+  return (
+    <div className="mb-4">
+      <Card
+        title={t`Test email`}
+        subtitle={t`Send a test copy. Approval and client delivery stay unchanged.`}
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!busy) onSend(to.trim());
+          }}
+        >
+          <Field label={t`Test recipient`}>
+            <input
+              type="email"
+              required
+              className={INPUT}
+              value={to}
+              onChange={(event) => setAddress(event.target.value)}
+              maxLength={320}
+              disabled={busy}
+            />
+          </Field>
+          {error ? <ErrorLine message={error} /> : null}
+          <div className="mt-3 flex justify-end gap-2">
+            <BuiButton disabled={busy} onClick={onCancel}>
+              <Trans>Cancel</Trans>
+            </BuiButton>
+            <button
+              type="submit"
+              disabled={busy || !to.trim()}
+              className="rounded-full bg-[#83BFB1] px-4 py-2 text-[13px] font-medium text-[#0D1513] disabled:opacity-50"
+            >
+              <Trans>Send test email</Trans>
+            </button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+}
 
 function splitRecipients(value: string | null | undefined): string[] {
   return (value ?? "")
@@ -386,7 +558,7 @@ function SendCard({
               type="button"
               aria-label={t`Remove ${address}`}
               onClick={() => setChips(recipients.filter((item) => item !== address))}
-              className={`text-[#6E6975] ${CLICKABLE_TEXT}`}
+              className={`text-[var(--ws-muted,#6E6975)] ${CLICKABLE_TEXT}`}
             >
               ×
             </button>
@@ -525,7 +697,7 @@ function ReportEditor({
             }
           >
             {items.length === 0 ? (
-              <p className="text-[12.5px] text-[#6E6975]">
+              <p className="text-[12.5px] text-[var(--ws-muted,#6E6975)]">
                 <Trans>No items</Trans>
               </p>
             ) : (
@@ -603,7 +775,7 @@ function ReportEditor({
                             [section]: current[section]!.filter((_, i) => i !== index),
                           }))
                         }
-                        className={`text-[#6E6975] ${CLICKABLE_TEXT}`}
+                        className={`text-[var(--ws-muted,#6E6975)] ${CLICKABLE_TEXT}`}
                       >
                         ×
                       </button>

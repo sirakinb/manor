@@ -252,6 +252,34 @@ and both recorded in `workspace_activities` with `verification: approved`
   `reports.remove` deletes drafts only (status `draft`, never approved or
   sent; the imported monthly recaps are `final` and stay).
 
+### Report generation and previews
+
+Reports contains voice/email date-range generators, monthly audience previews,
+weekly email previews, recipients, the reviewer address, and schedules. Previews
+create drafts without sending email. The AI team shows platform syncs separately
+from the link to these report controls.
+
+`reports.generate` is for organization owners/admins. It validates real calendar
+dates, an inclusive range of at most 366 days, and an enabled channel. Monthly
+previews require a complete month. It stores a queued report and publishes
+`workspace.report.generate`; queue failures leave an explicit error. The worker
+loads only the selected narrative provider's credential and calls the optional
+ingestion adapter. Generation locks the scoped report row, uses full-window
+aggregates with bounded narrative samples, and finishes as a draft. Replayed jobs
+cannot replace a finished, edited, approved, or sent report. Pending/error reports
+cannot be edited, approved, or sent.
+
+`reports.testEmail` sends a `[Test]` copy to one explicitly entered address using
+the normal renderer. It leaves approval, delivery, and recipient history unchanged.
+The saved reviewer address pre-fills this form. Automatic reviewer notifications
+and daily reminders are not part of this delivery path.
+
+The weekly email automation starts paused, even if imported settings had weekly
+reports enabled. Explicitly saving an enabled schedule arms its hourly tick; it
+self-gates in Eastern time and covers the previous seven complete days. One
+deterministic report ID per workspace/window prevents duplicate weekly drafts.
+Schedule toggles update both the report setting and its automation transactionally.
+
 The orchestration lives in `apps/api/src/workspace-actions.ts`; refusals are
 `WorkspaceActionError`s the router turns into `BAD_REQUEST` with the message
 shown verbatim.

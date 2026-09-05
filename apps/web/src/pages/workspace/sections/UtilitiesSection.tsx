@@ -6,6 +6,7 @@ import type {
   WaterBillGroup,
   WorkspaceSummary,
 } from "@rakazo/contracts";
+import { ChevronDown, Search } from "lucide-react";
 import { useState } from "react";
 import { BuiButton } from "../../../components/beautiful-ui/primitives";
 import { rpc } from "../../../lib/rpc";
@@ -25,6 +26,7 @@ import {
   Loading,
   PageHeader,
   type PillTone,
+  Segmented,
   StatusPill,
   Table,
   useSectionData,
@@ -71,6 +73,9 @@ export function UtilitiesSection({
   const [postAllBusy, setPostAllBusy] = useState(false);
   const [postAllError, setPostAllError] = useState<string | null>(null);
   const [batch, setBatch] = useState<ChargePostBatch | null>(null);
+  const [view, setView] = useState<"bills" | "properties">("bills");
+  const [filter, setFilter] = useState<"all" | "pending" | "attention" | "posted">("all");
+  const [search, setSearch] = useState("");
 
   const targetLabel: Record<UtilityBillingTarget["targetStatus"], string> = {
     resolved: t`Pass-through`,
@@ -81,18 +86,36 @@ export function UtilitiesSection({
 
   const resolved = data?.targets.filter((target) => target.targetStatus === "resolved").length ?? 0;
   const bills = data?.bills ?? [];
-  const unmatchedBills = bills.filter((bill) => bill.resolutionStatus === "unmatched").length;
-  const ambiguousBills = bills.filter(
-    (bill) => bill.resolutionStatus === "ambiguous" || bill.resolutionStatus === "no_active_lease",
+  const attention = bills.filter(
+    (bill) =>
+      bill.resolutionStatus !== "resolved" ||
+      bill.parseStatus === "needs_review" ||
+      bill.charges.some((charge) => charge.postStatus === "error"),
   ).length;
-  const unparsedBills = bills.filter(
-    (bill) => bill.parseStatus === "needs_review" && bill.resolutionStatus === "resolved",
-  ).length;
-  const attention = unmatchedBills + ambiguousBills + unparsedBills;
   const pendingCharges = bills
     .filter((bill) => bill.resolutionStatus === "resolved")
     .flatMap((bill) => bill.charges.filter((charge) => charge.postStatus === "pending"));
   const pendingTotal = pendingCharges.reduce((sum, charge) => sum + (charge.chargeAmount ?? 0), 0);
+  const query = search.trim().toLocaleLowerCase();
+  const visibleBills = bills.filter((bill) => {
+    if (
+      query &&
+      !`${bill.serviceAddress ?? ""} ${bill.billingMonth ?? ""}`.toLocaleLowerCase().includes(query)
+    )
+      return false;
+    if (filter === "pending") return bill.charges.some((charge) => charge.postStatus === "pending");
+    if (filter === "attention")
+      return (
+        bill.resolutionStatus !== "resolved" ||
+        bill.parseStatus === "needs_review" ||
+        bill.charges.some((charge) => charge.postStatus === "error")
+      );
+    if (filter === "posted")
+      return (
+        bill.charges.length > 0 && bill.charges.every((charge) => charge.postStatus === "posted")
+      );
+    return true;
+  });
 
   async function postAll() {
     setPostAllBusy(true);
@@ -110,12 +133,8 @@ export function UtilitiesSection({
   }
 
   return (
-    <div>
-      <PageHeader
-        eyebrow={eyebrow}
-        title={t`Utilities`}
-        subtitle={t`${workspace.name} · water billing, charged to each tenant's ledger`}
-      />
+    <div className="ws-refined">
+      <PageHeader eyebrow={eyebrow} title={t`Utilities`} subtitle={workspace.name} />
       {error ? <ErrorLine message={error} /> : null}
       {loading ? <Loading /> : null}
       {data ? (
@@ -139,141 +158,192 @@ export function UtilitiesSection({
             <KpiTile
               label={t`Needs attention`}
               value={formatNumber(attention)}
-              caption={t`${formatNumber(unmatchedBills)} unmatched · ${formatNumber(ambiguousBills)} ambiguous · ${formatNumber(unparsedBills)} to parse`}
+              caption={attention ? t`Review billing matches and charges` : t`No billing issues`}
             />
           </div>
 
-          <Card
-            title={t`Bills`}
-            subtitle={t`Each bill and the charges prepared for its lease`}
-            className="mt-4"
-            right={
-              pendingCharges.length > 0 ? (
-                <BuiButton
-                  tone="accent"
-                  onClick={() => setPostAllOpen(true)}
-                  disabled={postAllBusy}
-                >
-                  {t`Post all pending (${formatNumber(pendingCharges.length)})`}
-                </BuiButton>
-              ) : null
-            }
-          >
-            {postAllOpen ? (
-              <div className="mb-4">
-                <ConfirmCard
-                  title={t`Post ${formatNumber(pendingCharges.length)} charges to Buildium?`}
-                  lines={[
-                    { label: t`Charges`, value: formatNumber(pendingCharges.length) },
-                    { label: t`Total`, value: formatMoney(pendingTotal) },
-                    { label: t`Date`, value: formatDate(today()) },
-                  ]}
-                  confirmLabel={t`Post all`}
-                  cancelLabel={t`Cancel`}
-                  busy={postAllBusy}
-                  error={postAllError}
-                  onConfirm={() => void postAll()}
-                  onCancel={() => setPostAllOpen(false)}
-                />
-                {postAllError && needsSettings(postAllError) ? <SettingsLink /> : null}
-              </div>
-            ) : null}
-            {batch ? <BatchSummary batch={batch} onDismiss={() => setBatch(null)} /> : null}
-            {data.bills.length === 0 ? (
-              <Empty>
-                <Trans>No bills yet</Trans>
-              </Empty>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                {data.bills.map((bill) => (
-                  <BillCard
-                    key={bill.waterBillId}
-                    bill={bill}
-                    statusLabel={targetLabel[bill.resolutionStatus]}
-                    onChanged={setData}
-                    onPosted={reload}
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card
-            title={t`Water-billed properties`}
-            subtitle={t`Each property billed for water, with the lease that carries the charge`}
-            className="mt-4"
-          >
-            <Table<UtilityBillingTarget>
-              rows={data.targets}
-              rowKey={(target) => target.utilityPropertyId}
-              emptyLabel={t`No properties mapped yet`}
-              columns={[
-                {
-                  key: "property",
-                  label: t`Property`,
-                  width: "34%",
-                  render: (target) => (
-                    <div>
-                      <p className="font-medium text-[#ECECEE]">{target.address}</p>
-                      <p className="text-[11.5px] text-[#6E6975]">
-                        {target.buildiumAddress ?? t`Not matched to a property`}
-                      </p>
-                    </div>
-                  ),
-                },
-                {
-                  key: "billing",
-                  label: t`Billing`,
-                  render: (target) => (
-                    <StatusPill tone={TARGET_TONE[target.targetStatus]}>
-                      {targetLabel[target.targetStatus]}
-                    </StatusPill>
-                  ),
-                },
-                {
-                  key: "lease",
-                  label: t`Lease`,
-                  render: (target) =>
-                    target.leases.length === 0 ? (
-                      "—"
-                    ) : (
-                      <ul className="space-y-0.5">
-                        {target.leases.map((lease) => (
-                          <li key={lease.leaseId} className="whitespace-nowrap">
-                            <span className="font-medium text-[#ECECEE]">{t`Lease #${lease.leaseId}`}</span>
-                            <span className="text-[#6E6975]">
-                              {lease.unitNumber ? ` · ${t`Unit ${lease.unitNumber}`}` : ""}
-                              {lease.leaseTo ? ` · ${t`to ${formatDate(lease.leaseTo)}`}` : ""}
-                              {target.leases.length > 1
-                                ? ` · ${formatPct(lease.chargeShare * 100)}`
-                                : ""}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ),
-                },
-                {
-                  key: "rent",
-                  label: t`Rent`,
-                  align: "right",
-                  render: (target) => {
-                    const total = target.leases.reduce((sum, lease) => sum + (lease.rent ?? 0), 0);
-                    return target.leases.length ? (
-                      <span className="font-semibold text-[#ECECEE]">{formatMoney(total)}</span>
-                    ) : (
-                      "—"
-                    );
-                  },
-                },
-                {
-                  key: "mode",
-                  label: t`Mode`,
-                  render: (target) => <span className="text-[#85858A]">{target.billingMode}</span>,
-                },
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <Segmented
+              label={t`Utilities view`}
+              value={view}
+              onChange={setView}
+              options={[
+                { key: "bills", label: t`Bills` },
+                { key: "properties", label: t`Properties` },
               ]}
             />
-          </Card>
+            <label className="relative w-full sm:w-64">
+              <Search
+                size={14}
+                className="pointer-events-none absolute top-2.5 left-3 text-[#A6A6AD]"
+              />
+              <input
+                className={`${INPUT} pl-9`}
+                aria-label={t`Search properties or bills`}
+                placeholder={t`Search address…`}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+          </div>
+
+          {view === "bills" ? (
+            <Card
+              title={t`Bills`}
+              subtitle={t`${formatNumber(pendingCharges.length)} pending charges · ${formatMoney(pendingTotal)}`}
+              className="mt-4"
+              right={
+                pendingCharges.length > 0 ? (
+                  <BuiButton
+                    tone="accent"
+                    onClick={() => setPostAllOpen(true)}
+                    disabled={postAllBusy}
+                  >
+                    {t`Post all pending (${formatNumber(pendingCharges.length)})`}
+                  </BuiButton>
+                ) : null
+              }
+            >
+              <div className="mb-3 overflow-x-auto">
+                <Segmented
+                  label={t`Bill status`}
+                  value={filter}
+                  onChange={setFilter}
+                  options={[
+                    { key: "all", label: t`All` },
+                    { key: "pending", label: t`Pending` },
+                    { key: "attention", label: t`Needs attention` },
+                    { key: "posted", label: t`Posted` },
+                  ]}
+                />
+              </div>
+              {postAllOpen ? (
+                <div className="mb-4">
+                  <ConfirmCard
+                    title={t`Post ${formatNumber(pendingCharges.length)} charges to Buildium?`}
+                    lines={[
+                      { label: t`Charges`, value: formatNumber(pendingCharges.length) },
+                      { label: t`Total`, value: formatMoney(pendingTotal) },
+                      { label: t`Date`, value: formatDate(today()) },
+                    ]}
+                    confirmLabel={t`Post all`}
+                    cancelLabel={t`Cancel`}
+                    busy={postAllBusy}
+                    error={postAllError}
+                    onConfirm={() => void postAll()}
+                    onCancel={() => setPostAllOpen(false)}
+                  />
+                  {postAllError && needsSettings(postAllError) ? <SettingsLink /> : null}
+                </div>
+              ) : null}
+              {batch ? <BatchSummary batch={batch} onDismiss={() => setBatch(null)} /> : null}
+              {visibleBills.length === 0 ? (
+                <Empty>
+                  {bills.length === 0 ? t`No bills yet` : t`No bills match these filters`}
+                </Empty>
+              ) : (
+                <div className="divide-y divide-[#282D2F]">
+                  {visibleBills.map((bill) => (
+                    <BillCard
+                      key={bill.waterBillId}
+                      bill={bill}
+                      statusLabel={targetLabel[bill.resolutionStatus]}
+                      onChanged={setData}
+                      onPosted={reload}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+          ) : (
+            <Card
+              title={t`Water-billed properties`}
+              subtitle={t`Each property billed for water, with the lease that carries the charge`}
+              className="mt-4"
+            >
+              <Table<UtilityBillingTarget>
+                rows={data.targets.filter(
+                  (target) =>
+                    !query ||
+                    `${target.address} ${target.buildiumAddress ?? ""}`
+                      .toLocaleLowerCase()
+                      .includes(query),
+                )}
+                rowKey={(target) => target.utilityPropertyId}
+                emptyLabel={t`No properties mapped yet`}
+                columns={[
+                  {
+                    key: "property",
+                    label: t`Property`,
+                    width: "34%",
+                    render: (target) => (
+                      <div>
+                        <p className="font-medium text-[#ECECEE]">{target.address}</p>
+                        <p className="text-[11.5px] text-[var(--ws-muted,#6E6975)]">
+                          {target.buildiumAddress ?? t`Not matched to a property`}
+                        </p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "billing",
+                    label: t`Billing`,
+                    render: (target) => (
+                      <StatusPill tone={TARGET_TONE[target.targetStatus]}>
+                        {targetLabel[target.targetStatus]}
+                      </StatusPill>
+                    ),
+                  },
+                  {
+                    key: "lease",
+                    label: t`Lease`,
+                    render: (target) =>
+                      target.leases.length === 0 ? (
+                        "—"
+                      ) : (
+                        <ul className="space-y-0.5">
+                          {target.leases.map((lease) => (
+                            <li key={lease.leaseId} className="whitespace-nowrap">
+                              <span className="font-medium text-[#ECECEE]">{t`Lease #${lease.leaseId}`}</span>
+                              <span className="text-[var(--ws-muted,#6E6975)]">
+                                {lease.unitNumber ? ` · ${t`Unit ${lease.unitNumber}`}` : ""}
+                                {lease.leaseTo ? ` · ${t`to ${formatDate(lease.leaseTo)}`}` : ""}
+                                {target.leases.length > 1
+                                  ? ` · ${formatPct(lease.chargeShare * 100)}`
+                                  : ""}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ),
+                  },
+                  {
+                    key: "rent",
+                    label: t`Rent`,
+                    align: "right",
+                    render: (target) => {
+                      const total = target.leases.reduce(
+                        (sum, lease) => sum + (lease.rent ?? 0),
+                        0,
+                      );
+                      return target.leases.length ? (
+                        <span className="font-semibold text-[#ECECEE]">{formatMoney(total)}</span>
+                      ) : (
+                        "—"
+                      );
+                    },
+                  },
+                  {
+                    key: "mode",
+                    label: t`Mode`,
+                    render: (target) => (
+                      <span className="text-[#85858A]">{target.billingMode}</span>
+                    ),
+                  },
+                ]}
+              />
+            </Card>
+          )}
         </>
       ) : null}
     </div>
@@ -335,16 +405,13 @@ function BillCard({
 }) {
   const { t } = useLingui();
   return (
-    <div
-      className="rounded-xl border border-[#202023] bg-[#0F0F11] p-3.5"
-      data-testid="workspace-bill"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <details className="group py-1" data-testid="workspace-bill">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg px-1 py-3 outline-none transition-colors hover:bg-[#1B2022] focus-visible:ring-2 focus-visible:ring-[#83BFB1]">
         <div className="min-w-0">
           <p className="truncate text-[13px] font-medium text-[#ECECEE]">
             {bill.serviceAddress ?? t`Unknown address`}
           </p>
-          <p className="mt-0.5 text-[11.5px] text-[#6E6975]">
+          <p className="mt-0.5 text-[11.5px] text-[var(--ws-muted,#6E6975)]">
             {bill.billingMonth ? formatDate(bill.billingMonth) : "—"}
             {bill.dueDate ? ` · ${t`Due ${formatDate(bill.dueDate)}`}` : ""}
             {bill.billingMode ? ` · ${bill.billingMode}` : ""}
@@ -355,8 +422,9 @@ function BillCard({
             {bill.billAmount === null ? "—" : formatMoney(bill.billAmount)}
           </span>
           <StatusPill tone={TARGET_TONE[bill.resolutionStatus]}>{statusLabel}</StatusPill>
+          <ChevronDown size={15} className="ws-expand text-[#A6A6AD] transition-transform" />
         </div>
-      </div>
+      </summary>
       {bill.memo ? <p className="mt-2 text-[12px] text-[#85858A]">{bill.memo}</p> : null}
       {bill.charges.length ? (
         <ul className="mt-3 divide-y divide-[#1C1C1F] border-t border-[#1C1C1F]">
@@ -371,7 +439,7 @@ function BillCard({
           ))}
         </ul>
       ) : null}
-    </div>
+    </details>
   );
 }
 
@@ -497,7 +565,7 @@ function ChargeRow({
         <span className="ml-auto flex items-center gap-2">
           {charge.postStatus === "posted" ? (
             <>
-              <span className="text-[11.5px] text-[#6E6975] tabular-nums">
+              <span className="text-[11.5px] text-[var(--ws-muted,#6E6975)] tabular-nums">
                 {charge.buildiumChargeId !== null ? `#${charge.buildiumChargeId}` : ""}
                 {charge.postedAt ? ` · ${formatDate(charge.postedAt)}` : ""}
               </span>

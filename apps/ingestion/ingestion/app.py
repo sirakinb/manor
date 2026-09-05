@@ -84,7 +84,7 @@ async def run(pipeline: str, request: Request) -> JSONResponse:
         options=options,
     )
 
-    lock = _lock_for(workspace_id, pipeline)
+    lock = _lock_for(workspace_id, f"{pipeline}:{run_id}" if pipeline == "reports" else pipeline)
     if not lock.acquire(blocking=False):
         return JSONResponse(
             {"ok": False, "error": f"{pipeline} is already running for this workspace"},

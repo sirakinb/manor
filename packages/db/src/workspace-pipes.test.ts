@@ -28,6 +28,7 @@ describe("pipesForChannels", () => {
   it("covers every channel with the full registry", () => {
     const all = pipesForChannels(["voice", "email", "social", "leasing", "utilities"]);
     expect(all.map((pipe) => pipe.key)).toEqual([
+      "email-recap",
       "voice",
       "email",
       "instagram",
@@ -59,6 +60,7 @@ describe("matchSource", () => {
     expect(spec("recap").internal).toBe(true);
     expect(matchSource(spec("recap"), [{ id: "x", name: "Voice rollup" }])).toBeNull();
     expect(WORKSPACE_PIPES.filter((pipe) => pipe.internal).map((pipe) => pipe.key)).toEqual([
+      "email-recap",
       "recap",
     ]);
   });

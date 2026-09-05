@@ -16,6 +16,7 @@ function handlers(overrides: Partial<BackgroundJobHandlers> = {}): BackgroundJob
     "history.compact": vi.fn(async () => undefined),
     "messaging.deliver": vi.fn(async () => undefined),
     "workspace.automation.run": vi.fn(async () => undefined),
+    "workspace.report.generate": vi.fn(async () => undefined),
     ...overrides,
   };
 }

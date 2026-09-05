@@ -209,7 +209,7 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)]"
-      style={{ backgroundColor: checked ? accentColor : "#2A2A2F" }}
+      style={{ backgroundColor: checked ? `var(--ws-accent, ${accentColor})` : "#2A2A2F" }}
     >
       <span
         className="absolute h-4 w-4 rounded-full bg-white transition-transform"
@@ -285,7 +285,7 @@ export function ErrorLine({ message }: { message: string }) {
 
 export function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rounded-xl border border-dashed border-[#2A2A2E] px-4 py-8 text-center text-[13px] text-[#6E6975]">
+    <p className="rounded-xl border border-dashed border-[#2A2A2E] px-4 py-8 text-center text-[13px] text-[var(--ws-muted,#6E6975)]">
       {children}
     </p>
   );
@@ -323,9 +323,9 @@ export function KpiTile({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-stretch justify-between gap-3 rounded-xl border border-[#202023] bg-[#131315] p-4">
+    <div className="ws-kpi flex items-stretch justify-between gap-3 rounded-xl border border-[#202023] bg-[#131315] p-4">
       <div className="min-w-0">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#6E6975]">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[var(--ws-muted,#6E6975)]">
           {label}
         </p>
         <p className="mt-2 flex items-baseline gap-2 text-[24px] font-semibold tracking-tight text-[#ECECEE] tabular-nums">
@@ -377,10 +377,14 @@ export function StatusPill({ tone, children }: { tone: PillTone; children: React
   const color = PILL_COLORS[tone];
   return (
     <span
+      data-tone={tone}
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{ backgroundColor: withAlpha(color, 0.14), color }}
+      style={{
+        backgroundColor: `var(--ws-pill-bg, ${withAlpha(color, 0.14)})`,
+        color: `var(--ws-${tone}, ${color})`,
+      }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {children}
     </span>
   );
@@ -466,7 +470,7 @@ export function LineChart({
 
   if (count === 0 || all.length === 0) {
     return (
-      <p className="py-8 text-center text-[13px] text-[#6E6975]">
+      <p className="py-8 text-center text-[13px] text-[var(--ws-muted,#6E6975)]">
         <Trans>Nothing to chart yet</Trans>
       </p>
     );
@@ -569,7 +573,7 @@ export function BarRows({
   const max = Math.max(1, ...rows.map((row) => row.value));
   if (rows.length === 0) {
     return (
-      <p className="py-6 text-center text-[13px] text-[#6E6975]">
+      <p className="py-6 text-center text-[13px] text-[var(--ws-muted,#6E6975)]">
         <Trans>Nothing to chart yet</Trans>
       </p>
     );
@@ -580,7 +584,9 @@ export function BarRows({
         <div key={row.label}>
           <div className="mb-1 flex items-center justify-between text-[12px]">
             <span className="truncate font-medium text-[#C9C9CE]">{row.label}</span>
-            <span className="text-[#6E6975] tabular-nums">{formatValue(row.value)}</span>
+            <span className="text-[var(--ws-muted,#6E6975)] tabular-nums">
+              {formatValue(row.value)}
+            </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#1C1C1F]">
             <div
@@ -625,7 +631,7 @@ export function Table<T>({
     <div className="rk-scroll overflow-x-auto rounded-xl border border-[#202023]">
       <table className="w-full min-w-[520px] border-collapse text-[12.5px]">
         <thead>
-          <tr className="bg-[#131315] text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6E6975]">
+          <tr className="bg-[#131315] text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--ws-muted,#6E6975)]">
             {columns.map((column) => (
               <th
                 key={column.key}
@@ -678,10 +684,11 @@ const PROSE_FIRST = ["narrative", "summary", "synthesis", "executive_assessment"
 
 /** Renders unknown JSON as a readable key/value tree; never a raw dump. */
 export function KeyValueTree({ value, depth = 0 }: { value: unknown; depth?: number }) {
-  if (value === null || value === undefined) return <span className="text-[#6E6975]">—</span>;
+  if (value === null || value === undefined)
+    return <span className="text-[var(--ws-muted,#6E6975)]">—</span>;
   if (typeof value !== "object") return <Scalar value={value} />;
   if (Array.isArray(value)) {
-    if (value.length === 0) return <span className="text-[#6E6975]">—</span>;
+    if (value.length === 0) return <span className="text-[var(--ws-muted,#6E6975)]">—</span>;
     if (value.every(isScalar)) {
       const long = value.some((item) => typeof item === "string" && item.length > LONG_TEXT);
       if (!long) {
@@ -720,7 +727,7 @@ export function KeyValueTree({ value, depth = 0 }: { value: unknown; depth?: num
           <div className="rk-scroll overflow-x-auto rounded-lg border border-[#1C1C1F]">
             <table className="w-full border-collapse text-[12.5px]">
               <thead>
-                <tr className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6E6975]">
+                <tr className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--ws-muted,#6E6975)]">
                   {keys.map((key) => (
                     <th key={key} scope="col" className="px-2.5 py-1.5 text-left font-semibold">
                       {humanizeKey(key)}
@@ -778,7 +785,7 @@ export function KeyValueTree({ value, depth = 0 }: { value: unknown; depth?: num
   const entries = Object.entries(value as Record<string, unknown>).sort(
     ([a], [b]) => rank(a) - rank(b),
   );
-  if (entries.length === 0) return <span className="text-[#6E6975]">—</span>;
+  if (entries.length === 0) return <span className="text-[var(--ws-muted,#6E6975)]">—</span>;
   // Short scalars sit label/value on one line, in two columns when there are
   // several; prose and nested values stack under their label.
   const inline = (entry: unknown) => isScalar(entry) && scalarText(entry).length <= LONG_TEXT;
@@ -863,7 +870,8 @@ function scalarText(value: unknown, plain = false): string {
 
 function Scalar({ value, unit, plain }: { value: unknown; unit?: string; plain?: boolean }) {
   const { t } = useLingui();
-  if (value === null || value === undefined) return <span className="text-[#6E6975]">—</span>;
+  if (value === null || value === undefined)
+    return <span className="text-[var(--ws-muted,#6E6975)]">—</span>;
   if (typeof value === "boolean")
     return <span className="text-[#C9C9CE]">{value ? t`Yes` : t`No`}</span>;
   // A fraction under a "pct" key is ambiguous; only whole percentages get the sign.
@@ -900,7 +908,7 @@ export function PageHeader({
     <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#6E6975]">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--ws-muted,#6E6975)]">
             {eyebrow}
           </p>
         ) : null}
@@ -930,12 +938,14 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl border border-[#202023] bg-[#131315] p-4 ${className}`}>
+    <div className={`ws-card rounded-xl border border-[#202023] bg-[#131315] p-4 ${className}`}>
       {title || right ? (
         <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
           <div>
             {title ? <h3 className="text-[13.5px] font-semibold text-[#ECECEE]">{title}</h3> : null}
-            {subtitle ? <p className="mt-0.5 text-[12px] text-[#6E6975]">{subtitle}</p> : null}
+            {subtitle ? (
+              <p className="mt-0.5 text-[12px] text-[var(--ws-muted,#6E6975)]">{subtitle}</p>
+            ) : null}
           </div>
           {right}
         </div>
@@ -997,7 +1007,7 @@ export function StackedBars({
   const max = Math.max(1, ...bars.map((bar) => bar.primary + bar.secondary));
   if (bars.length === 0) {
     return (
-      <p className="py-8 text-center text-[13px] text-[#6E6975]">
+      <p className="py-8 text-center text-[13px] text-[var(--ws-muted,#6E6975)]">
         <Trans>Nothing to chart yet</Trans>
       </p>
     );
@@ -1070,15 +1080,18 @@ export function ColumnBars({
   height = 160,
   formatValue = formatNumber,
   color = accentColor,
+  label,
 }: {
-  bars: Array<{ label: string; value: number }>;
+  bars: Array<{ label: string; value: number | null }>;
   height?: number;
   formatValue?: (value: number) => string;
   color?: string;
+  label?: string;
 }) {
-  if (bars.length === 0) {
+  const { t } = useLingui();
+  if (bars.length === 0 || bars.every((bar) => bar.value === null)) {
     return (
-      <p className="py-8 text-center text-[13px] text-[#6E6975]">
+      <p className="py-8 text-center text-[13px] text-[var(--ws-muted,#6E6975)]">
         <Trans>Nothing to chart yet</Trans>
       </p>
     );
@@ -1086,7 +1099,7 @@ export function ColumnBars({
   const width = 720;
   const padBottom = 20;
   const padTop = 14;
-  const max = Math.max(1, ...bars.map((bar) => bar.value));
+  const max = Math.max(1, ...bars.map((bar) => bar.value ?? 0));
   const slot = width / bars.length;
   const barW = Math.min(48, slot * 0.6);
   const plotH = height - padBottom - padTop;
@@ -1094,14 +1107,42 @@ export function ColumnBars({
   const labelEvery = Math.max(1, Math.ceil(bars.length / 8));
   const showValues = bars.length <= 14;
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" aria-hidden="true">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="h-auto w-full"
+      preserveAspectRatio="none"
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
+      {label ? (
+        <desc>
+          {bars
+            .map(
+              (bar) => `${bar.label}: ${bar.value === null ? t`No data` : formatValue(bar.value)}`,
+            )
+            .join("; ")}
+        </desc>
+      ) : null}
       {bars.map((bar, index) => {
-        const h = (bar.value / max) * plotH;
+        const h = ((bar.value ?? 0) / max) * plotH;
         const x = index * slot + (slot - barW) / 2;
         return (
           <g key={bar.label}>
-            <title>{`${bar.label} · ${formatValue(bar.value)}`}</title>
-            <rect x={x} y={padTop + plotH - h} width={barW} height={h} fill={color} rx={3} />
+            <title>{`${bar.label} · ${bar.value === null ? t`No data` : formatValue(bar.value)}`}</title>
+            {bar.value === null ? (
+              <text
+                x={x + barW / 2}
+                y={padTop + plotH - 4}
+                fontSize="10"
+                fill="#85858A"
+                textAnchor="middle"
+              >
+                —
+              </text>
+            ) : (
+              <rect x={x} y={padTop + plotH - h} width={barW} height={h} fill={color} rx={3} />
+            )}
             {showValues ? (
               <text
                 x={x + barW / 2}
@@ -1110,7 +1151,7 @@ export function ColumnBars({
                 fill="#85858A"
                 textAnchor="middle"
               >
-                {formatValue(bar.value)}
+                {bar.value === null ? "" : formatValue(bar.value)}
               </text>
             ) : null}
             {index % labelEvery === 0 || index === bars.length - 1 ? (

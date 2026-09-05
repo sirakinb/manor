@@ -1,6 +1,12 @@
-import { EmailEmulator, EncryptedSecretStore, FakePropertyLedger } from "@rakazo/adapters";
+import type { BackgroundJob } from "@rakazo/adapter-kit";
+import {
+  EmailEmulator,
+  EncryptedSecretStore,
+  FakePropertyLedger,
+  runWorkspaceReport,
+} from "@rakazo/adapters";
 import { createDb, IsolationError, type PrismaClient } from "@rakazo/db";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   createWorkspaceActions,
   WorkspaceActionError,
@@ -617,5 +623,96 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
     };
     await expect(actions.getSettings(stranger)).rejects.toBeInstanceOf(IsolationError);
     await expect(actions.listCredentials(stranger)).rejects.toBeInstanceOf(IsolationError);
+  });
+
+  it("sends a test copy only to its explicit recipient without approving or marking sent", async () => {
+    const row = await prisma.workspaceReport.create({
+      data: {
+        workspaceId,
+        reportType: "email",
+        title: "Test preview",
+        status: "draft",
+        report: { agg: { campaigns: 3 } },
+      },
+    });
+    email.sent.length = 0;
+    await expect(
+      actions.testReportEmail(staff, { reportId: row.id, to: "tester@rakazo.test" }),
+    ).rejects.toThrow(/owners and admins/);
+    await actions.testReportEmail(owner, { reportId: row.id, to: "tester@rakazo.test" });
+    expect(email.sent).toHaveLength(1);
+    expect(email.sent[0]).toMatchObject({
+      to: "tester@rakazo.test",
+      subject: "[Test] Write Paths Rentals — Test preview",
+    });
+    expect(await prisma.workspaceReport.findUnique({ where: { id: row.id } })).toEqual(row);
+    email.failNextSends();
+    await expect(
+      actions.testReportEmail(owner, { reportId: row.id, to: "tester@rakazo.test" }),
+    ).rejects.toThrow();
+    expect(await prisma.workspaceReport.findUnique({ where: { id: row.id } })).toEqual(row);
+  });
+
+  it("queues a scoped report, protects unfinished reports, and replays a finished job safely", async () => {
+    await actions.setCredential(owner, {
+      provider: "openai",
+      fields: { apiKey: "fake-report-key" },
+    });
+    const queued: BackgroundJob[] = [];
+    const enqueue = vi.fn(async (job: BackgroundJob) => {
+      queued.push(job);
+    });
+    const queuedActions = createWorkspaceActions({
+      prisma,
+      secrets,
+      email,
+      jobs: { enqueue, cancel: async () => {} },
+    });
+    const input = {
+      kind: "voice" as const,
+      agentType: "tenant" as const,
+      from: "2026-08-01",
+      to: "2026-08-31",
+    };
+    await expect(queuedActions.generateReport(staff, input)).rejects.toThrow(/owners and admins/);
+    await expect(
+      queuedActions.generateReport(owner, { ...input, from: "2026-02-30" }),
+    ).rejects.toThrow(/valid/);
+    const row = await queuedActions.generateReport(owner, input);
+    expect(row.status).toBe("queued");
+    expect(queued[0]).toMatchObject({
+      name: "workspace.report.generate",
+      payload: { reportId: row.id },
+    });
+    await expect(
+      queuedActions.sendReport(owner, { reportId: row.id, to: ["tester@rakazo.test"] }),
+    ).rejects.toThrow(/not ready/);
+    await expect(queuedActions.approveReport(owner, row.id)).rejects.toThrow(/not ready/);
+    await expect(
+      queuedActions.testReportEmail(owner, { reportId: row.id, to: "tester@rakazo.test" }),
+    ).rejects.toThrow(/finished/);
+    const run = vi.fn(async () => {
+      await prisma.workspaceReport.update({
+        where: { id: row.id },
+        data: { status: "draft", report: { stats: { total_calls: 5 } }, generatedAt: NOW },
+      });
+      return { ok: true, recordsLoaded: 1 };
+    });
+    const runner = { prisma, secrets, ingestion: { run } };
+    await runWorkspaceReport(runner, row.id);
+    await runWorkspaceReport(runner, row.id);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledWith(expect.objectContaining({ workspaceId, pipeline: "reports" }));
+    enqueue.mockRejectedValueOnce(new Error("queue down"));
+    await expect(queuedActions.generateReport(owner, input)).rejects.toThrow(/Could not queue/);
+    const errors = await prisma.workspaceReport.findMany({
+      where: { workspaceId, status: "error" },
+    });
+    expect(errors.some((entry) => entry.summary?.includes("Could not queue"))).toBe(true);
+    const unavailable = await queuedActions.generateReport(owner, input);
+    await runWorkspaceReport({ prisma, secrets }, unavailable.id);
+    expect(
+      await prisma.workspaceReport.findUnique({ where: { id: unavailable.id } }),
+    ).toMatchObject({ status: "error", approvedAt: null, sentAt: null });
   });
 });

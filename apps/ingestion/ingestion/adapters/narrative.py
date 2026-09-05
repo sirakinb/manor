@@ -8,7 +8,7 @@ import requests
 from ..errors import PipelineError
 
 
-def generate(provider: str, credential: dict[str, str], system: str, user: str) -> dict[str, Any]:
+def generate_json(provider: str, credential: dict[str, str], system: str, user: str) -> dict[str, Any]:
     api_key = credential.get("apiKey")
     if not api_key:
         raise PipelineError(f"{provider} credential needs apiKey")
@@ -54,6 +54,13 @@ def generate(provider: str, credential: dict[str, str], system: str, user: str) 
         parsed = json.loads(content)
     except (TypeError, ValueError):
         raise PipelineError("Narrative provider returned invalid JSON") from None
+    if not isinstance(parsed, dict):
+        raise PipelineError("Narrative provider returned an invalid object")
+    return parsed
+
+
+def generate(provider: str, credential: dict[str, str], system: str, user: str) -> dict[str, Any]:
+    parsed = generate_json(provider, credential, system, user)
     text_fields = ("executive_assessment", "what_this_means", "bottom_line", "summary")
     list_fields = ("wins", "opportunities")
     if not isinstance(parsed, dict) or any(not isinstance(parsed.get(k), str) for k in text_fields):

@@ -158,7 +158,8 @@ export async function runWorkspaceAutomation(
   const credentials: Record<string, Record<string, string>> = {};
   // Recaps prefer an explicitly saved OpenAI credential; OpenRouter remains
   // supported for existing workspaces. Never fall back after a provider fails.
-  if (spec.pipeline === "recap") {
+  const narrativePipeline = spec.pipeline === "recap" || spec.pipeline === "email-recap";
+  if (narrativePipeline) {
     const openai = await loadWorkspaceCredential(
       deps.prisma,
       deps.secrets,
@@ -168,7 +169,7 @@ export async function runWorkspaceAutomation(
     if (openai) credentials.openai = openai;
   }
   for (const provider of spec.credentials) {
-    if (spec.pipeline === "recap" && credentials.openai) continue;
+    if (narrativePipeline && credentials.openai) continue;
     const fields = await loadWorkspaceCredential(
       deps.prisma,
       deps.secrets,
@@ -205,6 +206,9 @@ export async function runWorkspaceAutomation(
       monthlyVoiceReportHour: workspace.monthlyVoiceReportHour,
       monthlyVoiceLastSentOn: workspace.monthlyVoiceLastSentOn?.toISOString().slice(0, 10) ?? null,
       reportRecipient: workspace.reportRecipient,
+      weeklyEmailReportsEnabled: workspace.weeklyEmailReportsEnabled,
+      weeklyEmailReportDay: workspace.weeklyEmailReportDay,
+      weeklyEmailReportHour: workspace.weeklyEmailReportHour,
     },
   };
 

@@ -446,6 +446,7 @@ export interface BackgroundJobPayloads {
   "messaging.deliver": { runId?: string };
   /** One workspace automation run; `scheduledFor` is set for cron wakeups, absent for "run now". */
   "workspace.automation.run": { automationId: string; runId?: string; scheduledFor?: string };
+  "workspace.report.generate": { reportId: string };
 }
 
 export type BackgroundJobName = keyof BackgroundJobPayloads;

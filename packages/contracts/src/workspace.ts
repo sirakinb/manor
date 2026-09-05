@@ -505,8 +505,24 @@ export const WorkspaceSettingsSchema = z.object({
 export type WorkspaceSettings = z.infer<typeof WorkspaceSettingsSchema>;
 
 export const WorkspaceSettingsUpdateSchema = WorkspaceSettingsSchema.partial().extend({
-  reportRecipient: z.string().trim().max(320).nullable().optional(),
-  reportReviewerEmail: z.string().trim().max(320).nullable().optional(),
+  reportRecipient: z
+    .string()
+    .trim()
+    .max(6420)
+    .refine((value) => {
+      const addresses = value.split(",").map((part) => part.trim());
+      return (
+        value === "" ||
+        (addresses.length <= 20 &&
+          addresses.every((address) => z.string().email().max(320).safeParse(address).success))
+      );
+    }, "Enter up to 20 comma-separated email addresses")
+    .nullable()
+    .optional(),
+  reportReviewerEmail: z
+    .union([z.literal(""), z.string().trim().email().max(320)])
+    .nullable()
+    .optional(),
   buildiumChargeDescription: z.string().trim().min(1).max(120).optional(),
 });
 export type WorkspaceSettingsUpdate = z.infer<typeof WorkspaceSettingsUpdateSchema>;
@@ -562,6 +578,26 @@ export type ChargePostBatch = z.infer<typeof ChargePostBatchSchema>;
 
 // ── Reports write path ───────────────────────────────────────────────────────
 
+const ReportDay = DayString.refine((value) => {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}, "Choose a valid calendar day");
+
+export const ReportGenerateInputSchema = z
+  .object({
+    kind: z.enum(["voice", "email", "monthly_voice"]),
+    agentType: VoiceAgentTypeSchema.optional(),
+    from: ReportDay,
+    to: ReportDay,
+  })
+  .refine(
+    (input) =>
+      input.to >= input.from && Date.parse(input.to) - Date.parse(input.from) < 366 * 86_400_000,
+    "Choose a date range of up to 366 days",
+  )
+  .refine((input) => input.kind === "email" || Boolean(input.agentType), "Choose a voice audience");
+export type ReportGenerateInput = z.infer<typeof ReportGenerateInputSchema>;
+
 export const REPORT_EDIT_LIMITS = {
   items: 12,
   title: 200,
@@ -610,6 +646,7 @@ export type ReportSendResult = z.infer<typeof ReportSendResultSchema>;
 // ── Automations ──────────────────────────────────────────────────────────────
 
 export const WORKSPACE_AUTOMATION_KEYS = [
+  "email-recap",
   "voice",
   "email",
   "instagram",

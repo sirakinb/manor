@@ -17,6 +17,7 @@ import { SystemSection } from "./sections/SystemSection";
 import { TeamSection } from "./sections/TeamSection";
 import { UtilitiesSection } from "./sections/UtilitiesSection";
 import { VoiceSection } from "./sections/VoiceSection";
+import "./refined.css";
 
 export type WorkspaceTab = "overview" | SectionKey;
 
@@ -191,8 +192,8 @@ export function WorkspaceView({
     >
       <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
         <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[13px]">
-          <div className="flex min-w-0 items-center gap-5">
-            <span className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-5">
+            <span className="flex min-w-0 flex-1 flex-col lg:flex-initial">
               <span className="flex min-w-0 items-baseline gap-2 text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">
                 <Trans>Workspace</Trans>
                 <span className="truncate text-[13px] font-normal text-[#6E6975]">
@@ -221,7 +222,7 @@ export function WorkspaceView({
             {tab === "overview" && !settingsOpen ? <AskTeamButton subject={t`Overview`} /> : null}
             <div
               data-testid="workspace-tabs"
-              className="rk-scroll flex min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-[#202023] bg-[#131315] p-1"
+              className="rk-scroll order-last flex w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-[#202023] bg-[#131315] p-1 lg:order-none lg:w-auto"
             >
               {tabs.map((entry) => (
                 <button
