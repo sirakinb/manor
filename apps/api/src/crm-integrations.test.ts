@@ -166,12 +166,15 @@ describe("CRM integration contract", () => {
   it("serves authenticated Streamable HTTP MCP initialization requests", async () => {
     const app = new Hono();
     const mounted = mountCrmIntegrationRoutes(app, {
-      prisma: {} as never,
+      prisma: {
+        organization: { findUniqueOrThrow: vi.fn().mockResolvedValue({ name: "Harbor Homes" }) },
+      } as never,
       secrets: {} as never,
       resolveActor: async () => null,
       service: {
         authenticate: vi.fn(async () => ({
           credentialId: "credential_1",
+          organizationId: "organization_1",
           spaceId: "workspace_1",
           userId: "user_1",
           scopes: ["crm:read"],
@@ -205,7 +208,7 @@ describe("CRM integration contract", () => {
       expect(await response.json()).toMatchObject({
         jsonrpc: "2.0",
         id: 1,
-        result: { serverInfo: { name: "Manor CRM" } },
+        result: { serverInfo: { name: "Harbor Homes CRM" } },
       });
     } finally {
       await mounted.stop();

@@ -298,14 +298,14 @@ msgid "{botName}’s computer"
 msgstr "{botName} adlı botun bilgisayarı"
 
 #: src/pages/DocsView.tsx:476
-msgid "{brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude, agents, IDEs — gets the same tools {brandName}'s own bots use."
-msgstr "{brandName}, CRM için bir MCP sunucusu barındırır. Akışlı HTTP konuşan her istemci — Claude, ajanlar, IDE'ler — {brandName}'un kendi botlarının kullandığı araçların aynısını alır."
+#~ msgid "{brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude, agents, IDEs — gets the same tools {brandName}'s own bots use."
+#~ msgstr "{brandName}, CRM için bir MCP sunucusu barındırır. Akışlı HTTP konuşan her istemci — Claude, ajanlar, IDE'ler — {brandName}'un kendi botlarının kullandığı araçların aynısını alır."
 
-#: src/pages/DocsView.tsx:551
+#: src/pages/DocsView.tsx:624
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr "{brandName}, CRM değişikliklerini kaydettiğin URL'lere gönderir — Entegrasyonlar → API ve ajan erişimi altından veya <0>POST /v1/webhooks</0> ile. Her uç nokta, bir kez gösterilen bir imzalama sırrı alır."
 
-#: src/pages/CrmApiAccessPanel.tsx:302
+#: src/pages/CrmApiAccessPanel.tsx:323
 msgid "{brandName} signs contact events and retries failed deliveries automatically."
 msgstr "{brandName} kişi olaylarını imzalar ve başarısız teslimatları otomatik olarak yeniden dener."
 
@@ -364,6 +364,18 @@ msgstr "{name} durduruldu"
 msgid "{openAmount} in play"
 msgstr "{openAmount} devam ediyor"
 
+#: src/pages/DocsView.tsx:95
+msgid "{organizationName} API & MCP"
+msgstr ""
+
+#: src/pages/DocsView.tsx:565
+msgid "{organizationName} CRM MCP"
+msgstr ""
+
+#: src/pages/DocsView.tsx:553
+msgid "{organizationName} Workspace MCP"
+msgstr ""
+
 #: src/components/teach/TeachRecordingChrome.tsx:46
 #: src/components/teach/TeachRecordingChrome.tsx:64
 msgid "{remaining} left · bot is watching, not acting"
@@ -406,11 +418,11 @@ msgstr "+ Alan"
 msgid "+ New pipeline"
 msgstr "+ Yeni pipeline"
 
-#: src/pages/DocsView.tsx:579
+#: src/pages/DocsView.tsx:652
 msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
 msgstr "<0>record.*</0> olayları özel modül kayıtları için tetiklenir; yükteki <1>data</1>, değişiklikten sonraki nesnenin tamamını taşır."
 
-#: src/pages/DocsView.tsx:290
+#: src/pages/DocsView.tsx:359
 msgid "1 · Create a token"
 msgstr "1 · Token oluştur"
 
@@ -422,7 +434,7 @@ msgstr "1 dosya"
 msgid "12 months"
 msgstr ""
 
-#: src/pages/DocsView.tsx:303
+#: src/pages/DocsView.tsx:374
 msgid "2 · Make a request"
 msgstr "2 · İstek gönder"
 
@@ -438,7 +450,7 @@ msgstr ""
 msgid "2FA setup key"
 msgstr ""
 
-#: src/pages/DocsView.tsx:330
+#: src/pages/DocsView.tsx:401
 msgid "3 · Write something"
 msgstr "3 · Bir şey yaz"
 
@@ -454,7 +466,7 @@ msgstr ""
 msgid "90D"
 msgstr ""
 
-#: src/pages/DocsView.tsx:524
+#: src/pages/DocsView.tsx:597
 msgid "Access"
 msgstr "Erişim"
 
@@ -520,7 +532,7 @@ msgstr "Etkin ses"
 msgid "Activity"
 msgstr "Etkinlik"
 
-#: src/pages/DocsView.tsx:144
+#: src/pages/DocsView.tsx:178
 msgid "Activity writes require a stable idempotencyKey per action. Repeating the same payload returns the existing record; changing it with the same key returns 409. Log corrections as new records. The server identifies the token or bot that wrote the note."
 msgstr ""
 
@@ -619,11 +631,11 @@ msgstr "Treg ekle"
 msgid "Add trigger"
 msgstr "Tetikleyici ekle"
 
-#: src/pages/CrmApiAccessPanel.tsx:326
+#: src/pages/CrmApiAccessPanel.tsx:347
 msgid "Add webhook"
 msgstr "Webhook ekle"
 
-#: src/pages/CrmApiAccessPanel.tsx:326
+#: src/pages/CrmApiAccessPanel.tsx:347
 #: src/pages/McpServersOverlay.tsx:363
 #: src/pages/PluginsOverlay.tsx:284
 #: src/pages/PluginsOverlay.tsx:587
@@ -690,8 +702,8 @@ msgid "All campaigns"
 msgstr ""
 
 #: src/pages/DocsView.tsx:284
-msgid "All endpoints are under <0>/v1</0>, all payloads are JSON, and everything is scoped to this workspace — a token can never see another workspace's data."
-msgstr "Tüm uç noktalar <0>/v1</0> altındadır, tüm yükler JSON'dur ve her şey bu çalışma alanıyla sınırlıdır — bir token başka bir çalışma alanının verisini asla göremez."
+#~ msgid "All endpoints are under <0>/v1</0>, all payloads are JSON, and everything is scoped to this workspace — a token can never see another workspace's data."
+#~ msgstr "Tüm uç noktalar <0>/v1</0> altındadır, tüm yükler JSON'dur ve her şey bu çalışma alanıyla sınırlıdır — bir token başka bir çalışma alanının verisini asla göremez."
 
 #: src/pages/crm/CrmHome.tsx:99
 msgid "All pipelines"
@@ -864,8 +876,8 @@ msgstr "Arşivlendi"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "Arşivlendi. Sohbet, hafıza ve dosyalar korundu."
 
-#: src/pages/DocsView.tsx:170
-#: src/pages/DocsView.tsx:523
+#: src/pages/DocsView.tsx:204
+#: src/pages/DocsView.tsx:596
 #: src/pages/McpServersOverlay.tsx:304
 msgid "Arguments"
 msgstr "Argümanlar"
@@ -917,7 +929,7 @@ msgstr "saat {0}"
 msgid "at {timeSelect}"
 msgstr "saat {timeSelect}"
 
-#: src/pages/DocsView.tsx:292
+#: src/pages/DocsView.tsx:361
 msgid "At the top of Integrations, open API & agent access → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
 msgstr ""
 
@@ -934,7 +946,7 @@ msgstr "Ek"
 msgid "Audience"
 msgstr ""
 
-#: src/pages/DocsView.tsx:495
+#: src/pages/DocsView.tsx:568
 msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>. Tools the token cannot use are not advertised at all."
 msgstr "REST ile aynı bearer token'la kimlik doğrula. Salt okunur araçlar <0>crm:read</0>, değişiklik yapan araçlar <1>crm:write</1> ister. Token'ın kullanamadığı araçlar hiç gösterilmez."
 
@@ -976,11 +988,15 @@ msgstr ""
 msgid "Available after the routine is saved"
 msgstr "Rutin kaydedildikten sonra kullanılabilir"
 
+#: src/pages/DocsView.tsx:305
+msgid "Available in {organizationName}"
+msgstr ""
+
 #: src/pages/workspace/sections/LeasingSection.tsx:169
 msgid "Available rentals"
 msgstr ""
 
-#: src/pages/DocsView.tsx:166
+#: src/pages/DocsView.tsx:200
 msgid "Available tools"
 msgstr ""
 
@@ -1016,7 +1032,7 @@ msgstr "Geri"
 msgid "Back to sign in"
 msgstr "Oturum açmaya geri dön"
 
-#: src/pages/DocsView.tsx:281
+#: src/pages/DocsView.tsx:350
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:48
 msgid "Base URL"
 msgstr "Temel URL"
@@ -1123,7 +1139,7 @@ msgstr ""
 msgid "Bounces"
 msgstr ""
 
-#: src/pages/DocsView.tsx:87
+#: src/pages/DocsView.tsx:121
 msgid "Bring context into another agent platform"
 msgstr ""
 
@@ -1148,7 +1164,7 @@ msgstr ""
 msgid "Call"
 msgstr "Ara"
 
-#: src/pages/DocsView.tsx:185
+#: src/pages/DocsView.tsx:221
 msgid "Call the same tools over HTTP"
 msgstr ""
 
@@ -1324,7 +1340,11 @@ msgid "Check unmatched bills"
 msgstr ""
 
 #: src/pages/DocsView.tsx:113
-msgid "Check workspace_activities before repeating work. Read the relevant voice, email, social, leasing, utilities or report data and check its timestamps."
+#~ msgid "Check workspace_activities before repeating work. Read the relevant voice, email, social, leasing, utilities or report data and check its timestamps."
+#~ msgstr ""
+
+#: src/pages/DocsView.tsx:147
+msgid "Check workspace_activities before repeating work. Use the available tools below to read this organization’s data and check its timestamps."
 msgstr ""
 
 #: src/pages/Auth.tsx:117
@@ -1514,7 +1534,7 @@ msgstr "Tamamlandı"
 msgid "Completed"
 msgstr ""
 
-#: src/pages/DocsView.tsx:151
+#: src/pages/DocsView.tsx:185
 msgid "Completed and failed describe the agent’s reported outcome. Needs review, approved and rejected refer to review of that record; they do not authorize execution or undo work. External notes start pending review and cannot approve themselves."
 msgstr ""
 
@@ -1592,7 +1612,7 @@ msgstr ""
 msgid "Connect"
 msgstr "Bağlan"
 
-#: src/pages/DocsView.tsx:510
+#: src/pages/DocsView.tsx:583
 msgid "Connect a coding agent"
 msgstr "Kodlama ajanı bağla"
 
@@ -1600,9 +1620,13 @@ msgstr "Kodlama ajanı bağla"
 msgid "Connect a model"
 msgstr "Model bağla"
 
-#: src/pages/CrmApiAccessPanel.tsx:254
+#: src/pages/CrmApiAccessPanel.tsx:275
 msgid "Connect an agent"
 msgstr "Ajan bağla"
+
+#: src/pages/DocsView.tsx:548
+msgid "Connect an MCP client to {organizationName} using a token created in this organization."
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:680
 msgid "Connect API key"
@@ -1612,7 +1636,7 @@ msgstr "API anahtarıyla bağlan"
 msgid "Connect ElevenLabs, OpenAI, or Cartesia"
 msgstr "ElevenLabs, OpenAI veya Cartesia bağla"
 
-#: src/pages/DocsView.tsx:502
+#: src/pages/DocsView.tsx:575
 msgid "Connect from Claude"
 msgstr "Claude'dan bağlanın"
 
@@ -1637,8 +1661,8 @@ msgid "Connect Treg"
 msgstr "Treg'i bağla"
 
 #: src/pages/CrmApiAccessPanel.tsx:151
-msgid "Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint."
-msgstr "Web sitelerini ve otomasyon araçlarını REST, webhook veya barındırılan MCP uç noktasıyla bağlayın."
+#~ msgid "Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint."
+#~ msgstr "Web sitelerini ve otomasyon araçlarını REST, webhook veya barındırılan MCP uç noktasıyla bağlayın."
 
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:164
@@ -1697,7 +1721,7 @@ msgid "Contact"
 msgstr "Kişi"
 
 #: src/pages/crm/CrmView.tsx:30
-#: src/pages/DocsView.tsx:421
+#: src/pages/DocsView.tsx:492
 msgid "Contacts"
 msgstr "Kişiler"
 
@@ -1710,47 +1734,47 @@ msgstr "Devam"
 msgid "Continue with email"
 msgstr "E-posta ile devam et"
 
-#: src/pages/CrmApiAccessPanel.tsx:266
-#: src/pages/CrmApiAccessPanel.tsx:347
-#: src/pages/DocsView.tsx:375
+#: src/pages/CrmApiAccessPanel.tsx:287
+#: src/pages/CrmApiAccessPanel.tsx:368
+#: src/pages/DocsView.tsx:446
 msgid "Copied"
 msgstr "Kopyalandı"
 
-#: src/pages/CrmApiAccessPanel.tsx:233
-#: src/pages/CrmApiAccessPanel.tsx:341
+#: src/pages/CrmApiAccessPanel.tsx:250
+#: src/pages/CrmApiAccessPanel.tsx:362
 #: src/pages/Shell.tsx:5460
 msgid "Copy"
 msgstr "Kopyala"
 
-#: src/pages/CrmApiAccessPanel.tsx:240
+#: src/pages/CrmApiAccessPanel.tsx:257
 msgid "Copy agent setup prompt with this token"
 msgstr "Bu token ile ajan kurulum prompt'unu kopyala"
 
-#: src/pages/CrmApiAccessPanel.tsx:229
+#: src/pages/CrmApiAccessPanel.tsx:246
 msgid "Copy integration token"
 msgstr "Entegrasyon token'ını kopyala"
 
-#: src/pages/DocsView.tsx:375
+#: src/pages/DocsView.tsx:446
 msgid "Copy setup prompt"
 msgstr "Kurulum prompt'unu kopyala"
 
-#: src/pages/CrmApiAccessPanel.tsx:333
+#: src/pages/CrmApiAccessPanel.tsx:354
 msgid "Copy the signing secret now"
 msgstr "İmzalama sırrını şimdi kopyalayın"
 
-#: src/pages/DocsView.tsx:512
+#: src/pages/DocsView.tsx:585
 msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself."
 msgstr "Bu prompt'u bir token ile birlikte Claude, Cursor veya herhangi bir kodlama ajanına yapıştır — MCP üzerinden bağlanır ve bağlantıyı kendisi doğrular."
 
-#: src/pages/DocsView.tsx:273
+#: src/pages/DocsView.tsx:342
 msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself. Tokens live at the top of Integrations, under API & agent access."
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:225
+#: src/pages/CrmApiAccessPanel.tsx:242
 msgid "Copy this token now"
 msgstr "Bu token'ı şimdi kopyalayın"
 
-#: src/pages/CrmApiAccessPanel.tsx:337
+#: src/pages/CrmApiAccessPanel.tsx:358
 msgid "Copy webhook signing secret"
 msgstr "Webhook imzalama sırrını kopyala"
 
@@ -1815,7 +1839,7 @@ msgstr "Devam edilemedi"
 msgid "Could not create bot"
 msgstr "Bot oluşturulamadı"
 
-#: src/pages/CrmApiAccessPanel.tsx:87
+#: src/pages/CrmApiAccessPanel.tsx:92
 msgid "Could not create credential"
 msgstr "Kimlik bilgisi oluşturulamadı"
 
@@ -1831,7 +1855,7 @@ msgstr "Bölüm oluşturulamadı"
 msgid "Could not create space"
 msgstr "Alan oluşturulamadı"
 
-#: src/pages/CrmApiAccessPanel.tsx:118
+#: src/pages/CrmApiAccessPanel.tsx:123
 msgid "Could not create webhook"
 msgstr "Webhook oluşturulamadı"
 
@@ -1892,7 +1916,7 @@ msgstr "Bağlayıcı kurulamadı"
 msgid "Could not list files"
 msgstr "Dosyalar listelenemedi"
 
-#: src/pages/CrmApiAccessPanel.tsx:72
+#: src/pages/CrmApiAccessPanel.tsx:76
 msgid "Could not load API access"
 msgstr "API erişimi yüklenemedi"
 
@@ -1923,6 +1947,11 @@ msgstr ""
 #: src/pages/ModelSettingsOverlay.tsx:108
 msgid "Could not load model settings"
 msgstr "Model ayarları yüklenemedi"
+
+#: src/pages/CrmApiAccessPanel.tsx:153
+#: src/pages/DocsView.tsx:36
+msgid "Could not load organization access."
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
@@ -2006,7 +2035,7 @@ msgstr "Grup kaldırılamadı"
 msgid "Could not remove rule"
 msgstr "Kural kaldırılamadı"
 
-#: src/pages/CrmApiAccessPanel.tsx:131
+#: src/pages/CrmApiAccessPanel.tsx:136
 msgid "Could not remove webhook"
 msgstr "Webhook kaldırılamadı"
 
@@ -2022,7 +2051,7 @@ msgstr "Parola sıfırlanamadı"
 msgid "Could not revoke connection"
 msgstr "Bağlantı iptal edilemedi"
 
-#: src/pages/CrmApiAccessPanel.tsx:100
+#: src/pages/CrmApiAccessPanel.tsx:105
 msgid "Could not revoke credential"
 msgstr "Kimlik bilgisi iptal edilemedi"
 
@@ -2180,7 +2209,7 @@ msgstr ""
 msgid "Create space"
 msgstr "Alan oluştur"
 
-#: src/pages/CrmApiAccessPanel.tsx:191
+#: src/pages/CrmApiAccessPanel.tsx:206
 msgid "Create token"
 msgstr "Token oluştur"
 
@@ -2200,7 +2229,7 @@ msgstr "Manor'unu oluştur"
 msgid "Created"
 msgstr "Oluşturuldu"
 
-#: src/pages/CrmApiAccessPanel.tsx:191
+#: src/pages/CrmApiAccessPanel.tsx:206
 #: src/pages/GroupPanel.tsx:134
 #: src/pages/Shell.tsx:6131
 #: src/pages/Shell.tsx:6579
@@ -2212,7 +2241,7 @@ msgstr "Oluşturuluyor…"
 msgid "Credential"
 msgstr "Kimlik bilgisi"
 
-#: src/pages/CrmApiAccessPanel.tsx:181
+#: src/pages/CrmApiAccessPanel.tsx:196
 msgid "Credential name"
 msgstr "Kimlik bilgisi adı"
 
@@ -2220,13 +2249,17 @@ msgstr "Kimlik bilgisi adı"
 msgid "credential saved"
 msgstr "kimlik bilgisi kaydedildi"
 
-#: src/pages/CrmApiAccessPanel.tsx:196
+#: src/pages/CrmApiAccessPanel.tsx:211
 msgid "Credential scopes"
 msgstr "Kimlik bilgisi kapsamları"
 
-#: src/pages/CrmApiAccessPanel.tsx:148
+#: src/pages/CrmApiAccessPanel.tsx:163
 msgid "CRM API access"
 msgstr "CRM API erişimi"
+
+#: src/pages/DocsView.tsx:307
+msgid "CRM: contacts, pipelines, deals, modules and webhooks."
+msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:87
 msgid "Cron"
@@ -2240,7 +2273,7 @@ msgstr "Cron ifadesi"
 msgid "Current password"
 msgstr "Mevcut parola"
 
-#: src/pages/DocsView.tsx:436
+#: src/pages/DocsView.tsx:507
 msgid "Custom modules"
 msgstr "Özel modüller"
 
@@ -2376,12 +2409,12 @@ msgstr "Siliniyor…"
 msgid "Delivered"
 msgstr ""
 
-#: src/pages/DocsView.tsx:585
+#: src/pages/DocsView.tsx:658
 #: src/pages/workspace/sections/EmailSection.tsx:322
 msgid "Delivery"
 msgstr "Teslimat"
 
-#: src/pages/DocsView.tsx:455
+#: src/pages/DocsView.tsx:526
 msgid "Delivery format, retries, and signatures are on the Webhooks tab."
 msgstr "Teslim biçimi, yeniden denemeler ve imzalar Webhooks sekmesinde."
 
@@ -2402,7 +2435,7 @@ msgstr "Dağıtım varsayılanı"
 msgid "Describe what this bot does"
 msgstr "Bu botun ne yaptığını açıkla"
 
-#: src/pages/DocsView.tsx:247
+#: src/pages/DocsView.tsx:287
 #: src/pages/Onboarding.tsx:534
 #: src/pages/Shell.tsx:6114
 #: src/pages/Shell.tsx:6293
@@ -2459,7 +2492,7 @@ msgstr "Görünen ad"
 msgid "Do not type passwords into the demo. Use Take control for credentials."
 msgstr "Demoya parola yazma. Kimlik bilgileri için Kontrolü al'ı kullan."
 
-#: src/pages/DocsView.tsx:119
+#: src/pages/DocsView.tsx:153
 msgid "Do the work in Manor or your external platform using that platform’s authorized tools. Stored playbooks are reference material; old commands and hosts do not grant access."
 msgstr ""
 
@@ -2471,12 +2504,12 @@ msgstr "Docker (önerilen)"
 msgid "Docker is the default: bots use a shared Team Computer."
 msgstr "Varsayılan Docker'dır: botlar ortak bir Takım Bilgisayarı kullanır."
 
-#: src/pages/DocsView.tsx:41
+#: src/pages/DocsView.tsx:62
 #: src/pages/Shell.tsx:3037
 msgid "Documentation"
 msgstr "Dokümantasyon"
 
-#: src/pages/CrmApiAccessPanel.tsx:157
+#: src/pages/CrmApiAccessPanel.tsx:172
 msgid "Documentation ↗"
 msgstr "Dokümantasyon ↗"
 
@@ -2606,8 +2639,7 @@ msgstr "Boş klasör"
 msgid "Encrypted static credential saved"
 msgstr "Şifrelenmiş statik kimlik bilgisi kaydedildi"
 
-#: src/pages/DocsView.tsx:245
-#: src/pages/DocsView.tsx:492
+#: src/pages/DocsView.tsx:285
 msgid "Endpoint"
 msgstr "Uç nokta"
 
@@ -2630,7 +2662,7 @@ msgstr "Bu kodu <0>{0}</0> adresinde gir"
 msgid "Error"
 msgstr ""
 
-#: src/pages/DocsView.tsx:390
+#: src/pages/DocsView.tsx:461
 msgid "Errors"
 msgstr "Hatalar"
 
@@ -2638,7 +2670,7 @@ msgstr "Hatalar"
 msgid "Escalated"
 msgstr ""
 
-#: src/pages/DocsView.tsx:572
+#: src/pages/DocsView.tsx:645
 msgid "Events"
 msgstr "Olaylar"
 
@@ -2655,7 +2687,7 @@ msgstr ""
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "her {intervalAmountSelect} {intervalUnitSelect}"
 
-#: src/pages/DocsView.tsx:414
+#: src/pages/DocsView.tsx:485
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "Veri oluşturan her <0>POST</0>, bir <1>Idempotency-Key</1> başlığı kabul eder. Aynı anahtarla yeniden denemek yazmayı tekrarlamak yerine özgün sonucu döndürür; bir anahtarı farklı bir yükle yeniden kullanmak <2>409</2> ile başarısız olur."
 
@@ -2680,7 +2712,7 @@ msgstr "Her pazartesi"
 msgid "Every month"
 msgstr "Her ay"
 
-#: src/pages/DocsView.tsx:385
+#: src/pages/DocsView.tsx:456
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "Her istek <0>Authorization: Bearer manor_…</0> taşır. Token'ın kapsamları neye erişebileceğini belirler."
 
@@ -2727,7 +2759,7 @@ msgstr ""
 msgid "Failed"
 msgstr "Başarısız"
 
-#: src/pages/DocsView.tsx:595
+#: src/pages/DocsView.tsx:668
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr "Başarısız teslimatlar üstel geri çekilmeyle en fazla 8 kez, denemeler arasında en çok bir saat olacak şekilde yeniden denenir. 10 saniye içinde 2xx ile yanıt verin."
 
@@ -2769,7 +2801,7 @@ msgstr ""
 msgid "Failure handling"
 msgstr "Hata yönetimi"
 
-#: src/pages/DocsView.tsx:392
+#: src/pages/DocsView.tsx:463
 msgid "Failures return a JSON body with a human-readable message:"
 msgstr "Başarısızlıklar, okunabilir bir mesaj içeren JSON gövdesi döndürür:"
 
@@ -2847,7 +2879,7 @@ msgstr ""
 msgid "followers now"
 msgstr ""
 
-#: src/pages/DocsView.tsx:98
+#: src/pages/DocsView.tsx:132
 msgid "For a client that cannot supply bearer headers, use its HTTP/API integration instead. This endpoint does not provide an OAuth sign-in flow."
 msgstr ""
 
@@ -2905,11 +2937,11 @@ msgstr ""
 msgid "Generating"
 msgstr ""
 
-#: src/pages/DocsView.tsx:187
+#: src/pages/DocsView.tsx:223
 msgid "GET /v1/workspace/tools lists the tools your token can use, including their JSON schemas. POST a JSON argument object to the tool’s path below. Read tools also use POST so MCP and HTTP take the same arguments. Use an empty object when no arguments are needed."
 msgstr ""
 
-#: src/pages/DocsView.tsx:29
+#: src/pages/DocsView.tsx:50
 msgid "Getting started"
 msgstr "Başlarken"
 
@@ -2917,7 +2949,7 @@ msgstr "Başlarken"
 msgid "Git event"
 msgstr "Git olayı"
 
-#: src/pages/CrmApiAccessPanel.tsx:378
+#: src/pages/CrmApiAccessPanel.tsx:399
 msgid "Give an MCP client a token with CRM scopes and connect it to this endpoint."
 msgstr "Bir MCP istemcisine CRM kapsamlı bir token verin ve bu uç noktaya bağlayın."
 
@@ -2925,7 +2957,7 @@ msgstr "Bir MCP istemcisine CRM kapsamlı bir token verin ve bu uç noktaya bağ
 msgid "Give bots extra tools from a remote MCP server, an OpenAPI spec, or Treg."
 msgstr "Botlara uzak bir MCP sunucusundan, bir OpenAPI şemasından veya Treg'den ek araçlar verin."
 
-#: src/pages/DocsView.tsx:299
+#: src/pages/DocsView.tsx:368
 msgid "Grants"
 msgstr "İzinler"
 
@@ -3013,7 +3045,7 @@ msgstr "Konuşmak için basılı tut (cihaz üzerinde dikte)"
 msgid "Home"
 msgstr "Ana sayfa"
 
-#: src/pages/CrmApiAccessPanel.tsx:375
+#: src/pages/CrmApiAccessPanel.tsx:396
 msgid "Hosted MCP"
 msgstr "Barındırılan MCP"
 
@@ -3041,7 +3073,7 @@ msgstr "Nasıl kontrol edilir"
 msgid "I’m done"
 msgstr "Bitirdim"
 
-#: src/pages/DocsView.tsx:412
+#: src/pages/DocsView.tsx:483
 msgid "Idempotency"
 msgstr "İdempotentlik"
 
@@ -3074,7 +3106,7 @@ msgstr "OpenAPI JSON içe aktar"
 msgid "In progress"
 msgstr ""
 
-#: src/pages/DocsView.tsx:618
+#: src/pages/DocsView.tsx:691
 msgid "Inbound: trigger a bot"
 msgstr "Gelen: bir botu tetikle"
 
@@ -3261,7 +3293,7 @@ msgstr ""
 msgid "List"
 msgstr "Liste"
 
-#: src/pages/DocsView.tsx:402
+#: src/pages/DocsView.tsx:473
 msgid "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
 msgstr "Liste uç noktaları <0>limit</0> (1–100, varsayılan 50) alır ve <1>next_cursor</1> döndürür. Sonraki sayfayı almak için bunu <2>cursor</2> olarak geri gönder; <3>null</3> imleç her şeyi aldığın anlamına gelir. İmleçler yazmalar sırasında sabit kalır, bu yüzden eşitlemeler satır atlamaz veya yinelemez."
 
@@ -3288,6 +3320,10 @@ msgstr ""
 #: src/pages/ActivityList.tsx:60
 msgid "Loading activity…"
 msgstr "Etkinlik yükleniyor…"
+
+#: src/pages/DocsView.tsx:43
+msgid "Loading documentation"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:531
 msgid "Loading integrations…"
@@ -3352,11 +3388,11 @@ msgstr "Kaybedildi"
 msgid "Low"
 msgstr "Düşük"
 
-#: src/pages/CrmApiAccessPanel.tsx:170
+#: src/pages/CrmApiAccessPanel.tsx:185
 msgid "Machine credentials"
 msgstr "Makine kimlik bilgileri"
 
-#: src/pages/DocsView.tsx:64
+#: src/pages/DocsView.tsx:85
 msgid "Machine-readable OpenAPI 3.1 document"
 msgstr "Makine tarafından okunabilir OpenAPI 3.1 belgesi"
 
@@ -3434,7 +3470,7 @@ msgstr "Maksimum"
 msgid "MCP servers"
 msgstr "MCP sunucuları"
 
-#: src/pages/DocsView.tsx:396
+#: src/pages/DocsView.tsx:467
 msgid "Meaning"
 msgstr "Anlam"
 
@@ -3511,7 +3547,7 @@ msgstr ""
 msgid "Microphone failed"
 msgstr "Mikrofon hatası"
 
-#: src/pages/DocsView.tsx:197
+#: src/pages/DocsView.tsx:237
 msgid "Migration boundaries"
 msgstr ""
 
@@ -3581,7 +3617,7 @@ msgstr "Modeller kendi hesaplarınız ve anahtarlarınızla çalışır. ChatGPT
 msgid "Module name"
 msgstr "Modül adı"
 
-#: src/pages/DocsView.tsx:438
+#: src/pages/DocsView.tsx:509
 msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
 msgstr "Modüller, CRM'deki kullanıcı tanımlı sayfalardır — her biri tipli alanlar (metin, sayı, tarih, onay kutusu, seçim, e-posta, telefon, URL) bildirir ve bunlara göre doğrulanan kayıtları tutar. Kaydın <0>values</0> alanı, anahtar olarak alan etiketlerini veya alan id'lerini kabul eder:"
 
@@ -4056,7 +4092,7 @@ msgstr "her ayın 1'inde saat {0}"
 msgid "on the utility account"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:258
+#: src/pages/CrmApiAccessPanel.tsx:279
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr "Claude, Cursor veya herhangi bir kodlama ajanına tek yapıştırma — token dahil, MCP üzerinden bağlanır ve kendini doğrular."
 
@@ -4128,11 +4164,11 @@ msgstr "Açık işler"
 msgid "OpenAI-compatible server URL"
 msgstr "OpenAI uyumlu sunucu URL'si"
 
-#: src/pages/DocsView.tsx:67
-msgid "OpenAPI (JSON) ↗"
-msgstr ""
+#: src/pages/DocsView.tsx:88
+#~ msgid "OpenAPI (JSON) ↗"
+#~ msgstr ""
 
-#: src/pages/DocsView.tsx:458
+#: src/pages/DocsView.tsx:529
 msgid "OpenAPI document"
 msgstr "OpenAPI belgesi"
 
@@ -4198,7 +4234,7 @@ msgstr ""
 msgid "Other model…"
 msgstr "Başka model…"
 
-#: src/pages/CrmApiAccessPanel.tsx:299
+#: src/pages/CrmApiAccessPanel.tsx:320
 msgid "Outbound webhooks"
 msgstr "Giden webhook'lar"
 
@@ -4222,7 +4258,7 @@ msgstr ""
 msgid "PagerDuty incident"
 msgstr "PagerDuty olayı"
 
-#: src/pages/DocsView.tsx:400
+#: src/pages/DocsView.tsx:471
 msgid "Pagination"
 msgstr "Sayfalama"
 
@@ -4330,12 +4366,16 @@ msgstr "Pipeline adı"
 msgid "Pipeline value by stage"
 msgstr "Aşamaya göre pipeline değeri"
 
-#: src/pages/DocsView.tsx:424
+#: src/pages/DocsView.tsx:495
 msgid "Pipelines and deals"
 msgstr "Pipeline'lar ve anlaşmalar"
 
 #: src/pages/workspace/sections/TeamSection.tsx:161
 msgid "Planned"
+msgstr ""
+
+#: src/pages/DocsView.tsx:88
+msgid "Platform OpenAPI (JSON) ↗"
 msgstr ""
 
 #: src/pages/workspace/AutomationsCard.tsx:103
@@ -4430,7 +4470,7 @@ msgstr "Özel"
 msgid "Profile views"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:252
+#: src/pages/CrmApiAccessPanel.tsx:273
 msgid "Prompt copied"
 msgstr "Prompt kopyalandı"
 
@@ -4485,15 +4525,15 @@ msgstr ""
 msgid "Reach"
 msgstr ""
 
-#: src/pages/DocsView.tsx:531
+#: src/pages/DocsView.tsx:604
 msgid "read / write"
 msgstr "okuma / yazma"
 
-#: src/pages/DocsView.tsx:104
+#: src/pages/DocsView.tsx:138
 msgid "Read → work → write back"
 msgstr ""
 
-#: src/pages/DocsView.tsx:484
+#: src/pages/DocsView.tsx:556
 msgid "Read operations and shared knowledge, then save context, skill versions and activity evidence. Choose the Workspace tab for tools, scopes and a complete read–work–write example. CRM tokens need workspace scopes added through a new token before they can use these tools."
 msgstr ""
 
@@ -4501,7 +4541,7 @@ msgstr ""
 msgid "Read replies aloud"
 msgstr "Yanıtları sesli oku"
 
-#: src/pages/DocsView.tsx:531
+#: src/pages/DocsView.tsx:604
 #: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "salt okunur"
@@ -4550,7 +4590,7 @@ msgstr "Yeniden bağlanıyor"
 msgid "Record review"
 msgstr ""
 
-#: src/pages/DocsView.tsx:535
+#: src/pages/DocsView.tsx:608
 msgid "Record tools address modules by name or id, and record <0>values</0> use field labels as keys — an agent can say <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> without ever seeing an internal id."
 msgstr "Kayıt araçları modüllere ad veya id ile erişir ve <0>values</0> anahtar olarak alan etiketlerini kullanır — bir ajan hiçbir iç id görmeden <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> diyebilir."
 
@@ -4600,11 +4640,11 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
-#: src/pages/DocsView.tsx:556
+#: src/pages/DocsView.tsx:629
 msgid "Register an endpoint"
 msgstr "Uç nokta kaydet"
 
-#: src/pages/DocsView.tsx:613
+#: src/pages/DocsView.tsx:686
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr "Yeniden oynatmaları engellemek için zaman damgası birkaç dakikadan eski teslimleri reddet."
 
@@ -4618,7 +4658,7 @@ msgstr "Bırak"
 
 #: src/components/ApprovalRulesSettings.tsx:178
 #: src/components/BotCredentialsSettings.tsx:211
-#: src/pages/CrmApiAccessPanel.tsx:366
+#: src/pages/CrmApiAccessPanel.tsx:387
 #: src/pages/PluginsOverlay.tsx:287
 #: src/pages/PluginsOverlay.tsx:517
 #: src/pages/PluginsOverlay.tsx:590
@@ -4690,7 +4730,7 @@ msgstr "Sohbeti, bilgisayarı ve hafızasıyla birlikte kaldırıldı."
 msgid "Removed, but list refresh failed"
 msgstr "Kaldırıldı ama liste yenilenemedi"
 
-#: src/pages/CrmApiAccessPanel.tsx:366
+#: src/pages/CrmApiAccessPanel.tsx:387
 #: src/pages/PluginsOverlay.tsx:282
 #: src/pages/PluginsOverlay.tsx:517
 #: src/pages/PluginsOverlay.tsx:585
@@ -4772,8 +4812,12 @@ msgstr "Sıfırlanıyor…"
 msgid "Resolution notes"
 msgstr ""
 
-#: src/pages/DocsView.tsx:31
+#: src/pages/DocsView.tsx:52
 msgid "REST"
+msgstr ""
+
+#: src/pages/DocsView.tsx:353
+msgid "REST endpoints are under <0>/v1</0>. The address is shared; your token selects the organization. Create the token while {organizationName} is selected."
 msgstr ""
 
 #: src/pages/crm/CrmContacts.tsx:467
@@ -4792,6 +4836,8 @@ msgstr "Son kaydedilen çalışma alanını geri yükler. Bilgisayardaki kaydedi
 msgid "Resume {0}"
 msgstr ""
 
+#: src/pages/CrmApiAccessPanel.tsx:156
+#: src/pages/DocsView.tsx:39
 #: src/pages/workspace/sections/UtilitiesSection.tsx:715
 #: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
@@ -4835,12 +4881,12 @@ msgstr ""
 msgid "Review the bill and its tenant charges"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:289
+#: src/pages/CrmApiAccessPanel.tsx:310
 #: src/pages/MessagingSettingsOverlay.tsx:306
 msgid "Revoke"
 msgstr "İptal et"
 
-#: src/pages/CrmApiAccessPanel.tsx:289
+#: src/pages/CrmApiAccessPanel.tsx:310
 msgid "Revoking…"
 msgstr "İptal ediliyor…"
 
@@ -4922,7 +4968,7 @@ msgstr ""
 msgid "Save"
 msgstr "Kaydet"
 
-#: src/pages/DocsView.tsx:125
+#: src/pages/DocsView.tsx:159
 msgid "Save durable findings with workspace_set_context and reusable work with workspace_save_skill. Log the outcome and artifact links with workspace_log_activity so the next agent can pick up where you stopped."
 msgstr ""
 
@@ -4973,9 +5019,9 @@ msgstr ""
 msgid "Scheduled reports"
 msgstr ""
 
-#: src/pages/DocsView.tsx:171
-#: src/pages/DocsView.tsx:246
-#: src/pages/DocsView.tsx:299
+#: src/pages/DocsView.tsx:205
+#: src/pages/DocsView.tsx:286
+#: src/pages/DocsView.tsx:368
 msgid "Scope"
 msgstr "Kapsam"
 
@@ -5083,7 +5129,7 @@ msgstr "Sıfırlama bağlantısı gönder"
 msgid "Send test email"
 msgstr ""
 
-#: src/pages/DocsView.tsx:305
+#: src/pages/DocsView.tsx:376
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "Token'ı her çağrıda bearer başlığı olarak gönder. Bu, çalışma alanının kişilerini listeler:"
 
@@ -5091,7 +5137,7 @@ msgstr "Token'ı her çağrıda bearer başlığı olarak gönder. Bu, çalışm
 msgid "Send this report"
 msgstr ""
 
-#: src/pages/DocsView.tsx:631
+#: src/pages/DocsView.tsx:704
 msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 msgstr "Başlık ayarlayamayan gönderenler (cal.com, form araçları) anahtarı URL'ye ekleyebilir: <0>?token=<webhook key></0>. Gövdeler 64 KB ile sınırlıdır; <1>text</1> alanı olduğu gibi iletilir, geri kalan her şey JSON olarak aktarılır. Aynı <2>Idempotency-Key</2> başlığına (veya yükteki <3>id</3>/<4>event_id</4> değerine) sahip yinelenen teslimler tekilleştirilir."
 
@@ -5133,7 +5179,7 @@ msgstr "Sunucu URL'si"
 msgid "Set up voice to call"
 msgstr "Arama için sesi ayarla"
 
-#: src/pages/DocsView.tsx:271
+#: src/pages/DocsView.tsx:340
 msgid "Set up with an AI agent"
 msgstr "Bir yapay zekâ ajanıyla kur"
 
@@ -5150,7 +5196,7 @@ msgstr ""
 msgid "Settings"
 msgstr "Ayarlar"
 
-#: src/pages/DocsView.tsx:504
+#: src/pages/DocsView.tsx:577
 msgid "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 msgstr "Ayarlar → Bağlayıcılar → Özel bağlayıcı ekle. Uç nokta URL'sini ve token'ı yapıştırın; CRM araçları her konuşmada görünür."
 
@@ -5180,7 +5226,7 @@ msgstr "Ortak"
 msgid "Shared documents"
 msgstr "Paylaşılan belgeler"
 
-#: src/pages/DocsView.tsx:158
+#: src/pages/DocsView.tsx:192
 msgid "Shared workspace context and skills are live and available to both internal and external agents through these tools. Personal memory and bot skills created by the earlier conversion are independent copies; updating shared knowledge does not overwrite those edits or deletions."
 msgstr ""
 
@@ -5305,6 +5351,7 @@ msgstr ""
 msgid "Software update"
 msgstr "Yazılım güncellemesi"
 
+#: src/pages/DocsView.tsx:321
 #: src/pages/workspace/PipelineMap.tsx:197
 msgid "Source"
 msgstr ""
@@ -5368,7 +5415,7 @@ msgstr "Kaydı başlat"
 msgid "Start the computer to load the preview."
 msgstr ""
 
-#: src/pages/DocsView.tsx:107
+#: src/pages/DocsView.tsx:141
 msgid "Start with workspace_overview. Read workspace_get_context and workspace_list_skills, then workspace_get_skill for the playbooks you need."
 msgstr ""
 
@@ -5387,7 +5434,8 @@ msgid "Stats"
 msgstr ""
 
 #: src/pages/crm/CrmContactsSheet.tsx:116
-#: src/pages/DocsView.tsx:396
+#: src/pages/DocsView.tsx:321
+#: src/pages/DocsView.tsx:467
 #: src/pages/workspace/sections/ReportsSection.tsx:202
 msgid "Status"
 msgstr "Durum"
@@ -5558,7 +5606,11 @@ msgid "Text"
 msgstr "Metin"
 
 #: src/pages/DocsView.tsx:264
-msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing CRM changes back to you. External agents can also read workspace operations and context, save reusable skills, and write results back into the same activity history used in Manor."
+#~ msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing CRM changes back to you. External agents can also read workspace operations and context, save reusable skills, and write results back into the same activity history used in Manor."
+#~ msgstr ""
+
+#: src/pages/DocsView.tsx:334
+msgid "The {organizationName} API connects websites, automation tools, and AI clients to this organization. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing CRM changes back to you."
 msgstr ""
 
 #: src/components/SoftwareUpdateSection.tsx:206
@@ -5581,11 +5633,11 @@ msgstr "Bilgisayar uykuda. Commit edilmemiş değişiklikleri görmek için uyan
 msgid "The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to add the first one."
 msgstr "Fırsatlar pipeline'a düştüğünde gösterge paneli canlanır. İlkini eklemek için Pipeline sekmesini açın."
 
-#: src/pages/DocsView.tsx:460
+#: src/pages/DocsView.tsx:531
 msgid "The machine-readable spec lives at <0>{origin}/v1/openapi.json</0> — import it into Postman, Insomnia, or a code generator to get typed clients for everything on this page."
 msgstr "Makine tarafından okunabilir şartname <0>{origin}/v1/openapi.json</0> adresinde — Postman, Insomnia veya bir kod üreticisine aktararak bu sayfadaki her şey için tipli istemciler elde et."
 
-#: src/pages/DocsView.tsx:351
+#: src/pages/DocsView.tsx:422
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "REST sekmesi eksiksiz uç nokta başvurusudur — kurallar, sayfalama ve tüm rotalar. Yapay zeka istemcileri REST'i tamamen atlayıp MCP üzerinden bağlanabilir. Webhook'lar değişiklikleri gerçekleştiği anda sunucularına iletir."
 
@@ -5593,12 +5645,16 @@ msgstr "REST sekmesi eksiksiz uç nokta başvurusudur — kurallar, sayfalama ve
 msgid "The selected memory provider is not available in this build."
 msgstr "Seçilen hafıza sağlayıcısı bu sürümde kullanılamıyor."
 
-#: src/pages/DocsView.tsx:603
+#: src/pages/DocsView.tsx:676
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "İmza, uç noktanın imzalama sırrı kullanılarak <0><timestamp>.<raw body></0> üzerinden alınan bir HMAC-SHA256'dır:"
 
-#: src/pages/DocsView.tsx:199
+#: src/pages/DocsView.tsx:239
 msgid "The Workspace endpoint covers the operations and knowledge tools listed here. Report sending, charge posting, automation execution, Twilio SMS, Retell agent updates, and the original intake, cases and SEO tools are not exposed through this endpoint. A stored credential or imported playbook does not make those actions available. Existing external platforms must be reconfigured to this endpoint; old tokens and URLs are not redirected."
+msgstr ""
+
+#: src/pages/DocsView.tsx:325
+msgid "These sources feed workspace data. API tokens do not grant direct access to their accounts."
 msgstr ""
 
 #: src/pages/Shell.tsx:6351
@@ -5717,12 +5773,20 @@ msgstr "Başlık"
 msgid "To"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:173
+#: src/pages/CrmApiAccessPanel.tsx:188
 msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
 msgstr "Token'lar bir kez gösterilir. Bunları sunucunuzda veya otomasyon platformunuzda saklayın, asla tarayıcı kodunda tutmayın."
 
-#: src/pages/DocsView.tsx:169
-#: src/pages/DocsView.tsx:522
+#: src/pages/CrmApiAccessPanel.tsx:167
+msgid "Tokens created here access {organizationName} only."
+msgstr ""
+
+#: src/pages/DocsView.tsx:98
+msgid "Tokens created in {organizationName} access this organization only. Each token’s scopes control which tools it can use."
+msgstr ""
+
+#: src/pages/DocsView.tsx:203
+#: src/pages/DocsView.tsx:595
 msgid "Tool"
 msgstr "Araç"
 
@@ -5734,7 +5798,7 @@ msgstr ""
 msgid "Tool sources"
 msgstr "Araç kaynakları"
 
-#: src/pages/DocsView.tsx:519
+#: src/pages/DocsView.tsx:592
 msgid "Tools"
 msgstr "Araçlar"
 
@@ -5905,7 +5969,7 @@ msgstr "Güncellendi"
 msgid "Updated {0}"
 msgstr ""
 
-#: src/pages/DocsView.tsx:134
+#: src/pages/DocsView.tsx:168
 msgid "Updates, retries and review"
 msgstr ""
 
@@ -5919,7 +5983,7 @@ msgstr "Güncelleniyor…"
 msgid "URL"
 msgstr ""
 
-#: src/pages/DocsView.tsx:566
+#: src/pages/DocsView.tsx:639
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr "URL'ler HTTPS olmalıdır. Yanıt, uç noktayı ve imzalama gizli anahtarını içerir — sakla; yeniden alınamaz."
 
@@ -5937,11 +6001,11 @@ msgstr "{hostLabel} kullan"
 msgid "Use a found model"
 msgstr "Bulunan bir modeli kullan"
 
-#: src/pages/DocsView.tsx:136
+#: src/pages/DocsView.tsx:170
 msgid "Use null or version 0 only for a new entry. To update context, pass its last-read updatedAt as expectedUpdatedAt. To save a skill version, pass its last-read version as expectedVersion. A 409 means someone changed the content: read it again and reconcile before saving. Skill versions preserve history."
 msgstr ""
 
-#: src/pages/DocsView.tsx:89
+#: src/pages/DocsView.tsx:123
 msgid "Use the Workspace MCP endpoint with any client that supports Streamable HTTP and a bearer token. Create a named token in Integrations → API & agent access. Give it workspace:read, then enable only the write scopes it needs. The token stays bound to its organization and its creator’s membership."
 msgstr ""
 
@@ -5989,7 +6053,7 @@ msgstr ""
 msgid "Verify and add"
 msgstr "Doğrula ve ekle"
 
-#: src/pages/DocsView.tsx:601
+#: src/pages/DocsView.tsx:674
 msgid "Verify the signature"
 msgstr "İmzayı doğrulayın"
 
@@ -6060,23 +6124,23 @@ msgstr ""
 msgid "Webhook"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:315
+#: src/pages/CrmApiAccessPanel.tsx:336
 msgid "Webhook HTTPS URL"
 msgstr "Webhook HTTPS URL'si"
 
-#: src/pages/DocsView.tsx:452
+#: src/pages/DocsView.tsx:523
 msgid "Webhook management"
 msgstr "Webhook yönetimi"
 
-#: src/pages/CrmApiAccessPanel.tsx:309
+#: src/pages/CrmApiAccessPanel.tsx:330
 msgid "Webhook name"
 msgstr "Webhook adı"
 
-#: src/pages/DocsView.tsx:33
+#: src/pages/DocsView.tsx:54
 msgid "Webhooks"
 msgstr "Webhook'lar"
 
-#: src/pages/DocsView.tsx:620
+#: src/pages/DocsView.tsx:693
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "Webhook'lar diğer yönde de akar — her botun dış servislerin POST edebileceği bir gelen URL'si vardır. Yük mesaj olarak ulaşır ve webhook tetikleyicili her rutin çalışır, böylece bot araçlarıyla harekete geçebilir. Botun rutin düzenleyicisinde ayarla."
 
@@ -6141,7 +6205,7 @@ msgstr "Ne zaman çalışacak"
 msgid "When to use"
 msgstr "Ne zaman kullanılır"
 
-#: src/pages/DocsView.tsx:349
+#: src/pages/DocsView.tsx:420
 msgid "Where next"
 msgstr "Sırada ne var"
 
@@ -6163,15 +6227,19 @@ msgstr "Kazanılan gelir"
 msgid "Working…"
 msgstr "Çalışıyor…"
 
-#: src/pages/DocsView.tsx:30
+#: src/pages/DocsView.tsx:51
 #: src/pages/Shell.tsx:2985
 #: src/pages/workspace/WorkspaceView.tsx:196
 msgid "Workspace"
 msgstr ""
 
-#: src/pages/DocsView.tsx:481
-msgid "Workspace MCP"
+#: src/pages/DocsView.tsx:319
+msgid "Workspace data sources"
 msgstr ""
+
+#: src/pages/DocsView.tsx:481
+#~ msgid "Workspace MCP"
+#~ msgstr ""
 
 #: src/pages/workspace/sections/TeamSection.tsx:89
 msgid "workspace operations"
@@ -6185,7 +6253,11 @@ msgstr "çalışma alanı kökü"
 msgid "Workspace settings"
 msgstr ""
 
-#: src/pages/DocsView.tsx:332
+#: src/pages/DocsView.tsx:311
+msgid "Workspace: shared context, skills, reports and activity history. The Workspace tab lists this organization’s enabled tools."
+msgstr ""
+
+#: src/pages/DocsView.tsx:403
 msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
 msgstr "Yazmalar <0>crm:write</0> kapsamını ister. En güvenli yol upsert'tir — <1>source</1> + <2>external_id</2> (veya e-posta) üzerinden eşleştirir, böylece aynı çağrıyı yinelemek asla kişiyi çoğaltmaz:"
 

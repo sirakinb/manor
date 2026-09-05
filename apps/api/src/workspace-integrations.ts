@@ -11,6 +11,7 @@ import type { PrismaClient } from "@rakazo/db";
 import type { Hono } from "hono";
 import * as z from "zod";
 import type { IntegrationPrincipal } from "./crm-integrations.js";
+import { workspaceAccess } from "./workspace-access.js";
 
 // External clients can read operations and write knowledge/history. They cannot
 // bypass the normal approval paths for sends, charge posting or automation runs.
@@ -30,6 +31,9 @@ export function mountWorkspaceIntegrationRoutes(
       return { error: "Workspace tool not found.", code: "not_found" };
     if (!principal.scopes.includes(workspaceToolScope(name)))
       return { error: `Missing ${workspaceToolScope(name)} scope.`, code: "forbidden" };
+    const access = await workspaceAccess(deps.prisma, principal.organizationId);
+    if (!access.tools.includes(name))
+      return { error: "This tool is not enabled for this organization.", code: "forbidden" };
     const parsed = workspaceToolSchemas[name as keyof typeof workspaceToolSchemas].safeParse(args);
     if (!parsed.success)
       return {
@@ -51,9 +55,12 @@ export function mountWorkspaceIntegrationRoutes(
   app.get("/v1/workspace/tools", async (c) => {
     const principal = await deps.authenticate(c.req.raw);
     if (!principal) return c.json({ error: "Invalid integration credential." }, 401);
+    const access = await workspaceAccess(deps.prisma, principal.organizationId);
     return c.json({
+      organization: access.organization,
       instructions,
       tools: names
+        .filter((name) => access.tools.includes(name))
         .filter((name) => principal.scopes.includes(workspaceToolScope(name)))
         .map((name) => ({
           name,
@@ -88,8 +95,13 @@ export function mountWorkspaceIntegrationRoutes(
     if (!principal) return c.json({ error: "Invalid integration credential." }, 401);
     if (!principal.scopes.some((scope) => scope.startsWith("workspace:")))
       return c.json({ error: "Missing workspace scope." }, 403);
-    const server = new McpServer({ name: "Manor Workspace", version: "1.0.0" }, { instructions });
+    const access = await workspaceAccess(deps.prisma, principal.organizationId);
+    const server = new McpServer(
+      { name: `${access.organization.name} Workspace`, version: "1.0.0" },
+      { instructions },
+    );
     for (const name of names) {
+      if (!access.tools.includes(name)) continue;
       if (!principal.scopes.includes(workspaceToolScope(name))) continue;
       server.registerTool(
         name,

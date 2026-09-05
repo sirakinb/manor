@@ -297,14 +297,14 @@ msgid "{botName}’s computer"
 msgstr "{botName} 的电脑"
 
 #: src/pages/DocsView.tsx:476
-msgid "{brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude, agents, IDEs — gets the same tools {brandName}'s own bots use."
-msgstr ""
+#~ msgid "{brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude, agents, IDEs — gets the same tools {brandName}'s own bots use."
+#~ msgstr ""
 
-#: src/pages/DocsView.tsx:551
+#: src/pages/DocsView.tsx:624
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:302
+#: src/pages/CrmApiAccessPanel.tsx:323
 msgid "{brandName} signs contact events and retries failed deliveries automatically."
 msgstr ""
 
@@ -363,6 +363,18 @@ msgstr "{name} 已停止"
 msgid "{openAmount} in play"
 msgstr ""
 
+#: src/pages/DocsView.tsx:95
+msgid "{organizationName} API & MCP"
+msgstr ""
+
+#: src/pages/DocsView.tsx:565
+msgid "{organizationName} CRM MCP"
+msgstr ""
+
+#: src/pages/DocsView.tsx:553
+msgid "{organizationName} Workspace MCP"
+msgstr ""
+
 #: src/components/teach/TeachRecordingChrome.tsx:46
 #: src/components/teach/TeachRecordingChrome.tsx:64
 msgid "{remaining} left · bot is watching, not acting"
@@ -405,11 +417,11 @@ msgstr ""
 msgid "+ New pipeline"
 msgstr ""
 
-#: src/pages/DocsView.tsx:579
+#: src/pages/DocsView.tsx:652
 msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
 msgstr ""
 
-#: src/pages/DocsView.tsx:290
+#: src/pages/DocsView.tsx:359
 msgid "1 · Create a token"
 msgstr ""
 
@@ -421,7 +433,7 @@ msgstr "1 个文件"
 msgid "12 months"
 msgstr ""
 
-#: src/pages/DocsView.tsx:303
+#: src/pages/DocsView.tsx:374
 msgid "2 · Make a request"
 msgstr ""
 
@@ -437,7 +449,7 @@ msgstr ""
 msgid "2FA setup key"
 msgstr ""
 
-#: src/pages/DocsView.tsx:330
+#: src/pages/DocsView.tsx:401
 msgid "3 · Write something"
 msgstr ""
 
@@ -453,7 +465,7 @@ msgstr ""
 msgid "90D"
 msgstr ""
 
-#: src/pages/DocsView.tsx:524
+#: src/pages/DocsView.tsx:597
 msgid "Access"
 msgstr ""
 
@@ -519,7 +531,7 @@ msgstr "当前语音"
 msgid "Activity"
 msgstr "动态"
 
-#: src/pages/DocsView.tsx:144
+#: src/pages/DocsView.tsx:178
 msgid "Activity writes require a stable idempotencyKey per action. Repeating the same payload returns the existing record; changing it with the same key returns 409. Log corrections as new records. The server identifies the token or bot that wrote the note."
 msgstr ""
 
@@ -618,11 +630,11 @@ msgstr "添加 Treg"
 msgid "Add trigger"
 msgstr "添加触发器"
 
-#: src/pages/CrmApiAccessPanel.tsx:326
+#: src/pages/CrmApiAccessPanel.tsx:347
 msgid "Add webhook"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:326
+#: src/pages/CrmApiAccessPanel.tsx:347
 #: src/pages/McpServersOverlay.tsx:363
 #: src/pages/PluginsOverlay.tsx:284
 #: src/pages/PluginsOverlay.tsx:587
@@ -689,8 +701,8 @@ msgid "All campaigns"
 msgstr ""
 
 #: src/pages/DocsView.tsx:284
-msgid "All endpoints are under <0>/v1</0>, all payloads are JSON, and everything is scoped to this workspace — a token can never see another workspace's data."
-msgstr ""
+#~ msgid "All endpoints are under <0>/v1</0>, all payloads are JSON, and everything is scoped to this workspace — a token can never see another workspace's data."
+#~ msgstr ""
 
 #: src/pages/crm/CrmHome.tsx:99
 msgid "All pipelines"
@@ -863,8 +875,8 @@ msgstr "已归档"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "已归档。对话、记忆和文件保留。"
 
-#: src/pages/DocsView.tsx:170
-#: src/pages/DocsView.tsx:523
+#: src/pages/DocsView.tsx:204
+#: src/pages/DocsView.tsx:596
 #: src/pages/McpServersOverlay.tsx:304
 msgid "Arguments"
 msgstr "参数"
@@ -916,7 +928,7 @@ msgstr "{0}"
 msgid "at {timeSelect}"
 msgstr "{timeSelect}"
 
-#: src/pages/DocsView.tsx:292
+#: src/pages/DocsView.tsx:361
 msgid "At the top of Integrations, open API & agent access → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
 msgstr ""
 
@@ -933,7 +945,7 @@ msgstr "附件"
 msgid "Audience"
 msgstr ""
 
-#: src/pages/DocsView.tsx:495
+#: src/pages/DocsView.tsx:568
 msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>. Tools the token cannot use are not advertised at all."
 msgstr ""
 
@@ -975,11 +987,15 @@ msgstr ""
 msgid "Available after the routine is saved"
 msgstr "保存例行任务后可用"
 
+#: src/pages/DocsView.tsx:305
+msgid "Available in {organizationName}"
+msgstr ""
+
 #: src/pages/workspace/sections/LeasingSection.tsx:169
 msgid "Available rentals"
 msgstr ""
 
-#: src/pages/DocsView.tsx:166
+#: src/pages/DocsView.tsx:200
 msgid "Available tools"
 msgstr ""
 
@@ -1015,7 +1031,7 @@ msgstr "返回"
 msgid "Back to sign in"
 msgstr "返回登录"
 
-#: src/pages/DocsView.tsx:281
+#: src/pages/DocsView.tsx:350
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:48
 msgid "Base URL"
 msgstr "Base URL"
@@ -1122,7 +1138,7 @@ msgstr ""
 msgid "Bounces"
 msgstr ""
 
-#: src/pages/DocsView.tsx:87
+#: src/pages/DocsView.tsx:121
 msgid "Bring context into another agent platform"
 msgstr ""
 
@@ -1147,7 +1163,7 @@ msgstr ""
 msgid "Call"
 msgstr "通话"
 
-#: src/pages/DocsView.tsx:185
+#: src/pages/DocsView.tsx:221
 msgid "Call the same tools over HTTP"
 msgstr ""
 
@@ -1323,7 +1339,11 @@ msgid "Check unmatched bills"
 msgstr ""
 
 #: src/pages/DocsView.tsx:113
-msgid "Check workspace_activities before repeating work. Read the relevant voice, email, social, leasing, utilities or report data and check its timestamps."
+#~ msgid "Check workspace_activities before repeating work. Read the relevant voice, email, social, leasing, utilities or report data and check its timestamps."
+#~ msgstr ""
+
+#: src/pages/DocsView.tsx:147
+msgid "Check workspace_activities before repeating work. Use the available tools below to read this organization’s data and check its timestamps."
 msgstr ""
 
 #: src/pages/Auth.tsx:117
@@ -1513,7 +1533,7 @@ msgstr "完成"
 msgid "Completed"
 msgstr ""
 
-#: src/pages/DocsView.tsx:151
+#: src/pages/DocsView.tsx:185
 msgid "Completed and failed describe the agent’s reported outcome. Needs review, approved and rejected refer to review of that record; they do not authorize execution or undo work. External notes start pending review and cannot approve themselves."
 msgstr ""
 
@@ -1591,7 +1611,7 @@ msgstr ""
 msgid "Connect"
 msgstr "连接"
 
-#: src/pages/DocsView.tsx:510
+#: src/pages/DocsView.tsx:583
 msgid "Connect a coding agent"
 msgstr ""
 
@@ -1599,8 +1619,12 @@ msgstr ""
 msgid "Connect a model"
 msgstr "连接模型"
 
-#: src/pages/CrmApiAccessPanel.tsx:254
+#: src/pages/CrmApiAccessPanel.tsx:275
 msgid "Connect an agent"
+msgstr ""
+
+#: src/pages/DocsView.tsx:548
+msgid "Connect an MCP client to {organizationName} using a token created in this organization."
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:680
@@ -1611,7 +1635,7 @@ msgstr "连接 API 密钥"
 msgid "Connect ElevenLabs, OpenAI, or Cartesia"
 msgstr "连接 ElevenLabs、OpenAI 或 Cartesia"
 
-#: src/pages/DocsView.tsx:502
+#: src/pages/DocsView.tsx:575
 msgid "Connect from Claude"
 msgstr ""
 
@@ -1636,8 +1660,8 @@ msgid "Connect Treg"
 msgstr "连接 Treg"
 
 #: src/pages/CrmApiAccessPanel.tsx:151
-msgid "Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint."
-msgstr ""
+#~ msgid "Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint."
+#~ msgstr ""
 
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:164
@@ -1696,7 +1720,7 @@ msgid "Contact"
 msgstr ""
 
 #: src/pages/crm/CrmView.tsx:30
-#: src/pages/DocsView.tsx:421
+#: src/pages/DocsView.tsx:492
 msgid "Contacts"
 msgstr ""
 
@@ -1709,47 +1733,47 @@ msgstr "继续"
 msgid "Continue with email"
 msgstr "使用邮箱继续"
 
-#: src/pages/CrmApiAccessPanel.tsx:266
-#: src/pages/CrmApiAccessPanel.tsx:347
-#: src/pages/DocsView.tsx:375
+#: src/pages/CrmApiAccessPanel.tsx:287
+#: src/pages/CrmApiAccessPanel.tsx:368
+#: src/pages/DocsView.tsx:446
 msgid "Copied"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:233
-#: src/pages/CrmApiAccessPanel.tsx:341
+#: src/pages/CrmApiAccessPanel.tsx:250
+#: src/pages/CrmApiAccessPanel.tsx:362
 #: src/pages/Shell.tsx:5460
 msgid "Copy"
 msgstr "复制"
 
-#: src/pages/CrmApiAccessPanel.tsx:240
+#: src/pages/CrmApiAccessPanel.tsx:257
 msgid "Copy agent setup prompt with this token"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:229
+#: src/pages/CrmApiAccessPanel.tsx:246
 msgid "Copy integration token"
 msgstr ""
 
-#: src/pages/DocsView.tsx:375
+#: src/pages/DocsView.tsx:446
 msgid "Copy setup prompt"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:333
+#: src/pages/CrmApiAccessPanel.tsx:354
 msgid "Copy the signing secret now"
 msgstr ""
 
-#: src/pages/DocsView.tsx:512
+#: src/pages/DocsView.tsx:585
 msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself."
 msgstr ""
 
-#: src/pages/DocsView.tsx:273
+#: src/pages/DocsView.tsx:342
 msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself. Tokens live at the top of Integrations, under API & agent access."
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:225
+#: src/pages/CrmApiAccessPanel.tsx:242
 msgid "Copy this token now"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:337
+#: src/pages/CrmApiAccessPanel.tsx:358
 msgid "Copy webhook signing secret"
 msgstr ""
 
@@ -1814,7 +1838,7 @@ msgstr "无法继续"
 msgid "Could not create bot"
 msgstr "无法创建 Bot"
 
-#: src/pages/CrmApiAccessPanel.tsx:87
+#: src/pages/CrmApiAccessPanel.tsx:92
 msgid "Could not create credential"
 msgstr ""
 
@@ -1830,7 +1854,7 @@ msgstr "无法创建分组"
 msgid "Could not create space"
 msgstr "无法创建工作区"
 
-#: src/pages/CrmApiAccessPanel.tsx:118
+#: src/pages/CrmApiAccessPanel.tsx:123
 msgid "Could not create webhook"
 msgstr ""
 
@@ -1891,7 +1915,7 @@ msgstr "无法安装连接器"
 msgid "Could not list files"
 msgstr "无法列出文件"
 
-#: src/pages/CrmApiAccessPanel.tsx:72
+#: src/pages/CrmApiAccessPanel.tsx:76
 msgid "Could not load API access"
 msgstr ""
 
@@ -1922,6 +1946,11 @@ msgstr ""
 #: src/pages/ModelSettingsOverlay.tsx:108
 msgid "Could not load model settings"
 msgstr "无法加载模型设置"
+
+#: src/pages/CrmApiAccessPanel.tsx:153
+#: src/pages/DocsView.tsx:36
+msgid "Could not load organization access."
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx:268
 msgid "Could not load skill"
@@ -2005,7 +2034,7 @@ msgstr "无法移除群组"
 msgid "Could not remove rule"
 msgstr "无法移除规则"
 
-#: src/pages/CrmApiAccessPanel.tsx:131
+#: src/pages/CrmApiAccessPanel.tsx:136
 msgid "Could not remove webhook"
 msgstr ""
 
@@ -2021,7 +2050,7 @@ msgstr "无法重置密码"
 msgid "Could not revoke connection"
 msgstr "无法撤销连接"
 
-#: src/pages/CrmApiAccessPanel.tsx:100
+#: src/pages/CrmApiAccessPanel.tsx:105
 msgid "Could not revoke credential"
 msgstr ""
 
@@ -2179,7 +2208,7 @@ msgstr ""
 msgid "Create space"
 msgstr "创建工作区"
 
-#: src/pages/CrmApiAccessPanel.tsx:191
+#: src/pages/CrmApiAccessPanel.tsx:206
 msgid "Create token"
 msgstr ""
 
@@ -2199,7 +2228,7 @@ msgstr ""
 msgid "Created"
 msgstr "已创建"
 
-#: src/pages/CrmApiAccessPanel.tsx:191
+#: src/pages/CrmApiAccessPanel.tsx:206
 #: src/pages/GroupPanel.tsx:134
 #: src/pages/Shell.tsx:6131
 #: src/pages/Shell.tsx:6579
@@ -2211,7 +2240,7 @@ msgstr "正在创建…"
 msgid "Credential"
 msgstr "凭据"
 
-#: src/pages/CrmApiAccessPanel.tsx:181
+#: src/pages/CrmApiAccessPanel.tsx:196
 msgid "Credential name"
 msgstr ""
 
@@ -2219,12 +2248,16 @@ msgstr ""
 msgid "credential saved"
 msgstr "凭据已保存"
 
-#: src/pages/CrmApiAccessPanel.tsx:196
+#: src/pages/CrmApiAccessPanel.tsx:211
 msgid "Credential scopes"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:148
+#: src/pages/CrmApiAccessPanel.tsx:163
 msgid "CRM API access"
+msgstr ""
+
+#: src/pages/DocsView.tsx:307
+msgid "CRM: contacts, pipelines, deals, modules and webhooks."
 msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:87
@@ -2239,7 +2272,7 @@ msgstr "Cron 表达式"
 msgid "Current password"
 msgstr "当前密码"
 
-#: src/pages/DocsView.tsx:436
+#: src/pages/DocsView.tsx:507
 msgid "Custom modules"
 msgstr ""
 
@@ -2375,12 +2408,12 @@ msgstr "正在删除…"
 msgid "Delivered"
 msgstr ""
 
-#: src/pages/DocsView.tsx:585
+#: src/pages/DocsView.tsx:658
 #: src/pages/workspace/sections/EmailSection.tsx:322
 msgid "Delivery"
 msgstr ""
 
-#: src/pages/DocsView.tsx:455
+#: src/pages/DocsView.tsx:526
 msgid "Delivery format, retries, and signatures are on the Webhooks tab."
 msgstr ""
 
@@ -2401,7 +2434,7 @@ msgstr "部署默认"
 msgid "Describe what this bot does"
 msgstr "描述这个 Bot 做什么"
 
-#: src/pages/DocsView.tsx:247
+#: src/pages/DocsView.tsx:287
 #: src/pages/Onboarding.tsx:534
 #: src/pages/Shell.tsx:6114
 #: src/pages/Shell.tsx:6293
@@ -2458,7 +2491,7 @@ msgstr "显示名称"
 msgid "Do not type passwords into the demo. Use Take control for credentials."
 msgstr "不要在示范中输入密码。凭据请用「接管」。"
 
-#: src/pages/DocsView.tsx:119
+#: src/pages/DocsView.tsx:153
 msgid "Do the work in Manor or your external platform using that platform’s authorized tools. Stored playbooks are reference material; old commands and hosts do not grant access."
 msgstr ""
 
@@ -2470,12 +2503,12 @@ msgstr "Docker（推荐）"
 msgid "Docker is the default: bots use a shared Team Computer."
 msgstr "默认使用 Docker：Bot 共用一台团队电脑。"
 
-#: src/pages/DocsView.tsx:41
+#: src/pages/DocsView.tsx:62
 #: src/pages/Shell.tsx:3037
 msgid "Documentation"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:157
+#: src/pages/CrmApiAccessPanel.tsx:172
 msgid "Documentation ↗"
 msgstr ""
 
@@ -2605,8 +2638,7 @@ msgstr "空文件夹"
 msgid "Encrypted static credential saved"
 msgstr "已保存加密的静态凭据"
 
-#: src/pages/DocsView.tsx:245
-#: src/pages/DocsView.tsx:492
+#: src/pages/DocsView.tsx:285
 msgid "Endpoint"
 msgstr ""
 
@@ -2629,7 +2661,7 @@ msgstr "在 <0>{0}</0> 输入此代码"
 msgid "Error"
 msgstr ""
 
-#: src/pages/DocsView.tsx:390
+#: src/pages/DocsView.tsx:461
 msgid "Errors"
 msgstr ""
 
@@ -2637,7 +2669,7 @@ msgstr ""
 msgid "Escalated"
 msgstr ""
 
-#: src/pages/DocsView.tsx:572
+#: src/pages/DocsView.tsx:645
 msgid "Events"
 msgstr ""
 
@@ -2654,7 +2686,7 @@ msgstr ""
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "每 {intervalAmountSelect} {intervalUnitSelect}"
 
-#: src/pages/DocsView.tsx:414
+#: src/pages/DocsView.tsx:485
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr ""
 
@@ -2679,7 +2711,7 @@ msgstr "每周一"
 msgid "Every month"
 msgstr "每月"
 
-#: src/pages/DocsView.tsx:385
+#: src/pages/DocsView.tsx:456
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr ""
 
@@ -2726,7 +2758,7 @@ msgstr ""
 msgid "Failed"
 msgstr "失败"
 
-#: src/pages/DocsView.tsx:595
+#: src/pages/DocsView.tsx:668
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr ""
 
@@ -2768,7 +2800,7 @@ msgstr ""
 msgid "Failure handling"
 msgstr "失败处理"
 
-#: src/pages/DocsView.tsx:392
+#: src/pages/DocsView.tsx:463
 msgid "Failures return a JSON body with a human-readable message:"
 msgstr ""
 
@@ -2846,7 +2878,7 @@ msgstr ""
 msgid "followers now"
 msgstr ""
 
-#: src/pages/DocsView.tsx:98
+#: src/pages/DocsView.tsx:132
 msgid "For a client that cannot supply bearer headers, use its HTTP/API integration instead. This endpoint does not provide an OAuth sign-in flow."
 msgstr ""
 
@@ -2904,11 +2936,11 @@ msgstr ""
 msgid "Generating"
 msgstr ""
 
-#: src/pages/DocsView.tsx:187
+#: src/pages/DocsView.tsx:223
 msgid "GET /v1/workspace/tools lists the tools your token can use, including their JSON schemas. POST a JSON argument object to the tool’s path below. Read tools also use POST so MCP and HTTP take the same arguments. Use an empty object when no arguments are needed."
 msgstr ""
 
-#: src/pages/DocsView.tsx:29
+#: src/pages/DocsView.tsx:50
 msgid "Getting started"
 msgstr ""
 
@@ -2916,7 +2948,7 @@ msgstr ""
 msgid "Git event"
 msgstr "Git 事件"
 
-#: src/pages/CrmApiAccessPanel.tsx:378
+#: src/pages/CrmApiAccessPanel.tsx:399
 msgid "Give an MCP client a token with CRM scopes and connect it to this endpoint."
 msgstr ""
 
@@ -2924,7 +2956,7 @@ msgstr ""
 msgid "Give bots extra tools from a remote MCP server, an OpenAPI spec, or Treg."
 msgstr ""
 
-#: src/pages/DocsView.tsx:299
+#: src/pages/DocsView.tsx:368
 msgid "Grants"
 msgstr ""
 
@@ -3012,7 +3044,7 @@ msgstr "按住说话（设备端口述）"
 msgid "Home"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:375
+#: src/pages/CrmApiAccessPanel.tsx:396
 msgid "Hosted MCP"
 msgstr ""
 
@@ -3040,7 +3072,7 @@ msgstr "如何检查"
 msgid "I’m done"
 msgstr "我做完了"
 
-#: src/pages/DocsView.tsx:412
+#: src/pages/DocsView.tsx:483
 msgid "Idempotency"
 msgstr ""
 
@@ -3073,7 +3105,7 @@ msgstr "导入 OpenAPI JSON"
 msgid "In progress"
 msgstr ""
 
-#: src/pages/DocsView.tsx:618
+#: src/pages/DocsView.tsx:691
 msgid "Inbound: trigger a bot"
 msgstr ""
 
@@ -3260,7 +3292,7 @@ msgstr ""
 msgid "List"
 msgstr ""
 
-#: src/pages/DocsView.tsx:402
+#: src/pages/DocsView.tsx:473
 msgid "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
 msgstr ""
 
@@ -3287,6 +3319,10 @@ msgstr ""
 #: src/pages/ActivityList.tsx:60
 msgid "Loading activity…"
 msgstr "正在加载动态…"
+
+#: src/pages/DocsView.tsx:43
+msgid "Loading documentation"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:531
 msgid "Loading integrations…"
@@ -3351,11 +3387,11 @@ msgstr ""
 msgid "Low"
 msgstr "低"
 
-#: src/pages/CrmApiAccessPanel.tsx:170
+#: src/pages/CrmApiAccessPanel.tsx:185
 msgid "Machine credentials"
 msgstr ""
 
-#: src/pages/DocsView.tsx:64
+#: src/pages/DocsView.tsx:85
 msgid "Machine-readable OpenAPI 3.1 document"
 msgstr ""
 
@@ -3433,7 +3469,7 @@ msgstr "最大"
 msgid "MCP servers"
 msgstr "MCP 服务器"
 
-#: src/pages/DocsView.tsx:396
+#: src/pages/DocsView.tsx:467
 msgid "Meaning"
 msgstr ""
 
@@ -3510,7 +3546,7 @@ msgstr "消息"
 msgid "Microphone failed"
 msgstr "麦克风失败"
 
-#: src/pages/DocsView.tsx:197
+#: src/pages/DocsView.tsx:237
 msgid "Migration boundaries"
 msgstr ""
 
@@ -3580,7 +3616,7 @@ msgstr ""
 msgid "Module name"
 msgstr ""
 
-#: src/pages/DocsView.tsx:438
+#: src/pages/DocsView.tsx:509
 msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
 msgstr ""
 
@@ -4055,7 +4091,7 @@ msgstr "每月 1 日 {0}"
 msgid "on the utility account"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:258
+#: src/pages/CrmApiAccessPanel.tsx:279
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr ""
 
@@ -4127,11 +4163,11 @@ msgstr "待办"
 msgid "OpenAI-compatible server URL"
 msgstr "OpenAI 兼容服务器 URL"
 
-#: src/pages/DocsView.tsx:67
-msgid "OpenAPI (JSON) ↗"
-msgstr ""
+#: src/pages/DocsView.tsx:88
+#~ msgid "OpenAPI (JSON) ↗"
+#~ msgstr ""
 
-#: src/pages/DocsView.tsx:458
+#: src/pages/DocsView.tsx:529
 msgid "OpenAPI document"
 msgstr ""
 
@@ -4197,7 +4233,7 @@ msgstr ""
 msgid "Other model…"
 msgstr "其他模型…"
 
-#: src/pages/CrmApiAccessPanel.tsx:299
+#: src/pages/CrmApiAccessPanel.tsx:320
 msgid "Outbound webhooks"
 msgstr ""
 
@@ -4221,7 +4257,7 @@ msgstr ""
 msgid "PagerDuty incident"
 msgstr "PagerDuty 事件"
 
-#: src/pages/DocsView.tsx:400
+#: src/pages/DocsView.tsx:471
 msgid "Pagination"
 msgstr ""
 
@@ -4329,12 +4365,16 @@ msgstr ""
 msgid "Pipeline value by stage"
 msgstr ""
 
-#: src/pages/DocsView.tsx:424
+#: src/pages/DocsView.tsx:495
 msgid "Pipelines and deals"
 msgstr ""
 
 #: src/pages/workspace/sections/TeamSection.tsx:161
 msgid "Planned"
+msgstr ""
+
+#: src/pages/DocsView.tsx:88
+msgid "Platform OpenAPI (JSON) ↗"
 msgstr ""
 
 #: src/pages/workspace/AutomationsCard.tsx:103
@@ -4429,7 +4469,7 @@ msgstr "私有"
 msgid "Profile views"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:252
+#: src/pages/CrmApiAccessPanel.tsx:273
 msgid "Prompt copied"
 msgstr ""
 
@@ -4484,15 +4524,15 @@ msgstr ""
 msgid "Reach"
 msgstr ""
 
-#: src/pages/DocsView.tsx:531
+#: src/pages/DocsView.tsx:604
 msgid "read / write"
 msgstr ""
 
-#: src/pages/DocsView.tsx:104
+#: src/pages/DocsView.tsx:138
 msgid "Read → work → write back"
 msgstr ""
 
-#: src/pages/DocsView.tsx:484
+#: src/pages/DocsView.tsx:556
 msgid "Read operations and shared knowledge, then save context, skill versions and activity evidence. Choose the Workspace tab for tools, scopes and a complete read–work–write example. CRM tokens need workspace scopes added through a new token before they can use these tools."
 msgstr ""
 
@@ -4500,7 +4540,7 @@ msgstr ""
 msgid "Read replies aloud"
 msgstr "朗读回复"
 
-#: src/pages/DocsView.tsx:531
+#: src/pages/DocsView.tsx:604
 #: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr ""
@@ -4549,7 +4589,7 @@ msgstr "正在重新连接"
 msgid "Record review"
 msgstr ""
 
-#: src/pages/DocsView.tsx:535
+#: src/pages/DocsView.tsx:608
 msgid "Record tools address modules by name or id, and record <0>values</0> use field labels as keys — an agent can say <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> without ever seeing an internal id."
 msgstr ""
 
@@ -4599,11 +4639,11 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
-#: src/pages/DocsView.tsx:556
+#: src/pages/DocsView.tsx:629
 msgid "Register an endpoint"
 msgstr ""
 
-#: src/pages/DocsView.tsx:613
+#: src/pages/DocsView.tsx:686
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr ""
 
@@ -4617,7 +4657,7 @@ msgstr "释放"
 
 #: src/components/ApprovalRulesSettings.tsx:178
 #: src/components/BotCredentialsSettings.tsx:211
-#: src/pages/CrmApiAccessPanel.tsx:366
+#: src/pages/CrmApiAccessPanel.tsx:387
 #: src/pages/PluginsOverlay.tsx:287
 #: src/pages/PluginsOverlay.tsx:517
 #: src/pages/PluginsOverlay.tsx:590
@@ -4689,7 +4729,7 @@ msgstr "已连同对话、电脑和记忆一起移除。"
 msgid "Removed, but list refresh failed"
 msgstr "已移除，但列表刷新失败"
 
-#: src/pages/CrmApiAccessPanel.tsx:366
+#: src/pages/CrmApiAccessPanel.tsx:387
 #: src/pages/PluginsOverlay.tsx:282
 #: src/pages/PluginsOverlay.tsx:517
 #: src/pages/PluginsOverlay.tsx:585
@@ -4771,8 +4811,12 @@ msgstr "正在重置…"
 msgid "Resolution notes"
 msgstr ""
 
-#: src/pages/DocsView.tsx:31
+#: src/pages/DocsView.tsx:52
 msgid "REST"
+msgstr ""
+
+#: src/pages/DocsView.tsx:353
+msgid "REST endpoints are under <0>/v1</0>. The address is shared; your token selects the organization. Create the token while {organizationName} is selected."
 msgstr ""
 
 #: src/pages/crm/CrmContacts.tsx:467
@@ -4791,6 +4835,8 @@ msgstr "还原上次保存的工作区。电脑上未保存的工作会丢失。
 msgid "Resume {0}"
 msgstr ""
 
+#: src/pages/CrmApiAccessPanel.tsx:156
+#: src/pages/DocsView.tsx:39
 #: src/pages/workspace/sections/UtilitiesSection.tsx:715
 #: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
@@ -4834,12 +4880,12 @@ msgstr ""
 msgid "Review the bill and its tenant charges"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:289
+#: src/pages/CrmApiAccessPanel.tsx:310
 #: src/pages/MessagingSettingsOverlay.tsx:306
 msgid "Revoke"
 msgstr "撤销"
 
-#: src/pages/CrmApiAccessPanel.tsx:289
+#: src/pages/CrmApiAccessPanel.tsx:310
 msgid "Revoking…"
 msgstr ""
 
@@ -4921,7 +4967,7 @@ msgstr ""
 msgid "Save"
 msgstr "保存"
 
-#: src/pages/DocsView.tsx:125
+#: src/pages/DocsView.tsx:159
 msgid "Save durable findings with workspace_set_context and reusable work with workspace_save_skill. Log the outcome and artifact links with workspace_log_activity so the next agent can pick up where you stopped."
 msgstr ""
 
@@ -4972,9 +5018,9 @@ msgstr ""
 msgid "Scheduled reports"
 msgstr ""
 
-#: src/pages/DocsView.tsx:171
-#: src/pages/DocsView.tsx:246
-#: src/pages/DocsView.tsx:299
+#: src/pages/DocsView.tsx:205
+#: src/pages/DocsView.tsx:286
+#: src/pages/DocsView.tsx:368
 msgid "Scope"
 msgstr ""
 
@@ -5082,7 +5128,7 @@ msgstr "发送重置链接"
 msgid "Send test email"
 msgstr ""
 
-#: src/pages/DocsView.tsx:305
+#: src/pages/DocsView.tsx:376
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr ""
 
@@ -5090,7 +5136,7 @@ msgstr ""
 msgid "Send this report"
 msgstr ""
 
-#: src/pages/DocsView.tsx:631
+#: src/pages/DocsView.tsx:704
 msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 msgstr ""
 
@@ -5132,7 +5178,7 @@ msgstr "服务器 URL"
 msgid "Set up voice to call"
 msgstr "设置通话语音"
 
-#: src/pages/DocsView.tsx:271
+#: src/pages/DocsView.tsx:340
 msgid "Set up with an AI agent"
 msgstr ""
 
@@ -5149,7 +5195,7 @@ msgstr ""
 msgid "Settings"
 msgstr "设置"
 
-#: src/pages/DocsView.tsx:504
+#: src/pages/DocsView.tsx:577
 msgid "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 msgstr ""
 
@@ -5179,7 +5225,7 @@ msgstr "共享"
 msgid "Shared documents"
 msgstr ""
 
-#: src/pages/DocsView.tsx:158
+#: src/pages/DocsView.tsx:192
 msgid "Shared workspace context and skills are live and available to both internal and external agents through these tools. Personal memory and bot skills created by the earlier conversion are independent copies; updating shared knowledge does not overwrite those edits or deletions."
 msgstr ""
 
@@ -5304,6 +5350,7 @@ msgstr ""
 msgid "Software update"
 msgstr "软件更新"
 
+#: src/pages/DocsView.tsx:321
 #: src/pages/workspace/PipelineMap.tsx:197
 msgid "Source"
 msgstr ""
@@ -5367,7 +5414,7 @@ msgstr "开始录制"
 msgid "Start the computer to load the preview."
 msgstr ""
 
-#: src/pages/DocsView.tsx:107
+#: src/pages/DocsView.tsx:141
 msgid "Start with workspace_overview. Read workspace_get_context and workspace_list_skills, then workspace_get_skill for the playbooks you need."
 msgstr ""
 
@@ -5386,7 +5433,8 @@ msgid "Stats"
 msgstr ""
 
 #: src/pages/crm/CrmContactsSheet.tsx:116
-#: src/pages/DocsView.tsx:396
+#: src/pages/DocsView.tsx:321
+#: src/pages/DocsView.tsx:467
 #: src/pages/workspace/sections/ReportsSection.tsx:202
 msgid "Status"
 msgstr ""
@@ -5557,7 +5605,11 @@ msgid "Text"
 msgstr ""
 
 #: src/pages/DocsView.tsx:264
-msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing CRM changes back to you. External agents can also read workspace operations and context, save reusable skills, and write results back into the same activity history used in Manor."
+#~ msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing CRM changes back to you. External agents can also read workspace operations and context, save reusable skills, and write results back into the same activity history used in Manor."
+#~ msgstr ""
+
+#: src/pages/DocsView.tsx:334
+msgid "The {organizationName} API connects websites, automation tools, and AI clients to this organization. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing CRM changes back to you."
 msgstr ""
 
 #: src/components/SoftwareUpdateSection.tsx:206
@@ -5580,11 +5632,11 @@ msgstr "计算机处于休眠状态。唤醒它以查看未提交的更改。"
 msgid "The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to add the first one."
 msgstr ""
 
-#: src/pages/DocsView.tsx:460
+#: src/pages/DocsView.tsx:531
 msgid "The machine-readable spec lives at <0>{origin}/v1/openapi.json</0> — import it into Postman, Insomnia, or a code generator to get typed clients for everything on this page."
 msgstr ""
 
-#: src/pages/DocsView.tsx:351
+#: src/pages/DocsView.tsx:422
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr ""
 
@@ -5592,12 +5644,16 @@ msgstr ""
 msgid "The selected memory provider is not available in this build."
 msgstr "所选记忆提供方在此构建中不可用。"
 
-#: src/pages/DocsView.tsx:603
+#: src/pages/DocsView.tsx:676
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr ""
 
-#: src/pages/DocsView.tsx:199
+#: src/pages/DocsView.tsx:239
 msgid "The Workspace endpoint covers the operations and knowledge tools listed here. Report sending, charge posting, automation execution, Twilio SMS, Retell agent updates, and the original intake, cases and SEO tools are not exposed through this endpoint. A stored credential or imported playbook does not make those actions available. Existing external platforms must be reconfigured to this endpoint; old tokens and URLs are not redirected."
+msgstr ""
+
+#: src/pages/DocsView.tsx:325
+msgid "These sources feed workspace data. API tokens do not grant direct access to their accounts."
 msgstr ""
 
 #: src/pages/Shell.tsx:6351
@@ -5716,12 +5772,20 @@ msgstr "标题"
 msgid "To"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:173
+#: src/pages/CrmApiAccessPanel.tsx:188
 msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
 msgstr ""
 
-#: src/pages/DocsView.tsx:169
-#: src/pages/DocsView.tsx:522
+#: src/pages/CrmApiAccessPanel.tsx:167
+msgid "Tokens created here access {organizationName} only."
+msgstr ""
+
+#: src/pages/DocsView.tsx:98
+msgid "Tokens created in {organizationName} access this organization only. Each token’s scopes control which tools it can use."
+msgstr ""
+
+#: src/pages/DocsView.tsx:203
+#: src/pages/DocsView.tsx:595
 msgid "Tool"
 msgstr ""
 
@@ -5733,7 +5797,7 @@ msgstr ""
 msgid "Tool sources"
 msgstr "工具源"
 
-#: src/pages/DocsView.tsx:519
+#: src/pages/DocsView.tsx:592
 msgid "Tools"
 msgstr ""
 
@@ -5904,7 +5968,7 @@ msgstr "已更新"
 msgid "Updated {0}"
 msgstr ""
 
-#: src/pages/DocsView.tsx:134
+#: src/pages/DocsView.tsx:168
 msgid "Updates, retries and review"
 msgstr ""
 
@@ -5918,7 +5982,7 @@ msgstr "正在更新…"
 msgid "URL"
 msgstr ""
 
-#: src/pages/DocsView.tsx:566
+#: src/pages/DocsView.tsx:639
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr ""
 
@@ -5936,11 +6000,11 @@ msgstr "使用 {hostLabel}"
 msgid "Use a found model"
 msgstr "使用找到的模型"
 
-#: src/pages/DocsView.tsx:136
+#: src/pages/DocsView.tsx:170
 msgid "Use null or version 0 only for a new entry. To update context, pass its last-read updatedAt as expectedUpdatedAt. To save a skill version, pass its last-read version as expectedVersion. A 409 means someone changed the content: read it again and reconcile before saving. Skill versions preserve history."
 msgstr ""
 
-#: src/pages/DocsView.tsx:89
+#: src/pages/DocsView.tsx:123
 msgid "Use the Workspace MCP endpoint with any client that supports Streamable HTTP and a bearer token. Create a named token in Integrations → API & agent access. Give it workspace:read, then enable only the write scopes it needs. The token stays bound to its organization and its creator’s membership."
 msgstr ""
 
@@ -5988,7 +6052,7 @@ msgstr ""
 msgid "Verify and add"
 msgstr "校验并添加"
 
-#: src/pages/DocsView.tsx:601
+#: src/pages/DocsView.tsx:674
 msgid "Verify the signature"
 msgstr ""
 
@@ -6059,23 +6123,23 @@ msgstr ""
 msgid "Webhook"
 msgstr "Webhook"
 
-#: src/pages/CrmApiAccessPanel.tsx:315
+#: src/pages/CrmApiAccessPanel.tsx:336
 msgid "Webhook HTTPS URL"
 msgstr ""
 
-#: src/pages/DocsView.tsx:452
+#: src/pages/DocsView.tsx:523
 msgid "Webhook management"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:309
+#: src/pages/CrmApiAccessPanel.tsx:330
 msgid "Webhook name"
 msgstr ""
 
-#: src/pages/DocsView.tsx:33
+#: src/pages/DocsView.tsx:54
 msgid "Webhooks"
 msgstr ""
 
-#: src/pages/DocsView.tsx:620
+#: src/pages/DocsView.tsx:693
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr ""
 
@@ -6140,7 +6204,7 @@ msgstr "何时运行"
 msgid "When to use"
 msgstr "何时使用"
 
-#: src/pages/DocsView.tsx:349
+#: src/pages/DocsView.tsx:420
 msgid "Where next"
 msgstr ""
 
@@ -6162,15 +6226,19 @@ msgstr ""
 msgid "Working…"
 msgstr "处理中…"
 
-#: src/pages/DocsView.tsx:30
+#: src/pages/DocsView.tsx:51
 #: src/pages/Shell.tsx:2985
 #: src/pages/workspace/WorkspaceView.tsx:196
 msgid "Workspace"
 msgstr ""
 
-#: src/pages/DocsView.tsx:481
-msgid "Workspace MCP"
+#: src/pages/DocsView.tsx:319
+msgid "Workspace data sources"
 msgstr ""
+
+#: src/pages/DocsView.tsx:481
+#~ msgid "Workspace MCP"
+#~ msgstr ""
 
 #: src/pages/workspace/sections/TeamSection.tsx:89
 msgid "workspace operations"
@@ -6184,7 +6252,11 @@ msgstr "工作区根目录"
 msgid "Workspace settings"
 msgstr ""
 
-#: src/pages/DocsView.tsx:332
+#: src/pages/DocsView.tsx:311
+msgid "Workspace: shared context, skills, reports and activity history. The Workspace tab lists this organization’s enabled tools."
+msgstr ""
+
+#: src/pages/DocsView.tsx:403
 msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
 msgstr ""
 

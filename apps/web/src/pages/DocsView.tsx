@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { WorkspaceAccess } from "@rakazo/contracts";
 import { useState } from "react";
-import { BuiButton } from "../components/beautiful-ui/primitives";
+import { BuiButton, BuiCard, LoadingState } from "../components/beautiful-ui/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import {
   CONTACT_ENDPOINTS,
@@ -16,6 +17,7 @@ import {
   WORKSPACE_MCP_TOOLS,
 } from "../lib/api-catalog";
 import { brandName } from "../lib/brand";
+import { useWorkspaceAccess } from "../lib/use-workspace-access";
 
 type DocsTab = "start" | "workspace" | "rest" | "mcp" | "webhooks";
 
@@ -24,10 +26,29 @@ export function DocsView() {
   const { t } = useLingui();
   const [tab, setTab] = useState<DocsTab>("start");
   const origin = window.location.origin;
+  const { access, failed, retry } = useWorkspaceAccess();
+  if (!access)
+    return (
+      <div className="p-6 text-[#A8A8AD]">
+        {failed ? (
+          <>
+            <p role="alert">
+              <Trans>Could not load organization access.</Trans>
+            </p>
+            <BuiButton onClick={retry}>
+              <Trans>Retry</Trans>
+            </BuiButton>
+          </>
+        ) : (
+          <LoadingState label={t`Loading documentation`} />
+        )}
+      </div>
+    );
+  const organizationName = access.organization.name;
 
   const tabs: Array<{ key: DocsTab; label: string }> = [
     { key: "start", label: t`Getting started` },
-    { key: "workspace", label: t`Workspace` },
+    ...(access.workspace ? [{ key: "workspace" as const, label: t`Workspace` }] : []),
     { key: "rest", label: t`REST` },
     { key: "mcp", label: "MCP" },
     { key: "webhooks", label: t`Webhooks` },
@@ -35,12 +56,12 @@ export function DocsView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
-      <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[13px]">
-        <div className="flex items-center gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#141416] px-[22px] py-[13px]">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <span className="text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">
             <Trans>Documentation</Trans>
           </span>
-          <div className="flex items-center gap-1 rounded-full border border-[#202023] bg-[#131315] p-1">
+          <div className="flex max-w-full flex-wrap items-center gap-1 rounded-full border border-[#202023] bg-[#131315] p-1">
             {tabs.map((entry) => (
               <button
                 key={entry.key}
@@ -64,16 +85,27 @@ export function DocsView() {
           title={t`Machine-readable OpenAPI 3.1 document`}
           className="text-[13px] text-[#AEB5FF] hover:text-[#D1D5FF]"
         >
-          <Trans>OpenAPI (JSON) ↗</Trans>
+          <Trans>Platform OpenAPI (JSON) ↗</Trans>
         </a>
       </div>
 
       <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl px-[22px] py-6">
-          {tab === "start" ? <GettingStarted origin={origin} /> : null}
-          {tab === "workspace" ? <WorkspaceReference origin={origin} /> : null}
+          <h1 className="mb-3 break-words text-xl font-medium text-[#ECECEE]">
+            <Trans>{organizationName} API & MCP</Trans>
+          </h1>
+          <Prose>
+            <Trans>
+              Tokens created in {organizationName} access this organization only. Each token’s
+              scopes control which tools it can use.
+            </Trans>
+          </Prose>
+          {tab === "start" ? <GettingStarted origin={origin} access={access} /> : null}
+          {tab === "workspace" && access.workspace ? (
+            <WorkspaceReference origin={origin} access={access} />
+          ) : null}
           {tab === "rest" ? <RestReference origin={origin} /> : null}
-          {tab === "mcp" ? <McpReference origin={origin} /> : null}
+          {tab === "mcp" ? <McpReference origin={origin} access={access} /> : null}
           {tab === "webhooks" ? <WebhooksReference origin={origin} /> : null}
         </div>
       </div>
@@ -81,7 +113,9 @@ export function DocsView() {
   );
 }
 
-function WorkspaceReference({ origin }: { origin: string }) {
+type OrganizationDocsProps = { origin: string; access: WorkspaceAccess };
+
+function WorkspaceReference({ origin, access }: OrganizationDocsProps) {
   return (
     <>
       <Section title={<Trans>Bring context into another agent platform</Trans>}>
@@ -111,8 +145,8 @@ function WorkspaceReference({ origin }: { origin: string }) {
           </li>
           <li>
             <Trans>
-              Check workspace_activities before repeating work. Read the relevant voice, email,
-              social, leasing, utilities or report data and check its timestamps.
+              Check workspace_activities before repeating work. Use the available tools below to
+              read this organization’s data and check its timestamps.
             </Trans>
           </li>
           <li>
@@ -170,16 +204,18 @@ function WorkspaceReference({ origin }: { origin: string }) {
             <Trans key="args">Arguments</Trans>,
             <Trans key="scope">Scope</Trans>,
           ]}
-          rows={WORKSPACE_MCP_TOOLS.map((tool) => [
-            <span key="name">
-              <Mono>{tool.name}</Mono>
-              <span className="mt-2 block text-[12px] text-[#939A9E]">{tool.summary}</span>
-            </span>,
-            <span key="args" className="text-[12px]">
-              {tool.args}
-            </span>,
-            <Mono key="scope">{tool.scope}</Mono>,
-          ])}
+          rows={WORKSPACE_MCP_TOOLS.filter((tool) => access.tools.includes(tool.name)).map(
+            (tool) => [
+              <span key="name">
+                <Mono>{tool.name}</Mono>
+                <span className="mt-2 block text-[12px] text-[#939A9E]">{tool.summary}</span>
+              </span>,
+              <span key="args" className="text-[12px]">
+                {tool.args}
+              </span>,
+              <Mono key="scope">{tool.scope}</Mono>,
+            ],
+          )}
         />
       </Section>
       <Section title={<Trans>Call the same tools over HTTP</Trans>}>
@@ -192,7 +228,11 @@ function WorkspaceReference({ origin }: { origin: string }) {
           </Trans>
         </Prose>
         <Code>{`curl "${origin}/v1/workspace/tools/workspace_get_context" \\\n  -H "Authorization: Bearer $MANOR_API_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{}'`}</Code>
-        <EndpointTable endpoints={WORKSPACE_ENDPOINTS} />
+        <EndpointTable
+          endpoints={WORKSPACE_ENDPOINTS.filter((endpoint) =>
+            access.tools.some((name) => endpoint.path.endsWith(`/${name}`)),
+          )}
+        />
       </Section>
       <Section title={<Trans>Migration boundaries</Trans>}>
         <Prose>
@@ -257,15 +297,44 @@ function EndpointTable({ endpoints }: { endpoints: Endpoint[] }) {
   );
 }
 
-function GettingStarted({ origin }: { origin: string }) {
+function GettingStarted({ origin, access }: OrganizationDocsProps) {
+  const organizationName = access.organization.name;
   return (
     <>
+      <BuiCard className="mb-6 p-4">
+        <Section title={<Trans>Available in {organizationName}</Trans>}>
+          <Prose>
+            <Trans>CRM: contacts, pipelines, deals, modules and webhooks.</Trans>
+          </Prose>
+          {access.workspace ? (
+            <Prose>
+              <Trans>
+                Workspace: shared context, skills, reports and activity history. The Workspace tab
+                lists this organization’s enabled tools.
+              </Trans>
+            </Prose>
+          ) : null}
+        </Section>
+        {access.sources.length ? (
+          <Section title={<Trans>Workspace data sources</Trans>}>
+            <Table
+              head={[<Trans key="source">Source</Trans>, <Trans key="status">Status</Trans>]}
+              rows={access.sources.map((source) => [source.name, source.status])}
+            />
+            <Prose>
+              <Trans>
+                These sources feed workspace data. API tokens do not grant direct access to their
+                accounts.
+              </Trans>
+            </Prose>
+          </Section>
+        ) : null}
+      </BuiCard>
       <Prose>
         <Trans>
-          The {brandName} API connects websites, automation tools, and AI clients to this workspace.
-          It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing
-          CRM changes back to you. External agents can also read workspace operations and context,
-          save reusable skills, and write results back into the same activity history used in Manor.
+          The {organizationName} API connects websites, automation tools, and AI clients to this
+          organization. It speaks plain REST for scripts and servers, MCP for AI clients, and
+          webhooks for pushing CRM changes back to you.
         </Trans>
       </Prose>
       <Section title={<Trans>Set up with an AI agent</Trans>}>
@@ -276,14 +345,14 @@ function GettingStarted({ origin }: { origin: string }) {
             Integrations, under API & agent access.
           </Trans>
         </Prose>
-        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin })} />
+        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin, access })} />
       </Section>
       <Section title={<Trans>Base URL</Trans>}>
         <Code>{origin}</Code>
         <Prose>
           <Trans>
-            All endpoints are under <Mono>/v1</Mono>, all payloads are JSON, and everything is
-            scoped to this workspace — a token can never see another workspace's data.
+            REST endpoints are under <Mono>/v1</Mono>. The address is shared; your token selects the
+            organization. Create the token while {organizationName} is selected.
           </Trans>
         </Prose>
       </Section>
@@ -297,7 +366,9 @@ function GettingStarted({ origin }: { origin: string }) {
         </Prose>
         <Table
           head={[<Trans key="s">Scope</Trans>, <Trans key="g">Grants</Trans>]}
-          rows={SCOPES.map((row) => [<Mono key="s">{row.scope}</Mono>, row.grants])}
+          rows={SCOPES.filter((row) => access.workspace || !row.scope.startsWith("workspace:")).map(
+            (row) => [<Mono key="s">{row.scope}</Mono>, row.grants],
+          )}
         />
       </Section>
       <Section title={<Trans>2 · Make a request</Trans>}>
@@ -468,28 +539,30 @@ function RestReference({ origin }: { origin: string }) {
   );
 }
 
-function McpReference({ origin }: { origin: string }) {
+function McpReference({ origin, access }: OrganizationDocsProps) {
   const { t } = useLingui();
+  const organizationName = access.organization.name;
   return (
     <>
       <Prose>
         <Trans>
-          {brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP —
-          Claude, agents, IDEs — gets the same tools {brandName}'s own bots use.
+          Connect an MCP client to {organizationName} using a token created in this organization.
         </Trans>
       </Prose>
-      <Section title={<Trans>Workspace MCP</Trans>}>
-        <Code>{`${origin}/mcp/workspace`}</Code>
-        <Prose>
-          <Trans>
-            Read operations and shared knowledge, then save context, skill versions and activity
-            evidence. Choose the Workspace tab for tools, scopes and a complete read–work–write
-            example. CRM tokens need workspace scopes added through a new token before they can use
-            these tools.
-          </Trans>
-        </Prose>
-      </Section>
-      <Section title={<Trans>Endpoint</Trans>}>
+      {access.workspace ? (
+        <Section title={<Trans>{organizationName} Workspace MCP</Trans>}>
+          <Code>{`${origin}/mcp/workspace`}</Code>
+          <Prose>
+            <Trans>
+              Read operations and shared knowledge, then save context, skill versions and activity
+              evidence. Choose the Workspace tab for tools, scopes and a complete read–work–write
+              example. CRM tokens need workspace scopes added through a new token before they can
+              use these tools.
+            </Trans>
+          </Prose>
+        </Section>
+      ) : null}
+      <Section title={<Trans>{organizationName} CRM MCP</Trans>}>
         <Code>{`${origin}/mcp/crm`}</Code>
         <Prose>
           <Trans>
@@ -514,7 +587,7 @@ function McpReference({ origin }: { origin: string }) {
             connects over MCP and verifies the connection itself.
           </Trans>
         </Prose>
-        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin })} />
+        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin, access })} />
       </Section>
       <Section title={<Trans>Tools</Trans>}>
         <Table

@@ -2,7 +2,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { executeWorkspaceTool, InMemoryRealtimeFanout } from "@rakazo/adapters";
-import { INTEGRATION_SCOPES, WORKSPACE_EXTERNAL_TOOL_NAMES } from "@rakazo/contracts";
+import {
+  INTEGRATION_SCOPES,
+  WORKSPACE_EXTERNAL_TOOL_NAMES,
+  workspaceExternalToolsForChannels,
+} from "@rakazo/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
 
@@ -98,20 +102,25 @@ describeDb("external workspace handoff", () => {
     expect(list.status).toBe(200);
     const body = (await list.json()) as { result: { tools: { name: string }[] } };
     expect(body.result.tools.map((tool) => tool.name).sort()).toEqual(
-      [...WORKSPACE_EXTERNAL_TOOL_NAMES].sort(),
+      workspaceExternalToolsForChannels(["voice", "email", "utilities"]).sort(),
     );
     expect(body.result.tools.some((tool) => tool.name === "workspace_run_automation")).toBe(false);
     const catalog = await handles.app.request("/v1/workspace/tools", {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(((await catalog.json()) as { tools: unknown[] }).tools).toHaveLength(
-      WORKSPACE_EXTERNAL_TOOL_NAMES.length,
+      workspaceExternalToolsForChannels(["voice", "email", "utilities"]).length,
     );
     const spec = (await (await handles.app.request("/v1/openapi.json")).json()) as {
       paths: Record<string, unknown>;
     };
     for (const name of WORKSPACE_EXTERNAL_TOOL_NAMES)
       expect(spec.paths).toHaveProperty(`/v1/workspace/tools/${name}`);
+  });
+
+  it("rejects direct calls to channels that the organization has not enabled", async () => {
+    expect((await call("workspace_leasing")).status).toBe(403);
+    expect((await call("workspace_social")).status).toBe(403);
   });
 
   it("reads context across transports and prevents lost updates under concurrency", async () => {

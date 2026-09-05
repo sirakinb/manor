@@ -20,6 +20,7 @@ import {
   VoiceCallDetailSchema,
   VoiceCallRowSchema,
   VoiceStatsSchema,
+  WorkspaceAccessSchema,
   WorkspaceActivitySchema,
   WorkspaceAutomationKeySchema,
   WorkspaceAutomationSchema,
@@ -318,6 +319,7 @@ export const appContract = {
       open: oc.input(z.object({ botId: Id.optional() })).output(BotSchema),
     },
     status: oc.output(z.object({ workspace: WorkspaceSummarySchema.nullable() })),
+    access: oc.output(WorkspaceAccessSchema),
     overview: oc.output(WorkspaceOverviewSchema),
     system: oc.output(z.object({ pipes: z.array(WorkspacePipeSchema) })),
     voice: {

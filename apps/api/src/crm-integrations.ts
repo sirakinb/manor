@@ -1298,9 +1298,16 @@ export function mountCrmIntegrationRoutes(
   app.all("/mcp/crm", async (c) => {
     const principal = await service.authenticate(c.req.raw);
     if (!principal) return c.json(jsonError("Invalid integration credential", 401).body, 401);
+    const organization = await deps.prisma.organization.findUniqueOrThrow({
+      where: { id: principal.organizationId },
+      select: { name: true },
+    });
     const server = new McpServer(
-      { name: "Manor CRM", version: "1.0.0" },
-      { instructions: "Use these tools to read and update the authenticated Manor workspace CRM." },
+      { name: `${organization.name} CRM`, version: "1.0.0" },
+      {
+        instructions:
+          "Use these tools to read and update the authenticated organization's CRM. The bearer token selects the organization.",
+      },
     );
     const toolSchemas = crmMcpSchemas();
     const readOnly: readonly string[] = CRM_READ_ONLY_TOOL_NAMES;

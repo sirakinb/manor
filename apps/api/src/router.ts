@@ -177,6 +177,7 @@ import {
   toVoiceStatus,
   voiceContext,
 } from "./voice.js";
+import { workspaceAccess } from "./workspace-access.js";
 import {
   createWorkspaceActions,
   type PropertyLedgerFactory,
@@ -1118,6 +1119,9 @@ export function createRouter(deps: RouterDeps) {
       },
       status: authed.workspace.status.handler(async ({ context }) =>
         workspace.status(context.actor),
+      ),
+      access: authed.workspace.access.handler(({ context }) =>
+        workspaceAccess(deps.prisma, context.actor.organizationId),
       ),
       overview: authed.workspace.overview.handler(async ({ context }) =>
         workspace.overview(context.actor),

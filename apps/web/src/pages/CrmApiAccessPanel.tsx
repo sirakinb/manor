@@ -5,6 +5,7 @@ import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primi
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import { brandName } from "../lib/brand";
 import { withSpaceHeaders } from "../lib/rpc";
+import { useWorkspaceAccess } from "../lib/use-workspace-access";
 
 type Credential = {
   id: string;
@@ -46,6 +47,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function CrmApiAccessPanel() {
   const { t } = useLingui();
+  const { access, failed: accessFailed, retry: retryAccess } = useWorkspaceAccess();
+  const organizationName = access?.organization.name;
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [name, setName] = useState("Website sync");
@@ -53,6 +56,7 @@ export function CrmApiAccessPanel() {
   const [webhookName, setWebhookName] = useState("CRM updates");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
+  const [revealedScopes, setRevealedScopes] = useState<string[]>([]);
   const [revealedSecret, setRevealedSecret] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -82,6 +86,7 @@ export function CrmApiAccessPanel() {
         body: JSON.stringify({ name, scopes }),
       });
       setRevealedToken(created.token);
+      setRevealedScopes(created.scopes);
       await refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t`Could not create credential`);
@@ -142,15 +147,25 @@ export function CrmApiAccessPanel() {
 
   return (
     <div className="space-y-6">
+      {accessFailed ? (
+        <div role="alert" className="text-sm text-[#85858A]">
+          <p>
+            <Trans>Could not load organization access.</Trans>
+          </p>
+          <BuiButton onClick={retryAccess}>
+            <Trans>Retry</Trans>
+          </BuiButton>
+        </div>
+      ) : null}
       <div className="flex items-start justify-between gap-5">
         <div>
           <h2 className="text-lg font-medium text-[#ECECEE]">
             <Trans>CRM API access</Trans>
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-[#85858A]">
-            <Trans>
-              Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint.
-            </Trans>
+            {organizationName ? (
+              <Trans>Tokens created here access {organizationName} only.</Trans>
+            ) : null}
           </p>
         </div>
         <a href="/app/docs" className="text-sm text-[#D8B4FE] hover:text-[#E9D5FF]">
@@ -195,28 +210,30 @@ export function CrmApiAccessPanel() {
           <legend className="sr-only">
             <Trans>Credential scopes</Trans>
           </legend>
-          {ALL_SCOPES.map((scope) => {
-            const selected = scopes.includes(scope);
-            return (
-              <button
-                key={scope}
-                type="button"
-                aria-pressed={selected}
-                onClick={() =>
-                  setScopes((current) =>
-                    selected ? current.filter((value) => value !== scope) : [...current, scope],
-                  )
-                }
-                className={`rounded-full border px-3 py-1.5 font-mono text-xs ${
-                  selected
-                    ? "border-[#A855F7] bg-[#A855F722] text-[#E9D5FF]"
-                    : "border-[#34343B] text-[#85858A]"
-                }`}
-              >
-                {scope}
-              </button>
-            );
-          })}
+          {ALL_SCOPES.filter((scope) => access?.workspace || !scope.startsWith("workspace:")).map(
+            (scope) => {
+              const selected = scopes.includes(scope);
+              return (
+                <button
+                  key={scope}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    setScopes((current) =>
+                      selected ? current.filter((value) => value !== scope) : [...current, scope],
+                    )
+                  }
+                  className={`rounded-full border px-3 py-1.5 font-mono text-xs ${
+                    selected
+                      ? "border-[#A855F7] bg-[#A855F722] text-[#E9D5FF]"
+                      : "border-[#34343B] text-[#85858A]"
+                  }`}
+                >
+                  {scope}
+                </button>
+              );
+            },
+          )}
         </fieldset>
         {revealedToken ? (
           <div className="rounded-xl border border-[#3DBB7255] bg-[#3DBB7212] p-4">
@@ -238,11 +255,15 @@ export function CrmApiAccessPanel() {
               <BuiButton
                 tone="accent"
                 aria-label={t`Copy agent setup prompt with this token`}
+                disabled={!access}
                 onClick={() =>
+                  access &&
                   void copy(
                     buildAgentSetupPrompt({
                       origin: window.location.origin,
                       token: revealedToken,
+                      access,
+                      scopes: revealedScopes,
                     }),
                     "prompt",
                   )

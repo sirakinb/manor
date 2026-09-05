@@ -37,6 +37,14 @@ export const WorkspaceSourceSchema = z.object({
 });
 export type WorkspaceSource = z.infer<typeof WorkspaceSourceSchema>;
 
+export const WorkspaceAccessSchema = z.object({
+  organization: z.object({ id: Id, name: z.string() }),
+  workspace: WorkspaceSummarySchema.nullable(),
+  sources: z.array(z.object({ name: z.string(), status: z.string() })),
+  tools: z.array(z.string()),
+});
+export type WorkspaceAccess = z.infer<typeof WorkspaceAccessSchema>;
+
 export const WORKSPACE_PIPE_STATUSES = ["flowing", "overdue", "failing", "idle"] as const;
 export const WorkspacePipeStatusSchema = z.enum(WORKSPACE_PIPE_STATUSES);
 export type WorkspacePipeStatus = z.infer<typeof WorkspacePipeStatusSchema>;

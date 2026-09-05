@@ -140,3 +140,24 @@ export const externalWorkspaceToolSchemas = {
 export const WORKSPACE_EXTERNAL_TOOL_NAMES = (
   Object.keys(workspaceToolSchemas) as (keyof typeof workspaceToolSchemas)[]
 ).filter((name) => name !== "workspace_run_automation");
+
+const TOOL_CHANNELS: Partial<Record<keyof typeof workspaceToolSchemas, string>> = {
+  workspace_voice_stats: "voice",
+  workspace_voice_calls: "voice",
+  workspace_voice_call: "voice",
+  workspace_email: "email",
+  workspace_email_campaign: "email",
+  workspace_social: "social",
+  workspace_leasing: "leasing",
+  workspace_rentals: "leasing",
+  workspace_utilities: "utilities",
+};
+
+/** Shared by organization documentation, external discovery and execution. */
+export function workspaceExternalToolsForChannels(channels: readonly string[] | null) {
+  if (channels === null) return [];
+  return WORKSPACE_EXTERNAL_TOOL_NAMES.filter((name) => {
+    const channel = TOOL_CHANNELS[name];
+    return !channel || channels.includes(channel);
+  });
+}
