@@ -477,3 +477,40 @@ describe("computer screen url", () => {
     logError.mockRestore();
   });
 });
+
+describe("deployment model choices", () => {
+  it("advertises only the provider that owns the deployment key", async () => {
+    const deps = {
+      prisma: {},
+      env: { defaultProvider: "openrouter", deploymentModelKey: "synthetic-deployment-key" },
+    } as unknown as RouterDeps;
+    const handler = new RPCHandler(createRouter(deps));
+    const actor = {
+      userId: "user-1",
+      spaceId: "space-1",
+      email: "user@example.test",
+      isDeploymentOwner: false,
+    };
+    const { response } = await handler.handle(
+      new Request("http://local/rpc/models/list", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ json: null }),
+      }),
+      { prefix: "/rpc", context: { actor } },
+    );
+    expect(response?.status).toBe(200);
+    const { json: catalog } = (await response!.json()) as {
+      json: Array<{ provider: string; deploymentAvailable: boolean }>;
+    };
+    expect(catalog.filter((entry) => entry.deploymentAvailable).length).toBeGreaterThan(1);
+    expect(
+      catalog
+        .filter((entry) => entry.deploymentAvailable)
+        .every((entry) => entry.provider === "openrouter"),
+    ).toBe(true);
+    expect(
+      catalog.some((entry) => entry.provider === "anthropic" && !entry.deploymentAvailable),
+    ).toBe(true);
+  });
+});

@@ -1022,3 +1022,53 @@ description: Prepare standup notes
     });
   });
 });
+
+describe("deployment-backed bot model override", () => {
+  it("uses another model on the deployment provider without borrowing a personal default key", async () => {
+    vi.stubEnv("PI_DEFAULT_PROVIDER", "openrouter");
+    try {
+      const prisma = {
+        bot: {
+          findFirst: vi.fn(async () => ({
+            modelProvider: "openrouter",
+            modelId: "anthropic/claude-sonnet-4",
+            thinkingLevel: "high",
+          })),
+        },
+        spaceModelPreference: {
+          findFirst: vi.fn(async (args: { where: { isDefault?: boolean } }) =>
+            args.where.isDefault
+              ? modelPreference({
+                  provider: "anthropic",
+                  secretId: "personal-key",
+                  modelId: "claude-sonnet-4",
+                  isDefault: true,
+                })
+              : null,
+          ),
+        },
+        userModelCredential: { findFirst: vi.fn(async () => null) },
+        deploymentSettings: { findUnique: vi.fn(async () => null) },
+        secret: {
+          findFirst: vi.fn(async () => {
+            throw new Error("Must not read another provider's key");
+          }),
+        },
+      } as unknown as PrismaClient;
+      const executor = createRunExecutor({
+        prisma,
+        deploymentModelKey: "synthetic-shared-key",
+      } as unknown as Parameters<typeof createRunExecutor>[0]);
+      expect(
+        await executor.resolveModel({ userId: "user-1", spaceId: "space-1", botId: "bot-1" }),
+      ).toMatchObject({
+        provider: "openrouter",
+        id: "anthropic/claude-sonnet-4",
+        apiKey: "synthetic-shared-key",
+        thinkingLevel: "high",
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});

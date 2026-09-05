@@ -153,7 +153,7 @@ export function CrmApiAccessPanel() {
             </Trans>
           </p>
         </div>
-        <a href="/app/docs" className="text-sm text-[#AEB5FF] hover:text-[#D1D5FF]">
+        <a href="/app/docs" className="text-sm text-[#D8B4FE] hover:text-[#E9D5FF]">
           <Trans>Documentation ↗</Trans>
         </a>
       </div>
@@ -209,7 +209,7 @@ export function CrmApiAccessPanel() {
                 }
                 className={`rounded-full border px-3 py-1.5 font-mono text-xs ${
                   selected
-                    ? "border-[#7785FF] bg-[#7785FF22] text-[#C7CCFF]"
+                    ? "border-[#A855F7] bg-[#A855F722] text-[#E9D5FF]"
                     : "border-[#34343B] text-[#85858A]"
                 }`}
               >

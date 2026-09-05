@@ -15,6 +15,7 @@ import { formatAgo, formatNumber, PIPE_COLORS, type SectionKey, withAlpha } from
  * ("buildium" → "Buildium API"), and never a lowercase vendor slug.
  */
 function sourceTitle(name: string, label: string | undefined): string {
+  if (name.toLowerCase() === "gmail" && label) return label;
   if (/[A-Z]/.test(name)) return name;
   return label ?? name.charAt(0).toUpperCase() + name.slice(1);
 }

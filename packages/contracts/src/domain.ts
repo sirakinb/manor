@@ -897,6 +897,8 @@ export type SpaceMemoryConfig = z.infer<typeof SpaceMemoryConfigSchema>;
 
 export const ModelCatalogEntrySchema = z.object({
   provider: z.string(),
+  /** This provider can run using the deployment's configured connection. */
+  deploymentAvailable: z.boolean().optional(),
   providerName: z.string().optional(),
   id: z.string(),
   label: z.string(),

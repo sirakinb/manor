@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
+import { BuiButton } from "../components/beautiful-ui/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import {
   CONTACT_ENDPOINTS,
@@ -271,7 +272,7 @@ function GettingStarted({ origin }: { origin: string }) {
         <Prose>
           <Trans>
             Copy this prompt into Claude, Cursor, or any coding agent along with a token — it
-            connects over MCP and verifies the connection itself. Tokens live at the bottom of
+            connects over MCP and verifies the connection itself. Tokens live at the top of
             Integrations, under API & agent access.
           </Trans>
         </Prose>
@@ -289,7 +290,7 @@ function GettingStarted({ origin }: { origin: string }) {
       <Section title={<Trans>1 · Create a token</Trans>}>
         <Prose>
           <Trans>
-            At the bottom of Integrations, open API & agent access → CRM API access, name the
+            At the top of Integrations, open API & agent access → CRM API access, name the
             credential, pick its scopes, and copy the token — it is shown once. Tokens start with{" "}
             <Mono>manor_</Mono> and can be revoked at any time.
           </Trans>
@@ -361,18 +362,19 @@ function GettingStarted({ origin }: { origin: string }) {
 function CopyPromptButton({ prompt }: { prompt: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
-      type="button"
-      onClick={() => {
-        void navigator.clipboard.writeText(prompt).then(() => {
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1_500);
-        });
-      }}
-      className="rounded-full border border-[#7785FF55] bg-[#7785FF18] px-4 py-1.5 text-[13px] text-[#C7CCFF] transition-colors hover:bg-[#7785FF28]"
-    >
-      {copied ? <Trans>Copied</Trans> : <Trans>Copy setup prompt</Trans>}
-    </button>
+    <span className="rk-setup-prompt">
+      <BuiButton
+        tone="accent"
+        onClick={() => {
+          void navigator.clipboard.writeText(prompt).then(() => {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1_500);
+          });
+        }}
+      >
+        {copied ? <Trans>Copied</Trans> : <Trans>Copy setup prompt</Trans>}
+      </BuiButton>
+    </span>
   );
 }
 

@@ -609,7 +609,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
       ]);
       // Keep provider/model/credential as one unit — never pair an override
       // provider with a Space or deployment secret from another provider.
-      const useOverride = Boolean(hasOverride && overrideCredential);
+      const useOverride = Boolean(
+        hasOverride && (overrideCredential || deploymentKeyFor(deps, override!.modelProvider!)),
+      );
       const credential = useOverride ? overrideCredential : defaultCredential;
       const deployment = deps.deploymentModelKey ? resolveDeploymentModel() : null;
       const provider =
@@ -970,8 +972,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
             : null;
         // Keep provider/model/credential as one unit — never use the Space
         // default secret for a different override provider.
-        const useModelOverride = Boolean(hasModelOverride && overrideCredential);
-        const credential = useModelOverride ? overrideCredential! : defaultCredential;
+        const useModelOverride = Boolean(
+          hasModelOverride && (overrideCredential || deploymentKeyFor(deps, bot.modelProvider!)),
+        );
+        const credential = useModelOverride ? overrideCredential : defaultCredential;
         runAbortController = new AbortController();
         if (!leaseValid) runAbortController.abort();
         const composioRows = storedConnections.filter(

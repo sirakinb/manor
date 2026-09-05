@@ -465,3 +465,9 @@ body,
     background-position-y: 24px;
   }
 }
+
+/* Pentridge action color on integration access and documentation controls. */
+.rk-integrations,
+.rk-setup-prompt {
+  --bui-accent: #a855f7;
+}

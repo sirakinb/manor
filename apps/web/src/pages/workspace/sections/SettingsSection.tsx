@@ -503,8 +503,10 @@ function CredentialRow({
             <ProviderIcon size={15} />
           </span>
           <span className="text-[13px] font-medium text-[#ECECEE]">
-            {row?.label || PROVIDER_NAMES[provider]}
-            {row?.label && row.label !== PROVIDER_NAMES[provider] ? (
+            {provider === "buildium"
+              ? PROVIDER_NAMES[provider]
+              : row?.label || PROVIDER_NAMES[provider]}
+            {provider !== "buildium" && row?.label && row.label !== PROVIDER_NAMES[provider] ? (
               <span className="mt-0.5 block text-[11.5px] font-normal text-[#939A9E]">
                 {PROVIDER_NAMES[provider]}
               </span>

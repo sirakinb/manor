@@ -320,96 +320,13 @@ export function PluginsOverlay({
           />
         </div>
 
-        <div id="integration-list" className="rk-scroll flex-1 overflow-y-auto px-8 py-6">
-          {catalogError ? <p className="mb-4 text-sm text-[#EF4444]">{catalogError}</p> : null}
-          {loading ? (
-            <p className="text-[#6C6C70]">
-              <Trans>Loading integrations…</Trans>
-            </p>
-          ) : null}
-
-          {showFeatured ? (
-            !loading && catalog.length === 0 ? (
-              <p className="text-[13.5px] leading-6 text-[#6C6C70]">
-                {EMPTY_PLUGIN_CATALOG_MESSAGE}
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2" data-testid="featured-connectors">
-                {featuredTiles.map((tile) => {
-                  const item = tile.item;
-                  const key = item ? itemKey(item) : tile.id;
-                  const disabled = tile.missing || !item;
-                  const connected = item?.connected ?? false;
-                  return (
-                    <div
-                      key={key}
-                      className={`flex min-w-0 items-center gap-3 rounded-[13px] px-2.5 py-2 ${
-                        disabled ? "opacity-70" : ""
-                      }`}
-                    >
-                      {item?.logo ? (
-                        <img
-                          src={item.logo}
-                          alt=""
-                          className="h-9 w-9 shrink-0 rounded-xl bg-[#2C2C30] object-contain"
-                        />
-                      ) : (
-                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#2C2C30] text-sm font-semibold text-[#ECECEE]">
-                          {tile.label[0]}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[15px] font-medium text-[#ECECEE]">
-                          {tile.label}
-                        </div>
-                        {disabled ? (
-                          <div className="truncate text-[12.5px] text-[#707077]">
-                            <Trans>Not in the plugin catalog</Trans>
-                          </div>
-                        ) : null}
-                      </div>
-                      {item && !tile.missing ? (
-                        <Button
-                          type="button"
-                          variant="pill"
-                          size="sm"
-                          disabled={pending === key}
-                          onClick={() => void (connected ? revoke(item) : connect(item))}
-                        >
-                          {pending === key ? (
-                            connected ? (
-                              <Trans>Removing…</Trans>
-                            ) : (
-                              <Trans>Adding…</Trans>
-                            )
-                          ) : connected ? (
-                            <Trans>Remove</Trans>
-                          ) : (
-                            <Trans>Add</Trans>
-                          )}
-                        </Button>
-                      ) : null}
-                    </div>
-                  );
-                })}
-                {catalogRows}
-              </div>
-            )
-          ) : !loading && catalog.length === 0 ? (
-            <p className="text-[#6C6C70]">
-              <Trans>No managed app catalog is configured on this deployment.</Trans>
-            </p>
-          ) : !loading && visible.length === 0 ? (
-            <p className="text-[#6C6C70]">
-              <Trans>No apps match your search.</Trans>
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">{catalogRows}</div>
-          )}
-
+        <div
+          id="integration-list"
+          className="rk-integrations rk-scroll flex-1 overflow-y-auto px-8 py-6"
+        >
           <details
             data-testid="integrations-advanced"
-            className="group mt-8"
+            className="group mb-6 rounded-2xl border border-[#2C2C30] p-4"
             onToggle={(event) => {
               if (!(event.currentTarget as HTMLDetailsElement).open) {
                 setSourceKind(null);
@@ -607,6 +524,92 @@ export function PluginsOverlay({
               <CrmApiAccessPanel />
             </div>
           </details>
+
+          {catalogError ? <p className="mb-4 text-sm text-[#EF4444]">{catalogError}</p> : null}
+          {loading ? (
+            <p className="text-[#6C6C70]">
+              <Trans>Loading integrations…</Trans>
+            </p>
+          ) : null}
+
+          {showFeatured ? (
+            !loading && catalog.length === 0 ? (
+              <p className="text-[13.5px] leading-6 text-[#6C6C70]">
+                {EMPTY_PLUGIN_CATALOG_MESSAGE}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2" data-testid="featured-connectors">
+                {featuredTiles.map((tile) => {
+                  const item = tile.item;
+                  const key = item ? itemKey(item) : tile.id;
+                  const disabled = tile.missing || !item;
+                  const connected = item?.connected ?? false;
+                  return (
+                    <div
+                      key={key}
+                      className={`flex min-w-0 items-center gap-3 rounded-[13px] px-2.5 py-2 ${
+                        disabled ? "opacity-70" : ""
+                      }`}
+                    >
+                      {item?.logo ? (
+                        <img
+                          src={item.logo}
+                          alt=""
+                          className="h-9 w-9 shrink-0 rounded-xl bg-[#2C2C30] object-contain"
+                        />
+                      ) : (
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#2C2C30] text-sm font-semibold text-[#ECECEE]">
+                          {tile.label[0]}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[15px] font-medium text-[#ECECEE]">
+                          {tile.label}
+                        </div>
+                        {disabled ? (
+                          <div className="truncate text-[12.5px] text-[#707077]">
+                            <Trans>Not in the plugin catalog</Trans>
+                          </div>
+                        ) : null}
+                      </div>
+                      {item && !tile.missing ? (
+                        <Button
+                          type="button"
+                          variant="pill"
+                          size="sm"
+                          disabled={pending === key}
+                          onClick={() => void (connected ? revoke(item) : connect(item))}
+                        >
+                          {pending === key ? (
+                            connected ? (
+                              <Trans>Removing…</Trans>
+                            ) : (
+                              <Trans>Adding…</Trans>
+                            )
+                          ) : connected ? (
+                            <Trans>Remove</Trans>
+                          ) : (
+                            <Trans>Add</Trans>
+                          )}
+                        </Button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+                {catalogRows}
+              </div>
+            )
+          ) : !loading && catalog.length === 0 ? (
+            <p className="text-[#6C6C70]">
+              <Trans>No managed app catalog is configured on this deployment.</Trans>
+            </p>
+          ) : !loading && visible.length === 0 ? (
+            <p className="text-[#6C6C70]">
+              <Trans>No apps match your search.</Trans>
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">{catalogRows}</div>
+          )}
         </div>
       </div>
     </div>

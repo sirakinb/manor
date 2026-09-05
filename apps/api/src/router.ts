@@ -589,7 +589,14 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     models: {
-      list: authed.models.list.handler(async () => [...listPiCatalog(), scriptedCatalogEntry]),
+      list: authed.models.list.handler(async () =>
+        [...listPiCatalog(), scriptedCatalogEntry].map((entry) => ({
+          ...entry,
+          deploymentAvailable: Boolean(
+            deps.env.deploymentModelKey && entry.provider === deps.env.defaultProvider,
+          ),
+        })),
+      ),
       credentials: authed.models.credentials.handler(async ({ context }) => {
         const rows = await deps.prisma.userModelCredential.findMany({
           where: { userId: context.actor.userId },
@@ -796,14 +803,17 @@ export function createRouter(deps: RouterDeps) {
             context.actor,
             input.modelProvider,
           );
-          if (!credential) {
+          const deploymentAvailable = Boolean(
+            deps.env.deploymentModelKey && input.modelProvider === deps.env.defaultProvider,
+          );
+          if (!credential && !deploymentAvailable) {
             throw new ORPCError("BAD_REQUEST", { message: "Connect that model provider first" });
           }
           const knownModels = [...listPiCatalog(), scriptedCatalogEntry];
           const inCatalog = knownModels.some(
             (item) => item.provider === input.modelProvider && item.id === input.modelId,
           );
-          if (!inCatalog && credential.defaultModel !== input.modelId) {
+          if (!inCatalog && credential?.defaultModel !== input.modelId) {
             throw new ORPCError("BAD_REQUEST", { message: "Unknown model for that provider" });
           }
         }

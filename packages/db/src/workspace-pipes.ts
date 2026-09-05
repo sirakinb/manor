@@ -134,7 +134,7 @@ export const WORKSPACE_PIPES: readonly PipeSpec[] = [
   {
     key: "water",
     label: "Water bills",
-    source: "PHL Water / Gmail",
+    source: "PHL Water/Gmail",
     channel: "utilities",
     cadence: "weekly + month-end",
     maxAgeHours: 24 * 16,

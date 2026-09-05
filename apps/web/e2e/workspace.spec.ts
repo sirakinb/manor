@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { ModelCatalogEntry } from "@rakazo/contracts";
 import { createDb } from "../../../packages/db/src/client";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
@@ -60,6 +61,9 @@ test("workspace appears once the organization has one and its map opens sections
           },
         },
       },
+    });
+    await prisma.workspaceSource.create({
+      data: { workspaceId: workspace.id, name: "Gmail", sourceType: "email", status: "connected" },
     });
     const hourAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000);
     await prisma.workspaceVoiceCall.createMany({
@@ -281,6 +285,7 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(map.locator('[data-node="vault"]')).toBeVisible();
   await expect(map.locator('[data-node="channel:voice"]')).toBeVisible();
   await expect(map.locator('[data-node="source:Retell"]')).toBeVisible();
+  await expect(map.getByText("PHL Water/Gmail", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-overview");
 
   const tabs = page.getByTestId("workspace-tabs");
@@ -451,6 +456,17 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByLabel("Water GL account")).toHaveValue("4321");
   await expect(page.getByRole("heading", { name: "Connections", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ask the team", exact: true })).toHaveCount(0);
+  const buildiumRow = page
+    .locator("li")
+    .filter({ has: page.getByText("Buildium", { exact: true }) });
+  await buildiumRow.getByRole("button", { name: "Add", exact: true }).click();
+  await buildiumRow.getByLabel("Label", { exact: true }).fill("Harbor ledger");
+  await buildiumRow.getByLabel("clientId", { exact: true }).fill("synthetic-client");
+  await buildiumRow.getByLabel("clientSecret", { exact: true }).fill("synthetic-secret");
+  await buildiumRow.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(buildiumRow.getByText("Configured", { exact: true })).toBeVisible();
+  await expect(buildiumRow.getByText("Buildium", { exact: true })).toHaveCount(1);
+  await expect(buildiumRow.getByText("Harbor ledger", { exact: true })).toHaveCount(0);
   await captureScreenshot(page, testInfo, "workspace-settings-connections");
   const openai = page.locator("li").filter({ has: page.getByText("OpenAI", { exact: true }) });
   await openai.getByRole("button", { name: "Add", exact: true }).click();
@@ -467,10 +483,53 @@ test("workspace appears once the organization has one and its map opens sections
   await captureScreenshot(page, testInfo, "workspace-settings");
   await sidebar.getByRole("button", { name: "Documentation", exact: true }).click();
   await expect(page.getByRole("button", { name: "Getting started", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy setup prompt", exact: true })).toHaveCSS(
+    "background-color",
+    "rgb(168, 85, 247)",
+  );
+  await captureScreenshot(page, testInfo, "workspace-documentation-purple");
   await page.getByRole("button", { name: "Workspace", exact: true }).last().click();
   await expect(
     page.getByRole("heading", { name: "Bring context into another agent platform" }),
   ).toBeVisible();
   await expect(page.getByText("workspace_set_context", { exact: true }).first()).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-external-api-docs");
+  await sidebar.getByRole("button", { name: "Integrations", exact: true }).click();
+  const access = page.getByTestId("integrations-advanced");
+  await expect(access).toBeVisible();
+  expect(await access.evaluate((node) => node.parentElement?.firstElementChild === node)).toBe(
+    true,
+  );
+  await access.locator("summary").click();
+  await expect(access.getByRole("button", { name: "Create token", exact: true })).toHaveCSS(
+    "background-color",
+    "rgb(168, 85, 247)",
+  );
+  await captureScreenshot(page, testInfo, "workspace-integrations-access-purple");
+  await page.getByRole("button", { name: "Close integrations" }).click();
+
+  // The API separately verifies shared-credential authorization. Here the catalog
+  // fixture checks that deployment availability reaches the bot model selector.
+  await page.route("**/rpc/models/list", async (route) => {
+    const response = await route.fetch();
+    const payload = (await response.json()) as { json: ModelCatalogEntry[] };
+    await route.fulfill({
+      response,
+      json: {
+        ...payload,
+        json: payload.json.map((entry) => ({
+          ...entry,
+          deploymentAvailable: entry.provider === "openrouter",
+        })),
+      },
+    });
+  });
+  await page.goto(`/app/${selectedBotId}`);
+  await page.locator("main").getByRole("button", { name: "Operations", exact: true }).click();
+  const botSettings = page.getByTestId("bot-settings");
+  await botSettings.getByText("Advanced", { exact: true }).click();
+  const models = botSettings.getByRole("combobox", { name: "Model", exact: true });
+  await expect(models.locator("option").filter({ hasText: "OpenRouter" }).first()).toBeAttached();
+  expect(await models.locator("option").count()).toBeGreaterThan(2);
+  await captureScreenshot(page, testInfo, "workspace-openrouter-model-choices");
 });

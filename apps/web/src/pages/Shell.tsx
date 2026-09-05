@@ -6180,6 +6180,7 @@ function BotSettings({
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [modelMetaReady, setModelMetaReady] = useState(false);
+  const [modelLoadError, setModelLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -6196,7 +6197,7 @@ function BotSettings({
         // an existing thinkingLevel override on save.
         setModelMetaReady(true);
       })
-      .catch(() => undefined);
+      .catch(() => setModelLoadError(t`Could not load model choices. Reopen settings to retry.`));
   }, []);
 
   const connectedOptions: Array<{
@@ -6236,6 +6237,19 @@ function BotSettings({
       seenOptions.add(option.key);
       connectedOptions.push(option);
     }
+  }
+
+  for (const entry of catalog) {
+    if (!entry.deploymentAvailable || entry.placeholder) continue;
+    const key = modelOptionKey(entry.provider, entry.id);
+    if (seenOptions.has(key)) continue;
+    seenOptions.add(key);
+    connectedOptions.push({
+      key,
+      provider: entry.provider,
+      modelId: entry.id,
+      label: `${entry.providerName ?? entry.provider} · ${entry.label}`,
+    });
   }
 
   const effectiveProvider = modelKey
@@ -6326,6 +6340,11 @@ function BotSettings({
               </option>
             ))}
           </select>
+          {modelLoadError ? (
+            <p role="alert" className="mt-2 text-[12px] text-[#E1787A]">
+              {modelLoadError}
+            </p>
+          ) : null}
         </label>
         {thinkingOptions.length ? (
           <label className="mt-4 block text-[14px] text-[#85858A]">
