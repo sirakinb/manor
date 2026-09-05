@@ -32,9 +32,10 @@ const PROVIDER_FIELDS: Record<WorkspaceCredentialProvider, string[]> = {
   twilio: ["accountSid", "authToken", "fromNumber"],
   "zoho-crm": ["clientId", "clientSecret", "refreshToken"],
   "zoho-campaigns": ["clientId", "clientSecret", "refreshToken"],
-  instagram: ["accessToken"],
+  instagram: ["pageToken", "igUserId"],
   gmail: ["clientId", "clientSecret", "refreshToken"],
-  openrouter: ["apiKey"],
+  openai: ["apiKey", "model"],
+  openrouter: ["apiKey", "model"],
   smtp: ["url", "from"],
 };
 
@@ -45,6 +46,7 @@ const PROVIDER_NAMES: Record<WorkspaceCredentialProvider, string> = {
   "zoho-campaigns": "Zoho Campaigns",
   instagram: "Instagram",
   gmail: "Gmail",
+  openai: "OpenAI",
   openrouter: "OpenRouter",
   smtp: "SMTP",
 };
@@ -488,7 +490,11 @@ function CredentialRow({
               <input
                 className={INPUT}
                 type={
-                  field === "fromNumber" || field === "from" || field === "url"
+                  field === "fromNumber" ||
+                  field === "from" ||
+                  field === "url" ||
+                  field === "model" ||
+                  field === "igUserId"
                     ? "text"
                     : "password"
                 }

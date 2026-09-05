@@ -98,6 +98,28 @@ describePostgres("runWorkspaceAutomation (PostgreSQL)", () => {
       include: { source: true },
     });
 
+  it("sends only OpenAI credentials to recaps when OpenAI is configured", async () => {
+    await saveWorkspaceCredential(
+      prisma,
+      secrets,
+      { workspaceId, userId },
+      {
+        provider: "openai",
+        fields: { apiKey: "fake-openai-key", model: "gpt-5.6-luna" },
+      },
+    );
+    const automation = await prisma.workspaceAutomation.findUniqueOrThrow({
+      where: { workspaceId_key: { workspaceId, key: "recap" } },
+    });
+    await runWorkspaceAutomation(deps(), { automationId: automation.id });
+    expect(ingestion.requests).toHaveLength(1);
+    expect(ingestion.requests[0]?.credentials).toEqual({
+      openai: { apiKey: "fake-openai-key", model: "gpt-5.6-luna" },
+    });
+    const [run] = await runsFor(automation.id);
+    expect(run!.status).toBe("success");
+  });
+
   it("records a failed run when the ingestion service is not configured", async () => {
     await runWorkspaceAutomation({ ...deps(), ingestion: undefined }, { automationId: listingsId });
     const [run] = await runsFor(listingsId);

@@ -518,6 +518,7 @@ export const WORKSPACE_CREDENTIAL_PROVIDERS = [
   "zoho-campaigns",
   "instagram",
   "gmail",
+  "openai",
   "openrouter",
   "smtp",
 ] as const;

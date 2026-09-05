@@ -139,7 +139,19 @@ export async function runWorkspaceAutomation(
   }
 
   const credentials: Record<string, Record<string, string>> = {};
+  // Recaps prefer an explicitly saved OpenAI credential; OpenRouter remains
+  // supported for existing workspaces. Never fall back after a provider fails.
+  if (spec.pipeline === "recap") {
+    const openai = await loadWorkspaceCredential(
+      deps.prisma,
+      deps.secrets,
+      automation.workspaceId,
+      "openai",
+    );
+    if (openai) credentials.openai = openai;
+  }
   for (const provider of spec.credentials) {
+    if (spec.pipeline === "recap" && credentials.openai) continue;
     const fields = await loadWorkspaceCredential(
       deps.prisma,
       deps.secrets,

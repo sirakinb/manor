@@ -15,20 +15,17 @@ workspace_context keys instead of the old per-slug constants:
 from __future__ import annotations
 
 import json
-import re
 from datetime import date, datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import requests
+from ..adapters.narrative import generate as generate_narrative
 
 from ..context import RunContext, RunResult
 from ..db import connection, jsonb, new_id
 from ..errors import PipelineError, SkippedRun
 from .recap_metrics import compute_metrics, recap_due, revenue_model
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = "deepseek/deepseek-v4-pro"
 SAMPLE_LIMIT = 60
 
 CONTEXT_REVENUE = "recap-revenue-config"
@@ -86,16 +83,6 @@ def sample_summaries(rows: list[dict[str, Any]], limit: int = SAMPLE_LIMIT) -> l
         return []
     step = max(1, len(substantive) // limit)
     return substantive[::step][:limit]
-
-
-def _parse_json(raw: str) -> dict[str, Any]:
-    try:
-        return json.loads(raw)
-    except ValueError:
-        match = re.search(r"\{[\s\S]*\}", raw)
-        if match:
-            return json.loads(match.group(0))
-        raise
 
 
 def narrative_prompt(workspace_name: str, owner_name: str | None, agent_name: str | None, metrics: dict[str, Any], revenue: dict[str, Any], samples: list[str], agent_type: str) -> tuple[str, str]:
@@ -158,38 +145,6 @@ def narrative_prompt(workspace_name: str, owner_name: str | None, agent_name: st
         f"Representative call summaries (qualitative texture, not for counts):\n{json.dumps(samples[:SAMPLE_LIMIT])}\n\n{schema}"
     )
     return system, user
-
-
-def generate_narrative(credential: dict[str, str], system: str, user: str) -> dict[str, Any]:
-    api_key = credential.get("apiKey")
-    if not api_key:
-        raise PipelineError("openrouter credential needs apiKey")
-    model = credential.get("model") or DEFAULT_MODEL
-    response = requests.post(
-        OPENROUTER_URL,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={
-            "model": model,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-            "response_format": {"type": "json_object"},
-            "max_tokens": 8000,
-            "temperature": 0.3,
-        },
-        timeout=120,
-    )
-    if response.status_code != 200:
-        raise PipelineError(f"OpenRouter responded {response.status_code} while writing the narrative")
-    content = response.json()["choices"][0]["message"]["content"]
-    parsed = _parse_json(content)
-    return {
-        "executive_assessment": parsed.get("executive_assessment", ""),
-        "what_this_means": parsed.get("what_this_means", ""),
-        "wins": parsed.get("wins") or [],
-        "opportunities": parsed.get("opportunities") or [],
-        "action_items": parsed.get("action_items") or [],
-        "bottom_line": parsed.get("bottom_line", ""),
-        "summary": parsed.get("summary", ""),
-    }
 
 
 def store_report(cur: Any, workspace_id: str, recap: dict[str, Any], activity_approval: str) -> str | None:
@@ -263,7 +218,8 @@ def run(context: RunContext) -> RunResult:
             int(workspace.get("monthlyVoiceReportDay") or 0), int(workspace.get("monthlyVoiceReportHour", 9)),
         ):
             raise SkippedRun("not the configured report day/hour")
-    credential = context.credential("openrouter")
+    provider = "openai" if context.credentials.get("openai") else "openrouter"
+    credential = context.credential(provider)
 
     generated: list[str] = []
     skipped: list[str] = []
@@ -292,7 +248,7 @@ def run(context: RunContext) -> RunResult:
                 str(workspace.get("name") or "Workspace"), ws_context.get(CONTEXT_OWNER), ws_context.get(CONTEXT_AGENT),
                 metrics, revenue, sample_summaries(rows), agent_type,
             )
-            narrative = generate_narrative(credential, system, user)
+            narrative = generate_narrative(provider, credential, system, user)
             recap = {
                 "format": "voice_monthly_v1",
                 "agent_type": agent_type,

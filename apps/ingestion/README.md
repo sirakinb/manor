@@ -23,8 +23,12 @@ refreshToken), `zoho-campaigns` (`zoho-campaigns`: same fields), `instagram`
 (`instagram`: pageToken, igUserId), `buildium` (`buildium`: clientId,
 clientSecret), `listings` (no credential; options `remaUrl`, `sheetId` or
 `sheetCsvUrl`, from the Listings source config), `water` (`gmail`: clientId,
-clientSecret, refreshToken; option `gmailQuery`), `recap` (`openrouter`:
+clientSecret, refreshToken; option `gmailQuery`), `recap` (`openai` or `openrouter`:
 apiKey, optional `model`).
+
+Recaps use a saved OpenAI credential when present (default model
+`gpt-5.6-luna`), otherwise OpenRouter. Provider failures never cause a switch
+to another provider. OpenAI uses the Responses API with response storage disabled.
 
 ## Environment
 

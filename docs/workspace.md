@@ -281,7 +281,10 @@ write path needs:
 | Send reports | Deployment outbound email: `SMTP_URL` and `EMAIL_FROM` (the same provider account emails use); without them `reports.send` returns "Email sending is not configured" |
 
 The ingestion worker reads the Zoho CRM, Zoho Campaigns, Instagram, Gmail,
-Buildium, and OpenRouter credentials per run. Twilio and SMTP workspace
+Buildium, and recap provider credentials per run. Recaps prefer a saved OpenAI
+credential (default model `gpt-5.6-luna`), otherwise use OpenRouter. Only the
+selected provider's credential is sent; failures never switch providers.
+Twilio and SMTP workspace
 credentials are reserved for future adapters; outbound reports still use
 the deployment email provider.
 

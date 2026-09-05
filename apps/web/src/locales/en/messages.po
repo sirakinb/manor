@@ -523,7 +523,7 @@ msgstr "Activity"
 #: src/pages/PluginsOverlay.tsx:289
 #: src/pages/PluginsOverlay.tsx:388
 #: src/pages/ScratchpadSection.tsx:188
-#: src/pages/workspace/sections/SettingsSection.tsx:460
+#: src/pages/workspace/sections/SettingsSection.tsx:462
 msgid "Add"
 msgstr "Add"
 
@@ -905,8 +905,8 @@ msgstr "Ask before purchases"
 msgid "Ask before sending external email"
 msgstr "Ask before sending external email"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:197
-#: src/pages/workspace/sections/SettingsSection.tsx:241
+#: src/pages/workspace/sections/SettingsSection.tsx:199
+#: src/pages/workspace/sections/SettingsSection.tsx:243
 msgid "At"
 msgstr "At"
 
@@ -1203,8 +1203,8 @@ msgstr "Can't reach the server."
 #: src/pages/workspace/sections/ReportsSection.tsx:267
 #: src/pages/workspace/sections/ReportsSection.tsx:414
 #: src/pages/workspace/sections/ReportsSection.tsx:621
-#: src/pages/workspace/sections/SettingsSection.tsx:460
-#: src/pages/workspace/sections/SettingsSection.tsx:515
+#: src/pages/workspace/sections/SettingsSection.tsx:462
+#: src/pages/workspace/sections/SettingsSection.tsx:521
 #: src/pages/workspace/sections/UtilitiesSection.tsx:172
 #: src/pages/workspace/sections/UtilitiesSection.tsx:563
 msgid "Cancel"
@@ -1252,7 +1252,7 @@ msgstr "Channel"
 msgid "Channels"
 msgstr "Channels"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:326
+#: src/pages/workspace/sections/SettingsSection.tsx:328
 msgid "Charge description"
 msgstr "Charge description"
 
@@ -1895,7 +1895,7 @@ msgid "Could not read changes"
 msgstr "Could not read changes"
 
 #: src/pages/ScratchpadSection.tsx:95
-#: src/pages/workspace/sections/SettingsSection.tsx:425
+#: src/pages/workspace/sections/SettingsSection.tsx:427
 msgid "Could not remove"
 msgstr "Could not remove"
 
@@ -1946,8 +1946,8 @@ msgstr "Could not run routine"
 #: src/components/FilesPanel.tsx:178
 #: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:6402
-#: src/pages/workspace/sections/SettingsSection.tsx:103
-#: src/pages/workspace/sections/SettingsSection.tsx:411
+#: src/pages/workspace/sections/SettingsSection.tsx:105
+#: src/pages/workspace/sections/SettingsSection.tsx:413
 #: src/pages/workspace/sections/UtilitiesSection.tsx:413
 msgid "Could not save"
 msgstr "Could not save"
@@ -2133,7 +2133,7 @@ msgstr "credential saved"
 msgid "Credential scopes"
 msgstr "Credential scopes"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:358
+#: src/pages/workspace/sections/SettingsSection.tsx:360
 msgid "Credentials"
 msgstr "Credentials"
 
@@ -2419,7 +2419,7 @@ msgstr "Download as markdown"
 msgid "Draft"
 msgstr "Draft"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:266
+#: src/pages/workspace/sections/SettingsSection.tsx:268
 msgid "Draft reviewer"
 msgstr "Draft reviewer"
 
@@ -2463,7 +2463,7 @@ msgstr "Earlier message"
 #: src/components/BotCredentialsSettings.tsx:204
 #: src/pages/crm/CrmPipelineBoard.tsx:339
 #: src/pages/workspace/sections/ReportsSection.tsx:208
-#: src/pages/workspace/sections/SettingsSection.tsx:460
+#: src/pages/workspace/sections/SettingsSection.tsx:462
 msgid "Edit"
 msgstr "Edit"
 
@@ -2770,7 +2770,7 @@ msgstr "Freshness signal"
 msgid "Fri"
 msgstr "Fri"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:160
+#: src/pages/workspace/sections/SettingsSection.tsx:162
 msgid "Friday"
 msgstr "Friday"
 
@@ -3032,7 +3032,7 @@ msgid "Keys stay on the server. The app only learns whether a provider is config
 msgstr "Keys stay on the server. The app only learns whether a provider is configured."
 
 #: src/components/BotCredentialsSettings.tsx:229
-#: src/pages/workspace/sections/SettingsSection.tsx:478
+#: src/pages/workspace/sections/SettingsSection.tsx:480
 msgid "Label"
 msgstr "Label"
 
@@ -3081,7 +3081,7 @@ msgstr "Last 7 days"
 msgid "Last 90 days"
 msgstr "Last 90 days"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:189
+#: src/pages/workspace/sections/SettingsSection.tsx:191
 msgid "Last day of month"
 msgstr "Last day of month"
 
@@ -3446,7 +3446,7 @@ msgstr "Modules are the user-defined sheets in the CRM — each one declares typ
 msgid "Mon"
 msgstr "Mon"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:156
+#: src/pages/workspace/sections/SettingsSection.tsx:158
 msgid "Monday"
 msgstr "Monday"
 
@@ -3466,8 +3466,8 @@ msgstr "monthly on day {dom} {time}"
 msgid "Monthly submissions"
 msgstr "Monthly submissions"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:172
-#: src/pages/workspace/sections/SettingsSection.tsx:175
+#: src/pages/workspace/sections/SettingsSection.tsx:174
+#: src/pages/workspace/sections/SettingsSection.tsx:177
 msgid "Monthly voice recap"
 msgstr "Monthly voice recap"
 
@@ -3826,7 +3826,7 @@ msgstr "Not now"
 msgid "Not scheduled"
 msgstr "Not scheduled"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:448
+#: src/pages/workspace/sections/SettingsSection.tsx:450
 msgid "Not set"
 msgstr "Not set"
 
@@ -4337,7 +4337,7 @@ msgstr "Recent deals"
 msgid "Recent runs"
 msgstr "Recent runs"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:258
+#: src/pages/workspace/sections/SettingsSection.tsx:260
 msgid "Recipients"
 msgstr "Recipients"
 
@@ -4422,8 +4422,8 @@ msgstr "Release"
 #: src/pages/PluginsOverlay.tsx:386
 #: src/pages/PluginsOverlay.tsx:600
 #: src/pages/ScratchpadSection.tsx:162
-#: src/pages/workspace/sections/SettingsSection.tsx:471
-#: src/pages/workspace/sections/SettingsSection.tsx:514
+#: src/pages/workspace/sections/SettingsSection.tsx:473
+#: src/pages/workspace/sections/SettingsSection.tsx:520
 msgid "Remove"
 msgstr "Remove"
 
@@ -4464,7 +4464,7 @@ msgid "Remove stage"
 msgstr "Remove stage"
 
 #. placeholder {0}: PROVIDER_NAMES[provider]
-#: src/pages/workspace/sections/SettingsSection.tsx:513
+#: src/pages/workspace/sections/SettingsSection.tsx:519
 msgid "Remove the {0} credential?"
 msgstr "Remove the {0} credential?"
 
@@ -4531,7 +4531,7 @@ msgid "Report"
 msgstr "Report"
 
 #: src/pages/workspace/sections/ReportsSection.tsx:80
-#: src/pages/workspace/sections/SettingsSection.tsx:167
+#: src/pages/workspace/sections/SettingsSection.tsx:169
 #: src/pages/workspace/WorkspaceView.tsx:85
 msgid "Reports"
 msgstr "Reports"
@@ -4677,7 +4677,7 @@ msgstr "Running…"
 msgid "Sat"
 msgstr "Sat"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:161
+#: src/pages/workspace/sections/SettingsSection.tsx:163
 msgid "Saturday"
 msgstr "Saturday"
 
@@ -4694,13 +4694,13 @@ msgstr "Saturday"
 #: src/pages/RoutineEditor.tsx:478
 #: src/pages/Shell.tsx:6407
 #: src/pages/workspace/sections/ReportsSection.tsx:650
-#: src/pages/workspace/sections/SettingsSection.tsx:132
-#: src/pages/workspace/sections/SettingsSection.tsx:505
+#: src/pages/workspace/sections/SettingsSection.tsx:134
+#: src/pages/workspace/sections/SettingsSection.tsx:511
 msgid "Save"
 msgstr "Save"
 
 #: src/components/teach/SkillDraftCard.tsx:162
-#: src/pages/workspace/sections/SettingsSection.tsx:128
+#: src/pages/workspace/sections/SettingsSection.tsx:130
 msgid "Saved"
 msgstr "Saved"
 
@@ -4827,8 +4827,8 @@ msgstr "Send answer"
 msgid "Send it"
 msgstr "Send it"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:181
-#: src/pages/workspace/sections/SettingsSection.tsx:226
+#: src/pages/workspace/sections/SettingsSection.tsx:183
+#: src/pages/workspace/sections/SettingsSection.tsx:228
 msgid "Send on"
 msgstr "Send on"
 
@@ -4903,7 +4903,7 @@ msgstr "Setting up"
 #: src/pages/Shell.tsx:3043
 #: src/pages/Shell.tsx:3053
 #: src/pages/Shell.tsx:3436
-#: src/pages/workspace/sections/SettingsSection.tsx:65
+#: src/pages/workspace/sections/SettingsSection.tsx:67
 #: src/pages/workspace/WorkspaceView.tsx:124
 msgid "Settings"
 msgstr "Settings"
@@ -5212,7 +5212,7 @@ msgstr "Summary"
 msgid "Sun"
 msgstr "Sun"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:155
+#: src/pages/workspace/sections/SettingsSection.tsx:157
 msgid "Sunday"
 msgstr "Sunday"
 
@@ -5420,7 +5420,7 @@ msgstr "This subscription sign-in is not available in {brandName} yet. Use a dep
 msgid "Thu"
 msgstr "Thu"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:159
+#: src/pages/workspace/sections/SettingsSection.tsx:161
 msgid "Thursday"
 msgstr "Thursday"
 
@@ -5499,7 +5499,7 @@ msgstr "Treg token"
 msgid "Tue"
 msgstr "Tue"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:157
+#: src/pages/workspace/sections/SettingsSection.tsx:159
 msgid "Tuesday"
 msgstr "Tuesday"
 
@@ -5665,7 +5665,7 @@ msgid "Uses whichever fits the task"
 msgstr "Uses whichever fits the task"
 
 #: src/pages/workspace/PipelineMap.tsx:117
-#: src/pages/workspace/sections/SettingsSection.tsx:315
+#: src/pages/workspace/sections/SettingsSection.tsx:317
 #: src/pages/workspace/sections/UtilitiesSection.tsx:116
 #: src/pages/workspace/WorkspaceView.tsx:89
 msgid "Utilities"
@@ -5747,7 +5747,7 @@ msgstr "Wake computer"
 msgid "Watch it work"
 msgstr "Watch it work"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:317
+#: src/pages/workspace/sections/SettingsSection.tsx:319
 msgid "Water GL account"
 msgstr "Water GL account"
 
@@ -5784,7 +5784,7 @@ msgstr "Webhooks also flow the other way — every bot has an inbound URL that e
 msgid "Wed"
 msgstr "Wed"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:158
+#: src/pages/workspace/sections/SettingsSection.tsx:160
 msgid "Wednesday"
 msgstr "Wednesday"
 
@@ -5794,8 +5794,8 @@ msgstr "Wednesday"
 msgid "Weekdays"
 msgstr "Weekdays"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:217
-#: src/pages/workspace/sections/SettingsSection.tsx:220
+#: src/pages/workspace/sections/SettingsSection.tsx:219
+#: src/pages/workspace/sections/SettingsSection.tsx:222
 msgid "Weekly email recap"
 msgstr "Weekly email recap"
 

@@ -218,5 +218,17 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByText("Saved", { exact: true }).first()).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Water GL account")).toHaveValue("4321");
+  const openai = page.locator("li").filter({ has: page.getByText("OpenAI", { exact: true }) });
+  await openai.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(openai.getByLabel("apiKey", { exact: true })).toBeVisible();
+  await expect(openai.getByLabel("model", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-openai-credential");
+  await openai.getByRole("button", { name: "Cancel", exact: true }).click();
+  const instagram = page
+    .locator("li")
+    .filter({ has: page.getByText("Instagram", { exact: true }) });
+  await instagram.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(instagram.getByLabel("pageToken", { exact: true })).toBeVisible();
+  await expect(instagram.getByLabel("igUserId", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-settings");
 });
