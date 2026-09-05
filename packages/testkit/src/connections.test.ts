@@ -131,6 +131,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
       app,
       cookie,
       "connections/catalog",
+      { connectorId: "composio" },
     );
 
     expect(catalog).toContainEqual(expect.objectContaining({ slug: "SLACK", connected: true }));
