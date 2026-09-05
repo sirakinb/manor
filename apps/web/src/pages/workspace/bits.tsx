@@ -1156,11 +1156,11 @@ export function ColumnBars({
             ) : null}
             {index % labelEvery === 0 || index === bars.length - 1 ? (
               <text
-                x={x + barW / 2}
+                x={index === 0 ? 0 : index === bars.length - 1 ? width : x + barW / 2}
                 y={height - 5}
                 fontSize="10"
                 fill="#6E6975"
-                textAnchor="middle"
+                textAnchor={index === 0 ? "start" : index === bars.length - 1 ? "end" : "middle"}
               >
                 {bar.label}
               </text>
