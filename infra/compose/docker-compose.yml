@@ -64,6 +64,8 @@ services:
       WAKEUP_DRIVER: graphile
       SANDBOX_PROVIDER: docker
       AGENT_RUNTIME: pi
+      INGESTION_URL: http://ingestion:8080
+      INGESTION_SECRET: ${INGESTION_SECRET:-dev-ingestion-secret}
     ports:
       - "127.0.0.1:3100:3100"
     volumes:
@@ -90,6 +92,8 @@ services:
       SANDBOX_PROVIDER: docker
       SCREEN_PROXY_SECRET: ""
       AGENT_RUNTIME: pi
+      INGESTION_URL: http://ingestion:8080
+      INGESTION_SECRET: ${INGESTION_SECRET:-dev-ingestion-secret}
     volumes:
       - ../../data:/data
     depends_on:
@@ -97,6 +101,18 @@ services:
         condition: service_healthy
       data-init:
         condition: service_completed_successfully
+
+  # Workspace pipelines (Zoho, Instagram, Buildium, listings, water bills, recap).
+  # Holds no credentials; the worker signs each run request with INGESTION_SECRET.
+  ingestion:
+    build:
+      context: ../../apps/ingestion
+    environment:
+      DATABASE_URL: postgres://rakazo:rakazo@postgres:5432/rakazo
+      INGESTION_SECRET: ${INGESTION_SECRET:-dev-ingestion-secret}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   web:
     build:

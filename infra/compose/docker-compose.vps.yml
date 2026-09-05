@@ -133,6 +133,8 @@ services:
       TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
       TWILIO_BOT_ID: ${TWILIO_BOT_ID:-}
       TWILIO_ALLOWED_FROM: ${TWILIO_ALLOWED_FROM:-}
+      INGESTION_URL: http://ingestion:8080
+      INGESTION_SECRET: ${INGESTION_SECRET:?Set INGESTION_SECRET in .env.vps}
     expose:
       - "3100"
     volumes:
@@ -190,6 +192,8 @@ services:
       TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
       TWILIO_BOT_ID: ${TWILIO_BOT_ID:-}
       TWILIO_ALLOWED_FROM: ${TWILIO_ALLOWED_FROM:-}
+      INGESTION_URL: http://ingestion:8080
+      INGESTION_SECRET: ${INGESTION_SECRET:?Set INGESTION_SECRET in .env.vps}
     volumes:
       - appdata:/data
     networks:
@@ -200,6 +204,41 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+
+  # Workspace pipelines (Zoho, Instagram, Buildium, listings, water bills, recap).
+  # Reached only by the worker/API over the app network; holds no credentials.
+  ingestion:
+    build:
+      context: ../../apps/ingestion
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 1024m
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-manor}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.vps}@postgres:5432/${POSTGRES_DB:-manor}
+      INGESTION_SECRET: ${INGESTION_SECRET:?Set INGESTION_SECRET in .env.vps}
+      DLT_PIPELINES_DIR: /tmp/dlt
+    expose:
+      - "8080"
+    networks:
+      - app
+      - data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status == 200 else 1)
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
   web:
     build:

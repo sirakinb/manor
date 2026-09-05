@@ -195,6 +195,24 @@ timezone, and the workspace's report settings (name, slug, activity
 approval, monthly voice report day/hour, last sent date, recipient) so
 self-gating pipelines can decide without a second round trip.
 
+The service itself lives in `apps/ingestion` (Python, FastAPI; see its
+README for the request contract, the pipeline list, and the credential
+fields each expects). Compose runs it as the `ingestion` service next to the
+API and worker (`infra/compose/docker-compose.yml` for dev,
+`docker-compose.vps.yml` for the VPS): it needs `DATABASE_URL` and
+`INGESTION_SECRET`; the API and worker get `INGESTION_URL=http://ingestion:8080`
+and the same `INGESTION_SECRET`. Set `INGESTION_SECRET` in `.env` (dev
+falls back to `dev-ingestion-secret`) or `.env.vps` (required). Without
+`INGESTION_URL` the automations still schedule, and every run is recorded as
+"ingestion service not configured".
+
+Listings need their sources on the "Listings" `workspace_sources` row:
+`config = {"remaUrl": "https://<agency>.appfolio.com/listings", "sheetId": "<google sheet id>"}`.
+The recap reads three `workspace_context` keys: `recap-revenue-config`
+(JSON with `tenant` and `landlord` blocks: avg_rent, mgmt_fee_pct,
+placement_fee_pct, value_months, turnover_months, conv_base/low/high,
+conv_measured, prospect_fraction), `recap-owner-name`, `recap-agent-name`.
+
 RPC: `workspace.automations.list` (seeds, then lists with `lastRun`,
 `nextRunAt`, and a pipe-style `status`), `workspace.automations.run {key}`
 (creates a queued run row, enqueues the job, returns `runId`; owners and
@@ -262,13 +280,14 @@ write path needs:
 | Post water charges | `buildium` credential with `clientId` and `clientSecret`; `waterGlAccountId` in settings |
 | Send reports | Deployment outbound email: `SMTP_URL` and `EMAIL_FROM` (the same provider account emails use); without them `reports.send` returns "Email sending is not configured" |
 
-Everything else in the provider list is stored for the syncs that come with
-the ingestion move; nothing reads them yet.
+The ingestion worker reads the Zoho CRM, Zoho Campaigns, Instagram, Gmail,
+Buildium, and OpenRouter credentials per run. Twilio and SMTP workspace
+credentials are reserved for future adapters; outbound reports still use
+the deployment email provider.
 
 ## Deliberately not ported yet
 
-- The syncs themselves (Retell, Zoho Campaigns, Meta Graph, Buildium, the
-  Gmail water-bill poller). Data arrives by import until they move.
+- Retell prompt refresh and the weekly email recap generator/reminders.
 - Remaining write paths: `log_activity`, `save_skill`, `set_context`,
   activity approval, ad-hoc report generation (OpenRouter synthesis).
 - Tour links and the TTS-friendly address rendering used by the voice agent.
