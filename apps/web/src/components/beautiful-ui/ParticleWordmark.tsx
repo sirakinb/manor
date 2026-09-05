@@ -157,6 +157,7 @@ export function ParticleWordmark({
   gap = 3,
   className,
   label,
+  fitOnMobile = false,
 }: {
   text: string;
   fontSize?: number;
@@ -165,6 +166,7 @@ export function ParticleWordmark({
   gap?: number;
   className?: string;
   label?: string;
+  fitOnMobile?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -189,11 +191,21 @@ export function ParticleWordmark({
     const layout = () => {
       const parent = canvas.parentElement;
       width = Math.max(1, Math.round(parent?.clientWidth ?? canvas.clientWidth ?? 320));
+      let fittedFont = font;
+      if (fitOnMobile && window.matchMedia("(max-width: 639px)").matches) {
+        ctx.font = font;
+        const chars = Array.from(text);
+        const textWidth =
+          chars.reduce((sum, char) => sum + ctx.measureText(char).width, 0) +
+          fontSize * letterSpacingEm * Math.max(0, chars.length - 1);
+        const scale = Math.min(1, Math.max(1, width - 48) / Math.max(1, textWidth));
+        fittedFont = `${fontWeight} ${fontSize * scale}px Fraunces, Georgia, serif`;
+      }
       height = Math.round(fontSize * 1.5);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
       canvas.style.height = `${height}px`;
-      const targets = sampleWordmark(text, font, width, height, letterSpacingEm, gap);
+      const targets = sampleWordmark(text, fittedFont, width, height, letterSpacingEm, gap);
       particles = makeParticles(targets, width, height);
       started = performance.now();
       last = started;
@@ -256,7 +268,7 @@ export function ParticleWordmark({
       canvas.removeEventListener("pointermove", onMove);
       canvas.removeEventListener("pointerleave", onLeave);
     };
-  }, [text, fontSize, fontWeight, letterSpacingEm, gap]);
+  }, [text, fontSize, fontWeight, letterSpacingEm, gap, fitOnMobile]);
 
   return (
     <canvas

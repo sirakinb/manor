@@ -56,7 +56,7 @@ export function WelcomePage() {
             aria-hidden="true"
             className="lp-wordmark absolute top-[15%] left-1/2 w-[min(720px,88vw)] -translate-x-1/2 sm:top-[17%]"
           >
-            <ParticleWordmark text="MANOR" fontSize={112} gap={3} label="Manor" />
+            <ParticleWordmark text="MANOR" fontSize={112} gap={3} label="Manor" fitOnMobile />
           </div>
         ) : null}
         <button
