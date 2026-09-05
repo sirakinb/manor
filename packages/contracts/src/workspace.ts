@@ -59,6 +59,8 @@ export const WorkspacePipeSchema = z.object({
   sourceId: Id.nullable(),
   /// True for pipes that run on data already in the vault (no external source).
   internal: z.boolean(),
+  /// The workspace automation that drives this pipe, when one is registered.
+  automationKey: z.string().nullable(),
   channel: WorkspaceChannelSchema,
   cadence: z.string(),
   status: WorkspacePipeStatusSchema,
@@ -481,3 +483,155 @@ export const WorkspaceContextEntrySchema = z.object({
   updatedAt: IsoDate,
 });
 export type WorkspaceContextEntry = z.infer<typeof WorkspaceContextEntrySchema>;
+
+// ── Settings and credentials ─────────────────────────────────────────────────
+
+export const WorkspaceSettingsSchema = z.object({
+  activityApproval: z.enum(["manual", "auto"]),
+  monthlyVoiceReportsEnabled: z.boolean(),
+  /// 0 = last day of the month, 1-28 = that day.
+  monthlyVoiceReportDay: z.number().int().min(0).max(28),
+  monthlyVoiceReportHour: z.number().int().min(0).max(23),
+  weeklyEmailReportsEnabled: z.boolean(),
+  /// 0 = Sunday.
+  weeklyEmailReportDay: z.number().int().min(0).max(6),
+  weeklyEmailReportHour: z.number().int().min(0).max(23),
+  reportRecipient: z.string().nullable(),
+  reportReviewerEmail: z.string().nullable(),
+  /// The ledger account water charges post to; posting refuses while unset.
+  waterGlAccountId: z.number().int().nullable(),
+  buildiumChargeDescription: z.string(),
+});
+export type WorkspaceSettings = z.infer<typeof WorkspaceSettingsSchema>;
+
+export const WorkspaceSettingsUpdateSchema = WorkspaceSettingsSchema.partial().extend({
+  reportRecipient: z.string().trim().max(320).nullable().optional(),
+  reportReviewerEmail: z.string().trim().max(320).nullable().optional(),
+  buildiumChargeDescription: z.string().trim().min(1).max(120).optional(),
+});
+export type WorkspaceSettingsUpdate = z.infer<typeof WorkspaceSettingsUpdateSchema>;
+
+export const WORKSPACE_CREDENTIAL_PROVIDERS = [
+  "buildium",
+  "twilio",
+  "zoho-crm",
+  "zoho-campaigns",
+  "instagram",
+  "gmail",
+  "openrouter",
+  "smtp",
+] as const;
+export const WorkspaceCredentialProviderSchema = z.enum(WORKSPACE_CREDENTIAL_PROVIDERS);
+export type WorkspaceCredentialProvider = z.infer<typeof WorkspaceCredentialProviderSchema>;
+
+/// What the UI may know about a stored credential: which fields exist, never their values.
+export const WorkspaceCredentialRowSchema = z.object({
+  provider: WorkspaceCredentialProviderSchema,
+  label: z.string(),
+  fields: z.array(z.string()),
+  updatedAt: IsoDate,
+});
+export type WorkspaceCredentialRow = z.infer<typeof WorkspaceCredentialRowSchema>;
+
+// ── Utilities write path ─────────────────────────────────────────────────────
+
+export const CHARGE_POST_RESULT_STATUSES = ["posted", "error", "dry_run"] as const;
+
+/// The outcome of posting one lease's share of a water bill to the ledger.
+export const ChargePostResultSchema = z.object({
+  waterBillId: Id,
+  leaseId: z.number().int(),
+  status: z.enum(CHARGE_POST_RESULT_STATUSES),
+  amount: z.number(),
+  memo: z.string(),
+  buildiumChargeId: z.number().int().nullable(),
+  error: z.string().nullable(),
+  /// The exact ledger request, returned for dry runs so the owner can check it.
+  payload: z.unknown().nullable(),
+});
+export type ChargePostResult = z.infer<typeof ChargePostResultSchema>;
+
+export const ChargePostBatchSchema = z.object({
+  dryRun: z.boolean(),
+  posted: z.number().int(),
+  failed: z.number().int(),
+  results: z.array(ChargePostResultSchema),
+});
+export type ChargePostBatch = z.infer<typeof ChargePostBatchSchema>;
+
+// ── Reports write path ───────────────────────────────────────────────────────
+
+export const REPORT_EDIT_LIMITS = {
+  items: 12,
+  title: 200,
+  detail: 1200,
+  summary: 4000,
+} as const;
+
+/// The AI-written prose a human may rewrite. Aggregates stay locked to the data.
+export const REPORT_BULLET_SECTIONS = [
+  "what_worked",
+  "what_underperformed",
+  "link_insights",
+  "list_health_flags",
+  "urgent_followups",
+] as const;
+export const REPORT_ACTION_SECTION = "recommended_actions";
+
+export const ReportEditItemSchema = z.object({
+  title: z.string().max(REPORT_EDIT_LIMITS.title),
+  detail: z.string().max(REPORT_EDIT_LIMITS.detail).optional(),
+  description: z.string().max(REPORT_EDIT_LIMITS.detail).optional(),
+  severity: z.string().max(20).optional(),
+  priority: z.string().max(20).optional(),
+  action_type: z.string().max(60).optional(),
+});
+export type ReportEditItem = z.infer<typeof ReportEditItemSchema>;
+
+export const ReportUpdateInputSchema = z.object({
+  reportId: Id,
+  title: z.string().trim().min(1).max(REPORT_EDIT_LIMITS.title).optional(),
+  summary: z.string().trim().min(1).max(REPORT_EDIT_LIMITS.summary).optional(),
+  /// Whole-section replacement keyed by synthesis section name.
+  sections: z
+    .record(z.string(), z.array(ReportEditItemSchema).max(REPORT_EDIT_LIMITS.items))
+    .optional(),
+});
+export type ReportUpdateInput = z.infer<typeof ReportUpdateInputSchema>;
+
+export const ReportSendResultSchema = z.object({
+  report: WorkspaceReportSchema,
+  sent: z.array(z.string()),
+  error: z.string().nullable(),
+});
+export type ReportSendResult = z.infer<typeof ReportSendResultSchema>;
+
+// ── Automations ──────────────────────────────────────────────────────────────
+
+export const WORKSPACE_AUTOMATION_KEYS = [
+  "voice",
+  "email",
+  "instagram",
+  "buildium",
+  "listings",
+  "water",
+  "recap",
+] as const;
+export const WorkspaceAutomationKeySchema = z.enum(WORKSPACE_AUTOMATION_KEYS);
+export type WorkspaceAutomationKey = z.infer<typeof WorkspaceAutomationKeySchema>;
+
+/// One scheduled pipeline for a workspace, with its newest run and a pipe-style status.
+export const WorkspaceAutomationSchema = z.object({
+  key: WorkspaceAutomationKeySchema,
+  label: z.string(),
+  channel: WorkspaceChannelSchema,
+  pipeline: z.string(),
+  crons: z.array(z.string()),
+  timezone: z.string(),
+  enabled: z.boolean(),
+  lastRunAt: IsoDate.nullable(),
+  nextRunAt: IsoDate.nullable(),
+  lastRun: WorkspaceSyncRunSchema.nullable(),
+  status: WorkspacePipeStatusSchema,
+});
+export type WorkspaceAutomation = z.infer<typeof WorkspaceAutomationSchema>;

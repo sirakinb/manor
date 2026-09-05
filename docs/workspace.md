@@ -155,12 +155,122 @@ Unset it with `set "brandId" = null`. Members of several organizations see
 every space they belong to in the space list; each entry carries
 `organizationId` and `organizationName`.
 
+## Automations
+
+`workspace_automations` holds one scheduled pipeline per channel pipe, seeded
+from the registry in `packages/db/src/workspace-automations.ts` the first
+time `workspace.automations.list` runs for a workspace (idempotent; existing
+rows keep their schedule and enabled flag):
+
+| Key | Pipeline | Cadence | Credential | Source row |
+| --- | --- | --- | --- | --- |
+| voice | zoho-agent-logs | every 10 min | zoho-crm | Zoho CRM |
+| email | zoho-campaigns | daily 09:00 | zoho-campaigns | Zoho Campaigns |
+| instagram | instagram | hourly | instagram | Instagram |
+| buildium | buildium | daily 06:00 | buildium | Buildium |
+| listings | listings | daily 06:30 | none | Listings (`config`: `remaUrl`, `sheetId`) |
+| water | water | Mon 08:00 + 08:00 on the 26th-29th | gmail | Gmail |
+| recap | recap | hourly (self-gated) | openrouter | none |
+
+Times are in the automation's timezone (default America/New_York). Crons
+reuse the routine cron helpers and are validated strictly on update.
+
+Each wakeup is a `workspace.automation.run` background job, armed like a
+routine (`replaceKey` per automation, re-enqueued by the job reconciler from
+`nextRunAt`). The handler (`packages/adapters/src/workspace-automation-runner.ts`)
+claims the wakeup, opens a `workspace_sync_runs` row linked to the
+automation and to its source (created when missing), decrypts only the
+credentials the pipeline needs, and asks the ingestion service to run it
+through the provider-neutral `IngestionRunner`. The HTTP adapter posts
+`{ runId, workspaceId, credentials, options }` to `INGESTION_URL/run/<pipeline>`
+with `X-Manor-Timestamp` and `X-Manor-Signature` (HMAC-SHA256 of
+`timestamp.body` with `INGESTION_SECRET`), 10-minute timeout. The outcome
+lands on the run (`success`/`error`, records, error text ≤ 300 chars), on
+the automation (`lastRunAt`, `nextRunAt`), and on the source
+(`lastSyncedAt`, `status`). Without `INGESTION_URL` a run is recorded as
+`error: ingestion service not configured` and nothing throws.
+
+`options` carries the source row's `config`, `scheduledFor`/`manual`, the
+timezone, and the workspace's report settings (name, slug, activity
+approval, monthly voice report day/hour, last sent date, recipient) so
+self-gating pipelines can decide without a second round trip.
+
+RPC: `workspace.automations.list` (seeds, then lists with `lastRun`,
+`nextRunAt`, and a pipe-style `status`), `workspace.automations.run {key}`
+(creates a queued run row, enqueues the job, returns `runId`; owners and
+admins), `workspace.automations.update {key, enabled?, crons?}` (owners and
+admins). Pipes carry `automationKey` and prefer the automation's runs over
+the source's runs and the freshness probe.
+
+## Write paths
+
+Two things the owner does daily are operable now, both under `workspace.*`
+and both recorded in `workspace_activities` with `verification: approved`
+(a human clicked):
+
+- **Water charges → Buildium.** `utilities.charge.save` edits a charge's
+  amount or memo before posting (a skipped charge comes back to pending),
+  `utilities.charge.skip` parks it, `utilities.charge.post` posts one lease's
+  share and `utilities.postAllPending` posts every resolved, pending charge
+  oldest due date first (one failure is recorded and the batch continues).
+  Posting resolves the bill exactly like `utilities.overview` does, builds
+  `{Date, Memo, Lines:[{GLAccountId, Amount, Description}]}`, and calls the
+  provider-neutral `PropertyLedger` (`packages/adapter-kit`), whose Buildium
+  adapter (`packages/adapters/src/buildium-ledger.ts`) posts to
+  `/v1/leases/{leaseId}/charges` with the client-id/secret headers and a 45 s
+  timeout. The post row keeps status posted|error, the Buildium charge id,
+  the error (300 chars), `postedAt`, and `postedBy`. `dryRun` returns the
+  payload without calling. Posting refuses an unresolved bill, an already
+  posted charge, a missing GL account, or a missing Buildium credential.
+- **Reports.** `reports.update` rewrites the title, summary, and the
+  `synthesis.<section>` prose (bullet sections and `recommended_actions`;
+  12 items, 200/1200/4000 character caps, severity and priority
+  vocabularies), stamping `editedAt`/`editedBy`; refused once approved.
+  `reports.approve` stamps `approvedAt`/`approvedBy`. `reports.send` renders
+  the email-safe HTML (`packages/core/src/workspace-reports.ts`), sends one
+  message per recipient through the deployment's `TransactionalEmailProvider`,
+  and on the first success marks the report final, approved (if not yet),
+  `sentAt`, and merges `sentTo`; a later failure is returned, not thrown.
+  `reports.remove` deletes drafts only (status `draft`, never approved or
+  sent; the imported monthly recaps are `final` and stay).
+
+The orchestration lives in `apps/api/src/workspace-actions.ts`; refusals are
+`WorkspaceActionError`s the router turns into `BAD_REQUEST` with the message
+shown verbatim.
+
+### Settings and credentials
+
+`workspace.settings.get/update` exposes the report schedule fields already on
+the workspace (monthly voice and weekly email toggles, day, hour, recipient,
+reviewer), `activityApproval`, and two utilities fields that used to be env
+vars: `waterGlAccountId` (required before posting) and
+`buildiumChargeDescription` (default "Water bill"). Updates are for
+organization owners and admins.
+
+`workspace.credentials.list/set/remove` stores one login per provider
+(`buildium`, `twilio`, `zoho-crm`, `zoho-campaigns`, `instagram`, `gmail`,
+`openrouter`, `smtp`) in `workspace_credentials`, with the field values
+sealed by the existing `EncryptedSecretStore` in a `secrets` row of kind
+`workspace-credential` (organization-scoped, so no `spaceId`). `list` returns
+provider, label, field names, and `updatedAt`, never values; `set` merges
+fields and an empty string clears one; each save seals a fresh secret and
+drops the old ciphertext. Set and remove are for owners and admins. What each
+write path needs:
+
+| Action | Needs |
+| --- | --- |
+| Post water charges | `buildium` credential with `clientId` and `clientSecret`; `waterGlAccountId` in settings |
+| Send reports | Deployment outbound email: `SMTP_URL` and `EMAIL_FROM` (the same provider account emails use); without them `reports.send` returns "Email sending is not configured" |
+
+Everything else in the provider list is stored for the syncs that come with
+the ingestion move; nothing reads them yet.
+
 ## Deliberately not ported yet
 
 - The syncs themselves (Retell, Zoho Campaigns, Meta Graph, Buildium, the
   Gmail water-bill poller). Data arrives by import until they move.
-- Write paths: `log_activity`, `save_skill`, `set_context`, activity
-  approval, water-charge posting, report generation and sending.
+- Remaining write paths: `log_activity`, `save_skill`, `set_context`,
+  activity approval, ad-hoc report generation (OpenRouter synthesis).
 - Tour links and the TTS-friendly address rendering used by the voice agent.
 - Channels other clients had (intake, cases, SEO, TikTok, YouTube, Meta Ads).
 - The MCP/REST surface the old app exposed to agents; Manor's bots will get

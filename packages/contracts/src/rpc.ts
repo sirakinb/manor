@@ -3,11 +3,16 @@ import * as z from "zod";
 import { ATTACHMENT_MAX_BASE64_LENGTH, ATTACHMENT_MAX_COUNT } from "./attachments.js";
 import {
   AvailableRentalsSchema,
+  ChargePostBatchSchema,
+  ChargePostResultSchema,
+  DayString,
   EmailCampaignDetailSchema,
   EmailPerformanceSchema,
   EmailWindowSchema,
   LeasingSnapshotSchema,
   ListingFilterSchema,
+  ReportSendResultSchema,
+  ReportUpdateInputSchema,
   SocialSnapshotSchema,
   UtilitiesOverviewSchema,
   VoiceAgentTypeSchema,
@@ -15,11 +20,17 @@ import {
   VoiceCallRowSchema,
   VoiceStatsSchema,
   WorkspaceActivitySchema,
+  WorkspaceAutomationKeySchema,
+  WorkspaceAutomationSchema,
   WorkspaceContextEntrySchema,
+  WorkspaceCredentialProviderSchema,
+  WorkspaceCredentialRowSchema,
   WorkspaceOverviewSchema,
   WorkspacePipeSchema,
   WorkspaceReportRowSchema,
   WorkspaceReportSchema,
+  WorkspaceSettingsSchema,
+  WorkspaceSettingsUpdateSchema,
   WorkspaceSkillRowSchema,
   WorkspaceSkillSchema,
   WorkspaceSummarySchema,
@@ -329,6 +340,61 @@ export const appContract = {
     reports: {
       list: oc.output(z.array(WorkspaceReportRowSchema)),
       get: oc.input(z.object({ reportId: Id })).output(WorkspaceReportSchema),
+      /// Rewrite the human-editable prose; refused once the report is approved.
+      update: oc.input(ReportUpdateInputSchema).output(WorkspaceReportSchema),
+      approve: oc.input(z.object({ reportId: Id })).output(WorkspaceReportSchema),
+      /// Approve (if not yet) and email the rendered report to each address.
+      send: oc
+        .input(
+          z.object({
+            reportId: Id,
+            to: z.array(z.string().trim().email().max(320)).min(1).max(20),
+          }),
+        )
+        .output(ReportSendResultSchema),
+      /// Drafts only: a report that was approved or sent stays.
+      remove: oc.input(z.object({ reportId: Id })).output(z.object({ ok: z.literal(true) })),
+    },
+    /// Scheduled pipelines. `list` seeds the defaults for the workspace's
+    /// channels; `run` enqueues one now and returns its sync-run id.
+    automations: {
+      list: oc.output(z.array(WorkspaceAutomationSchema)),
+      run: oc
+        .input(z.object({ key: WorkspaceAutomationKeySchema }))
+        .output(z.object({ runId: Id })),
+      update: oc
+        .input(
+          z.object({
+            key: WorkspaceAutomationKeySchema,
+            enabled: z.boolean().optional(),
+            crons: z.array(z.string().trim().min(1).max(80)).min(1).max(8).optional(),
+          }),
+        )
+        .output(WorkspaceAutomationSchema),
+    },
+    settings: {
+      get: oc.output(WorkspaceSettingsSchema),
+      update: oc.input(WorkspaceSettingsUpdateSchema).output(WorkspaceSettingsSchema),
+    },
+    /// Stored provider logins. Values never leave the server; `set` merges and
+    /// an empty string clears a field. Owners and admins only for set/remove.
+    credentials: {
+      list: oc.output(z.array(WorkspaceCredentialRowSchema)),
+      set: oc
+        .input(
+          z.object({
+            provider: WorkspaceCredentialProviderSchema,
+            label: z.string().trim().max(120).optional(),
+            fields: z.record(
+              z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/),
+              z.string().max(4096),
+            ),
+          }),
+        )
+        .output(WorkspaceCredentialRowSchema),
+      remove: oc
+        .input(z.object({ provider: WorkspaceCredentialProviderSchema }))
+        .output(z.object({ ok: z.literal(true) })),
     },
     email: {
       performance: oc
@@ -351,6 +417,39 @@ export const appContract = {
     },
     utilities: {
       overview: oc.output(UtilitiesOverviewSchema),
+      charge: {
+        /// Edit the amount or memo before posting; a skipped charge comes back to pending.
+        save: oc
+          .input(
+            z.object({
+              waterBillId: Id,
+              leaseId: z.number().int(),
+              amount: z.number().nonnegative().optional(),
+              memo: z.string().trim().max(200).optional(),
+            }),
+          )
+          .output(UtilitiesOverviewSchema),
+        skip: oc
+          .input(z.object({ waterBillId: Id, leaseId: z.number().int() }))
+          .output(UtilitiesOverviewSchema),
+        /// Post one lease's share to the property ledger; dryRun returns the request only.
+        post: oc
+          .input(
+            z.object({
+              waterBillId: Id,
+              leaseId: z.number().int(),
+              amount: z.number().nonnegative().optional(),
+              memo: z.string().trim().max(200).optional(),
+              chargeDate: DayString.optional(),
+              dryRun: z.boolean().default(false),
+            }),
+          )
+          .output(ChargePostResultSchema),
+      },
+      /// Every resolved, pending charge, oldest due date first; one failure does not stop the rest.
+      postAllPending: oc
+        .input(z.object({ dryRun: z.boolean().default(false) }))
+        .output(ChargePostBatchSchema),
     },
     activities: {
       list: oc

@@ -46,6 +46,8 @@ export interface AppEnv {
   sendbluePhoneNumber: string | undefined;
   smtpUrl: string | undefined;
   emailFrom: string | undefined;
+  ingestionUrl: string | undefined;
+  ingestionSecret: string | undefined;
   emailEmulator: boolean;
   slackBotToken: string | undefined;
   slackSigningSecret: string | undefined;
@@ -119,6 +121,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     sendbluePhoneNumber: optional(source.SENDBLUE_PHONE_NUMBER),
     smtpUrl: optional(source.SMTP_URL),
     emailFrom: optional(source.EMAIL_FROM),
+    ingestionUrl: optional(source.INGESTION_URL),
+    ingestionSecret: optional(source.INGESTION_SECRET),
     emailEmulator: source.EMAIL_EMULATOR === "true" && source.NODE_ENV !== "production",
     slackBotToken: optional(source.SLACK_BOT_TOKEN),
     slackSigningSecret: optional(source.SLACK_SIGNING_SECRET),

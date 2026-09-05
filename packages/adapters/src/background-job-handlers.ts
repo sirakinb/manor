@@ -2,6 +2,7 @@ import type {
   AgentHomeStore,
   AgentRuntime,
   BackgroundJobHandlers,
+  IngestionRunner,
   JobPublisher,
   MessagingSurface,
   SandboxProvider,
@@ -16,6 +17,7 @@ import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-delivery.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 import { expireTaughtSkillTeaching } from "./teaching-session.js";
+import { runWorkspaceAutomation } from "./workspace-automation-runner.js";
 
 export function createBackgroundJobHandlers(deps: {
   executor: ReturnType<typeof createRunExecutor>;
@@ -30,6 +32,8 @@ export function createBackgroundJobHandlers(deps: {
   memoryProviders: MemoryProviderResolver;
   deploymentModelKey?: string;
   messaging?: MessagingSurface;
+  /** The ingestion service; absent when INGESTION_URL is not set. */
+  ingestion?: IngestionRunner;
 }): BackgroundJobHandlers {
   const deliverMessaging = async (runId?: string) => {
     if (!deps.messaging) return;
@@ -67,6 +71,17 @@ export function createBackgroundJobHandlers(deps: {
     },
     "routine.wakeup": async (payload) => {
       await deps.executor.wakeRoutine(payload.routineId, payload.scheduledFor);
+    },
+    "workspace.automation.run": async (payload) => {
+      await runWorkspaceAutomation(
+        {
+          prisma: deps.prisma,
+          secrets: deps.secretStore,
+          jobs: deps.jobs,
+          ingestion: deps.ingestion,
+        },
+        payload,
+      );
     },
     "computer.sleep": async (payload) => {
       await sleepComputerIfIdle(deps, payload.computerId);

@@ -310,25 +310,39 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
     const specs = pipesForChannels(workspace.channels);
     if (specs.length === 0) return [];
     const at = now();
-    const sources = await prisma.workspaceSource.findMany({
-      where: { workspaceId: workspace.id },
-      select: { id: true, name: true },
-    });
+    const [sources, automations] = await Promise.all([
+      prisma.workspaceSource.findMany({
+        where: { workspaceId: workspace.id },
+        select: { id: true, name: true },
+      }),
+      prisma.workspaceAutomation.findMany({
+        where: { workspaceId: workspace.id },
+        select: { id: true, key: true },
+      }),
+    ]);
+    const recentRuns = (where: { automationId: string } | { sourceId: string }) =>
+      prisma.workspaceSyncRun.findMany({
+        where: { workspaceId: workspace.id, ...where },
+        orderBy: { startedAt: "desc" },
+        take: 12,
+      });
     return Promise.all(
       specs.map(async (spec) => {
         const source = matchSource(spec, sources);
-        const sourceId = source?.id ?? null;
-        if (source) {
-          const runs = await prisma.workspaceSyncRun.findMany({
-            where: { workspaceId: workspace.id, sourceId: source.id },
-            orderBy: { startedAt: "desc" },
-            take: 12,
-          });
-          if (runs.length > 0) return pipeFromRuns(spec, sourceId, runs.map(mapSyncRun), at);
+        const automation = automations.find((candidate) => candidate.key === spec.key) ?? null;
+        const binding = { sourceId: source?.id ?? null, automationKey: automation?.key ?? null };
+        // Real runs beat a freshness probe: the automation's own first, then the source's.
+        if (automation) {
+          const runs = await recentRuns({ automationId: automation.id });
+          if (runs.length > 0) return pipeFromRuns(spec, binding, runs.map(mapSyncRun), at);
         }
-        if (spec.mechanism.kind === "sync_runs") return pipeFromRuns(spec, sourceId, [], at);
+        if (source) {
+          const runs = await recentRuns({ sourceId: source.id });
+          if (runs.length > 0) return pipeFromRuns(spec, binding, runs.map(mapSyncRun), at);
+        }
+        if (spec.mechanism.kind === "sync_runs") return pipeFromRuns(spec, binding, [], at);
         const lastAt = await newestTimestamp(workspace.id, spec.mechanism);
-        return pipeFromFreshness(spec, sourceId, lastAt, at);
+        return pipeFromFreshness(spec, binding, lastAt, at);
       }),
     );
   }

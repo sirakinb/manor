@@ -21,6 +21,7 @@ import {
   GraphileJobWorkerHost,
   InMemoryJobQueue,
   InstalledConnectorProvider,
+  ingestionRunnerFromEnv,
   isComposioEnabled,
   isMessagingSurfaceEnabled,
   isPipedreamEnabled,
@@ -152,6 +153,7 @@ async function main() {
     memoryProviders,
     deploymentModelKey,
     messaging,
+    ingestion: ingestionRunnerFromEnv(process.env),
   });
   await jobHost.start(jobHandlers);
   const reconciler = createJobReconciler({

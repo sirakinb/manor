@@ -25,6 +25,7 @@ export type FreshnessTable =
   | "workspaceInstagramStats"
   | "workspaceBuildiumLease"
   | "workspaceWaterBill"
+  | "workspaceRemaListing"
   | "workspaceReport";
 
 export type PipeMechanism =
@@ -104,6 +105,17 @@ export const WORKSPACE_PIPES: readonly PipeSpec[] = [
     internal: false,
   },
   {
+    key: "listings",
+    label: "Listings",
+    source: "REMA + availability sheet",
+    channel: "leasing",
+    cadence: "daily",
+    maxAgeHours: 48,
+    mechanism: { kind: "freshness", table: "workspaceRemaListing", column: "scrapedAt" },
+    sourceNames: ["listings", "rema"],
+    internal: false,
+  },
+  {
     key: "water",
     label: "Water bills",
     source: "PHL Water / Gmail",
@@ -169,7 +181,7 @@ export const WORKSPACE_WORKERS: readonly WorkerSpec[] = [
     name: "Leasing sync",
     role: "Keeps applications, leases, and listings current from Buildium",
     channel: "leasing",
-    pipeKeys: ["buildium"],
+    pipeKeys: ["buildium", "listings"],
   },
   {
     key: "water-clerk",
@@ -202,13 +214,14 @@ export function computePipeStatus(
   return "flowing";
 }
 
-function pipeBase(spec: PipeSpec, sourceId: string | null) {
+function pipeBase(spec: PipeSpec, sourceId: string | null, automationKey: string | null) {
   return {
     key: spec.key,
     label: spec.label,
     source: spec.source,
     sourceId,
     internal: spec.internal,
+    automationKey,
     channel: spec.channel,
     cadence: spec.cadence,
   };
@@ -224,9 +237,12 @@ export function matchSource<T extends { name: string }>(spec: PipeSpec, sources:
 }
 
 /** A pipe judged by its recorded runs, newest first. */
+/** Where a pipe's signal comes from: the automation driving it, its source row, or neither. */
+export type PipeBinding = { sourceId: string | null; automationKey: string | null };
+
 export function pipeFromRuns(
   spec: PipeSpec,
-  sourceId: string | null,
+  binding: PipeBinding,
   runs: WorkspaceSyncRun[],
   now: Date,
 ): WorkspacePipe {
@@ -234,7 +250,7 @@ export function pipeFromRuns(
   const lastAt = last ? new Date(last.startedAt) : null;
   const failed = last?.status === "error";
   return {
-    ...pipeBase(spec, sourceId),
+    ...pipeBase(spec, binding.sourceId, binding.automationKey),
     status: computePipeStatus(spec, lastAt, failed, now),
     lastAt: lastAt?.toISOString() ?? null,
     ageHours: lastAt ? hoursBetween(lastAt, now) : null,
@@ -247,12 +263,12 @@ export function pipeFromRuns(
 /** A pipe judged only by the newest timestamp in its landing table. */
 export function pipeFromFreshness(
   spec: PipeSpec,
-  sourceId: string | null,
+  binding: PipeBinding,
   lastAt: Date | null,
   now: Date,
 ): WorkspacePipe {
   return {
-    ...pipeBase(spec, sourceId),
+    ...pipeBase(spec, binding.sourceId, binding.automationKey),
     status: computePipeStatus(spec, lastAt, false, now),
     lastAt: lastAt?.toISOString() ?? null,
     ageHours: lastAt ? hoursBetween(lastAt, now) : null,

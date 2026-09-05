@@ -959,17 +959,18 @@ model SpaceMemoryConfig {
 }
 
 model Secret {
-  id                String             @id @default(cuid())
-  userId            String
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  spaceId           String?
-  space             Space?             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  kind              String
-  ciphertext        String
-  createdAt         DateTime           @default(now())
-  mcpServers        McpServer[]
-  spaceMemoryConfig SpaceMemoryConfig?
-  botCredentials    BotCredential[]
+  id                   String                @id @default(cuid())
+  userId               String
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spaceId              String?
+  space                Space?                @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  kind                 String
+  ciphertext           String
+  createdAt            DateTime              @default(now())
+  mcpServers           McpServer[]
+  spaceMemoryConfig    SpaceMemoryConfig?
+  botCredentials       BotCredential[]
+  workspaceCredentials WorkspaceCredential[]
 
   @@index([userId, spaceId])
   @@map("secrets")
@@ -1448,9 +1449,16 @@ model Workspace {
   reportRecipient            String?
   reportReviewerEmail        String?
 
+  // Utilities write path: the ledger account water charges post to, and the
+  // line description Buildium shows. Per organization, no longer an env var.
+  waterGlAccountId          Int?
+  buildiumChargeDescription String @default("Water bill")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  credentials          WorkspaceCredential[]
+  automations          WorkspaceAutomation[]
   sources              WorkspaceSource[]
   syncRuns             WorkspaceSyncRun[]
   voiceCalls           WorkspaceVoiceCall[]
@@ -1480,6 +1488,48 @@ model Workspace {
   @@map("workspaces")
 }
 
+/// A client's stored login for one external provider (Buildium, Zoho, ...).
+/// The field values live encrypted in a Secret of kind "workspace-credential".
+model WorkspaceCredential {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  provider        String // buildium | twilio | zoho-crm | zoho-campaigns | instagram | gmail | openrouter | smtp
+  label           String    @default("")
+  secretId        String
+  secret          Secret    @relation(fields: [secretId], references: [id], onDelete: Cascade)
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([workspaceId, provider])
+  @@map("workspace_credentials")
+}
+
+/// A scheduled pipeline run by the ingestion service for one workspace. The
+/// registry in packages/db/src/workspace-automations.ts seeds one per channel.
+model WorkspaceAutomation {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  key         String // voice | email | instagram | buildium | listings | water | recap
+  label       String
+  pipeline    String // what the ingestion service runs, e.g. zoho-agent-logs
+  crons       String[]
+  timezone    String    @default("America/New_York")
+  enabled     Boolean   @default(true)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  runs WorkspaceSyncRun[]
+
+  @@unique([workspaceId, key])
+  @@index([enabled, nextRunAt])
+  @@map("workspace_automations")
+}
+
 model WorkspaceSource {
   id               String    @id @default(cuid())
   workspaceId      String
@@ -1500,22 +1550,25 @@ model WorkspaceSource {
 }
 
 model WorkspaceSyncRun {
-  id            String           @id @default(cuid())
+  id            String               @id @default(cuid())
   workspaceId   String
-  workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace     Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   sourceId      String?
-  source        WorkspaceSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
-  status        String           @default("running") // running | success | error
-  startedAt     DateTime         @default(now())
+  source        WorkspaceSource?     @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  automationId  String?
+  automation    WorkspaceAutomation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  status        String               @default("running") // queued | running | success | error
+  startedAt     DateTime             @default(now())
   finishedAt    DateTime?
-  recordsLoaded Int              @default(0)
+  recordsLoaded Int                  @default(0)
   errorMessage  String?
-  metadata      Json             @default("{}")
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  metadata      Json                 @default("{}")
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
 
   @@index([workspaceId, startedAt])
   @@index([sourceId, startedAt])
+  @@index([automationId, startedAt])
   @@map("workspace_sync_runs")
 }
 

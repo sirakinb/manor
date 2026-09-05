@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceOverview, WorkspaceSummary } from "@rakazo/contracts";
+import { Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { rpc } from "../../lib/rpc";
@@ -8,6 +9,7 @@ import { Overview } from "./Overview";
 import { EmailSection } from "./sections/EmailSection";
 import { LeasingSection } from "./sections/LeasingSection";
 import { ReportsSection } from "./sections/ReportsSection";
+import { SettingsSection } from "./sections/SettingsSection";
 import { SkillsSection } from "./sections/SkillsSection";
 import { SocialSection } from "./sections/SocialSection";
 import { SystemSection } from "./sections/SystemSection";
@@ -52,7 +54,9 @@ export function WorkspaceView({
   const navigate = useNavigate();
   const splat = useParams()["*"] ?? "";
   const [first, second] = splat.split("/").filter(Boolean);
-  const tab: WorkspaceTab | null = !first ? "overview" : isSectionKey(first) ? first : null;
+  const settingsOpen = first === "settings";
+  const tab: WorkspaceTab | null =
+    !first || settingsOpen ? "overview" : isSectionKey(first) ? first : null;
   const detailId = second;
 
   const [status, setStatus] = useState<WorkspaceSummary | null | undefined>(undefined);
@@ -117,7 +121,7 @@ export function WorkspaceView({
   if (!tab || !tabs.includes(tab)) return <Navigate to="/app/workspace" replace />;
 
   const open = (next: WorkspaceTab, id?: string) => navigate(workspacePath(next, id));
-  const eyebrow = `${status.name} · ${labels[tab]}`;
+  const eyebrow = `${status.name} · ${settingsOpen ? t`Settings` : labels[tab]}`;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
@@ -142,10 +146,10 @@ export function WorkspaceView({
               <button
                 key={entry}
                 type="button"
-                aria-current={tab === entry ? "page" : undefined}
+                aria-current={tab === entry && !settingsOpen ? "page" : undefined}
                 onClick={() => open(entry)}
                 className={`shrink-0 cursor-pointer rounded-full px-3.5 py-1 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
-                  tab === entry
+                  tab === entry && !settingsOpen
                     ? "bg-[#232326] text-[#ECECEE]"
                     : "text-[#85858A] hover:text-[#C9C9CE]"
                 }`}
@@ -154,10 +158,29 @@ export function WorkspaceView({
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            aria-label={t`Workspace settings`}
+            aria-current={settingsOpen ? "page" : undefined}
+            onClick={() => navigate("/app/workspace/settings")}
+            className={`grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
+              settingsOpen
+                ? "bg-[#232326] text-[#ECECEE]"
+                : "text-[#85858A] hover:bg-[#131315] hover:text-[#C9C9CE]"
+            }`}
+          >
+            <Settings size={15} strokeWidth={1.7} />
+          </button>
         </div>
       </div>
 
-      {tab === "overview" ? (
+      {settingsOpen ? (
+        <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1180px] px-[22px] py-5">
+            <SettingsSection workspace={status} eyebrow={eyebrow} />
+          </div>
+        </div>
+      ) : tab === "overview" ? (
         <div className="min-h-0 flex-1">
           {error ? (
             <p className="px-[22px] py-6 text-[13px] text-[#E8A33C]">{error}</p>

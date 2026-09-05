@@ -444,6 +444,8 @@ export interface BackgroundJobPayloads {
   "skill.teaching-expire": { skillId: string };
   "history.compact": { threadId: string };
   "messaging.deliver": { runId?: string };
+  /** One workspace automation run; `scheduledFor` is set for cron wakeups, absent for "run now". */
+  "workspace.automation.run": { automationId: string; runId?: string; scheduledFor?: string };
 }
 
 export type BackgroundJobName = keyof BackgroundJobPayloads;

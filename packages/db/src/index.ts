@@ -16,4 +16,5 @@ export * from "./spaces.js";
 export * from "./transaction-retry.js";
 export * from "./voice-credentials.js";
 export * from "./workspace.js";
+export * from "./workspace-automations.js";
 export * from "./workspace-pipes.js";

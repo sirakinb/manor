@@ -36,7 +36,7 @@ test("workspace appears once the organization has one and its map opens sections
         organizationId: member.organizationId,
         name: "Harbor Homes",
         slug: `harbor-homes-${stamp}`,
-        channels: ["voice"],
+        channels: ["voice", "utilities"],
         sources: {
           create: {
             name: "Retell",
@@ -84,6 +84,52 @@ test("workspace appears once the organization has one and its map opens sections
           callbackRequested: false,
         },
       ],
+    });
+    // One water-billed property with one active lease and one bill that resolves to it.
+    const addressNorm = `12 harbor way ${stamp}`;
+    await prisma.workspaceBuildiumProperty.create({
+      data: {
+        workspaceId: workspace.id,
+        propertyId: 7101,
+        addressLine: "12 Harbor Way",
+        city: "Philadelphia",
+      },
+    });
+    await prisma.workspaceBuildiumLease.create({
+      data: {
+        workspaceId: workspace.id,
+        leaseId: 5101,
+        propertyId: 7101,
+        unitNumber: "A",
+        status: "Active",
+        rent: 1250,
+        leaseTo: new Date("2027-06-30"),
+      },
+    });
+    await prisma.workspaceUtilityProperty.create({
+      data: {
+        workspaceId: workspace.id,
+        utility: "water",
+        address: "12 Harbor Way",
+        addressNorm,
+        billingMode: "pass_through",
+        propertyId: 7101,
+        splitEvenly: false,
+      },
+    });
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId: workspace.id,
+        utility: "water",
+        gmailMessageId: `bill-${stamp}`,
+        serviceAddress: "12 Harbor Way",
+        serviceAddressNorm: addressNorm,
+        accountBalance: 84.5,
+        amountDue: 84.5,
+        dueDate: new Date("2026-09-20"),
+        billingMonth: new Date("2026-08-01"),
+        parseStatus: "parsed",
+      },
     });
     await prisma.workspaceActivity.create({
       data: {
@@ -134,4 +180,32 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByRole("heading", { name: "System", exact: true })).toBeVisible();
   await expect(page.getByText("Freshness signal").first()).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-system");
+
+  // Utilities: the seeded charge can be skipped and restored.
+  await tabs.getByRole("button", { name: "Utilities", exact: true }).click();
+  await page.waitForURL(/\/app\/workspace\/utilities$/);
+  const bill = page.getByTestId("workspace-bill").filter({ hasText: "12 Harbor Way" });
+  await expect(bill).toBeVisible();
+  await expect(bill.getByRole("button", { name: "Post to Buildium" })).toBeVisible();
+  await bill.getByRole("button", { name: "Skip" }).click();
+  await expect(bill.getByText("Skipped", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-utilities-skipped");
+  await bill.getByRole("button", { name: "Restore" }).click();
+  await expect(bill.getByRole("button", { name: "Skip" })).toBeVisible();
+  await expect(bill.getByText("Skipped", { exact: true })).toHaveCount(0);
+
+  // Settings: the water GL account persists across a reload.
+  await page.getByRole("button", { name: "Workspace settings" }).click();
+  await page.waitForURL(/\/app\/workspace\/settings$/);
+  const glAccount = page.getByLabel("Water GL account");
+  await glAccount.fill("4321");
+  // The nearest ancestor that carries a Save button is the Utilities card.
+  const utilitiesCard = glAccount.locator(
+    "xpath=ancestor::div[.//button[normalize-space()='Save']][1]",
+  );
+  await utilitiesCard.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved", { exact: true }).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Water GL account")).toHaveValue("4321");
+  await captureScreenshot(page, testInfo, "workspace-settings");
 });

@@ -20,6 +20,11 @@ const payloadSchemas = {
   "skill.teaching-expire": z.object({ skillId: z.string().min(1) }),
   "history.compact": z.object({ threadId: z.string().min(1) }),
   "messaging.deliver": z.object({ runId: z.string().min(1).optional() }),
+  "workspace.automation.run": z.object({
+    automationId: z.string().min(1),
+    runId: z.string().min(1).optional(),
+    scheduledFor: z.string().datetime({ offset: true }).optional(),
+  }),
 } satisfies { [Name in BackgroundJobName]: z.ZodType<BackgroundJobPayloads[Name]> };
 
 export function parseBackgroundJob(name: string, payload: unknown): BackgroundJob {
@@ -127,5 +132,31 @@ export function historyCompactJob(threadId: string): BackgroundJob {
     name: "history.compact",
     payload: { threadId },
     replaceKey: historyCompactJobKey(threadId),
+  };
+}
+
+export function workspaceAutomationJobKey(automationId: string): string {
+  return `workspace-automation:${automationId}`;
+}
+
+/** A cron wakeup for an automation; replaces any earlier wakeup for the same one. */
+export function workspaceAutomationWakeupJob(
+  automationId: string,
+  scheduledFor: Date,
+): BackgroundJob {
+  return {
+    name: "workspace.automation.run",
+    payload: { automationId, scheduledFor: scheduledFor.toISOString() },
+    availableAt: scheduledFor,
+    replaceKey: workspaceAutomationJobKey(automationId),
+  };
+}
+
+/** "Run now": a manual run against a sync-run row the caller already created. */
+export function workspaceAutomationRunNowJob(automationId: string, runId: string): BackgroundJob {
+  return {
+    name: "workspace.automation.run",
+    payload: { automationId, runId },
+    replaceKey: `${workspaceAutomationJobKey(automationId)}:${runId}`,
   };
 }

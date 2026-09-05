@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspacePipeStatus } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { LoadingState } from "../../components/beautiful-ui/primitives";
+import { BuiButton, BuiCard, LoadingState } from "../../components/beautiful-ui/primitives";
 import { accentColor } from "../../lib/brand";
 import { formatMoney, formatMoneyShort, withAlpha } from "../crm/theme";
 
@@ -119,7 +119,14 @@ export function useFormatAgeHours(): (ageHours: number | null) => string {
 export function useSectionData<T>(
   load: () => Promise<T>,
   key: string,
-): { data: T | null; error: string | null; loading: boolean; reload: () => void } {
+): {
+  data: T | null;
+  error: string | null;
+  loading: boolean;
+  reload: () => void;
+  /** Replace the loaded value, e.g. with what a mutation returned. */
+  setData: (next: T) => void;
+} {
   const [state, setState] = useState<{ key: string; data: T | null; error: string | null }>({
     key: "",
     data: null,
@@ -151,7 +158,116 @@ export function useSectionData<T>(
     error: fresh ? state.error : null,
     loading: !fresh,
     reload: () => setEpoch((value) => value + 1),
+    setData: (next) => setState({ key, data: next, error: null }),
   };
+}
+
+/** The message a failed call should show; refusals arrive as plain messages. */
+export function errorMessage(cause: unknown, fallback: string): string {
+  return cause instanceof Error && cause.message ? cause.message : fallback;
+}
+
+export const INPUT =
+  "w-full rounded-lg border border-[#202023] bg-[#0D0D0E] px-3 py-1.5 text-[13px] text-[#ECECEE] outline-none placeholder:text-[#5F5B69] focus:border-[#34343B] disabled:opacity-60";
+
+export function Field({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: the control is the child the caller passes in
+    <label className={`block text-[12px] text-[#85858A] ${className}`}>
+      <span className="mb-1 block">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+/** On/off control in the shell's style. */
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)]"
+      style={{ backgroundColor: checked ? accentColor : "#2A2A2F" }}
+    >
+      <span
+        className="absolute h-4 w-4 rounded-full bg-white transition-transform"
+        style={{ transform: checked ? "translateX(18px)" : "translateX(2px)" }}
+      />
+    </button>
+  );
+}
+
+/**
+ * An approval card: what is about to happen, then Confirm / Cancel. The same
+ * beat the chat uses for consequential tool calls.
+ */
+export function ConfirmCard({
+  title,
+  lines,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+  busy,
+  error,
+  tone = "accent",
+}: {
+  title: string;
+  lines?: Array<{ label: string; value: string }>;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  busy?: boolean;
+  error?: string | null;
+  tone?: "accent" | "neutral";
+}) {
+  return (
+    <BuiCard role="dialog" aria-label={title} className="border border-[#343438] p-4">
+      <p className="text-[13.5px] font-medium text-[#ECECEE]">{title}</p>
+      {lines?.length ? (
+        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[12.5px]">
+          {lines.map((line) => (
+            <div key={line.label} className="contents">
+              <dt className="text-[#85858A]">{line.label}</dt>
+              <dd className="text-[#C9C9CE] tabular-nums">{line.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {error ? <p className="mt-2 text-[12.5px] text-[#E8A33C]">{error}</p> : null}
+      <div className="mt-3 flex justify-end gap-2">
+        <BuiButton disabled={busy} onClick={onCancel}>
+          {cancelLabel}
+        </BuiButton>
+        <BuiButton tone={tone} disabled={busy} onClick={onConfirm}>
+          {confirmLabel}
+        </BuiButton>
+      </div>
+    </BuiCard>
+  );
 }
 
 export function Loading() {

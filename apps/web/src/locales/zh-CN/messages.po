@@ -41,7 +41,7 @@ msgid "{0, plural, one {# record} other {# records}}"
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/ReportsSection.tsx:43
+#: src/pages/workspace/sections/ReportsSection.tsx:81
 msgid "{0} · AI-synthesized reports across channels"
 msgstr ""
 
@@ -61,7 +61,7 @@ msgid "{0} · reusable playbooks and scripts agents saved, so the next run start
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/UtilitiesSection.tsx:81
+#: src/pages/workspace/sections/UtilitiesSection.tsx:117
 msgid "{0} · water billing, charged to each tenant's ledger"
 msgstr ""
 
@@ -142,6 +142,11 @@ msgstr ""
 msgid "{0} connection"
 msgstr "{0} 连接"
 
+#. placeholder {0}: formatNumber(batch.failed)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:306
+msgid "{0} failed"
+msgstr ""
+
 #. placeholder {0}: repo.files.length
 #: src/components/FilesPanel.tsx:402
 msgid "{0} files"
@@ -216,13 +221,18 @@ msgid "{0} of calls"
 msgstr ""
 
 #. placeholder {0}: data.length
-#: src/pages/workspace/sections/ReportsSection.tsx:48
+#: src/pages/workspace/sections/ReportsSection.tsx:86
 msgid "{0} on record"
 msgstr ""
 
 #. placeholder {0}: formatCompact(data.opens)
 #: src/pages/workspace/sections/EmailSection.tsx:118
 msgid "{0} opens"
+msgstr ""
+
+#. placeholder {0}: formatNumber(batch.posted)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:303
+msgid "{0} posted"
 msgstr ""
 
 #. placeholder {0}: formatNumber(account?.mediaCount)
@@ -257,7 +267,7 @@ msgstr ""
 #. placeholder {0}: formatNumber(unmatchedBills)
 #. placeholder {1}: formatNumber(ambiguousBills)
 #. placeholder {2}: formatNumber(unparsedBills)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:106
+#: src/pages/workspace/sections/UtilitiesSection.tsx:142
 msgid "{0} unmatched · {1} ambiguous · {2} to parse"
 msgstr ""
 
@@ -452,6 +462,11 @@ msgstr "账户默认"
 msgid "Action confirmations"
 msgstr "操作确认"
 
+#: src/pages/workspace/sections/ReportsSection.tsx:573
+#: src/pages/workspace/sections/ReportsSection.tsx:574
+msgid "Action type"
+msgstr ""
+
 #. placeholder {0}: bot.name
 #: src/pages/BotContextMenu.tsx:77
 msgid "Actions for {0}"
@@ -502,6 +517,7 @@ msgstr "动态"
 #: src/pages/PluginsOverlay.tsx:289
 #: src/pages/PluginsOverlay.tsx:388
 #: src/pages/ScratchpadSection.tsx:188
+#: src/pages/workspace/sections/SettingsSection.tsx:460
 msgid "Add"
 msgstr "添加"
 
@@ -537,6 +553,11 @@ msgstr "请填写服务器名称。"
 msgid "Add a stdio command."
 msgstr "请填写 stdio 命令。"
 
+#: src/pages/workspace/sections/ReportsSection.tsx:399
+#: src/pages/workspace/sections/ReportsSection.tsx:400
+msgid "Add an address"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:90
 msgid "Add an HTTPS server URL."
 msgstr "请填写 HTTPS 服务器 URL。"
@@ -550,6 +571,7 @@ msgid "Add field"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:182
+#: src/pages/workspace/sections/ReportsSection.tsx:523
 msgid "Add item"
 msgstr "添加项目"
 
@@ -634,7 +656,7 @@ msgid "AI handled"
 msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:344
-#: src/pages/workspace/WorkspaceView.tsx:86
+#: src/pages/workspace/WorkspaceView.tsx:90
 msgid "AI team"
 msgstr ""
 
@@ -658,7 +680,7 @@ msgstr ""
 msgid "All pipelines"
 msgstr ""
 
-#: src/pages/workspace/sections/ReportsSection.tsx:123
+#: src/pages/workspace/sections/ReportsSection.tsx:191
 msgid "All reports"
 msgstr ""
 
@@ -714,8 +736,13 @@ msgstr "始终允许"
 msgid "Always on"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:54
+#: src/pages/workspace/sections/UtilitiesSection.tsx:77
 msgid "Ambiguous"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:463
+#: src/pages/workspace/sections/UtilitiesSection.tsx:558
+msgid "Amount"
 msgstr ""
 
 #: src/components/AskCard.tsx:157
@@ -797,14 +824,20 @@ msgstr ""
 #: src/pages/MessagingSettingsOverlay.tsx:215
 #: src/pages/MessagingSettingsOverlay.tsx:282
 #: src/pages/Shell.tsx:7257
+#: src/pages/workspace/sections/ReportsSection.tsx:213
+#: src/pages/workspace/sections/ReportsSection.tsx:252
 msgid "Approve"
 msgstr "批准"
+
+#: src/pages/workspace/sections/ReportsSection.tsx:250
+msgid "Approve this report?"
+msgstr ""
 
 #: src/pages/Shell.tsx:7248
 msgid "Approve this server to let your agent use its tools."
 msgstr "批准此服务器后，Agent 才能使用它的工具。"
 
-#: src/pages/workspace/sections/ReportsSection.tsx:84
+#: src/pages/workspace/sections/ReportsSection.tsx:51
 #: src/pages/workspace/sections/TeamSection.tsx:63
 msgid "Approved"
 msgstr ""
@@ -865,6 +898,11 @@ msgstr "购买前询问"
 #: src/components/ApprovalRulesSettings.tsx:125
 msgid "Ask before sending external email"
 msgstr "发送外部邮件前询问"
+
+#: src/pages/workspace/sections/SettingsSection.tsx:197
+#: src/pages/workspace/sections/SettingsSection.tsx:241
+msgid "At"
+msgstr ""
 
 #. placeholder {0}: preset.time
 #: src/pages/RoutineSchedule.tsx:90
@@ -977,16 +1015,16 @@ msgstr ""
 msgid "Bearer token"
 msgstr "Bearer token"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:94
+#: src/pages/workspace/sections/UtilitiesSection.tsx:130
 msgid "Billable"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:219
+#: src/pages/workspace/sections/UtilitiesSection.tsx:226
 msgid "Billing"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:99
-#: src/pages/workspace/sections/UtilitiesSection.tsx:111
+#: src/pages/workspace/sections/UtilitiesSection.tsx:135
+#: src/pages/workspace/sections/UtilitiesSection.tsx:147
 msgid "Bills"
 msgstr ""
 
@@ -1151,6 +1189,14 @@ msgstr "无法连接服务器。"
 #: src/pages/Shell.tsx:6681
 #: src/pages/Shell.tsx:6796
 #: src/pages/Shell.tsx:6872
+#: src/pages/workspace/sections/ReportsSection.tsx:253
+#: src/pages/workspace/sections/ReportsSection.tsx:267
+#: src/pages/workspace/sections/ReportsSection.tsx:414
+#: src/pages/workspace/sections/ReportsSection.tsx:621
+#: src/pages/workspace/sections/SettingsSection.tsx:460
+#: src/pages/workspace/sections/SettingsSection.tsx:515
+#: src/pages/workspace/sections/UtilitiesSection.tsx:172
+#: src/pages/workspace/sections/UtilitiesSection.tsx:563
 msgid "Cancel"
 msgstr "取消"
 
@@ -1195,6 +1241,14 @@ msgstr ""
 #: src/pages/workspace/PipelineMap.tsx:343
 msgid "Channels"
 msgstr "频道"
+
+#: src/pages/workspace/sections/SettingsSection.tsx:326
+msgid "Charge description"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:167
+msgid "Charges"
+msgstr ""
 
 #: src/pages/Shell.tsx:7154
 msgid "Chart failed to render: {error}"
@@ -1785,7 +1839,7 @@ msgstr ""
 msgid "Could not load the CRM"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:70
+#: src/pages/workspace/WorkspaceView.tsx:74
 msgid "Could not load the workspace"
 msgstr ""
 
@@ -1809,6 +1863,12 @@ msgstr "无法加载语音设置"
 msgid "Could not play a test clip"
 msgstr "无法播放测试片段"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:106
+#: src/pages/workspace/sections/UtilitiesSection.tsx:445
+#: src/pages/workspace/sections/UtilitiesSection.tsx:449
+msgid "Could not post"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx:295
 #: src/pages/Auth.tsx:90
 #: src/pages/Auth.tsx:301
@@ -1825,6 +1885,7 @@ msgid "Could not read changes"
 msgstr "无法读取更改"
 
 #: src/pages/ScratchpadSection.tsx:95
+#: src/pages/workspace/sections/SettingsSection.tsx:425
 msgid "Could not remove"
 msgstr "无法移除"
 
@@ -1871,6 +1932,9 @@ msgstr "无法运行例行任务"
 #: src/components/FilesPanel.tsx:178
 #: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:6402
+#: src/pages/workspace/sections/SettingsSection.tsx:103
+#: src/pages/workspace/sections/SettingsSection.tsx:411
+#: src/pages/workspace/sections/UtilitiesSection.tsx:413
 msgid "Could not save"
 msgstr "无法保存"
 
@@ -1962,6 +2026,10 @@ msgstr "无法更新反应"
 msgid "Could not update the default memory scope"
 msgstr "无法更新默认记忆范围"
 
+#: src/pages/workspace/sections/ReportsSection.tsx:168
+msgid "Could not update the report"
+msgstr ""
+
 #: src/pages/MessagingSettingsOverlay.tsx:49
 msgid "Couldn't load messaging settings"
 msgstr "无法加载消息设置"
@@ -2050,6 +2118,10 @@ msgstr "凭据已保存"
 msgid "Credential scopes"
 msgstr ""
 
+#: src/pages/workspace/sections/SettingsSection.tsx:358
+msgid "Credentials"
+msgstr ""
+
 #: src/pages/CrmApiAccessPanel.tsx:146
 msgid "CRM API access"
 msgstr ""
@@ -2087,6 +2159,8 @@ msgid "DATA VAULT"
 msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
+#: src/pages/workspace/sections/UtilitiesSection.tsx:169
+#: src/pages/workspace/sections/UtilitiesSection.tsx:560
 msgid "Date"
 msgstr ""
 
@@ -2138,6 +2212,8 @@ msgstr "默认范围"
 #: src/pages/Shell.tsx:2962
 #: src/pages/Shell.tsx:6811
 #: src/pages/Shell.tsx:6893
+#: src/pages/workspace/sections/ReportsSection.tsx:226
+#: src/pages/workspace/sections/ReportsSection.tsx:266
 msgid "Delete"
 msgstr "删除"
 
@@ -2173,6 +2249,10 @@ msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:114
 msgid "Delete row"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:264
+msgid "Delete this draft?"
 msgstr ""
 
 #: src/pages/Shell.tsx:5774
@@ -2223,7 +2303,12 @@ msgstr "描述这个 Bot 做什么"
 msgid "Description"
 msgstr "描述"
 
-#: src/pages/workspace/sections/ReportsSection.tsx:191
+#: src/pages/workspace/sections/ReportsSection.tsx:549
+#: src/pages/workspace/sections/ReportsSection.tsx:550
+msgid "Detail"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:711
 msgid "Details"
 msgstr ""
 
@@ -2245,6 +2330,8 @@ msgid "Disconnecting…"
 msgstr "正在断开…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:251
+#: src/pages/workspace/sections/ReportsSection.tsx:242
+#: src/pages/workspace/sections/UtilitiesSection.tsx:309
 msgid "Dismiss"
 msgstr ""
 
@@ -2309,6 +2396,14 @@ msgstr "下载 {name}"
 msgid "Download as markdown"
 msgstr ""
 
+#: src/pages/workspace/sections/ReportsSection.tsx:52
+msgid "Draft"
+msgstr ""
+
+#: src/pages/workspace/sections/SettingsSection.tsx:266
+msgid "Draft reviewer"
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx:79
 msgid "Draft skill"
 msgstr "技能草稿"
@@ -2322,7 +2417,7 @@ msgid "Drop to attach to {name}"
 msgstr "松开以附加到 {name}"
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:133
+#: src/pages/workspace/sections/UtilitiesSection.tsx:349
 msgid "Due {0}"
 msgstr ""
 
@@ -2334,11 +2429,11 @@ msgstr "复制"
 msgid "Durable facts and conventions agents read before acting."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:112
+#: src/pages/workspace/sections/UtilitiesSection.tsx:148
 msgid "Each bill and the charges prepared for its lease"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:196
+#: src/pages/workspace/sections/UtilitiesSection.tsx:203
 msgid "Each property billed for water, with the lease that carries the charge"
 msgstr ""
 
@@ -2348,6 +2443,8 @@ msgstr "更早的消息"
 
 #: src/components/BotCredentialsSettings.tsx:204
 #: src/pages/crm/CrmPipelineBoard.tsx:339
+#: src/pages/workspace/sections/ReportsSection.tsx:208
+#: src/pages/workspace/sections/SettingsSection.tsx:460
 msgid "Edit"
 msgstr ""
 
@@ -2368,13 +2465,17 @@ msgstr "先编辑"
 msgid "Edit Profile"
 msgstr "编辑资料"
 
+#: src/pages/workspace/sections/ReportsSection.tsx:484
+msgid "Edit report"
+msgstr ""
+
 #: src/pages/Auth.tsx:143
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
 #: src/pages/crm/CrmModuleSheet.tsx:258
 #: src/pages/workspace/PipelineMap.tsx:112
-#: src/pages/workspace/WorkspaceView.tsx:82
+#: src/pages/workspace/WorkspaceView.tsx:86
 msgid "Email"
 msgstr "邮箱"
 
@@ -2413,7 +2514,8 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "在 <0>{0}</0> 输入此代码"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:62
+#: src/pages/workspace/sections/ReportsSection.tsx:55
+#: src/pages/workspace/sections/UtilitiesSection.tsx:394
 msgid "Error"
 msgstr ""
 
@@ -2496,6 +2598,10 @@ msgstr "从 CRM 导出本周名单并放到共享文件夹"
 msgid "Extra high"
 msgstr "极高"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:316
+msgid "failed"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:161
 msgid "Failed"
 msgstr "失败"
@@ -2553,6 +2659,10 @@ msgstr ""
 #: src/pages/Shell.tsx:3440
 msgid "Files"
 msgstr "文件"
+
+#: src/pages/workspace/sections/ReportsSection.tsx:53
+msgid "Final"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:428
 #: src/pages/Onboarding.tsx:293
@@ -2630,6 +2740,10 @@ msgstr "免费"
 msgid "Freshness signal"
 msgstr ""
 
+#: src/pages/workspace/sections/SettingsSection.tsx:160
+msgid "Friday"
+msgstr ""
+
 #: src/pages/workspace/sections/EmailSection.tsx:325
 msgid "From"
 msgstr ""
@@ -2638,12 +2752,16 @@ msgstr ""
 msgid "Fullscreen"
 msgstr "全屏"
 
-#: src/pages/workspace/sections/ReportsSection.tsx:78
+#: src/pages/workspace/sections/ReportsSection.tsx:116
 msgid "Generated"
 msgstr ""
 
-#: src/pages/workspace/sections/ReportsSection.tsx:48
+#: src/pages/workspace/sections/ReportsSection.tsx:86
 msgid "Generated reports"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:54
+msgid "Generating"
 msgstr ""
 
 #: src/pages/DocsView.tsx:26
@@ -2733,6 +2851,8 @@ msgid "Hide password"
 msgstr "隐藏密码"
 
 #: src/pages/Shell.tsx:6437
+#: src/pages/workspace/sections/ReportsSection.tsx:569
+#: src/pages/workspace/sections/ReportsSection.tsx:593
 msgid "High"
 msgstr "高"
 
@@ -2877,6 +2997,7 @@ msgid "Keys stay on the server. The app only learns whether a provider is config
 msgstr "密钥留在服务器上。应用只知道提供方是否已配置。"
 
 #: src/components/BotCredentialsSettings.tsx:229
+#: src/pages/workspace/sections/SettingsSection.tsx:478
 msgid "Label"
 msgstr ""
 
@@ -2925,30 +3046,36 @@ msgstr ""
 msgid "Last 90 days"
 msgstr ""
 
+#: src/pages/workspace/sections/SettingsSection.tsx:189
+msgid "Last day of month"
+msgstr ""
+
 #: src/pages/crm/CrmContacts.tsx:358
 #: src/pages/crm/CrmContactsSheet.tsx:88
 msgid "Last name"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:228
+#: src/pages/workspace/sections/UtilitiesSection.tsx:235
 msgid "Lease"
 msgstr ""
 
 #. placeholder {0}: charge.leaseId
 #. placeholder {0}: row.leaseId
 #: src/pages/workspace/sections/LeasingSection.tsx:127
-#: src/pages/workspace/sections/UtilitiesSection.tsx:159
+#: src/pages/workspace/sections/UtilitiesSection.tsx:403
 msgid "Lease {0}"
 msgstr ""
 
 #. placeholder {0}: lease.leaseId
-#: src/pages/workspace/sections/UtilitiesSection.tsx:236
+#. placeholder {0}: result.leaseId
+#: src/pages/workspace/sections/UtilitiesSection.tsx:243
+#: src/pages/workspace/sections/UtilitiesSection.tsx:316
 msgid "Lease #{0}"
 msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:116
 #: src/pages/workspace/sections/LeasingSection.tsx:49
-#: src/pages/workspace/WorkspaceView.tsx:84
+#: src/pages/workspace/WorkspaceView.tsx:88
 msgid "Leasing"
 msgstr ""
 
@@ -2996,7 +3123,7 @@ msgstr "加载更早的消息"
 msgid "Load more"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:161
+#: src/pages/workspace/bits.tsx:277
 msgid "Loading"
 msgstr ""
 
@@ -3062,6 +3189,8 @@ msgid "Lost"
 msgstr ""
 
 #: src/pages/Shell.tsx:6435
+#: src/pages/workspace/sections/ReportsSection.tsx:567
+#: src/pages/workspace/sections/ReportsSection.tsx:591
 msgid "Low"
 msgstr "低"
 
@@ -3113,7 +3242,7 @@ msgstr ""
 msgid "Market rent"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:96
+#: src/pages/workspace/sections/UtilitiesSection.tsx:132
 msgid "matched to an active lease"
 msgstr ""
 
@@ -3132,6 +3261,8 @@ msgid "Meaning"
 msgstr ""
 
 #: src/pages/Shell.tsx:6436
+#: src/pages/workspace/sections/ReportsSection.tsx:568
+#: src/pages/workspace/sections/ReportsSection.tsx:592
 msgid "Medium"
 msgstr "中"
 
@@ -3142,6 +3273,11 @@ msgstr "成员（{GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX}）"
 #: src/pages/GroupPanel.tsx:119
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "成员（选择 {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} 个）"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:475
+#: src/pages/workspace/sections/UtilitiesSection.tsx:559
+msgid "Memo"
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx:25
 #: src/pages/MemorySettingsOverlay.tsx:135
@@ -3217,7 +3353,7 @@ msgstr "分钟"
 msgid "Mobile"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:264
+#: src/pages/workspace/sections/UtilitiesSection.tsx:271
 msgid "Mode"
 msgstr ""
 
@@ -3271,12 +3407,21 @@ msgstr ""
 msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
 msgstr ""
 
+#: src/pages/workspace/sections/SettingsSection.tsx:156
+msgid "Monday"
+msgstr ""
+
 #: src/pages/RoutineSchedule.tsx:96
 msgid "Monthly"
 msgstr "每月"
 
 #: src/pages/workspace/sections/LeasingSection.tsx:95
 msgid "Monthly submissions"
+msgstr ""
+
+#: src/pages/workspace/sections/SettingsSection.tsx:172
+#: src/pages/workspace/sections/SettingsSection.tsx:175
+msgid "Monthly voice recap"
 msgstr ""
 
 #: src/components/ComputerMaintenanceActions.tsx:125
@@ -3332,7 +3477,7 @@ msgstr ""
 msgid "Needed a person"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:104
+#: src/pages/workspace/sections/UtilitiesSection.tsx:140
 msgid "Needs attention"
 msgstr ""
 
@@ -3410,11 +3555,11 @@ msgstr ""
 #: src/pages/crm/CrmModuleSheet.tsx:58
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:752
+#: src/pages/workspace/bits.tsx:868
 msgid "No"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:55
+#: src/pages/workspace/sections/UtilitiesSection.tsx:78
 msgid "No active lease"
 msgstr ""
 
@@ -3434,7 +3579,7 @@ msgstr "无认证"
 msgid "No authentication"
 msgstr "无认证"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:117
+#: src/pages/workspace/sections/UtilitiesSection.tsx:184
 msgid "No bills yet"
 msgstr ""
 
@@ -3496,6 +3641,10 @@ msgstr "此工作区中还没有 git 仓库。机器人在仓库中工作后，�
 msgid "No group chats yet."
 msgstr "还没有群聊。"
 
+#: src/pages/workspace/sections/ReportsSection.tsx:529
+msgid "No items"
+msgstr ""
+
 #: src/pages/workspace/sections/LeasingSection.tsx:118
 msgid "No leases expire soon"
 msgstr ""
@@ -3541,7 +3690,7 @@ msgstr ""
 msgid "No posts in this range"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:202
+#: src/pages/workspace/sections/UtilitiesSection.tsx:209
 msgid "No properties mapped yet"
 msgstr ""
 
@@ -3553,7 +3702,7 @@ msgstr "未找到提供方。"
 msgid "No rentals match"
 msgstr ""
 
-#: src/pages/workspace/sections/ReportsSection.tsx:53
+#: src/pages/workspace/sections/ReportsSection.tsx:91
 msgid "No reports yet"
 msgstr ""
 
@@ -3581,7 +3730,7 @@ msgstr "无触发器"
 msgid "No workers yet"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:110
+#: src/pages/workspace/WorkspaceView.tsx:114
 msgid "No workspace is connected to this account."
 msgstr ""
 
@@ -3606,13 +3755,17 @@ msgstr "未连接"
 msgid "Not in the plugin catalog"
 msgstr "不在插件目录中"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:212
+#: src/pages/workspace/sections/UtilitiesSection.tsx:219
 msgid "Not matched to a property"
 msgstr ""
 
 #: src/pages/Shell.tsx:7260
 msgid "Not now"
 msgstr "暂不"
+
+#: src/pages/workspace/sections/SettingsSection.tsx:448
+msgid "Not set"
+msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:121
 msgid "Not synced yet"
@@ -3633,10 +3786,10 @@ msgid "Nothing remembered yet"
 msgstr ""
 
 #: src/pages/crm/CrmHome.tsx:284
-#: src/pages/workspace/bits.tsx:354
-#: src/pages/workspace/bits.tsx:457
-#: src/pages/workspace/bits.tsx:882
-#: src/pages/workspace/bits.tsx:963
+#: src/pages/workspace/bits.tsx:470
+#: src/pages/workspace/bits.tsx:573
+#: src/pages/workspace/bits.tsx:998
+#: src/pages/workspace/bits.tsx:1079
 msgid "Nothing to chart yet"
 msgstr ""
 
@@ -3677,7 +3830,7 @@ msgstr ""
 msgid "On a schedule"
 msgstr "按计划"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:101
+#: src/pages/workspace/sections/UtilitiesSection.tsx:137
 msgid "on record"
 msgstr ""
 
@@ -3686,7 +3839,7 @@ msgstr ""
 msgid "on the 1st at {0}"
 msgstr "每月 1 日 {0}"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:91
+#: src/pages/workspace/sections/UtilitiesSection.tsx:127
 msgid "on the utility account"
 msgstr ""
 
@@ -3747,6 +3900,10 @@ msgstr ""
 
 #: src/pages/crm/SheetGrid.tsx:236
 msgid "Open row"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:289
+msgid "Open settings"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:104
@@ -3832,7 +3989,7 @@ msgstr "其他模型…"
 msgid "Outbound webhooks"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:79
+#: src/pages/workspace/WorkspaceView.tsx:83
 msgid "Overview"
 msgstr ""
 
@@ -3849,7 +4006,7 @@ msgstr ""
 msgid "Park"
 msgstr "搁置"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:53
+#: src/pages/workspace/sections/UtilitiesSection.tsx:76
 msgid "Pass-through"
 msgstr ""
 
@@ -3895,7 +4052,7 @@ msgstr "粘贴你的 API 密钥"
 msgid "Paused"
 msgstr "已暂停"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:59
+#: src/pages/workspace/sections/UtilitiesSection.tsx:391
 msgid "Pending"
 msgstr ""
 
@@ -3964,11 +4121,37 @@ msgstr ""
 msgid "Port {0}"
 msgstr ""
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:562
+msgid "Post"
+msgstr ""
+
+#. placeholder {0}: formatNumber(pendingCharges.length)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:165
+msgid "Post {0} charges to Buildium?"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:171
+msgid "Post all"
+msgstr ""
+
+#. placeholder {0}: formatNumber(pendingCharges.length)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:157
+msgid "Post all pending ({0})"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:555
+msgid "Post this charge to Buildium?"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:552
 msgid "POST to"
 msgstr "POST 到"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:60
+#: src/pages/workspace/sections/UtilitiesSection.tsx:532
+msgid "Post to Buildium"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:392
 msgid "Posted"
 msgstr ""
 
@@ -3986,6 +4169,10 @@ msgstr ""
 msgid "Preview {0}"
 msgstr "预览 {0}"
 
+#: src/pages/workspace/sections/ReportsSection.tsx:561
+msgid "Priority"
+msgstr ""
+
 #: src/pages/Shell.tsx:6007
 msgid "Private"
 msgstr "私有"
@@ -4000,7 +4187,7 @@ msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:122
 #: src/pages/workspace/sections/LeasingSection.tsx:200
-#: src/pages/workspace/sections/UtilitiesSection.tsx:206
+#: src/pages/workspace/sections/UtilitiesSection.tsx:213
 msgid "Property"
 msgstr ""
 
@@ -4026,7 +4213,7 @@ msgid "Queued"
 msgstr "排队中"
 
 #: src/pages/workspace/sections/EmailSection.tsx:90
-#: src/pages/workspace/sections/ReportsSection.tsx:69
+#: src/pages/workspace/sections/ReportsSection.tsx:107
 #: src/pages/workspace/sections/SocialSection.tsx:65
 #: src/pages/workspace/sections/VoiceSection.tsx:115
 msgid "Range"
@@ -4073,6 +4260,10 @@ msgstr ""
 
 #: src/pages/workspace/sections/SystemSection.tsx:98
 msgid "Recent runs"
+msgstr ""
+
+#: src/pages/workspace/sections/SettingsSection.tsx:258
+msgid "Recipients"
 msgstr ""
 
 #: src/pages/McpServersOverlay.tsx:17
@@ -4156,6 +4347,8 @@ msgstr "释放"
 #: src/pages/PluginsOverlay.tsx:386
 #: src/pages/PluginsOverlay.tsx:600
 #: src/pages/ScratchpadSection.tsx:162
+#: src/pages/workspace/sections/SettingsSection.tsx:471
+#: src/pages/workspace/sections/SettingsSection.tsx:514
 msgid "Remove"
 msgstr "移除"
 
@@ -4168,6 +4361,14 @@ msgstr ""
 #: src/pages/Shell.tsx:4931
 msgid "Remove {0}"
 msgstr "移除 {0}"
+
+#: src/pages/workspace/sections/ReportsSection.tsx:387
+msgid "Remove {address}"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:599
+msgid "Remove item"
+msgstr ""
 
 #. placeholder {0}: mention.name
 #: src/pages/Shell.tsx:5153
@@ -4185,6 +4386,11 @@ msgstr "移除技能 {0}"
 
 #: src/pages/crm/CrmPipelineBoard.tsx:740
 msgid "Remove stage"
+msgstr ""
+
+#. placeholder {0}: PROVIDER_NAMES[provider]
+#: src/pages/workspace/sections/SettingsSection.tsx:513
+msgid "Remove the {0} credential?"
 msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:125
@@ -4217,7 +4423,7 @@ msgstr "正在移除…"
 
 #: src/pages/workspace/sections/LeasingSection.tsx:143
 #: src/pages/workspace/sections/LeasingSection.tsx:224
-#: src/pages/workspace/sections/UtilitiesSection.tsx:251
+#: src/pages/workspace/sections/UtilitiesSection.tsx:258
 msgid "Rent"
 msgstr ""
 
@@ -4243,12 +4449,15 @@ msgstr "回复"
 msgid "Replying to {replyName}"
 msgstr "正在回复 {replyName}"
 
-#: src/pages/workspace/sections/ReportsSection.tsx:163
+#: src/pages/workspace/sections/ReportsSection.tsx:251
+#: src/pages/workspace/sections/ReportsSection.tsx:265
+#: src/pages/workspace/sections/ReportsSection.tsx:671
 msgid "Report"
 msgstr ""
 
-#: src/pages/workspace/sections/ReportsSection.tsx:42
-#: src/pages/workspace/WorkspaceView.tsx:81
+#: src/pages/workspace/sections/ReportsSection.tsx:80
+#: src/pages/workspace/sections/SettingsSection.tsx:167
+#: src/pages/workspace/WorkspaceView.tsx:85
 msgid "Reports"
 msgstr ""
 
@@ -4294,12 +4503,17 @@ msgstr ""
 #: src/pages/crm/CrmContacts.tsx:467
 #: src/pages/Shell.tsx:2924
 #: src/pages/Shell.tsx:2954
+#: src/pages/workspace/sections/UtilitiesSection.tsx:515
 msgid "Restore"
 msgstr "恢复"
 
 #: src/components/ComputerMaintenanceActions.tsx:103
 msgid "Restore the last saved workspace. Unsaved work on the computer is lost."
 msgstr "还原上次保存的工作区。电脑上未保存的工作会丢失。"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:532
+msgid "Retry"
+msgstr ""
 
 #: src/App.tsx:169
 msgid "Retry now"
@@ -4374,6 +4588,10 @@ msgstr "运行中 · 停止"
 msgid "Running…"
 msgstr "正在运行…"
 
+#: src/pages/workspace/sections/SettingsSection.tsx:161
+msgid "Saturday"
+msgstr ""
+
 #: src/components/BotCredentialsSettings.tsx:323
 #: src/components/FilesPanel.tsx:340
 #: src/components/teach/SkillDraftCard.tsx:162
@@ -4386,10 +4604,14 @@ msgstr "正在运行…"
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:478
 #: src/pages/Shell.tsx:6407
+#: src/pages/workspace/sections/ReportsSection.tsx:650
+#: src/pages/workspace/sections/SettingsSection.tsx:132
+#: src/pages/workspace/sections/SettingsSection.tsx:505
 msgid "Save"
 msgstr "保存"
 
 #: src/components/teach/SkillDraftCard.tsx:162
+#: src/pages/workspace/sections/SettingsSection.tsx:128
 msgid "Saved"
 msgstr "已保存"
 
@@ -4491,12 +4713,18 @@ msgstr "选择 Bot"
 
 #: src/pages/Shell.tsx:5246
 #: src/pages/Shell.tsx:5268
+#: src/pages/workspace/sections/ReportsSection.tsx:217
+#: src/pages/workspace/sections/ReportsSection.tsx:421
 msgid "Send"
 msgstr "发送"
 
 #: src/pages/MessagingSettingsOverlay.tsx:174
 msgid "Send <0>{linkCode}</0> to the line from your chat app within 10 minutes. You'll get a confirmation reply once linked."
 msgstr "请在 10 分钟内从聊天应用向该线路发送 <0>{linkCode}</0>。关联成功后你会收到确认回复。"
+
+#: src/pages/workspace/sections/ReportsSection.tsx:217
+msgid "Send again"
+msgstr ""
 
 #: src/components/AskCard.tsx:169
 msgid "Send answer"
@@ -4506,12 +4734,25 @@ msgstr "发送回答"
 msgid "Send it"
 msgstr "发送"
 
+#: src/pages/workspace/sections/SettingsSection.tsx:181
+#: src/pages/workspace/sections/SettingsSection.tsx:226
+msgid "Send on"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:372
+msgid "Send report"
+msgstr ""
+
 #: src/pages/Auth.tsx:240
 msgid "Send reset link"
 msgstr "发送重置链接"
 
 #: src/pages/DocsView.tsx:172
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:376
+msgid "Send this report"
 msgstr ""
 
 #: src/pages/DocsView.tsx:486
@@ -4527,12 +4768,14 @@ msgstr "正在发送…"
 
 #: src/pages/workspace/sections/EmailSection.tsx:187
 #: src/pages/workspace/sections/EmailSection.tsx:305
-#: src/pages/workspace/sections/ReportsSection.tsx:94
+#: src/pages/workspace/sections/ReportsSection.tsx:50
 msgid "Sent"
 msgstr ""
 
-#. placeholder {0}: data.sentTo
-#: src/pages/workspace/sections/ReportsSection.tsx:132
+#. placeholder {0}: report.sentTo
+#. placeholder {0}: sentTo.join(", ")
+#: src/pages/workspace/sections/ReportsSection.tsx:200
+#: src/pages/workspace/sections/ReportsSection.tsx:236
 msgid "Sent to {0}"
 msgstr ""
 
@@ -4567,6 +4810,8 @@ msgstr ""
 #: src/pages/Shell.tsx:3043
 #: src/pages/Shell.tsx:3053
 #: src/pages/Shell.tsx:3436
+#: src/pages/workspace/sections/SettingsSection.tsx:65
+#: src/pages/workspace/WorkspaceView.tsx:124
 msgid "Settings"
 msgstr "设置"
 
@@ -4586,6 +4831,10 @@ msgstr "设置：用量"
 #: src/pages/Onboarding.tsx:280
 msgid "Setup help"
 msgstr "设置帮助"
+
+#: src/pages/workspace/sections/ReportsSection.tsx:585
+msgid "Severity"
+msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx:40
 #: src/pages/Shell.tsx:6325
@@ -4670,11 +4919,12 @@ msgid "Skill {0}"
 msgstr "技能 {0}"
 
 #: src/pages/KnowledgeSection.tsx:26
-#: src/pages/workspace/WorkspaceView.tsx:87
+#: src/pages/workspace/WorkspaceView.tsx:91
 msgid "Skills"
 msgstr ""
 
 #: src/pages/Shell.tsx:5484
+#: src/pages/workspace/sections/UtilitiesSection.tsx:529
 msgid "Skip"
 msgstr "跳过"
 
@@ -4686,7 +4936,7 @@ msgstr "暂时跳过"
 msgid "Skip or deploy key"
 msgstr "跳过或使用部署密钥"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:61
+#: src/pages/workspace/sections/UtilitiesSection.tsx:393
 msgid "Skipped"
 msgstr ""
 
@@ -4700,7 +4950,7 @@ msgid "Slack message"
 msgstr "Slack 消息"
 
 #: src/pages/workspace/PipelineMap.tsx:114
-#: src/pages/workspace/WorkspaceView.tsx:83
+#: src/pages/workspace/WorkspaceView.tsx:87
 msgid "Social"
 msgstr ""
 
@@ -4786,12 +5036,13 @@ msgstr "正在开始"
 msgid "Starting…"
 msgstr "正在开始…"
 
-#: src/pages/workspace/sections/ReportsSection.tsx:186
+#: src/pages/workspace/sections/ReportsSection.tsx:706
 msgid "Stats"
 msgstr ""
 
 #: src/pages/crm/CrmContactsSheet.tsx:116
 #: src/pages/DocsView.tsx:262
+#: src/pages/workspace/sections/ReportsSection.tsx:122
 msgid "Status"
 msgstr ""
 
@@ -4857,10 +5108,15 @@ msgstr "提交"
 msgid "Submitted"
 msgstr "已提交"
 
-#: src/pages/workspace/sections/ReportsSection.tsx:137
+#: src/pages/workspace/sections/ReportsSection.tsx:320
+#: src/pages/workspace/sections/ReportsSection.tsx:494
 #: src/pages/workspace/sections/VoiceSection.tsx:239
 #: src/pages/workspace/sections/VoiceSection.tsx:297
 msgid "Summary"
+msgstr ""
+
+#: src/pages/workspace/sections/SettingsSection.tsx:155
+msgid "Sunday"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:705
@@ -4876,13 +5132,13 @@ msgstr ""
 msgid "Syncing now"
 msgstr ""
 
-#: src/pages/workspace/sections/ReportsSection.tsx:175
-#: src/pages/workspace/sections/ReportsSection.tsx:181
+#: src/pages/workspace/sections/ReportsSection.tsx:683
+#: src/pages/workspace/sections/ReportsSection.tsx:701
 msgid "Synthesis"
 msgstr ""
 
 #: src/pages/workspace/sections/SystemSection.tsx:50
-#: src/pages/workspace/WorkspaceView.tsx:88
+#: src/pages/workspace/WorkspaceView.tsx:92
 msgid "System"
 msgstr ""
 
@@ -5063,6 +5319,10 @@ msgstr "此服务器使用浏览器登录。授权后 Agent 才能使用其工�
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr ""
 
+#: src/pages/workspace/sections/SettingsSection.tsx:159
+msgid "Thursday"
+msgstr ""
+
 #: src/pages/RoutineSchedule.tsx:206
 msgid "Time of day"
 msgstr "时间"
@@ -5070,12 +5330,15 @@ msgstr "时间"
 #: src/pages/Onboarding.tsx:525
 #: src/pages/Shell.tsx:6074
 #: src/pages/Shell.tsx:6240
-#: src/pages/workspace/sections/ReportsSection.tsx:57
+#: src/pages/workspace/sections/ReportsSection.tsx:95
+#: src/pages/workspace/sections/ReportsSection.tsx:486
+#: src/pages/workspace/sections/ReportsSection.tsx:539
+#: src/pages/workspace/sections/ReportsSection.tsx:540
 msgid "Title"
 msgstr "标题"
 
 #. placeholder {0}: formatDate(lease.leaseTo)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:239
+#: src/pages/workspace/sections/UtilitiesSection.tsx:246
 msgid "to {0}"
 msgstr ""
 
@@ -5111,6 +5374,10 @@ msgstr ""
 msgid "Topic"
 msgstr ""
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:168
+msgid "Total"
+msgstr ""
+
 #: src/pages/workspace/sections/VoiceSection.tsx:133
 msgid "Total calls"
 msgstr ""
@@ -5127,8 +5394,12 @@ msgstr ""
 msgid "Treg token"
 msgstr "Treg token"
 
+#: src/pages/workspace/sections/SettingsSection.tsx:157
+msgid "Tuesday"
+msgstr ""
+
 #: src/pages/workspace/sections/LeasingSection.tsx:240
-#: src/pages/workspace/sections/ReportsSection.tsx:63
+#: src/pages/workspace/sections/ReportsSection.tsx:101
 msgid "Type"
 msgstr ""
 
@@ -5153,17 +5424,21 @@ msgstr "未分配"
 msgid "Unavailable"
 msgstr "不可用"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:557
+msgid "Unit"
+msgstr ""
+
 #. placeholder {0}: charge.unitNumber
 #. placeholder {0}: lease.unitNumber
 #. placeholder {0}: row.unitNumber
 #: src/pages/workspace/sections/LeasingSection.tsx:130
 #: src/pages/workspace/sections/LeasingSection.tsx:207
-#: src/pages/workspace/sections/UtilitiesSection.tsx:158
-#: src/pages/workspace/sections/UtilitiesSection.tsx:238
+#: src/pages/workspace/sections/UtilitiesSection.tsx:245
+#: src/pages/workspace/sections/UtilitiesSection.tsx:403
 msgid "Unit {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:129
+#: src/pages/workspace/sections/UtilitiesSection.tsx:345
 msgid "Unknown address"
 msgstr ""
 
@@ -5176,7 +5451,7 @@ msgstr ""
 msgid "Unlink"
 msgstr "取消关联"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:56
+#: src/pages/workspace/sections/UtilitiesSection.tsx:79
 msgid "Unmatched"
 msgstr ""
 
@@ -5285,8 +5560,9 @@ msgid "Uses whichever fits the task"
 msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:117
-#: src/pages/workspace/sections/UtilitiesSection.tsx:80
-#: src/pages/workspace/WorkspaceView.tsx:85
+#: src/pages/workspace/sections/SettingsSection.tsx:315
+#: src/pages/workspace/sections/UtilitiesSection.tsx:116
+#: src/pages/workspace/WorkspaceView.tsx:89
 msgid "Utilities"
 msgstr ""
 
@@ -5335,7 +5611,7 @@ msgstr ""
 #: src/pages/workspace/PipelineMap.tsx:110
 #: src/pages/workspace/sections/VoiceSection.tsx:102
 #: src/pages/workspace/sections/VoiceSection.tsx:267
-#: src/pages/workspace/WorkspaceView.tsx:80
+#: src/pages/workspace/WorkspaceView.tsx:84
 msgid "Voice"
 msgstr "语音"
 
@@ -5366,8 +5642,12 @@ msgstr "唤醒计算机"
 msgid "Watch it work"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:89
-#: src/pages/workspace/sections/UtilitiesSection.tsx:195
+#: src/pages/workspace/sections/SettingsSection.tsx:317
+msgid "Water GL account"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:125
+#: src/pages/workspace/sections/UtilitiesSection.tsx:202
 msgid "Water-billed properties"
 msgstr ""
 
@@ -5395,11 +5675,20 @@ msgstr ""
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr ""
 
+#: src/pages/workspace/sections/SettingsSection.tsx:158
+msgid "Wednesday"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:598
 #: src/pages/RoutineSchedule.tsx:34
 #: src/pages/RoutineSchedule.tsx:90
 msgid "Weekdays"
 msgstr "工作日"
+
+#: src/pages/workspace/sections/SettingsSection.tsx:217
+#: src/pages/workspace/sections/SettingsSection.tsx:220
+msgid "Weekly email recap"
+msgstr ""
 
 #: src/pages/Shell.tsx:6753
 msgid "What about its memories?"
@@ -5474,7 +5763,7 @@ msgid "Working…"
 msgstr "处理中…"
 
 #: src/pages/Shell.tsx:2983
-#: src/pages/workspace/WorkspaceView.tsx:128
+#: src/pages/workspace/WorkspaceView.tsx:132
 msgid "Workspace"
 msgstr ""
 
@@ -5486,6 +5775,10 @@ msgstr ""
 msgid "workspace root"
 msgstr "工作区根目录"
 
+#: src/pages/workspace/WorkspaceView.tsx:163
+msgid "Workspace settings"
+msgstr ""
+
 #: src/pages/DocsView.tsx:199
 msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
 msgstr ""
@@ -5493,7 +5786,7 @@ msgstr ""
 #: src/pages/crm/CrmModuleSheet.tsx:56
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:752
+#: src/pages/workspace/bits.tsx:868
 msgid "Yes"
 msgstr ""
 

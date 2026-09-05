@@ -255,6 +255,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       email: [null, false],
       instagram: [null, false],
       buildium: [null, false],
+      listings: [null, false],
       water: [null, false],
       recap: [null, true],
     });

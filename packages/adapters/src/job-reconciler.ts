@@ -3,6 +3,7 @@ import {
   messagingDeliverJob,
   routineWakeupJob,
   runContinueJob,
+  workspaceAutomationWakeupJob,
 } from "@rakazo/adapter-kit";
 import type { MessageBlock } from "@rakazo/contracts";
 import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
@@ -151,80 +152,91 @@ export function createJobReconciler(
             }
           : { controlLeaseExpiresAt: null, id: { gt: controlCursor.id } }
         : undefined;
-      const [runs, routines, controls, dueOutbound, unmirroredMessagingRuns] = await Promise.all([
-        deps.prisma.run.findMany({
-          where: {
-            AND: [
-              {
-                OR: [
-                  { status: "queued" },
-                  {
-                    status: { in: ["leased", "running"] },
-                    leaseExpiresAt: { lte: now },
-                  },
-                ],
-              },
-              ...(runCursorFilter ? [runCursorFilter] : []),
-            ],
-          },
-          orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
-          take: batchSize,
-          select: { id: true, updatedAt: true },
-        }),
-        deps.prisma.routine.findMany({
-          where: {
-            AND: [
-              {
-                active: true,
-                nextRunAt: { lte: new Date(now.getTime() + ROUTINE_LOOKAHEAD_MS) },
-              },
-              ...(routineCursorFilter ? [routineCursorFilter] : []),
-            ],
-          },
-          orderBy: [{ nextRunAt: "asc" }, { id: "asc" }],
-          take: batchSize,
-          select: { id: true, nextRunAt: true },
-        }),
-        deps.prisma.computer.findMany({
-          where: {
-            AND: [
-              { controlLeaseId: { not: null } },
-              {
-                OR: [
-                  { controlLeaseExpiresAt: null },
-                  {
-                    controlLeaseExpiresAt: {
-                      lte: controlScanDeadline,
+      const [runs, routines, controls, dueOutbound, unmirroredMessagingRuns, automations] =
+        await Promise.all([
+          deps.prisma.run.findMany({
+            where: {
+              AND: [
+                {
+                  OR: [
+                    { status: "queued" },
+                    {
+                      status: { in: ["leased", "running"] },
+                      leaseExpiresAt: { lte: now },
                     },
-                  },
-                ],
-              },
-              ...(controlCursorFilter ? [controlCursorFilter] : []),
-            ],
-          },
-          orderBy: [{ controlLeaseExpiresAt: "asc" }, { id: "asc" }],
-          take: batchSize,
-          select: {
-            id: true,
-            controlBotId: true,
-            controlLeaseId: true,
-            controlLeaseExpiresAt: true,
-          },
-        }),
-        deps.prisma.messagingOutbound.findFirst({
-          where: {
-            status: "pending",
-            OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
-          },
-          select: { id: true },
-        }),
-        deps.prisma.run.findMany({
-          where: { trigger: "messaging", status: "completed", messagingMirroredAt: null },
-          orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
-          take: batchSize,
-          select: { id: true },
-        }),
-      ]);
+                  ],
+                },
+                ...(runCursorFilter ? [runCursorFilter] : []),
+              ],
+            },
+            orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
+            take: batchSize,
+            select: { id: true, updatedAt: true },
+          }),
+          deps.prisma.routine.findMany({
+            where: {
+              AND: [
+                {
+                  active: true,
+                  nextRunAt: { lte: new Date(now.getTime() + ROUTINE_LOOKAHEAD_MS) },
+                },
+                ...(routineCursorFilter ? [routineCursorFilter] : []),
+              ],
+            },
+            orderBy: [{ nextRunAt: "asc" }, { id: "asc" }],
+            take: batchSize,
+            select: { id: true, nextRunAt: true },
+          }),
+          deps.prisma.computer.findMany({
+            where: {
+              AND: [
+                { controlLeaseId: { not: null } },
+                {
+                  OR: [
+                    { controlLeaseExpiresAt: null },
+                    {
+                      controlLeaseExpiresAt: {
+                        lte: controlScanDeadline,
+                      },
+                    },
+                  ],
+                },
+                ...(controlCursorFilter ? [controlCursorFilter] : []),
+              ],
+            },
+            orderBy: [{ controlLeaseExpiresAt: "asc" }, { id: "asc" }],
+            take: batchSize,
+            select: {
+              id: true,
+              controlBotId: true,
+              controlLeaseId: true,
+              controlLeaseExpiresAt: true,
+            },
+          }),
+          deps.prisma.messagingOutbound.findFirst({
+            where: {
+              status: "pending",
+              OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+            },
+            select: { id: true },
+          }),
+          deps.prisma.run.findMany({
+            where: { trigger: "messaging", status: "completed", messagingMirroredAt: null },
+            orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
+            take: batchSize,
+            select: { id: true },
+          }),
+          // Workspace automations armed for a wakeup that is due or nearly due.
+          deps.prisma.workspaceAutomation.findMany({
+            where: {
+              enabled: true,
+              nextRunAt: { lte: new Date(now.getTime() + ROUTINE_LOOKAHEAD_MS) },
+            },
+            orderBy: [{ nextRunAt: "asc" }, { id: "asc" }],
+            take: batchSize,
+            select: { id: true, nextRunAt: true },
+          }),
+        ]);
 
       const events = deps.events;
       if (events) {
@@ -300,6 +312,11 @@ export function createJobReconciler(
                   computer.controlLeaseExpiresAt ?? now,
                 ),
               ]
+            : [],
+        ),
+        ...automations.flatMap((automation) =>
+          automation.nextRunAt
+            ? [deps.jobs.enqueue(workspaceAutomationWakeupJob(automation.id, automation.nextRunAt))]
             : [],
         ),
         ...(dueOutbound ? [deps.jobs.enqueue(messagingDeliverJob())] : []),

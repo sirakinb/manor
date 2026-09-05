@@ -279,6 +279,54 @@ export interface NotificationProvider {
   send(message: NotificationMessage, context: AdapterContext): Promise<void>;
 }
 
+/** What the ingestion service needs to run one pipeline for one workspace. */
+export interface IngestionRunRequest {
+  pipeline: string;
+  runId: string;
+  workspaceId: string;
+  /** Decrypted provider fields keyed by provider, only the ones the pipeline needs. */
+  credentials: Record<string, Record<string, string>>;
+  options: Record<string, unknown>;
+}
+
+export interface IngestionRunResult {
+  ok: boolean;
+  recordsLoaded: number;
+  notes?: string;
+  /** Sanitized failure text when `ok` is false. */
+  error?: string;
+}
+
+/**
+ * The deterministic pipelines (Zoho, Instagram, Buildium, Gmail, ...) run in
+ * a separate service; this is Manor's only view of it. HTTP, signing, and
+ * timeouts live in the adapter.
+ */
+export interface IngestionRunner {
+  describe(): AdapterDescriptor<{ pipelines: boolean }>;
+  run(request: IngestionRunRequest): Promise<IngestionRunResult>;
+}
+
+/** One line item posted to a tenant's ledger. Product code builds it; adapters translate it. */
+export interface LedgerCharge {
+  /** YYYY-MM-DD, the charge's posting date. */
+  date: string;
+  memo: string;
+  amount: number;
+  /** The ledger (GL) account the charge lands in, in the provider's id space. */
+  accountId: number;
+  description: string;
+}
+
+/**
+ * A property-management ledger (Buildium, ...): post charges to a lease.
+ * Credentials are supplied when the adapter is created, never per call.
+ */
+export interface PropertyLedger {
+  describe(): AdapterDescriptor<{ charges: boolean }>;
+  postCharge(leaseId: number, charge: LedgerCharge): Promise<{ externalId: number | null }>;
+}
+
 /** Outbound account and security email. Product code owns content; adapters own delivery. */
 export interface TransactionalEmailProvider {
   describe(): AdapterDescriptor<{ transactional: boolean }>;

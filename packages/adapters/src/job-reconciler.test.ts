@@ -34,6 +34,7 @@ function fakePrisma(
   return {
     run: { findMany: vi.fn(async () => runs) },
     routine: { findMany: vi.fn(async () => routines) },
+    workspaceAutomation: { findMany: vi.fn(async () => []) },
     computer: { findMany: vi.fn(async () => controls) },
     messagingOutbound: { findFirst: vi.fn(async () => null) },
   } as unknown as PrismaClient;
@@ -177,6 +178,7 @@ describe("createJobReconciler", () => {
     const prisma = {
       run: { findMany: vi.fn(async () => []) },
       routine: { findMany: vi.fn(async () => []) },
+      workspaceAutomation: { findMany: vi.fn(async () => []) },
       computer: { findMany: computerFindMany },
       messagingOutbound: { findFirst: vi.fn(async () => null) },
     } as unknown as PrismaClient;
@@ -240,6 +242,7 @@ describe("createJobReconciler", () => {
     const prisma = {
       run: { findMany: runFindMany },
       routine: { findMany: routineFindMany },
+      workspaceAutomation: { findMany: vi.fn(async () => []) },
       computer: { findMany: vi.fn(async () => []) },
       messagingOutbound: { findFirst: vi.fn(async () => null) },
     } as unknown as PrismaClient;
@@ -337,6 +340,7 @@ describe("createJobReconciler", () => {
     const prisma = {
       run: { findMany: runFindMany, updateMany: vi.fn(async () => ({ count: 1 })) },
       routine: { findMany: vi.fn(async () => []) },
+      workspaceAutomation: { findMany: vi.fn(async () => []) },
       computer: { findMany: vi.fn(async () => []) },
       messagingOutbound: { findFirst: vi.fn(async () => null) },
       message: {

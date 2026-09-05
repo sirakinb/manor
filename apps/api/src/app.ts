@@ -16,6 +16,7 @@ import {
   type ComposioProvider,
   type ConnectorRegistry,
   createBackgroundJobHandlers,
+  createBuildiumLedger,
   createConnectorStack,
   createJobReconciler,
   createMessagingContextLoader,
@@ -33,6 +34,7 @@ import {
   InMemoryJobQueue,
   InMemoryRealtimeFanout,
   InstalledConnectorProvider,
+  ingestionRunnerFromEnv,
   isComposioEnabled,
   isMessagingSurfaceEnabled,
   isPipedreamEnabled,
@@ -311,6 +313,10 @@ export async function createApp(
     memoryProviders,
     deploymentModelKey: env.deploymentModelKey,
     messaging,
+    ingestion: ingestionRunnerFromEnv({
+      INGESTION_URL: env.ingestionUrl,
+      INGESTION_SECRET: env.ingestionSecret,
+    }),
   });
   if (inMemoryJobs) {
     await inMemoryJobs.start(jobHandlers);
@@ -328,6 +334,8 @@ export async function createApp(
     memoryProviders,
     home,
     secrets,
+    email,
+    propertyLedger: (credential) => createBuildiumLedger(credential),
     oauthLogins,
     mcpOAuth,
     composio: stack.composio,

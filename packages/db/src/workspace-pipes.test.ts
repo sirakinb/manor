@@ -32,6 +32,7 @@ describe("pipesForChannels", () => {
       "email",
       "instagram",
       "buildium",
+      "listings",
       "water",
       "recap",
     ]);
@@ -97,11 +98,17 @@ describe("pipeFromRuns", () => {
   ];
 
   it("judges by the newest run and surfaces its error", () => {
-    const pipe = pipeFromRuns(spec("email"), "src-email", runs, NOW);
+    const pipe = pipeFromRuns(
+      spec("email"),
+      { sourceId: "src-email", automationKey: "email" },
+      runs,
+      NOW,
+    );
     expect(pipe).toMatchObject({
       key: "email",
       channel: "email",
       sourceId: "src-email",
+      automationKey: "email",
       internal: false,
       status: "failing",
       lastAt: hoursAgo(2).toISOString(),
@@ -113,7 +120,9 @@ describe("pipeFromRuns", () => {
   });
 
   it("is idle with no runs at all", () => {
-    expect(pipeFromRuns(spec("email"), null, [], NOW)).toMatchObject({
+    expect(
+      pipeFromRuns(spec("email"), { sourceId: null, automationKey: null }, [], NOW),
+    ).toMatchObject({
       sourceId: null,
       status: "idle",
       lastAt: null,
@@ -125,7 +134,12 @@ describe("pipeFromRuns", () => {
   });
 
   it("hides the error message once a later run succeeds", () => {
-    const pipe = pipeFromRuns(spec("email"), "src-email", [runs[1]!, runs[0]!], NOW);
+    const pipe = pipeFromRuns(
+      spec("email"),
+      { sourceId: "src-email", automationKey: null },
+      [runs[1]!, runs[0]!],
+      NOW,
+    );
     expect(pipe.status).toBe("flowing");
     expect(pipe.lastError).toBeNull();
     expect(pipe.lastRecords).toBe(12);
@@ -134,14 +148,23 @@ describe("pipeFromRuns", () => {
 
 describe("pipeFromFreshness", () => {
   it("never reports failing and carries no runs", () => {
-    expect(pipeFromFreshness(spec("water"), null, hoursAgo(24 * 20), NOW)).toMatchObject({
+    expect(
+      pipeFromFreshness(
+        spec("water"),
+        { sourceId: null, automationKey: null },
+        hoursAgo(24 * 20),
+        NOW,
+      ),
+    ).toMatchObject({
       status: "overdue",
       ageHours: 480,
       lastRecords: null,
       lastError: null,
       runs: [],
     });
-    expect(pipeFromFreshness(spec("water"), null, null, NOW).status).toBe("idle");
+    expect(
+      pipeFromFreshness(spec("water"), { sourceId: null, automationKey: null }, null, NOW).status,
+    ).toBe("idle");
   });
 });
 
@@ -161,9 +184,19 @@ describe("workerStatus", () => {
 describe("teamFromPipes", () => {
   it("lists one worker per channel present, with the newest pipe timestamp", () => {
     const pipes = [
-      pipeFromFreshness(spec("voice"), "src-zoho", hoursAgo(0.5), NOW),
-      pipeFromFreshness(spec("recap"), null, hoursAgo(24 * 10), NOW),
-      pipeFromFreshness(spec("water"), null, null, NOW),
+      pipeFromFreshness(
+        spec("voice"),
+        { sourceId: "src-zoho", automationKey: "voice" },
+        hoursAgo(0.5),
+        NOW,
+      ),
+      pipeFromFreshness(
+        spec("recap"),
+        { sourceId: null, automationKey: null },
+        hoursAgo(24 * 10),
+        NOW,
+      ),
+      pipeFromFreshness(spec("water"), { sourceId: null, automationKey: null }, null, NOW),
     ];
     const team = teamFromPipes(pipes, NOW);
     expect(team.map((worker) => worker.key)).toEqual(["call-logger", "water-clerk"]);

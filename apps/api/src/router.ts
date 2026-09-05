@@ -15,6 +15,7 @@ import {
   runContinueJob,
   runJobKey,
   type SandboxProvider,
+  type TransactionalEmailProvider,
 } from "@rakazo/adapter-kit";
 import {
   acquireComputerExecutionLease,
@@ -175,6 +176,11 @@ import {
   toVoiceStatus,
   voiceContext,
 } from "./voice.js";
+import {
+  createWorkspaceActions,
+  type PropertyLedgerFactory,
+  WorkspaceActionError,
+} from "./workspace-actions.js";
 
 const MAX_COMPUTER_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const THREAD_MESSAGE_PAGE_SIZE = 100;
@@ -370,6 +376,10 @@ export interface RouterDeps {
   memoryProviders: MemoryProviderResolver;
   home: AgentHomeStore;
   secrets: EncryptedSecretStore;
+  /** Outbound email for report sending; absent when SMTP is not configured. */
+  email?: TransactionalEmailProvider;
+  /** Builds the property ledger for a workspace's Buildium credential. */
+  propertyLedger?: PropertyLedgerFactory;
   oauthLogins: PiOAuthLogins;
   composio?: ComposioProvider;
   mcpOAuth?: McpOAuthBroker;
@@ -413,6 +423,24 @@ export function createRouter(deps: RouterDeps) {
   const groupRepos = createGroupRepos(deps.prisma);
   const crm = createCrmRepos(deps.prisma);
   const workspace = createWorkspaceRepos(deps.prisma);
+  const workspaceActions = createWorkspaceActions({
+    prisma: deps.prisma,
+    secrets: deps.secrets,
+    email: deps.email,
+    propertyLedger: deps.propertyLedger,
+    jobs: deps.jobs,
+  });
+  /** A refusal from a workspace write path becomes a BAD_REQUEST the client shows verbatim. */
+  const workspaceAction = async <T>(run: () => Promise<T>): Promise<T> => {
+    try {
+      return await run();
+    } catch (error) {
+      if (error instanceof WorkspaceActionError) {
+        throw new ORPCError("BAD_REQUEST", { message: error.message });
+      }
+      throw error;
+    }
+  };
   const taughtSkills = createTaughtSkillsService({
     prisma: deps.prisma,
     events: deps.events,
@@ -1094,6 +1122,52 @@ export function createRouter(deps: RouterDeps) {
         get: authed.workspace.reports.get.handler(async ({ context, input }) =>
           workspace.getReport(context.actor, input.reportId),
         ),
+        update: authed.workspace.reports.update.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.updateReport(context.actor, input)),
+        ),
+        approve: authed.workspace.reports.approve.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.approveReport(context.actor, input.reportId)),
+        ),
+        send: authed.workspace.reports.send.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.sendReport(context.actor, input)),
+        ),
+        remove: authed.workspace.reports.remove.handler(async ({ context, input }) => {
+          await workspaceAction(() => workspaceActions.removeReport(context.actor, input.reportId));
+          return { ok: true as const };
+        }),
+      },
+      automations: {
+        list: authed.workspace.automations.list.handler(async ({ context }) =>
+          workspaceActions.listAutomations(context.actor),
+        ),
+        run: authed.workspace.automations.run.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.runAutomation(context.actor, input.key)),
+        ),
+        update: authed.workspace.automations.update.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.updateAutomation(context.actor, input)),
+        ),
+      },
+      settings: {
+        get: authed.workspace.settings.get.handler(async ({ context }) =>
+          workspaceActions.getSettings(context.actor),
+        ),
+        update: authed.workspace.settings.update.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.updateSettings(context.actor, input)),
+        ),
+      },
+      credentials: {
+        list: authed.workspace.credentials.list.handler(async ({ context }) =>
+          workspaceActions.listCredentials(context.actor),
+        ),
+        set: authed.workspace.credentials.set.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.setCredential(context.actor, input)),
+        ),
+        remove: authed.workspace.credentials.remove.handler(async ({ context, input }) => {
+          await workspaceAction(() =>
+            workspaceActions.removeCredential(context.actor, input.provider),
+          );
+          return { ok: true as const };
+        }),
       },
       email: {
         performance: authed.workspace.email.performance.handler(async ({ context, input }) =>
@@ -1119,6 +1193,21 @@ export function createRouter(deps: RouterDeps) {
       utilities: {
         overview: authed.workspace.utilities.overview.handler(async ({ context }) =>
           workspace.utilitiesOverview(context.actor),
+        ),
+        charge: {
+          save: authed.workspace.utilities.charge.save.handler(async ({ context, input }) =>
+            workspaceAction(() => workspaceActions.saveCharge(context.actor, input)),
+          ),
+          skip: authed.workspace.utilities.charge.skip.handler(async ({ context, input }) =>
+            workspaceAction(() => workspaceActions.skipCharge(context.actor, input)),
+          ),
+          post: authed.workspace.utilities.charge.post.handler(async ({ context, input }) =>
+            workspaceAction(() => workspaceActions.postCharge(context.actor, input)),
+          ),
+        },
+        postAllPending: authed.workspace.utilities.postAllPending.handler(
+          async ({ context, input }) =>
+            workspaceAction(() => workspaceActions.postAllPending(context.actor, input)),
         ),
       },
       activities: {
