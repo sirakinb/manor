@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { BuiButton, BuiCard, LoadingState } from "../../components/beautiful-ui/primitives";
 import { accentColor } from "../../lib/brand";
 import { formatMoney, formatMoneyShort, withAlpha } from "../crm/theme";
-import { AskTeamButton } from "./AskTeam";
 
 /* Small shared pieces for the Workspace place: section keys, number and time
    formatting, KPI tiles, status pills, a hand-rolled line chart, a plain
@@ -915,10 +914,7 @@ export function PageHeader({
         <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-[#ECECEE]">{title}</h2>
         {subtitle ? <p className="mt-1 text-[13px] text-[#85858A]">{subtitle}</p> : null}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {children}
-        <AskTeamButton subject={title} />
-      </div>
+      {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
     </div>
   );
 }

@@ -271,20 +271,24 @@ test("workspace appears once the organization has one and its map opens sections
   await page.getByText("Dana Reyes").click();
   await page.waitForURL(/\/app\/workspace\/voice\/[^/]+$/);
   await expect(page.getByRole("heading", { name: "Dana Reyes" })).toBeVisible();
-  await page.getByRole("combobox", { name: "Workspace bot" }).selectOption(selectedBotId);
+  await expect(page.getByRole("button", { name: "Ask the team", exact: true })).toHaveCount(0);
+  await tabs.getByRole("button", { name: "AI team", exact: true }).click();
   let sentMessages = 0;
   page.on("request", (request) => {
     if (/threads(?:\/|\.)send/.test(request.url())) sentMessages += 1;
   });
-  await page.getByRole("button", { name: "Ask the team", exact: true }).click();
+  await page
+    .getByRole("listitem")
+    .filter({ has: page.getByText("Operations", { exact: true }) })
+    .getByRole("button", { name: "Chat", exact: true })
+    .click();
   await page.waitForURL(`**/app/${selectedBotId}`);
   const draft = page.getByTestId("composer-bar").locator("textarea");
-  await expect(draft).toHaveValue(/Review Dana Reyes in our workspace/);
-  await expect(draft).toHaveValue(/Record:/);
+  await expect(draft).toHaveValue(/Review workspace operations in our workspace/);
   await draft.fill("My edited workspace question");
   await expect(draft).toHaveValue("My edited workspace question");
   expect(sentMessages).toBe(0);
-  await captureScreenshot(page, testInfo, "workspace-ask-team-draft");
+  await captureScreenshot(page, testInfo, "workspace-bot-chat-draft");
   await sidebar.getByRole("button", { name: "Workspace", exact: true }).click();
 
   await tabs.getByRole("button", { name: "Overview", exact: true }).click();
@@ -394,6 +398,9 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByText("Saved", { exact: true }).first()).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Water GL account")).toHaveValue("4321");
+  await expect(page.getByRole("heading", { name: "Connections", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ask the team", exact: true })).toHaveCount(0);
+  await captureScreenshot(page, testInfo, "workspace-settings-connections");
   const openai = page.locator("li").filter({ has: page.getByText("OpenAI", { exact: true }) });
   await openai.getByRole("button", { name: "Add", exact: true }).click();
   await expect(openai.getByLabel("apiKey", { exact: true })).toBeVisible();
@@ -407,4 +414,12 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(instagram.getByLabel("pageToken", { exact: true })).toBeVisible();
   await expect(instagram.getByLabel("igUserId", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-settings");
+  await sidebar.getByRole("button", { name: "Documentation", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Getting started", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Workspace", exact: true }).last().click();
+  await expect(
+    page.getByRole("heading", { name: "Bring context into another agent platform" }),
+  ).toBeVisible();
+  await expect(page.getByText("workspace_set_context", { exact: true }).first()).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-external-api-docs");
 });

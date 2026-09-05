@@ -227,6 +227,10 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
     const overview = await reads.utilitiesOverview(actor);
     const bill = overview.bills.find((candidate) => candidate.waterBillId === waterBillId);
     if (!bill) throw new IsolationError();
+    if (bill.billingMode && bill.billingMode !== "pass_through")
+      throw new WorkspaceActionError(
+        "This property's billing mode does not allow pass-through charges",
+      );
     if (bill.resolutionStatus !== "resolved") {
       throw new WorkspaceActionError(
         `This bill is ${bill.resolutionStatus.replace("_", " ")}; match it to a property with an active lease first`,
@@ -386,6 +390,12 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
       });
       return {
         ...mapSettings(workspace),
+        emailDelivery: deps.email
+          ? {
+              provider: deps.email.describe().displayName ?? deps.email.describe().id,
+              connected: deps.email.describe().capabilities.transactional,
+            }
+          : null,
         monthlyVoiceReportsEnabled:
           workspace.monthlyVoiceReportsEnabled &&
           (automations.find((row) => row.key === "recap")?.enabled ?? true),

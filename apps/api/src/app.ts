@@ -405,7 +405,11 @@ export async function createApp(
     resolveActor: async (request) => {
       const session = await auth.api.getSession({ headers: sessionHeaders(request) });
       if (!session?.user) return null;
-      return requireMembership(prisma, session.user.id).catch(() => null);
+      return requireMembership(
+        prisma,
+        session.user.id,
+        request.headers.get("x-rakazo-space-id") ?? undefined,
+      ).catch(() => null);
     },
   });
   app.use("/rpc/*", async (c, next) => {

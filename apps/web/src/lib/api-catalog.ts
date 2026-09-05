@@ -1,9 +1,44 @@
+import {
+  WORKSPACE_EXTERNAL_TOOL_NAMES,
+  workspaceToolDescriptions,
+  externalWorkspaceToolSchemas as workspaceToolSchemas,
+  workspaceToolScope,
+} from "@rakazo/contracts";
 export type Endpoint = { method: string; path: string; scope: string; summary: string };
+
+export const WORKSPACE_MCP_TOOLS = WORKSPACE_EXTERNAL_TOOL_NAMES.map((name) => ({
+  name,
+  args:
+    Object.entries(workspaceToolSchemas[name].shape)
+      .map(([key, schema]) => `${key}${schema.isOptional() ? "?" : ""}`)
+      .join(", ") || "—",
+  scope: workspaceToolScope(name),
+  summary: workspaceToolDescriptions[name],
+}));
+export const WORKSPACE_ENDPOINTS: Endpoint[] = WORKSPACE_MCP_TOOLS.map((tool) => ({
+  method: "POST",
+  path: `/v1/workspace/tools/${tool.name}`,
+  scope: tool.scope,
+  summary: tool.summary,
+}));
 
 export const SCOPES = [
   { scope: "crm:read", grants: "Read contacts, pipelines, deals, modules, records" },
   { scope: "crm:write", grants: "Create and update CRM data over REST and MCP" },
   { scope: "webhooks:manage", grants: "List, create, and delete webhook endpoints" },
+  {
+    scope: "workspace:read",
+    grants: "Read operations, reports, shared context, skills and activity history",
+  },
+  {
+    scope: "workspace:context:write",
+    grants: "Create and update shared context with revision checks",
+  },
+  { scope: "workspace:skills:write", grants: "Save new versions of shared skills and artifacts" },
+  {
+    scope: "workspace:activities:write",
+    grants: "Log work and evidence; cannot approve or execute actions",
+  },
 ];
 
 export const STATUS_CODES = [
@@ -11,7 +46,7 @@ export const STATUS_CODES = [
   { code: "401", meaning: "Missing, revoked, or malformed token" },
   { code: "403", meaning: "Token lacks the required scope" },
   { code: "404", meaning: "Resource is not in this workspace" },
-  { code: "409", meaning: "Idempotency-Key reused with a different payload" },
+  { code: "409", meaning: "Revision conflict or idempotency key reused with a different payload" },
 ];
 
 export const CONTACT_ENDPOINTS: Endpoint[] = [

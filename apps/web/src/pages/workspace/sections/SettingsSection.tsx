@@ -7,6 +7,17 @@ import {
   type WorkspaceSettingsUpdate,
   type WorkspaceSummary,
 } from "@rakazo/contracts";
+import {
+  Bot,
+  Building2,
+  Camera,
+  type LucideIcon,
+  Mail,
+  Mails,
+  Network,
+  Phone,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BuiButton } from "../../../components/beautiful-ui/primitives";
@@ -18,11 +29,9 @@ import {
   ErrorLine,
   errorMessage,
   Field,
-  formatDateTime,
   INPUT,
   Loading,
   PageHeader,
-  StatusPill,
   Toggle,
   useSectionData,
 } from "../bits";
@@ -51,6 +60,17 @@ const PROVIDER_NAMES: Record<WorkspaceCredentialProvider, string> = {
   openrouter: "OpenRouter",
   smtp: "SMTP",
 };
+const PROVIDER_ICONS: Record<WorkspaceCredentialProvider, LucideIcon> = {
+  buildium: Building2,
+  twilio: Phone,
+  "zoho-crm": Network,
+  "zoho-campaigns": Mails,
+  instagram: Camera,
+  gmail: Mail,
+  openai: Bot,
+  openrouter: Sparkles,
+  smtp: Mail,
+};
 
 export function SettingsSection({
   workspace,
@@ -64,25 +84,33 @@ export function SettingsSection({
   const credentials = useSectionData(() => rpc.workspace.credentials.list(), "credentials");
 
   return (
-    <div>
+    <div className="ws-refined ws-settings">
       <PageHeader eyebrow={eyebrow} title={t`Settings`} subtitle={workspace.name} />
       {settings.error ? <ErrorLine message={settings.error} /> : null}
       {settings.loading ? <Loading /> : null}
-      {settings.data ? (
-        <div className="space-y-4">
-          <Link
-            to="/app/workspace/reports"
-            className="block text-[13px] text-[#A6A6AD] hover:text-[#ECECEE]"
-          >
-            <Trans>Report recipients and schedules</Trans> →
-          </Link>
-          <UtilitiesCard settings={settings.data} onSaved={settings.setData} />
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div>
+          {credentials.error ? <ErrorLine message={credentials.error} /> : null}
+          {credentials.data ? (
+            <CredentialsCard
+              rows={credentials.data}
+              emailDelivery={settings.data?.emailDelivery}
+              onChanged={credentials.reload}
+            />
+          ) : null}
         </div>
-      ) : null}
-      <div className="mt-4">
-        {credentials.error ? <ErrorLine message={credentials.error} /> : null}
-        {credentials.data ? (
-          <CredentialsCard rows={credentials.data} onChanged={credentials.reload} />
+        {settings.data ? (
+          <div className="space-y-5">
+            <UtilitiesCard settings={settings.data} onSaved={settings.setData} />
+            <Card title={t`Reports`}>
+              <Link
+                to="/app/workspace/reports"
+                className="block text-[13px] text-[#A6A6AD] hover:text-[#ECECEE]"
+              >
+                <Trans>Recipients and schedules</Trans> →
+              </Link>
+            </Card>
+          </div>
         ) : null}
       </div>
     </div>
@@ -335,7 +363,7 @@ function UtilitiesCard({
   );
   return (
     <Card title={t`Utilities`}>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <Field label={t`Water GL account`}>
           <input
             className={INPUT}
@@ -369,24 +397,40 @@ function UtilitiesCard({
 
 function CredentialsCard({
   rows,
+  emailDelivery,
   onChanged,
 }: {
   rows: WorkspaceCredentialRow[];
+  emailDelivery?: WorkspaceSettings["emailDelivery"];
   onChanged: () => void;
 }) {
   const { t } = useLingui();
   const byProvider = new Map(rows.map((row) => [row.provider, row]));
   return (
-    <Card title={t`Credentials`}>
+    <Card title={t`Connections`}>
       <ul className="divide-y divide-[#1C1C1F]">
-        {WORKSPACE_CREDENTIAL_PROVIDERS.map((provider) => (
-          <CredentialRow
-            key={provider}
-            provider={provider}
-            row={byProvider.get(provider) ?? null}
-            onChanged={onChanged}
-          />
-        ))}
+        <li className="ws-connection-row flex items-center gap-3 py-3">
+          <span aria-hidden="true" className="ws-provider-icon">
+            <Mail size={15} />
+          </span>
+          <span className="flex-1 text-[13px] font-medium text-[#ECECEE]">
+            {emailDelivery?.provider ?? t`Email delivery`}
+            <span className="mt-0.5 block text-[11.5px] font-normal text-[#939A9E]">{t`Outgoing email`}</span>
+          </span>
+          <span className="text-[12px] text-[#ABBAB5]">
+            {emailDelivery?.connected ? t`Connected` : t`Not configured`}
+          </span>
+        </li>
+        {WORKSPACE_CREDENTIAL_PROVIDERS.filter((provider) => provider !== "smtp").map(
+          (provider) => (
+            <CredentialRow
+              key={provider}
+              provider={provider}
+              row={byProvider.get(provider) ?? null}
+              onChanged={onChanged}
+            />
+          ),
+        )}
       </ul>
     </Card>
   );
@@ -401,6 +445,7 @@ function CredentialRow({
   row: WorkspaceCredentialRow | null;
   onChanged: () => void;
 }) {
+  const ProviderIcon = PROVIDER_ICONS[provider];
   const { t } = useLingui();
   const [editing, setEditing] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -451,26 +496,25 @@ function CredentialRow({
   }
 
   return (
-    <li className="py-3">
+    <li className="ws-connection-row py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <span aria-hidden="true" className="ws-provider-icon">
+            <ProviderIcon size={15} />
+          </span>
           <span className="text-[13px] font-medium text-[#ECECEE]">
             {row?.label || PROVIDER_NAMES[provider]}
+            {row?.label && row.label !== PROVIDER_NAMES[provider] ? (
+              <span className="mt-0.5 block text-[11.5px] font-normal text-[#939A9E]">
+                {PROVIDER_NAMES[provider]}
+              </span>
+            ) : null}
           </span>
-          {row ? (
-            <>
-              {row.fields.map((field) => (
-                <StatusPill key={field} tone="good">
-                  {field}
-                </StatusPill>
-              ))}
-              <span className="text-[11.5px] text-[#6E6975]">{formatDateTime(row.updatedAt)}</span>
-            </>
-          ) : (
-            <StatusPill tone="dim">{t`Not set`}</StatusPill>
-          )}
         </div>
         <div className="flex items-center gap-3 text-[12.5px]">
+          <span className="text-[12px] text-[#939A9E]">
+            {row ? t`Configured` : t`Not configured`}
+          </span>
           <button
             type="button"
             onClick={() => {
@@ -481,7 +525,7 @@ function CredentialRow({
           >
             {editing ? t`Cancel` : row ? t`Edit` : t`Add`}
           </button>
-          {row ? (
+          {row && editing ? (
             <button
               type="button"
               onClick={() => {

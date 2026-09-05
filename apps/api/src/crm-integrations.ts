@@ -17,13 +17,18 @@ import {
   CRM_MODULE_NAME_MAX,
   type CrmModule,
   type CrmModuleRecord,
+  INTEGRATION_SCOPES,
+  type IntegrationScope,
 } from "@rakazo/contracts";
 import { createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/db";
 import type { Context, Hono } from "hono";
 import * as z from "zod";
+import {
+  mountWorkspaceIntegrationRoutes,
+  workspaceOpenApiPaths,
+} from "./workspace-integrations.js";
 
-export const INTEGRATION_SCOPES = ["crm:read", "crm:write", "webhooks:manage"] as const;
-export type IntegrationScope = (typeof INTEGRATION_SCOPES)[number];
+export { INTEGRATION_SCOPES } from "@rakazo/contracts";
 
 const WEBHOOK_EVENTS = [
   "contact.created",
@@ -149,7 +154,7 @@ export function signCrmWebhook(secret: string, timestamp: string, body: string) 
   return `v1=${createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex")}`;
 }
 
-type IntegrationPrincipal = {
+export type IntegrationPrincipal = {
   credentialId: string;
   spaceId: string;
   organizationId: string;
@@ -323,6 +328,10 @@ export function createCrmIntegrationService(deps: {
       where: { id: row.spaceId },
       select: { organizationId: true },
     });
+    const member = await prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId: row.spaceId, userId: row.createdByUserId } },
+    });
+    if (!member || member.organizationId !== space.organizationId) return null;
     return {
       credentialId: row.id,
       spaceId: row.spaceId,
@@ -893,7 +902,11 @@ export function mountCrmIntegrationRoutes(
     return member?.role.split(",").some((role) => role.trim() === "owner") ? actor : null;
   };
 
-  app.get("/v1/openapi.json", (c) => c.json(crmOpenApiDocument(new URL(c.req.url).origin)));
+  mountWorkspaceIntegrationRoutes(app, { prisma: deps.prisma, authenticate: service.authenticate });
+  app.get("/v1/openapi.json", (c) => {
+    const document = crmOpenApiDocument(new URL(c.req.url).origin);
+    return c.json({ ...document, paths: { ...document.paths, ...workspaceOpenApiPaths() } });
+  });
 
   app.get("/v1/integration-credentials", async (c) => {
     const actor = await resolveOwner(c.req.raw);

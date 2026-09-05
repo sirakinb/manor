@@ -45,6 +45,8 @@ export class SmtpEmailProvider implements TransactionalEmailProvider {
   describe() {
     return {
       id: "smtp",
+      displayName:
+        new URL(this.config.url).hostname.toLowerCase() === "smtp.resend.com" ? "Resend" : "SMTP",
       contractVersion: "1",
       adapterVersion: "0.1.0",
       capabilities: { transactional: true },

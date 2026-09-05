@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { InMemoryRealtimeFanout } from "@rakazo/adapters";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
 
@@ -32,6 +33,7 @@ describeWithDatabase("CRM public integrations", () => {
       agentRuntime: "scripted",
       encryptionKey: "offline-crm-integration-test-key",
       signupsEnabled: "true",
+      realtime: new InMemoryRealtimeFanout(),
     });
     app = handles.app;
     cookie = await signup(app, `crm-integrations-${stamp}@rakazo.test`);
@@ -122,8 +124,12 @@ describeWithDatabase("CRM public integrations", () => {
       email: "ada@example.com",
     });
     expect(second).toMatchObject({ created: false, contact: { first_name: "Augusta Ada" } });
-    expect(await handles.prisma.crmContact.count({ where: { email: "ada@example.com" } })).toBe(1);
-    expect(await handles.prisma.crmContactExternalId.count()).toBe(1);
+    expect(
+      await handles.prisma.crmContact.count({
+        where: { organizationId, email: "ada@example.com" },
+      }),
+    ).toBe(1);
+    expect(await handles.prisma.crmContactExternalId.count({ where: { organizationId } })).toBe(1);
   });
 
   it("replays idempotent requests and lists source identities", async () => {

@@ -329,7 +329,7 @@ export interface PropertyLedger {
 
 /** Outbound account and security email. Product code owns content; adapters own delivery. */
 export interface TransactionalEmailProvider {
-  describe(): AdapterDescriptor<{ transactional: boolean }>;
+  describe(): AdapterDescriptor<{ transactional: boolean }> & { displayName?: string };
   send(message: TransactionalEmail): Promise<void>;
   /** Wait for accepted in-flight deliveries before a graceful shutdown completes. */
   drain?(): Promise<void>;

@@ -1,8 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { INTEGRATION_SCOPES } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import { brandName } from "../lib/brand";
+import { withSpaceHeaders } from "../lib/rpc";
 
 type Credential = {
   id: string;
@@ -21,14 +23,14 @@ type Webhook = {
   enabled: boolean;
 };
 
-const ALL_SCOPES = ["crm:read", "crm:write", "webhooks:manage"] as const;
+const ALL_SCOPES = INTEGRATION_SCOPES;
 const DEFAULT_EVENTS = ["contact.created", "contact.updated"];
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     credentials: "include",
-    headers: { "content-type": "application/json", ...init?.headers },
+    headers: withSpaceHeaders({ "content-type": "application/json", ...init?.headers }),
   });
   const body = (await response.json().catch(() => null)) as
     | T

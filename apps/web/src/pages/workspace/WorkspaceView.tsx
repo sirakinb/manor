@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { BuiButton } from "../../components/beautiful-ui/primitives";
 import { rpc } from "../../lib/rpc";
-import { AskTeamButton, WorkspaceTeamContext } from "./AskTeam";
+import { WorkspaceTeamContext } from "./AskTeam";
 import { isSectionKey, Loading, type SectionKey } from "./bits";
 import { Overview } from "./Overview";
 import { EmailSection } from "./sections/EmailSection";
@@ -68,7 +68,6 @@ export function WorkspaceView({
   const [error, setError] = useState<string | null>(null);
   const [team, setTeam] = useState<Bot[] | null>(null);
   const [teamError, setTeamError] = useState<string | null>(null);
-  const [selectedBotId, setSelectedBotId] = useState("");
   const [asking, setAsking] = useState(false);
   const askingRef = useRef(false);
   const mounted = useRef(true);
@@ -88,7 +87,6 @@ export function WorkspaceView({
       .then((bots) => {
         if (!cancelled) {
           setTeam(bots);
-          setSelectedBotId((value) => (bots.some((bot) => bot.id === value) ? value : ""));
           setTeamError(null);
         }
       })
@@ -101,7 +99,7 @@ export function WorkspaceView({
     };
   }, [t, teamEpoch, status?.id]);
 
-  async function ask(subject: string, botId = selectedBotId) {
+  async function ask(subject: string, botId?: string) {
     if (askingRef.current) return;
     askingRef.current = true;
     setAsking(true);
@@ -154,7 +152,7 @@ export function WorkspaceView({
   // A failed status read is not "no workspace": say so instead of the empty line.
   if (status === undefined && error) {
     return (
-      <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
+      <div className="ws-workspace ws-refined flex h-full min-h-0 flex-col bg-[#0D0D0E]">
         <p className="px-[22px] py-6 text-[13px] text-[#E8A33C]">{error}</p>
       </div>
     );
@@ -190,7 +188,7 @@ export function WorkspaceView({
         busy: asking || team === null,
       }}
     >
-      <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
+      <div className="ws-workspace ws-refined flex h-full min-h-0 flex-col bg-[#0D0D0E]">
         <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[13px]">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-5">
             <span className="flex min-w-0 flex-1 flex-col lg:flex-initial">
@@ -204,22 +202,6 @@ export function WorkspaceView({
                 <span className="truncate text-[11px] text-[#6E6975]">{organizationName}</span>
               ) : null}
             </span>
-            {team && team.length > 1 ? (
-              <select
-                aria-label={t`Workspace bot`}
-                value={selectedBotId}
-                onChange={(event) => setSelectedBotId(event.target.value)}
-                className="max-w-40 rounded border border-[#202023] bg-[#131315] px-2 py-1 text-[13px] text-[#ECECEE]"
-              >
-                <option value="">{t`Choose a bot`}</option>
-                {team.map((bot) => (
-                  <option key={bot.id} value={bot.id}>
-                    {bot.name}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {tab === "overview" && !settingsOpen ? <AskTeamButton subject={t`Overview`} /> : null}
             <div
               data-testid="workspace-tabs"
               className="rk-scroll order-last flex w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-[#202023] bg-[#131315] p-1 lg:order-none lg:w-auto"

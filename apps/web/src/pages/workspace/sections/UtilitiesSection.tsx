@@ -35,6 +35,9 @@ import {
 type Charge = WaterBillGroup["charges"][number];
 
 const TARGET_TONE: Record<UtilityBillingTarget["targetStatus"], PillTone> = {
+  blocked: "warn",
+  tenant_direct: "dim",
+  owner_sends_bill: "dim",
   resolved: "good",
   ambiguous: "warn",
   no_active_lease: "warn",
@@ -78,6 +81,9 @@ export function UtilitiesSection({
   const [search, setSearch] = useState("");
 
   const targetLabel: Record<UtilityBillingTarget["targetStatus"], string> = {
+    blocked: t`Blocked`,
+    tenant_direct: t`Tenant pays directly`,
+    owner_sends_bill: t`Owner sends bill`,
     resolved: t`Pass-through`,
     ambiguous: t`Ambiguous`,
     no_active_lease: t`No active lease`,
@@ -96,6 +102,9 @@ export function UtilitiesSection({
     .filter((bill) => bill.resolutionStatus === "resolved")
     .flatMap((bill) => bill.charges.filter((charge) => charge.postStatus === "pending"));
   const pendingTotal = pendingCharges.reduce((sum, charge) => sum + (charge.chargeAmount ?? 0), 0);
+  const pendingBillCount = bills.filter((bill) =>
+    bill.charges.some((charge) => charge.postStatus === "pending"),
+  ).length;
   const query = search.trim().toLocaleLowerCase();
   const visibleBills = bills.filter((bill) => {
     if (
@@ -146,7 +155,7 @@ export function UtilitiesSection({
               caption={t`on the utility account`}
             />
             <KpiTile
-              label={t`Billable`}
+              label={t`Pass-through properties`}
               value={formatNumber(resolved)}
               caption={t`matched to an active lease`}
             />
@@ -190,7 +199,7 @@ export function UtilitiesSection({
           {view === "bills" ? (
             <Card
               title={t`Bills`}
-              subtitle={t`${formatNumber(pendingCharges.length)} pending charges · ${formatMoney(pendingTotal)}`}
+              subtitle={t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoney(pendingTotal)}`}
               className="mt-4"
               right={
                 pendingCharges.length > 0 ? (
@@ -217,6 +226,7 @@ export function UtilitiesSection({
                   ]}
                 />
               </div>
+              <p className="mb-2 text-[11.5px] text-[var(--ws-muted)]">{t`${formatNumber(visibleBills.length)} of ${formatNumber(bills.length)} bills`}</p>
               {postAllOpen ? (
                 <div className="mb-4">
                   <ConfirmCard
@@ -333,13 +343,6 @@ export function UtilitiesSection({
                       );
                     },
                   },
-                  {
-                    key: "mode",
-                    label: t`Mode`,
-                    render: (target) => (
-                      <span className="text-[#85858A]">{target.billingMode}</span>
-                    ),
-                  },
                 ]}
               />
             </Card>
@@ -414,7 +417,7 @@ function BillCard({
           <p className="mt-0.5 text-[11.5px] text-[var(--ws-muted,#6E6975)]">
             {bill.billingMonth ? formatDate(bill.billingMonth) : "—"}
             {bill.dueDate ? ` · ${t`Due ${formatDate(bill.dueDate)}`}` : ""}
-            {bill.billingMode ? ` · ${bill.billingMode}` : ""}
+            {bill.charges.length > 1 ? ` · ${t`${bill.charges.length} charges`}` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">

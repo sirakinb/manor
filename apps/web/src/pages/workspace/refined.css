@@ -1,4 +1,7 @@
 /* Local to the operations screens; the rest of the shell keeps its tokens. */
+#root:has(.ws-workspace)::after {
+  display: none;
+}
 .ws-refined {
   color-scheme: dark;
   --bui-accent: #83bfb1;
@@ -45,4 +48,38 @@
 
 .ws-refined details[open] > summary .ws-expand {
   transform: rotate(180deg);
+}
+
+.ws-settings .ws-card {
+  background: linear-gradient(145deg, #191c1e, #131617 75%);
+  border-color: #2a2f32;
+}
+.ws-provider-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid #343a3d;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #2a3033, #191d1f);
+  box-shadow: inset 0 1px #ffffff0a;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ccd2d5;
+}
+.ws-settings .ws-connection-row {
+  transition: background 150ms ease;
+}
+.ws-settings .ws-connection-row:hover {
+  background: #ffffff02;
+}
+.ws-settings input {
+  border-color: #303639;
+  background: #101314;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-settings .ws-connection-row {
+    transition: none;
+  }
 }

@@ -9,15 +9,7 @@ import { rpc } from "../../../lib/rpc";
 import { KnowledgeSection, SpaceMemorySection } from "../../KnowledgeSection";
 import { WorkspaceTeamContext } from "../AskTeam";
 import { AutomationsCard } from "../AutomationsCard";
-import {
-  Card,
-  CLICKABLE_TEXT,
-  Empty,
-  ErrorLine,
-  formatDateTime,
-  PageHeader,
-  StatusPill,
-} from "../bits";
+import { Card, CLICKABLE_TEXT, Empty, ErrorLine, formatDateTime, PageHeader } from "../bits";
 
 export function TeamSection({
   eyebrow,
@@ -60,7 +52,7 @@ export function TeamSection({
         >
           {!team?.bots.length ? (
             <Empty>
-              <Trans>Ask the team to start with a workspace assistant.</Trans>
+              <Trans>No bots yet.</Trans>
             </Empty>
           ) : (
             <ul className="divide-y divide-[#25282B]">
@@ -151,28 +143,24 @@ export function TeamSection({
         ) : (
           <ul className="divide-y divide-[#1C1C1F]">
             {activity.map((entry) => (
-              <li key={entry.id} className="py-2.5">
+              <li key={entry.id} className="py-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#ECECEE]">
                     {entry.title}
                   </p>
-                  <StatusPill
-                    tone={
-                      entry.verification === "pending"
-                        ? "warn"
-                        : entry.verification === "rejected"
-                          ? "bad"
-                          : "good"
-                    }
+                  <span
+                    className={`text-[11.5px] ${entry.status === "failed" ? "text-[#DC9B94]" : "text-[#A6B4B0]"}`}
                   >
-                    {entry.verification === "pending"
-                      ? t`Needs review`
-                      : entry.verification === "approved"
-                        ? t`Approved`
-                        : entry.verification === "rejected"
-                          ? t`Rejected`
-                          : t`Auto`}
-                  </StatusPill>
+                    {entry.status === "completed"
+                      ? t`Completed`
+                      : entry.status === "failed"
+                        ? t`Failed`
+                        : entry.status === "in_progress"
+                          ? t`In progress`
+                          : entry.status === "planned"
+                            ? t`Planned`
+                            : entry.status}
+                  </span>
                 </div>
                 {entry.summary ? (
                   <p className="mt-1 line-clamp-2 text-[12.5px] text-[#A6A6AD]">{entry.summary}</p>
@@ -180,8 +168,60 @@ export function TeamSection({
                 <p className="mt-1 flex flex-wrap gap-x-3 text-[11.5px] text-[var(--ws-muted,#6E6975)]">
                   <span>{entry.channel}</span>
                   <span>{entry.actor}</span>
+                  {entry.source ? (
+                    <span>{entry.source === "external" ? t`External agent` : t`Manor bot`}</span>
+                  ) : null}
                   <span>{formatDateTime(entry.createdAt)}</span>
                 </p>
+                <details className="mt-2 text-[11.5px] text-[#A6A6AD]">
+                  <summary className="cursor-pointer select-none hover:text-[#ECECEE]">
+                    <Trans>Details</Trans>
+                  </summary>
+                  <div className="mt-2 space-y-2 border-l border-[#343B3E] pl-3">
+                    {entry.summary ? (
+                      <p className="whitespace-pre-wrap leading-5">{entry.summary}</p>
+                    ) : null}
+                    <p>
+                      {t`Record review`}:{" "}
+                      {entry.verification === "pending"
+                        ? t`Needs review`
+                        : entry.verification === "approved"
+                          ? t`Approved`
+                          : entry.verification === "rejected"
+                            ? t`Rejected`
+                            : t`Automatic`}
+                    </p>
+                    {entry.source ? (
+                      <p>
+                        <Trans>
+                          Agent-reported outcome. Record review does not approve or undo execution.
+                        </Trans>
+                      </p>
+                    ) : null}
+                    {entry.evidence?.platform ? (
+                      <p>
+                        {entry.evidence.platform}
+                        {entry.evidence.runId ? ` · ${entry.evidence.runId}` : ""}
+                      </p>
+                    ) : null}
+                    {entry.evidence?.artifacts?.map((artifact, index) => (
+                      <a
+                        key={`${artifact.url}:${index}`}
+                        href={artifact.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-[#ADC8C0] underline underline-offset-4"
+                      >
+                        {artifact.label} ↗
+                      </a>
+                    ))}
+                    {entry.evidence?.blockers?.map((blocker, index) => (
+                      <p key={`${index}:${blocker}`} className="text-[#D3B783]">
+                        {blocker}
+                      </p>
+                    ))}
+                  </div>
+                </details>
               </li>
             ))}
           </ul>

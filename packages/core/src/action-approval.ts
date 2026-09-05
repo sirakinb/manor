@@ -24,6 +24,8 @@ const APPROVAL_REQUIRED_BUILTIN_TOOLS = new Set([
   "delete_bot",
   "archive_bot",
   "workspace_run_automation",
+  "workspace_set_context",
+  "workspace_save_skill",
 ]);
 const EXPLICIT_APPROVAL_BUILTIN_TOOLS = new Set(["create_space"]);
 

@@ -102,6 +102,11 @@ msgstr ""
 msgid "{0} campaigns"
 msgstr ""
 
+#. placeholder {0}: bill.charges.length
+#: src/pages/workspace/sections/UtilitiesSection.tsx:420
+msgid "{0} charges"
+msgstr ""
+
 #. placeholder {0}: formatPct(clickToOpen, 1)
 #. placeholder {1}: formatCompact(data.uniqueClicks)
 #: src/pages/workspace/sections/EmailSection.tsx:123
@@ -124,7 +129,7 @@ msgid "{0} connection"
 msgstr "{0} कनेक्शन"
 
 #. placeholder {0}: formatNumber(batch.failed)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:371
+#: src/pages/workspace/sections/UtilitiesSection.tsx:379
 msgid "{0} failed"
 msgstr ""
 
@@ -188,6 +193,12 @@ msgstr ""
 msgid "{0} most recent"
 msgstr ""
 
+#. placeholder {0}: formatNumber(visibleBills.length)
+#. placeholder {1}: formatNumber(bills.length)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:229
+msgid "{0} of {1} bills"
+msgstr ""
+
 #. placeholder {0}: formatPct(deliveredPct, 1)
 #. placeholder {1}: formatCompact(data.emailsSent)
 #: src/pages/workspace/sections/EmailSection.tsx:113
@@ -212,13 +223,14 @@ msgid "{0} opens"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#. placeholder {1}: formatMoney(pendingTotal)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:188
-msgid "{0} pending charges · {1}"
+#. placeholder {1}: formatNumber(pendingBillCount)
+#. placeholder {2}: formatMoney(pendingTotal)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:202
+msgid "{0} pending charges across {1} bills · {2}"
 msgstr ""
 
 #. placeholder {0}: formatNumber(batch.posted)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:368
+#: src/pages/workspace/sections/UtilitiesSection.tsx:376
 msgid "{0} posted"
 msgstr ""
 
@@ -270,15 +282,15 @@ msgstr ""
 msgid "{botName}’s computer"
 msgstr "{botName} का कंप्यूटर"
 
-#: src/pages/DocsView.tsx:342
+#: src/pages/DocsView.tsx:474
 msgid "{brandName} hosts an MCP server for the CRM. Any client that speaks streamable HTTP — Claude, agents, IDEs — gets the same tools {brandName}'s own bots use."
 msgstr "{brandName} CRM के लिए एक MCP सर्वर होस्ट करता है। streamable HTTP बोलने वाला हर क्लाइंट — Claude, एजेंट, IDE — वही टूल पाता है जो {brandName} के अपने बॉट उपयोग करते हैं।"
 
-#: src/pages/DocsView.tsx:406
+#: src/pages/DocsView.tsx:549
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr "{brandName} CRM बदलावों को आपकी रजिस्टर की गई URLs पर भेजता है — Integrations → API और एजेंट एक्सेस में या <0>POST /v1/webhooks</0> के ज़रिए। हर एंडपॉइंट को एक साइनिंग सीक्रेट मिलता है, जो एक बार दिखाया जाता है।"
 
-#: src/pages/CrmApiAccessPanel.tsx:300
+#: src/pages/CrmApiAccessPanel.tsx:302
 msgid "{brandName} signs contact events and retries failed deliveries automatically."
 msgstr "{brandName} संपर्क इवेंट पर हस्ताक्षर करता है और विफल डिलीवरी अपने आप दोहराता है।"
 
@@ -290,7 +302,7 @@ msgstr "{brandName} सहेजने से पहले स्रोत क�
 msgid "{contactCount, plural, one {# contact} other {# contacts}}"
 msgstr "{contactCount, plural, one {# संपर्क} other {# संपर्क}}"
 
-#: src/pages/workspace/bits.tsx:114
+#: src/pages/workspace/bits.tsx:113
 msgid "{days}d"
 msgstr ""
 
@@ -302,7 +314,7 @@ msgstr "{days} दिन पहले"
 msgid "{dealCount, plural, one {# deal} other {# deals}}"
 msgstr "{dealCount, plural, one {# डील} other {# डील}}"
 
-#: src/pages/workspace/bits.tsx:111
+#: src/pages/workspace/bits.tsx:110
 msgid "{hours}h"
 msgstr ""
 
@@ -310,7 +322,7 @@ msgstr ""
 msgid "{hours}h ago"
 msgstr "{hours} घंटे पहले"
 
-#: src/pages/workspace/bits.tsx:107
+#: src/pages/workspace/bits.tsx:106
 msgid "{minutes}m"
 msgstr ""
 
@@ -379,11 +391,11 @@ msgstr "+ फ़ील्ड"
 msgid "+ New pipeline"
 msgstr "+ नई पाइपलाइन"
 
-#: src/pages/DocsView.tsx:434
+#: src/pages/DocsView.tsx:577
 msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
 msgstr "<0>record.*</0> इवेंट कस्टम मॉड्यूल रिकॉर्ड के लिए फ़ायर होते हैं; पेलोड का <1>data</1> बदलाव के बाद का पूरा ऑब्जेक्ट रखता है।"
 
-#: src/pages/DocsView.tsx:157
+#: src/pages/DocsView.tsx:289
 msgid "1 · Create a token"
 msgstr "1 · टोकन बनाएँ"
 
@@ -395,7 +407,7 @@ msgstr "1 फ़ाइल"
 msgid "12 months"
 msgstr ""
 
-#: src/pages/DocsView.tsx:170
+#: src/pages/DocsView.tsx:302
 msgid "2 · Make a request"
 msgstr "2 · अनुरोध भेजें"
 
@@ -411,7 +423,7 @@ msgstr ""
 msgid "2FA setup key"
 msgstr ""
 
-#: src/pages/DocsView.tsx:197
+#: src/pages/DocsView.tsx:329
 msgid "3 · Write something"
 msgstr "3 · कुछ लिखें"
 
@@ -427,7 +439,7 @@ msgstr ""
 msgid "90D"
 msgstr ""
 
-#: src/pages/DocsView.tsx:379
+#: src/pages/DocsView.tsx:522
 msgid "Access"
 msgstr "पहुंच"
 
@@ -493,12 +505,16 @@ msgstr "सक्रिय आवाज़"
 msgid "Activity"
 msgstr "गतिविधि"
 
+#: src/pages/DocsView.tsx:143
+msgid "Activity writes require a stable idempotencyKey per action. Repeating the same payload returns the existing record; changing it with the same key returns 409. Log corrections as new records. The server identifies the token or bot that wrote the note."
+msgstr ""
+
 #: src/components/BotCredentialsSettings.tsx:158
 #: src/pages/crm/CrmContacts.tsx:431
 #: src/pages/PluginsOverlay.tsx:289
 #: src/pages/PluginsOverlay.tsx:388
 #: src/pages/ScratchpadSection.tsx:188
-#: src/pages/workspace/sections/SettingsSection.tsx:482
+#: src/pages/workspace/sections/SettingsSection.tsx:526
 msgid "Add"
 msgstr "जोड़ें"
 
@@ -588,11 +604,11 @@ msgstr "Treg जोड़ें"
 msgid "Add trigger"
 msgstr "ट्रिगर जोड़ें"
 
-#: src/pages/CrmApiAccessPanel.tsx:324
+#: src/pages/CrmApiAccessPanel.tsx:326
 msgid "Add webhook"
 msgstr "वेबहुक जोड़ें"
 
-#: src/pages/CrmApiAccessPanel.tsx:324
+#: src/pages/CrmApiAccessPanel.tsx:326
 #: src/pages/McpServersOverlay.tsx:363
 #: src/pages/PluginsOverlay.tsx:284
 #: src/pages/PluginsOverlay.tsx:383
@@ -621,6 +637,10 @@ msgstr "एजेंट कंप्यूटर"
 msgid "Agent connections"
 msgstr "एजेंट कनेक्शन"
 
+#: src/pages/workspace/sections/TeamSection.tsx:196
+msgid "Agent-reported outcome. Record review does not approve or undo execution."
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:431
 msgid "Agents:"
 msgstr "एजेंट:"
@@ -637,12 +657,12 @@ msgid "AI handled"
 msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:344
-#: src/pages/workspace/WorkspaceView.tsx:150
+#: src/pages/workspace/WorkspaceView.tsx:148
 msgid "AI team"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:183
-#: src/pages/workspace/sections/UtilitiesSection.tsx:208
+#: src/pages/workspace/sections/UtilitiesSection.tsx:222
 msgid "All"
 msgstr ""
 
@@ -654,7 +674,7 @@ msgstr ""
 msgid "All campaigns"
 msgstr ""
 
-#: src/pages/DocsView.tsx:151
+#: src/pages/DocsView.tsx:283
 msgid "All endpoints are under <0>/v1</0>, all payloads are JSON, and everything is scoped to this workspace — a token can never see another workspace's data."
 msgstr "सभी एंडपॉइंट <0>/v1</0> के अंतर्गत हैं, सभी पेलोड JSON हैं, और सब कुछ इसी वर्कस्पेस तक सीमित है — कोई टोकन कभी दूसरे वर्कस्पेस का डेटा नहीं देख सकता।"
 
@@ -714,12 +734,12 @@ msgstr "इस टूल को हमेशा अनुमति दें"
 msgid "Always allowed"
 msgstr "हमेशा अनुमत"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:82
+#: src/pages/workspace/sections/UtilitiesSection.tsx:88
 msgid "Ambiguous"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:526
-#: src/pages/workspace/sections/UtilitiesSection.tsx:621
+#: src/pages/workspace/sections/UtilitiesSection.tsx:534
+#: src/pages/workspace/sections/UtilitiesSection.tsx:629
 msgid "Amount"
 msgstr ""
 
@@ -808,7 +828,7 @@ msgid "Approve this server to let your agent use its tools."
 msgstr "अपने एजेंट को इसके टूल उपयोग करने देने के लिए इस सर्वर को अनुमोदित करें।"
 
 #: src/pages/workspace/sections/ReportsSection.tsx:54
-#: src/pages/workspace/sections/TeamSection.tsx:171
+#: src/pages/workspace/sections/TeamSection.tsx:189
 msgid "Approved"
 msgstr ""
 
@@ -833,7 +853,8 @@ msgstr "आर्काइव किया गया"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "आर्काइव किया गया। चैट, मेमोरी और फ़ाइलें सुरक्षित रखी गईं।"
 
-#: src/pages/DocsView.tsx:378
+#: src/pages/DocsView.tsx:169
+#: src/pages/DocsView.tsx:521
 #: src/pages/McpServersOverlay.tsx:304
 msgid "Arguments"
 msgstr "आर्ग्युमेंट"
@@ -869,16 +890,8 @@ msgstr "खरीद से पहले पूछें"
 msgid "Ask before sending external email"
 msgstr "बाहरी ईमेल भेजने से पहले पूछें"
 
-#: src/pages/workspace/AskTeam.tsx:17
-msgid "Ask the team"
-msgstr ""
-
-#: src/pages/workspace/sections/TeamSection.tsx:63
-msgid "Ask the team to start with a workspace assistant."
-msgstr ""
-
-#: src/pages/workspace/sections/SettingsSection.tsx:210
-#: src/pages/workspace/sections/SettingsSection.tsx:257
+#: src/pages/workspace/sections/SettingsSection.tsx:238
+#: src/pages/workspace/sections/SettingsSection.tsx:285
 msgid "At"
 msgstr ""
 
@@ -893,7 +906,7 @@ msgstr "{0} बजे"
 msgid "at {timeSelect}"
 msgstr "{timeSelect} बजे"
 
-#: src/pages/DocsView.tsx:159
+#: src/pages/DocsView.tsx:291
 msgid "At the bottom of Integrations, open API & agent access → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
 msgstr "Integrations में सबसे नीचे API और एजेंट एक्सेस → CRM API एक्सेस खोलें, क्रेडेंशियल का नाम रखें, स्कोप चुनें और टोकन कॉपी करें — यह एक बार दिखाया जाता है। टोकन <0>manor_</0> से शुरू होते हैं और कभी भी रद्द किए जा सकते हैं।"
 
@@ -910,7 +923,7 @@ msgstr "अटैचमेंट"
 msgid "Audience"
 msgstr ""
 
-#: src/pages/DocsView.tsx:350
+#: src/pages/DocsView.tsx:493
 msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>. Tools the token cannot use are not advertised at all."
 msgstr "REST वाले उसी बेयरर टोकन से प्रमाणित करें। केवल-पढ़ने वाले टूल्स को <0>crm:read</0> चाहिए; बदलाव करने वाले टूल्स को <1>crm:write</1>। जिन टूल्स का उपयोग टोकन नहीं कर सकता, वे दिखाए ही नहीं जाते।"
 
@@ -933,8 +946,11 @@ msgid "Authorize"
 msgstr "ऑथराइज़ करें"
 
 #: src/pages/Shell.tsx:5332
-#: src/pages/workspace/sections/TeamSection.tsx:174
 msgid "Auto"
+msgstr ""
+
+#: src/pages/workspace/sections/TeamSection.tsx:192
+msgid "Automatic"
 msgstr ""
 
 #: src/pages/workspace/AutomationsCard.tsx:103
@@ -951,6 +967,10 @@ msgstr "रूटीन सहेजने के बाद उपलब्ध"
 
 #: src/pages/workspace/sections/LeasingSection.tsx:169
 msgid "Available rentals"
+msgstr ""
+
+#: src/pages/DocsView.tsx:165
+msgid "Available tools"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:165
@@ -981,7 +1001,7 @@ msgstr "वापस"
 msgid "Back to sign in"
 msgstr "साइन इन पर वापस जाएँ"
 
-#: src/pages/DocsView.tsx:148
+#: src/pages/DocsView.tsx:280
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:48
 msgid "Base URL"
 msgstr "बेस URL"
@@ -998,21 +1018,17 @@ msgstr ""
 msgid "Bearer token"
 msgstr "बियरर टोकन"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:204
+#: src/pages/workspace/sections/UtilitiesSection.tsx:218
 msgid "Bill status"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:144
-msgid "Billable"
-msgstr ""
-
-#: src/pages/workspace/sections/UtilitiesSection.tsx:285
+#: src/pages/workspace/sections/UtilitiesSection.tsx:300
 msgid "Billing"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:149
-#: src/pages/workspace/sections/UtilitiesSection.tsx:166
-#: src/pages/workspace/sections/UtilitiesSection.tsx:187
+#: src/pages/workspace/sections/UtilitiesSection.tsx:163
+#: src/pages/workspace/sections/UtilitiesSection.tsx:180
+#: src/pages/workspace/sections/UtilitiesSection.tsx:201
 msgid "Bills"
 msgstr ""
 
@@ -1023,6 +1039,10 @@ msgstr ""
 #: src/components/FilesPanel.tsx:107
 msgid "Binary file. Preview is not available."
 msgstr "बाइनरी फ़ाइल। पूर्वावलोकन उपलब्ध नहीं है।"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:84
+msgid "Blocked"
+msgstr ""
 
 #: src/pages/Welcome.tsx:49
 msgid "Book demo"
@@ -1064,7 +1084,7 @@ msgstr "बॉट स्क्रीन प्रीव्यू"
 msgid "Bot to link"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:58
+#: src/pages/workspace/sections/TeamSection.tsx:50
 msgid "Bots"
 msgstr ""
 
@@ -1082,6 +1102,10 @@ msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx:334
 msgid "Bounces"
+msgstr ""
+
+#: src/pages/DocsView.tsx:86
+msgid "Bring context into another agent platform"
 msgstr ""
 
 #: src/pages/VoiceSettingsOverlay.tsx:151
@@ -1104,6 +1128,10 @@ msgstr ""
 #: src/pages/Shell.tsx:3228
 msgid "Call"
 msgstr "कॉल"
+
+#: src/pages/DocsView.tsx:184
+msgid "Call the same tools over HTTP"
+msgstr ""
 
 #: src/pages/workspace/sections/VoiceSection.tsx:157
 msgid "Call volume"
@@ -1186,10 +1214,10 @@ msgstr "सर्वर तक नहीं पहुंचा जा सका�
 #: src/pages/workspace/sections/ReportsSection.tsx:493
 #: src/pages/workspace/sections/ReportsSection.tsx:586
 #: src/pages/workspace/sections/ReportsSection.tsx:793
-#: src/pages/workspace/sections/SettingsSection.tsx:482
-#: src/pages/workspace/sections/SettingsSection.tsx:541
-#: src/pages/workspace/sections/UtilitiesSection.tsx:225
-#: src/pages/workspace/sections/UtilitiesSection.tsx:626
+#: src/pages/workspace/sections/SettingsSection.tsx:526
+#: src/pages/workspace/sections/SettingsSection.tsx:585
+#: src/pages/workspace/sections/UtilitiesSection.tsx:240
+#: src/pages/workspace/sections/UtilitiesSection.tsx:634
 msgid "Cancel"
 msgstr "रद्द करें"
 
@@ -1231,11 +1259,11 @@ msgstr ""
 msgid "Channels"
 msgstr "चैनल"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:348
+#: src/pages/workspace/sections/SettingsSection.tsx:376
 msgid "Charge description"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:220
+#: src/pages/workspace/sections/UtilitiesSection.tsx:235
 msgid "Charges"
 msgstr ""
 
@@ -1243,7 +1271,7 @@ msgstr ""
 msgid "Chart failed to render: {error}"
 msgstr "चार्ट रेंडर नहीं हो सका: {error}"
 
-#: src/pages/workspace/sections/TeamSection.tsx:100
+#: src/pages/workspace/sections/TeamSection.tsx:92
 msgid "Chat"
 msgstr ""
 
@@ -1272,6 +1300,10 @@ msgstr "अपडेट जांचें"
 msgid "Check in."
 msgstr "जांच करें।"
 
+#: src/pages/DocsView.tsx:112
+msgid "Check workspace_activities before repeating work. Read the relevant voice, email, social, leasing, utilities or report data and check its timestamps."
+msgstr ""
+
 #: src/pages/Auth.tsx:117
 msgid "Check your email"
 msgstr "अपना ईमेल देखें"
@@ -1287,10 +1319,6 @@ msgstr "जांच हो रही है…"
 #: src/components/SoftwareUpdateSection.tsx:261
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "चेकआउट में स्थानीय बदलाव हैं। अपडेट से पहले इसे साफ़ करें।"
-
-#: src/pages/workspace/WorkspaceView.tsx:214
-msgid "Choose a bot"
-msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:152
 msgid "Choose a bot…"
@@ -1350,7 +1378,7 @@ msgstr ""
 msgid "Clicks per open"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:276
+#: src/pages/workspace/sections/SettingsSection.tsx:304
 msgid "Client recipients"
 msgstr ""
 
@@ -1455,6 +1483,14 @@ msgstr "कंपनी"
 msgid "Complete"
 msgstr "पूर्ण"
 
+#: src/pages/workspace/sections/TeamSection.tsx:155
+msgid "Completed"
+msgstr ""
+
+#: src/pages/DocsView.tsx:150
+msgid "Completed and failed describe the agent’s reported outcome. Needs review, approved and rejected refer to review of that record; they do not authorize execution or undo work. External notes start pending review and cannot approve themselves."
+msgstr ""
+
 #: src/pages/Shell.tsx:5994
 #: src/pages/Shell.tsx:6022
 #: src/pages/workspace/sections/EmailSection.tsx:138
@@ -1489,6 +1525,10 @@ msgstr "कंप्यूटर"
 msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TOKEN, or set SANDBOX_PROVIDER to e2b, daytona, or box with its API key. Recreate the stack after changing .env."
 msgstr "कंप्यूटर बंद हैं। SANDBOX_PROVIDER=docker और SANDBOX_SUPERVISOR_TOKEN सेट करें, या SANDBOX_PROVIDER को e2b, daytona, या box पर सेट कर उसका API key दें। .env बदलने के बाद स्टैक फिर बनाएँ।"
 
+#: src/pages/workspace/sections/SettingsSection.tsx:516
+msgid "Configured"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx:334
 msgid "Configured by deployment"
 msgstr "डिप्लॉयमेंट द्वारा कॉन्फ़िगर"
@@ -1513,7 +1553,7 @@ msgstr "पासवर्ड की पुष्टि करें"
 msgid "Connect"
 msgstr "कनेक्ट करें"
 
-#: src/pages/DocsView.tsx:365
+#: src/pages/DocsView.tsx:508
 msgid "Connect a coding agent"
 msgstr "कोडिंग एजेंट कनेक्ट करें"
 
@@ -1521,7 +1561,7 @@ msgstr "कोडिंग एजेंट कनेक्ट करें"
 msgid "Connect a model"
 msgstr "एक मॉडल कनेक्ट करें"
 
-#: src/pages/CrmApiAccessPanel.tsx:252
+#: src/pages/CrmApiAccessPanel.tsx:254
 msgid "Connect an agent"
 msgstr "एजेंट कनेक्ट करें"
 
@@ -1533,7 +1573,7 @@ msgstr "API कुंजी कनेक्ट करें"
 msgid "Connect ElevenLabs, OpenAI, or Cartesia"
 msgstr "ElevenLabs, OpenAI या Cartesia कनेक्ट करें"
 
-#: src/pages/DocsView.tsx:357
+#: src/pages/DocsView.tsx:500
 msgid "Connect from Claude"
 msgstr "Claude से जुड़ें"
 
@@ -1557,7 +1597,7 @@ msgstr "इस प्रोवाइडर को अपने व्यक्�
 msgid "Connect Treg"
 msgstr "Treg कनेक्ट करें"
 
-#: src/pages/CrmApiAccessPanel.tsx:149
+#: src/pages/CrmApiAccessPanel.tsx:151
 msgid "Connect websites and automation tools with REST, webhooks, or the hosted MCP endpoint."
 msgstr "REST, वेबहुक या होस्टेड MCP एंडपॉइंट से वेबसाइटें और ऑटोमेशन टूल जोड़ें।"
 
@@ -1566,6 +1606,7 @@ msgstr "REST, वेबहुक या होस्टेड MCP एंडप�
 #: src/pages/ModelSettingsOverlay.tsx:379
 #: src/pages/Shell.tsx:7118
 #: src/pages/VoiceSettingsOverlay.tsx:227
+#: src/pages/workspace/sections/SettingsSection.tsx:421
 msgid "Connected"
 msgstr "कनेक्टेड"
 
@@ -1608,12 +1649,16 @@ msgstr "कनेक्ट हो रहा है…"
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} से कनेक्शन अभी लंबित है। आप इसे बंद करके बाद में जांच सकते हैं।"
 
+#: src/pages/workspace/sections/SettingsSection.tsx:410
+msgid "Connections"
+msgstr ""
+
 #: src/pages/crm/CrmContacts.tsx:334
 msgid "Contact"
 msgstr "संपर्क"
 
 #: src/pages/crm/CrmView.tsx:30
-#: src/pages/DocsView.tsx:287
+#: src/pages/DocsView.tsx:419
 msgid "Contacts"
 msgstr "संपर्क"
 
@@ -1626,47 +1671,47 @@ msgstr "जारी रखें"
 msgid "Continue with email"
 msgstr "ईमेल से जारी रखें"
 
-#: src/pages/CrmApiAccessPanel.tsx:264
-#: src/pages/CrmApiAccessPanel.tsx:345
-#: src/pages/DocsView.tsx:242
+#: src/pages/CrmApiAccessPanel.tsx:266
+#: src/pages/CrmApiAccessPanel.tsx:347
+#: src/pages/DocsView.tsx:374
 msgid "Copied"
 msgstr "कॉपी हो गया"
 
-#: src/pages/CrmApiAccessPanel.tsx:231
-#: src/pages/CrmApiAccessPanel.tsx:339
+#: src/pages/CrmApiAccessPanel.tsx:233
+#: src/pages/CrmApiAccessPanel.tsx:341
 #: src/pages/Shell.tsx:5460
 msgid "Copy"
 msgstr "कॉपी करें"
 
-#: src/pages/CrmApiAccessPanel.tsx:238
+#: src/pages/CrmApiAccessPanel.tsx:240
 msgid "Copy agent setup prompt with this token"
 msgstr "इस टोकन के साथ एजेंट सेटअप प्रॉम्प्ट कॉपी करें"
 
-#: src/pages/CrmApiAccessPanel.tsx:227
+#: src/pages/CrmApiAccessPanel.tsx:229
 msgid "Copy integration token"
 msgstr "इंटीग्रेशन टोकन कॉपी करें"
 
-#: src/pages/DocsView.tsx:242
+#: src/pages/DocsView.tsx:374
 msgid "Copy setup prompt"
 msgstr "सेटअप प्रॉम्प्ट कॉपी करें"
 
-#: src/pages/CrmApiAccessPanel.tsx:331
+#: src/pages/CrmApiAccessPanel.tsx:333
 msgid "Copy the signing secret now"
 msgstr "साइनिंग सीक्रेट अभी कॉपी करें"
 
-#: src/pages/DocsView.tsx:367
+#: src/pages/DocsView.tsx:510
 msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself."
 msgstr "इस प्रॉम्प्ट को एक टोकन के साथ Claude, Cursor या किसी भी कोडिंग एजेंट में कॉपी करें — वह MCP से कनेक्ट होकर कनेक्शन खुद जाँच लेगा।"
 
-#: src/pages/DocsView.tsx:140
+#: src/pages/DocsView.tsx:272
 msgid "Copy this prompt into Claude, Cursor, or any coding agent along with a token — it connects over MCP and verifies the connection itself. Tokens live at the bottom of Integrations, under API & agent access."
 msgstr "इस प्रॉम्प्ट को एक टोकन के साथ Claude, Cursor या किसी भी कोडिंग एजेंट में कॉपी करें — वह MCP से कनेक्ट होकर कनेक्शन खुद जाँच लेगा। टोकन Integrations में सबसे नीचे API और एजेंट एक्सेस में मिलते हैं।"
 
-#: src/pages/CrmApiAccessPanel.tsx:223
+#: src/pages/CrmApiAccessPanel.tsx:225
 msgid "Copy this token now"
 msgstr "यह टोकन अभी कॉपी करें"
 
-#: src/pages/CrmApiAccessPanel.tsx:335
+#: src/pages/CrmApiAccessPanel.tsx:337
 msgid "Copy webhook signing secret"
 msgstr "वेबहुक साइनिंग सीक्रेट कॉपी करें"
 
@@ -1731,7 +1776,7 @@ msgstr "जारी नहीं रखा जा सका"
 msgid "Could not create bot"
 msgstr "बॉट नहीं बनाया जा सका"
 
-#: src/pages/CrmApiAccessPanel.tsx:85
+#: src/pages/CrmApiAccessPanel.tsx:87
 msgid "Could not create credential"
 msgstr "क्रेडेंशियल नहीं बन सका"
 
@@ -1747,7 +1792,7 @@ msgstr "सेक्शन नहीं बनाया जा सका"
 msgid "Could not create space"
 msgstr "स्पेस नहीं बनाया जा सका"
 
-#: src/pages/CrmApiAccessPanel.tsx:116
+#: src/pages/CrmApiAccessPanel.tsx:118
 msgid "Could not create webhook"
 msgstr "वेबहुक नहीं बन सका"
 
@@ -1808,7 +1853,7 @@ msgstr "कनेक्टर इंस्टॉल नहीं हो सक�
 msgid "Could not list files"
 msgstr "फ़ाइलें सूचीबद्ध नहीं हो सकीं"
 
-#: src/pages/CrmApiAccessPanel.tsx:70
+#: src/pages/CrmApiAccessPanel.tsx:72
 msgid "Could not load API access"
 msgstr "API पहुंच लोड नहीं हो सकी"
 
@@ -1844,11 +1889,11 @@ msgstr "स्किल लोड नहीं हो सकी"
 msgid "Could not load the CRM"
 msgstr "CRM लोड नहीं हो सका"
 
-#: src/pages/workspace/WorkspaceView.tsx:97
+#: src/pages/workspace/WorkspaceView.tsx:95
 msgid "Could not load the team"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:134
+#: src/pages/workspace/WorkspaceView.tsx:132
 msgid "Could not load the workspace"
 msgstr ""
 
@@ -1868,7 +1913,7 @@ msgstr "अपडेट स्थिति लोड नहीं हो सक�
 msgid "Could not load voice settings"
 msgstr "आवाज़ सेटिंग्स लोड नहीं हो सकीं"
 
-#: src/pages/workspace/WorkspaceView.tsx:119
+#: src/pages/workspace/WorkspaceView.tsx:117
 msgid "Could not open the team"
 msgstr ""
 
@@ -1876,9 +1921,9 @@ msgstr ""
 msgid "Could not play a test clip"
 msgstr "टेस्ट क्लिप नहीं चलाई जा सकी"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:124
-#: src/pages/workspace/sections/UtilitiesSection.tsx:508
-#: src/pages/workspace/sections/UtilitiesSection.tsx:512
+#: src/pages/workspace/sections/UtilitiesSection.tsx:138
+#: src/pages/workspace/sections/UtilitiesSection.tsx:516
+#: src/pages/workspace/sections/UtilitiesSection.tsx:520
 msgid "Could not post"
 msgstr ""
 
@@ -1898,7 +1943,7 @@ msgid "Could not read changes"
 msgstr "बदलाव पढ़े नहीं जा सके"
 
 #: src/pages/ScratchpadSection.tsx:95
-#: src/pages/workspace/sections/SettingsSection.tsx:447
+#: src/pages/workspace/sections/SettingsSection.tsx:492
 msgid "Could not remove"
 msgstr "हटाया नहीं जा सका"
 
@@ -1918,7 +1963,7 @@ msgstr "समूह हटाया नहीं जा सका"
 msgid "Could not remove rule"
 msgstr "नियम हटाया नहीं जा सका"
 
-#: src/pages/CrmApiAccessPanel.tsx:129
+#: src/pages/CrmApiAccessPanel.tsx:131
 msgid "Could not remove webhook"
 msgstr "वेबहुक हटाया नहीं जा सका"
 
@@ -1934,7 +1979,7 @@ msgstr "पासवर्ड रीसेट नहीं किया जा �
 msgid "Could not revoke connection"
 msgstr "कनेक्शन रद्द नहीं किया जा सका"
 
-#: src/pages/CrmApiAccessPanel.tsx:98
+#: src/pages/CrmApiAccessPanel.tsx:100
 msgid "Could not revoke credential"
 msgstr "क्रेडेंशियल रद्द नहीं हो सका"
 
@@ -1949,9 +1994,9 @@ msgstr "रूटीन नहीं चलाया जा सका"
 #: src/components/FilesPanel.tsx:178
 #: src/pages/KnowledgeSection.tsx:126
 #: src/pages/Shell.tsx:6432
-#: src/pages/workspace/sections/SettingsSection.tsx:111
-#: src/pages/workspace/sections/SettingsSection.tsx:433
-#: src/pages/workspace/sections/UtilitiesSection.tsx:476
+#: src/pages/workspace/sections/SettingsSection.tsx:139
+#: src/pages/workspace/sections/SettingsSection.tsx:478
+#: src/pages/workspace/sections/UtilitiesSection.tsx:484
 msgid "Could not save"
 msgstr "सहेजा नहीं जा सका"
 
@@ -2092,7 +2137,7 @@ msgstr ""
 msgid "Create space"
 msgstr "स्पेस बनाएं"
 
-#: src/pages/CrmApiAccessPanel.tsx:189
+#: src/pages/CrmApiAccessPanel.tsx:191
 msgid "Create token"
 msgstr "टोकन बनाएं"
 
@@ -2112,7 +2157,7 @@ msgstr "अपना Manor बनाएं"
 msgid "Created"
 msgstr "बनाया गया"
 
-#: src/pages/CrmApiAccessPanel.tsx:189
+#: src/pages/CrmApiAccessPanel.tsx:191
 #: src/pages/GroupPanel.tsx:134
 #: src/pages/Shell.tsx:6131
 #: src/pages/Shell.tsx:6560
@@ -2124,7 +2169,7 @@ msgstr "बनाया जा रहा है…"
 msgid "Credential"
 msgstr "क्रेडेंशियल"
 
-#: src/pages/CrmApiAccessPanel.tsx:179
+#: src/pages/CrmApiAccessPanel.tsx:181
 msgid "Credential name"
 msgstr "क्रेडेंशियल नाम"
 
@@ -2132,15 +2177,11 @@ msgstr "क्रेडेंशियल नाम"
 msgid "credential saved"
 msgstr "क्रेडेंशियल सहेजा गया"
 
-#: src/pages/CrmApiAccessPanel.tsx:194
+#: src/pages/CrmApiAccessPanel.tsx:196
 msgid "Credential scopes"
 msgstr "क्रेडेंशियल स्कोप"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:380
-msgid "Credentials"
-msgstr ""
-
-#: src/pages/CrmApiAccessPanel.tsx:146
+#: src/pages/CrmApiAccessPanel.tsx:148
 msgid "CRM API access"
 msgstr "CRM API पहुंच"
 
@@ -2156,7 +2197,7 @@ msgstr "Cron एक्सप्रेशन"
 msgid "Current password"
 msgstr "वर्तमान पासवर्ड"
 
-#: src/pages/DocsView.tsx:302
+#: src/pages/DocsView.tsx:434
 msgid "Custom modules"
 msgstr "कस्टम मॉड्यूल"
 
@@ -2164,7 +2205,7 @@ msgstr "कस्टम मॉड्यूल"
 msgid "Customer support"
 msgstr "ग्राहक सहायता"
 
-#: src/pages/workspace/bits.tsx:1211
+#: src/pages/workspace/bits.tsx:1207
 msgid "daily {time}"
 msgstr ""
 
@@ -2181,8 +2222,8 @@ msgid "DATA VAULT"
 msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
-#: src/pages/workspace/sections/UtilitiesSection.tsx:222
-#: src/pages/workspace/sections/UtilitiesSection.tsx:623
+#: src/pages/workspace/sections/UtilitiesSection.tsx:237
+#: src/pages/workspace/sections/UtilitiesSection.tsx:631
 msgid "Date"
 msgstr "तारीख़"
 
@@ -2292,12 +2333,12 @@ msgstr "डिलीट किया जा रहा है…"
 msgid "Delivered"
 msgstr ""
 
-#: src/pages/DocsView.tsx:440
+#: src/pages/DocsView.tsx:583
 #: src/pages/workspace/sections/EmailSection.tsx:322
 msgid "Delivery"
 msgstr "डिलीवरी"
 
-#: src/pages/DocsView.tsx:321
+#: src/pages/DocsView.tsx:453
 msgid "Delivery format, retries, and signatures are on the Webhooks tab."
 msgstr "डिलीवरी फ़ॉर्मैट, रीट्राई और सिग्नेचर Webhooks टैब पर हैं।"
 
@@ -2318,7 +2359,7 @@ msgstr "डिप्लॉयमेंट डिफ़ॉल्ट"
 msgid "Describe what this bot does"
 msgstr "बताएं कि यह बॉट क्या करता है"
 
-#: src/pages/DocsView.tsx:114
+#: src/pages/DocsView.tsx:246
 #: src/pages/Onboarding.tsx:534
 #: src/pages/Shell.tsx:6114
 #: src/pages/Shell.tsx:6279
@@ -2331,6 +2372,7 @@ msgid "Detail"
 msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx:883
+#: src/pages/workspace/sections/TeamSection.tsx:178
 msgid "Details"
 msgstr ""
 
@@ -2353,7 +2395,7 @@ msgstr "डिस्कनेक्ट हो रहा है…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:251
 #: src/pages/workspace/sections/ReportsSection.tsx:357
-#: src/pages/workspace/sections/UtilitiesSection.tsx:374
+#: src/pages/workspace/sections/UtilitiesSection.tsx:382
 msgid "Dismiss"
 msgstr ""
 
@@ -2374,6 +2416,10 @@ msgstr "प्रदर्शित नाम"
 msgid "Do not type passwords into the demo. Use Take control for credentials."
 msgstr "डेमो में पासवर्ड टाइप न करें। क्रेडेंशियल्स के लिए 'टेक कंट्रोल' (Take control) का इस्तेमाल करें।"
 
+#: src/pages/DocsView.tsx:118
+msgid "Do the work in Manor or your external platform using that platform’s authorized tools. Stored playbooks are reference material; old commands and hosts do not grant access."
+msgstr ""
+
 #: src/pages/HostComputerPrompt.tsx:79
 msgid "Docker (recommended)"
 msgstr "Docker (अनुशंसित)"
@@ -2382,12 +2428,12 @@ msgstr "Docker (अनुशंसित)"
 msgid "Docker is the default: bots use a shared Team Computer."
 msgstr "Docker डिफ़ॉल्ट है: बॉट एक साझा टीम कंप्यूटर का उपयोग करते हैं।"
 
-#: src/pages/DocsView.tsx:37
+#: src/pages/DocsView.tsx:40
 #: src/pages/Shell.tsx:3037
 msgid "Documentation"
 msgstr "दस्तावेज़ीकरण"
 
-#: src/pages/CrmApiAccessPanel.tsx:155
+#: src/pages/CrmApiAccessPanel.tsx:157
 msgid "Documentation ↗"
 msgstr "दस्तावेज़ीकरण ↗"
 
@@ -2422,7 +2468,7 @@ msgstr "मार्कडाउन के रूप में डाउनल�
 msgid "Draft"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:284
+#: src/pages/workspace/sections/SettingsSection.tsx:312
 msgid "Draft reviewer"
 msgstr ""
 
@@ -2430,7 +2476,7 @@ msgstr ""
 msgid "Draft skill"
 msgstr "ड्राफ़्ट स्किल"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:179
+#: src/pages/workspace/sections/SettingsSection.tsx:207
 msgid "Drafts for review · Eastern time"
 msgstr ""
 
@@ -2443,7 +2489,7 @@ msgid "Drop to attach to {name}"
 msgstr "{name} में संलग्न करने के लिए छोड़ें"
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:411
+#: src/pages/workspace/sections/UtilitiesSection.tsx:419
 msgid "Due {0}"
 msgstr ""
 
@@ -2451,7 +2497,7 @@ msgstr ""
 msgid "Duplicate"
 msgstr "डुप्लिकेट"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:256
+#: src/pages/workspace/sections/UtilitiesSection.tsx:271
 msgid "Each property billed for water, with the lease that carries the charge"
 msgstr ""
 
@@ -2462,7 +2508,7 @@ msgstr "पुराना संदेश"
 #: src/components/BotCredentialsSettings.tsx:204
 #: src/pages/crm/CrmPipelineBoard.tsx:339
 #: src/pages/workspace/sections/ReportsSection.tsx:296
-#: src/pages/workspace/sections/SettingsSection.tsx:482
+#: src/pages/workspace/sections/SettingsSection.tsx:526
 msgid "Edit"
 msgstr "संपादित करें"
 
@@ -2493,12 +2539,16 @@ msgstr ""
 #: src/pages/crm/CrmContactsSheet.tsx:102
 #: src/pages/crm/CrmModuleSheet.tsx:258
 #: src/pages/workspace/PipelineMap.tsx:112
-#: src/pages/workspace/WorkspaceView.tsx:146
+#: src/pages/workspace/WorkspaceView.tsx:144
 msgid "Email"
 msgstr "ईमेल"
 
 #: src/pages/workspace/sections/ReportCreateCard.tsx:38
 msgid "Email campaign report"
+msgstr ""
+
+#: src/pages/workspace/sections/SettingsSection.tsx:417
+msgid "Email delivery"
 msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx:86
@@ -2517,8 +2567,8 @@ msgstr "खाली फ़ोल्डर"
 msgid "Encrypted static credential saved"
 msgstr "एन्क्रिप्टेड स्टैटिक क्रेडेंशियल सहेजा गया"
 
-#: src/pages/DocsView.tsx:112
-#: src/pages/DocsView.tsx:347
+#: src/pages/DocsView.tsx:244
+#: src/pages/DocsView.tsx:490
 msgid "Endpoint"
 msgstr "एंडपॉइंट"
 
@@ -2537,11 +2587,11 @@ msgid "Enter this code at <0>{0}</0>"
 msgstr "यह कोड <0>{0}</0> पर दर्ज करें"
 
 #: src/pages/workspace/sections/ReportsSection.tsx:59
-#: src/pages/workspace/sections/UtilitiesSection.tsx:457
+#: src/pages/workspace/sections/UtilitiesSection.tsx:465
 msgid "Error"
 msgstr ""
 
-#: src/pages/DocsView.tsx:256
+#: src/pages/DocsView.tsx:388
 msgid "Errors"
 msgstr "त्रुटियाँ"
 
@@ -2549,7 +2599,7 @@ msgstr "त्रुटियाँ"
 msgid "Escalated"
 msgstr ""
 
-#: src/pages/DocsView.tsx:427
+#: src/pages/DocsView.tsx:570
 msgid "Events"
 msgstr "इवेंट"
 
@@ -2558,7 +2608,7 @@ msgid "Every"
 msgstr "हर"
 
 #. placeholder {0}: everyMinutes[1]
-#: src/pages/workspace/bits.tsx:1207
+#: src/pages/workspace/bits.tsx:1203
 msgid "every {0} min"
 msgstr ""
 
@@ -2566,7 +2616,7 @@ msgstr ""
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "हर {intervalAmountSelect} {intervalUnitSelect}"
 
-#: src/pages/DocsView.tsx:280
+#: src/pages/DocsView.tsx:412
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
 msgstr "डेटा बनाने वाला हर <0>POST</0> एक <1>Idempotency-Key</1> हेडर स्वीकार करता है। उसी की के साथ दोबारा कोशिश करने पर मूल परिणाम मिलता है, लिखने की क्रिया दोहराई नहीं जाती; अलग पेलोड के साथ की दोबारा इस्तेमाल करने पर <2>409</2> मिलता है।"
 
@@ -2591,7 +2641,7 @@ msgstr "हर सोमवार"
 msgid "Every month"
 msgstr "हर महीने"
 
-#: src/pages/DocsView.tsx:251
+#: src/pages/DocsView.tsx:383
 msgid "Every request carries <0>Authorization: Bearer manor_…</0>. The token's scopes decide what it can reach."
 msgstr "हर अनुरोध में <0>Authorization: Bearer manor_…</0> होता है। टोकन के स्कोप तय करते हैं कि वह किस तक पहुंच सकता है।"
 
@@ -2621,19 +2671,24 @@ msgstr "एक्सपोर्ट करें"
 msgid "Export this week's list from the CRM and drop it in the shared folder"
 msgstr "CRM से इस सप्ताह की सूची एक्सपोर्ट करें और उसे साझा फ़ोल्डर में डालें"
 
+#: src/pages/workspace/sections/TeamSection.tsx:172
+msgid "External agent"
+msgstr ""
+
 #: src/pages/Shell.tsx:6464
 msgid "Extra high"
 msgstr "अतिरिक्त उच्च"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:381
+#: src/pages/workspace/sections/UtilitiesSection.tsx:389
 msgid "failed"
 msgstr ""
 
 #: src/pages/ActivityList.tsx:161
+#: src/pages/workspace/sections/TeamSection.tsx:157
 msgid "Failed"
 msgstr "विफल"
 
-#: src/pages/DocsView.tsx:450
+#: src/pages/DocsView.tsx:593
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr "विफल डिलीवरी exponential backoff के साथ अधिकतम 8 बार दोहराई जाती हैं, प्रयासों के बीच अधिकतम एक घंटा। 10 सेकंड के भीतर 2xx से जवाब दें।"
 
@@ -2675,7 +2730,7 @@ msgstr ""
 msgid "Failure handling"
 msgstr "विफलता प्रबंधन"
 
-#: src/pages/DocsView.tsx:258
+#: src/pages/DocsView.tsx:390
 msgid "Failures return a JSON body with a human-readable message:"
 msgstr "विफलताएँ पढ़ने-योग्य संदेश के साथ JSON बॉडी लौटाती हैं:"
 
@@ -2753,6 +2808,10 @@ msgstr ""
 msgid "followers now"
 msgstr ""
 
+#: src/pages/DocsView.tsx:97
+msgid "For a client that cannot supply bearer headers, use its HTTP/API integration instead. This endpoint does not provide an OAuth sign-in flow."
+msgstr ""
+
 #: src/pages/Auth.tsx:219
 msgid "Forgot password?"
 msgstr "पासवर्ड भूल गए?"
@@ -2769,11 +2828,11 @@ msgstr "मुफ़्त"
 msgid "Freshness signal"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:1199
+#: src/pages/workspace/bits.tsx:1195
 msgid "Fri"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:172
+#: src/pages/workspace/sections/SettingsSection.tsx:200
 msgid "Friday"
 msgstr ""
 
@@ -2786,8 +2845,8 @@ msgstr ""
 msgid "Fullscreen"
 msgstr "फ़ुलस्क्रीन"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:194
-#: src/pages/workspace/sections/SettingsSection.tsx:242
+#: src/pages/workspace/sections/SettingsSection.tsx:222
+#: src/pages/workspace/sections/SettingsSection.tsx:270
 msgid "Generate on"
 msgstr ""
 
@@ -2807,7 +2866,11 @@ msgstr ""
 msgid "Generating"
 msgstr ""
 
-#: src/pages/DocsView.tsx:26
+#: src/pages/DocsView.tsx:186
+msgid "GET /v1/workspace/tools lists the tools your token can use, including their JSON schemas. POST a JSON argument object to the tool’s path below. Read tools also use POST so MCP and HTTP take the same arguments. Use an empty object when no arguments are needed."
+msgstr ""
+
+#: src/pages/DocsView.tsx:28
 msgid "Getting started"
 msgstr "शुरुआत करें"
 
@@ -2815,7 +2878,7 @@ msgstr "शुरुआत करें"
 msgid "Git event"
 msgstr "Git इवेंट"
 
-#: src/pages/CrmApiAccessPanel.tsx:376
+#: src/pages/CrmApiAccessPanel.tsx:378
 msgid "Give an MCP client a token with CRM scopes and connect it to this endpoint."
 msgstr "किसी MCP क्लाइंट को CRM स्कोप वाला टोकन दें और उसे इस एंडपॉइंट से जोड़ें।"
 
@@ -2823,7 +2886,7 @@ msgstr "किसी MCP क्लाइंट को CRM स्कोप वा
 msgid "Give bots extra tools from a remote MCP server, an OpenAPI spec, or Treg."
 msgstr "बॉट्स को रिमोट MCP सर्वर, OpenAPI स्पेक या Treg से अतिरिक्त टूल दें।"
 
-#: src/pages/DocsView.tsx:166
+#: src/pages/DocsView.tsx:298
 msgid "Grants"
 msgstr "अनुमतियां"
 
@@ -2907,7 +2970,7 @@ msgstr "बोलने के लिए दबाए रखें (डिवा
 msgid "Home"
 msgstr "होम"
 
-#: src/pages/CrmApiAccessPanel.tsx:373
+#: src/pages/CrmApiAccessPanel.tsx:375
 msgid "Hosted MCP"
 msgstr "होस्टेड MCP"
 
@@ -2915,7 +2978,7 @@ msgstr "होस्टेड MCP"
 msgid "hour"
 msgstr "घंटा"
 
-#: src/pages/workspace/bits.tsx:1208
+#: src/pages/workspace/bits.tsx:1204
 msgid "hourly"
 msgstr ""
 
@@ -2935,7 +2998,7 @@ msgstr "जांच कैसे करें"
 msgid "I’m done"
 msgstr "मेरा काम हो गया"
 
-#: src/pages/DocsView.tsx:278
+#: src/pages/DocsView.tsx:410
 msgid "Idempotency"
 msgstr "आइडेम्पोटेंसी"
 
@@ -2964,7 +3027,11 @@ msgstr "चित्र, PDF और टेक्स्ट फ़ाइलें 
 msgid "Import OpenAPI JSON"
 msgstr "OpenAPI JSON इम्पोर्ट करें"
 
-#: src/pages/DocsView.tsx:473
+#: src/pages/workspace/sections/TeamSection.tsx:159
+msgid "In progress"
+msgstr ""
+
+#: src/pages/DocsView.tsx:616
 msgid "Inbound: trigger a bot"
 msgstr "इनबाउंड: बॉट ट्रिगर करें"
 
@@ -3039,12 +3106,12 @@ msgstr "कुंजी"
 msgid "Keys stay on the server. The app only learns whether a provider is configured."
 msgstr "कुंजियां सर्वर पर ही रहती हैं। ऐप को केवल यह पता चलता है कि कोई प्रोवाइडर कॉन्फ़िगर है या नहीं।"
 
-#: src/pages/workspace/sections/TeamSection.tsx:87
+#: src/pages/workspace/sections/TeamSection.tsx:79
 msgid "Knowledge"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:229
-#: src/pages/workspace/sections/SettingsSection.tsx:500
+#: src/pages/workspace/sections/SettingsSection.tsx:544
 msgid "Label"
 msgstr ""
 
@@ -3094,7 +3161,7 @@ msgstr ""
 msgid "Last 90 days"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:202
+#: src/pages/workspace/sections/SettingsSection.tsx:230
 msgid "Last day of month"
 msgstr ""
 
@@ -3103,27 +3170,27 @@ msgstr ""
 msgid "Last name"
 msgstr "अंतिम नाम"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:294
+#: src/pages/workspace/sections/UtilitiesSection.tsx:309
 msgid "Lease"
 msgstr ""
 
 #. placeholder {0}: charge.leaseId
 #. placeholder {0}: row.leaseId
 #: src/pages/workspace/sections/LeasingSection.tsx:127
-#: src/pages/workspace/sections/UtilitiesSection.tsx:466
+#: src/pages/workspace/sections/UtilitiesSection.tsx:474
 msgid "Lease {0}"
 msgstr ""
 
 #. placeholder {0}: lease.leaseId
 #. placeholder {0}: result.leaseId
-#: src/pages/workspace/sections/UtilitiesSection.tsx:302
-#: src/pages/workspace/sections/UtilitiesSection.tsx:381
+#: src/pages/workspace/sections/UtilitiesSection.tsx:317
+#: src/pages/workspace/sections/UtilitiesSection.tsx:389
 msgid "Lease #{0}"
 msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:116
 #: src/pages/workspace/sections/LeasingSection.tsx:49
-#: src/pages/workspace/WorkspaceView.tsx:148
+#: src/pages/workspace/WorkspaceView.tsx:146
 msgid "Leasing"
 msgstr ""
 
@@ -3151,7 +3218,7 @@ msgstr ""
 msgid "List"
 msgstr "सूची"
 
-#: src/pages/DocsView.tsx:268
+#: src/pages/DocsView.tsx:400
 msgid "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
 msgstr "लिस्ट एंडपॉइंट <0>limit</0> (1–100, डिफ़ॉल्ट 50) लेते हैं और <1>next_cursor</1> लौटाते हैं। अगला पेज पाने के लिए इसे <2>cursor</2> के रूप में वापस भेजें; <3>null</3> कर्सर का मतलब है सब कुछ मिल गया। कर्सर लिखने के दौरान भी स्थिर रहते हैं, इसलिए सिंक कभी पंक्तियाँ छोड़ते या दोहराते नहीं।"
 
@@ -3171,7 +3238,7 @@ msgstr "पुराने संदेश लोड करें"
 msgid "Load more"
 msgstr "और लोड करें"
 
-#: src/pages/workspace/bits.tsx:277
+#: src/pages/workspace/bits.tsx:276
 msgid "Loading"
 msgstr ""
 
@@ -3242,11 +3309,11 @@ msgstr "हारी हुई"
 msgid "Low"
 msgstr "निम्न"
 
-#: src/pages/CrmApiAccessPanel.tsx:168
+#: src/pages/CrmApiAccessPanel.tsx:170
 msgid "Machine credentials"
 msgstr "मशीन क्रेडेंशियल"
 
-#: src/pages/DocsView.tsx:60
+#: src/pages/DocsView.tsx:63
 msgid "Machine-readable OpenAPI 3.1 document"
 msgstr "मशीन-पठनीय OpenAPI 3.1 दस्तावेज़"
 
@@ -3257,6 +3324,10 @@ msgstr ""
 #: src/pages/MemorySettingsOverlay.tsx:139
 msgid "Manage the Space semantic memory provider."
 msgstr "वर्कस्पेस के सिमेंटिक मेमोरी प्रोवाइडर को प्रबंधित करें।"
+
+#: src/pages/workspace/sections/TeamSection.tsx:172
+msgid "Manor bot"
+msgstr ""
 
 #: src/pages/Welcome.tsx:135
 msgid "Manor demo"
@@ -3290,7 +3361,7 @@ msgstr ""
 msgid "Market rent"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:146
+#: src/pages/workspace/sections/UtilitiesSection.tsx:160
 msgid "matched to an active lease"
 msgstr ""
 
@@ -3304,7 +3375,7 @@ msgstr "अधिकतम"
 msgid "MCP servers"
 msgstr "MCP सर्वर"
 
-#: src/pages/DocsView.tsx:262
+#: src/pages/DocsView.tsx:394
 msgid "Meaning"
 msgstr "अर्थ"
 
@@ -3322,8 +3393,8 @@ msgstr "सदस्य ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "सदस्य ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} चुनें)"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:538
-#: src/pages/workspace/sections/UtilitiesSection.tsx:622
+#: src/pages/workspace/sections/UtilitiesSection.tsx:546
+#: src/pages/workspace/sections/UtilitiesSection.tsx:630
 msgid "Memo"
 msgstr ""
 
@@ -3381,6 +3452,10 @@ msgstr ""
 msgid "Microphone failed"
 msgstr "माइक्रोफ़ोन विफल"
 
+#: src/pages/DocsView.tsx:196
+msgid "Migration boundaries"
+msgstr ""
+
 #: src/pages/Shell.tsx:6468
 msgid "Minimal"
 msgstr "न्यूनतम"
@@ -3399,10 +3474,6 @@ msgstr "मिनट"
 
 #: src/pages/workspace/sections/EmailSection.tsx:139
 msgid "Mobile"
-msgstr ""
-
-#: src/pages/workspace/sections/UtilitiesSection.tsx:333
-msgid "Mode"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:433
@@ -3451,19 +3522,19 @@ msgstr "मॉडल आपके अपने खातों और कुं�
 msgid "Module name"
 msgstr "मॉड्यूल का नाम"
 
-#: src/pages/DocsView.tsx:304
+#: src/pages/DocsView.tsx:436
 msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
 msgstr "मॉड्यूल CRM की उपयोगकर्ता-परिभाषित शीट हैं — हर मॉड्यूल टाइप्ड फ़ील्ड (टेक्स्ट, संख्या, दिनांक, चेकबॉक्स, सेलेक्ट, ईमेल, फ़ोन, URL) घोषित करता है और उनके अनुसार सत्यापित रिकॉर्ड रखता है। रिकॉर्ड का <0>values</0> फ़ील्ड लेबल या फ़ील्ड id को की के रूप में स्वीकार करता है:"
 
-#: src/pages/workspace/bits.tsx:1199
+#: src/pages/workspace/bits.tsx:1195
 msgid "Mon"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:168
+#: src/pages/workspace/sections/SettingsSection.tsx:196
 msgid "Monday"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:1220
+#: src/pages/workspace/bits.tsx:1216
 msgid "month-end {time}"
 msgstr ""
 
@@ -3471,7 +3542,7 @@ msgstr ""
 msgid "Monthly"
 msgstr "मासिक"
 
-#: src/pages/workspace/bits.tsx:1221
+#: src/pages/workspace/bits.tsx:1217
 msgid "monthly on day {dom} {time}"
 msgstr ""
 
@@ -3479,8 +3550,8 @@ msgstr ""
 msgid "Monthly submissions"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:185
-#: src/pages/workspace/sections/SettingsSection.tsx:188
+#: src/pages/workspace/sections/SettingsSection.tsx:213
+#: src/pages/workspace/sections/SettingsSection.tsx:216
 msgid "Monthly voice recap"
 msgstr ""
 
@@ -3533,8 +3604,8 @@ msgstr "इस रूटीन का नाम रखें"
 msgid "Needed a person"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:154
-#: src/pages/workspace/sections/UtilitiesSection.tsx:210
+#: src/pages/workspace/sections/UtilitiesSection.tsx:168
+#: src/pages/workspace/sections/UtilitiesSection.tsx:224
 msgid "Needs attention"
 msgstr ""
 
@@ -3542,7 +3613,7 @@ msgstr ""
 msgid "Needs input"
 msgstr "इनपुट चाहिए"
 
-#: src/pages/workspace/sections/TeamSection.tsx:169
+#: src/pages/workspace/sections/TeamSection.tsx:187
 msgid "Needs review"
 msgstr ""
 
@@ -3623,11 +3694,11 @@ msgstr ""
 #: src/pages/crm/CrmModuleSheet.tsx:58
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:876
+#: src/pages/workspace/bits.tsx:875
 msgid "No"
 msgstr "नहीं"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:83
+#: src/pages/workspace/sections/UtilitiesSection.tsx:89
 msgid "No active lease"
 msgstr ""
 
@@ -3651,16 +3722,20 @@ msgstr "कोई प्रमाणीकरण नहीं"
 msgid "No automations yet"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:156
+#: src/pages/workspace/sections/UtilitiesSection.tsx:170
 msgid "No billing issues"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:237
+#: src/pages/workspace/sections/UtilitiesSection.tsx:252
 msgid "No bills match these filters"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:237
+#: src/pages/workspace/sections/UtilitiesSection.tsx:252
 msgid "No bills yet"
+msgstr ""
+
+#: src/pages/workspace/sections/TeamSection.tsx:55
+msgid "No bots yet."
 msgstr ""
 
 #: src/pages/workspace/sections/VoiceSection.tsx:192
@@ -3701,8 +3776,8 @@ msgstr "कोई क्रेडेंशियल सहेजा नहीं
 msgid "no data"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:1122
-#: src/pages/workspace/bits.tsx:1132
+#: src/pages/workspace/bits.tsx:1118
+#: src/pages/workspace/bits.tsx:1128
 msgid "No data"
 msgstr ""
 
@@ -3771,7 +3846,7 @@ msgstr ""
 msgid "No posts in this range"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:268
+#: src/pages/workspace/sections/UtilitiesSection.tsx:283
 msgid "No properties mapped yet"
 msgstr ""
 
@@ -3804,7 +3879,7 @@ msgstr "अभी तक कोई स्किल नहीं"
 msgid "No trigger"
 msgstr "कोई ट्रिगर नहीं"
 
-#: src/pages/workspace/WorkspaceView.tsx:173
+#: src/pages/workspace/WorkspaceView.tsx:171
 msgid "No workspace is connected to this account."
 msgstr ""
 
@@ -3817,6 +3892,8 @@ msgid "None yet"
 msgstr "अभी तक कोई नहीं"
 
 #: src/pages/VoiceSettingsOverlay.tsx:177
+#: src/pages/workspace/sections/SettingsSection.tsx:421
+#: src/pages/workspace/sections/SettingsSection.tsx:516
 msgid "Not configured"
 msgstr "कॉन्फ़िगर नहीं"
 
@@ -3829,7 +3906,7 @@ msgstr "कनेक्टेड नहीं"
 msgid "Not in the plugin catalog"
 msgstr "प्लगइन कैटलॉग में नहीं"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:278
+#: src/pages/workspace/sections/UtilitiesSection.tsx:293
 msgid "Not matched to a property"
 msgstr ""
 
@@ -3841,10 +3918,6 @@ msgstr "अभी नहीं"
 msgid "Not scheduled"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:470
-msgid "Not set"
-msgstr ""
-
 #: src/pages/workspace/PipelineMap.tsx:121
 msgid "Not synced yet"
 msgstr ""
@@ -3854,7 +3927,7 @@ msgstr ""
 msgid "Notes"
 msgstr "नोट्स"
 
-#: src/pages/workspace/sections/TeamSection.tsx:149
+#: src/pages/workspace/sections/TeamSection.tsx:141
 msgid "Nothing logged yet"
 msgstr ""
 
@@ -3864,10 +3937,10 @@ msgid "Nothing remembered yet"
 msgstr "अभी तक कुछ याद नहीं किया गया"
 
 #: src/pages/crm/CrmHome.tsx:284
-#: src/pages/workspace/bits.tsx:474
-#: src/pages/workspace/bits.tsx:577
-#: src/pages/workspace/bits.tsx:1011
-#: src/pages/workspace/bits.tsx:1095
+#: src/pages/workspace/bits.tsx:473
+#: src/pages/workspace/bits.tsx:576
+#: src/pages/workspace/bits.tsx:1007
+#: src/pages/workspace/bits.tsx:1091
 msgid "Nothing to chart yet"
 msgstr "चार्ट के लिए अभी कुछ नहीं"
 
@@ -3908,7 +3981,7 @@ msgstr ""
 msgid "On a schedule"
 msgstr "शेड्यूल पर"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:151
+#: src/pages/workspace/sections/UtilitiesSection.tsx:165
 msgid "on record"
 msgstr ""
 
@@ -3917,11 +3990,11 @@ msgstr ""
 msgid "on the 1st at {0}"
 msgstr "1 तारीख को {0} बजे"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:141
+#: src/pages/workspace/sections/UtilitiesSection.tsx:155
 msgid "on the utility account"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:256
+#: src/pages/CrmApiAccessPanel.tsx:258
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr "Claude, Cursor या किसी भी कोडिंग एजेंट में बस एक पेस्ट — टोकन शामिल, वह MCP से कनेक्ट होकर खुद जाँच लेता है।"
 
@@ -3980,7 +4053,7 @@ msgstr ""
 msgid "Open row"
 msgstr "पंक्ति खोलें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:354
+#: src/pages/workspace/sections/UtilitiesSection.tsx:362
 msgid "Open settings"
 msgstr ""
 
@@ -3993,11 +4066,11 @@ msgstr "खुला कार्य"
 msgid "OpenAI-compatible server URL"
 msgstr "OpenAI-संगत सर्वर URL"
 
-#: src/pages/DocsView.tsx:63
+#: src/pages/DocsView.tsx:66
 msgid "OpenAPI (JSON) ↗"
 msgstr ""
 
-#: src/pages/DocsView.tsx:324
+#: src/pages/DocsView.tsx:456
 msgid "OpenAPI document"
 msgstr "OpenAPI दस्तावेज़"
 
@@ -4063,24 +4136,31 @@ msgstr ""
 msgid "Other model…"
 msgstr "अन्य मॉडल…"
 
-#: src/pages/CrmApiAccessPanel.tsx:297
+#: src/pages/CrmApiAccessPanel.tsx:299
 msgid "Outbound webhooks"
 msgstr "आउटबाउंड वेबहुक"
+
+#: src/pages/workspace/sections/SettingsSection.tsx:418
+msgid "Outgoing email"
+msgstr ""
 
 #: src/pages/workspace/AutomationsCard.tsx:79
 msgid "Overdue"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:143
-#: src/pages/workspace/WorkspaceView.tsx:222
+#: src/pages/workspace/WorkspaceView.tsx:141
 msgid "Overview"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:86
+msgid "Owner sends bill"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx:49
 msgid "PagerDuty incident"
 msgstr "PagerDuty इंसिडेंट"
 
-#: src/pages/DocsView.tsx:266
+#: src/pages/DocsView.tsx:398
 msgid "Pagination"
 msgstr "पेजिनेशन"
 
@@ -4089,8 +4169,12 @@ msgstr "पेजिनेशन"
 msgid "Park"
 msgstr "पार्क करें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:81
+#: src/pages/workspace/sections/UtilitiesSection.tsx:87
 msgid "Pass-through"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:158
+msgid "Pass-through properties"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:188
@@ -4141,8 +4225,8 @@ msgstr ""
 msgid "Paused"
 msgstr "रुका हुआ"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:209
-#: src/pages/workspace/sections/UtilitiesSection.tsx:454
+#: src/pages/workspace/sections/UtilitiesSection.tsx:223
+#: src/pages/workspace/sections/UtilitiesSection.tsx:462
 msgid "Pending"
 msgstr ""
 
@@ -4192,9 +4276,13 @@ msgstr "पाइपलाइन नाम"
 msgid "Pipeline value by stage"
 msgstr "चरण के अनुसार पाइपलाइन मूल्य"
 
-#: src/pages/DocsView.tsx:290
+#: src/pages/DocsView.tsx:422
 msgid "Pipelines and deals"
 msgstr "पाइपलाइन और डील"
+
+#: src/pages/workspace/sections/TeamSection.tsx:161
+msgid "Planned"
+msgstr ""
 
 #: src/pages/workspace/AutomationsCard.tsx:103
 msgid "Platform syncs"
@@ -4215,25 +4303,25 @@ msgstr ""
 msgid "Port {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:625
+#: src/pages/workspace/sections/UtilitiesSection.tsx:633
 msgid "Post"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:218
+#: src/pages/workspace/sections/UtilitiesSection.tsx:233
 msgid "Post {0} charges to Buildium?"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:224
+#: src/pages/workspace/sections/UtilitiesSection.tsx:239
 msgid "Post all"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:197
+#: src/pages/workspace/sections/UtilitiesSection.tsx:211
 msgid "Post all pending ({0})"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:618
+#: src/pages/workspace/sections/UtilitiesSection.tsx:626
 msgid "Post this charge to Buildium?"
 msgstr ""
 
@@ -4241,12 +4329,12 @@ msgstr ""
 msgid "POST to"
 msgstr "POST करें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:595
+#: src/pages/workspace/sections/UtilitiesSection.tsx:603
 msgid "Post to Buildium"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:211
-#: src/pages/workspace/sections/UtilitiesSection.tsx:455
+#: src/pages/workspace/sections/UtilitiesSection.tsx:225
+#: src/pages/workspace/sections/UtilitiesSection.tsx:463
 msgid "Posted"
 msgstr ""
 
@@ -4288,17 +4376,17 @@ msgstr "निजी"
 msgid "Profile views"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:250
+#: src/pages/CrmApiAccessPanel.tsx:252
 msgid "Prompt copied"
 msgstr "प्रॉम्प्ट कॉपी हो गया"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:167
+#: src/pages/workspace/sections/UtilitiesSection.tsx:181
 msgid "Properties"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:122
 #: src/pages/workspace/sections/LeasingSection.tsx:200
-#: src/pages/workspace/sections/UtilitiesSection.tsx:272
+#: src/pages/workspace/sections/UtilitiesSection.tsx:287
 msgid "Property"
 msgstr ""
 
@@ -4339,15 +4427,23 @@ msgstr ""
 msgid "Reach"
 msgstr ""
 
-#: src/pages/DocsView.tsx:386
+#: src/pages/DocsView.tsx:529
 msgid "read / write"
 msgstr "पढ़ना / लिखना"
+
+#: src/pages/DocsView.tsx:103
+msgid "Read → work → write back"
+msgstr ""
+
+#: src/pages/DocsView.tsx:482
+msgid "Read operations and shared knowledge, then save context, skill versions and activity evidence. Choose the Workspace tab for tools, scopes and a complete read–work–write example. CRM tokens need workspace scopes added through a new token before they can use these tools."
+msgstr ""
 
 #: src/pages/Shell.tsx:6381
 msgid "Read replies aloud"
 msgstr "उत्तर पढ़कर सुनाएं"
 
-#: src/pages/DocsView.tsx:386
+#: src/pages/DocsView.tsx:529
 #: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "केवल पढ़ना"
@@ -4356,7 +4452,7 @@ msgstr "केवल पढ़ना"
 msgid "Reason"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:125
+#: src/pages/workspace/sections/TeamSection.tsx:117
 msgid "Recaps, recipients and schedules"
 msgstr ""
 
@@ -4364,7 +4460,7 @@ msgstr ""
 msgid "Recent"
 msgstr "हाल के"
 
-#: src/pages/workspace/sections/TeamSection.tsx:133
+#: src/pages/workspace/sections/TeamSection.tsx:125
 msgid "Recent activity"
 msgstr ""
 
@@ -4380,6 +4476,10 @@ msgstr "हाल की डील"
 msgid "Recent runs"
 msgstr ""
 
+#: src/pages/workspace/sections/SettingsSection.tsx:110
+msgid "Recipients and schedules"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:17
 msgid "Reconnect OAuth"
 msgstr "OAuth पुनः कनेक्ट करें"
@@ -4388,7 +4488,11 @@ msgstr "OAuth पुनः कनेक्ट करें"
 msgid "Reconnecting"
 msgstr "पुनः कनेक्ट हो रहा है"
 
-#: src/pages/DocsView.tsx:390
+#: src/pages/workspace/sections/TeamSection.tsx:185
+msgid "Record review"
+msgstr ""
+
+#: src/pages/DocsView.tsx:533
 msgid "Record tools address modules by name or id, and record <0>values</0> use field labels as keys — an agent can say <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> without ever seeing an internal id."
 msgstr "रिकॉर्ड टूल मॉड्यूल को नाम या id से संबोधित करते हैं, और <0>values</0> फ़ील्ड लेबल को की के रूप में इस्तेमाल करता है — एजेंट बिना कोई आंतरिक id देखे <1>{\"module\": \"Tenants\", \"values\": {\"Rent\": 1450}}</1> कह सकता है।"
 
@@ -4422,7 +4526,7 @@ msgstr "रिकवर एक ऐसे कंप्यूटर को बद�
 msgid "Recovering…"
 msgstr "रिकवर हो रहा है…"
 
-#: src/pages/workspace/sections/TeamSection.tsx:143
+#: src/pages/workspace/sections/TeamSection.tsx:135
 msgid "Refresh"
 msgstr ""
 
@@ -4438,15 +4542,15 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
-#: src/pages/DocsView.tsx:411
+#: src/pages/DocsView.tsx:554
 msgid "Register an endpoint"
 msgstr "एंडपॉइंट रजिस्टर करें"
 
-#: src/pages/DocsView.tsx:468
+#: src/pages/DocsView.tsx:611
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr "रिप्ले रोकने के लिए ऐसी डिलीवरी अस्वीकार करें जिनका टाइमस्टैम्प कुछ मिनट से ज़्यादा पुराना हो।"
 
-#: src/pages/workspace/sections/TeamSection.tsx:173
+#: src/pages/workspace/sections/TeamSection.tsx:191
 msgid "Rejected"
 msgstr ""
 
@@ -4456,13 +4560,13 @@ msgstr "नियंत्रण छोड़ें"
 
 #: src/components/ApprovalRulesSettings.tsx:178
 #: src/components/BotCredentialsSettings.tsx:211
-#: src/pages/CrmApiAccessPanel.tsx:364
+#: src/pages/CrmApiAccessPanel.tsx:366
 #: src/pages/PluginsOverlay.tsx:287
 #: src/pages/PluginsOverlay.tsx:386
 #: src/pages/PluginsOverlay.tsx:600
 #: src/pages/ScratchpadSection.tsx:162
-#: src/pages/workspace/sections/SettingsSection.tsx:493
-#: src/pages/workspace/sections/SettingsSection.tsx:540
+#: src/pages/workspace/sections/SettingsSection.tsx:537
+#: src/pages/workspace/sections/SettingsSection.tsx:584
 msgid "Remove"
 msgstr "हटाएं"
 
@@ -4503,7 +4607,7 @@ msgid "Remove stage"
 msgstr "चरण हटाएं"
 
 #. placeholder {0}: PROVIDER_NAMES[provider]
-#: src/pages/workspace/sections/SettingsSection.tsx:539
+#: src/pages/workspace/sections/SettingsSection.tsx:583
 msgid "Remove the {0} credential?"
 msgstr ""
 
@@ -4528,7 +4632,7 @@ msgstr "चैट, कंप्यूटर और मेमोरी सहि�
 msgid "Removed, but list refresh failed"
 msgstr "हटाया गया, लेकिन सूची रिफ़्रेश विफल रही"
 
-#: src/pages/CrmApiAccessPanel.tsx:364
+#: src/pages/CrmApiAccessPanel.tsx:366
 #: src/pages/PluginsOverlay.tsx:282
 #: src/pages/PluginsOverlay.tsx:381
 #: src/pages/PluginsOverlay.tsx:600
@@ -4537,7 +4641,7 @@ msgstr "हटाया जा रहा है…"
 
 #: src/pages/workspace/sections/LeasingSection.tsx:143
 #: src/pages/workspace/sections/LeasingSection.tsx:224
-#: src/pages/workspace/sections/UtilitiesSection.tsx:317
+#: src/pages/workspace/sections/UtilitiesSection.tsx:332
 msgid "Rent"
 msgstr ""
 
@@ -4569,13 +4673,10 @@ msgstr "{replyName} को उत्तर दे रहे हैं"
 msgid "Report"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:77
-msgid "Report recipients and schedules"
-msgstr ""
-
 #: src/pages/workspace/sections/ReportsSection.tsx:97
-#: src/pages/workspace/sections/TeamSection.tsx:122
-#: src/pages/workspace/WorkspaceView.tsx:145
+#: src/pages/workspace/sections/SettingsSection.tsx:105
+#: src/pages/workspace/sections/TeamSection.tsx:114
+#: src/pages/workspace/WorkspaceView.tsx:143
 msgid "Reports"
 msgstr ""
 
@@ -4614,14 +4715,14 @@ msgstr "रीसेट हो रहा है…"
 msgid "Resolution notes"
 msgstr ""
 
-#: src/pages/DocsView.tsx:27
+#: src/pages/DocsView.tsx:30
 msgid "REST"
 msgstr ""
 
 #: src/pages/crm/CrmContacts.tsx:467
 #: src/pages/Shell.tsx:2926
 #: src/pages/Shell.tsx:2956
-#: src/pages/workspace/sections/UtilitiesSection.tsx:578
+#: src/pages/workspace/sections/UtilitiesSection.tsx:586
 msgid "Restore"
 msgstr "बहाल करें"
 
@@ -4634,8 +4735,8 @@ msgstr "अंतिम सहेजे गए वर्कस्पेस क�
 msgid "Resume {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:595
-#: src/pages/workspace/WorkspaceView.tsx:320
+#: src/pages/workspace/sections/UtilitiesSection.tsx:603
+#: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
 msgstr ""
 
@@ -4656,20 +4757,20 @@ msgstr "रिवीज़न {0}"
 msgid "Revert"
 msgstr "वापस लें"
 
-#: src/pages/workspace/WorkspaceView.tsx:114
+#: src/pages/workspace/WorkspaceView.tsx:112
 msgid "Review {subject} in our workspace. Check current data and highlight what needs attention."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:156
+#: src/pages/workspace/sections/UtilitiesSection.tsx:170
 msgid "Review billing matches and charges"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:287
+#: src/pages/CrmApiAccessPanel.tsx:289
 #: src/pages/MessagingSettingsOverlay.tsx:306
 msgid "Revoke"
 msgstr "रद्द करें"
 
-#: src/pages/CrmApiAccessPanel.tsx:287
+#: src/pages/CrmApiAccessPanel.tsx:289
 msgid "Revoking…"
 msgstr "रद्द हो रहा है…"
 
@@ -4725,11 +4826,11 @@ msgstr "चल रहा है · रोकें"
 msgid "Running…"
 msgstr "चल रहा है…"
 
-#: src/pages/workspace/bits.tsx:1199
+#: src/pages/workspace/bits.tsx:1195
 msgid "Sat"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:173
+#: src/pages/workspace/sections/SettingsSection.tsx:201
 msgid "Saturday"
 msgstr ""
 
@@ -4746,13 +4847,17 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx:478
 #: src/pages/Shell.tsx:6437
 #: src/pages/workspace/sections/ReportsSection.tsx:822
-#: src/pages/workspace/sections/SettingsSection.tsx:140
-#: src/pages/workspace/sections/SettingsSection.tsx:531
+#: src/pages/workspace/sections/SettingsSection.tsx:168
+#: src/pages/workspace/sections/SettingsSection.tsx:575
 msgid "Save"
 msgstr "सहेजें"
 
+#: src/pages/DocsView.tsx:124
+msgid "Save durable findings with workspace_set_context and reusable work with workspace_save_skill. Log the outcome and artifact links with workspace_log_activity so the next agent can pick up where you stopped."
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx:162
-#: src/pages/workspace/sections/SettingsSection.tsx:136
+#: src/pages/workspace/sections/SettingsSection.tsx:164
 msgid "Saved"
 msgstr "सहेजा गया"
 
@@ -4794,12 +4899,13 @@ msgstr ""
 msgid "Scheduled rent"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:179
+#: src/pages/workspace/sections/SettingsSection.tsx:207
 msgid "Scheduled reports"
 msgstr ""
 
-#: src/pages/DocsView.tsx:113
-#: src/pages/DocsView.tsx:166
+#: src/pages/DocsView.tsx:170
+#: src/pages/DocsView.tsx:245
+#: src/pages/DocsView.tsx:298
 msgid "Scope"
 msgstr "स्कोप"
 
@@ -4808,7 +4914,7 @@ msgstr "स्कोप"
 msgid "Search"
 msgstr "खोजें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:178
+#: src/pages/workspace/sections/UtilitiesSection.tsx:192
 msgid "Search address…"
 msgstr ""
 
@@ -4833,7 +4939,7 @@ msgstr "मॉडल खोजें"
 msgid "Search people, companies, tags"
 msgstr "लोग, कंपनियां, टैग खोजें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:177
+#: src/pages/workspace/sections/UtilitiesSection.tsx:191
 msgid "Search properties or bills"
 msgstr ""
 
@@ -4907,7 +5013,7 @@ msgstr "रीसेट लिंक भेजें"
 msgid "Send test email"
 msgstr ""
 
-#: src/pages/DocsView.tsx:172
+#: src/pages/DocsView.tsx:304
 msgid "Send the token as a bearer header on every call. This lists the workspace's contacts:"
 msgstr "हर कॉल में टोकन बेयरर हेडर के रूप में भेजें। यह वर्कस्पेस के संपर्क सूचीबद्ध करता है:"
 
@@ -4915,7 +5021,7 @@ msgstr "हर कॉल में टोकन बेयरर हेडर क
 msgid "Send this report"
 msgstr ""
 
-#: src/pages/DocsView.tsx:486
+#: src/pages/DocsView.tsx:629
 msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 msgstr "जो सेंडर हेडर सेट नहीं कर सकते (cal.com, फ़ॉर्म बिल्डर), वे की को URL में जोड़ सकते हैं: <0>?token=<webhook key></0>। बॉडी 64 KB तक सीमित है; <1>text</1> फ़ील्ड जस का तस पहुँचाया जाता है, बाक़ी सब JSON के रूप में। एक ही <2>Idempotency-Key</2> हेडर (या पेलोड <3>id</3>/<4>event_id</4>) वाली दोहराई गई डिलीवरी डीडुप्लिकेट होती हैं।"
 
@@ -4957,7 +5063,7 @@ msgstr "सर्वर URL"
 msgid "Set up voice to call"
 msgstr "कॉल के लिए आवाज़ सेट करें"
 
-#: src/pages/DocsView.tsx:138
+#: src/pages/DocsView.tsx:270
 msgid "Set up with an AI agent"
 msgstr "AI एजेंट से सेटअप करें"
 
@@ -4969,12 +5075,12 @@ msgstr ""
 #: src/pages/Shell.tsx:3045
 #: src/pages/Shell.tsx:3055
 #: src/pages/Shell.tsx:3454
-#: src/pages/workspace/sections/SettingsSection.tsx:68
-#: src/pages/workspace/WorkspaceView.tsx:183
+#: src/pages/workspace/sections/SettingsSection.tsx:88
+#: src/pages/workspace/WorkspaceView.tsx:181
 msgid "Settings"
 msgstr "सेटिंग्स"
 
-#: src/pages/DocsView.tsx:359
+#: src/pages/DocsView.tsx:502
 msgid "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 msgstr "सेटिंग्स → कनेक्टर → कस्टम कनेक्टर जोड़ें। एंडपॉइंट URL और टोकन चिपकाएं, और CRM टूल हर बातचीत में दिखेंगे।"
 
@@ -5004,6 +5110,10 @@ msgstr "साझा"
 msgid "Shared documents"
 msgstr "साझा दस्तावेज़"
 
+#: src/pages/DocsView.tsx:157
+msgid "Shared workspace context and skills are live and available to both internal and external agents through these tools. Personal memory and bot skills created by the earlier conversion are independent copies; updating shared knowledge does not overwrite those edits or deletions."
+msgstr ""
+
 #: src/pages/crm/CrmContacts.tsx:93
 msgid "Sheet"
 msgstr "शीट"
@@ -5031,7 +5141,7 @@ msgstr "फ़ाइलें दिखाएँ"
 msgid "Show live activity"
 msgstr "लाइव गतिविधि दिखाएं"
 
-#: src/pages/workspace/sections/TeamSection.tsx:197
+#: src/pages/workspace/sections/TeamSection.tsx:237
 msgid "Show more"
 msgstr ""
 
@@ -5082,7 +5192,7 @@ msgid "Skills"
 msgstr "स्किल्स"
 
 #: src/pages/Shell.tsx:5514
-#: src/pages/workspace/sections/UtilitiesSection.tsx:592
+#: src/pages/workspace/sections/UtilitiesSection.tsx:600
 msgid "Skip"
 msgstr "छोड़ें"
 
@@ -5094,7 +5204,7 @@ msgstr "अभी के लिए छोड़ें"
 msgid "Skip or deploy key"
 msgstr "छोड़ें या डिप्लॉय कुंजी दें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:456
+#: src/pages/workspace/sections/UtilitiesSection.tsx:464
 msgid "Skipped"
 msgstr ""
 
@@ -5108,7 +5218,7 @@ msgid "Slack message"
 msgstr "Slack संदेश"
 
 #: src/pages/workspace/PipelineMap.tsx:114
-#: src/pages/workspace/WorkspaceView.tsx:147
+#: src/pages/workspace/WorkspaceView.tsx:145
 msgid "Social"
 msgstr ""
 
@@ -5184,6 +5294,10 @@ msgstr "रिकॉर्डिंग शुरू करें"
 msgid "Start the computer to load the preview."
 msgstr ""
 
+#: src/pages/DocsView.tsx:106
+msgid "Start with workspace_overview. Read workspace_get_context and workspace_list_skills, then workspace_get_skill for the playbooks you need."
+msgstr ""
+
 #: src/pages/ActivityList.tsx:151
 msgid "Starting"
 msgstr "शुरू हो रहा है"
@@ -5199,7 +5313,7 @@ msgid "Stats"
 msgstr ""
 
 #: src/pages/crm/CrmContactsSheet.tsx:116
-#: src/pages/DocsView.tsx:262
+#: src/pages/DocsView.tsx:394
 #: src/pages/workspace/sections/ReportsSection.tsx:202
 msgid "Status"
 msgstr "स्टेटस"
@@ -5273,11 +5387,11 @@ msgstr "सबमिट किया गया"
 msgid "Summary"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:1199
+#: src/pages/workspace/bits.tsx:1195
 msgid "Sun"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:167
+#: src/pages/workspace/sections/SettingsSection.tsx:195
 msgid "Sunday"
 msgstr ""
 
@@ -5296,7 +5410,7 @@ msgid "Synthesis"
 msgstr ""
 
 #: src/pages/workspace/sections/SystemSection.tsx:63
-#: src/pages/workspace/WorkspaceView.tsx:151
+#: src/pages/workspace/WorkspaceView.tsx:149
 msgid "System"
 msgstr ""
 
@@ -5331,6 +5445,10 @@ msgstr "टीम कंप्यूटर"
 msgid "Teams message"
 msgstr "Teams संदेश"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:85
+msgid "Tenant pays directly"
+msgstr ""
+
 #: src/pages/workspace/sections/ReportCreateCard.tsx:47
 #: src/pages/workspace/sections/VoiceSection.tsx:110
 msgid "Tenants"
@@ -5361,9 +5479,9 @@ msgstr "टेस्ट रन"
 msgid "Text"
 msgstr "टेक्स्ट"
 
-#: src/pages/DocsView.tsx:131
-msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing changes back to you. The CRM is the first surface it covers; new areas will appear here as they open up."
-msgstr "{brandName} API वेबसाइटों, ऑटोमेशन टूल्स और AI क्लाइंट्स को इस वर्कस्पेस से जोड़ती है। यह स्क्रिप्ट और सर्वर के लिए सादा REST, AI क्लाइंट्स के लिए MCP, और बदलाव आप तक वापस पहुँचाने के लिए वेबहुक बोलती है। CRM इसका पहला क्षेत्र है; नए क्षेत्र खुलते ही यहाँ दिखेंगे।"
+#: src/pages/DocsView.tsx:263
+msgid "The {brandName} API connects websites, automation tools, and AI clients to this workspace. It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing CRM changes back to you. External agents can also read workspace operations and context, save reusable skills, and write results back into the same activity history used in Manor."
+msgstr ""
 
 #: src/components/SoftwareUpdateSection.tsx:206
 msgid "The API did not come back. Refresh this page."
@@ -5385,11 +5503,11 @@ msgstr "कंप्यूटर सो रहा है। अनकमिट�
 msgid "The dashboard comes to life once deals land on the pipeline. Open the Pipeline tab to add the first one."
 msgstr "पाइपलाइन में डील आते ही डैशबोर्ड जीवंत हो उठता है। पहली डील जोड़ने के लिए पाइपलाइन टैब खोलें।"
 
-#: src/pages/DocsView.tsx:326
+#: src/pages/DocsView.tsx:458
 msgid "The machine-readable spec lives at <0>{origin}/v1/openapi.json</0> — import it into Postman, Insomnia, or a code generator to get typed clients for everything on this page."
 msgstr "मशीन-पठनीय स्पेसिफ़िकेशन <0>{origin}/v1/openapi.json</0> पर है — इसे Postman, Insomnia या किसी कोड जनरेटर में इंपोर्ट करके इस पेज की हर चीज़ के लिए टाइप्ड क्लाइंट पाएँ।"
 
-#: src/pages/DocsView.tsx:218
+#: src/pages/DocsView.tsx:350
 msgid "The REST tab is the full endpoint reference — conventions, pagination, and every route. AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your servers as they happen."
 msgstr "REST टैब पूरा एंडपॉइंट संदर्भ है — कन्वेंशन, पेजिनेशन और हर रूट। AI क्लाइंट REST छोड़कर सीधे MCP से जुड़ सकते हैं। वेबहुक बदलाव होते ही आपके सर्वर तक पहुँचाते हैं।"
 
@@ -5397,9 +5515,13 @@ msgstr "REST टैब पूरा एंडपॉइंट संदर्भ 
 msgid "The selected memory provider is not available in this build."
 msgstr "चयनित मेमोरी प्रोवाइडर इस बिल्ड में उपलब्ध नहीं है।"
 
-#: src/pages/DocsView.tsx:458
+#: src/pages/DocsView.tsx:601
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "हस्ताक्षर, एंडपॉइंट के साइनिंग सीक्रेट से <0><timestamp>.<raw body></0> का HMAC-SHA256 है:"
+
+#: src/pages/DocsView.tsx:198
+msgid "The Workspace endpoint covers the operations and knowledge tools listed here. Report sending, charge posting, automation execution, Twilio SMS, Retell agent updates, and the original intake, cases and SEO tools are not exposed through this endpoint. A stored credential or imported playbook does not make those actions available. Existing external platforms must be reconfigured to this endpoint; old tokens and URLs are not redirected."
+msgstr ""
 
 #: src/pages/Shell.tsx:6332
 msgid "Thinking"
@@ -5491,11 +5613,11 @@ msgstr "यह सर्वर ब्राउज़र साइन-इन क�
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr "यह सदस्यता साइन-इन अभी {brandName} में उपलब्ध नहीं है। परिनियोजन क्रेडेंशियल उपयोग करें या कोई और प्रदाता चुनें।"
 
-#: src/pages/workspace/bits.tsx:1199
+#: src/pages/workspace/bits.tsx:1195
 msgid "Thu"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:171
+#: src/pages/workspace/sections/SettingsSection.tsx:199
 msgid "Thursday"
 msgstr ""
 
@@ -5518,15 +5640,16 @@ msgid "To"
 msgstr ""
 
 #. placeholder {0}: formatDate(lease.leaseTo)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:305
+#: src/pages/workspace/sections/UtilitiesSection.tsx:320
 msgid "to {0}"
 msgstr ""
 
-#: src/pages/CrmApiAccessPanel.tsx:171
+#: src/pages/CrmApiAccessPanel.tsx:173
 msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
 msgstr "टोकन एक ही बार दिखाए जाते हैं। इन्हें अपने सर्वर या ऑटोमेशन प्लेटफ़ॉर्म में रखें, ब्राउज़र कोड में कभी नहीं।"
 
-#: src/pages/DocsView.tsx:377
+#: src/pages/DocsView.tsx:168
+#: src/pages/DocsView.tsx:520
 msgid "Tool"
 msgstr "टूल"
 
@@ -5538,7 +5661,7 @@ msgstr ""
 msgid "Tool sources"
 msgstr "टूल स्रोत"
 
-#: src/pages/DocsView.tsx:374
+#: src/pages/DocsView.tsx:517
 msgid "Tools"
 msgstr "टूल"
 
@@ -5554,7 +5677,7 @@ msgstr ""
 msgid "Topic"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:221
+#: src/pages/workspace/sections/UtilitiesSection.tsx:236
 msgid "Total"
 msgstr ""
 
@@ -5574,11 +5697,11 @@ msgstr ""
 msgid "Treg token"
 msgstr "Treg टोकन"
 
-#: src/pages/workspace/bits.tsx:1199
+#: src/pages/workspace/bits.tsx:1195
 msgid "Tue"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:169
+#: src/pages/workspace/sections/SettingsSection.tsx:197
 msgid "Tuesday"
 msgstr ""
 
@@ -5608,7 +5731,7 @@ msgstr "असाइन नहीं किया गया"
 msgid "Unavailable"
 msgstr "अनुपलब्ध"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:620
+#: src/pages/workspace/sections/UtilitiesSection.tsx:628
 msgid "Unit"
 msgstr ""
 
@@ -5617,12 +5740,12 @@ msgstr ""
 #. placeholder {0}: row.unitNumber
 #: src/pages/workspace/sections/LeasingSection.tsx:130
 #: src/pages/workspace/sections/LeasingSection.tsx:207
-#: src/pages/workspace/sections/UtilitiesSection.tsx:304
-#: src/pages/workspace/sections/UtilitiesSection.tsx:466
+#: src/pages/workspace/sections/UtilitiesSection.tsx:319
+#: src/pages/workspace/sections/UtilitiesSection.tsx:474
 msgid "Unit {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:407
+#: src/pages/workspace/sections/UtilitiesSection.tsx:415
 msgid "Unknown address"
 msgstr ""
 
@@ -5635,7 +5758,7 @@ msgstr ""
 msgid "Unlink"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:84
+#: src/pages/workspace/sections/UtilitiesSection.tsx:90
 msgid "Unmatched"
 msgstr ""
 
@@ -5700,6 +5823,10 @@ msgstr "अपडेट हो गया"
 msgid "Updated {0}"
 msgstr ""
 
+#: src/pages/DocsView.tsx:133
+msgid "Updates, retries and review"
+msgstr ""
+
 #: src/components/ComputerMaintenanceActions.tsx:182
 #: src/components/ComputerMaintenanceActions.tsx:214
 #: src/components/SoftwareUpdateSection.tsx:75
@@ -5710,7 +5837,7 @@ msgstr "अपडेट हो रहा है…"
 msgid "URL"
 msgstr ""
 
-#: src/pages/DocsView.tsx:421
+#: src/pages/DocsView.tsx:564
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr "URL HTTPS होने चाहिए। जवाब में एंडपॉइंट और उसका साइनिंग सीक्रेट होता है — इसे सहेज लें; यह दोबारा प्राप्त नहीं किया जा सकता।"
 
@@ -5728,6 +5855,14 @@ msgstr "{hostLabel} का उपयोग करें"
 msgid "Use a found model"
 msgstr "मिला हुआ मॉडल उपयोग करें"
 
+#: src/pages/DocsView.tsx:135
+msgid "Use null or version 0 only for a new entry. To update context, pass its last-read updatedAt as expectedUpdatedAt. To save a skill version, pass its last-read version as expectedVersion. A 409 means someone changed the content: read it again and reconcile before saving. Skill versions preserve history."
+msgstr ""
+
+#: src/pages/DocsView.tsx:88
+msgid "Use the Workspace MCP endpoint with any client that supports Streamable HTTP and a bearer token. Create a named token in Integrations → API & agent access. Give it workspace:read, then enable only the write scopes it needs. The token stays bound to its organization and its creator’s membership."
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx:707
 msgid "Use this model"
 msgstr "यह मॉडल उपयोग करें"
@@ -5741,13 +5876,13 @@ msgid "Uses whichever fits the task"
 msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:117
-#: src/pages/workspace/sections/SettingsSection.tsx:337
-#: src/pages/workspace/sections/UtilitiesSection.tsx:132
-#: src/pages/workspace/WorkspaceView.tsx:149
+#: src/pages/workspace/sections/SettingsSection.tsx:365
+#: src/pages/workspace/sections/UtilitiesSection.tsx:146
+#: src/pages/workspace/WorkspaceView.tsx:147
 msgid "Utilities"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:162
+#: src/pages/workspace/sections/UtilitiesSection.tsx:176
 msgid "Utilities view"
 msgstr ""
 
@@ -5772,7 +5907,7 @@ msgstr ""
 msgid "Verify and add"
 msgstr "पुष्टि करके जोड़ें"
 
-#: src/pages/DocsView.tsx:456
+#: src/pages/DocsView.tsx:599
 msgid "Verify the signature"
 msgstr "हस्ताक्षर सत्यापित करें"
 
@@ -5787,7 +5922,7 @@ msgstr "पुष्टि की जा रही है…"
 #: src/pages/workspace/PipelineMap.tsx:110
 #: src/pages/workspace/sections/VoiceSection.tsx:102
 #: src/pages/workspace/sections/VoiceSection.tsx:267
-#: src/pages/workspace/WorkspaceView.tsx:144
+#: src/pages/workspace/WorkspaceView.tsx:142
 msgid "Voice"
 msgstr "आवाज़"
 
@@ -5822,12 +5957,12 @@ msgstr "कंप्यूटर जगाएँ"
 msgid "Watch it work"
 msgstr "इसे काम करते देखें"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:339
+#: src/pages/workspace/sections/SettingsSection.tsx:367
 msgid "Water GL account"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:139
-#: src/pages/workspace/sections/UtilitiesSection.tsx:255
+#: src/pages/workspace/sections/UtilitiesSection.tsx:153
+#: src/pages/workspace/sections/UtilitiesSection.tsx:270
 msgid "Water-billed properties"
 msgstr ""
 
@@ -5835,31 +5970,31 @@ msgstr ""
 msgid "Webhook"
 msgstr "वेबहुक"
 
-#: src/pages/CrmApiAccessPanel.tsx:313
+#: src/pages/CrmApiAccessPanel.tsx:315
 msgid "Webhook HTTPS URL"
 msgstr "वेबहुक HTTPS URL"
 
-#: src/pages/DocsView.tsx:318
+#: src/pages/DocsView.tsx:450
 msgid "Webhook management"
 msgstr "वेबहुक प्रबंधन"
 
-#: src/pages/CrmApiAccessPanel.tsx:307
+#: src/pages/CrmApiAccessPanel.tsx:309
 msgid "Webhook name"
 msgstr "वेबहुक नाम"
 
-#: src/pages/DocsView.tsx:29
+#: src/pages/DocsView.tsx:32
 msgid "Webhooks"
 msgstr "वेबहुक"
 
-#: src/pages/DocsView.tsx:475
+#: src/pages/DocsView.tsx:618
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "वेबहुक दूसरी दिशा में भी चलते हैं — हर बॉट के पास एक इनबाउंड URL है जिस पर बाहरी सेवाएँ POST कर सकती हैं। पेलोड संदेश के रूप में आता है और वेबहुक ट्रिगर वाली हर रूटीन चलती है, ताकि बॉट अपने टूल्स से उस पर कार्रवाई कर सके। इसे बॉट के रूटीन एडिटर में सेट करें।"
 
-#: src/pages/workspace/bits.tsx:1199
+#: src/pages/workspace/bits.tsx:1195
 msgid "Wed"
 msgstr ""
 
-#: src/pages/workspace/sections/SettingsSection.tsx:170
+#: src/pages/workspace/sections/SettingsSection.tsx:198
 msgid "Wednesday"
 msgstr ""
 
@@ -5869,8 +6004,8 @@ msgstr ""
 msgid "Weekdays"
 msgstr "कार्यदिवस"
 
-#: src/pages/workspace/sections/SettingsSection.tsx:233
-#: src/pages/workspace/sections/SettingsSection.tsx:236
+#: src/pages/workspace/sections/SettingsSection.tsx:261
+#: src/pages/workspace/sections/SettingsSection.tsx:264
 msgid "Weekly email recap"
 msgstr ""
 
@@ -5916,7 +6051,7 @@ msgstr "कब चलाएं"
 msgid "When to use"
 msgstr "कब उपयोग करें"
 
-#: src/pages/DocsView.tsx:216
+#: src/pages/DocsView.tsx:348
 msgid "Where next"
 msgstr "आगे कहाँ"
 
@@ -5938,16 +6073,17 @@ msgstr "जीता हुआ राजस्व"
 msgid "Working…"
 msgstr "काम चल रहा है…"
 
+#: src/pages/DocsView.tsx:29
 #: src/pages/Shell.tsx:2985
-#: src/pages/workspace/WorkspaceView.tsx:198
+#: src/pages/workspace/WorkspaceView.tsx:196
 msgid "Workspace"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:209
-msgid "Workspace bot"
+#: src/pages/DocsView.tsx:479
+msgid "Workspace MCP"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:97
+#: src/pages/workspace/sections/TeamSection.tsx:89
 msgid "workspace operations"
 msgstr ""
 
@@ -5955,18 +6091,18 @@ msgstr ""
 msgid "workspace root"
 msgstr "वर्कस्पेस रूट"
 
-#: src/pages/workspace/WorkspaceView.tsx:245
+#: src/pages/workspace/WorkspaceView.tsx:227
 msgid "Workspace settings"
 msgstr ""
 
-#: src/pages/DocsView.tsx:199
+#: src/pages/DocsView.tsx:331
 msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
 msgstr "लिखने के लिए <0>crm:write</0> स्कोप चाहिए। Upsert सबसे सुरक्षित तरीका है — यह <1>source</1> + <2>external_id</2> (या ईमेल) पर मैच करता है, इसलिए वही कॉल दोहराने से संपर्क कभी डुप्लिकेट नहीं होता:"
 
 #: src/pages/crm/CrmModuleSheet.tsx:56
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:876
+#: src/pages/workspace/bits.tsx:875
 msgid "Yes"
 msgstr "हाँ"
 
@@ -5987,7 +6123,7 @@ msgstr "आप यह विंडो बंद कर सकते हैं।
 msgid "You have control"
 msgstr "नियंत्रण आपके पास है"
 
-#: src/pages/workspace/sections/TeamSection.tsx:54
+#: src/pages/workspace/sections/TeamSection.tsx:46
 msgid "Your AI team"
 msgstr ""
 

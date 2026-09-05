@@ -11,10 +11,12 @@ import {
   STATUS_CODES,
   WEBHOOK_ENDPOINTS,
   WEBHOOK_EVENTS,
+  WORKSPACE_ENDPOINTS,
+  WORKSPACE_MCP_TOOLS,
 } from "../lib/api-catalog";
 import { brandName } from "../lib/brand";
 
-type DocsTab = "start" | "rest" | "mcp" | "webhooks";
+type DocsTab = "start" | "workspace" | "rest" | "mcp" | "webhooks";
 
 /** The Manor API reference. The CRM is the first surface; new areas add tabs here. */
 export function DocsView() {
@@ -24,6 +26,7 @@ export function DocsView() {
 
   const tabs: Array<{ key: DocsTab; label: string }> = [
     { key: "start", label: t`Getting started` },
+    { key: "workspace", label: t`Workspace` },
     { key: "rest", label: t`REST` },
     { key: "mcp", label: "MCP" },
     { key: "webhooks", label: t`Webhooks` },
@@ -67,12 +70,141 @@ export function DocsView() {
       <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl px-[22px] py-6">
           {tab === "start" ? <GettingStarted origin={origin} /> : null}
+          {tab === "workspace" ? <WorkspaceReference origin={origin} /> : null}
           {tab === "rest" ? <RestReference origin={origin} /> : null}
           {tab === "mcp" ? <McpReference origin={origin} /> : null}
           {tab === "webhooks" ? <WebhooksReference origin={origin} /> : null}
         </div>
       </div>
     </div>
+  );
+}
+
+function WorkspaceReference({ origin }: { origin: string }) {
+  return (
+    <>
+      <Section title={<Trans>Bring context into another agent platform</Trans>}>
+        <Prose>
+          <Trans>
+            Use the Workspace MCP endpoint with any client that supports Streamable HTTP and a
+            bearer token. Create a named token in Integrations → API & agent access. Give it
+            workspace:read, then enable only the write scopes it needs. The token stays bound to its
+            organization and its creator’s membership.
+          </Trans>
+        </Prose>
+        <Code>{`${origin}/mcp/workspace\nAuthorization: Bearer <token>`}</Code>
+        <Prose>
+          <Trans>
+            For a client that cannot supply bearer headers, use its HTTP/API integration instead.
+            This endpoint does not provide an OAuth sign-in flow.
+          </Trans>
+        </Prose>
+      </Section>
+      <Section title={<Trans>Read → work → write back</Trans>}>
+        <ol className="mb-4 list-decimal space-y-2 pl-5 text-[13px] leading-6 text-[#A8A8AD]">
+          <li>
+            <Trans>
+              Start with workspace_overview. Read workspace_get_context and workspace_list_skills,
+              then workspace_get_skill for the playbooks you need.
+            </Trans>
+          </li>
+          <li>
+            <Trans>
+              Check workspace_activities before repeating work. Read the relevant voice, email,
+              social, leasing, utilities or report data and check its timestamps.
+            </Trans>
+          </li>
+          <li>
+            <Trans>
+              Do the work in Manor or your external platform using that platform’s authorized tools.
+              Stored playbooks are reference material; old commands and hosts do not grant access.
+            </Trans>
+          </li>
+          <li>
+            <Trans>
+              Save durable findings with workspace_set_context and reusable work with
+              workspace_save_skill. Log the outcome and artifact links with workspace_log_activity
+              so the next agent can pick up where you stopped.
+            </Trans>
+          </li>
+        </ol>
+        <Code>{`workspace_set_context({\n  "key": "reporting-conventions",\n  "content": "Use calendar-month totals and cite the data window.",\n  "expectedUpdatedAt": null\n})\n\nworkspace_save_skill({\n  "name": "monthly-analysis",\n  "kind": "skill",\n  "content": "Read the current report and compare the prior month…",\n  "expectedVersion": 0\n})\n\nworkspace_log_activity({\n  "channel": "email",\n  "title": "Campaign analysis completed",\n  "summary": "Reviewed the current reporting window; findings saved in the analysis document.",\n  "status": "completed",\n  "idempotencyKey": "external-platform:run-42:analysis",\n  "evidence": {\n    "platform": "external-platform",\n    "runId": "run-42",\n    "artifacts": [{"label": "Analysis", "url": "https://example.com/analysis"}]\n  }\n})`}</Code>
+      </Section>
+      <Section title={<Trans>Updates, retries and review</Trans>}>
+        <Prose>
+          <Trans>
+            Use null or version 0 only for a new entry. To update context, pass its last-read
+            updatedAt as expectedUpdatedAt. To save a skill version, pass its last-read version as
+            expectedVersion. A 409 means someone changed the content: read it again and reconcile
+            before saving. Skill versions preserve history.
+          </Trans>
+        </Prose>
+        <Prose>
+          <Trans>
+            Activity writes require a stable idempotencyKey per action. Repeating the same payload
+            returns the existing record; changing it with the same key returns 409. Log corrections
+            as new records. The server identifies the token or bot that wrote the note.
+          </Trans>
+        </Prose>
+        <Prose>
+          <Trans>
+            Completed and failed describe the agent’s reported outcome. Needs review, approved and
+            rejected refer to review of that record; they do not authorize execution or undo work.
+            External notes start pending review and cannot approve themselves.
+          </Trans>
+        </Prose>
+        <Prose>
+          <Trans>
+            Shared workspace context and skills are live and available to both internal and external
+            agents through these tools. Personal memory and bot skills created by the earlier
+            conversion are independent copies; updating shared knowledge does not overwrite those
+            edits or deletions.
+          </Trans>
+        </Prose>
+      </Section>
+      <Section title={<Trans>Available tools</Trans>}>
+        <Table
+          head={[
+            <Trans key="tool">Tool</Trans>,
+            <Trans key="args">Arguments</Trans>,
+            <Trans key="scope">Scope</Trans>,
+          ]}
+          rows={WORKSPACE_MCP_TOOLS.map((tool) => [
+            <span key="name">
+              <Mono>{tool.name}</Mono>
+              <span className="mt-2 block text-[12px] text-[#939A9E]">{tool.summary}</span>
+            </span>,
+            <span key="args" className="text-[12px]">
+              {tool.args}
+            </span>,
+            <Mono key="scope">{tool.scope}</Mono>,
+          ])}
+        />
+      </Section>
+      <Section title={<Trans>Call the same tools over HTTP</Trans>}>
+        <Prose>
+          <Trans>
+            GET /v1/workspace/tools lists the tools your token can use, including their JSON
+            schemas. POST a JSON argument object to the tool’s path below. Read tools also use POST
+            so MCP and HTTP take the same arguments. Use an empty object when no arguments are
+            needed.
+          </Trans>
+        </Prose>
+        <Code>{`curl "${origin}/v1/workspace/tools/workspace_get_context" \\\n  -H "Authorization: Bearer $MANOR_API_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{}'`}</Code>
+        <EndpointTable endpoints={WORKSPACE_ENDPOINTS} />
+      </Section>
+      <Section title={<Trans>Migration boundaries</Trans>}>
+        <Prose>
+          <Trans>
+            The Workspace endpoint covers the operations and knowledge tools listed here. Report
+            sending, charge posting, automation execution, Twilio SMS, Retell agent updates, and the
+            original intake, cases and SEO tools are not exposed through this endpoint. A stored
+            credential or imported playbook does not make those actions available. Existing external
+            platforms must be reconfigured to this endpoint; old tokens and URLs are not redirected.
+          </Trans>
+        </Prose>
+      </Section>
+    </>
   );
 }
 
@@ -131,8 +263,8 @@ function GettingStarted({ origin }: { origin: string }) {
         <Trans>
           The {brandName} API connects websites, automation tools, and AI clients to this workspace.
           It speaks plain REST for scripts and servers, MCP for AI clients, and webhooks for pushing
-          changes back to you. The CRM is the first surface it covers; new areas will appear here as
-          they open up.
+          CRM changes back to you. External agents can also read workspace operations and context,
+          save reusable skills, and write results back into the same activity history used in Manor.
         </Trans>
       </Prose>
       <Section title={<Trans>Set up with an AI agent</Trans>}>
@@ -344,6 +476,17 @@ function McpReference({ origin }: { origin: string }) {
           Claude, agents, IDEs — gets the same tools {brandName}'s own bots use.
         </Trans>
       </Prose>
+      <Section title={<Trans>Workspace MCP</Trans>}>
+        <Code>{`${origin}/mcp/workspace`}</Code>
+        <Prose>
+          <Trans>
+            Read operations and shared knowledge, then save context, skill versions and activity
+            evidence. Choose the Workspace tab for tools, scopes and a complete read–work–write
+            example. CRM tokens need workspace scopes added through a new token before they can use
+            these tools.
+          </Trans>
+        </Prose>
+      </Section>
       <Section title={<Trans>Endpoint</Trans>}>
         <Code>{`${origin}/mcp/crm`}</Code>
         <Prose>

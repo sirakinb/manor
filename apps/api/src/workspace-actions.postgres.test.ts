@@ -246,6 +246,54 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
     });
   });
 
+  it("reports the active delivery adapter without exposing configuration", async () => {
+    const delivery = {
+      describe: () => ({
+        id: "smtp",
+        displayName: "Resend",
+        contractVersion: "1",
+        adapterVersion: "1",
+        capabilities: { transactional: true },
+      }),
+      send: vi.fn(),
+    };
+    const configured = createWorkspaceActions({ prisma, secrets, email: delivery });
+    expect((await configured.getSettings(owner)).emailDelivery).toEqual({
+      provider: "Resend",
+      connected: true,
+    });
+    expect((await actionsWithoutEmail.getSettings(owner)).emailDelivery).toBeNull();
+    expect(delivery.send).not.toHaveBeenCalled();
+  });
+
+  it("excludes blocked and direct billing modes from individual and batch charges", async () => {
+    const property = await prisma.workspaceUtilityProperty.findFirstOrThrow({
+      where: { workspaceId, propertyId: 102 },
+    });
+    try {
+      for (const billingMode of ["blocked", "tenant_direct", "owner_sends_bill"]) {
+        await prisma.workspaceUtilityProperty.update({
+          where: { id: property.id },
+          data: { billingMode },
+        });
+        await expect(
+          actions.postCharge(owner, { waterBillId: singleBillId, leaseId: 3, dryRun: true }),
+        ).rejects.toThrow(/does not allow pass-through/);
+        const batch = await actions.postAllPending(owner, { dryRun: true });
+        expect(batch.results.some((result) => result.waterBillId === singleBillId)).toBe(false);
+        expect(batch.results.filter((result) => result.waterBillId === splitBillId)).toHaveLength(
+          2,
+        );
+      }
+      expect(ledger.charges).toHaveLength(0);
+    } finally {
+      await prisma.workspaceUtilityProperty.update({
+        where: { id: property.id },
+        data: { billingMode: "pass_through" },
+      });
+    }
+  });
+
   // ── Credentials ───────────────────────────────────────────────────────
 
   it("stores provider credentials sealed and lists only field names", async () => {

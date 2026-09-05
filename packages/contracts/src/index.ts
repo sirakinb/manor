@@ -10,3 +10,4 @@ export * from "./rpc.js";
 export * from "./runs.js";
 export * from "./search.js";
 export * from "./workspace.js";
+export * from "./workspace-tools.js";

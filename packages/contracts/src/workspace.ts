@@ -87,6 +87,27 @@ export const WorkspaceTeamWorkerSchema = z.object({
 });
 export type WorkspaceTeamWorker = z.infer<typeof WorkspaceTeamWorkerSchema>;
 
+export const WorkspaceActivityEvidenceSchema = z
+  .object({
+    platform: z.string().max(100).optional(),
+    runId: z.string().max(200).optional(),
+    artifacts: z
+      .array(
+        z
+          .object({
+            label: z.string().max(120),
+            url: z
+              .url()
+              .max(2000)
+              .refine((url) => ["https:", "http:"].includes(new URL(url).protocol)),
+          })
+          .strict(),
+      )
+      .max(10)
+      .optional(),
+    blockers: z.array(z.string().max(400)).max(10).optional(),
+  })
+  .strict();
 export const WorkspaceActivitySchema = z.object({
   id: Id,
   channel: z.string(),
@@ -99,6 +120,8 @@ export const WorkspaceActivitySchema = z.object({
   verifiedBy: z.string().nullable(),
   verifiedAt: IsoDate.nullable(),
   createdAt: IsoDate,
+  source: z.enum(["native", "external"]).nullable().optional(),
+  evidence: WorkspaceActivityEvidenceSchema.nullable().optional(),
 });
 export type WorkspaceActivity = z.infer<typeof WorkspaceActivitySchema>;
 
@@ -401,6 +424,9 @@ export type AvailableRentals = z.infer<typeof AvailableRentalsSchema>;
 // ── Utilities ────────────────────────────────────────────────────────────────
 
 export const UTILITY_TARGET_STATUSES = [
+  "blocked",
+  "tenant_direct",
+  "owner_sends_bill",
   "unmatched",
   "no_active_lease",
   "resolved",
@@ -487,6 +513,7 @@ export type WorkspaceContextEntry = z.infer<typeof WorkspaceContextEntrySchema>;
 // ── Settings and credentials ─────────────────────────────────────────────────
 
 export const WorkspaceSettingsSchema = z.object({
+  emailDelivery: z.object({ provider: z.string(), connected: z.boolean() }).nullable().optional(),
   activityApproval: z.enum(["manual", "auto"]),
   monthlyVoiceReportsEnabled: z.boolean(),
   /// 0 = last day of the month, 1-28 = that day.
@@ -504,27 +531,29 @@ export const WorkspaceSettingsSchema = z.object({
 });
 export type WorkspaceSettings = z.infer<typeof WorkspaceSettingsSchema>;
 
-export const WorkspaceSettingsUpdateSchema = WorkspaceSettingsSchema.partial().extend({
-  reportRecipient: z
-    .string()
-    .trim()
-    .max(6420)
-    .refine((value) => {
-      const addresses = value.split(",").map((part) => part.trim());
-      return (
-        value === "" ||
-        (addresses.length <= 20 &&
-          addresses.every((address) => z.string().email().max(320).safeParse(address).success))
-      );
-    }, "Enter up to 20 comma-separated email addresses")
-    .nullable()
-    .optional(),
-  reportReviewerEmail: z
-    .union([z.literal(""), z.string().trim().email().max(320)])
-    .nullable()
-    .optional(),
-  buildiumChargeDescription: z.string().trim().min(1).max(120).optional(),
-});
+export const WorkspaceSettingsUpdateSchema = WorkspaceSettingsSchema.omit({ emailDelivery: true })
+  .partial()
+  .extend({
+    reportRecipient: z
+      .string()
+      .trim()
+      .max(6420)
+      .refine((value) => {
+        const addresses = value.split(",").map((part) => part.trim());
+        return (
+          value === "" ||
+          (addresses.length <= 20 &&
+            addresses.every((address) => z.string().email().max(320).safeParse(address).success))
+        );
+      }, "Enter up to 20 comma-separated email addresses")
+      .nullable()
+      .optional(),
+    reportReviewerEmail: z
+      .union([z.literal(""), z.string().trim().email().max(320)])
+      .nullable()
+      .optional(),
+    buildiumChargeDescription: z.string().trim().min(1).max(120).optional(),
+  });
 export type WorkspaceSettingsUpdate = z.infer<typeof WorkspaceSettingsUpdateSchema>;
 
 export const WORKSPACE_CREDENTIAL_PROVIDERS = [

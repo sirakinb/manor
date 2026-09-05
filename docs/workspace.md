@@ -318,11 +318,10 @@ the deployment email provider.
 
 ## Bots and native knowledge
 
-Every section offers **Ask the team**, which opens an accessible bot with an
-editable question and the current record reference. It never submits the
-question. The bot selector chooses the recipient; an empty team gets one
-Workspace assistant on first use. AI team shows real bots beside Automations,
-with native skills and memory under Knowledge. The old Skills tab is retired.
+AI team lists real bots with Chat and Knowledge controls. Chat opens that bot
+with an editable, unsent operations question. Section-wide Ask the team controls
+and their bot selector have been removed. Native skills and memory remain under
+Knowledge; the old Skills tab is retired.
 
 `workspace.team.list/open` uses the actor's current space membership and bot
 ownership. The shared executor exposes `workspace_*` tools only when that
@@ -352,10 +351,56 @@ serves Electron and mobile's existing chat, skills, and memory surfaces.
 
 ## Deliberately not ported yet
 
-- Retell prompt refresh and the weekly email recap generator/reminders.
-- Remaining write paths: activity approval and ad-hoc report generation.
-  Bots use native skills/memory tools for knowledge changes.
+- Retell prompt refresh and automatic reviewer email reminders.
+- Activity record approval controls. Report generation and test email are available.
 - Tour links and the TTS-friendly address rendering used by the voice agent.
 - Channels other clients had (intake, cases, SEO, TikTok, YouTube, Meta Ads).
-- The external MCP/REST surface the old app exposed to agents; Manor's own bots
-  use the shared executor tools.
+
+## External workspace agents
+
+`/mcp/workspace` serves Streamable HTTP with the existing hashed, revocable
+integration tokens. `/mcp/crm` remains compatible. Create tokens under
+Integrations → API & agent access; CRM tokens gain no workspace access implicitly.
+Clients must support bearer headers; these endpoints do not implement OAuth.
+
+`GET /v1/workspace/tools` advertises the token's granted tools and JSON schemas.
+`POST /v1/workspace/tools/<name>` takes the same argument object as MCP, including
+for reads. OpenAPI includes every supported workspace tool. The in-app Workspace
+documentation and agent setup prompt derive their tool catalog from the same
+contracts used by the API and native executor.
+
+- `workspace:read`: operations, reports, context, skills and activities.
+- `workspace:context:write`: save shared context with `expectedUpdatedAt` from
+  the last read (`null` for a new key).
+- `workspace:skills:write`: append skill/artifact versions using `expectedVersion`
+  from the last read (`0` for a new name).
+- `workspace:activities:write`: append attributed, self-reported outcomes and
+  evidence. A stable `idempotencyKey` is required externally. Identical retries
+  return the same record; a different payload with that key returns 409.
+
+Context and skill writes serialize per workspace and require current owner/admin
+membership. Conflicts return 409 and require reconciliation. Native agents use
+the same live shared-knowledge tools; writes follow normal action approval.
+Converted personal memory and skills remain separate editable copies. Shared
+updates never silently overwrite those copies or resurrect deleted imports.
+
+Activity records display the reported outcome first. Details preserve record
+review, source, platform/run identity and safe artifact links. Review is not
+execution authorization or a delivery receipt. External writers cannot select
+their server attribution or set approval fields. Report sending, charge posting,
+automation execution, SMS, Retell updates and unsupported legacy channels are
+not exposed through this external endpoint.
+
+## Connection status and utility billing
+
+Settings shows the active deployment email provider (for example Resend) as
+connected when delivery is configured. It does not read the unused workspace
+SMTP slot or expose the SMTP URL. This is configuration status, not a live
+delivery check. Credential field names appear only while editing; saved provider
+credentials show one Configured status. Twilio's workspace slot does not describe
+the health of an original external voice workflow.
+
+Utility summaries distinguish bills, properties and per-lease charges. A split
+bill can produce multiple charges. Only `pass_through` properties create pending
+charges; blocked, tenant-direct and owner-sent billing modes retain their labels
+and cannot be posted through single or bulk charge actions.

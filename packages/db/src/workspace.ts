@@ -23,6 +23,7 @@ import type {
   WorkspaceSummary,
   WorkspaceSyncRun,
 } from "@rakazo/contracts";
+import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
 import { Prisma, type PrismaClient } from "./client.js";
 import { IsolationError, type OrganizationScope } from "./scope.js";
 import {
@@ -141,8 +142,12 @@ function mapActivity(row: {
   verifiedBy: string | null;
   verifiedAt: Date | null;
   createdAt: Date;
+  payload?: unknown;
 }): WorkspaceActivity {
   const verification = row.verification;
+  const payload =
+    row.payload && typeof row.payload === "object" ? (row.payload as Record<string, unknown>) : {};
+  const evidence = WorkspaceActivityEvidenceSchema.strip().safeParse(payload.evidence ?? payload);
   return {
     id: row.id,
     channel: row.channel,
@@ -158,6 +163,8 @@ function mapActivity(row: {
     verifiedBy: row.verifiedBy,
     verifiedAt: iso(row.verifiedAt),
     createdAt: row.createdAt.toISOString(),
+    source: payload.source === "native" || payload.source === "external" ? payload.source : null,
+    evidence: evidence.success ? evidence.data : null,
   };
 }
 
@@ -394,13 +401,19 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           property.propertyId === null ? [] : (leasesByProperty.get(property.propertyId) ?? []);
         const resolved = own.length === 1 || (own.length > 1 && property.splitEvenly);
         const targetStatus: UtilityBillingTarget["targetStatus"] =
-          property.propertyId === null
-            ? "unmatched"
-            : own.length === 0
-              ? "no_active_lease"
-              : resolved
-                ? "resolved"
-                : "ambiguous";
+          property.billingMode !== "pass_through"
+            ? property.billingMode === "tenant_direct"
+              ? "tenant_direct"
+              : property.billingMode === "owner_sends_bill"
+                ? "owner_sends_bill"
+                : "blocked"
+            : property.propertyId === null
+              ? "unmatched"
+              : own.length === 0
+                ? "no_active_lease"
+                : resolved
+                  ? "resolved"
+                  : "ambiguous";
         const chargeShare = own.length === 1 ? 1 : round(1 / own.length, 4);
         return {
           utility: property.utility,
@@ -447,28 +460,36 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
         parseStatus: bill.parseStatus,
         resolutionStatus: target?.targetStatus ?? "unmatched",
         billingMode: target?.billingMode ?? null,
-        charges: (target?.leases ?? []).map((lease) => {
-          const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
-          const status = post?.status;
-          return {
-            leaseId: lease.leaseId,
-            unitNumber: lease.unitNumber,
-            chargeShare: lease.chargeShare,
-            chargeAmount:
-              bill.accountBalance === null
-                ? null
-                : round(bill.accountBalance * lease.chargeShare, 2),
-            postStatus:
-              status === "posted" || status === "skipped" || status === "error"
-                ? status
-                : "pending",
-            postedAmount: post?.amount ?? null,
-            postedMemo: post?.memo ?? null,
-            buildiumChargeId: post?.buildiumChargeId ?? null,
-            postedAt: iso(post?.postedAt),
-            postError: post?.error ?? null,
-          };
-        }),
+        charges: (target?.leases ?? [])
+          .filter(
+            (lease) =>
+              target?.targetStatus === "resolved" ||
+              bill.chargePosts.some(
+                (post) => post.leaseId === lease.leaseId && post.status === "posted",
+              ),
+          )
+          .map((lease) => {
+            const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
+            const status = post?.status;
+            return {
+              leaseId: lease.leaseId,
+              unitNumber: lease.unitNumber,
+              chargeShare: lease.chargeShare,
+              chargeAmount:
+                bill.accountBalance === null
+                  ? null
+                  : round(bill.accountBalance * lease.chargeShare, 2),
+              postStatus:
+                status === "posted" || status === "skipped" || status === "error"
+                  ? status
+                  : "pending",
+              postedAmount: post?.amount ?? null,
+              postedMemo: post?.memo ?? null,
+              buildiumChargeId: post?.buildiumChargeId ?? null,
+              postedAt: iso(post?.postedAt),
+              postError: post?.error ?? null,
+            };
+          }),
       };
     });
 

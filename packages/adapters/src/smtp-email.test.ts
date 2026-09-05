@@ -3,6 +3,19 @@ import { describe, expect, it, vi } from "vitest";
 import { SmtpEmailProvider } from "./smtp-email.js";
 
 describe("SmtpEmailProvider", () => {
+  it("identifies Resend without exposing SMTP credentials or arbitrary hosts", () => {
+    for (const [host, displayName] of [
+      ["smtp.resend.com", "Resend"],
+      ["smtp.resend.com.example.test", "SMTP"],
+    ]) {
+      const provider = new SmtpEmailProvider(
+        { url: `smtps://user:fake-secret@${host}`, from: "sender@example.test" },
+        { transport: {} as never },
+      );
+      expect(provider.describe().displayName).toBe(displayName);
+      expect(JSON.stringify(provider.describe())).not.toContain("fake-secret");
+    }
+  });
   it("delivers product-authored content through the injected transport", async () => {
     const sendMail = vi.fn(async () => ({ messageId: "message-1" }));
     const provider = new SmtpEmailProvider(
