@@ -196,6 +196,37 @@ describePostgres("runWorkspaceAutomation (PostgreSQL)", () => {
     expect(automation.lastRunAt).toEqual(NOW);
   });
 
+  it("reuses an imported source when its name has different capitalization", async () => {
+    const source = await prisma.workspaceSource.create({
+      data: {
+        workspaceId,
+        name: "buildium",
+        sourceType: "leasing",
+        config: { imported: true },
+      },
+    });
+    await saveWorkspaceCredential(
+      prisma,
+      secrets,
+      { workspaceId, userId },
+      { provider: "buildium", fields: { clientId: "fake-id", clientSecret: "fake-secret" } },
+    );
+    const automation = await prisma.workspaceAutomation.findUniqueOrThrow({
+      where: { workspaceId_key: { workspaceId, key: "buildium" } },
+    });
+    await runWorkspaceAutomation(deps(), { automationId: automation.id });
+    await runWorkspaceAutomation(deps(), { automationId: automation.id });
+    expect(
+      await prisma.workspaceSource.count({
+        where: { workspaceId, name: { equals: "Buildium", mode: "insensitive" } },
+      }),
+    ).toBe(1);
+    expect(ingestion.requests[0]!.options).toMatchObject({ imported: true });
+    const runs = await runsFor(automation.id);
+    expect(runs).toHaveLength(2);
+    expect(runs.every((run) => run.sourceId === source.id && run.status === "success")).toBe(true);
+  });
+
   it("passes the source's stored config as options", async () => {
     await runWorkspaceAutomation(deps(), { automationId: listingsId });
     expect(ingestion.requests[0]!.options).toMatchObject({

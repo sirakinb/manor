@@ -70,9 +70,26 @@ export async function runWorkspaceAutomation(
     });
   }
 
+  // Imports may use lowercase provider names. Reuse the same source identity
+  // the read API matches instead of creating a second row for its display name.
+  const existingSource = spec.sourceName
+    ? await deps.prisma.workspaceSource.findFirst({
+        where: {
+          workspaceId: automation.workspaceId,
+          name: { equals: spec.sourceName, mode: "insensitive" },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { name: true },
+      })
+    : null;
   const source = spec.sourceName
     ? await deps.prisma.workspaceSource.upsert({
-        where: { workspaceId_name: { workspaceId: automation.workspaceId, name: spec.sourceName } },
+        where: {
+          workspaceId_name: {
+            workspaceId: automation.workspaceId,
+            name: existingSource?.name ?? spec.sourceName,
+          },
+        },
         create: {
           workspaceId: automation.workspaceId,
           name: spec.sourceName,
