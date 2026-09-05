@@ -282,7 +282,7 @@ describeWithDatabase("CRM public integrations", () => {
     expect(await initialized.json()).toMatchObject({
       jsonrpc: "2.0",
       id: 1,
-      result: { serverInfo: { name: "Manor CRM" } },
+      result: { serverInfo: { name: "Personal CRM" } },
     });
   });
 

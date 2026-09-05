@@ -293,10 +293,10 @@ export default defineConfig(({ mode }) => {
       port: webPort,
       strictPort: true,
       proxy: {
-        "/api": { target: api, changeOrigin: true },
-        "/mcp": { target: api, changeOrigin: true },
-        "/rpc": { target: api, changeOrigin: true },
-        "/v1": { target: api, changeOrigin: true },
+        "/api": { target: api, changeOrigin: false },
+        "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },
+        "/rpc": { target: api, changeOrigin: false },
+        "/v1": { target: api, changeOrigin: false },
       },
     },
     preview: {
@@ -304,10 +304,10 @@ export default defineConfig(({ mode }) => {
       port: Number(process.env.WEB_PORT ?? 5173),
       allowedHosts: [...new Set([previewHost, ...brandHostnames()])],
       proxy: {
-        "/api": { target: api, changeOrigin: true },
-        "/mcp": { target: api, changeOrigin: true },
-        "/rpc": { target: api, changeOrigin: true },
-        "/v1": { target: api, changeOrigin: true },
+        "/api": { target: api, changeOrigin: false },
+        "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },
+        "/rpc": { target: api, changeOrigin: false },
+        "/v1": { target: api, changeOrigin: false },
       },
     },
   };

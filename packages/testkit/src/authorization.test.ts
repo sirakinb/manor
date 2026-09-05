@@ -584,7 +584,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
         }),
       ]),
     );
-    expect(navigation.spaces).not.toEqual(
+    expect(navigation.spaces).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: otherWorkspaceId })]),
     );
     const supportNavigation = await rpc<SpaceNavigation>(
@@ -607,7 +607,10 @@ describeWithDatabase("API authorization and resource isolation", () => {
       {},
       otherWorkspaceId,
     );
-    expect(otherOrganizationNavigation.spaces.map((space) => space.id)).toEqual([otherWorkspaceId]);
+    expect(otherOrganizationNavigation.current.id).toBe(otherWorkspaceId);
+    expect(new Set(otherOrganizationNavigation.spaces.map((space) => space.id))).toEqual(
+      new Set([original.spaceId, support.id, otherWorkspaceId]),
+    );
 
     const storedBots = await handles.prisma.bot.findMany({
       where: { id: { in: [originalBot.id, supportBot.id] } },

@@ -62,6 +62,7 @@ function setLink(rel: string, href: string, type?: string) {
 /** Applies the resolved brand before first paint. A no-op for the default brand. */
 export function applyBrand() {
   const root = document.documentElement;
+  root.dataset.brand = brand.id;
   for (const [token, color] of Object.entries(brand.colors)) {
     root.style.setProperty(`--rk-${token}`, color);
   }

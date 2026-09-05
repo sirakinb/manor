@@ -9,6 +9,7 @@ export const ActorSchema = z.object({
   organizationId: Id,
   email: z.string().email(),
   isDeploymentOwner: z.boolean(),
+  portalOrganizationId: Id.optional(),
 });
 export type Actor = z.infer<typeof ActorSchema>;
 

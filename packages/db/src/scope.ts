@@ -15,10 +15,12 @@ export async function requireMembership(
   prisma: PrismaClient,
   userId: string,
   requestedSpaceId?: string | null,
+  portalOrganizationId?: string | null,
 ): Promise<Actor> {
   const membership = await prisma.spaceMember.findFirst({
     where: {
       userId,
+      ...(portalOrganizationId ? { organizationId: portalOrganizationId } : {}),
       ...(requestedSpaceId ? { spaceId: requestedSpaceId } : {}),
     },
     orderBy: [{ space: { isDefault: "desc" } }, { createdAt: "asc" }, { id: "asc" }],

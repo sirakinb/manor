@@ -1,5 +1,6 @@
 import { jrh } from "./clients/jrh.js";
 import { manor } from "./clients/manor.js";
+import { meridian } from "./clients/meridian.js";
 
 /**
  * A white-label client brand. Colors override the matching `--rk-*` custom
@@ -23,7 +24,7 @@ export interface BrandConfig {
   icon512: string;
 }
 
-export const brands: readonly BrandConfig[] = [manor, jrh];
+export const brands: readonly BrandConfig[] = [manor, jrh, meridian];
 
 export const defaultBrand: BrandConfig = manor;
 

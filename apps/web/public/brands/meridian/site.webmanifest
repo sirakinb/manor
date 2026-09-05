@@ -1,0 +1,12 @@
+{
+  "name": "Meridian Properties",
+  "short_name": "Meridian",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#141208",
+  "theme_color": "#e9bd38",
+  "icons": [
+    { "src": "/brands/meridian/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brands/meridian/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

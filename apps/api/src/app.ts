@@ -54,7 +54,12 @@ import {
   SmtpEmailProvider,
   SpaceMemoryProviderResolver,
 } from "@rakazo/adapters";
-import { blockedAuthPaths, createAuth } from "@rakazo/auth";
+import {
+  assertPortalAccess,
+  blockedAuthPaths,
+  createAuth,
+  requirePortalMembership,
+} from "@rakazo/auth";
 import { brandOrigins } from "@rakazo/brands";
 import { signupPolicyFromEnv } from "@rakazo/core";
 import {
@@ -62,7 +67,6 @@ import {
   createThreadEvents,
   type PrismaClient,
   provisionMessagingIdentity,
-  requireMembership,
 } from "@rakazo/db";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
@@ -396,6 +400,21 @@ export async function createApp(
     if (blockedAuthPaths.some((blocked) => path.startsWith(blocked))) {
       return c.json({ error: "Not available in version 1" }, 404);
     }
+    if (
+      !path.startsWith("/sign-in") &&
+      !path.startsWith("/sign-up") &&
+      !path.startsWith("/callback") &&
+      path !== "/sign-out"
+    ) {
+      const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
+      if (session?.user) {
+        try {
+          await assertPortalAccess(prisma, session.user.id, c.req.raw.headers);
+        } catch {
+          return c.json({ message: "Use your organization's sign-in page." }, 403);
+        }
+      }
+    }
     return auth.handler(c.req.raw);
   });
   const crmIntegrations = mountCrmIntegrationRoutes(app, {
@@ -405,18 +424,13 @@ export async function createApp(
     resolveActor: async (request) => {
       const session = await auth.api.getSession({ headers: sessionHeaders(request) });
       if (!session?.user) return null;
-      return requireMembership(
-        prisma,
-        session.user.id,
-        request.headers.get("x-rakazo-space-id") ?? undefined,
-      ).catch(() => null);
+      return requirePortalMembership(prisma, session.user.id, request).catch(() => null);
     },
   });
   app.use("/rpc/*", async (c, next) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
-    const requestedSpaceId = c.req.header("x-rakazo-space-id");
     const actor = session?.user
-      ? await requireMembership(prisma, session.user.id, requestedSpaceId).catch(() => null)
+      ? await requirePortalMembership(prisma, session.user.id, c.req.raw).catch(() => null)
       : null;
     const { matched, response } = await rpc.handle(c.req.raw, {
       prefix: "/rpc",
@@ -429,9 +443,7 @@ export async function createApp(
   mountVoiceHttpRoutes(app, { prisma, secrets }, async (c) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
     if (!session?.user) return null;
-    return requireMembership(prisma, session.user.id, c.req.header("x-rakazo-space-id")).catch(
-      () => null,
-    );
+    return requirePortalMembership(prisma, session.user.id, c.req.raw).catch(() => null);
   });
   mountWebhookHttpRoutes(app, { prisma, secrets, events, jobs });
   // Messaging webhooks only exist when the surface is enabled.

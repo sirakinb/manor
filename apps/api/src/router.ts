@@ -4206,10 +4206,12 @@ async function spaceNavigationDto(
   repos: ReturnType<typeof createRepos>,
   groupRepos: ReturnType<typeof createGroupRepos>,
 ): Promise<SpaceNavigation> {
-  // Every space the user belongs to, across organizations: client staff who
-  // joined a brand's organization and also have a personal one see both.
+  // The main portal lists all memberships; branded portals stay within their organization.
   const memberships = await deps.prisma.spaceMember.findMany({
-    where: { userId: actor.userId },
+    where: {
+      userId: actor.userId,
+      ...(actor.portalOrganizationId ? { organizationId: actor.portalOrganizationId } : {}),
+    },
     select: {
       spaceId: true,
       organizationId: true,

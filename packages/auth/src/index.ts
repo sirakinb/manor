@@ -1,11 +1,13 @@
 import type { TransactionalEmail, TransactionalEmailProvider } from "@rakazo/adapter-kit";
-import { defaultBrand, resolveBrand } from "@rakazo/brands";
 import { emailAllowed, parseAllowlist, signupPolicyFromEnv } from "@rakazo/core";
 import { bootstrapUserSpace, type PrismaClient } from "@rakazo/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
 import { bearer, organization } from "better-auth/plugins";
+import { assertPortalAccess, portalBrandId } from "./portal.js";
+
+export { assertPortalAccess, requirePortalMembership } from "./portal.js";
 
 export interface AuthEnv {
   secret: string;
@@ -57,34 +59,19 @@ export async function assertSignupAllowed(
   }
 }
 
-/**
- * The white-label brand a sign-up arrived on, or null for the default brand.
- * The web app calls the API on its own origin, so the Origin header names the
- * branded host; a proxied deployment may only forward it as X-Forwarded-Host.
- */
+/** Signup and session authorization use the same destination-host resolution. */
 export function signupBrandId(
   headers: ConstructorParameters<typeof Headers>[0] | undefined,
 ): string | null {
-  if (!headers) return null;
-  const lookup = new Headers(headers);
-  const origin = lookup.get("origin");
-  let hostname: string | null = null;
-  if (origin) {
-    try {
-      hostname = new URL(origin).hostname;
-    } catch {
-      hostname = null;
-    }
-  }
-  hostname ??=
-    (lookup.get("x-forwarded-host") ?? lookup.get("host"))?.split(",")[0]?.trim() ?? null;
-  if (!hostname) return null;
-  const brand = resolveBrand(hostname.replace(/:\d+$/, ""));
-  return brand.id === defaultBrand.id ? null : brand.id;
+  return portalBrandId(new Headers(headers));
 }
 
 export function createAuth(prisma: PrismaClient, env: AuthEnv) {
   const googleEnabled = Boolean(env.googleClientId && env.googleClientSecret);
+  // Better Auth defers user.create.after until its transaction finishes, after
+  // the initial session is created. Only a verified new-user request may wait
+  // for that bootstrap; existing-account sign-ins must already have access.
+  const newUserContexts = new WeakSet<object>();
   return betterAuth({
     appName: "Rakazo",
     secret: env.secret,
@@ -169,14 +156,42 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
     databaseHooks: {
       user: {
         create: {
-          before: async (user) => {
+          before: async (user, context) => {
             await assertSignupAllowed(prisma, env, String(user.email ?? ""));
+            const brandId = portalBrandId(
+              new Headers(context?.headers ?? context?.request?.headers),
+            );
+            if (
+              brandId &&
+              !(await prisma.organization.findUnique({ where: { brandId }, select: { id: true } }))
+            )
+              throw new APIError("FORBIDDEN", { message: "This portal is not available." });
+            if (context) newUserContexts.add(context);
           },
           // Better Auth 1.6 passes the endpoint context (request + headers) as
           // the second argument; null when the write did not come from a route.
           after: async (user, context) => {
-            const brandId = signupBrandId(context?.headers ?? context?.request?.headers);
+            const brandId = portalBrandId(
+              new Headers(context?.headers ?? context?.request?.headers),
+            );
             await bootstrapUserSpace(prisma, user, env, { brandId });
+            if (brandId)
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { portalBrandId: brandId },
+              });
+          },
+        },
+      },
+      session: {
+        create: {
+          before: async (session, context) => {
+            if (context && newUserContexts.has(context)) return;
+            await assertPortalAccess(
+              prisma,
+              session.userId,
+              new Headers(context?.headers ?? context?.request?.headers),
+            );
           },
         },
       },

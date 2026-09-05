@@ -17,6 +17,13 @@
   --ws-muted: #98a3a7;
 }
 
+[data-brand="meridian"] .ws-refined {
+  --bui-accent: var(--rk-accent);
+  --bui-green: var(--rk-accent-strong);
+  --ws-accent: var(--rk-accent);
+  --ws-good: var(--rk-accent-soft);
+}
+
 .ws-refined .ws-card,
 .ws-refined .ws-kpi {
   border-color: #282d2f;

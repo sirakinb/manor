@@ -131,6 +131,38 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
     expect(personal!.organizationName).toBe("Personal");
   });
 
+  it("rejects client sign-in and an existing client session on the main portal", async () => {
+    const cookie = await signin(app, staffEmail, BRAND_ORIGIN);
+    const wrongLogin = await app.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: DEFAULT_ORIGIN },
+      body: JSON.stringify({ email: staffEmail, password: "test-password-123" }),
+    });
+    expect(wrongLogin.status).toBe(403);
+    expect(wrongLogin.headers.get("set-cookie")).toBeNull();
+    const session = await app.request("/api/auth/get-session", {
+      headers: { cookie, origin: DEFAULT_ORIGIN },
+    });
+    expect(session.status).toBe(403);
+    const denied = await app.request("/rpc/spaces/list", {
+      method: "POST",
+      headers: { cookie, origin: DEFAULT_ORIGIN, "content-type": "application/json" },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(denied.status).toBe(401);
+    // A forged Origin cannot override the real public destination.
+    const spoofed = await app.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        host: "manor.pentridgemedia.com",
+        origin: BRAND_ORIGIN,
+      },
+      body: JSON.stringify({ email: staffEmail, password: "test-password-123" }),
+    });
+    expect(spoofed.status).toBe(403);
+  });
+
   it("lists every space across organizations for a member of two", async () => {
     const outsider = await handles.prisma.user.findUniqueOrThrow({
       where: { email: outsiderEmail },
@@ -170,6 +202,20 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
     });
     expect(switched.current.id).toBe(clientSpaceId);
     expect(switched.spaces).toHaveLength(2);
+    const clientView = await rpc<SpaceNavigation>(app, cookie, "spaces/list", {}, BRAND_ORIGIN);
+    expect(clientView.spaces.map((space) => space.organizationId)).toEqual([clientOrganizationId]);
+    expect(clientView.current.id).toBe(clientSpaceId);
+    const spoofed = await app.request("/rpc/spaces/list", {
+      method: "POST",
+      headers: {
+        cookie,
+        origin: BRAND_ORIGIN,
+        "x-rakazo-space-id": personalOrganizationId,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ json: {} }),
+    });
+    expect(spoofed.status).toBe(401);
   });
 });
 
@@ -183,10 +229,10 @@ async function signup(app: App, email: string, name: string, origin: string) {
   return sessionCookieHeader(response);
 }
 
-async function signin(app: App, email: string) {
+async function signin(app: App, email: string, origin = DEFAULT_ORIGIN) {
   const response = await app.request("/api/auth/sign-in/email", {
     method: "POST",
-    headers: { "content-type": "application/json", origin: DEFAULT_ORIGIN },
+    headers: { "content-type": "application/json", origin },
     body: JSON.stringify({ email, password: "test-password-123" }),
   });
   expect(response.status).toBeLessThan(400);

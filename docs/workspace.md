@@ -135,25 +135,32 @@ checks the aggregates end to end.
 A client's staff should land in the client's organization, not in an empty
 personal one. `organization.brandId` (unique, nullable) names the white-label
 brand from `packages/brands` whose sign-ups join that organization. The
-Better Auth `user.create.after` hook reads the request's Origin (falling
-back to X-Forwarded-Host, then Host), resolves the brand, and when an
-organization claims it, `bootstrapUserSpace` adds the new user as a plain
-`member` of the organization and of its default space, seeds the space
-memory file and notification row, and creates nothing else. The default
-brand, an unknown host, or a brand nobody claims all take the existing
-personal bootstrap. The signup policy (enabled flag and allowlist) is
-enforced before either path, unchanged.
+Better Auth hooks resolve the destination Host, with Origin used only when
+Host is absent. Forwarded headers cannot override it. New users join the
+claimed organization's default space as members; the signup policy still
+applies. A branded portal without a configured organization rejects signup.
 
-There is no UI for `brandId`. Claim a brand for the JRH organization once,
-in production, with the organization id from the `organization` table:
+`user.portalBrandId` restricts client accounts to their assigned portal.
+Session creation, existing-session endpoints, and browser RPC requests all
+enforce this boundary. The migration assigns existing users who belong only
+to a single branded organization, excluding the deployment owner. Main
+portal accounts may access a branded portal only when they belong to its
+organization. Its navigation and requested-space checks remain scoped to
+that organization, even for administrators. Main portal navigation lists
+all authorized memberships.
 
-```sql
-update organization set "brandId" = 'jrh' where id = '<jrh-organization-id>';
-```
+Set `organization.brandId` to a registered brand identifier before inviting
+client staff. Each brand can belong to only one organization.
 
-Unset it with `set "brandId" = null`. Members of several organizations see
-every space they belong to in the space list; each entry carries
-`organizationId` and `organizationName`.
+## Demonstration workspace
+
+`createDemoWorkspace` in `packages/db/src/demo-workspace.ts` creates the
+Meridian demonstration organization with synthetic operations data and its
+own yellow brand. It refuses to overwrite an existing brand claimant and
+runs in a transaction. No credentials are copied or created. All automation
+and report schedules start disabled; sources represent demonstration
+snapshots. Account provisioning and membership assignment are separate from
+the fixture, so no passwords or account identities are stored in source.
 
 ## Automations
 

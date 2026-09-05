@@ -51,9 +51,12 @@ describe("assertSignupAllowed", () => {
     });
 
     await expect(
-      auth.options.databaseHooks?.user?.create?.before?.({
-        email: "google-user@example.com",
-      } as never),
+      auth.options.databaseHooks?.user?.create?.before?.(
+        {
+          email: "google-user@example.com",
+        } as never,
+        null,
+      ),
     ).rejects.toThrow("Registration is closed");
   });
 });
@@ -144,10 +147,10 @@ describe("signupBrandId", () => {
     );
   });
 
-  it("falls back to X-Forwarded-Host, then Host, stripping ports", () => {
-    expect(signupBrandId({ "x-forwarded-host": "jrhmanor.agentworkspace.cloud, proxy" })).toBe(
-      "jrh",
-    );
+  it("ignores untrusted forwarding headers and strips Host ports", () => {
+    expect(
+      signupBrandId({ "x-forwarded-host": "jrhmanor.agentworkspace.cloud, proxy" }),
+    ).toBeNull();
     expect(signupBrandId({ host: "jrhmanor.agentworkspace.cloud:443" })).toBe("jrh");
   });
 
