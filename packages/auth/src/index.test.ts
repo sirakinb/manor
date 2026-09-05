@@ -5,6 +5,7 @@ import {
   createAuth,
   passwordResetEmail,
   resolveSignupPolicy,
+  signupBrandId,
 } from "./index.js";
 
 function settings(policy: { signupsEnabled: boolean; signupAllowlist: string }) {
@@ -132,5 +133,29 @@ describe("resolveSignupPolicy", () => {
         signupAllowlist: "environment-only@example.com",
       }),
     ).resolves.toEqual({ enabled: false, allowlist: ["approved@example.com"] });
+  });
+});
+
+describe("signupBrandId", () => {
+  it("reads the branded host from the Origin header", () => {
+    expect(signupBrandId({ origin: "https://jrhmanor.agentworkspace.cloud" })).toBe("jrh");
+    expect(signupBrandId(new Headers({ origin: "https://JRHManor.agentworkspace.cloud" }))).toBe(
+      "jrh",
+    );
+  });
+
+  it("falls back to X-Forwarded-Host, then Host, stripping ports", () => {
+    expect(signupBrandId({ "x-forwarded-host": "jrhmanor.agentworkspace.cloud, proxy" })).toBe(
+      "jrh",
+    );
+    expect(signupBrandId({ host: "jrhmanor.agentworkspace.cloud:443" })).toBe("jrh");
+  });
+
+  it("is null for the default brand, unknown hosts, and missing headers", () => {
+    expect(signupBrandId({ origin: "http://127.0.0.1:5173" })).toBeNull();
+    expect(signupBrandId({ origin: "https://manor.example" })).toBeNull();
+    expect(signupBrandId({ origin: "not a url" })).toBeNull();
+    expect(signupBrandId({})).toBeNull();
+    expect(signupBrandId(undefined)).toBeNull();
   });
 });

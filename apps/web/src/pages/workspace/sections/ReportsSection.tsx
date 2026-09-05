@@ -1,8 +1,9 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { WorkspaceReport, WorkspaceReportRow } from "@rakazo/contracts";
-import { useState } from "react";
+import type { WorkspaceReport, WorkspaceReportRow, WorkspaceSummary } from "@rakazo/contracts";
 import { rpc } from "../../../lib/rpc";
 import {
+  Card,
+  CLICKABLE_TEXT,
   ErrorLine,
   formatDate,
   formatDateTime,
@@ -10,37 +11,51 @@ import {
   isRecord,
   KeyValueTree,
   Loading,
-  PanelHeader,
+  PageHeader,
   Section,
   StatusPill,
   Table,
   useSectionData,
 } from "../bits";
+import type { WorkspaceTab } from "../WorkspaceView";
 
-export function ReportsPanel() {
+export function ReportsSection({
+  workspace,
+  eyebrow,
+  reportId,
+  onOpen,
+}: {
+  workspace: WorkspaceSummary;
+  eyebrow: string;
+  reportId?: string;
+  onOpen: (tab: WorkspaceTab, id?: string) => void;
+}) {
   const { t } = useLingui();
-  const [selected, setSelected] = useState<WorkspaceReportRow | null>(null);
   const { data, error, loading } = useSectionData(() => rpc.workspace.reports.list(), "reports");
+
+  if (reportId) return <ReportDetail reportId={reportId} onBack={() => onOpen("reports")} />;
 
   return (
     <div>
-      <PanelHeader title={t`Reports`} />
+      <PageHeader
+        eyebrow={eyebrow}
+        title={t`Reports`}
+        subtitle={t`${workspace.name} · AI-synthesized reports across channels`}
+      />
       {error ? <ErrorLine message={error} /> : null}
       {loading ? <Loading /> : null}
       {data ? (
-        selected ? (
-          <ReportDetail row={selected} onBack={() => setSelected(null)} />
-        ) : (
+        <Card title={t`Generated reports`} subtitle={t`${data.length} on record`}>
           <Table<WorkspaceReportRow>
             rows={data}
             rowKey={(row) => row.id}
-            onRowClick={setSelected}
+            onRowClick={(row) => onOpen("reports", row.id)}
             emptyLabel={t`No reports yet`}
             columns={[
               {
                 key: "title",
                 label: t`Title`,
-                width: "34%",
+                width: "36%",
                 render: (row) => <span className="font-medium text-[#ECECEE]">{row.title}</span>,
               },
               {
@@ -86,49 +101,58 @@ export function ReportsPanel() {
               },
             ]}
           />
-        )
+        </Card>
       ) : null}
     </div>
   );
 }
 
-function ReportDetail({ row, onBack }: { row: WorkspaceReportRow; onBack: () => void }) {
+function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => void }) {
   const { t } = useLingui();
   const { data, error, loading } = useSectionData<WorkspaceReport>(
-    () => rpc.workspace.reports.get({ reportId: row.id }),
-    row.id,
+    () => rpc.workspace.reports.get({ reportId }),
+    reportId,
   );
   return (
     <div>
       <button
         type="button"
         onClick={onBack}
-        className="mb-3 text-[12.5px] text-[#85858A] hover:text-[#ECECEE]"
+        className={`mb-3 text-[12.5px] text-[#85858A] ${CLICKABLE_TEXT}`}
       >
         ← <Trans>All reports</Trans>
       </button>
-      <h3 className="text-[15px] font-medium text-[#ECECEE]">{row.title}</h3>
-      <p className="mt-1 text-[12.5px] text-[#6E6975]">
-        {humanizeKey(row.reportType)} · {formatDate(row.dateRangeStart)} –{" "}
-        {formatDate(row.dateRangeEnd)}
-        {row.sentTo ? ` · ${t`Sent to ${row.sentTo}`}` : ""}
-      </p>
       {error ? <ErrorLine message={error} /> : null}
       {loading ? <Loading /> : null}
       {data ? (
-        <div className="mt-3 space-y-3">
-          {data.summary ? (
-            <Section title={t`Summary`}>
-              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#C9C9CE]">
-                {data.summary}
-              </p>
-            </Section>
-          ) : null}
-          <ReportBody report={data.report} />
-        </div>
+        <>
+          <PageHeader
+            title={data.title}
+            subtitle={`${humanizeKey(data.reportType)} · ${formatDate(data.dateRangeStart)} – ${formatDate(data.dateRangeEnd)}${
+              data.sentTo ? ` · ${t`Sent to ${data.sentTo}`}` : ""
+            }`}
+          />
+          <div className="space-y-3">
+            {data.summary ? (
+              <Section title={t`Summary`}>
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#C9C9CE]">
+                  {data.summary}
+                </p>
+              </Section>
+            ) : null}
+            <ReportBody report={data.report} />
+          </div>
+        </>
       ) : null}
     </div>
   );
+}
+
+const META_KEYS = ["format", "agent_type", "audience", "generated_at", "workspace_name"];
+const SECTION_ORDER = ["narrative", "summary", "metrics", "revenue"];
+function sectionRank(key: string): number {
+  const index = SECTION_ORDER.indexOf(key);
+  return index === -1 ? SECTION_ORDER.length : index;
 }
 
 /** Known report shapes get sections; anything else becomes a key/value tree. */
@@ -141,7 +165,7 @@ function ReportBody({ report }: { report: unknown }) {
       </Section>
     );
   }
-  // Voice reports: { stats, synthesis, agent_type }.
+  // On-demand voice reports: { stats, synthesis, agent_type }.
   if ("synthesis" in report || "stats" in report) {
     const { stats, synthesis, agent_type: agentType, ...rest } = report;
     return (
@@ -171,9 +195,8 @@ function ReportBody({ report }: { report: unknown }) {
       </>
     );
   }
-  // Monthly reports: one section per top-level key (metrics, revenue, narrative, ...);
+  // Monthly reports: one section per top-level key (narrative, metrics, revenue, ...);
   // the bookkeeping keys become a small tag row instead of sections.
-  const META_KEYS = ["format", "agent_type", "audience", "generated_at", "workspace_name"];
   const meta = META_KEYS.filter((key) => typeof report[key] === "string").map(
     (key) => [key, String(report[key])] as const,
   );
@@ -208,10 +231,4 @@ function ReportBody({ report }: { report: unknown }) {
       ))}
     </>
   );
-}
-
-const SECTION_ORDER = ["narrative", "summary", "metrics", "revenue"];
-function sectionRank(key: string): number {
-  const index = SECTION_ORDER.indexOf(key);
-  return index === -1 ? SECTION_ORDER.length : index;
 }

@@ -424,3 +424,44 @@ body,
   stroke: var(--rk-accent, #a855f7);
   stroke-width: 2;
 }
+
+/* Workspace System rows: a freshness strip whose dashes drift when the pipe flows. */
+.rk-signal {
+  background-color: #1c1c1f;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--rk-signal-color, #3a3a40) 0 14px,
+    transparent 14px 24px
+  );
+  background-size: 24px 100%;
+}
+.rk-signal-flowing {
+  animation: rkSignalFlow 1.1s linear infinite;
+}
+.rk-signal-overdue {
+  animation: rkSignalFlow 2.8s linear infinite;
+}
+@keyframes rkSignalFlow {
+  to {
+    background-position-x: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-signal {
+    animation: none;
+  }
+}
+.rk-signal-vertical {
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--rk-signal-color, #3a3a40) 0 14px,
+    transparent 14px 24px
+  );
+  background-size: 100% 24px;
+  animation-name: rkSignalFlowDown;
+}
+@keyframes rkSignalFlowDown {
+  to {
+    background-position-y: 24px;
+  }
+}

@@ -400,7 +400,13 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       expiringNext90d: 1,
     });
     expect(snapshot.leases.upcomingExpirations).toEqual([
-      { leaseId: 1, unitNumber: "A", leaseTo: dayOf(dayAfter(30)), rent: 1000 },
+      {
+        leaseId: 1,
+        propertyAddress: "12 Test St",
+        unitNumber: "A",
+        leaseTo: dayOf(dayAfter(30)),
+        rent: 1000,
+      },
     ]);
     expect(snapshot.applications).toEqual({
       last30d: 0,

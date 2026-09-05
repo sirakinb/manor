@@ -132,12 +132,13 @@ export async function createSpaceForMember(
     userId: string;
     name: string;
   },
-): Promise<{ id: string; name: string }> {
+): Promise<{ id: string; name: string; organizationId: string; organizationName: string }> {
   const name = input.name.trim();
   if (!name || name.length > 60) throw new InvalidSpaceNameError();
   const spaceId = randomUUID();
   const spaceMembershipId = randomUUID();
   const createdAt = new Date();
+  let organization = { id: "", name: "" };
 
   await withTransactionRetry(() =>
     prisma.$transaction(
@@ -149,9 +150,16 @@ export async function createSpaceForMember(
               userId: input.userId,
             },
           },
-          select: { organizationId: true },
+          select: {
+            organizationId: true,
+            member: { select: { organization: { select: { name: true } } } },
+          },
         });
         if (!currentMembership) throw new IsolationError();
+        organization = {
+          id: currentMembership.organizationId,
+          name: currentMembership.member.organization.name,
+        };
         const count = await tx.spaceMember.count({
           where: {
             userId: input.userId,
@@ -183,5 +191,10 @@ export async function createSpaceForMember(
     ),
   );
 
-  return { id: spaceId, name };
+  return {
+    id: spaceId,
+    name,
+    organizationId: organization.id,
+    organizationName: organization.name,
+  };
 }

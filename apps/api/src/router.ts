@@ -445,7 +445,7 @@ export function createRouter(deps: RouterDeps) {
         spaceNavigationDto(deps, context.actor, repos, groupRepos),
       ),
       create: authed.spaces.create.handler(async ({ context, input }) => {
-        let space: { id: string; name: string };
+        let space: { id: string; name: string; organizationId: string; organizationName: string };
         try {
           space = await createSpaceForMember(deps.prisma, {
             currentSpaceId: context.actor.spaceId,
@@ -462,6 +462,8 @@ export function createRouter(deps: RouterDeps) {
           id: space.id,
           name: space.name,
           isDefault: false,
+          organizationId: space.organizationId,
+          organizationName: space.organizationName,
           bots: [],
           groups: [],
           botSections: [],
@@ -4083,16 +4085,14 @@ async function spaceNavigationDto(
   repos: ReturnType<typeof createRepos>,
   groupRepos: ReturnType<typeof createGroupRepos>,
 ): Promise<SpaceNavigation> {
-  const currentSpace = await deps.prisma.space.findUnique({
-    where: { id: actor.spaceId },
-    select: { organizationId: true },
-  });
-  if (!currentSpace) throw new IsolationError();
+  // Every space the user belongs to, across organizations: client staff who
+  // joined a brand's organization and also have a personal one see both.
   const memberships = await deps.prisma.spaceMember.findMany({
-    where: { userId: actor.userId, organizationId: currentSpace.organizationId },
+    where: { userId: actor.userId },
     select: {
       spaceId: true,
-      space: { select: { name: true, isDefault: true } },
+      organizationId: true,
+      space: { select: { name: true, isDefault: true, organization: { select: { name: true } } } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -4131,6 +4131,8 @@ async function spaceNavigationDto(
         id: membership.spaceId,
         name: membership.space.name,
         isDefault: membership.space.isDefault,
+        organizationId: membership.organizationId,
+        organizationName: membership.space.organization.name,
         bots: spaceBots.map((bot) => ({
           id: bot.id,
           spaceId: bot.spaceId,

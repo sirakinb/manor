@@ -102,7 +102,7 @@ export function App() {
             element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
           />
           <Route
-            path="/app/workspace"
+            path="/app/workspace/*"
             element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
           />
           <Route

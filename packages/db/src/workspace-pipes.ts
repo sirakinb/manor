@@ -60,7 +60,7 @@ export const WORKSPACE_PIPES: readonly PipeSpec[] = [
   {
     key: "voice",
     label: "Voice calls",
-    source: "Retell → Zoho CRM",
+    source: "Zoho CRM",
     channel: "voice",
     cadence: "every 10 min",
     // Data-dependent: updates only when calls happen, so the threshold is generous.
@@ -106,7 +106,7 @@ export const WORKSPACE_PIPES: readonly PipeSpec[] = [
   {
     key: "water",
     label: "Water bills",
-    source: "WRD → Gmail",
+    source: "PHL Water / Gmail",
     channel: "utilities",
     cadence: "weekly + month-end",
     maxAgeHours: 24 * 16,

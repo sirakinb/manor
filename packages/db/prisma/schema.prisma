@@ -92,6 +92,9 @@ model Organization {
   logo        String?
   createdAt   DateTime
   metadata    String?
+  // The white-label brand whose client staff join this organization on
+  // sign-up (see docs/workspace.md); null for every other organization.
+  brandId     String?      @unique
   members     Member[]
   invitations Invitation[]
   spaces      Space[]

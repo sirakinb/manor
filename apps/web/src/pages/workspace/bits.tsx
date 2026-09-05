@@ -3,7 +3,7 @@ import type { WorkspacePipeStatus } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../components/beautiful-ui/primitives";
 import { accentColor } from "../../lib/brand";
-import { formatMoney, withAlpha } from "../crm/theme";
+import { formatMoney, formatMoneyShort, withAlpha } from "../crm/theme";
 
 /* Small shared pieces for the Workspace place: section keys, number and time
    formatting, KPI tiles, status pills, a hand-rolled line chart, a plain
@@ -26,6 +26,14 @@ export function isSectionKey(value: string | null): value is SectionKey {
   return value !== null && (SECTION_KEYS as readonly string[]).includes(value);
 }
 
+/** Affordance for anything that navigates or expands: pointer, accent glow, focus ring. */
+export const CLICKABLE =
+  "cursor-pointer transition-[box-shadow,background-color] duration-150 hover:bg-[#17171A] hover:ring-1 hover:ring-[color-mix(in_srgb,var(--rk-accent)_40%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)]";
+export const CLICKABLE_ROW =
+  "cursor-pointer transition-colors hover:bg-[#17171A] hover:shadow-[inset_2px_0_0_var(--rk-accent)] focus:bg-[#17171A] focus:shadow-[inset_2px_0_0_var(--rk-accent)] focus:outline-none";
+export const CLICKABLE_TEXT =
+  "cursor-pointer rounded transition-colors hover:text-[#ECECEE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)]";
+
 export const PIPE_COLORS: Record<WorkspacePipeStatus, string> = {
   flowing: accentColor,
   overdue: "#E8A33C",
@@ -43,12 +51,6 @@ export function formatNumber(value: number | null | undefined): string {
 export function formatPct(value: number | null | undefined, digits = 0): string {
   if (value === null || value === undefined) return "—";
   return `${value.toFixed(digits)}%`;
-}
-
-export function formatDelta(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${Math.round(value)}%`;
 }
 
 const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -173,35 +175,75 @@ export function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Up/down chip for a percentage change, like the originals' "↓ 71%". */
+export function DeltaChip({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) return null;
+  const up = value >= 0;
+  const color = up ? "#4ADE80" : "#F87171";
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums"
+      style={{ backgroundColor: withAlpha(color, 0.14), color }}
+    >
+      <span aria-hidden="true">{up ? "↑" : "↓"}</span>
+      {Math.abs(Math.round(value))}%
+    </span>
+  );
+}
+
 export function KpiTile({
   label,
   value,
-  detail,
+  caption,
   delta,
+  children,
 }: {
   label: string;
   value: string;
-  detail?: string;
+  /** One short line under the value: "7/day avg", "62% of calls". */
+  caption?: React.ReactNode;
   delta?: number | null;
+  /** Optional trailing visual, e.g. a sparkline. */
+  children?: React.ReactNode;
 }) {
-  const deltaText = formatDelta(delta);
-  const deltaColor =
-    delta === null || delta === undefined ? "" : delta >= 0 ? "#4ADE80" : "#F87171";
   return (
-    <div className="rounded-xl border border-[#202023] bg-[#131315] p-3.5">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#6E6975]">
-        {label}
-      </p>
-      <p className="mt-2 text-[22px] font-semibold tracking-tight text-[#ECECEE] tabular-nums">
-        {value}
-      </p>
-      {detail || deltaText ? (
-        <p className="mt-0.5 flex items-center gap-2 text-[12px] text-[#85858A] tabular-nums">
-          {deltaText ? <span style={{ color: deltaColor }}>{deltaText}</span> : null}
-          {detail ? <span>{detail}</span> : null}
+    <div className="flex items-stretch justify-between gap-3 rounded-xl border border-[#202023] bg-[#131315] p-4">
+      <div className="min-w-0">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#6E6975]">
+          {label}
         </p>
-      ) : null}
+        <p className="mt-2 flex items-baseline gap-2 text-[24px] font-semibold tracking-tight text-[#ECECEE] tabular-nums">
+          {value}
+          <DeltaChip value={delta} />
+        </p>
+        {caption ? (
+          <p className="mt-0.5 text-[12px] text-[#85858A] tabular-nums">{caption}</p>
+        ) : null}
+      </div>
+      {children ? <div className="flex w-[96px] shrink-0 items-end">{children}</div> : null}
     </div>
+  );
+}
+
+/** "6 flowing" style count pill; `tone` lights up only when the count is non-zero. */
+export function CountPill({
+  count,
+  label,
+  tone,
+}: {
+  count: number;
+  label: string;
+  tone: PillTone;
+}) {
+  const color = count > 0 ? PILL_COLORS[tone] : "#6E6975";
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium tabular-nums"
+      style={{ backgroundColor: withAlpha(color, count > 0 ? 0.14 : 0.08), color }}
+    >
+      <span className="font-semibold">{formatNumber(count)}</span>
+      {label}
+    </span>
   );
 }
 
@@ -258,7 +300,7 @@ export function Segmented<T extends string>({
           type="button"
           aria-pressed={value === option.key}
           onClick={() => onChange(option.key)}
-          className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${
+          className={`cursor-pointer rounded-full px-3 py-1 text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
             value === option.key
               ? "bg-[#232326] text-[#ECECEE]"
               : "text-[#85858A] hover:text-[#C9C9CE]"
@@ -494,9 +536,7 @@ export function Table<T>({
               }
               tabIndex={onRowClick ? 0 : undefined}
               className={`border-t border-[#1C1C1F] text-[#C9C9CE] ${
-                onRowClick
-                  ? "cursor-pointer hover:bg-[#131315] focus:bg-[#131315] focus:outline-none"
-                  : ""
+                onRowClick ? CLICKABLE_ROW : ""
               }`}
             >
               {columns.map((column) => (
@@ -728,12 +768,267 @@ export function humanizeKey(key: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-/** Every section panel opens with its name and, when it has them, its controls. */
-export function PanelHeader({ title, children }: { title: string; children?: React.ReactNode }) {
+/** Section screen header: eyebrow, title, one-line subtitle, controls on the right. */
+export function PageHeader({
+  eyebrow,
+  title,
+  subtitle,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-[16px] font-medium text-[#ECECEE]">{title}</h2>
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0">
+        {eyebrow ? (
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#6E6975]">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-[#ECECEE]">{title}</h2>
+        {subtitle ? <p className="mt-1 text-[13px] text-[#85858A]">{subtitle}</p> : null}
+      </div>
       {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
     </div>
   );
+}
+
+/** Card with a title row (title, optional subtitle, optional right slot). */
+export function Card({
+  title,
+  subtitle,
+  right,
+  children,
+  className = "",
+}: {
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-xl border border-[#202023] bg-[#131315] p-4 ${className}`}>
+      {title || right ? (
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+          <div>
+            {title ? <h3 className="text-[13.5px] font-semibold text-[#ECECEE]">{title}</h3> : null}
+            {subtitle ? <p className="mt-0.5 text-[12px] text-[#6E6975]">{subtitle}</p> : null}
+          </div>
+          {right}
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
+/** Tiny area sparkline for stat tiles. */
+export function Sparkline({
+  values,
+  color = accentColor,
+  height = 32,
+}: {
+  values: Array<number | null>;
+  color?: string;
+  height?: number;
+}) {
+  const width = 96;
+  const points = values
+    .map((value, index) => (value === null ? null : { index, value }))
+    .filter((point): point is { index: number; value: number } => point !== null);
+  if (points.length < 2) return null;
+  const max = Math.max(...points.map((point) => point.value));
+  const min = Math.min(...points.map((point) => point.value));
+  const x = (index: number) => (index / (values.length - 1)) * width;
+  const y = (value: number) => 2 + (1 - (value - min) / (max - min || 1)) * (height - 4);
+  const line = points
+    .map(
+      (point, i) =>
+        `${i === 0 ? "M" : "L"} ${x(point.index).toFixed(1)} ${y(point.value).toFixed(1)}`,
+    )
+    .join(" ");
+  const first = points[0]!;
+  const last = points[points.length - 1]!;
+  const area = `${line} L ${x(last.index).toFixed(1)} ${height} L ${x(first.index).toFixed(1)} ${height} Z`;
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-8 w-full" aria-hidden="true">
+      <path d={area} fill={withAlpha(color, 0.16)} />
+      <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Daily stacked bars: the accent segment sits on a dim "other" segment. */
+export function StackedBars({
+  bars,
+  height = 180,
+  legend,
+}: {
+  bars: Array<{ label: string; primary: number; secondary: number; title?: string }>;
+  height?: number;
+  legend: { primary: string; secondary: string };
+}) {
+  const width = 720;
+  const padBottom = 20;
+  const gap = bars.length > 40 ? 1 : 3;
+  const max = Math.max(1, ...bars.map((bar) => bar.primary + bar.secondary));
+  if (bars.length === 0) {
+    return (
+      <p className="py-8 text-center text-[13px] text-[#6E6975]">
+        <Trans>Nothing to chart yet</Trans>
+      </p>
+    );
+  }
+  const slot = width / bars.length;
+  const barW = Math.max(2, slot - gap);
+  const plotH = height - padBottom;
+  const scale = (value: number) => (value / max) * plotH;
+  return (
+    <div>
+      <div className="mb-2 flex justify-end gap-3 text-[12px] text-[#85858A]">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: accentColor }} />
+          {legend.primary}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-[#2A2A2F]" />
+          {legend.secondary}
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-auto w-full"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        {bars.map((bar, index) => {
+          const x = index * slot + gap / 2;
+          const primaryH = scale(bar.primary);
+          const secondaryH = scale(bar.secondary);
+          return (
+            <g key={bar.label}>
+              <title>{bar.title ?? bar.label}</title>
+              <rect
+                x={x}
+                y={plotH - primaryH - secondaryH}
+                width={barW}
+                height={secondaryH}
+                fill="#2A2A2F"
+                rx={1.5}
+              />
+              <rect
+                x={x}
+                y={plotH - primaryH}
+                width={barW}
+                height={primaryH}
+                fill={accentColor}
+                rx={1.5}
+              />
+            </g>
+          );
+        })}
+        <line x1={0} x2={width} y1={plotH + 0.5} y2={plotH + 0.5} stroke="#26262A" />
+        <text x={0} y={height - 4} fontSize="10" fill="#6E6975">
+          {bars[0]!.label}
+        </text>
+        {bars.length > 1 ? (
+          <text x={width} y={height - 4} fontSize="10" fill="#6E6975" textAnchor="end">
+            {bars[bars.length - 1]!.label}
+          </text>
+        ) : null}
+      </svg>
+    </div>
+  );
+}
+
+/** Plain vertical bars with a label under each (months, funnel stages). */
+export function ColumnBars({
+  bars,
+  height = 160,
+  formatValue = formatNumber,
+  color = accentColor,
+}: {
+  bars: Array<{ label: string; value: number }>;
+  height?: number;
+  formatValue?: (value: number) => string;
+  color?: string;
+}) {
+  if (bars.length === 0) {
+    return (
+      <p className="py-8 text-center text-[13px] text-[#6E6975]">
+        <Trans>Nothing to chart yet</Trans>
+      </p>
+    );
+  }
+  const width = 720;
+  const padBottom = 20;
+  const padTop = 14;
+  const max = Math.max(1, ...bars.map((bar) => bar.value));
+  const slot = width / bars.length;
+  const barW = Math.min(48, slot * 0.6);
+  const plotH = height - padBottom - padTop;
+  // Dense series: label every nth bar and skip the per-bar value.
+  const labelEvery = Math.max(1, Math.ceil(bars.length / 8));
+  const showValues = bars.length <= 14;
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" aria-hidden="true">
+      {bars.map((bar, index) => {
+        const h = (bar.value / max) * plotH;
+        const x = index * slot + (slot - barW) / 2;
+        return (
+          <g key={bar.label}>
+            <title>{`${bar.label} · ${formatValue(bar.value)}`}</title>
+            <rect x={x} y={padTop + plotH - h} width={barW} height={h} fill={color} rx={3} />
+            {showValues ? (
+              <text
+                x={x + barW / 2}
+                y={padTop + plotH - h - 4}
+                fontSize="10"
+                fill="#85858A"
+                textAnchor="middle"
+              >
+                {formatValue(bar.value)}
+              </text>
+            ) : null}
+            {index % labelEvery === 0 || index === bars.length - 1 ? (
+              <text
+                x={x + barW / 2}
+                y={height - 5}
+                fontSize="10"
+                fill="#6E6975"
+                textAnchor="middle"
+              >
+                {bar.label}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+      <line
+        x1={0}
+        x2={width}
+        y1={padTop + plotH + 0.5}
+        y2={padTop + plotH + 0.5}
+        stroke="#26262A"
+      />
+    </svg>
+  );
+}
+
+/** Full dollars below $100k, compact ($478K, $1.2M) above. */
+export function formatMoneyAuto(value: number): string {
+  return Math.abs(value) >= 100_000 ? formatMoneyShort(value) : formatMoney(value);
+}
+
+/** 1.7M, 66K, 998 — for tile captions. */
+export function formatCompact(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 10_000) return `${Math.round(value / 1000)}K`;
+  if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}K`;
+  return formatNumber(value);
 }

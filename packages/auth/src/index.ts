@@ -1,4 +1,5 @@
 import type { TransactionalEmail, TransactionalEmailProvider } from "@rakazo/adapter-kit";
+import { defaultBrand, resolveBrand } from "@rakazo/brands";
 import { emailAllowed, parseAllowlist, signupPolicyFromEnv } from "@rakazo/core";
 import { bootstrapUserSpace, type PrismaClient } from "@rakazo/db";
 import { betterAuth } from "better-auth";
@@ -54,6 +55,32 @@ export async function assertSignupAllowed(
   if (email && !emailAllowed(email, policy.allowlist)) {
     throw new APIError("BAD_REQUEST", { message: "Email is not allowed to register" });
   }
+}
+
+/**
+ * The white-label brand a sign-up arrived on, or null for the default brand.
+ * The web app calls the API on its own origin, so the Origin header names the
+ * branded host; a proxied deployment may only forward it as X-Forwarded-Host.
+ */
+export function signupBrandId(
+  headers: ConstructorParameters<typeof Headers>[0] | undefined,
+): string | null {
+  if (!headers) return null;
+  const lookup = new Headers(headers);
+  const origin = lookup.get("origin");
+  let hostname: string | null = null;
+  if (origin) {
+    try {
+      hostname = new URL(origin).hostname;
+    } catch {
+      hostname = null;
+    }
+  }
+  hostname ??=
+    (lookup.get("x-forwarded-host") ?? lookup.get("host"))?.split(",")[0]?.trim() ?? null;
+  if (!hostname) return null;
+  const brand = resolveBrand(hostname.replace(/:\d+$/, ""));
+  return brand.id === defaultBrand.id ? null : brand.id;
 }
 
 export function createAuth(prisma: PrismaClient, env: AuthEnv) {
@@ -145,8 +172,11 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
           before: async (user) => {
             await assertSignupAllowed(prisma, env, String(user.email ?? ""));
           },
-          after: async (user) => {
-            await bootstrapUserSpace(prisma, user, env);
+          // Better Auth 1.6 passes the endpoint context (request + headers) as
+          // the second argument; null when the write did not come from a route.
+          after: async (user, context) => {
+            const brandId = signupBrandId(context?.headers ?? context?.request?.headers);
+            await bootstrapUserSpace(prisma, user, env, { brandId });
           },
         },
       },

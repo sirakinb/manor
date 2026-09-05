@@ -933,7 +933,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
         prisma.workspaceInstagramDaily.findMany({
           where: { workspaceId: workspace.id, date: { gte: sinceDay } },
           orderBy: { date: "asc" },
-          select: { date: true, reach: true, followers: true },
+          select: { date: true, reach: true, followers: true, newFollowers: true },
         }),
         prisma.workspaceInstagramMedia.findMany({
           where: { workspaceId: workspace.id },
@@ -960,6 +960,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           day: day(row.date)!,
           reach: row.reach,
           followers: row.followers,
+          newFollowers: row.newFollowers,
         })),
         topPosts: media.map((row) => ({
           mediaId: row.mediaId,
@@ -1024,9 +1025,19 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           where: { workspaceId: id, status: "Active", leaseTo: { gte: today, lte: horizon } },
           orderBy: { leaseTo: "asc" },
           take: 15,
-          select: { leaseId: true, unitNumber: true, leaseTo: true, rent: true },
+          select: { leaseId: true, propertyId: true, unitNumber: true, leaseTo: true, rent: true },
         }),
       ]);
+      const propertyIds = [
+        ...new Set(upcoming.flatMap((row) => (row.propertyId == null ? [] : [row.propertyId]))),
+      ];
+      const properties = propertyIds.length
+        ? await prisma.workspaceBuildiumProperty.findMany({
+            where: { workspaceId: id, propertyId: { in: propertyIds } },
+            select: { propertyId: true, addressLine: true },
+          })
+        : [];
+      const addressByProperty = new Map(properties.map((row) => [row.propertyId, row.addressLine]));
       const funnel = funnelRows
         .map((row) => ({ status: row.applicationStatus ?? "Unknown", count: row._count }))
         .sort((a, b) => b.count - a.count);
@@ -1054,6 +1065,8 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           expiringNext90d: totals?.expiring ?? 0,
           upcomingExpirations: upcoming.map((row) => ({
             leaseId: row.leaseId,
+            propertyAddress:
+              row.propertyId == null ? null : (addressByProperty.get(row.propertyId) ?? null),
             unitNumber: row.unitNumber,
             leaseTo: day(row.leaseTo)!,
             rent: row.rent,

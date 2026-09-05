@@ -222,6 +222,9 @@ export const SpaceSchema = z.object({
   id: Id,
   name: z.string(),
   isDefault: z.boolean(),
+  /// A member of several organizations sees every space; these say whose it is.
+  organizationId: Id,
+  organizationName: z.string(),
   bots: z.array(SpaceBotSchema),
   groups: z.array(SpaceGroupSchema),
   botSections: z.array(BotSectionSchema),

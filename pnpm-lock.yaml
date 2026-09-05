@@ -612,6 +612,9 @@ importers:
       '@rakazo/adapter-kit':
         specifier: workspace:*
         version: link:../adapter-kit
+      '@rakazo/brands':
+        specifier: workspace:*
+        version: link:../brands
       '@rakazo/core':
         specifier: workspace:*
         version: link:../core
@@ -13381,7 +13384,9 @@ snapshots:
       metro-runtime: 0.84.5
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.74.89': {}
 

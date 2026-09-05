@@ -195,7 +195,12 @@ import { WorkspaceView } from "./workspace/WorkspaceView";
 
 /** Routes that render a full-pane place instead of a bot thread. */
 function isPlaceRoute(pathname: string): boolean {
-  return pathname === "/app/crm" || pathname === "/app/docs" || pathname === "/app/workspace";
+  return (
+    pathname === "/app/crm" ||
+    pathname === "/app/docs" ||
+    pathname === "/app/workspace" ||
+    pathname.startsWith("/app/workspace/")
+  );
 }
 
 import { accentColor, brand } from "../lib/brand";
@@ -330,7 +335,8 @@ export function ShellPage() {
   const placePathname = useLocation().pathname;
   const crmOpen = placePathname === "/app/crm";
   const docsOpen = placePathname === "/app/docs";
-  const workspaceOpen = placePathname === "/app/workspace";
+  const workspaceOpen =
+    placePathname === "/app/workspace" || placePathname.startsWith("/app/workspace/");
   // The Workspace place exists only for accounts with a connected warehouse;
   // one cheap status read on mount decides whether the nav shows it.
   const [workspace, setWorkspace] = useState<WorkspaceSummary | null>(null);
@@ -1430,6 +1436,8 @@ export function ShellPage() {
                 id: bootstrapMe.spaceId,
                 name: "Personal",
                 isDefault: true,
+                organizationId: "",
+                organizationName: "",
                 bots,
                 groups,
                 botSections,
@@ -1437,7 +1445,22 @@ export function ShellPage() {
             ]
           : [];
     const showSpaceNames = sidebarSpaces.length > 1;
-    return sidebarSpaces.flatMap((space) => {
+    // A member of several organizations sees spaces grouped under each one,
+    // in first-seen order; a single organization renders exactly as before.
+    const organizationOrder = [...new Set(sidebarSpaces.map((space) => space.organizationId))];
+    const showOrganizations = organizationOrder.length > 1;
+    const orderedSpaces = showOrganizations
+      ? organizationOrder.flatMap((organizationId) =>
+          sidebarSpaces.filter((space) => space.organizationId === organizationId),
+        )
+      : sidebarSpaces;
+    const labelledOrganizations = new Set<string>();
+    return orderedSpaces.flatMap((space) => {
+      const organizationLabel =
+        showOrganizations && !labelledOrganizations.has(space.organizationId)
+          ? space.organizationName
+          : undefined;
+      if (organizationLabel !== undefined) labelledOrganizations.add(space.organizationId);
       const visibleBots = space.bots.filter((bot) =>
         `${bot.name} ${bot.title ?? ""} ${bot.preview ?? ""}`.toLowerCase().includes(needle),
       );
@@ -1460,8 +1483,13 @@ export function ShellPage() {
           : group.title,
         showLock: showSpaceNames,
         emptySpaceId: undefined as string | undefined,
+        organizationLabel: undefined as string | undefined,
       }));
-      if (sections.length > 0) return sections;
+      if (sections.length > 0) {
+        if (organizationLabel !== undefined && sections[0])
+          sections[0].organizationLabel = organizationLabel;
+        return sections;
+      }
       // Keep empty spaces selectable; chat clicks are the only switch control.
       if (!showSpaceNames) return [];
       if (needle && (space.bots.length > 0 || space.groups.length > 0)) return [];
@@ -1472,10 +1500,19 @@ export function ShellPage() {
           bots: [],
           showLock: true,
           emptySpaceId: space.id,
+          organizationLabel,
         },
       ];
     });
   }, [bootstrapMe, botSections, bots, groups, spaces, query]);
+
+  // Shown under the Workspace header only when the user belongs to several organizations.
+  const currentOrganizationName = useMemo(() => {
+    const organizations = new Set(spaces.map((space) => space.organizationId));
+    if (organizations.size < 2) return null;
+    const currentSpaceId = selectedSpaceId() ?? bootstrapMe?.spaceId;
+    return spaces.find((space) => space.id === currentSpaceId)?.organizationName ?? null;
+  }, [spaces, bootstrapMe?.spaceId]);
 
   const openSpaceChat = useCallback(
     (spaceId: string, path: string) => {
@@ -2634,6 +2671,11 @@ export function ShellPage() {
                 );
                 return (
                   <div key={group.key} data-sidebar-group={group.key}>
+                    {group.organizationLabel ? (
+                      <p className="truncate px-2.5 pt-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#6E6975]">
+                        {group.organizationLabel}
+                      </p>
+                    ) : null}
                     {group.title ? (
                       <div className="pt-2">
                         <button
@@ -3106,7 +3148,7 @@ export function ShellPage() {
         className="flex min-w-0 flex-1 flex-col bg-[#0D0D0E]"
       >
         {workspaceOpen ? (
-          <WorkspaceView />
+          <WorkspaceView organizationName={currentOrganizationName} />
         ) : crmOpen ? (
           <CrmView />
         ) : docsOpen ? (

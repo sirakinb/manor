@@ -102,32 +102,36 @@ test("workspace appears once the organization has one and its map opens sections
 
   // The shell reads workspace status once on mount, so a reload picks it up.
   await page.goto("/app");
-  await expect(sidebar.getByRole("button", { name: "Workspace", exact: true })).toBeVisible();
-  await sidebar.getByRole("button", { name: "Workspace", exact: true }).click();
+  await expect(sidebar.getByRole("button", { name: "Workspace" })).toBeVisible();
+  await sidebar.getByRole("button", { name: "Workspace" }).click();
   await page.waitForURL(/\/app\/workspace$/);
 
+  const stats = page.getByTestId("workspace-stats");
+  await expect(stats).toBeVisible();
+  await expect(stats.getByText("Calls · 30d")).toBeVisible();
   const map = page.getByTestId("workspace-map");
   await expect(map).toBeVisible();
   await expect(map.locator('[data-node="vault"]')).toBeVisible();
   await expect(map.locator('[data-node="channel:voice"]')).toBeVisible();
   await expect(map.locator('[data-node="source:Retell"]')).toBeVisible();
-  await captureScreenshot(page, testInfo, "workspace-map");
+  await captureScreenshot(page, testInfo, "workspace-overview");
 
-  const rail = page.getByRole("navigation", { name: "Workspace sections" });
-  await rail.getByRole("button", { name: "Voice" }).click();
-  await page.waitForURL(/section=voice/);
-  const panel = page.getByRole("dialog", { name: "Voice" });
-  await expect(panel).toBeVisible();
-  await expect(panel.getByText("Dana Reyes")).toBeVisible();
-  await captureScreenshot(page, testInfo, "workspace-voice-panel");
+  const tabs = page.getByTestId("workspace-tabs");
+  await tabs.getByRole("button", { name: "Voice", exact: true }).click();
+  await page.waitForURL(/\/app\/workspace\/voice$/);
+  await expect(page.getByRole("heading", { name: "Voice", exact: true })).toBeVisible();
+  await expect(page.getByText("Dana Reyes")).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-voice");
 
-  await page.reload();
-  await expect(page.getByRole("dialog", { name: "Voice" })).toBeVisible();
+  await page.getByText("Dana Reyes").click();
+  await page.waitForURL(/\/app\/workspace\/voice\/[^/]+$/);
+  await expect(page.getByRole("heading", { name: "Dana Reyes" })).toBeVisible();
 
-  await page.getByRole("dialog", { name: "Voice" }).getByRole("button", { name: "Close" }).click();
-  await expect(page.getByRole("dialog", { name: "Voice" })).toHaveCount(0);
-  await expect(page).not.toHaveURL(/section=/);
-
-  await map.locator('[data-node="channel:voice"]').click();
-  await expect(page.getByRole("dialog", { name: "Voice" })).toBeVisible();
+  await tabs.getByRole("button", { name: "Overview", exact: true }).click();
+  await page.waitForURL(/\/app\/workspace$/);
+  await map.locator('[data-node="vault"]').click();
+  await page.waitForURL(/\/app\/workspace\/system$/);
+  await expect(page.getByRole("heading", { name: "System", exact: true })).toBeVisible();
+  await expect(page.getByText("Freshness signal").first()).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-system");
 });

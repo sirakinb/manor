@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 "X-Generator: @lingui/cli\n"
 
-#: src/pages/Shell.tsx:2791
+#: src/pages/Shell.tsx:2833
 msgid " (unread)"
 msgstr " (unread)"
 
@@ -41,13 +41,38 @@ msgstr "{0, plural, one {# model} other {# models}}"
 msgid "{0, plural, one {# record} other {# records}}"
 msgstr "{0, plural, one {# record} other {# records}}"
 
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/ReportsSection.tsx:43
+msgid "{0} · AI-synthesized reports across channels"
+msgstr "{0} · AI-synthesized reports across channels"
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/LeasingSection.tsx:50
+msgid "{0} · applications, rent roll & renewals"
+msgstr "{0} · applications, rent roll & renewals"
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/TeamSection.tsx:93
+msgid "{0} · connected workers, what they've done, and what's running now"
+msgstr "{0} · connected workers, what they've done, and what's running now"
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/SkillsSection.tsx:40
+msgid "{0} · reusable playbooks and scripts agents saved, so the next run starts from the last one"
+msgstr "{0} · reusable playbooks and scripts agents saved, so the next run starts from the last one"
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/UtilitiesSection.tsx:81
+msgid "{0} · water billing, charged to each tenant's ledger"
+msgstr "{0} · water billing, charged to each tenant's ledger"
+
 #. placeholder {0}: file.name
-#: src/pages/Shell.tsx:1964
+#: src/pages/Shell.tsx:2001
 msgid "{0} (max {ATTACHMENT_MAX_COUNT} attachments)"
 msgstr "{0} (max {ATTACHMENT_MAX_COUNT} attachments)"
 
 #. placeholder {0}: file.name
-#: src/pages/Shell.tsx:1968
+#: src/pages/Shell.tsx:2005
 msgid "{0} (over 10 MiB)"
 msgstr "{0} (over 10 MiB)"
 
@@ -56,33 +81,65 @@ msgstr "{0} (over 10 MiB)"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
-#. placeholder {0}: formatNumber(stats.previousPeriod.aiHandled)
-#: src/pages/workspace/panels/VoicePanel.tsx:214
-msgid "{0} AI handled"
-msgstr "{0} AI handled"
+#. placeholder {0}: formatCompact(account?.accountsEngaged28d)
+#: src/pages/workspace/sections/SocialSection.tsx:98
+msgid "{0} accounts engaged"
+msgstr "{0} accounts engaged"
 
 #. placeholder {0}: formatNumber(data.count)
-#: src/pages/workspace/panels/LeasingPanel.tsx:150
-msgid "{0} available"
-msgstr "{0} available"
+#. placeholder {1}: formatNumber(data.section8Count)
+#. placeholder {2}: formatNumber(data.count - data.section8Count)
+#. placeholder {3}: data.avgRent !== null ? ` · ${t`avg ${formatMoneyAuto(data.avgRent)}`}` : ""
+#: src/pages/workspace/sections/LeasingSection.tsx:172
+msgid "{0} active · {1} Section 8 · {2} market{3}"
+msgstr "{0} active · {1} Section 8 · {2} market{3}"
 
-#. placeholder {0}: formatNumber(link.campaigns)
-#: src/pages/workspace/panels/EmailPanel.tsx:167
+#. placeholder {0}: formatAgeHours(pipe.ageHours)
+#: src/pages/workspace/sections/SystemSection.tsx:124
+msgid "{0} ago"
+msgstr "{0} ago"
+
+#. placeholder {0}: formatPct(rate)
+#. placeholder {1}: formatNumber(voice.callbacks30d)
+#: src/pages/workspace/Overview.tsx:81
+msgid "{0} AI handled · {1} callbacks"
+msgstr "{0} AI handled · {1} callbacks"
+
+#. placeholder {0}: formatNumber(overview.utilities.billsThisMonth)
+#: src/pages/workspace/PipelineMap.tsx:335
+msgid "{0} bills · month"
+msgstr "{0} bills · month"
+
+#. placeholder {0}: formatNumber(overview.voice.calls30d)
+#: src/pages/workspace/PipelineMap.tsx:327
+msgid "{0} calls · 30d"
+msgstr "{0} calls · 30d"
+
+#. placeholder {0}: formatNumber(email.campaignsTotal)
+#. placeholder {0}: formatNumber(overview.email.campaignsTotal)
+#: src/pages/workspace/Overview.tsx:90
+#: src/pages/workspace/PipelineMap.tsx:329
 msgid "{0} campaigns"
 msgstr "{0} campaigns"
 
+#. placeholder {0}: formatPct(clickToOpen, 1)
+#. placeholder {1}: formatCompact(data.uniqueClicks)
+#: src/pages/workspace/sections/EmailSection.tsx:123
+msgid "{0} click-to-open · {1} clicks"
+msgstr "{0} click-to-open · {1} clicks"
+
 #. placeholder {0}: formatNumber(link.uniqueClickers)
-#: src/pages/workspace/panels/EmailPanel.tsx:164
+#: src/pages/workspace/sections/EmailSection.tsx:256
 msgid "{0} clickers"
 msgstr "{0} clickers"
 
 #. placeholder {0}: formatNumber(post.comments)
-#: src/pages/workspace/panels/SocialPanel.tsx:119
+#: src/pages/workspace/sections/SocialSection.tsx:151
 msgid "{0} comments"
 msgstr "{0} comments"
 
 #. placeholder {0}: block.name
-#: src/pages/Shell.tsx:7022
+#: src/pages/Shell.tsx:7064
 msgid "{0} connection"
 msgstr "{0} connection"
 
@@ -91,18 +148,43 @@ msgstr "{0} connection"
 msgid "{0} files"
 msgstr "{0} files"
 
-#. placeholder {0}: formatNumber(leases.holdover)
-#: src/pages/workspace/panels/LeasingPanel.tsx:62
+#. placeholder {0}: formatNumber(overview.social.followers)
+#: src/pages/workspace/PipelineMap.tsx:333
+msgid "{0} followers"
+msgstr "{0} followers"
+
+#. placeholder {0}: formatNumber(data.leases.holdover)
+#: src/pages/workspace/sections/LeasingSection.tsx:74
 msgid "{0} holdover"
 msgstr "{0} holdover"
+
+#. placeholder {0}: formatNumber(filtered.length)
+#: src/pages/workspace/sections/VoiceSection.tsx:174
+msgid "{0} in range"
+msgstr "{0} in range"
+
+#. placeholder {0}: formatCompact(account?.totalInteractions28d)
+#: src/pages/workspace/sections/SocialSection.tsx:93
+msgid "{0} interactions"
+msgstr "{0} interactions"
 
 #. placeholder {0}: format(size / 1024)
 #: src/components/ArtifactFileCard.tsx:270
 msgid "{0} KB"
 msgstr "{0} KB"
 
+#. placeholder {0}: formatNumber(overview.leasing.activeLeases)
+#: src/pages/workspace/PipelineMap.tsx:331
+msgid "{0} leases"
+msgstr "{0} leases"
+
+#. placeholder {0}: formatNumber(data.leases.expiringNext90d)
+#: src/pages/workspace/sections/LeasingSection.tsx:112
+msgid "{0} leases end in the next 90 days"
+msgstr "{0} leases end in the next 90 days"
+
 #. placeholder {0}: formatNumber(post.likes)
-#: src/pages/workspace/panels/SocialPanel.tsx:118
+#: src/pages/workspace/sections/SocialSection.tsx:150
 msgid "{0} likes"
 msgstr "{0} likes"
 
@@ -112,33 +194,85 @@ msgid "{0} MB"
 msgstr "{0} MB"
 
 #. placeholder {0}: Math.round(data.durationSeconds / 60)
-#: src/pages/workspace/panels/VoicePanel.tsx:260
+#: src/pages/workspace/sections/VoiceSection.tsx:294
 msgid "{0} min"
 msgstr "{0} min"
 
-#. placeholder {0}: formatNumber(data.account.mediaCount)
-#: src/pages/workspace/panels/SocialPanel.tsx:53
+#. placeholder {0}: data.recentCampaigns.length
+#: src/pages/workspace/sections/EmailSection.tsx:161
+msgid "{0} most recent"
+msgstr "{0} most recent"
+
+#. placeholder {0}: formatPct(deliveredPct, 1)
+#. placeholder {1}: formatCompact(data.emailsSent)
+#: src/pages/workspace/sections/EmailSection.tsx:113
+msgid "{0} of {1} sent"
+msgstr "{0} of {1} sent"
+
+#. placeholder {0}: share(stats.aiHandled)
+#. placeholder {0}: share(stats.callbacksRequested)
+#: src/pages/workspace/sections/VoiceSection.tsx:142
+#: src/pages/workspace/sections/VoiceSection.tsx:148
+msgid "{0} of calls"
+msgstr "{0} of calls"
+
+#. placeholder {0}: data.length
+#: src/pages/workspace/sections/ReportsSection.tsx:48
+msgid "{0} on record"
+msgstr "{0} on record"
+
+#. placeholder {0}: formatCompact(data.opens)
+#: src/pages/workspace/sections/EmailSection.tsx:118
+msgid "{0} opens"
+msgstr "{0} opens"
+
+#. placeholder {0}: formatNumber(account?.mediaCount)
+#: src/pages/workspace/sections/SocialSection.tsx:83
 msgid "{0} posts"
 msgstr "{0} posts"
 
-#. placeholder {0}: formatNumber(post.reach)
-#: src/pages/workspace/panels/SocialPanel.tsx:117
-msgid "{0} reach"
-msgstr "{0} reach"
+#. placeholder {0}: formatCompact(social.reach28d)
+#: src/pages/workspace/Overview.tsx:98
+msgid "{0} reach · 28d"
+msgstr "{0} reach · 28d"
+
+#. placeholder {0}: formatMoney(leasing.monthlyRentRoll)
+#. placeholder {1}: formatNumber(leasing.availableListings)
+#: src/pages/workspace/Overview.tsx:107
+msgid "{0} rent roll · {1} available"
+msgstr "{0} rent roll · {1} available"
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
 #: src/pages/AccountSettingsOverlay.tsx:212
-#: src/pages/Shell.tsx:3067
+#: src/pages/Shell.tsx:3109
 msgid "{0} runs · {1} tokens"
 msgstr "{0} runs · {1} tokens"
 
+#. placeholder {0}: formatNumber(utilities.billsThisMonth)
+#. placeholder {1}: formatNumber(utilities.chargesPending)
+#: src/pages/workspace/Overview.tsx:116
+msgid "{0} this month · {1} charges pending"
+msgstr "{0} this month · {1} charges pending"
+
+#. placeholder {0}: formatNumber(unmatchedBills)
+#. placeholder {1}: formatNumber(ambiguousBills)
+#. placeholder {2}: formatNumber(unparsedBills)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:106
+msgid "{0} unmatched · {1} ambiguous · {2} to parse"
+msgstr "{0} unmatched · {1} ambiguous · {2} to parse"
+
 #. placeholder {0}: active.name
-#: src/pages/Shell.tsx:3566
+#: src/pages/Shell.tsx:3608
 msgid "{0}'s screen"
 msgstr "{0}'s screen"
 
-#: src/pages/Shell.tsx:6899
+#. placeholder {0}: perDay.toFixed(perDay < 10 ? 1 : 0)
+#: src/pages/workspace/sections/VoiceSection.tsx:136
+msgid "{0}/day avg"
+msgstr "{0}/day avg"
+
+#: src/pages/Shell.tsx:6941
 msgid "{botName}’s computer"
 msgstr "{botName}’s computer"
 
@@ -162,7 +296,7 @@ msgstr "{brandName} verifies the source before saving it. Credentials are encryp
 msgid "{contactCount, plural, one {# contact} other {# contacts}}"
 msgstr "{contactCount, plural, one {# contact} other {# contacts}}"
 
-#: src/pages/workspace/bits.tsx:112
+#: src/pages/workspace/bits.tsx:114
 msgid "{days}d"
 msgstr "{days}d"
 
@@ -174,7 +308,7 @@ msgstr "{days}d ago"
 msgid "{dealCount, plural, one {# deal} other {# deals}}"
 msgstr "{dealCount, plural, one {# deal} other {# deals}}"
 
-#: src/pages/workspace/bits.tsx:109
+#: src/pages/workspace/bits.tsx:111
 msgid "{hours}h"
 msgstr "{hours}h"
 
@@ -182,7 +316,7 @@ msgstr "{hours}h"
 msgid "{hours}h ago"
 msgstr "{hours}h ago"
 
-#: src/pages/workspace/bits.tsx:105
+#: src/pages/workspace/bits.tsx:107
 msgid "{minutes}m"
 msgstr "{minutes}m"
 
@@ -226,12 +360,12 @@ msgstr "{title}, {label}"
 msgid "{wonCount} closed"
 msgstr "{wonCount} closed"
 
-#: src/pages/Shell.tsx:4329
+#: src/pages/Shell.tsx:4371
 msgid "{workingBotName} is working"
 msgstr "{workingBotName} is working"
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:4917
+#: src/pages/Shell.tsx:4959
 msgid "@{0}"
 msgstr "@{0}"
 
@@ -263,7 +397,7 @@ msgstr "1 · Create a token"
 msgid "1 file"
 msgstr "1 file"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:43
+#: src/pages/workspace/sections/EmailSection.tsx:94
 msgid "12 months"
 msgstr "12 months"
 
@@ -271,7 +405,7 @@ msgstr "12 months"
 msgid "2 · Make a request"
 msgstr "2 · Make a request"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:44
+#: src/pages/workspace/sections/EmailSection.tsx:95
 msgid "24 months"
 msgstr "24 months"
 
@@ -287,17 +421,17 @@ msgstr "2FA setup key"
 msgid "3 · Write something"
 msgstr "3 · Write something"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:80
-msgid "30d"
-msgstr "30d"
+#: src/pages/workspace/sections/SocialSection.tsx:70
+msgid "30D"
+msgstr "30D"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:79
-msgid "7d"
-msgstr "7d"
+#: src/pages/workspace/sections/SocialSection.tsx:69
+msgid "7D"
+msgstr "7D"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:81
-msgid "90d"
-msgstr "90d"
+#: src/pages/workspace/sections/SocialSection.tsx:71
+msgid "90D"
+msgstr "90D"
 
 #: src/pages/DocsView.tsx:379
 msgid "Access"
@@ -311,7 +445,7 @@ msgstr "Access token (optional)"
 msgid "Account"
 msgstr "Account"
 
-#: src/pages/Shell.tsx:6319
+#: src/pages/Shell.tsx:6361
 msgid "Account default"
 msgstr "Account default"
 
@@ -337,12 +471,12 @@ msgid "Active · {0}"
 msgstr "Active · {0}"
 
 #. placeholder {0}: formatAgo(worker.lastAt, i18n.locale)
-#: src/pages/workspace/panels/TeamPanel.tsx:105
-#: src/pages/workspace/PipelineMap.tsx:217
+#: src/pages/workspace/PipelineMap.tsx:262
 msgid "Active {0}"
 msgstr "Active {0}"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:60
+#: src/pages/workspace/Overview.tsx:105
+#: src/pages/workspace/sections/LeasingSection.tsx:69
 msgid "Active leases"
 msgstr "Active leases"
 
@@ -350,13 +484,17 @@ msgstr "Active leases"
 msgid "Active model"
 msgstr "Active model"
 
+#: src/pages/workspace/sections/TeamSection.tsx:104
+msgid "active today"
+msgstr "active today"
+
 #: src/pages/VoiceSettingsOverlay.tsx:170
 msgid "Active voice"
 msgstr "Active voice"
 
-#: src/pages/Shell.tsx:2541
-#: src/pages/Shell.tsx:2543
-#: src/pages/Shell.tsx:3262
+#: src/pages/Shell.tsx:2578
+#: src/pages/Shell.tsx:2580
+#: src/pages/Shell.tsx:3304
 msgid "Activity"
 msgstr "Activity"
 
@@ -376,7 +514,7 @@ msgstr "Add a field to start this sheet"
 msgid "Add a model in Settings to use this."
 msgstr "Add a model in Settings to use this."
 
-#: src/pages/Shell.tsx:3732
+#: src/pages/Shell.tsx:3774
 msgid "Add a run time for this one-shot."
 msgstr "Add a run time for this one-shot."
 
@@ -384,7 +522,7 @@ msgstr "Add a run time for this one-shot."
 msgid "Add a schedule or webhook to run this routine."
 msgstr "Add a schedule or webhook to run this routine."
 
-#: src/pages/Shell.tsx:3704
+#: src/pages/Shell.tsx:3746
 msgid "Add a schedule or webhook trigger"
 msgstr "Add a schedule or webhook trigger"
 
@@ -432,7 +570,7 @@ msgstr "Add remote MCP server"
 msgid "Add server"
 msgstr "Add server"
 
-#: src/pages/Shell.tsx:5376
+#: src/pages/Shell.tsx:5418
 msgid "Add thumbs-up"
 msgstr "Add thumbs-up"
 
@@ -459,13 +597,9 @@ msgstr "Add webhook"
 msgid "Adding…"
 msgstr "Adding…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:165
-msgid "Address"
-msgstr "Address"
-
 #: src/pages/AccountSettingsOverlay.tsx:243
 #: src/pages/RoutineSchedule.tsx:42
-#: src/pages/Shell.tsx:6219
+#: src/pages/Shell.tsx:6261
 msgid "Advanced"
 msgstr "Advanced"
 
@@ -473,19 +607,11 @@ msgstr "Advanced"
 msgid "Advanced..."
 msgstr "Advanced..."
 
-#: src/pages/workspace/panels/SystemPanel.tsx:89
-msgid "Age"
-msgstr "Age"
-
-#: src/pages/workspace/panels/VoicePanel.tsx:60
-msgid "Agent"
-msgstr "Agent"
-
 #: src/pages/McpServersOverlay.tsx:369
 msgid "Agent access for new servers"
 msgstr "Agent access for new servers"
 
-#: src/pages/Shell.tsx:3211
+#: src/pages/Shell.tsx:3253
 msgid "Agent computer"
 msgstr "Agent computer"
 
@@ -497,28 +623,31 @@ msgstr "Agent connections"
 msgid "Agents:"
 msgstr "Agents:"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:105
-#: src/pages/workspace/panels/VoicePanel.tsx:151
-#: src/pages/workspace/panels/VoicePanel.tsx:200
-#: src/pages/workspace/panels/VoicePanel.tsx:249
+#: src/pages/workspace/sections/VoiceSection.tsx:217
+msgid "AI"
+msgstr "AI"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:139
+#: src/pages/workspace/sections/VoiceSection.tsx:159
+#: src/pages/workspace/sections/VoiceSection.tsx:164
+#: src/pages/workspace/sections/VoiceSection.tsx:283
 msgid "AI handled"
 msgstr "AI handled"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:73
-#: src/pages/workspace/PipelineMap.tsx:284
-#: src/pages/workspace/WorkspaceRail.tsx:40
+#: src/pages/workspace/PipelineMap.tsx:344
+#: src/pages/workspace/WorkspaceView.tsx:86
 msgid "AI team"
 msgstr "AI team"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:143
+#: src/pages/workspace/sections/LeasingSection.tsx:183
 msgid "All"
 msgstr "All"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:233
-msgid "All calls"
-msgstr "All calls"
+#: src/pages/workspace/sections/LeasingSection.tsx:86
+msgid "All applications on record"
+msgstr "All applications on record"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:204
+#: src/pages/workspace/sections/EmailSection.tsx:294
 msgid "All campaigns"
 msgstr "All campaigns"
 
@@ -530,15 +659,12 @@ msgstr "All endpoints are under <0>/v1</0>, all payloads are JSON, and everythin
 msgid "All pipelines"
 msgstr "All pipelines"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:108
+#: src/pages/workspace/sections/ReportsSection.tsx:123
 msgid "All reports"
 msgstr "All reports"
 
-#: src/pages/workspace/panels/SkillsPanel.tsx:71
-msgid "All skills"
-msgstr "All skills"
-
-#: src/pages/workspace/panels/EmailPanel.tsx:45
+#: src/pages/workspace/sections/EmailSection.tsx:53
+#: src/pages/workspace/sections/EmailSection.tsx:96
 msgid "All time"
 msgstr "All time"
 
@@ -585,7 +711,11 @@ msgstr "Always allow this tool"
 msgid "Always allowed"
 msgstr "Always allowed"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:39
+#: src/pages/workspace/sections/TeamSection.tsx:134
+msgid "Always on"
+msgstr "Always on"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:54
 msgid "Ambiguous"
 msgstr "Ambiguous"
 
@@ -629,23 +759,23 @@ msgstr "API key"
 msgid "API key header"
 msgstr "API key header"
 
-#: src/pages/Shell.tsx:3473
+#: src/pages/Shell.tsx:3515
 msgid "App preview"
 msgstr "App preview"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:83
+#: src/pages/workspace/sections/LeasingSection.tsx:86
 msgid "Application funnel"
 msgstr "Application funnel"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:74
-msgid "Applications 30d"
-msgstr "Applications 30d"
+#: src/pages/workspace/sections/LeasingSection.tsx:58
+msgid "Applications"
+msgstr "Applications"
 
 #: src/pages/McpServersOverlay.tsx:372
 msgid "Applies when you click Add server. Use the agent chips on each server card to change access at any time — the agent picks it up on its next message."
 msgstr "Applies when you click Add server. Use the agent chips on each server card to change access at any time — the agent picks it up on its next message."
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:214
+#: src/pages/workspace/sections/LeasingSection.tsx:259
 msgid "Apply"
 msgstr "Apply"
 
@@ -653,22 +783,30 @@ msgstr "Apply"
 msgid "Approval boundaries"
 msgstr "Approval boundaries"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:79
+#: src/pages/workspace/sections/LeasingSection.tsx:64
 msgid "Approval rate"
 msgstr "Approval rate"
 
+#: src/pages/workspace/sections/TeamSection.tsx:96
+msgid "Approvals: auto"
+msgstr "Approvals: auto"
+
+#: src/pages/workspace/sections/TeamSection.tsx:96
+msgid "Approvals: manual"
+msgstr "Approvals: manual"
+
 #: src/pages/MessagingSettingsOverlay.tsx:215
 #: src/pages/MessagingSettingsOverlay.tsx:282
-#: src/pages/Shell.tsx:7215
+#: src/pages/Shell.tsx:7257
 msgid "Approve"
 msgstr "Approve"
 
-#: src/pages/Shell.tsx:7206
+#: src/pages/Shell.tsx:7248
 msgid "Approve this server to let your agent use its tools."
 msgstr "Approve this server to let your agent use its tools."
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:69
-#: src/pages/workspace/panels/TeamPanel.tsx:51
+#: src/pages/workspace/sections/ReportsSection.tsx:84
+#: src/pages/workspace/sections/TeamSection.tsx:63
 msgid "Approved"
 msgstr "Approved"
 
@@ -677,7 +815,7 @@ msgstr "Approved"
 msgid "Archive"
 msgstr "Archive"
 
-#: src/pages/Shell.tsx:5730
+#: src/pages/Shell.tsx:5772
 msgid "archived"
 msgstr "archived"
 
@@ -685,11 +823,11 @@ msgstr "archived"
 #: src/pages/crm/CrmContactsSheet.tsx:44
 #: src/pages/crm/CrmContactsSheet.tsx:119
 #: src/pages/crm/CrmContactsSheet.tsx:121
-#: src/pages/Shell.tsx:2855
+#: src/pages/Shell.tsx:2897
 msgid "Archived"
 msgstr "Archived"
 
-#: src/pages/Shell.tsx:5741
+#: src/pages/Shell.tsx:5783
 msgid "Archived. Chat, memory, and files kept."
 msgstr "Archived. Chat, memory, and files kept."
 
@@ -744,13 +882,17 @@ msgstr "at {timeSelect}"
 msgid "At the bottom of Integrations, open API & agent access → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
 msgstr "At the bottom of Integrations, open API & agent access → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
 
-#: src/pages/Shell.tsx:4996
+#: src/pages/Shell.tsx:5038
 msgid "Attach file"
 msgstr "Attach file"
 
-#: src/pages/Shell.tsx:5335
+#: src/pages/Shell.tsx:5377
 msgid "Attachment"
 msgstr "Attachment"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:106
+msgid "Audience"
+msgstr "Audience"
 
 #: src/pages/DocsView.tsx:350
 msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>. Tools the token cannot use are not advertised at all."
@@ -765,21 +907,21 @@ msgstr "Authorization code or callback URL"
 msgid "Authorization expired — reconnect required"
 msgstr "Authorization expired — reconnect required"
 
-#: src/pages/Shell.tsx:7007
+#: src/pages/Shell.tsx:7049
 msgid "Authorization timed out. Please try again."
 msgstr "Authorization timed out. Please try again."
 
-#: src/pages/Shell.tsx:7049
-#: src/pages/Shell.tsx:7215
+#: src/pages/Shell.tsx:7091
+#: src/pages/Shell.tsx:7257
 msgid "Authorize"
 msgstr "Authorize"
 
-#: src/pages/Shell.tsx:5260
-#: src/pages/workspace/panels/TeamPanel.tsx:52
+#: src/pages/Shell.tsx:5302
+#: src/pages/workspace/sections/TeamSection.tsx:64
 msgid "Auto"
 msgstr "Auto"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:193
+#: src/pages/workspace/sections/LeasingSection.tsx:234
 msgid "Available"
 msgstr "Available"
 
@@ -787,7 +929,7 @@ msgstr "Available"
 msgid "Available after the routine is saved"
 msgstr "Available after the routine is saved"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:38
+#: src/pages/workspace/sections/LeasingSection.tsx:169
 msgid "Available rentals"
 msgstr "Available rentals"
 
@@ -795,18 +937,19 @@ msgstr "Available rentals"
 msgid "Avatars"
 msgstr "Avatars"
 
-#. placeholder {0}: formatMoney(data.avgRent)
-#: src/pages/workspace/panels/LeasingPanel.tsx:151
+#. placeholder {0}: formatMoneyAuto(data.avgRent)
+#: src/pages/workspace/sections/LeasingSection.tsx:173
 msgid "avg {0}"
 msgstr "avg {0}"
+
+#. placeholder {0}: formatMoneyAuto(data.leases.avgRent)
+#: src/pages/workspace/sections/LeasingSection.tsx:76
+msgid "avg {0}/mo"
+msgstr "avg {0}/mo"
 
 #: src/pages/crm/CrmHome.tsx:83
 msgid "Avg deal size"
 msgstr "Avg deal size"
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:70
-msgid "Avg rent"
-msgstr "Avg rent"
 
 #: src/pages/RoutineEditor.tsx:245
 msgid "Back"
@@ -827,21 +970,30 @@ msgstr "Base URL"
 msgid "Base32 key or otpauth:// link from the site's authenticator setup"
 msgstr "Base32 key or otpauth:// link from the site's authenticator setup"
 
+#: src/pages/workspace/sections/LeasingSection.tsx:218
+msgid "Bd/ba"
+msgstr "Bd/ba"
+
 #: src/pages/PluginsOverlay.tsx:509
 msgid "Bearer token"
 msgstr "Bearer token"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:182
-msgid "Beds / baths"
-msgstr "Beds / baths"
+#: src/pages/workspace/sections/UtilitiesSection.tsx:94
+msgid "Billable"
+msgstr "Billable"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:137
-msgid "Billing targets"
-msgstr "Billing targets"
+#: src/pages/workspace/sections/UtilitiesSection.tsx:219
+msgid "Billing"
+msgstr "Billing"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:58
+#: src/pages/workspace/sections/UtilitiesSection.tsx:99
+#: src/pages/workspace/sections/UtilitiesSection.tsx:111
 msgid "Bills"
 msgstr "Bills"
+
+#: src/pages/workspace/Overview.tsx:114
+msgid "Bills to review"
+msgstr "Bills to review"
 
 #: src/components/FilesPanel.tsx:107
 msgid "Binary file. Preview is not available."
@@ -851,18 +1003,18 @@ msgstr "Binary file. Preview is not available."
 msgid "Book demo"
 msgstr "Book demo"
 
-#: src/pages/Shell.tsx:6891
+#: src/pages/Shell.tsx:6933
 msgid "Booting live desktop…"
 msgstr "Booting live desktop…"
 
 #. placeholder {0}: active?.name
-#: src/pages/Shell.tsx:4116
+#: src/pages/Shell.tsx:4158
 msgid "Booting up {0}’s computer"
 msgstr "Booting up {0}’s computer"
 
-#: src/pages/Shell.tsx:5598
-#: src/pages/Shell.tsx:5599
-#: src/pages/Shell.tsx:5734
+#: src/pages/Shell.tsx:5640
+#: src/pages/Shell.tsx:5641
+#: src/pages/Shell.tsx:5776
 msgid "bot"
 msgstr "bot"
 
@@ -871,15 +1023,15 @@ msgstr "bot"
 msgid "Bot"
 msgstr "Bot"
 
-#: src/pages/Shell.tsx:1759
+#: src/pages/Shell.tsx:1796
 msgid "Bot"
 msgstr "Bot"
 
-#: src/pages/Shell.tsx:4220
+#: src/pages/Shell.tsx:4262
 msgid "Bot screen"
 msgstr "Bot screen"
 
-#: src/pages/Shell.tsx:3524
+#: src/pages/Shell.tsx:3566
 msgid "Bot screen preview"
 msgstr "Bot screen preview"
 
@@ -891,15 +1043,15 @@ msgstr "Bot to link"
 msgid "Bots act without asking by default. Add an exception only when you want to review a type of action first. These preferences apply across all your bots."
 msgstr "Bots act without asking by default. Add an exception only when you want to review a type of action first. These preferences apply across all your bots."
 
-#: src/pages/Shell.tsx:4330
+#: src/pages/Shell.tsx:4372
 msgid "Bots are working"
 msgstr "Bots are working"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:83
+#: src/pages/workspace/sections/EmailSection.tsx:144
 msgid "Bounce rate"
 msgstr "Bounce rate"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:240
+#: src/pages/workspace/sections/EmailSection.tsx:334
 msgid "Bounces"
 msgstr "Bounces"
 
@@ -911,43 +1063,71 @@ msgstr "Bring your own key. The provider is swappable; your bots keep the same s
 msgid "Browse"
 msgstr "Browse"
 
-#: src/pages/Shell.tsx:3175
-#: src/pages/Shell.tsx:3176
+#: src/pages/workspace/sections/VoiceSection.tsx:151
+msgid "Busiest day"
+msgstr "Busiest day"
+
+#: src/pages/workspace/sections/SocialSection.tsx:132
+msgid "By reach"
+msgstr "By reach"
+
+#: src/pages/Shell.tsx:3217
+#: src/pages/Shell.tsx:3218
 msgid "Call"
 msgstr "Call"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:163
+#: src/pages/workspace/sections/VoiceSection.tsx:157
+msgid "Call volume"
+msgstr "Call volume"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:229
 msgid "Callback"
 msgstr "Callback"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:253
+#: src/pages/workspace/sections/VoiceSection.tsx:287
 msgid "Callback requested"
 msgstr "Callback requested"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:206
-msgid "Callbacks"
-msgstr "Callbacks"
+#: src/pages/workspace/sections/VoiceSection.tsx:145
+msgid "Callbacks requested"
+msgstr "Callbacks requested"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:135
+#: src/pages/workspace/sections/VoiceSection.tsx:196
 msgid "Caller"
 msgstr "Caller"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:100
-#: src/pages/workspace/panels/VoicePanel.tsx:115
+#: src/pages/workspace/sections/VoiceSection.tsx:164
+msgid "calls"
+msgstr "calls"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:173
 msgid "Calls"
 msgstr "Calls"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:95
-msgid "Calls per day"
-msgstr "Calls per day"
+#: src/pages/workspace/Overview.tsx:79
+msgid "Calls · 30d"
+msgstr "Calls · 30d"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:104
+#: src/pages/workspace/sections/VoiceSection.tsx:153
+msgid "calls in a single day"
+msgstr "calls in a single day"
+
+#. placeholder {0}: busiest.day
+#: src/pages/workspace/sections/VoiceSection.tsx:153
+msgid "calls on {0}"
+msgstr "calls on {0}"
+
+#: src/pages/workspace/sections/EmailSection.tsx:172
 msgid "Campaign"
 msgstr "Campaign"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:57
+#: src/pages/workspace/sections/EmailSection.tsx:106
 msgid "Campaigns"
 msgstr "Campaigns"
+
+#: src/pages/workspace/sections/EmailSection.tsx:129
+msgid "Campaigns per month"
+msgstr "Campaigns per month"
 
 #: src/App.tsx:159
 msgid "Can't reach the server."
@@ -967,15 +1147,15 @@ msgstr "Can't reach the server."
 #: src/pages/KnowledgeSection.tsx:196
 #: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
-#: src/pages/Shell.tsx:6485
-#: src/pages/Shell.tsx:6567
-#: src/pages/Shell.tsx:6639
-#: src/pages/Shell.tsx:6754
-#: src/pages/Shell.tsx:6830
+#: src/pages/Shell.tsx:6527
+#: src/pages/Shell.tsx:6609
+#: src/pages/Shell.tsx:6681
+#: src/pages/Shell.tsx:6796
+#: src/pages/Shell.tsx:6872
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/pages/Shell.tsx:6012
+#: src/pages/Shell.tsx:6054
 msgid "Cancel new bot"
 msgstr "Cancel new bot"
 
@@ -983,7 +1163,7 @@ msgstr "Cancel new bot"
 msgid "Cancel new group"
 msgstr "Cancel new group"
 
-#: src/pages/Shell.tsx:4855
+#: src/pages/Shell.tsx:4897
 msgid "Cancel reply"
 msgstr "Cancel reply"
 
@@ -992,12 +1172,7 @@ msgstr "Cancel reply"
 msgid "Cancelled"
 msgstr "Cancelled"
 
-#. placeholder {0}: formatDate(data.account.capturedAt)
-#: src/pages/workspace/panels/SocialPanel.tsx:37
-msgid "Captured {0}"
-msgstr "Captured {0}"
-
-#: src/pages/workspace/panels/TeamPanel.tsx:47
+#: src/pages/workspace/sections/TeamSection.tsx:59
 msgid "Catching up"
 msgstr "Catching up"
 
@@ -1013,16 +1188,16 @@ msgstr "Changes"
 msgid "Changing…"
 msgstr "Changing…"
 
-#: src/pages/workspace/PipelineMap.tsx:199
+#: src/pages/workspace/PipelineMap.tsx:242
 msgid "Channel"
 msgstr "Channel"
 
 #: src/pages/MessagingSettingsOverlay.tsx:184
-#: src/pages/workspace/PipelineMap.tsx:283
+#: src/pages/workspace/PipelineMap.tsx:343
 msgid "Channels"
 msgstr "Channels"
 
-#: src/pages/Shell.tsx:7112
+#: src/pages/Shell.tsx:7154
 msgid "Chart failed to render: {error}"
 msgstr "Chart failed to render: {error}"
 
@@ -1034,7 +1209,7 @@ msgstr "Chat apps"
 msgid "Chat apps, group channels, and agent connections."
 msgstr "Chat apps, group channels, and agent connections."
 
-#: src/pages/Shell.tsx:5278
+#: src/pages/Shell.tsx:5320
 msgid "Chat Settings"
 msgstr "Chat Settings"
 
@@ -1046,8 +1221,8 @@ msgstr "Check failed"
 msgid "Check for updates"
 msgstr "Check for updates"
 
-#: src/pages/Shell.tsx:3745
-#: src/pages/Shell.tsx:3755
+#: src/pages/Shell.tsx:3787
+#: src/pages/Shell.tsx:3797
 msgid "Check in."
 msgstr "Check in."
 
@@ -1083,12 +1258,12 @@ msgstr "Choose which connected model {brandName} uses."
 msgid "clean"
 msgstr "clean"
 
-#: src/pages/Shell.tsx:6654
+#: src/pages/Shell.tsx:6696
 msgid "Clear"
 msgstr "Clear"
 
 #. placeholder {0}: bot.name
-#: src/pages/Shell.tsx:6620
+#: src/pages/Shell.tsx:6662
 msgid "Clear {0}’s conversation?"
 msgstr "Clear {0}’s conversation?"
 
@@ -1097,7 +1272,7 @@ msgid "Clear 2FA key"
 msgstr "Clear 2FA key"
 
 #: src/pages/BotContextMenu.tsx:103
-#: src/pages/Shell.tsx:6375
+#: src/pages/Shell.tsx:6417
 msgid "Clear conversation"
 msgstr "Clear conversation"
 
@@ -1105,23 +1280,23 @@ msgstr "Clear conversation"
 msgid "Clear stored password"
 msgstr "Clear stored password"
 
-#: src/pages/Shell.tsx:6654
+#: src/pages/Shell.tsx:6696
 msgid "Clearing…"
 msgstr "Clearing…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:61
+#: src/pages/workspace/sections/EmailSection.tsx:121
 msgid "Click rate"
 msgstr "Click rate"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:223
+#: src/pages/workspace/sections/EmailSection.tsx:317
 msgid "Clicked"
 msgstr "Clicked"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:137
+#: src/pages/workspace/sections/EmailSection.tsx:205
 msgid "Clicks"
 msgstr "Clicks"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:247
+#: src/pages/workspace/sections/EmailSection.tsx:341
 msgid "Clicks per open"
 msgstr "Clicks per open"
 
@@ -1133,15 +1308,14 @@ msgstr "Clicks per open"
 #: src/pages/PeerMessagesOverlay.tsx:209
 #: src/pages/RoutineEditor.tsx:251
 #: src/pages/WindowChrome.tsx:19
-#: src/pages/workspace/WorkspaceView.tsx:152
 msgid "Close"
 msgstr "Close"
 
-#: src/pages/Shell.tsx:7297
+#: src/pages/Shell.tsx:7339
 msgid "Close chart"
 msgstr "Close chart"
 
-#: src/pages/Shell.tsx:4194
+#: src/pages/Shell.tsx:4236
 msgid "Close computer"
 msgstr "Close computer"
 
@@ -1150,7 +1324,7 @@ msgstr "Close computer"
 msgid "Close demo"
 msgstr "Close demo"
 
-#: src/pages/Shell.tsx:7397
+#: src/pages/Shell.tsx:7439
 msgid "Close image preview"
 msgstr "Close image preview"
 
@@ -1174,11 +1348,11 @@ msgstr "Close messaging settings"
 msgid "Close model settings"
 msgstr "Close model settings"
 
-#: src/pages/Shell.tsx:2514
+#: src/pages/Shell.tsx:2551
 msgid "Close navigation"
 msgstr "Close navigation"
 
-#: src/pages/Shell.tsx:3446
+#: src/pages/Shell.tsx:3488
 msgid "Close panel"
 msgstr "Close panel"
 
@@ -1205,7 +1379,7 @@ msgid "Code"
 msgstr "Code"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:2655
+#: src/pages/Shell.tsx:2697
 msgid "Collapse {0}"
 msgstr "Collapse {0}"
 
@@ -1227,29 +1401,29 @@ msgstr "Company"
 msgid "Complete"
 msgstr "Complete"
 
-#: src/pages/Shell.tsx:5922
-#: src/pages/Shell.tsx:5950
-#: src/pages/workspace/panels/EmailPanel.tsx:67
+#: src/pages/Shell.tsx:5964
+#: src/pages/Shell.tsx:5992
+#: src/pages/workspace/sections/EmailSection.tsx:138
 msgid "Computer"
 msgstr "Computer"
 
-#: src/pages/Shell.tsx:6894
+#: src/pages/Shell.tsx:6936
 msgid "Computer failed to boot"
 msgstr "Computer failed to boot"
 
-#: src/pages/Shell.tsx:4242
+#: src/pages/Shell.tsx:4284
 msgid "Computer is asleep"
 msgstr "Computer is asleep"
 
-#: src/pages/Shell.tsx:6893
+#: src/pages/Shell.tsx:6935
 msgid "Computer is asleep. Open it to wake."
 msgstr "Computer is asleep. Open it to wake."
 
-#: src/pages/Shell.tsx:6895
+#: src/pages/Shell.tsx:6937
 msgid "Computer is stopped"
 msgstr "Computer is stopped"
 
-#: src/pages/Shell.tsx:5256
+#: src/pages/Shell.tsx:5298
 msgid "Computer only"
 msgstr "Computer only"
 
@@ -1309,7 +1483,7 @@ msgstr "Connect ElevenLabs, OpenAI, or Cartesia"
 msgid "Connect from Claude"
 msgstr "Connect from Claude"
 
-#: src/pages/Shell.tsx:7195
+#: src/pages/Shell.tsx:7237
 msgid "Connect MCP server “{name}”"
 msgstr "Connect MCP server “{name}”"
 
@@ -1336,12 +1510,12 @@ msgstr "Connect websites and automation tools with REST, webhooks, or the hosted
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
-#: src/pages/Shell.tsx:7046
+#: src/pages/Shell.tsx:7088
 #: src/pages/VoiceSettingsOverlay.tsx:227
 msgid "Connected"
 msgstr "Connected"
 
-#: src/pages/Shell.tsx:7225
+#: src/pages/Shell.tsx:7267
 msgid "Connected — its tools are available from your next message."
 msgstr "Connected — its tools are available from your next message."
 
@@ -1364,13 +1538,13 @@ msgstr "Connected {0}."
 msgid "Connected and using {0}."
 msgstr "Connected and using {0}."
 
-#: src/pages/Shell.tsx:3481
+#: src/pages/Shell.tsx:3523
 msgid "Connecting to the preview…"
 msgstr "Connecting to the preview…"
 
 #: src/pages/McpServersOverlay.tsx:16
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
-#: src/pages/Shell.tsx:7215
+#: src/pages/Shell.tsx:7257
 #: src/pages/VoiceSettingsOverlay.tsx:282
 msgid "Connecting…"
 msgstr "Connecting…"
@@ -1406,7 +1580,7 @@ msgstr "Copied"
 
 #: src/pages/CrmApiAccessPanel.tsx:231
 #: src/pages/CrmApiAccessPanel.tsx:339
-#: src/pages/Shell.tsx:5388
+#: src/pages/Shell.tsx:5430
 msgid "Copy"
 msgstr "Copy"
 
@@ -1450,11 +1624,11 @@ msgstr "Could not add"
 msgid "Could not add MCP server"
 msgstr "Could not add MCP server"
 
-#: src/pages/Shell.tsx:7182
+#: src/pages/Shell.tsx:7224
 msgid "Could not approve this server"
 msgstr "Could not approve this server"
 
-#: src/pages/Shell.tsx:7010
+#: src/pages/Shell.tsx:7052
 msgid "Could not authorize this app"
 msgstr "Could not authorize this app"
 
@@ -1470,7 +1644,7 @@ msgstr "Could not change the default model"
 msgid "Could not check teaching status. Refresh the view to continue."
 msgstr "Could not check teaching status. Refresh the view to continue."
 
-#: src/pages/Shell.tsx:6648
+#: src/pages/Shell.tsx:6690
 msgid "Could not clear conversation"
 msgstr "Could not clear conversation"
 
@@ -1499,7 +1673,7 @@ msgstr "Could not connect this voice provider"
 msgid "Could not continue"
 msgstr "Could not continue"
 
-#: src/pages/Shell.tsx:6000
+#: src/pages/Shell.tsx:6042
 msgid "Could not create bot"
 msgstr "Could not create bot"
 
@@ -1511,11 +1685,11 @@ msgstr "Could not create credential"
 msgid "Could not create group"
 msgstr "Could not create group"
 
-#: src/pages/Shell.tsx:6539
+#: src/pages/Shell.tsx:6581
 msgid "Could not create section"
 msgstr "Could not create section"
 
-#: src/pages/Shell.tsx:6442
+#: src/pages/Shell.tsx:6484
 msgid "Could not create space"
 msgstr "Could not create space"
 
@@ -1527,11 +1701,11 @@ msgstr "Could not create webhook"
 msgid "Could not create your bot"
 msgstr "Could not create your bot"
 
-#: src/pages/Shell.tsx:6763
+#: src/pages/Shell.tsx:6805
 msgid "Could not delete bot"
 msgstr "Could not delete bot"
 
-#: src/pages/Shell.tsx:6843
+#: src/pages/Shell.tsx:6885
 msgid "Could not delete group"
 msgstr "Could not delete group"
 
@@ -1539,7 +1713,7 @@ msgstr "Could not delete group"
 msgid "Could not delete MCP server"
 msgstr "Could not delete MCP server"
 
-#: src/pages/Shell.tsx:6844
+#: src/pages/Shell.tsx:6886
 msgid "Could not delete routine"
 msgstr "Could not delete routine"
 
@@ -1612,7 +1786,7 @@ msgstr "Could not load skill"
 msgid "Could not load the CRM"
 msgstr "Could not load the CRM"
 
-#: src/pages/workspace/WorkspaceView.tsx:44
+#: src/pages/workspace/WorkspaceView.tsx:70
 msgid "Could not load the workspace"
 msgstr "Could not load the workspace"
 
@@ -1675,7 +1849,7 @@ msgstr "Could not remove rule"
 msgid "Could not remove webhook"
 msgstr "Could not remove webhook"
 
-#: src/pages/Shell.tsx:7102
+#: src/pages/Shell.tsx:7144
 msgid "Could not render chart"
 msgstr "Could not render chart"
 
@@ -1691,13 +1865,13 @@ msgstr "Could not revoke connection"
 msgid "Could not revoke credential"
 msgstr "Could not revoke credential"
 
-#: src/pages/Shell.tsx:3807
+#: src/pages/Shell.tsx:3849
 msgid "Could not run routine"
 msgstr "Could not run routine"
 
 #: src/components/FilesPanel.tsx:178
 #: src/pages/KnowledgeSection.tsx:126
-#: src/pages/Shell.tsx:6360
+#: src/pages/Shell.tsx:6402
 msgid "Could not save"
 msgstr "Could not save"
 
@@ -1717,7 +1891,7 @@ msgstr "Could not save group"
 msgid "Could not save model"
 msgstr "Could not save model"
 
-#: src/pages/Shell.tsx:3778
+#: src/pages/Shell.tsx:3820
 msgid "Could not save routine"
 msgstr "Could not save routine"
 
@@ -1737,7 +1911,7 @@ msgstr "Could not save that choice"
 msgid "Could not save that voice"
 msgstr "Could not save that voice"
 
-#: src/pages/Shell.tsx:6922
+#: src/pages/Shell.tsx:6964
 msgid "Could not save this choice"
 msgstr "Could not save this choice"
 
@@ -1761,7 +1935,7 @@ msgstr "Could not start teaching"
 msgid "Could not submit this answer"
 msgstr "Could not submit this answer"
 
-#: src/pages/Shell.tsx:2294
+#: src/pages/Shell.tsx:2331
 msgid "Could not take control"
 msgstr "Could not take control"
 
@@ -1781,7 +1955,7 @@ msgstr "Could not update computer"
 msgid "Could not update credential"
 msgstr "Could not update credential"
 
-#: src/pages/Shell.tsx:1950
+#: src/pages/Shell.tsx:1987
 msgid "Could not update reaction"
 msgstr "Could not update reaction"
 
@@ -1804,14 +1978,14 @@ msgstr "Couldn't update messaging settings"
 #: src/pages/crm/CrmContacts.tsx:486
 #: src/pages/crm/CrmPipelineBoard.tsx:583
 #: src/pages/crm/CrmPipelineBoard.tsx:772
-#: src/pages/Shell.tsx:2561
-#: src/pages/Shell.tsx:6059
-#: src/pages/Shell.tsx:6574
+#: src/pages/Shell.tsx:2598
+#: src/pages/Shell.tsx:6101
+#: src/pages/Shell.tsx:6616
 msgid "Create"
 msgstr "Create"
 
 #. placeholder {0}: bot.name
-#: src/pages/Shell.tsx:6548
+#: src/pages/Shell.tsx:6590
 msgid "Create a section and move {0} into it."
 msgstr "Create a section and move {0} into it."
 
@@ -1829,7 +2003,7 @@ msgid "Create Routine"
 msgstr "Create Routine"
 
 #: src/components/AskCard.tsx:33
-#: src/pages/Shell.tsx:6488
+#: src/pages/Shell.tsx:6530
 msgid "Create space"
 msgstr "Create space"
 
@@ -1855,9 +2029,9 @@ msgstr "Created"
 
 #: src/pages/CrmApiAccessPanel.tsx:189
 #: src/pages/GroupPanel.tsx:134
-#: src/pages/Shell.tsx:6059
-#: src/pages/Shell.tsx:6488
-#: src/pages/Shell.tsx:6574
+#: src/pages/Shell.tsx:6101
+#: src/pages/Shell.tsx:6530
+#: src/pages/Shell.tsx:6616
 msgid "Creating…"
 msgstr "Creating…"
 
@@ -1897,17 +2071,21 @@ msgstr "Current password"
 msgid "Custom modules"
 msgstr "Custom modules"
 
-#: src/pages/Shell.tsx:6478
+#: src/pages/Shell.tsx:6520
 msgid "Customer support"
 msgstr "Customer support"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:59
+#: src/pages/workspace/sections/SocialSection.tsx:101
 msgid "Daily reach"
 msgstr "Daily reach"
 
-#: src/pages/workspace/PipelineMap.tsx:184
+#: src/pages/workspace/PipelineMap.tsx:225
 msgid "Data vault"
 msgstr "Data vault"
+
+#: src/pages/workspace/sections/SystemSection.tsx:154
+msgid "DATA VAULT"
+msgstr "DATA VAULT"
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
 msgid "Date"
@@ -1943,7 +2121,7 @@ msgstr "Deals"
 msgid "Decline"
 msgstr "Decline"
 
-#: src/pages/Shell.tsx:6266
+#: src/pages/Shell.tsx:6308
 msgid "Default (medium)"
 msgstr "Default (medium)"
 
@@ -1957,24 +2135,24 @@ msgstr "Default scope"
 #: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:282
-#: src/pages/Shell.tsx:2890
-#: src/pages/Shell.tsx:2920
-#: src/pages/Shell.tsx:6769
-#: src/pages/Shell.tsx:6851
+#: src/pages/Shell.tsx:2932
+#: src/pages/Shell.tsx:2962
+#: src/pages/Shell.tsx:6811
+#: src/pages/Shell.tsx:6893
 msgid "Delete"
 msgstr "Delete"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.name
-#: src/pages/Shell.tsx:2886
-#: src/pages/Shell.tsx:2916
+#: src/pages/Shell.tsx:2928
+#: src/pages/Shell.tsx:2958
 msgid "Delete {0}"
 msgstr "Delete {0}"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: item.name
-#: src/pages/Shell.tsx:6701
-#: src/pages/Shell.tsx:6817
+#: src/pages/Shell.tsx:6743
+#: src/pages/Shell.tsx:6859
 msgid "Delete {0}?"
 msgstr "Delete {0}?"
 
@@ -1986,7 +2164,7 @@ msgstr "Delete field"
 msgid "Delete group"
 msgstr "Delete group"
 
-#: src/pages/Shell.tsx:6738
+#: src/pages/Shell.tsx:6780
 msgid "Delete memories too"
 msgstr "Delete memories too"
 
@@ -1998,23 +2176,23 @@ msgstr "Delete module"
 msgid "Delete row"
 msgstr "Delete row"
 
-#: src/pages/Shell.tsx:5732
+#: src/pages/Shell.tsx:5774
 msgid "deleted"
 msgstr "deleted"
 
 #: src/pages/GroupPanel.tsx:232
-#: src/pages/Shell.tsx:6769
-#: src/pages/Shell.tsx:6851
+#: src/pages/Shell.tsx:6811
+#: src/pages/Shell.tsx:6893
 msgid "Deleting…"
 msgstr "Deleting…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:59
-#: src/pages/workspace/panels/EmailPanel.tsx:216
+#: src/pages/workspace/sections/EmailSection.tsx:111
+#: src/pages/workspace/sections/EmailSection.tsx:307
 msgid "Delivered"
 msgstr "Delivered"
 
 #: src/pages/DocsView.tsx:440
-#: src/pages/workspace/panels/EmailPanel.tsx:228
+#: src/pages/workspace/sections/EmailSection.tsx:322
 msgid "Delivery"
 msgstr "Delivery"
 
@@ -2035,22 +2213,22 @@ msgid "Deployment default"
 msgstr "Deployment default"
 
 #: src/pages/Onboarding.tsx:529
-#: src/pages/Shell.tsx:6037
+#: src/pages/Shell.tsx:6079
 msgid "Describe what this bot does"
 msgstr "Describe what this bot does"
 
 #: src/pages/DocsView.tsx:114
 #: src/pages/Onboarding.tsx:534
-#: src/pages/Shell.tsx:6042
-#: src/pages/Shell.tsx:6207
+#: src/pages/Shell.tsx:6084
+#: src/pages/Shell.tsx:6249
 msgid "Description"
 msgstr "Description"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:167
+#: src/pages/workspace/sections/ReportsSection.tsx:191
 msgid "Details"
 msgstr "Details"
 
-#: src/pages/Shell.tsx:5005
+#: src/pages/Shell.tsx:5047
 msgid "Dictate"
 msgstr "Dictate"
 
@@ -2071,11 +2249,11 @@ msgstr "Disconnecting…"
 msgid "Dismiss"
 msgstr "Dismiss"
 
-#: src/pages/Shell.tsx:4835
+#: src/pages/Shell.tsx:4877
 msgid "Dismiss error"
 msgstr "Dismiss error"
 
-#: src/pages/Shell.tsx:7230
+#: src/pages/Shell.tsx:7272
 msgid "Dismissed — reconnect anytime from MCP settings."
 msgstr "Dismissed — reconnect anytime from MCP settings."
 
@@ -2097,7 +2275,7 @@ msgid "Docker is the default: bots use a shared Team Computer."
 msgstr "Docker is the default: bots use a shared Team Computer."
 
 #: src/pages/DocsView.tsx:37
-#: src/pages/Shell.tsx:2993
+#: src/pages/Shell.tsx:3035
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -2140,12 +2318,12 @@ msgstr "Draft skill"
 msgid "Drop deals here"
 msgstr "Drop deals here"
 
-#: src/pages/Shell.tsx:4549
+#: src/pages/Shell.tsx:4591
 msgid "Drop to attach to {name}"
 msgstr "Drop to attach to {name}"
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:78
+#: src/pages/workspace/sections/UtilitiesSection.tsx:133
 msgid "Due {0}"
 msgstr "Due {0}"
 
@@ -2153,7 +2331,19 @@ msgstr "Due {0}"
 msgid "Duplicate"
 msgstr "Duplicate"
 
-#: src/pages/Shell.tsx:5526
+#: src/pages/workspace/sections/SkillsSection.tsx:61
+msgid "Durable facts and conventions agents read before acting."
+msgstr "Durable facts and conventions agents read before acting."
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:112
+msgid "Each bill and the charges prepared for its lease"
+msgstr "Each bill and the charges prepared for its lease"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:196
+msgid "Each property billed for water, with the lease that carries the charge"
+msgstr "Each property billed for water, with the lease that carries the charge"
+
+#: src/pages/Shell.tsx:5568
 msgid "Earlier message"
 msgstr "Earlier message"
 
@@ -2184,13 +2374,16 @@ msgstr "Edit Profile"
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
 #: src/pages/crm/CrmModuleSheet.tsx:258
-#: src/pages/workspace/panels/EmailPanel.tsx:34
-#: src/pages/workspace/PipelineMap.tsx:76
-#: src/pages/workspace/WorkspaceRail.tsx:36
+#: src/pages/workspace/PipelineMap.tsx:112
+#: src/pages/workspace/WorkspaceView.tsx:82
 msgid "Email"
 msgstr "Email"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:125
+#: src/pages/workspace/sections/EmailSection.tsx:86
+msgid "Email performance"
+msgstr "Email performance"
+
+#: src/pages/workspace/sections/EmailSection.tsx:193
 msgid "Emails"
 msgstr "Emails"
 
@@ -2207,13 +2400,13 @@ msgstr "Encrypted static credential saved"
 msgid "Endpoint"
 msgstr "Endpoint"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:115
+#: src/pages/workspace/sections/LeasingSection.tsx:137
 msgid "Ends"
 msgstr "Ends"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:45
-msgid "Engaged 28d"
-msgstr "Engaged 28d"
+#: src/pages/workspace/sections/SocialSection.tsx:91
+msgid "Engagement rate"
+msgstr "Engagement rate"
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/ModelSettingsOverlay.tsx:587
@@ -2221,13 +2414,17 @@ msgstr "Engaged 28d"
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Enter this code at <0>{0}</0>"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:47
+#: src/pages/workspace/sections/UtilitiesSection.tsx:62
 msgid "Error"
 msgstr "Error"
 
 #: src/pages/DocsView.tsx:256
 msgid "Errors"
 msgstr "Errors"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:224
+msgid "Escalated"
+msgstr "Escalated"
 
 #: src/pages/DocsView.tsx:427
 msgid "Events"
@@ -2279,20 +2476,16 @@ msgstr "Every week"
 msgid "Everyone your business talks to lives here. Add the first one."
 msgstr "Everyone your business talks to lives here. Add the first one."
 
-#: src/pages/Shell.tsx:7276
+#: src/pages/Shell.tsx:7318
 msgid "Expand"
 msgstr "Expand"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:2654
+#: src/pages/Shell.tsx:2696
 msgid "Expand {0}"
 msgstr "Expand {0}"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:80
-msgid "Expiring 90d"
-msgstr "Expiring 90d"
-
-#: src/pages/Shell.tsx:6372
+#: src/pages/Shell.tsx:6414
 msgid "Export"
 msgstr "Export"
 
@@ -2300,7 +2493,7 @@ msgstr "Export"
 msgid "Export this week's list from the CRM and drop it in the shared folder"
 msgstr "Export this week's list from the CRM and drop it in the shared folder"
 
-#: src/pages/Shell.tsx:6392
+#: src/pages/Shell.tsx:6434
 msgid "Extra high"
 msgstr "Extra high"
 
@@ -2312,14 +2505,14 @@ msgstr "Failed"
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 
-#: src/pages/Shell.tsx:2112
-#: src/pages/Shell.tsx:2114
-#: src/pages/Shell.tsx:2116
+#: src/pages/Shell.tsx:2149
+#: src/pages/Shell.tsx:2151
+#: src/pages/Shell.tsx:2153
 msgid "Failed to send message"
 msgstr "Failed to send message"
 
-#: src/pages/Shell.tsx:2149
-#: src/pages/Shell.tsx:2168
+#: src/pages/Shell.tsx:2186
+#: src/pages/Shell.tsx:2205
 msgid "Failed to stop"
 msgstr "Failed to stop"
 
@@ -2328,9 +2521,22 @@ msgstr "Failed to stop"
 msgid "Failed."
 msgstr "Failed."
 
-#: src/pages/workspace/panels/SystemPanel.tsx:30
+#: src/pages/workspace/sections/SystemSection.tsx:56
+msgid "failing"
+msgstr "failing"
+
+#: src/pages/workspace/sections/SystemSection.tsx:39
+#: src/pages/workspace/sections/SystemSection.tsx:40
 msgid "Failing"
 msgstr "Failing"
+
+#: src/pages/workspace/sections/SystemSection.tsx:165
+msgid "failing (last run failed)"
+msgstr "failing (last run failed)"
+
+#: src/pages/workspace/sections/SystemSection.tsx:166
+msgid "failing (no new data)"
+msgstr "failing (no new data)"
 
 #: src/components/teach/SkillDraftCard.tsx:147
 msgid "Failure handling"
@@ -2344,8 +2550,8 @@ msgstr "Failures return a JSON body with a human-readable message:"
 msgid "Field label"
 msgstr "Field label"
 
-#: src/pages/Shell.tsx:3229
-#: src/pages/Shell.tsx:3398
+#: src/pages/Shell.tsx:3271
+#: src/pages/Shell.tsx:3440
 msgid "Files"
 msgstr "Files"
 
@@ -2383,7 +2589,12 @@ msgstr "First name"
 msgid "Flag unexpected actions"
 msgstr "Flag unexpected actions"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:28
+#: src/pages/workspace/sections/SystemSection.tsx:55
+#: src/pages/workspace/sections/SystemSection.tsx:164
+msgid "flowing"
+msgstr "flowing"
+
+#: src/pages/workspace/sections/SystemSection.tsx:38
 msgid "Flowing"
 msgstr "Flowing"
 
@@ -2391,22 +2602,24 @@ msgstr "Flowing"
 msgid "Folder path"
 msgstr "Folder path"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:256
+#: src/pages/workspace/sections/VoiceSection.tsx:290
 msgid "Follow-up required"
 msgstr "Follow-up required"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:42
-#: src/pages/workspace/panels/SocialPanel.tsx:68
-#: src/pages/workspace/panels/SocialPanel.tsx:74
+#: src/pages/workspace/Overview.tsx:96
+#: src/pages/workspace/sections/SocialSection.tsx:81
 msgid "Followers"
 msgstr "Followers"
+
+#: src/pages/workspace/sections/SocialSection.tsx:118
+msgid "followers now"
+msgstr "followers now"
 
 #: src/pages/Auth.tsx:219
 msgid "Forgot password?"
 msgstr "Forgot password?"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:81
-#: src/pages/workspace/panels/EmailPanel.tsx:244
+#: src/pages/workspace/sections/EmailSection.tsx:338
 msgid "Forwards"
 msgstr "Forwards"
 
@@ -2414,7 +2627,11 @@ msgstr "Forwards"
 msgid "Free"
 msgstr "Free"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:231
+#: src/pages/workspace/sections/SystemSection.tsx:95
+msgid "Freshness signal"
+msgstr "Freshness signal"
+
+#: src/pages/workspace/sections/EmailSection.tsx:325
 msgid "From"
 msgstr "From"
 
@@ -2422,9 +2639,13 @@ msgstr "From"
 msgid "Fullscreen"
 msgstr "Fullscreen"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:63
+#: src/pages/workspace/sections/ReportsSection.tsx:78
 msgid "Generated"
 msgstr "Generated"
+
+#: src/pages/workspace/sections/ReportsSection.tsx:48
+msgid "Generated reports"
+msgstr "Generated reports"
 
 #: src/pages/DocsView.tsx:26
 msgid "Getting started"
@@ -2447,14 +2668,18 @@ msgid "Grants"
 msgstr "Grants"
 
 #: src/pages/MessagingSettingsOverlay.tsx:198
-#: src/pages/Shell.tsx:3165
-#: src/pages/Shell.tsx:3402
+#: src/pages/Shell.tsx:3207
+#: src/pages/Shell.tsx:3444
 msgid "Group"
 msgstr "Group"
 
 #: src/pages/GroupPanel.tsx:192
 msgid "Group settings"
 msgstr "Group settings"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:222
+msgid "Handled"
+msgstr "Handled"
 
 #: src/pages/CallView.tsx:281
 msgid "Hang up"
@@ -2469,8 +2694,8 @@ msgstr "Hang up first, then enter the code on screen."
 msgid "Hang up, then enter the code on screen."
 msgstr "Hang up, then enter the code on screen."
 
-#: src/pages/workspace/panels/EmailPanel.tsx:75
-#: src/pages/workspace/panels/EmailPanel.tsx:241
+#: src/pages/workspace/sections/EmailSection.tsx:149
+#: src/pages/workspace/sections/EmailSection.tsx:335
 msgid "Hard bounces"
 msgstr "Hard bounces"
 
@@ -2495,7 +2720,12 @@ msgstr "Hear a sample"
 msgid "Hi, this is how I'll sound when I read replies out loud."
 msgstr "Hi, this is how I'll sound when I read replies out loud."
 
-#: src/pages/Shell.tsx:3192
+#: src/pages/workspace/sections/SkillsSection.tsx:103
+#: src/pages/workspace/sections/SkillsSection.tsx:136
+msgid "Hide content"
+msgstr "Hide content"
+
+#: src/pages/Shell.tsx:3234
 msgid "Hide live activity"
 msgstr "Hide live activity"
 
@@ -2503,15 +2733,15 @@ msgstr "Hide live activity"
 msgid "Hide password"
 msgstr "Hide password"
 
-#: src/pages/Shell.tsx:6395
+#: src/pages/Shell.tsx:6437
 msgid "High"
 msgstr "High"
 
-#: src/pages/Shell.tsx:5024
+#: src/pages/Shell.tsx:5066
 msgid "Hold to talk"
 msgstr "Hold to talk"
 
-#: src/pages/Shell.tsx:5024
+#: src/pages/Shell.tsx:5066
 msgid "Hold to talk (on-device dictation)"
 msgstr "Hold to talk (on-device dictation)"
 
@@ -2540,7 +2770,7 @@ msgstr "How often"
 msgid "How to check"
 msgstr "How to check"
 
-#: src/pages/Shell.tsx:5445
+#: src/pages/Shell.tsx:5487
 msgid "I’m done"
 msgstr "I’m done"
 
@@ -2548,9 +2778,13 @@ msgstr "I’m done"
 msgid "Idempotency"
 msgstr "Idempotency"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:31
+#: src/pages/workspace/sections/SystemSection.tsx:41
 msgid "Idle"
 msgstr "Idle"
+
+#: src/pages/workspace/sections/SystemSection.tsx:167
+msgid "idle (no data)"
+msgstr "idle (no data)"
 
 #: src/pages/Auth.tsx:120
 msgid "If an account exists for that address, we sent a password reset link."
@@ -2560,7 +2794,7 @@ msgstr "If an account exists for that address, we sent a password reset link."
 msgid "If you heard that, voice is ready."
 msgstr "If you heard that, voice is ready."
 
-#: src/pages/Shell.tsx:4552
+#: src/pages/Shell.tsx:4594
 msgid "Images, PDFs and text files · up to {ATTACHMENT_MAX_COUNT}"
 msgstr "Images, PDFs and text files · up to {ATTACHMENT_MAX_COUNT}"
 
@@ -2572,7 +2806,7 @@ msgstr "Import OpenAPI JSON"
 msgid "Inbound: trigger a bot"
 msgstr "Inbound: trigger a bot"
 
-#: src/pages/Shell.tsx:6281
+#: src/pages/Shell.tsx:6323
 msgid "Inherit default"
 msgstr "Inherit default"
 
@@ -2580,9 +2814,9 @@ msgstr "Inherit default"
 msgid "Inputs"
 msgstr "Inputs"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:34
-msgid "Instagram"
-msgstr "Instagram"
+#: src/pages/workspace/sections/SocialSection.tsx:57
+msgid "Instagram performance"
+msgstr "Instagram performance"
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:60
 msgid "Instance API key"
@@ -2593,7 +2827,7 @@ msgid "Instruction"
 msgstr "Instruction"
 
 #: src/pages/PluginsOverlay.tsx:301
-#: src/pages/Shell.tsx:2979
+#: src/pages/Shell.tsx:3021
 msgid "Integrations"
 msgstr "Integrations"
 
@@ -2611,19 +2845,19 @@ msgid "Interval unit"
 msgstr "Interval unit"
 
 #: src/pages/MemorySettingsOverlay.tsx:40
-#: src/pages/Shell.tsx:6282
+#: src/pages/Shell.tsx:6324
 msgid "Isolated"
 msgstr "Isolated"
 
-#: src/pages/Shell.tsx:6704
+#: src/pages/Shell.tsx:6746
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 
-#: src/pages/Shell.tsx:4522
+#: src/pages/Shell.tsx:4564
 msgid "Jump to latest"
 msgstr "Jump to latest"
 
-#: src/pages/Shell.tsx:5521
+#: src/pages/Shell.tsx:5563
 msgid "Jump to replied message"
 msgstr "Jump to replied message"
 
@@ -2631,7 +2865,7 @@ msgstr "Jump to replied message"
 msgid "just now"
 msgstr "just now"
 
-#: src/pages/Shell.tsx:6722
+#: src/pages/Shell.tsx:6764
 msgid "Keep memories"
 msgstr "Keep memories"
 
@@ -2647,7 +2881,7 @@ msgstr "Keys stay on the server. The app only learns whether a provider is confi
 msgid "Label"
 msgstr "Label"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:68
+#: src/pages/workspace/sections/VoiceSection.tsx:111
 msgid "Landlords"
 msgstr "Landlords"
 
@@ -2657,39 +2891,75 @@ msgstr "Landlords"
 msgid "Language"
 msgstr "Language"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:101
-msgid "Last error"
-msgstr "Last error"
+#: src/pages/workspace/sections/EmailSection.tsx:51
+#: src/pages/workspace/sections/LeasingSection.tsx:96
+msgid "Last 12 months"
+msgstr "Last 12 months"
+
+#: src/pages/workspace/sections/EmailSection.tsx:52
+msgid "Last 24 months"
+msgstr "Last 24 months"
+
+#: src/pages/workspace/sections/SocialSection.tsx:88
+msgid "last 28 days"
+msgstr "last 28 days"
+
+#: src/pages/workspace/sections/SocialSection.tsx:40
+#: src/pages/workspace/sections/VoiceSection.tsx:83
+#: src/pages/workspace/sections/VoiceSection.tsx:120
+msgid "Last 30 days"
+msgstr "Last 30 days"
+
+#: src/pages/workspace/sections/LeasingSection.tsx:61
+msgid "last 30 days vs prior 30"
+msgstr "last 30 days vs prior 30"
+
+#: src/pages/workspace/sections/SocialSection.tsx:39
+#: src/pages/workspace/sections/VoiceSection.tsx:82
+#: src/pages/workspace/sections/VoiceSection.tsx:119
+msgid "Last 7 days"
+msgstr "Last 7 days"
+
+#: src/pages/workspace/sections/SocialSection.tsx:41
+#: src/pages/workspace/sections/VoiceSection.tsx:84
+#: src/pages/workspace/sections/VoiceSection.tsx:121
+msgid "Last 90 days"
+msgstr "Last 90 days"
 
 #: src/pages/crm/CrmContacts.tsx:358
 #: src/pages/crm/CrmContactsSheet.tsx:88
 msgid "Last name"
 msgstr "Last name"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:95
-msgid "Last records"
-msgstr "Last records"
-
-#: src/pages/workspace/panels/SystemPanel.tsx:83
-msgid "Last signal"
-msgstr "Last signal"
+#: src/pages/workspace/sections/UtilitiesSection.tsx:228
+msgid "Lease"
+msgstr "Lease"
 
 #. placeholder {0}: charge.leaseId
-#. placeholder {0}: lease.leaseId
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:104
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:167
+#. placeholder {0}: row.leaseId
+#: src/pages/workspace/sections/LeasingSection.tsx:127
+#: src/pages/workspace/sections/UtilitiesSection.tsx:159
 msgid "Lease {0}"
 msgstr "Lease {0}"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:31
-#: src/pages/workspace/PipelineMap.tsx:80
-#: src/pages/workspace/WorkspaceRail.tsx:38
+#. placeholder {0}: lease.leaseId
+#: src/pages/workspace/sections/UtilitiesSection.tsx:236
+msgid "Lease #{0}"
+msgstr "Lease #{0}"
+
+#: src/pages/workspace/PipelineMap.tsx:116
+#: src/pages/workspace/sections/LeasingSection.tsx:49
+#: src/pages/workspace/WorkspaceView.tsx:84
 msgid "Leasing"
 msgstr "Leasing"
 
 #: src/pages/MessagingSettingsOverlay.tsx:237
 msgid "Leave"
 msgstr "Leave"
+
+#: src/pages/workspace/sections/SystemSection.tsx:162
+msgid "Legend"
+msgstr "Legend"
 
 #: src/pages/RoutineEditor.tsx:47
 msgid "Linear issue"
@@ -2699,7 +2969,7 @@ msgstr "Linear issue"
 msgid "Link a chat app"
 msgstr "Link a chat app"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:258
+#: src/pages/workspace/sections/EmailSection.tsx:352
 msgid "Links"
 msgstr "Links"
 
@@ -2711,19 +2981,15 @@ msgstr "List"
 msgid "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
 msgstr "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
 
-#: src/pages/workspace/panels/EmailPanel.tsx:73
-msgid "List health"
-msgstr "List health"
-
 #: src/pages/CallView.tsx:245
 msgid "Listening…"
 msgstr "Listening…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:139
+#: src/pages/workspace/sections/LeasingSection.tsx:179
 msgid "Listing type"
 msgstr "Listing type"
 
-#: src/pages/Shell.tsx:4445
+#: src/pages/Shell.tsx:4487
 msgid "Load earlier messages"
 msgstr "Load earlier messages"
 
@@ -2731,7 +2997,7 @@ msgstr "Load earlier messages"
 msgid "Load more"
 msgstr "Load more"
 
-#: src/pages/workspace/bits.tsx:159
+#: src/pages/workspace/bits.tsx:161
 msgid "Loading"
 msgstr "Loading"
 
@@ -2772,7 +3038,7 @@ msgstr "Loading voice providers…"
 #: src/pages/crm/CrmView.tsx:197
 #: src/pages/Onboarding.tsx:214
 #: src/pages/PeerMessagesOverlay.tsx:160
-#: src/pages/Shell.tsx:4445
+#: src/pages/Shell.tsx:4487
 msgid "Loading…"
 msgstr "Loading…"
 
@@ -2780,7 +3046,7 @@ msgstr "Loading…"
 msgid "Local"
 msgstr "Local"
 
-#: src/pages/Shell.tsx:3084
+#: src/pages/Shell.tsx:3126
 msgid "Log out"
 msgstr "Log out"
 
@@ -2796,7 +3062,7 @@ msgstr "Looking for repositories…"
 msgid "Lost"
 msgstr "Lost"
 
-#: src/pages/Shell.tsx:6393
+#: src/pages/Shell.tsx:6435
 msgid "Low"
 msgstr "Low"
 
@@ -2840,11 +3106,19 @@ msgstr "Mark open"
 msgid "Mark won"
 msgstr "Mark won"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:145
+#: src/pages/workspace/sections/LeasingSection.tsx:245
 msgid "Market"
 msgstr "Market"
 
-#: src/pages/Shell.tsx:6397
+#: src/pages/workspace/sections/LeasingSection.tsx:185
+msgid "Market rent"
+msgstr "Market rent"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:96
+msgid "matched to an active lease"
+msgstr "matched to an active lease"
+
+#: src/pages/Shell.tsx:6439
 msgid "Max"
 msgstr "Max"
 
@@ -2858,7 +3132,7 @@ msgstr "MCP servers"
 msgid "Meaning"
 msgstr "Meaning"
 
-#: src/pages/Shell.tsx:6394
+#: src/pages/Shell.tsx:6436
 msgid "Medium"
 msgstr "Medium"
 
@@ -2872,15 +3146,15 @@ msgstr "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 
 #: src/pages/KnowledgeSection.tsx:25
 #: src/pages/MemorySettingsOverlay.tsx:135
-#: src/pages/Shell.tsx:3037
+#: src/pages/Shell.tsx:3079
 msgid "Memory"
 msgstr "Memory"
 
-#: src/pages/Shell.tsx:6277
+#: src/pages/Shell.tsx:6319
 msgid "Memory scope"
 msgstr "Memory scope"
 
-#: src/pages/Shell.tsx:4903
+#: src/pages/Shell.tsx:4945
 msgid "Mentions"
 msgstr "Mentions"
 
@@ -2889,29 +3163,29 @@ msgstr "Mentions"
 msgid "Message"
 msgstr "Message"
 
-#: src/pages/Shell.tsx:5186
-#: src/pages/Shell.tsx:5337
+#: src/pages/Shell.tsx:5228
+#: src/pages/Shell.tsx:5379
 msgid "Message"
 msgstr "Message"
 
-#: src/pages/Shell.tsx:5182
-#: src/pages/Shell.tsx:5186
+#: src/pages/Shell.tsx:5224
+#: src/pages/Shell.tsx:5228
 msgid "Message {activeName}"
 msgstr "Message {activeName}"
 
-#: src/pages/Shell.tsx:4822
+#: src/pages/Shell.tsx:4864
 msgid "Message composer"
 msgstr "Message composer"
 
-#: src/pages/Shell.tsx:5616
+#: src/pages/Shell.tsx:5658
 msgid "Message from {peer}"
 msgstr "Message from {peer}"
 
-#: src/pages/Shell.tsx:5183
+#: src/pages/Shell.tsx:5225
 msgid "Message…"
 msgstr "Message…"
 
-#: src/pages/Shell.tsx:5616
+#: src/pages/Shell.tsx:5658
 msgid "Messaged {peer}"
 msgstr "Messaged {peer}"
 
@@ -2924,7 +3198,7 @@ msgstr "Messaging"
 msgid "Microphone failed"
 msgstr "Microphone failed"
 
-#: src/pages/Shell.tsx:6396
+#: src/pages/Shell.tsx:6438
 msgid "Minimal"
 msgstr "Minimal"
 
@@ -2940,9 +3214,13 @@ msgstr "minute"
 msgid "minutes"
 msgstr "minutes"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:68
+#: src/pages/workspace/sections/EmailSection.tsx:139
 msgid "Mobile"
 msgstr "Mobile"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:264
+msgid "Mode"
+msgstr "Mode"
 
 #: src/pages/ModelSettingsOverlay.tsx:433
 #: src/pages/ModelSettingsOverlay.tsx:494
@@ -2950,7 +3228,7 @@ msgstr "Mobile"
 #: src/pages/Onboarding.tsx:298
 #: src/pages/Onboarding.tsx:347
 #: src/pages/Onboarding.tsx:355
-#: src/pages/Shell.tsx:6233
+#: src/pages/Shell.tsx:6275
 msgid "Model"
 msgstr "Model"
 
@@ -2972,7 +3250,7 @@ msgid "Model updated."
 msgstr "Model updated."
 
 #: src/pages/ModelSettingsOverlay.tsx:305
-#: src/pages/Shell.tsx:3024
+#: src/pages/Shell.tsx:3066
 msgid "Models"
 msgstr "Models"
 
@@ -2998,7 +3276,7 @@ msgstr "Modules are the user-defined sheets in the CRM — each one declares typ
 msgid "Monthly"
 msgstr "Monthly"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:91
+#: src/pages/workspace/sections/LeasingSection.tsx:95
 msgid "Monthly submissions"
 msgstr "Monthly submissions"
 
@@ -3011,7 +3289,7 @@ msgstr "More computer actions"
 msgid "Move {0} to section"
 msgstr "Move {0} to section"
 
-#: src/pages/Shell.tsx:6725
+#: src/pages/Shell.tsx:6767
 msgid "Move them to your shared memory."
 msgstr "Move them to your shared memory."
 
@@ -3027,15 +3305,15 @@ msgstr "Move to"
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:516
 #: src/pages/RoutineEditor.tsx:296
-#: src/pages/Shell.tsx:6022
-#: src/pages/Shell.tsx:6189
-#: src/pages/Shell.tsx:6469
-#: src/pages/Shell.tsx:6551
+#: src/pages/Shell.tsx:6064
+#: src/pages/Shell.tsx:6231
+#: src/pages/Shell.tsx:6511
+#: src/pages/Shell.tsx:6593
 msgid "Name"
 msgstr "Name"
 
 #: src/pages/Onboarding.tsx:520
-#: src/pages/Shell.tsx:6027
+#: src/pages/Shell.tsx:6069
 msgid "Name this bot"
 msgstr "Name this bot"
 
@@ -3047,20 +3325,32 @@ msgstr "Name this group"
 msgid "Name this routine"
 msgstr "Name this routine"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:249
+#: src/pages/workspace/sections/TeamSection.tsx:105
+msgid "need review"
+msgstr "need review"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:283
 msgid "Needed a person"
 msgstr "Needed a person"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:104
+msgid "Needs attention"
+msgstr "Needs attention"
 
 #: src/pages/ActivityList.tsx:155
 msgid "Needs input"
 msgstr "Needs input"
 
+#: src/pages/workspace/sections/TeamSection.tsx:65
+msgid "Needs review"
+msgstr "Needs review"
+
 #: src/pages/ActivityList.tsx:157
 msgid "Needs takeover"
 msgstr "Needs takeover"
 
-#: src/pages/Shell.tsx:2575
-#: src/pages/Shell.tsx:6010
+#: src/pages/Shell.tsx:2612
+#: src/pages/Shell.tsx:6052
 msgid "New bot"
 msgstr "New bot"
 
@@ -3074,8 +3364,12 @@ msgstr "New contact"
 msgid "New deal"
 msgstr "New deal"
 
+#: src/pages/workspace/sections/SocialSection.tsx:110
+msgid "New followers"
+msgstr "New followers"
+
 #: src/pages/GroupPanel.tsx:98
-#: src/pages/Shell.tsx:2585
+#: src/pages/Shell.tsx:2622
 msgid "New group"
 msgstr "New group"
 
@@ -3097,7 +3391,7 @@ msgid "New pipeline"
 msgstr "New pipeline"
 
 #: src/pages/BotContextMenu.tsx:130
-#: src/pages/Shell.tsx:6545
+#: src/pages/Shell.tsx:6587
 msgid "New section"
 msgstr "New section"
 
@@ -3105,8 +3399,8 @@ msgstr "New section"
 msgid "New skill"
 msgstr "New skill"
 
-#: src/pages/Shell.tsx:2597
-#: src/pages/Shell.tsx:6465
+#: src/pages/Shell.tsx:2634
+#: src/pages/Shell.tsx:6507
 msgid "New space"
 msgstr "New space"
 
@@ -3117,18 +3411,13 @@ msgstr "New tag"
 #: src/pages/crm/CrmModuleSheet.tsx:58
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:712
-#: src/pages/workspace/panels/VoicePanel.tsx:158
+#: src/pages/workspace/bits.tsx:752
 msgid "No"
 msgstr "No"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:40
+#: src/pages/workspace/sections/UtilitiesSection.tsx:55
 msgid "No active lease"
 msgstr "No active lease"
-
-#: src/pages/workspace/panels/TeamPanel.tsx:106
-msgid "No activity yet"
-msgstr "No activity yet"
 
 #: src/pages/MessagingSettingsOverlay.tsx:253
 msgid "No agent connections yet."
@@ -3146,21 +3435,25 @@ msgstr "no auth"
 msgid "No authentication"
 msgstr "No authentication"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:62
+#: src/pages/workspace/sections/UtilitiesSection.tsx:117
 msgid "No bills yet"
 msgstr "No bills yet"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:131
-msgid "No calls in this window"
-msgstr "No calls in this window"
+#: src/pages/workspace/sections/VoiceSection.tsx:192
+msgid "No calls in this range"
+msgstr "No calls in this range"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:100
-msgid "No campaigns in this window"
-msgstr "No campaigns in this window"
+#: src/pages/workspace/sections/EmailSection.tsx:168
+msgid "No campaigns in this range"
+msgstr "No campaigns in this range"
 
 #: src/pages/MessagingSettingsOverlay.tsx:139
 msgid "No chat apps linked yet."
 msgstr "No chat apps linked yet."
+
+#: src/pages/workspace/sections/EmailSection.tsx:226
+msgid "No clicks recorded"
+msgstr "No clicks recorded"
 
 #. placeholder {0}: item.name
 #: src/pages/PluginsOverlay.tsx:183
@@ -3176,9 +3469,17 @@ msgstr "No contact"
 msgid "No contacts yet"
 msgstr "No contacts yet"
 
+#: src/pages/workspace/sections/SkillsSection.tsx:65
+msgid "No context saved yet"
+msgstr "No context saved yet"
+
 #: src/pages/McpServersOverlay.tsx:12
 msgid "No credential saved"
 msgstr "No credential saved"
+
+#: src/pages/workspace/sections/SystemSection.tsx:125
+msgid "no data"
+msgstr "no data"
 
 #: src/pages/crm/CrmHome.tsx:127
 msgid "No deals yet"
@@ -3196,7 +3497,7 @@ msgstr "No git repositories in this workspace yet. Changes appear here once the 
 msgid "No group chats yet."
 msgstr "No group chats yet."
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:106
+#: src/pages/workspace/sections/LeasingSection.tsx:118
 msgid "No leases expire soon"
 msgstr "No leases expire soon"
 
@@ -3228,15 +3529,20 @@ msgstr "No messages with {peerBotName} yet."
 msgid "No model catalog is available."
 msgstr "No model catalog is available."
 
-#: src/pages/workspace/panels/SystemPanel.tsx:43
+#. placeholder {0}: formatAgeHours(pipe.ageHours)
+#: src/pages/workspace/sections/SystemSection.tsx:122
+msgid "no new data for {0}"
+msgstr "no new data for {0}"
+
+#: src/pages/workspace/sections/SystemSection.tsx:66
 msgid "No pipes configured"
 msgstr "No pipes configured"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:87
-msgid "No posts in this window"
-msgstr "No posts in this window"
+#: src/pages/workspace/sections/SocialSection.tsx:135
+msgid "No posts in this range"
+msgstr "No posts in this range"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:141
+#: src/pages/workspace/sections/UtilitiesSection.tsx:202
 msgid "No properties mapped yet"
 msgstr "No properties mapped yet"
 
@@ -3244,11 +3550,11 @@ msgstr "No properties mapped yet"
 msgid "No providers found."
 msgstr "No providers found."
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:161
+#: src/pages/workspace/sections/LeasingSection.tsx:196
 msgid "No rentals match"
 msgstr "No rentals match"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:38
+#: src/pages/workspace/sections/ReportsSection.tsx:53
 msgid "No reports yet"
 msgstr "No reports yet"
 
@@ -3260,7 +3566,7 @@ msgstr "No results"
 msgid "No runs yet"
 msgstr "No runs yet"
 
-#: src/pages/workspace/panels/SkillsPanel.tsx:24
+#: src/pages/workspace/sections/SkillsSection.tsx:48
 msgid "No skills saved yet"
 msgstr "No skills saved yet"
 
@@ -3272,11 +3578,11 @@ msgstr "No skills yet"
 msgid "No trigger"
 msgstr "No trigger"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:80
+#: src/pages/workspace/sections/TeamSection.tsx:109
 msgid "No workers yet"
 msgstr "No workers yet"
 
-#: src/pages/workspace/WorkspaceView.tsx:103
+#: src/pages/workspace/WorkspaceView.tsx:110
 msgid "No workspace is connected to this account."
 msgstr "No workspace is connected to this account."
 
@@ -3301,15 +3607,15 @@ msgstr "Not connected"
 msgid "Not in the plugin catalog"
 msgstr "Not in the plugin catalog"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:153
+#: src/pages/workspace/sections/UtilitiesSection.tsx:212
 msgid "Not matched to a property"
 msgstr "Not matched to a property"
 
-#: src/pages/Shell.tsx:7218
+#: src/pages/Shell.tsx:7260
 msgid "Not now"
 msgstr "Not now"
 
-#: src/pages/workspace/PipelineMap.tsx:85
+#: src/pages/workspace/PipelineMap.tsx:121
 msgid "Not synced yet"
 msgstr "Not synced yet"
 
@@ -3318,7 +3624,7 @@ msgstr "Not synced yet"
 msgid "Notes"
 msgstr "Notes"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:128
+#: src/pages/workspace/sections/TeamSection.tsx:171
 msgid "Nothing logged yet"
 msgstr "Nothing logged yet"
 
@@ -3328,8 +3634,10 @@ msgid "Nothing remembered yet"
 msgstr "Nothing remembered yet"
 
 #: src/pages/crm/CrmHome.tsx:284
-#: src/pages/workspace/bits.tsx:312
-#: src/pages/workspace/bits.tsx:415
+#: src/pages/workspace/bits.tsx:354
+#: src/pages/workspace/bits.tsx:457
+#: src/pages/workspace/bits.tsx:882
+#: src/pages/workspace/bits.tsx:963
 msgid "Nothing to chart yet"
 msgstr "Nothing to chart yet"
 
@@ -3362,38 +3670,50 @@ msgstr "OAuth connection failed"
 msgid "OAuth will be available for providers that support browser authorization. Static headers work today."
 msgstr "OAuth will be available for providers that support browser authorization. Static headers work today."
 
+#: src/pages/workspace/sections/LeasingSection.tsx:66
+msgid "of decided applications"
+msgstr "of decided applications"
+
 #: src/pages/RoutineEditor.tsx:408
 msgid "On a schedule"
 msgstr "On a schedule"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:101
+msgid "on record"
+msgstr "on record"
 
 #. placeholder {0}: preset.time
 #: src/pages/RoutineSchedule.tsx:96
 msgid "on the 1st at {0}"
 msgstr "on the 1st at {0}"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:91
+msgid "on the utility account"
+msgstr "on the utility account"
+
 #: src/pages/CrmApiAccessPanel.tsx:256
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 
-#: src/pages/Shell.tsx:5269
+#: src/pages/Shell.tsx:5311
 msgid "Only use connected plugins, never the computer"
 msgstr "Only use connected plugins, never the computer"
 
-#: src/pages/Shell.tsx:5267
+#: src/pages/Shell.tsx:5309
 msgid "Only use the computer and sandbox, never connected plugins"
 msgstr "Only use the computer and sandbox, never connected plugins"
 
 #: src/pages/crm/CrmHome.tsx:52
 #: src/pages/ScratchpadSection.tsx:157
-#: src/pages/Shell.tsx:3556
-#: src/pages/Shell.tsx:3561
-#: src/pages/Shell.tsx:5908
-#: src/pages/workspace/panels/EmailPanel.tsx:131
+#: src/pages/Shell.tsx:3598
+#: src/pages/Shell.tsx:3603
+#: src/pages/Shell.tsx:5950
+#: src/pages/workspace/sections/EmailSection.tsx:199
 msgid "Open"
 msgstr "Open"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:2652
+#: src/pages/Shell.tsx:2694
 msgid "Open {0}"
 msgstr "Open {0}"
 
@@ -3401,27 +3721,28 @@ msgstr "Open {0}"
 msgid "Open deals"
 msgstr "Open deals"
 
-#: src/pages/Shell.tsx:3513
+#: src/pages/Shell.tsx:3555
 msgid "Open in full window"
 msgstr "Open in full window"
 
-#: src/pages/Shell.tsx:3499
+#: src/pages/Shell.tsx:3541
 msgid "Open in new tab"
 msgstr "Open in new tab"
 
-#: src/pages/Shell.tsx:3134
+#: src/pages/Shell.tsx:3176
 msgid "Open navigation"
 msgstr "Open navigation"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:105
+#: src/pages/workspace/sections/SocialSection.tsx:157
 msgid "Open post"
 msgstr "Open post"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:60
+#: src/pages/workspace/Overview.tsx:88
+#: src/pages/workspace/sections/EmailSection.tsx:116
 msgid "Open rate"
 msgstr "Open rate"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:299
+#: src/pages/workspace/sections/VoiceSection.tsx:333
 msgid "Open recording"
 msgstr "Open recording"
 
@@ -3446,11 +3767,11 @@ msgstr "OpenAPI (JSON) ↗"
 msgid "OpenAPI document"
 msgstr "OpenAPI document"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:218
+#: src/pages/workspace/sections/EmailSection.tsx:312
 msgid "Opened"
 msgstr "Opened"
 
-#: src/pages/Shell.tsx:5743
+#: src/pages/Shell.tsx:5785
 msgid "Opened its thread."
 msgstr "Opened its thread."
 
@@ -3458,7 +3779,7 @@ msgstr "Opened its thread."
 msgid "Opening your Space…"
 msgstr "Opening your Space…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:64
+#: src/pages/workspace/sections/EmailSection.tsx:135
 msgid "Opens by device"
 msgstr "Opens by device"
 
@@ -3499,6 +3820,10 @@ msgstr "Organic"
 msgid "Organization API key"
 msgstr "Organization API key"
 
+#: src/pages/workspace/sections/VoiceSection.tsx:159
+msgid "Other"
+msgstr "Other"
+
 #: src/pages/ModelSettingsOverlay.tsx:455
 #: src/pages/Onboarding.tsx:314
 msgid "Other model…"
@@ -3508,11 +3833,7 @@ msgstr "Other model…"
 msgid "Outbound webhooks"
 msgstr "Outbound webhooks"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:29
-msgid "Overdue"
-msgstr "Overdue"
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:37
+#: src/pages/workspace/WorkspaceView.tsx:79
 msgid "Overview"
 msgstr "Overview"
 
@@ -3528,6 +3849,10 @@ msgstr "Pagination"
 #: src/pages/ScratchpadSection.tsx:147
 msgid "Park"
 msgstr "Park"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:53
+msgid "Pass-through"
+msgstr "Pass-through"
 
 #: src/components/BotCredentialsSettings.tsx:188
 msgid "password"
@@ -3571,14 +3896,14 @@ msgstr "Paste your API key"
 msgid "Paused"
 msgstr "Paused"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:53
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:44
+#: src/pages/workspace/sections/UtilitiesSection.tsx:59
 msgid "Pending"
 msgstr "Pending"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:67
-msgid "per month"
-msgstr "per month"
+#. placeholder {0}: formatNumber(data.leases.expiringNext90d)
+#: src/pages/workspace/sections/LeasingSection.tsx:82
+msgid "per month · {0} expiring in 90d"
+msgstr "per month · {0} expiring in 90d"
 
 #: src/pages/ModelSettingsOverlay.tsx:519
 #: src/pages/VoiceSettingsOverlay.tsx:244
@@ -3588,7 +3913,7 @@ msgstr "Personal credential"
 #: src/pages/crm/CrmContacts.tsx:377
 #: src/pages/crm/CrmContactsSheet.tsx:109
 #: src/pages/crm/CrmModuleSheet.tsx:259
-#: src/pages/workspace/panels/VoicePanel.tsx:142
+#: src/pages/workspace/sections/VoiceSection.tsx:205
 msgid "Phone"
 msgstr "Phone"
 
@@ -3600,15 +3925,16 @@ msgstr "Pick a voice"
 msgid "Pin"
 msgstr "Pin"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:47
-msgid "Pipe"
-msgstr "Pipe"
-
 #: src/pages/crm/CrmView.tsx:29
 msgid "Pipeline"
 msgstr "Pipeline"
 
-#: src/pages/workspace/PipelineMap.tsx:293
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/SystemSection.tsx:51
+msgid "Pipeline health for {0} · every pipe feeds this workspace's private data vault"
+msgstr "Pipeline health for {0} · every pipe feeds this workspace's private data vault"
+
+#: src/pages/workspace/PipelineMap.tsx:354
 msgid "Pipeline map"
 msgstr "Pipeline map"
 
@@ -3628,14 +3954,14 @@ msgstr "Pipelines and deals"
 msgid "Playing…"
 msgstr "Playing…"
 
-#: src/pages/Shell.tsx:5258
+#: src/pages/Shell.tsx:5300
 msgid "Plugins only"
 msgstr "Plugins only"
 
 #. placeholder {0}: activePreview.port
 #. placeholder {0}: block.port
-#: src/pages/Shell.tsx:3490
-#: src/pages/Shell.tsx:5899
+#: src/pages/Shell.tsx:3532
+#: src/pages/Shell.tsx:5941
 msgid "Port {0}"
 msgstr "Port {0}"
 
@@ -3643,16 +3969,16 @@ msgstr "Port {0}"
 msgid "POST to"
 msgstr "POST to"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:45
+#: src/pages/workspace/sections/UtilitiesSection.tsx:60
 msgid "Posted"
 msgstr "Posted"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:253
+#: src/pages/workspace/sections/EmailSection.tsx:347
 msgid "Preheader"
 msgstr "Preheader"
 
-#: src/pages/Shell.tsx:3396
-#: src/pages/Shell.tsx:5896
+#: src/pages/Shell.tsx:3438
+#: src/pages/Shell.tsx:5938
 msgid "Preview"
 msgstr "Preview"
 
@@ -3661,21 +3987,31 @@ msgstr "Preview"
 msgid "Preview {0}"
 msgstr "Preview {0}"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:212
-msgid "Previous period"
-msgstr "Previous period"
-
-#: src/pages/Shell.tsx:5965
+#: src/pages/Shell.tsx:6007
 msgid "Private"
 msgstr "Private"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:49
-msgid "Profile views 28d"
-msgstr "Profile views 28d"
+#: src/pages/workspace/sections/SocialSection.tsx:96
+msgid "Profile views"
+msgstr "Profile views"
 
 #: src/pages/CrmApiAccessPanel.tsx:250
 msgid "Prompt copied"
 msgstr "Prompt copied"
+
+#: src/pages/workspace/sections/LeasingSection.tsx:122
+#: src/pages/workspace/sections/LeasingSection.tsx:200
+#: src/pages/workspace/sections/UtilitiesSection.tsx:206
+msgid "Property"
+msgstr "Property"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:87
+msgid "Property owners"
+msgstr "Property owners"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:87
+msgid "Prospective & current tenants"
+msgstr "Prospective & current tenants"
 
 #: src/pages/MemorySettingsOverlay.tsx:195
 msgid "Provider"
@@ -3690,23 +4026,24 @@ msgstr "Providers"
 msgid "Queued"
 msgstr "Queued"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:54
+#: src/pages/workspace/sections/EmailSection.tsx:90
+#: src/pages/workspace/sections/ReportsSection.tsx:69
+#: src/pages/workspace/sections/SocialSection.tsx:65
+#: src/pages/workspace/sections/VoiceSection.tsx:115
 msgid "Range"
 msgstr "Range"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:64
+#: src/pages/workspace/sections/SocialSection.tsx:86
+#: src/pages/workspace/sections/SocialSection.tsx:105
+#: src/pages/workspace/sections/SocialSection.tsx:170
 msgid "Reach"
 msgstr "Reach"
-
-#: src/pages/workspace/panels/SocialPanel.tsx:43
-msgid "Reach 28d"
-msgstr "Reach 28d"
 
 #: src/pages/DocsView.tsx:386
 msgid "read / write"
 msgstr "read / write"
 
-#: src/pages/Shell.tsx:6309
+#: src/pages/Shell.tsx:6351
 msgid "Read replies aloud"
 msgstr "Read replies aloud"
 
@@ -3715,7 +4052,7 @@ msgstr "Read replies aloud"
 msgid "read-only"
 msgstr "read-only"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:269
+#: src/pages/workspace/sections/VoiceSection.tsx:303
 msgid "Reason"
 msgstr "Reason"
 
@@ -3723,11 +4060,11 @@ msgstr "Reason"
 msgid "Recent"
 msgstr "Recent"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:116
+#: src/pages/workspace/sections/TeamSection.tsx:157
 msgid "Recent activity"
 msgstr "Recent activity"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:94
+#: src/pages/workspace/sections/EmailSection.tsx:160
 msgid "Recent campaigns"
 msgstr "Recent campaigns"
 
@@ -3735,7 +4072,7 @@ msgstr "Recent campaigns"
 msgid "Recent deals"
 msgstr "Recent deals"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:56
+#: src/pages/workspace/sections/SystemSection.tsx:98
 msgid "Recent runs"
 msgstr "Recent runs"
 
@@ -3781,7 +4118,7 @@ msgstr "Recover replaces an unreachable computer and keeps files in the saved wo
 msgid "Recovering…"
 msgstr "Recovering…"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:123
+#: src/pages/workspace/sections/TeamSection.tsx:165
 msgid "Refresh"
 msgstr "Refresh"
 
@@ -3805,11 +4142,11 @@ msgstr "Register an endpoint"
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 
-#: src/pages/workspace/panels/TeamPanel.tsx:54
+#: src/pages/workspace/sections/TeamSection.tsx:66
 msgid "Rejected"
 msgstr "Rejected"
 
-#: src/pages/Shell.tsx:5435
+#: src/pages/Shell.tsx:5477
 msgid "Release"
 msgstr "Release"
 
@@ -3829,12 +4166,12 @@ msgid "Remove \"{0}\"?"
 msgstr "Remove \"{0}\"?"
 
 #. placeholder {0}: attachment.file.name
-#: src/pages/Shell.tsx:4889
+#: src/pages/Shell.tsx:4931
 msgid "Remove {0}"
 msgstr "Remove {0}"
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:5111
+#: src/pages/Shell.tsx:5153
 msgid "Remove mention {0}"
 msgstr "Remove mention {0}"
 
@@ -3843,7 +4180,7 @@ msgid "Remove schedule"
 msgstr "Remove schedule"
 
 #. placeholder {0}: selectedSkill.name
-#: src/pages/Shell.tsx:5090
+#: src/pages/Shell.tsx:5132
 msgid "Remove skill {0}"
 msgstr "Remove skill {0}"
 
@@ -3855,8 +4192,8 @@ msgstr "Remove stage"
 msgid "Remove this schedule"
 msgstr "Remove this schedule"
 
-#: src/pages/Shell.tsx:4492
-#: src/pages/Shell.tsx:5376
+#: src/pages/Shell.tsx:4534
+#: src/pages/Shell.tsx:5418
 msgid "Remove thumbs-up"
 msgstr "Remove thumbs-up"
 
@@ -3864,7 +4201,7 @@ msgstr "Remove thumbs-up"
 msgid "Remove webhook"
 msgstr "Remove webhook"
 
-#: src/pages/Shell.tsx:5742
+#: src/pages/Shell.tsx:5784
 msgid "Removed with chat, computer, and memory."
 msgstr "Removed with chat, computer, and memory."
 
@@ -3879,14 +4216,11 @@ msgstr "Removed, but list refresh failed"
 msgid "Removing…"
 msgstr "Removing…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:118
-#: src/pages/workspace/panels/LeasingPanel.tsx:187
+#: src/pages/workspace/sections/LeasingSection.tsx:143
+#: src/pages/workspace/sections/LeasingSection.tsx:224
+#: src/pages/workspace/sections/UtilitiesSection.tsx:251
 msgid "Rent"
 msgstr "Rent"
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:65
-msgid "Rent roll"
-msgstr "Rent roll"
 
 #: src/pages/ScratchpadSection.tsx:118
 #: src/pages/ScratchpadSection.tsx:152
@@ -3902,24 +4236,24 @@ msgstr "Replace API key"
 msgid "Replace key"
 msgstr "Replace key"
 
-#: src/pages/Shell.tsx:5367
+#: src/pages/Shell.tsx:5409
 msgid "Reply"
 msgstr "Reply"
 
-#: src/pages/Shell.tsx:4852
+#: src/pages/Shell.tsx:4894
 msgid "Replying to {replyName}"
 msgstr "Replying to {replyName}"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:139
+#: src/pages/workspace/sections/ReportsSection.tsx:163
 msgid "Report"
 msgstr "Report"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:27
-#: src/pages/workspace/WorkspaceRail.tsx:35
+#: src/pages/workspace/sections/ReportsSection.tsx:42
+#: src/pages/workspace/WorkspaceView.tsx:81
 msgid "Reports"
 msgstr "Reports"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:166
+#: src/pages/workspace/sections/VoiceSection.tsx:232
 msgid "Requested"
 msgstr "Requested"
 
@@ -3950,21 +4284,17 @@ msgstr "Reset your password"
 msgid "Resetting…"
 msgstr "Resetting…"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:274
+#: src/pages/workspace/sections/VoiceSection.tsx:308
 msgid "Resolution notes"
 msgstr "Resolution notes"
-
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:38
-msgid "Resolved"
-msgstr "Resolved"
 
 #: src/pages/DocsView.tsx:27
 msgid "REST"
 msgstr "REST"
 
 #: src/pages/crm/CrmContacts.tsx:467
-#: src/pages/Shell.tsx:2882
-#: src/pages/Shell.tsx:2912
+#: src/pages/Shell.tsx:2924
+#: src/pages/Shell.tsx:2954
 msgid "Restore"
 msgstr "Restore"
 
@@ -4007,8 +4337,8 @@ msgid "Rotate key"
 msgstr "Rotate key"
 
 #: src/pages/RoutineEditor.tsx:249
-#: src/pages/Shell.tsx:3744
-#: src/pages/Shell.tsx:3754
+#: src/pages/Shell.tsx:3786
+#: src/pages/Shell.tsx:3796
 msgid "Routine"
 msgstr "Routine"
 
@@ -4025,7 +4355,11 @@ msgstr "Run at"
 msgid "Run history"
 msgstr "Run history"
 
-#: src/pages/Shell.tsx:3737
+#: src/pages/workspace/sections/SystemSection.tsx:177
+msgid "run history, oldest → newest"
+msgstr "run history, oldest → newest"
+
+#: src/pages/Shell.tsx:3779
 msgid "Run time must be in the future."
 msgstr "Run time must be in the future."
 
@@ -4052,7 +4386,7 @@ msgstr "Running…"
 #: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:478
-#: src/pages/Shell.tsx:6365
+#: src/pages/Shell.tsx:6407
 msgid "Save"
 msgstr "Save"
 
@@ -4090,13 +4424,17 @@ msgstr "Say something. Silence sends it."
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Say yes or no, or answer in a sentence."
 
+#: src/pages/workspace/sections/LeasingSection.tsx:80
+msgid "Scheduled rent"
+msgstr "Scheduled rent"
+
 #: src/pages/DocsView.tsx:113
 #: src/pages/DocsView.tsx:166
 msgid "Scope"
 msgstr "Scope"
 
 #: src/pages/ModelSettingsOverlay.tsx:940
-#: src/pages/Shell.tsx:2608
+#: src/pages/Shell.tsx:2645
 msgid "Search"
 msgstr "Search"
 
@@ -4105,8 +4443,11 @@ msgstr "Search"
 msgid "Search apps"
 msgstr "Search apps"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:121
-#: src/pages/workspace/panels/VoicePanel.tsx:122
+#: src/pages/workspace/sections/VoiceSection.tsx:182
+msgid "Search caller, phone, summary…"
+msgstr "Search caller, phone, summary…"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:183
 msgid "Search calls"
 msgstr "Search calls"
 
@@ -4132,8 +4473,8 @@ msgstr "Search providers and models"
 msgid "Searching…"
 msgstr "Searching…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:144
-#: src/pages/workspace/panels/LeasingPanel.tsx:199
+#: src/pages/workspace/sections/LeasingSection.tsx:184
+#: src/pages/workspace/sections/LeasingSection.tsx:243
 msgid "Section 8"
 msgstr "Section 8"
 
@@ -4145,12 +4486,12 @@ msgstr "Security question answers, account number, sign-in hints"
 msgid "Select"
 msgstr "Select"
 
-#: src/pages/Shell.tsx:3166
+#: src/pages/Shell.tsx:3208
 msgid "Select a bot"
 msgstr "Select a bot"
 
-#: src/pages/Shell.tsx:5204
-#: src/pages/Shell.tsx:5226
+#: src/pages/Shell.tsx:5246
+#: src/pages/Shell.tsx:5268
 msgid "Send"
 msgstr "Send"
 
@@ -4185,15 +4526,14 @@ msgstr "Senders that cannot set headers (cal.com, form builders) can append the 
 msgid "Sending…"
 msgstr "Sending…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:58
-#: src/pages/workspace/panels/EmailPanel.tsx:119
-#: src/pages/workspace/panels/EmailPanel.tsx:215
-#: src/pages/workspace/panels/ReportsPanel.tsx:79
+#: src/pages/workspace/sections/EmailSection.tsx:187
+#: src/pages/workspace/sections/EmailSection.tsx:305
+#: src/pages/workspace/sections/ReportsSection.tsx:94
 msgid "Sent"
 msgstr "Sent"
 
-#. placeholder {0}: row.sentTo
-#: src/pages/workspace/panels/ReportsPanel.tsx:114
+#. placeholder {0}: data.sentTo
+#: src/pages/workspace/sections/ReportsSection.tsx:132
 msgid "Sent to {0}"
 msgstr "Sent to {0}"
 
@@ -4211,7 +4551,7 @@ msgstr "Server name"
 msgid "Server URL"
 msgstr "Server URL"
 
-#: src/pages/Shell.tsx:3175
+#: src/pages/Shell.tsx:3217
 msgid "Set up voice to call"
 msgstr "Set up voice to call"
 
@@ -4219,15 +4559,15 @@ msgstr "Set up voice to call"
 msgid "Set up with an AI agent"
 msgstr "Set up with an AI agent"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:48
-#: src/pages/workspace/PipelineMap.tsx:218
+#: src/pages/workspace/PipelineMap.tsx:263
+#: src/pages/workspace/sections/TeamSection.tsx:60
 msgid "Setting up"
 msgstr "Setting up"
 
 #: src/pages/AccountSettingsOverlay.tsx:115
-#: src/pages/Shell.tsx:3001
-#: src/pages/Shell.tsx:3011
-#: src/pages/Shell.tsx:3394
+#: src/pages/Shell.tsx:3043
+#: src/pages/Shell.tsx:3053
+#: src/pages/Shell.tsx:3436
 msgid "Settings"
 msgstr "Settings"
 
@@ -4235,11 +4575,11 @@ msgstr "Settings"
 msgid "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 msgstr "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 
-#: src/pages/Shell.tsx:5280
+#: src/pages/Shell.tsx:5322
 msgid "Settings: General"
 msgstr "Settings: General"
 
-#: src/pages/Shell.tsx:5282
+#: src/pages/Shell.tsx:5324
 msgid "Settings: Usage"
 msgstr "Settings: Usage"
 
@@ -4249,7 +4589,7 @@ msgid "Setup help"
 msgstr "Setup help"
 
 #: src/pages/MemorySettingsOverlay.tsx:40
-#: src/pages/Shell.tsx:6283
+#: src/pages/Shell.tsx:6325
 msgid "Shared"
 msgstr "Shared"
 
@@ -4261,21 +4601,30 @@ msgstr "Shared documents"
 msgid "Sheet"
 msgstr "Sheet"
 
-#: src/pages/Shell.tsx:3409
-#: src/pages/Shell.tsx:3423
-#: src/pages/Shell.tsx:3435
+#. placeholder {0}: formatNumber(data.recentCampaigns.length)
+#: src/pages/workspace/sections/EmailSection.tsx:219
+msgid "Show all {0}"
+msgstr "Show all {0}"
+
+#: src/pages/Shell.tsx:3451
+#: src/pages/Shell.tsx:3465
+#: src/pages/Shell.tsx:3477
 msgid "Show computer"
 msgstr "Show computer"
 
-#: src/pages/Shell.tsx:3423
+#: src/pages/workspace/sections/EmailSection.tsx:218
+msgid "Show fewer"
+msgstr "Show fewer"
+
+#: src/pages/Shell.tsx:3465
 msgid "Show files"
 msgstr "Show files"
 
-#: src/pages/Shell.tsx:3192
+#: src/pages/Shell.tsx:3234
 msgid "Show live activity"
 msgstr "Show live activity"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:165
+#: src/pages/workspace/sections/TeamSection.tsx:208
 msgid "Show more"
 msgstr "Show more"
 
@@ -4283,11 +4632,11 @@ msgstr "Show more"
 msgid "Show password"
 msgstr "Show password"
 
-#: src/pages/Shell.tsx:3409
+#: src/pages/Shell.tsx:3451
 msgid "Show preview"
 msgstr "Show preview"
 
-#: src/pages/Shell.tsx:3435
+#: src/pages/Shell.tsx:3477
 msgid "Show settings"
 msgstr "Show settings"
 
@@ -4317,17 +4666,16 @@ msgid "Site"
 msgstr "Site"
 
 #. placeholder {0}: skill.name
-#: src/pages/Shell.tsx:4950
+#: src/pages/Shell.tsx:4992
 msgid "Skill {0}"
 msgstr "Skill {0}"
 
 #: src/pages/KnowledgeSection.tsx:26
-#: src/pages/workspace/panels/SkillsPanel.tsx:16
-#: src/pages/workspace/WorkspaceRail.tsx:41
+#: src/pages/workspace/WorkspaceView.tsx:87
 msgid "Skills"
 msgstr "Skills"
 
-#: src/pages/Shell.tsx:5442
+#: src/pages/Shell.tsx:5484
 msgid "Skip"
 msgstr "Skip"
 
@@ -4339,12 +4687,12 @@ msgstr "Skip for now"
 msgid "Skip or deploy key"
 msgstr "Skip or deploy key"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:46
+#: src/pages/workspace/sections/UtilitiesSection.tsx:61
 msgid "Skipped"
 msgstr "Skipped"
 
 #. placeholder {0}: skipped.join(", ")
-#: src/pages/Shell.tsx:1984
+#: src/pages/Shell.tsx:2021
 msgid "Skipped {0}"
 msgstr "Skipped {0}"
 
@@ -4352,14 +4700,12 @@ msgstr "Skipped {0}"
 msgid "Slack message"
 msgstr "Slack message"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:26
-#: src/pages/workspace/PipelineMap.tsx:78
-#: src/pages/workspace/WorkspaceRail.tsx:37
+#: src/pages/workspace/PipelineMap.tsx:114
+#: src/pages/workspace/WorkspaceView.tsx:83
 msgid "Social"
 msgstr "Social"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:76
-#: src/pages/workspace/panels/EmailPanel.tsx:242
+#: src/pages/workspace/sections/EmailSection.tsx:336
 msgid "Soft bounces"
 msgstr "Soft bounces"
 
@@ -4368,15 +4714,15 @@ msgstr "Soft bounces"
 msgid "Software update"
 msgstr "Software update"
 
-#: src/pages/workspace/PipelineMap.tsx:156
+#: src/pages/workspace/PipelineMap.tsx:196
 msgid "Source"
 msgstr "Source"
 
-#: src/pages/workspace/PipelineMap.tsx:281
+#: src/pages/workspace/PipelineMap.tsx:341
 msgid "Sources"
 msgstr "Sources"
 
-#: src/pages/Shell.tsx:6243
+#: src/pages/Shell.tsx:6285
 msgid "Space default"
 msgstr "Space default"
 
@@ -4384,16 +4730,16 @@ msgstr "Space default"
 msgid "Space stops it · Esc hangs up"
 msgstr "Space stops it · Esc hangs up"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:243
+#: src/pages/workspace/sections/EmailSection.tsx:337
 msgid "Spam"
 msgstr "Spam"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:78
+#: src/pages/workspace/sections/EmailSection.tsx:151
 msgid "Spam complaints"
 msgstr "Spam complaints"
 
-#: src/pages/Shell.tsx:5585
-#: src/pages/Shell.tsx:5840
+#: src/pages/Shell.tsx:5627
+#: src/pages/Shell.tsx:5882
 msgid "Speak"
 msgstr "Speak"
 
@@ -4405,8 +4751,8 @@ msgstr "Speak + transcribe"
 msgid "Speak only"
 msgstr "Speak only"
 
-#: src/pages/Shell.tsx:5581
-#: src/pages/Shell.tsx:5836
+#: src/pages/Shell.tsx:5623
+#: src/pages/Shell.tsx:5878
 msgid "Speak this reply"
 msgstr "Speak this reply"
 
@@ -4427,7 +4773,7 @@ msgstr "Stages, in order"
 msgid "Start recording"
 msgstr "Start recording"
 
-#: src/pages/Shell.tsx:3483
+#: src/pages/Shell.tsx:3525
 msgid "Start the computer to load the preview."
 msgstr "Start the computer to load the preview."
 
@@ -4441,13 +4787,12 @@ msgstr "Starting"
 msgid "Starting…"
 msgstr "Starting…"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:162
+#: src/pages/workspace/sections/ReportsSection.tsx:186
 msgid "Stats"
 msgstr "Stats"
 
 #: src/pages/crm/CrmContactsSheet.tsx:116
 #: src/pages/DocsView.tsx:262
-#: src/pages/workspace/panels/SystemPanel.tsx:76
 msgid "Status"
 msgstr "Status"
 
@@ -4459,11 +4804,11 @@ msgstr "Steps"
 msgid "Still working — talk anytime to steer it."
 msgstr "Still working — talk anytime to steer it."
 
-#: src/pages/Shell.tsx:4159
-#: src/pages/Shell.tsx:4164
-#: src/pages/Shell.tsx:5214
-#: src/pages/Shell.tsx:5585
-#: src/pages/Shell.tsx:5840
+#: src/pages/Shell.tsx:4201
+#: src/pages/Shell.tsx:4206
+#: src/pages/Shell.tsx:5256
+#: src/pages/Shell.tsx:5627
+#: src/pages/Shell.tsx:5882
 msgid "Stop"
 msgstr "Stop"
 
@@ -4471,12 +4816,12 @@ msgstr "Stop"
 msgid "Stop & talk"
 msgstr "Stop & talk"
 
-#: src/pages/Shell.tsx:5005
+#: src/pages/Shell.tsx:5047
 msgid "Stop dictation"
 msgstr "Stop dictation"
 
-#: src/pages/Shell.tsx:5581
-#: src/pages/Shell.tsx:5836
+#: src/pages/Shell.tsx:5623
+#: src/pages/Shell.tsx:5878
 msgid "Stop speaking"
 msgstr "Stop speaking"
 
@@ -4499,7 +4844,7 @@ msgstr "Stored — leave blank to keep"
 msgid "Stored encrypted"
 msgstr "Stored encrypted"
 
-#: src/pages/Shell.tsx:5694
+#: src/pages/Shell.tsx:5736
 msgid "subagent"
 msgstr "subagent"
 
@@ -4513,9 +4858,9 @@ msgstr "Submit"
 msgid "Submitted"
 msgstr "Submitted"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:121
-#: src/pages/workspace/panels/VoicePanel.tsx:173
-#: src/pages/workspace/panels/VoicePanel.tsx:263
+#: src/pages/workspace/sections/ReportsSection.tsx:137
+#: src/pages/workspace/sections/VoiceSection.tsx:239
+#: src/pages/workspace/sections/VoiceSection.tsx:297
 msgid "Summary"
 msgstr "Summary"
 
@@ -4524,21 +4869,25 @@ msgid "Switching…"
 msgstr "Switching…"
 
 #. placeholder {0}: formatAgo(iso, i18n.locale)
-#: src/pages/workspace/PipelineMap.tsx:85
+#: src/pages/workspace/PipelineMap.tsx:121
 msgid "Synced {0}"
 msgstr "Synced {0}"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:151
-#: src/pages/workspace/panels/ReportsPanel.tsx:157
+#: src/pages/workspace/sections/TeamSection.tsx:57
+msgid "Syncing now"
+msgstr "Syncing now"
+
+#: src/pages/workspace/sections/ReportsSection.tsx:175
+#: src/pages/workspace/sections/ReportsSection.tsx:181
 msgid "Synthesis"
 msgstr "Synthesis"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:36
-#: src/pages/workspace/WorkspaceRail.tsx:42
+#: src/pages/workspace/sections/SystemSection.tsx:50
+#: src/pages/workspace/WorkspaceView.tsx:88
 msgid "System"
 msgstr "System"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:69
+#: src/pages/workspace/sections/EmailSection.tsx:140
 msgid "Tablet"
 msgstr "Tablet"
 
@@ -4553,15 +4902,15 @@ msgstr "Tags"
 msgid "Teach a task"
 msgstr "Teach a task"
 
-#: src/pages/Shell.tsx:3308
+#: src/pages/Shell.tsx:3350
 msgid "Teaching in progress — stop teaching before sending a new message."
 msgstr "Teaching in progress — stop teaching before sending a new message."
 
-#: src/pages/Shell.tsx:5965
+#: src/pages/Shell.tsx:6007
 msgid "Team"
 msgstr "Team"
 
-#: src/pages/Shell.tsx:6899
+#: src/pages/Shell.tsx:6941
 msgid "Team Computer"
 msgstr "Team Computer"
 
@@ -4569,7 +4918,7 @@ msgstr "Team Computer"
 msgid "Teams message"
 msgstr "Teams message"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:67
+#: src/pages/workspace/sections/VoiceSection.tsx:110
 msgid "Tenants"
 msgstr "Tenants"
 
@@ -4593,7 +4942,7 @@ msgstr "The {brandName} API connects websites, automation tools, and AI clients 
 msgid "The API did not come back. Refresh this page."
 msgstr "The API did not come back. Refresh this page."
 
-#: src/pages/Shell.tsx:5575
+#: src/pages/Shell.tsx:5617
 msgid "the bot"
 msgstr "the bot"
 
@@ -4625,24 +4974,24 @@ msgstr "The selected memory provider is not available in this build."
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 
-#: src/pages/Shell.tsx:6260
+#: src/pages/Shell.tsx:6302
 msgid "Thinking"
 msgstr "Thinking"
 
-#: src/pages/Shell.tsx:3126
+#: src/pages/Shell.tsx:3168
 msgid "this bot"
 msgstr "this bot"
 
-#: src/pages/Shell.tsx:3517
+#: src/pages/Shell.tsx:3559
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 msgstr "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 
-#: src/pages/Shell.tsx:4212
+#: src/pages/Shell.tsx:4254
 msgid "This bot runs on this computer. There is no separate Linux desktop. Ask it to use the shell; working directories under your home folder are allowed."
 msgstr "This bot runs on this computer. There is no separate Linux desktop. Ask it to use the shell; working directories under your home folder are allowed."
 
-#: src/pages/Shell.tsx:6741
-#: src/pages/Shell.tsx:6820
+#: src/pages/Shell.tsx:6783
+#: src/pages/Shell.tsx:6862
 msgid "This cannot be undone."
 msgstr "This cannot be undone."
 
@@ -4666,7 +5015,7 @@ msgstr "This file cannot be shown."
 msgid "This file is not valid UTF-8 Markdown."
 msgstr "This file is not valid UTF-8 Markdown."
 
-#: src/pages/Shell.tsx:3125
+#: src/pages/Shell.tsx:3167
 msgid "this group"
 msgstr "this group"
 
@@ -4678,7 +5027,12 @@ msgstr "this Mac"
 msgid "This Mac runs shell commands with your account, including files in your home folder. Do not turn it on for a shared or public server."
 msgstr "This Mac runs shell commands with your account, including files in your home folder. Do not turn it on for a shared or public server."
 
-#: src/pages/Shell.tsx:6626
+#: src/pages/workspace/sections/VoiceSection.tsx:85
+#: src/pages/workspace/sections/VoiceSection.tsx:122
+msgid "This month"
+msgstr "This month"
+
+#: src/pages/Shell.tsx:6668
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr "This permanently removes every message and stops current work. The chat remains available."
 
@@ -4690,7 +5044,7 @@ msgstr "This provider cannot paste a key here. Skip if this deployment already h
 msgid "This reset link is invalid or expired"
 msgstr "This reset link is invalid or expired"
 
-#: src/pages/Shell.tsx:7166
+#: src/pages/Shell.tsx:7208
 msgid "This server cannot be assigned without a bot."
 msgstr "This server cannot be assigned without a bot."
 
@@ -4702,7 +5056,7 @@ msgstr "This server did not request browser authorization."
 msgid "This server is already connected. Disconnect it first to authorize again."
 msgstr "This server is already connected. Disconnect it first to authorize again."
 
-#: src/pages/Shell.tsx:7205
+#: src/pages/Shell.tsx:7247
 msgid "This server uses browser sign-in. Authorize it to let your agents use its tools — a popup will open."
 msgstr "This server uses browser sign-in. Authorize it to let your agents use its tools — a popup will open."
 
@@ -4715,11 +5069,16 @@ msgid "Time of day"
 msgstr "Time of day"
 
 #: src/pages/Onboarding.tsx:525
-#: src/pages/Shell.tsx:6032
-#: src/pages/Shell.tsx:6198
-#: src/pages/workspace/panels/ReportsPanel.tsx:42
+#: src/pages/Shell.tsx:6074
+#: src/pages/Shell.tsx:6240
+#: src/pages/workspace/sections/ReportsSection.tsx:57
 msgid "Title"
 msgstr "Title"
+
+#. placeholder {0}: formatDate(lease.leaseTo)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:239
+msgid "to {0}"
+msgstr "to {0}"
 
 #: src/pages/CrmApiAccessPanel.tsx:171
 msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
@@ -4729,7 +5088,7 @@ msgstr "Tokens are shown once. Store them in your server or automation platform,
 msgid "Tool"
 msgstr "Tool"
 
-#: src/pages/Shell.tsx:5046
+#: src/pages/Shell.tsx:5088
 msgid "Tool routing"
 msgstr "Tool routing"
 
@@ -4741,19 +5100,19 @@ msgstr "Tool sources"
 msgid "Tools"
 msgstr "Tools"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:151
-msgid "Top links"
-msgstr "Top links"
+#: src/pages/workspace/sections/EmailSection.tsx:223
+msgid "Top clicked links"
+msgstr "Top clicked links"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:83
+#: src/pages/workspace/sections/SocialSection.tsx:132
 msgid "Top posts"
 msgstr "Top posts"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:238
+#: src/pages/workspace/sections/EmailSection.tsx:332
 msgid "Topic"
 msgstr "Topic"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:194
+#: src/pages/workspace/sections/VoiceSection.tsx:133
 msgid "Total calls"
 msgstr "Total calls"
 
@@ -4761,7 +5120,7 @@ msgstr "Total calls"
 msgid "Total pipeline"
 msgstr "Total pipeline"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:303
+#: src/pages/workspace/sections/VoiceSection.tsx:337
 msgid "Transcript"
 msgstr "Transcript"
 
@@ -4769,7 +5128,8 @@ msgstr "Transcript"
 msgid "Treg token"
 msgstr "Treg token"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:48
+#: src/pages/workspace/sections/LeasingSection.tsx:240
+#: src/pages/workspace/sections/ReportsSection.tsx:63
 msgid "Type"
 msgstr "Type"
 
@@ -4794,23 +5154,22 @@ msgstr "Unassigned"
 msgid "Unavailable"
 msgstr "Unavailable"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:110
-msgid "Unit"
-msgstr "Unit"
-
 #. placeholder {0}: charge.unitNumber
 #. placeholder {0}: lease.unitNumber
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:103
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:166
+#. placeholder {0}: row.unitNumber
+#: src/pages/workspace/sections/LeasingSection.tsx:130
+#: src/pages/workspace/sections/LeasingSection.tsx:207
+#: src/pages/workspace/sections/UtilitiesSection.tsx:158
+#: src/pages/workspace/sections/UtilitiesSection.tsx:238
 msgid "Unit {0}"
 msgstr "Unit {0}"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:74
+#: src/pages/workspace/sections/UtilitiesSection.tsx:129
 msgid "Unknown address"
 msgstr "Unknown address"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:138
-#: src/pages/workspace/panels/VoicePanel.tsx:237
+#: src/pages/workspace/sections/VoiceSection.tsx:199
+#: src/pages/workspace/sections/VoiceSection.tsx:274
 msgid "Unknown caller"
 msgstr "Unknown caller"
 
@@ -4818,11 +5177,11 @@ msgstr "Unknown caller"
 msgid "Unlink"
 msgstr "Unlink"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:41
+#: src/pages/workspace/sections/UtilitiesSection.tsx:56
 msgid "Unmatched"
 msgstr "Unmatched"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:239
+#: src/pages/workspace/sections/EmailSection.tsx:333
 msgid "Unopened"
 msgstr "Unopened"
 
@@ -4830,29 +5189,25 @@ msgstr "Unopened"
 msgid "Unpin"
 msgstr "Unpin"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:143
-msgid "Unsubs"
-msgstr "Unsubs"
-
-#: src/pages/workspace/panels/EmailPanel.tsx:87
+#: src/pages/workspace/sections/EmailSection.tsx:146
 msgid "Unsubscribe rate"
 msgstr "Unsubscribe rate"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:245
+#: src/pages/workspace/sections/EmailSection.tsx:339
 msgid "Unsubscribes"
 msgstr "Unsubscribes"
 
 #. placeholder {0}: pending.file.name
-#: src/pages/Shell.tsx:2061
+#: src/pages/Shell.tsx:2098
 msgid "Unsupported file type: {0}"
 msgstr "Unsupported file type: {0}"
 
 #: src/components/SoftwareUpdateSection.tsx:247
-#: src/pages/workspace/panels/TeamPanel.tsx:46
+#: src/pages/workspace/sections/TeamSection.tsx:58
 msgid "Up to date"
 msgstr "Up to date"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:101
+#: src/pages/workspace/sections/LeasingSection.tsx:111
 msgid "Upcoming expirations"
 msgstr "Upcoming expirations"
 
@@ -4884,7 +5239,9 @@ msgid "Updated"
 msgstr "Updated"
 
 #. placeholder {0}: formatAgo(newestPipe, i18n.locale)
-#: src/pages/workspace/PipelineMap.tsx:185
+#. placeholder {0}: formatDateTime(entry.updatedAt)
+#: src/pages/workspace/PipelineMap.tsx:226
+#: src/pages/workspace/sections/SkillsSection.tsx:142
 msgid "Updated {0}"
 msgstr "Updated {0}"
 
@@ -4903,7 +5260,7 @@ msgid "URLs must be HTTPS. The response includes the endpoint and its signing se
 msgstr "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 
 #: src/pages/AccountSettingsOverlay.tsx:208
-#: src/pages/Shell.tsx:3062
+#: src/pages/Shell.tsx:3104
 msgid "Usage"
 msgstr "Usage"
 
@@ -4924,13 +5281,13 @@ msgstr "Use this model"
 msgid "Username or email"
 msgstr "Username or email"
 
-#: src/pages/Shell.tsx:5271
+#: src/pages/Shell.tsx:5313
 msgid "Uses whichever fits the task"
 msgstr "Uses whichever fits the task"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:52
-#: src/pages/workspace/PipelineMap.tsx:81
-#: src/pages/workspace/WorkspaceRail.tsx:39
+#: src/pages/workspace/PipelineMap.tsx:117
+#: src/pages/workspace/sections/UtilitiesSection.tsx:80
+#: src/pages/workspace/WorkspaceView.tsx:85
 msgid "Utilities"
 msgstr "Utilities"
 
@@ -4947,7 +5304,7 @@ msgstr "Value (USD)"
 msgid "Value distribution"
 msgstr "Value distribution"
 
-#: src/pages/workspace/PipelineMap.tsx:282
+#: src/pages/workspace/PipelineMap.tsx:342
 msgid "Vault"
 msgstr "Vault"
 
@@ -4963,28 +5320,25 @@ msgstr "Verify the signature"
 msgid "Verifying…"
 msgstr "Verifying…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:33
-msgid "View"
-msgstr "View"
+#: src/pages/workspace/sections/SkillsSection.tsx:103
+msgid "View content"
+msgstr "View content"
 
-#: src/pages/Shell.tsx:3050
-#: src/pages/Shell.tsx:6313
+#. placeholder {0}: formatNumber(entry.content.length)
+#: src/pages/workspace/sections/SkillsSection.tsx:137
+msgid "View content ({0} chars)"
+msgstr "View content ({0} chars)"
+
+#: src/pages/Shell.tsx:3092
+#: src/pages/Shell.tsx:6355
 #: src/pages/VoiceSettingsOverlay.tsx:145
 #: src/pages/VoiceSettingsOverlay.tsx:305
-#: src/pages/workspace/panels/VoicePanel.tsx:58
-#: src/pages/workspace/PipelineMap.tsx:74
-#: src/pages/workspace/WorkspaceRail.tsx:34
+#: src/pages/workspace/PipelineMap.tsx:110
+#: src/pages/workspace/sections/VoiceSection.tsx:102
+#: src/pages/workspace/sections/VoiceSection.tsx:267
+#: src/pages/workspace/WorkspaceView.tsx:80
 msgid "Voice"
 msgstr "Voice"
-
-#: src/pages/workspace/panels/VoicePanel.tsx:197
-#: src/pages/workspace/panels/VoicePanel.tsx:209
-msgid "vs previous"
-msgstr "vs previous"
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:77
-msgid "vs prior 30d"
-msgstr "vs prior 30d"
 
 #: src/components/ActivityTimeline.tsx:114
 msgid "Waiting for {name}…"
@@ -5001,7 +5355,7 @@ msgstr "Waiting for sign-in…"
 msgid "Waiting for the API to come back…"
 msgstr "Waiting for the API to come back…"
 
-#: src/pages/Shell.tsx:7049
+#: src/pages/Shell.tsx:7091
 msgid "Waiting…"
 msgstr "Waiting…"
 
@@ -5012,6 +5366,11 @@ msgstr "Wake computer"
 #: src/pages/Welcome.tsx:73
 msgid "Watch it work"
 msgstr "Watch it work"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:89
+#: src/pages/workspace/sections/UtilitiesSection.tsx:195
+msgid "Water-billed properties"
+msgstr "Water-billed properties"
 
 #: src/pages/RoutineEditor.tsx:458
 msgid "Webhook"
@@ -5043,9 +5402,13 @@ msgstr "Webhooks also flow the other way — every bot has an inbound URL that e
 msgid "Weekdays"
 msgstr "Weekdays"
 
-#: src/pages/Shell.tsx:6711
+#: src/pages/Shell.tsx:6753
 msgid "What about its memories?"
 msgstr "What about its memories?"
+
+#: src/pages/workspace/sections/EmailSection.tsx:223
+msgid "What readers acted on"
+msgstr "What readers acted on"
 
 #: src/components/teach/TeachComputerOverlay.tsx:185
 msgid "What result will you demonstrate?"
@@ -5055,8 +5418,12 @@ msgstr "What result will you demonstrate?"
 msgid "What should this routine do each time it runs?"
 msgstr "What should this routine do each time it runs?"
 
+#: src/pages/workspace/sections/TeamSection.tsx:158
+msgid "What the team logged, newest first"
+msgstr "What the team logged, newest first"
+
 #: src/pages/Onboarding.tsx:538
-#: src/pages/Shell.tsx:6047
+#: src/pages/Shell.tsx:6089
 msgid "What this bot is for"
 msgstr "What this bot is for"
 
@@ -5064,7 +5431,11 @@ msgstr "What this bot is for"
 msgid "What to return"
 msgstr "What to return"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:145
+#: src/pages/workspace/sections/SkillsSection.tsx:39
+msgid "What your AI has learned"
+msgstr "What your AI has learned"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr "When"
 
@@ -5089,11 +5460,6 @@ msgstr "Where next"
 msgid "Where should bots run?"
 msgstr "Where should bots run?"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:36
-#: src/pages/workspace/panels/VoicePanel.tsx:72
-msgid "Window"
-msgstr "Window"
-
 #: src/pages/crm/CrmHome.tsx:53
 msgid "Won"
 msgstr "Won"
@@ -5102,28 +5468,24 @@ msgstr "Won"
 msgid "Won revenue"
 msgstr "Won revenue"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:45
-msgid "Working"
-msgstr "Working"
-
 #: src/pages/Auth.tsx:236
 #: src/pages/Auth.tsx:351
 #: src/pages/CallView.tsx:244
 msgid "Working…"
 msgstr "Working…"
 
-#: src/pages/Shell.tsx:2941
-#: src/pages/workspace/WorkspaceView.tsx:117
+#: src/pages/Shell.tsx:2983
+#: src/pages/workspace/WorkspaceView.tsx:128
 msgid "Workspace"
 msgstr "Workspace"
+
+#: src/pages/workspace/sections/SkillsSection.tsx:58
+msgid "Workspace context"
+msgstr "Workspace context"
 
 #: src/components/FilesPanel.tsx:395
 msgid "workspace root"
 msgstr "workspace root"
-
-#: src/pages/workspace/WorkspaceRail.tsx:71
-msgid "Workspace sections"
-msgstr "Workspace sections"
 
 #: src/pages/DocsView.tsx:199
 msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
@@ -5132,14 +5494,12 @@ msgstr "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — 
 #: src/pages/crm/CrmModuleSheet.tsx:56
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:712
-#: src/pages/workspace/panels/LeasingPanel.tsx:201
-#: src/pages/workspace/panels/VoicePanel.tsx:156
+#: src/pages/workspace/bits.tsx:752
 msgid "Yes"
 msgstr "Yes"
 
-#: src/pages/Shell.tsx:1758
-#: src/pages/Shell.tsx:2494
+#: src/pages/Shell.tsx:1795
+#: src/pages/Shell.tsx:2531
 msgid "You"
 msgstr "You"
 
@@ -5151,9 +5511,13 @@ msgstr "You can close this tab if it does not redirect automatically."
 msgid "You can close this window."
 msgstr "You can close this window."
 
-#: src/pages/Shell.tsx:4149
+#: src/pages/Shell.tsx:4191
 msgid "You have control"
 msgstr "You have control"
+
+#: src/pages/workspace/sections/TeamSection.tsx:92
+msgid "Your AI team"
+msgstr "Your AI team"
 
 #: src/pages/Auth.tsx:150
 msgid "Your email address"

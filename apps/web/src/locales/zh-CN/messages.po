@@ -13,7 +13,7 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/pages/Shell.tsx:2791
+#: src/pages/Shell.tsx:2833
 msgid " (unread)"
 msgstr "（未读）"
 
@@ -40,13 +40,38 @@ msgstr "{0, plural, one {# 个模型} other {# 个模型}}"
 msgid "{0, plural, one {# record} other {# records}}"
 msgstr ""
 
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/ReportsSection.tsx:43
+msgid "{0} · AI-synthesized reports across channels"
+msgstr ""
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/LeasingSection.tsx:50
+msgid "{0} · applications, rent roll & renewals"
+msgstr ""
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/TeamSection.tsx:93
+msgid "{0} · connected workers, what they've done, and what's running now"
+msgstr ""
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/SkillsSection.tsx:40
+msgid "{0} · reusable playbooks and scripts agents saved, so the next run starts from the last one"
+msgstr ""
+
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/UtilitiesSection.tsx:81
+msgid "{0} · water billing, charged to each tenant's ledger"
+msgstr ""
+
 #. placeholder {0}: file.name
-#: src/pages/Shell.tsx:1964
+#: src/pages/Shell.tsx:2001
 msgid "{0} (max {ATTACHMENT_MAX_COUNT} attachments)"
 msgstr "{0}（最多 {ATTACHMENT_MAX_COUNT} 个附件）"
 
 #. placeholder {0}: file.name
-#: src/pages/Shell.tsx:1968
+#: src/pages/Shell.tsx:2005
 msgid "{0} (over 10 MiB)"
 msgstr "{0}（超过 10 MiB）"
 
@@ -55,33 +80,65 @@ msgstr "{0}（超过 10 MiB）"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
-#. placeholder {0}: formatNumber(stats.previousPeriod.aiHandled)
-#: src/pages/workspace/panels/VoicePanel.tsx:214
-msgid "{0} AI handled"
+#. placeholder {0}: formatCompact(account?.accountsEngaged28d)
+#: src/pages/workspace/sections/SocialSection.tsx:98
+msgid "{0} accounts engaged"
 msgstr ""
 
 #. placeholder {0}: formatNumber(data.count)
-#: src/pages/workspace/panels/LeasingPanel.tsx:150
-msgid "{0} available"
+#. placeholder {1}: formatNumber(data.section8Count)
+#. placeholder {2}: formatNumber(data.count - data.section8Count)
+#. placeholder {3}: data.avgRent !== null ? ` · ${t`avg ${formatMoneyAuto(data.avgRent)}`}` : ""
+#: src/pages/workspace/sections/LeasingSection.tsx:172
+msgid "{0} active · {1} Section 8 · {2} market{3}"
 msgstr ""
 
-#. placeholder {0}: formatNumber(link.campaigns)
-#: src/pages/workspace/panels/EmailPanel.tsx:167
+#. placeholder {0}: formatAgeHours(pipe.ageHours)
+#: src/pages/workspace/sections/SystemSection.tsx:124
+msgid "{0} ago"
+msgstr ""
+
+#. placeholder {0}: formatPct(rate)
+#. placeholder {1}: formatNumber(voice.callbacks30d)
+#: src/pages/workspace/Overview.tsx:81
+msgid "{0} AI handled · {1} callbacks"
+msgstr ""
+
+#. placeholder {0}: formatNumber(overview.utilities.billsThisMonth)
+#: src/pages/workspace/PipelineMap.tsx:335
+msgid "{0} bills · month"
+msgstr ""
+
+#. placeholder {0}: formatNumber(overview.voice.calls30d)
+#: src/pages/workspace/PipelineMap.tsx:327
+msgid "{0} calls · 30d"
+msgstr ""
+
+#. placeholder {0}: formatNumber(email.campaignsTotal)
+#. placeholder {0}: formatNumber(overview.email.campaignsTotal)
+#: src/pages/workspace/Overview.tsx:90
+#: src/pages/workspace/PipelineMap.tsx:329
 msgid "{0} campaigns"
 msgstr ""
 
+#. placeholder {0}: formatPct(clickToOpen, 1)
+#. placeholder {1}: formatCompact(data.uniqueClicks)
+#: src/pages/workspace/sections/EmailSection.tsx:123
+msgid "{0} click-to-open · {1} clicks"
+msgstr ""
+
 #. placeholder {0}: formatNumber(link.uniqueClickers)
-#: src/pages/workspace/panels/EmailPanel.tsx:164
+#: src/pages/workspace/sections/EmailSection.tsx:256
 msgid "{0} clickers"
 msgstr ""
 
 #. placeholder {0}: formatNumber(post.comments)
-#: src/pages/workspace/panels/SocialPanel.tsx:119
+#: src/pages/workspace/sections/SocialSection.tsx:151
 msgid "{0} comments"
 msgstr ""
 
 #. placeholder {0}: block.name
-#: src/pages/Shell.tsx:7022
+#: src/pages/Shell.tsx:7064
 msgid "{0} connection"
 msgstr "{0} 连接"
 
@@ -90,9 +147,24 @@ msgstr "{0} 连接"
 msgid "{0} files"
 msgstr "{0} 个文件"
 
-#. placeholder {0}: formatNumber(leases.holdover)
-#: src/pages/workspace/panels/LeasingPanel.tsx:62
+#. placeholder {0}: formatNumber(overview.social.followers)
+#: src/pages/workspace/PipelineMap.tsx:333
+msgid "{0} followers"
+msgstr ""
+
+#. placeholder {0}: formatNumber(data.leases.holdover)
+#: src/pages/workspace/sections/LeasingSection.tsx:74
 msgid "{0} holdover"
+msgstr ""
+
+#. placeholder {0}: formatNumber(filtered.length)
+#: src/pages/workspace/sections/VoiceSection.tsx:174
+msgid "{0} in range"
+msgstr ""
+
+#. placeholder {0}: formatCompact(account?.totalInteractions28d)
+#: src/pages/workspace/sections/SocialSection.tsx:93
+msgid "{0} interactions"
 msgstr ""
 
 #. placeholder {0}: format(size / 1024)
@@ -100,8 +172,18 @@ msgstr ""
 msgid "{0} KB"
 msgstr "{0} KB"
 
+#. placeholder {0}: formatNumber(overview.leasing.activeLeases)
+#: src/pages/workspace/PipelineMap.tsx:331
+msgid "{0} leases"
+msgstr ""
+
+#. placeholder {0}: formatNumber(data.leases.expiringNext90d)
+#: src/pages/workspace/sections/LeasingSection.tsx:112
+msgid "{0} leases end in the next 90 days"
+msgstr ""
+
 #. placeholder {0}: formatNumber(post.likes)
-#: src/pages/workspace/panels/SocialPanel.tsx:118
+#: src/pages/workspace/sections/SocialSection.tsx:150
 msgid "{0} likes"
 msgstr ""
 
@@ -111,33 +193,85 @@ msgid "{0} MB"
 msgstr "{0} MB"
 
 #. placeholder {0}: Math.round(data.durationSeconds / 60)
-#: src/pages/workspace/panels/VoicePanel.tsx:260
+#: src/pages/workspace/sections/VoiceSection.tsx:294
 msgid "{0} min"
 msgstr ""
 
-#. placeholder {0}: formatNumber(data.account.mediaCount)
-#: src/pages/workspace/panels/SocialPanel.tsx:53
+#. placeholder {0}: data.recentCampaigns.length
+#: src/pages/workspace/sections/EmailSection.tsx:161
+msgid "{0} most recent"
+msgstr ""
+
+#. placeholder {0}: formatPct(deliveredPct, 1)
+#. placeholder {1}: formatCompact(data.emailsSent)
+#: src/pages/workspace/sections/EmailSection.tsx:113
+msgid "{0} of {1} sent"
+msgstr ""
+
+#. placeholder {0}: share(stats.aiHandled)
+#. placeholder {0}: share(stats.callbacksRequested)
+#: src/pages/workspace/sections/VoiceSection.tsx:142
+#: src/pages/workspace/sections/VoiceSection.tsx:148
+msgid "{0} of calls"
+msgstr ""
+
+#. placeholder {0}: data.length
+#: src/pages/workspace/sections/ReportsSection.tsx:48
+msgid "{0} on record"
+msgstr ""
+
+#. placeholder {0}: formatCompact(data.opens)
+#: src/pages/workspace/sections/EmailSection.tsx:118
+msgid "{0} opens"
+msgstr ""
+
+#. placeholder {0}: formatNumber(account?.mediaCount)
+#: src/pages/workspace/sections/SocialSection.tsx:83
 msgid "{0} posts"
 msgstr ""
 
-#. placeholder {0}: formatNumber(post.reach)
-#: src/pages/workspace/panels/SocialPanel.tsx:117
-msgid "{0} reach"
+#. placeholder {0}: formatCompact(social.reach28d)
+#: src/pages/workspace/Overview.tsx:98
+msgid "{0} reach · 28d"
+msgstr ""
+
+#. placeholder {0}: formatMoney(leasing.monthlyRentRoll)
+#. placeholder {1}: formatNumber(leasing.availableListings)
+#: src/pages/workspace/Overview.tsx:107
+msgid "{0} rent roll · {1} available"
 msgstr ""
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
 #: src/pages/AccountSettingsOverlay.tsx:212
-#: src/pages/Shell.tsx:3067
+#: src/pages/Shell.tsx:3109
 msgid "{0} runs · {1} tokens"
 msgstr "{0} 次运行 · {1} tokens"
 
+#. placeholder {0}: formatNumber(utilities.billsThisMonth)
+#. placeholder {1}: formatNumber(utilities.chargesPending)
+#: src/pages/workspace/Overview.tsx:116
+msgid "{0} this month · {1} charges pending"
+msgstr ""
+
+#. placeholder {0}: formatNumber(unmatchedBills)
+#. placeholder {1}: formatNumber(ambiguousBills)
+#. placeholder {2}: formatNumber(unparsedBills)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:106
+msgid "{0} unmatched · {1} ambiguous · {2} to parse"
+msgstr ""
+
 #. placeholder {0}: active.name
-#: src/pages/Shell.tsx:3566
+#: src/pages/Shell.tsx:3608
 msgid "{0}'s screen"
 msgstr ""
 
-#: src/pages/Shell.tsx:6899
+#. placeholder {0}: perDay.toFixed(perDay < 10 ? 1 : 0)
+#: src/pages/workspace/sections/VoiceSection.tsx:136
+msgid "{0}/day avg"
+msgstr ""
+
+#: src/pages/Shell.tsx:6941
 msgid "{botName}’s computer"
 msgstr "{botName} 的电脑"
 
@@ -161,7 +295,7 @@ msgstr ""
 msgid "{contactCount, plural, one {# contact} other {# contacts}}"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:112
+#: src/pages/workspace/bits.tsx:114
 msgid "{days}d"
 msgstr ""
 
@@ -173,7 +307,7 @@ msgstr "{days} 天前"
 msgid "{dealCount, plural, one {# deal} other {# deals}}"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:109
+#: src/pages/workspace/bits.tsx:111
 msgid "{hours}h"
 msgstr ""
 
@@ -181,7 +315,7 @@ msgstr ""
 msgid "{hours}h ago"
 msgstr "{hours} 小时前"
 
-#: src/pages/workspace/bits.tsx:105
+#: src/pages/workspace/bits.tsx:107
 msgid "{minutes}m"
 msgstr ""
 
@@ -225,12 +359,12 @@ msgstr "{title}，{label}"
 msgid "{wonCount} closed"
 msgstr ""
 
-#: src/pages/Shell.tsx:4329
+#: src/pages/Shell.tsx:4371
 msgid "{workingBotName} is working"
 msgstr "{workingBotName} 正在工作"
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:4917
+#: src/pages/Shell.tsx:4959
 msgid "@{0}"
 msgstr "@{0}"
 
@@ -262,7 +396,7 @@ msgstr ""
 msgid "1 file"
 msgstr "1 个文件"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:43
+#: src/pages/workspace/sections/EmailSection.tsx:94
 msgid "12 months"
 msgstr ""
 
@@ -270,7 +404,7 @@ msgstr ""
 msgid "2 · Make a request"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:44
+#: src/pages/workspace/sections/EmailSection.tsx:95
 msgid "24 months"
 msgstr ""
 
@@ -286,16 +420,16 @@ msgstr ""
 msgid "3 · Write something"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:80
-msgid "30d"
+#: src/pages/workspace/sections/SocialSection.tsx:70
+msgid "30D"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:79
-msgid "7d"
+#: src/pages/workspace/sections/SocialSection.tsx:69
+msgid "7D"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:81
-msgid "90d"
+#: src/pages/workspace/sections/SocialSection.tsx:71
+msgid "90D"
 msgstr ""
 
 #: src/pages/DocsView.tsx:379
@@ -310,7 +444,7 @@ msgstr "访问令牌（可选）"
 msgid "Account"
 msgstr "账户"
 
-#: src/pages/Shell.tsx:6319
+#: src/pages/Shell.tsx:6361
 msgid "Account default"
 msgstr "账户默认"
 
@@ -336,12 +470,12 @@ msgid "Active · {0}"
 msgstr ""
 
 #. placeholder {0}: formatAgo(worker.lastAt, i18n.locale)
-#: src/pages/workspace/panels/TeamPanel.tsx:105
-#: src/pages/workspace/PipelineMap.tsx:217
+#: src/pages/workspace/PipelineMap.tsx:262
 msgid "Active {0}"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:60
+#: src/pages/workspace/Overview.tsx:105
+#: src/pages/workspace/sections/LeasingSection.tsx:69
 msgid "Active leases"
 msgstr ""
 
@@ -349,13 +483,17 @@ msgstr ""
 msgid "Active model"
 msgstr "当前模型"
 
+#: src/pages/workspace/sections/TeamSection.tsx:104
+msgid "active today"
+msgstr ""
+
 #: src/pages/VoiceSettingsOverlay.tsx:170
 msgid "Active voice"
 msgstr "当前语音"
 
-#: src/pages/Shell.tsx:2541
-#: src/pages/Shell.tsx:2543
-#: src/pages/Shell.tsx:3262
+#: src/pages/Shell.tsx:2578
+#: src/pages/Shell.tsx:2580
+#: src/pages/Shell.tsx:3304
 msgid "Activity"
 msgstr "动态"
 
@@ -375,7 +513,7 @@ msgstr ""
 msgid "Add a model in Settings to use this."
 msgstr "请在设置中添加模型后再使用。"
 
-#: src/pages/Shell.tsx:3732
+#: src/pages/Shell.tsx:3774
 msgid "Add a run time for this one-shot."
 msgstr "为此一次性任务添加运行时间。"
 
@@ -383,7 +521,7 @@ msgstr "为此一次性任务添加运行时间。"
 msgid "Add a schedule or webhook to run this routine."
 msgstr "添加计划或 Webhook 以运行此例行任务。"
 
-#: src/pages/Shell.tsx:3704
+#: src/pages/Shell.tsx:3746
 msgid "Add a schedule or webhook trigger"
 msgstr "添加计划或 Webhook 触发器"
 
@@ -431,7 +569,7 @@ msgstr "添加远程 MCP 服务器"
 msgid "Add server"
 msgstr "添加服务器"
 
-#: src/pages/Shell.tsx:5376
+#: src/pages/Shell.tsx:5418
 msgid "Add thumbs-up"
 msgstr "点赞"
 
@@ -458,13 +596,9 @@ msgstr ""
 msgid "Adding…"
 msgstr "正在添加…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:165
-msgid "Address"
-msgstr ""
-
 #: src/pages/AccountSettingsOverlay.tsx:243
 #: src/pages/RoutineSchedule.tsx:42
-#: src/pages/Shell.tsx:6219
+#: src/pages/Shell.tsx:6261
 msgid "Advanced"
 msgstr "高级"
 
@@ -472,19 +606,11 @@ msgstr "高级"
 msgid "Advanced..."
 msgstr "高级..."
 
-#: src/pages/workspace/panels/SystemPanel.tsx:89
-msgid "Age"
-msgstr ""
-
-#: src/pages/workspace/panels/VoicePanel.tsx:60
-msgid "Agent"
-msgstr ""
-
 #: src/pages/McpServersOverlay.tsx:369
 msgid "Agent access for new servers"
 msgstr "新服务器的 Agent 权限"
 
-#: src/pages/Shell.tsx:3211
+#: src/pages/Shell.tsx:3253
 msgid "Agent computer"
 msgstr "Agent 电脑"
 
@@ -496,28 +622,31 @@ msgstr "Agent 连接"
 msgid "Agents:"
 msgstr "Agent："
 
-#: src/pages/workspace/panels/VoicePanel.tsx:105
-#: src/pages/workspace/panels/VoicePanel.tsx:151
-#: src/pages/workspace/panels/VoicePanel.tsx:200
-#: src/pages/workspace/panels/VoicePanel.tsx:249
+#: src/pages/workspace/sections/VoiceSection.tsx:217
+msgid "AI"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:139
+#: src/pages/workspace/sections/VoiceSection.tsx:159
+#: src/pages/workspace/sections/VoiceSection.tsx:164
+#: src/pages/workspace/sections/VoiceSection.tsx:283
 msgid "AI handled"
 msgstr ""
 
-#: src/pages/workspace/panels/TeamPanel.tsx:73
-#: src/pages/workspace/PipelineMap.tsx:284
-#: src/pages/workspace/WorkspaceRail.tsx:40
+#: src/pages/workspace/PipelineMap.tsx:344
+#: src/pages/workspace/WorkspaceView.tsx:86
 msgid "AI team"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:143
+#: src/pages/workspace/sections/LeasingSection.tsx:183
 msgid "All"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:233
-msgid "All calls"
+#: src/pages/workspace/sections/LeasingSection.tsx:86
+msgid "All applications on record"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:204
+#: src/pages/workspace/sections/EmailSection.tsx:294
 msgid "All campaigns"
 msgstr ""
 
@@ -529,15 +658,12 @@ msgstr ""
 msgid "All pipelines"
 msgstr ""
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:108
+#: src/pages/workspace/sections/ReportsSection.tsx:123
 msgid "All reports"
 msgstr ""
 
-#: src/pages/workspace/panels/SkillsPanel.tsx:71
-msgid "All skills"
-msgstr ""
-
-#: src/pages/workspace/panels/EmailPanel.tsx:45
+#: src/pages/workspace/sections/EmailSection.tsx:53
+#: src/pages/workspace/sections/EmailSection.tsx:96
 msgid "All time"
 msgstr ""
 
@@ -584,7 +710,11 @@ msgstr "始终允许此工具"
 msgid "Always allowed"
 msgstr "始终允许"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:39
+#: src/pages/workspace/sections/TeamSection.tsx:134
+msgid "Always on"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:54
 msgid "Ambiguous"
 msgstr ""
 
@@ -628,23 +758,23 @@ msgstr "API 密钥"
 msgid "API key header"
 msgstr "API 密钥请求头"
 
-#: src/pages/Shell.tsx:3473
+#: src/pages/Shell.tsx:3515
 msgid "App preview"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:83
+#: src/pages/workspace/sections/LeasingSection.tsx:86
 msgid "Application funnel"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:74
-msgid "Applications 30d"
+#: src/pages/workspace/sections/LeasingSection.tsx:58
+msgid "Applications"
 msgstr ""
 
 #: src/pages/McpServersOverlay.tsx:372
 msgid "Applies when you click Add server. Use the agent chips on each server card to change access at any time — the agent picks it up on its next message."
 msgstr "在点击「添加服务器」时生效。可随时用每张服务器卡片上的 Agent 标签改权限，Agent 会在下一条消息时采用。"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:214
+#: src/pages/workspace/sections/LeasingSection.tsx:259
 msgid "Apply"
 msgstr ""
 
@@ -652,22 +782,30 @@ msgstr ""
 msgid "Approval boundaries"
 msgstr "审批边界"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:79
+#: src/pages/workspace/sections/LeasingSection.tsx:64
 msgid "Approval rate"
+msgstr ""
+
+#: src/pages/workspace/sections/TeamSection.tsx:96
+msgid "Approvals: auto"
+msgstr ""
+
+#: src/pages/workspace/sections/TeamSection.tsx:96
+msgid "Approvals: manual"
 msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:215
 #: src/pages/MessagingSettingsOverlay.tsx:282
-#: src/pages/Shell.tsx:7215
+#: src/pages/Shell.tsx:7257
 msgid "Approve"
 msgstr "批准"
 
-#: src/pages/Shell.tsx:7206
+#: src/pages/Shell.tsx:7248
 msgid "Approve this server to let your agent use its tools."
 msgstr "批准此服务器后，Agent 才能使用它的工具。"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:69
-#: src/pages/workspace/panels/TeamPanel.tsx:51
+#: src/pages/workspace/sections/ReportsSection.tsx:84
+#: src/pages/workspace/sections/TeamSection.tsx:63
 msgid "Approved"
 msgstr ""
 
@@ -676,7 +814,7 @@ msgstr ""
 msgid "Archive"
 msgstr "归档"
 
-#: src/pages/Shell.tsx:5730
+#: src/pages/Shell.tsx:5772
 msgid "archived"
 msgstr "已归档"
 
@@ -684,11 +822,11 @@ msgstr "已归档"
 #: src/pages/crm/CrmContactsSheet.tsx:44
 #: src/pages/crm/CrmContactsSheet.tsx:119
 #: src/pages/crm/CrmContactsSheet.tsx:121
-#: src/pages/Shell.tsx:2855
+#: src/pages/Shell.tsx:2897
 msgid "Archived"
 msgstr "已归档"
 
-#: src/pages/Shell.tsx:5741
+#: src/pages/Shell.tsx:5783
 msgid "Archived. Chat, memory, and files kept."
 msgstr "已归档。对话、记忆和文件保留。"
 
@@ -743,13 +881,17 @@ msgstr "{timeSelect}"
 msgid "At the bottom of Integrations, open API & agent access → CRM API access, name the credential, pick its scopes, and copy the token — it is shown once. Tokens start with <0>manor_</0> and can be revoked at any time."
 msgstr ""
 
-#: src/pages/Shell.tsx:4996
+#: src/pages/Shell.tsx:5038
 msgid "Attach file"
 msgstr "附加文件"
 
-#: src/pages/Shell.tsx:5335
+#: src/pages/Shell.tsx:5377
 msgid "Attachment"
 msgstr "附件"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:106
+msgid "Audience"
+msgstr ""
 
 #: src/pages/DocsView.tsx:350
 msgid "Authenticate with the same bearer token as REST. Read-only tools need <0>crm:read</0>; mutating tools need <1>crm:write</1>. Tools the token cannot use are not advertised at all."
@@ -764,21 +906,21 @@ msgstr "授权码或回调 URL"
 msgid "Authorization expired — reconnect required"
 msgstr "授权已过期，需要重新连接"
 
-#: src/pages/Shell.tsx:7007
+#: src/pages/Shell.tsx:7049
 msgid "Authorization timed out. Please try again."
 msgstr "授权超时，请重试。"
 
-#: src/pages/Shell.tsx:7049
-#: src/pages/Shell.tsx:7215
+#: src/pages/Shell.tsx:7091
+#: src/pages/Shell.tsx:7257
 msgid "Authorize"
 msgstr "授权"
 
-#: src/pages/Shell.tsx:5260
-#: src/pages/workspace/panels/TeamPanel.tsx:52
+#: src/pages/Shell.tsx:5302
+#: src/pages/workspace/sections/TeamSection.tsx:64
 msgid "Auto"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:193
+#: src/pages/workspace/sections/LeasingSection.tsx:234
 msgid "Available"
 msgstr ""
 
@@ -786,7 +928,7 @@ msgstr ""
 msgid "Available after the routine is saved"
 msgstr "保存例行任务后可用"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:38
+#: src/pages/workspace/sections/LeasingSection.tsx:169
 msgid "Available rentals"
 msgstr ""
 
@@ -794,17 +936,18 @@ msgstr ""
 msgid "Avatars"
 msgstr "头像"
 
-#. placeholder {0}: formatMoney(data.avgRent)
-#: src/pages/workspace/panels/LeasingPanel.tsx:151
+#. placeholder {0}: formatMoneyAuto(data.avgRent)
+#: src/pages/workspace/sections/LeasingSection.tsx:173
 msgid "avg {0}"
+msgstr ""
+
+#. placeholder {0}: formatMoneyAuto(data.leases.avgRent)
+#: src/pages/workspace/sections/LeasingSection.tsx:76
+msgid "avg {0}/mo"
 msgstr ""
 
 #: src/pages/crm/CrmHome.tsx:83
 msgid "Avg deal size"
-msgstr ""
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:70
-msgid "Avg rent"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx:245
@@ -826,20 +969,29 @@ msgstr "Base URL"
 msgid "Base32 key or otpauth:// link from the site's authenticator setup"
 msgstr ""
 
+#: src/pages/workspace/sections/LeasingSection.tsx:218
+msgid "Bd/ba"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:509
 msgid "Bearer token"
 msgstr "Bearer token"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:182
-msgid "Beds / baths"
+#: src/pages/workspace/sections/UtilitiesSection.tsx:94
+msgid "Billable"
 msgstr ""
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:137
-msgid "Billing targets"
+#: src/pages/workspace/sections/UtilitiesSection.tsx:219
+msgid "Billing"
 msgstr ""
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:58
+#: src/pages/workspace/sections/UtilitiesSection.tsx:99
+#: src/pages/workspace/sections/UtilitiesSection.tsx:111
 msgid "Bills"
+msgstr ""
+
+#: src/pages/workspace/Overview.tsx:114
+msgid "Bills to review"
 msgstr ""
 
 #: src/components/FilesPanel.tsx:107
@@ -850,18 +1002,18 @@ msgstr "二进制文件，无法预览。"
 msgid "Book demo"
 msgstr ""
 
-#: src/pages/Shell.tsx:6891
+#: src/pages/Shell.tsx:6933
 msgid "Booting live desktop…"
 msgstr "正在启动实时桌面…"
 
 #. placeholder {0}: active?.name
-#: src/pages/Shell.tsx:4116
+#: src/pages/Shell.tsx:4158
 msgid "Booting up {0}’s computer"
 msgstr "正在启动 {0} 的电脑"
 
-#: src/pages/Shell.tsx:5598
-#: src/pages/Shell.tsx:5599
-#: src/pages/Shell.tsx:5734
+#: src/pages/Shell.tsx:5640
+#: src/pages/Shell.tsx:5641
+#: src/pages/Shell.tsx:5776
 msgid "bot"
 msgstr "Bot"
 
@@ -870,15 +1022,15 @@ msgstr "Bot"
 msgid "Bot"
 msgstr "Bot"
 
-#: src/pages/Shell.tsx:1759
+#: src/pages/Shell.tsx:1796
 msgid "Bot"
 msgstr "Bot"
 
-#: src/pages/Shell.tsx:4220
+#: src/pages/Shell.tsx:4262
 msgid "Bot screen"
 msgstr "Bot 屏幕"
 
-#: src/pages/Shell.tsx:3524
+#: src/pages/Shell.tsx:3566
 msgid "Bot screen preview"
 msgstr "Bot 屏幕预览"
 
@@ -890,15 +1042,15 @@ msgstr "要关联的 Bot"
 msgid "Bots act without asking by default. Add an exception only when you want to review a type of action first. These preferences apply across all your bots."
 msgstr "默认情况下 Bot 会直接执行。只有当你想先审核某类操作时，才添加例外。这些偏好会应用到所有 Bot。"
 
-#: src/pages/Shell.tsx:4330
+#: src/pages/Shell.tsx:4372
 msgid "Bots are working"
 msgstr "Bot 正在工作"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:83
+#: src/pages/workspace/sections/EmailSection.tsx:144
 msgid "Bounce rate"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:240
+#: src/pages/workspace/sections/EmailSection.tsx:334
 msgid "Bounces"
 msgstr ""
 
@@ -910,42 +1062,70 @@ msgstr "使用你自己的密钥。提供方可更换，Bot 的朗读和通话�
 msgid "Browse"
 msgstr "浏览"
 
-#: src/pages/Shell.tsx:3175
-#: src/pages/Shell.tsx:3176
+#: src/pages/workspace/sections/VoiceSection.tsx:151
+msgid "Busiest day"
+msgstr ""
+
+#: src/pages/workspace/sections/SocialSection.tsx:132
+msgid "By reach"
+msgstr ""
+
+#: src/pages/Shell.tsx:3217
+#: src/pages/Shell.tsx:3218
 msgid "Call"
 msgstr "通话"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:163
+#: src/pages/workspace/sections/VoiceSection.tsx:157
+msgid "Call volume"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:229
 msgid "Callback"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:253
+#: src/pages/workspace/sections/VoiceSection.tsx:287
 msgid "Callback requested"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:206
-msgid "Callbacks"
+#: src/pages/workspace/sections/VoiceSection.tsx:145
+msgid "Callbacks requested"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:135
+#: src/pages/workspace/sections/VoiceSection.tsx:196
 msgid "Caller"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:100
-#: src/pages/workspace/panels/VoicePanel.tsx:115
+#: src/pages/workspace/sections/VoiceSection.tsx:164
+msgid "calls"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:173
 msgid "Calls"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:95
-msgid "Calls per day"
+#: src/pages/workspace/Overview.tsx:79
+msgid "Calls · 30d"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:104
+#: src/pages/workspace/sections/VoiceSection.tsx:153
+msgid "calls in a single day"
+msgstr ""
+
+#. placeholder {0}: busiest.day
+#: src/pages/workspace/sections/VoiceSection.tsx:153
+msgid "calls on {0}"
+msgstr ""
+
+#: src/pages/workspace/sections/EmailSection.tsx:172
 msgid "Campaign"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:57
+#: src/pages/workspace/sections/EmailSection.tsx:106
 msgid "Campaigns"
+msgstr ""
+
+#: src/pages/workspace/sections/EmailSection.tsx:129
+msgid "Campaigns per month"
 msgstr ""
 
 #: src/App.tsx:159
@@ -966,15 +1146,15 @@ msgstr "无法连接服务器。"
 #: src/pages/KnowledgeSection.tsx:196
 #: src/pages/KnowledgeSection.tsx:374
 #: src/pages/PluginsOverlay.tsx:560
-#: src/pages/Shell.tsx:6485
-#: src/pages/Shell.tsx:6567
-#: src/pages/Shell.tsx:6639
-#: src/pages/Shell.tsx:6754
-#: src/pages/Shell.tsx:6830
+#: src/pages/Shell.tsx:6527
+#: src/pages/Shell.tsx:6609
+#: src/pages/Shell.tsx:6681
+#: src/pages/Shell.tsx:6796
+#: src/pages/Shell.tsx:6872
 msgid "Cancel"
 msgstr "取消"
 
-#: src/pages/Shell.tsx:6012
+#: src/pages/Shell.tsx:6054
 msgid "Cancel new bot"
 msgstr "取消新建 Bot"
 
@@ -982,7 +1162,7 @@ msgstr "取消新建 Bot"
 msgid "Cancel new group"
 msgstr "取消新建群组"
 
-#: src/pages/Shell.tsx:4855
+#: src/pages/Shell.tsx:4897
 msgid "Cancel reply"
 msgstr "取消回复"
 
@@ -991,12 +1171,7 @@ msgstr "取消回复"
 msgid "Cancelled"
 msgstr "已取消"
 
-#. placeholder {0}: formatDate(data.account.capturedAt)
-#: src/pages/workspace/panels/SocialPanel.tsx:37
-msgid "Captured {0}"
-msgstr ""
-
-#: src/pages/workspace/panels/TeamPanel.tsx:47
+#: src/pages/workspace/sections/TeamSection.tsx:59
 msgid "Catching up"
 msgstr ""
 
@@ -1012,16 +1187,16 @@ msgstr "更改"
 msgid "Changing…"
 msgstr "正在修改…"
 
-#: src/pages/workspace/PipelineMap.tsx:199
+#: src/pages/workspace/PipelineMap.tsx:242
 msgid "Channel"
 msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:184
-#: src/pages/workspace/PipelineMap.tsx:283
+#: src/pages/workspace/PipelineMap.tsx:343
 msgid "Channels"
 msgstr "频道"
 
-#: src/pages/Shell.tsx:7112
+#: src/pages/Shell.tsx:7154
 msgid "Chart failed to render: {error}"
 msgstr "图表渲染失败：{error}"
 
@@ -1033,7 +1208,7 @@ msgstr "聊天应用"
 msgid "Chat apps, group channels, and agent connections."
 msgstr "聊天应用、群组频道和 Agent 连接。"
 
-#: src/pages/Shell.tsx:5278
+#: src/pages/Shell.tsx:5320
 msgid "Chat Settings"
 msgstr "聊天设置"
 
@@ -1045,8 +1220,8 @@ msgstr "检查失败"
 msgid "Check for updates"
 msgstr "检查更新"
 
-#: src/pages/Shell.tsx:3745
-#: src/pages/Shell.tsx:3755
+#: src/pages/Shell.tsx:3787
+#: src/pages/Shell.tsx:3797
 msgid "Check in."
 msgstr "报到。"
 
@@ -1082,12 +1257,12 @@ msgstr ""
 msgid "clean"
 msgstr "无更改"
 
-#: src/pages/Shell.tsx:6654
+#: src/pages/Shell.tsx:6696
 msgid "Clear"
 msgstr "清空"
 
 #. placeholder {0}: bot.name
-#: src/pages/Shell.tsx:6620
+#: src/pages/Shell.tsx:6662
 msgid "Clear {0}’s conversation?"
 msgstr "清空与 {0} 的对话？"
 
@@ -1096,7 +1271,7 @@ msgid "Clear 2FA key"
 msgstr ""
 
 #: src/pages/BotContextMenu.tsx:103
-#: src/pages/Shell.tsx:6375
+#: src/pages/Shell.tsx:6417
 msgid "Clear conversation"
 msgstr "清空对话"
 
@@ -1104,23 +1279,23 @@ msgstr "清空对话"
 msgid "Clear stored password"
 msgstr ""
 
-#: src/pages/Shell.tsx:6654
+#: src/pages/Shell.tsx:6696
 msgid "Clearing…"
 msgstr "正在清空…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:61
+#: src/pages/workspace/sections/EmailSection.tsx:121
 msgid "Click rate"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:223
+#: src/pages/workspace/sections/EmailSection.tsx:317
 msgid "Clicked"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:137
+#: src/pages/workspace/sections/EmailSection.tsx:205
 msgid "Clicks"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:247
+#: src/pages/workspace/sections/EmailSection.tsx:341
 msgid "Clicks per open"
 msgstr ""
 
@@ -1132,15 +1307,14 @@ msgstr ""
 #: src/pages/PeerMessagesOverlay.tsx:209
 #: src/pages/RoutineEditor.tsx:251
 #: src/pages/WindowChrome.tsx:19
-#: src/pages/workspace/WorkspaceView.tsx:152
 msgid "Close"
 msgstr "关闭"
 
-#: src/pages/Shell.tsx:7297
+#: src/pages/Shell.tsx:7339
 msgid "Close chart"
 msgstr "关闭图表"
 
-#: src/pages/Shell.tsx:4194
+#: src/pages/Shell.tsx:4236
 msgid "Close computer"
 msgstr "关闭电脑"
 
@@ -1149,7 +1323,7 @@ msgstr "关闭电脑"
 msgid "Close demo"
 msgstr ""
 
-#: src/pages/Shell.tsx:7397
+#: src/pages/Shell.tsx:7439
 msgid "Close image preview"
 msgstr "关闭图片预览"
 
@@ -1173,11 +1347,11 @@ msgstr "关闭消息设置"
 msgid "Close model settings"
 msgstr "关闭模型设置"
 
-#: src/pages/Shell.tsx:2514
+#: src/pages/Shell.tsx:2551
 msgid "Close navigation"
 msgstr "关闭导航"
 
-#: src/pages/Shell.tsx:3446
+#: src/pages/Shell.tsx:3488
 msgid "Close panel"
 msgstr "关闭面板"
 
@@ -1204,7 +1378,7 @@ msgid "Code"
 msgstr "代码"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:2655
+#: src/pages/Shell.tsx:2697
 msgid "Collapse {0}"
 msgstr "折叠 {0}"
 
@@ -1226,29 +1400,29 @@ msgstr ""
 msgid "Complete"
 msgstr "完成"
 
-#: src/pages/Shell.tsx:5922
-#: src/pages/Shell.tsx:5950
-#: src/pages/workspace/panels/EmailPanel.tsx:67
+#: src/pages/Shell.tsx:5964
+#: src/pages/Shell.tsx:5992
+#: src/pages/workspace/sections/EmailSection.tsx:138
 msgid "Computer"
 msgstr "电脑"
 
-#: src/pages/Shell.tsx:6894
+#: src/pages/Shell.tsx:6936
 msgid "Computer failed to boot"
 msgstr "电脑启动失败"
 
-#: src/pages/Shell.tsx:4242
+#: src/pages/Shell.tsx:4284
 msgid "Computer is asleep"
 msgstr "电脑已休眠"
 
-#: src/pages/Shell.tsx:6893
+#: src/pages/Shell.tsx:6935
 msgid "Computer is asleep. Open it to wake."
 msgstr ""
 
-#: src/pages/Shell.tsx:6895
+#: src/pages/Shell.tsx:6937
 msgid "Computer is stopped"
 msgstr "电脑已停止"
 
-#: src/pages/Shell.tsx:5256
+#: src/pages/Shell.tsx:5298
 msgid "Computer only"
 msgstr ""
 
@@ -1308,7 +1482,7 @@ msgstr "连接 ElevenLabs、OpenAI 或 Cartesia"
 msgid "Connect from Claude"
 msgstr ""
 
-#: src/pages/Shell.tsx:7195
+#: src/pages/Shell.tsx:7237
 msgid "Connect MCP server “{name}”"
 msgstr "连接 MCP 服务器“{name}”"
 
@@ -1335,12 +1509,12 @@ msgstr ""
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:164
 #: src/pages/ModelSettingsOverlay.tsx:379
-#: src/pages/Shell.tsx:7046
+#: src/pages/Shell.tsx:7088
 #: src/pages/VoiceSettingsOverlay.tsx:227
 msgid "Connected"
 msgstr "已连接"
 
-#: src/pages/Shell.tsx:7225
+#: src/pages/Shell.tsx:7267
 msgid "Connected — its tools are available from your next message."
 msgstr "已连接，下一条消息起即可使用其工具。"
 
@@ -1363,13 +1537,13 @@ msgstr "已连接 {0}。"
 msgid "Connected and using {0}."
 msgstr "已连接并使用 {0}。"
 
-#: src/pages/Shell.tsx:3481
+#: src/pages/Shell.tsx:3523
 msgid "Connecting to the preview…"
 msgstr ""
 
 #: src/pages/McpServersOverlay.tsx:16
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
-#: src/pages/Shell.tsx:7215
+#: src/pages/Shell.tsx:7257
 #: src/pages/VoiceSettingsOverlay.tsx:282
 msgid "Connecting…"
 msgstr "正在连接…"
@@ -1405,7 +1579,7 @@ msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:231
 #: src/pages/CrmApiAccessPanel.tsx:339
-#: src/pages/Shell.tsx:5388
+#: src/pages/Shell.tsx:5430
 msgid "Copy"
 msgstr "复制"
 
@@ -1449,11 +1623,11 @@ msgstr "无法添加"
 msgid "Could not add MCP server"
 msgstr "无法添加 MCP 服务器"
 
-#: src/pages/Shell.tsx:7182
+#: src/pages/Shell.tsx:7224
 msgid "Could not approve this server"
 msgstr "无法批准此服务器"
 
-#: src/pages/Shell.tsx:7010
+#: src/pages/Shell.tsx:7052
 msgid "Could not authorize this app"
 msgstr "无法授权此应用"
 
@@ -1469,7 +1643,7 @@ msgstr "无法更改默认模型"
 msgid "Could not check teaching status. Refresh the view to continue."
 msgstr ""
 
-#: src/pages/Shell.tsx:6648
+#: src/pages/Shell.tsx:6690
 msgid "Could not clear conversation"
 msgstr "无法清空对话"
 
@@ -1498,7 +1672,7 @@ msgstr "无法连接此语音提供方"
 msgid "Could not continue"
 msgstr "无法继续"
 
-#: src/pages/Shell.tsx:6000
+#: src/pages/Shell.tsx:6042
 msgid "Could not create bot"
 msgstr "无法创建 Bot"
 
@@ -1510,11 +1684,11 @@ msgstr ""
 msgid "Could not create group"
 msgstr "无法创建群组"
 
-#: src/pages/Shell.tsx:6539
+#: src/pages/Shell.tsx:6581
 msgid "Could not create section"
 msgstr "无法创建分组"
 
-#: src/pages/Shell.tsx:6442
+#: src/pages/Shell.tsx:6484
 msgid "Could not create space"
 msgstr "无法创建工作区"
 
@@ -1526,11 +1700,11 @@ msgstr ""
 msgid "Could not create your bot"
 msgstr "无法创建你的 Bot"
 
-#: src/pages/Shell.tsx:6763
+#: src/pages/Shell.tsx:6805
 msgid "Could not delete bot"
 msgstr "无法删除 Bot"
 
-#: src/pages/Shell.tsx:6843
+#: src/pages/Shell.tsx:6885
 msgid "Could not delete group"
 msgstr "无法删除群组"
 
@@ -1538,7 +1712,7 @@ msgstr "无法删除群组"
 msgid "Could not delete MCP server"
 msgstr "无法删除 MCP 服务器"
 
-#: src/pages/Shell.tsx:6844
+#: src/pages/Shell.tsx:6886
 msgid "Could not delete routine"
 msgstr "无法删除例行任务"
 
@@ -1611,7 +1785,7 @@ msgstr ""
 msgid "Could not load the CRM"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:44
+#: src/pages/workspace/WorkspaceView.tsx:70
 msgid "Could not load the workspace"
 msgstr ""
 
@@ -1674,7 +1848,7 @@ msgstr "无法移除规则"
 msgid "Could not remove webhook"
 msgstr ""
 
-#: src/pages/Shell.tsx:7102
+#: src/pages/Shell.tsx:7144
 msgid "Could not render chart"
 msgstr "无法渲染图表"
 
@@ -1690,13 +1864,13 @@ msgstr "无法撤销连接"
 msgid "Could not revoke credential"
 msgstr ""
 
-#: src/pages/Shell.tsx:3807
+#: src/pages/Shell.tsx:3849
 msgid "Could not run routine"
 msgstr "无法运行例行任务"
 
 #: src/components/FilesPanel.tsx:178
 #: src/pages/KnowledgeSection.tsx:126
-#: src/pages/Shell.tsx:6360
+#: src/pages/Shell.tsx:6402
 msgid "Could not save"
 msgstr "无法保存"
 
@@ -1716,7 +1890,7 @@ msgstr "无法保存群组"
 msgid "Could not save model"
 msgstr "无法保存模型"
 
-#: src/pages/Shell.tsx:3778
+#: src/pages/Shell.tsx:3820
 msgid "Could not save routine"
 msgstr "无法保存例行任务"
 
@@ -1736,7 +1910,7 @@ msgstr "无法保存该选择"
 msgid "Could not save that voice"
 msgstr "无法保存该语音"
 
-#: src/pages/Shell.tsx:6922
+#: src/pages/Shell.tsx:6964
 msgid "Could not save this choice"
 msgstr "无法保存此选择"
 
@@ -1760,7 +1934,7 @@ msgstr ""
 msgid "Could not submit this answer"
 msgstr "无法提交此回答"
 
-#: src/pages/Shell.tsx:2294
+#: src/pages/Shell.tsx:2331
 msgid "Could not take control"
 msgstr "无法接管"
 
@@ -1780,7 +1954,7 @@ msgstr "无法更新电脑"
 msgid "Could not update credential"
 msgstr ""
 
-#: src/pages/Shell.tsx:1950
+#: src/pages/Shell.tsx:1987
 msgid "Could not update reaction"
 msgstr "无法更新反应"
 
@@ -1803,14 +1977,14 @@ msgstr "无法更新消息设置"
 #: src/pages/crm/CrmContacts.tsx:486
 #: src/pages/crm/CrmPipelineBoard.tsx:583
 #: src/pages/crm/CrmPipelineBoard.tsx:772
-#: src/pages/Shell.tsx:2561
-#: src/pages/Shell.tsx:6059
-#: src/pages/Shell.tsx:6574
+#: src/pages/Shell.tsx:2598
+#: src/pages/Shell.tsx:6101
+#: src/pages/Shell.tsx:6616
 msgid "Create"
 msgstr "创建"
 
 #. placeholder {0}: bot.name
-#: src/pages/Shell.tsx:6548
+#: src/pages/Shell.tsx:6590
 msgid "Create a section and move {0} into it."
 msgstr "创建分组并把 {0} 移入。"
 
@@ -1828,7 +2002,7 @@ msgid "Create Routine"
 msgstr ""
 
 #: src/components/AskCard.tsx:33
-#: src/pages/Shell.tsx:6488
+#: src/pages/Shell.tsx:6530
 msgid "Create space"
 msgstr "创建工作区"
 
@@ -1854,9 +2028,9 @@ msgstr "已创建"
 
 #: src/pages/CrmApiAccessPanel.tsx:189
 #: src/pages/GroupPanel.tsx:134
-#: src/pages/Shell.tsx:6059
-#: src/pages/Shell.tsx:6488
-#: src/pages/Shell.tsx:6574
+#: src/pages/Shell.tsx:6101
+#: src/pages/Shell.tsx:6530
+#: src/pages/Shell.tsx:6616
 msgid "Creating…"
 msgstr "正在创建…"
 
@@ -1896,16 +2070,20 @@ msgstr "当前密码"
 msgid "Custom modules"
 msgstr ""
 
-#: src/pages/Shell.tsx:6478
+#: src/pages/Shell.tsx:6520
 msgid "Customer support"
 msgstr "客户支持"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:59
+#: src/pages/workspace/sections/SocialSection.tsx:101
 msgid "Daily reach"
 msgstr ""
 
-#: src/pages/workspace/PipelineMap.tsx:184
+#: src/pages/workspace/PipelineMap.tsx:225
 msgid "Data vault"
+msgstr ""
+
+#: src/pages/workspace/sections/SystemSection.tsx:154
+msgid "DATA VAULT"
 msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
@@ -1942,7 +2120,7 @@ msgstr ""
 msgid "Decline"
 msgstr "拒绝"
 
-#: src/pages/Shell.tsx:6266
+#: src/pages/Shell.tsx:6308
 msgid "Default (medium)"
 msgstr "默认（中）"
 
@@ -1956,24 +2134,24 @@ msgstr "默认范围"
 #: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
 #: src/pages/RoutineEditor.tsx:282
-#: src/pages/Shell.tsx:2890
-#: src/pages/Shell.tsx:2920
-#: src/pages/Shell.tsx:6769
-#: src/pages/Shell.tsx:6851
+#: src/pages/Shell.tsx:2932
+#: src/pages/Shell.tsx:2962
+#: src/pages/Shell.tsx:6811
+#: src/pages/Shell.tsx:6893
 msgid "Delete"
 msgstr "删除"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.name
-#: src/pages/Shell.tsx:2886
-#: src/pages/Shell.tsx:2916
+#: src/pages/Shell.tsx:2928
+#: src/pages/Shell.tsx:2958
 msgid "Delete {0}"
 msgstr "删除 {0}"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: item.name
-#: src/pages/Shell.tsx:6701
-#: src/pages/Shell.tsx:6817
+#: src/pages/Shell.tsx:6743
+#: src/pages/Shell.tsx:6859
 msgid "Delete {0}?"
 msgstr "删除 {0}？"
 
@@ -1985,7 +2163,7 @@ msgstr ""
 msgid "Delete group"
 msgstr "删除群组"
 
-#: src/pages/Shell.tsx:6738
+#: src/pages/Shell.tsx:6780
 msgid "Delete memories too"
 msgstr "同时删除记忆"
 
@@ -1997,23 +2175,23 @@ msgstr ""
 msgid "Delete row"
 msgstr ""
 
-#: src/pages/Shell.tsx:5732
+#: src/pages/Shell.tsx:5774
 msgid "deleted"
 msgstr "已删除"
 
 #: src/pages/GroupPanel.tsx:232
-#: src/pages/Shell.tsx:6769
-#: src/pages/Shell.tsx:6851
+#: src/pages/Shell.tsx:6811
+#: src/pages/Shell.tsx:6893
 msgid "Deleting…"
 msgstr "正在删除…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:59
-#: src/pages/workspace/panels/EmailPanel.tsx:216
+#: src/pages/workspace/sections/EmailSection.tsx:111
+#: src/pages/workspace/sections/EmailSection.tsx:307
 msgid "Delivered"
 msgstr ""
 
 #: src/pages/DocsView.tsx:440
-#: src/pages/workspace/panels/EmailPanel.tsx:228
+#: src/pages/workspace/sections/EmailSection.tsx:322
 msgid "Delivery"
 msgstr ""
 
@@ -2034,22 +2212,22 @@ msgid "Deployment default"
 msgstr "部署默认"
 
 #: src/pages/Onboarding.tsx:529
-#: src/pages/Shell.tsx:6037
+#: src/pages/Shell.tsx:6079
 msgid "Describe what this bot does"
 msgstr "描述这个 Bot 做什么"
 
 #: src/pages/DocsView.tsx:114
 #: src/pages/Onboarding.tsx:534
-#: src/pages/Shell.tsx:6042
-#: src/pages/Shell.tsx:6207
+#: src/pages/Shell.tsx:6084
+#: src/pages/Shell.tsx:6249
 msgid "Description"
 msgstr "描述"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:167
+#: src/pages/workspace/sections/ReportsSection.tsx:191
 msgid "Details"
 msgstr ""
 
-#: src/pages/Shell.tsx:5005
+#: src/pages/Shell.tsx:5047
 msgid "Dictate"
 msgstr "口述"
 
@@ -2070,11 +2248,11 @@ msgstr "正在断开…"
 msgid "Dismiss"
 msgstr ""
 
-#: src/pages/Shell.tsx:4835
+#: src/pages/Shell.tsx:4877
 msgid "Dismiss error"
 msgstr "关闭错误"
 
-#: src/pages/Shell.tsx:7230
+#: src/pages/Shell.tsx:7272
 msgid "Dismissed — reconnect anytime from MCP settings."
 msgstr "已关闭，可随时在 MCP 设置中重新连接。"
 
@@ -2096,7 +2274,7 @@ msgid "Docker is the default: bots use a shared Team Computer."
 msgstr "默认使用 Docker：Bot 共用一台团队电脑。"
 
 #: src/pages/DocsView.tsx:37
-#: src/pages/Shell.tsx:2993
+#: src/pages/Shell.tsx:3035
 msgid "Documentation"
 msgstr ""
 
@@ -2139,12 +2317,12 @@ msgstr "技能草稿"
 msgid "Drop deals here"
 msgstr ""
 
-#: src/pages/Shell.tsx:4549
+#: src/pages/Shell.tsx:4591
 msgid "Drop to attach to {name}"
 msgstr "松开以附加到 {name}"
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:78
+#: src/pages/workspace/sections/UtilitiesSection.tsx:133
 msgid "Due {0}"
 msgstr ""
 
@@ -2152,7 +2330,19 @@ msgstr ""
 msgid "Duplicate"
 msgstr "复制"
 
-#: src/pages/Shell.tsx:5526
+#: src/pages/workspace/sections/SkillsSection.tsx:61
+msgid "Durable facts and conventions agents read before acting."
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:112
+msgid "Each bill and the charges prepared for its lease"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:196
+msgid "Each property billed for water, with the lease that carries the charge"
+msgstr ""
+
+#: src/pages/Shell.tsx:5568
 msgid "Earlier message"
 msgstr "更早的消息"
 
@@ -2183,13 +2373,16 @@ msgstr "编辑资料"
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
 #: src/pages/crm/CrmModuleSheet.tsx:258
-#: src/pages/workspace/panels/EmailPanel.tsx:34
-#: src/pages/workspace/PipelineMap.tsx:76
-#: src/pages/workspace/WorkspaceRail.tsx:36
+#: src/pages/workspace/PipelineMap.tsx:112
+#: src/pages/workspace/WorkspaceView.tsx:82
 msgid "Email"
 msgstr "邮箱"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:125
+#: src/pages/workspace/sections/EmailSection.tsx:86
+msgid "Email performance"
+msgstr ""
+
+#: src/pages/workspace/sections/EmailSection.tsx:193
 msgid "Emails"
 msgstr ""
 
@@ -2206,12 +2399,12 @@ msgstr "已保存加密的静态凭据"
 msgid "Endpoint"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:115
+#: src/pages/workspace/sections/LeasingSection.tsx:137
 msgid "Ends"
 msgstr ""
 
-#: src/pages/workspace/panels/SocialPanel.tsx:45
-msgid "Engaged 28d"
+#: src/pages/workspace/sections/SocialSection.tsx:91
+msgid "Engagement rate"
 msgstr ""
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
@@ -2220,12 +2413,16 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "在 <0>{0}</0> 输入此代码"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:47
+#: src/pages/workspace/sections/UtilitiesSection.tsx:62
 msgid "Error"
 msgstr ""
 
 #: src/pages/DocsView.tsx:256
 msgid "Errors"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:224
+msgid "Escalated"
 msgstr ""
 
 #: src/pages/DocsView.tsx:427
@@ -2278,20 +2475,16 @@ msgstr "每周"
 msgid "Everyone your business talks to lives here. Add the first one."
 msgstr ""
 
-#: src/pages/Shell.tsx:7276
+#: src/pages/Shell.tsx:7318
 msgid "Expand"
 msgstr "展开"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:2654
+#: src/pages/Shell.tsx:2696
 msgid "Expand {0}"
 msgstr "展开 {0}"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:80
-msgid "Expiring 90d"
-msgstr ""
-
-#: src/pages/Shell.tsx:6372
+#: src/pages/Shell.tsx:6414
 msgid "Export"
 msgstr "导出"
 
@@ -2299,7 +2492,7 @@ msgstr "导出"
 msgid "Export this week's list from the CRM and drop it in the shared folder"
 msgstr "从 CRM 导出本周名单并放到共享文件夹"
 
-#: src/pages/Shell.tsx:6392
+#: src/pages/Shell.tsx:6434
 msgid "Extra high"
 msgstr "极高"
 
@@ -2311,14 +2504,14 @@ msgstr "失败"
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr ""
 
-#: src/pages/Shell.tsx:2112
-#: src/pages/Shell.tsx:2114
-#: src/pages/Shell.tsx:2116
+#: src/pages/Shell.tsx:2149
+#: src/pages/Shell.tsx:2151
+#: src/pages/Shell.tsx:2153
 msgid "Failed to send message"
 msgstr "发送消息失败"
 
-#: src/pages/Shell.tsx:2149
-#: src/pages/Shell.tsx:2168
+#: src/pages/Shell.tsx:2186
+#: src/pages/Shell.tsx:2205
 msgid "Failed to stop"
 msgstr "停止失败"
 
@@ -2327,8 +2520,21 @@ msgstr "停止失败"
 msgid "Failed."
 msgstr "失败。"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:30
+#: src/pages/workspace/sections/SystemSection.tsx:56
+msgid "failing"
+msgstr ""
+
+#: src/pages/workspace/sections/SystemSection.tsx:39
+#: src/pages/workspace/sections/SystemSection.tsx:40
 msgid "Failing"
+msgstr ""
+
+#: src/pages/workspace/sections/SystemSection.tsx:165
+msgid "failing (last run failed)"
+msgstr ""
+
+#: src/pages/workspace/sections/SystemSection.tsx:166
+msgid "failing (no new data)"
 msgstr ""
 
 #: src/components/teach/SkillDraftCard.tsx:147
@@ -2343,8 +2549,8 @@ msgstr ""
 msgid "Field label"
 msgstr ""
 
-#: src/pages/Shell.tsx:3229
-#: src/pages/Shell.tsx:3398
+#: src/pages/Shell.tsx:3271
+#: src/pages/Shell.tsx:3440
 msgid "Files"
 msgstr "文件"
 
@@ -2382,7 +2588,12 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "标记异常操作"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:28
+#: src/pages/workspace/sections/SystemSection.tsx:55
+#: src/pages/workspace/sections/SystemSection.tsx:164
+msgid "flowing"
+msgstr ""
+
+#: src/pages/workspace/sections/SystemSection.tsx:38
 msgid "Flowing"
 msgstr ""
 
@@ -2390,22 +2601,24 @@ msgstr ""
 msgid "Folder path"
 msgstr "文件夹路径"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:256
+#: src/pages/workspace/sections/VoiceSection.tsx:290
 msgid "Follow-up required"
 msgstr ""
 
-#: src/pages/workspace/panels/SocialPanel.tsx:42
-#: src/pages/workspace/panels/SocialPanel.tsx:68
-#: src/pages/workspace/panels/SocialPanel.tsx:74
+#: src/pages/workspace/Overview.tsx:96
+#: src/pages/workspace/sections/SocialSection.tsx:81
 msgid "Followers"
+msgstr ""
+
+#: src/pages/workspace/sections/SocialSection.tsx:118
+msgid "followers now"
 msgstr ""
 
 #: src/pages/Auth.tsx:219
 msgid "Forgot password?"
 msgstr "忘记密码？"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:81
-#: src/pages/workspace/panels/EmailPanel.tsx:244
+#: src/pages/workspace/sections/EmailSection.tsx:338
 msgid "Forwards"
 msgstr ""
 
@@ -2413,7 +2626,11 @@ msgstr ""
 msgid "Free"
 msgstr "免费"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:231
+#: src/pages/workspace/sections/SystemSection.tsx:95
+msgid "Freshness signal"
+msgstr ""
+
+#: src/pages/workspace/sections/EmailSection.tsx:325
 msgid "From"
 msgstr ""
 
@@ -2421,8 +2638,12 @@ msgstr ""
 msgid "Fullscreen"
 msgstr "全屏"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:63
+#: src/pages/workspace/sections/ReportsSection.tsx:78
 msgid "Generated"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:48
+msgid "Generated reports"
 msgstr ""
 
 #: src/pages/DocsView.tsx:26
@@ -2446,14 +2667,18 @@ msgid "Grants"
 msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:198
-#: src/pages/Shell.tsx:3165
-#: src/pages/Shell.tsx:3402
+#: src/pages/Shell.tsx:3207
+#: src/pages/Shell.tsx:3444
 msgid "Group"
 msgstr "群组"
 
 #: src/pages/GroupPanel.tsx:192
 msgid "Group settings"
 msgstr "群组设置"
+
+#: src/pages/workspace/sections/VoiceSection.tsx:222
+msgid "Handled"
+msgstr ""
 
 #: src/pages/CallView.tsx:281
 msgid "Hang up"
@@ -2468,8 +2693,8 @@ msgstr "请先挂断，然后输入屏幕上的代码。"
 msgid "Hang up, then enter the code on screen."
 msgstr "请挂断，然后输入屏幕上的代码。"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:75
-#: src/pages/workspace/panels/EmailPanel.tsx:241
+#: src/pages/workspace/sections/EmailSection.tsx:149
+#: src/pages/workspace/sections/EmailSection.tsx:335
 msgid "Hard bounces"
 msgstr ""
 
@@ -2494,7 +2719,12 @@ msgstr "试听"
 msgid "Hi, this is how I'll sound when I read replies out loud."
 msgstr "你好，这是我朗读回复时的声音。"
 
-#: src/pages/Shell.tsx:3192
+#: src/pages/workspace/sections/SkillsSection.tsx:103
+#: src/pages/workspace/sections/SkillsSection.tsx:136
+msgid "Hide content"
+msgstr ""
+
+#: src/pages/Shell.tsx:3234
 msgid "Hide live activity"
 msgstr ""
 
@@ -2502,15 +2732,15 @@ msgstr ""
 msgid "Hide password"
 msgstr "隐藏密码"
 
-#: src/pages/Shell.tsx:6395
+#: src/pages/Shell.tsx:6437
 msgid "High"
 msgstr "高"
 
-#: src/pages/Shell.tsx:5024
+#: src/pages/Shell.tsx:5066
 msgid "Hold to talk"
 msgstr "按住说话"
 
-#: src/pages/Shell.tsx:5024
+#: src/pages/Shell.tsx:5066
 msgid "Hold to talk (on-device dictation)"
 msgstr "按住说话（设备端口述）"
 
@@ -2539,7 +2769,7 @@ msgstr "频率"
 msgid "How to check"
 msgstr "如何检查"
 
-#: src/pages/Shell.tsx:5445
+#: src/pages/Shell.tsx:5487
 msgid "I’m done"
 msgstr "我做完了"
 
@@ -2547,8 +2777,12 @@ msgstr "我做完了"
 msgid "Idempotency"
 msgstr ""
 
-#: src/pages/workspace/panels/SystemPanel.tsx:31
+#: src/pages/workspace/sections/SystemSection.tsx:41
 msgid "Idle"
+msgstr ""
+
+#: src/pages/workspace/sections/SystemSection.tsx:167
+msgid "idle (no data)"
 msgstr ""
 
 #: src/pages/Auth.tsx:120
@@ -2559,7 +2793,7 @@ msgstr "如果该地址有账户，我们已发送密码重置链接。"
 msgid "If you heard that, voice is ready."
 msgstr "如果听到了，说明语音已就绪。"
 
-#: src/pages/Shell.tsx:4552
+#: src/pages/Shell.tsx:4594
 msgid "Images, PDFs and text files · up to {ATTACHMENT_MAX_COUNT}"
 msgstr "图片、PDF 和文本文件 · 最多 {ATTACHMENT_MAX_COUNT} 个"
 
@@ -2571,7 +2805,7 @@ msgstr "导入 OpenAPI JSON"
 msgid "Inbound: trigger a bot"
 msgstr ""
 
-#: src/pages/Shell.tsx:6281
+#: src/pages/Shell.tsx:6323
 msgid "Inherit default"
 msgstr "沿用默认"
 
@@ -2579,8 +2813,8 @@ msgstr "沿用默认"
 msgid "Inputs"
 msgstr "输入"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:34
-msgid "Instagram"
+#: src/pages/workspace/sections/SocialSection.tsx:57
+msgid "Instagram performance"
 msgstr ""
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:60
@@ -2592,7 +2826,7 @@ msgid "Instruction"
 msgstr "指令"
 
 #: src/pages/PluginsOverlay.tsx:301
-#: src/pages/Shell.tsx:2979
+#: src/pages/Shell.tsx:3021
 msgid "Integrations"
 msgstr "集成"
 
@@ -2610,19 +2844,19 @@ msgid "Interval unit"
 msgstr "间隔单位"
 
 #: src/pages/MemorySettingsOverlay.tsx:40
-#: src/pages/Shell.tsx:6282
+#: src/pages/Shell.tsx:6324
 msgid "Isolated"
 msgstr "隔离"
 
-#: src/pages/Shell.tsx:6704
+#: src/pages/Shell.tsx:6746
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "它的对话、文件和例行任务将被永久删除。它创建的 Bot 仍留在列表中。"
 
-#: src/pages/Shell.tsx:4522
+#: src/pages/Shell.tsx:4564
 msgid "Jump to latest"
 msgstr "跳到最新"
 
-#: src/pages/Shell.tsx:5521
+#: src/pages/Shell.tsx:5563
 msgid "Jump to replied message"
 msgstr "跳到被回复的消息"
 
@@ -2630,7 +2864,7 @@ msgstr "跳到被回复的消息"
 msgid "just now"
 msgstr "刚刚"
 
-#: src/pages/Shell.tsx:6722
+#: src/pages/Shell.tsx:6764
 msgid "Keep memories"
 msgstr "保留记忆"
 
@@ -2646,7 +2880,7 @@ msgstr "密钥留在服务器上。应用只知道提供方是否已配置。"
 msgid "Label"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:68
+#: src/pages/workspace/sections/VoiceSection.tsx:111
 msgid "Landlords"
 msgstr ""
 
@@ -2656,8 +2890,39 @@ msgstr ""
 msgid "Language"
 msgstr "语言"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:101
-msgid "Last error"
+#: src/pages/workspace/sections/EmailSection.tsx:51
+#: src/pages/workspace/sections/LeasingSection.tsx:96
+msgid "Last 12 months"
+msgstr ""
+
+#: src/pages/workspace/sections/EmailSection.tsx:52
+msgid "Last 24 months"
+msgstr ""
+
+#: src/pages/workspace/sections/SocialSection.tsx:88
+msgid "last 28 days"
+msgstr ""
+
+#: src/pages/workspace/sections/SocialSection.tsx:40
+#: src/pages/workspace/sections/VoiceSection.tsx:83
+#: src/pages/workspace/sections/VoiceSection.tsx:120
+msgid "Last 30 days"
+msgstr ""
+
+#: src/pages/workspace/sections/LeasingSection.tsx:61
+msgid "last 30 days vs prior 30"
+msgstr ""
+
+#: src/pages/workspace/sections/SocialSection.tsx:39
+#: src/pages/workspace/sections/VoiceSection.tsx:82
+#: src/pages/workspace/sections/VoiceSection.tsx:119
+msgid "Last 7 days"
+msgstr ""
+
+#: src/pages/workspace/sections/SocialSection.tsx:41
+#: src/pages/workspace/sections/VoiceSection.tsx:84
+#: src/pages/workspace/sections/VoiceSection.tsx:121
+msgid "Last 90 days"
 msgstr ""
 
 #: src/pages/crm/CrmContacts.tsx:358
@@ -2665,30 +2930,35 @@ msgstr ""
 msgid "Last name"
 msgstr ""
 
-#: src/pages/workspace/panels/SystemPanel.tsx:95
-msgid "Last records"
-msgstr ""
-
-#: src/pages/workspace/panels/SystemPanel.tsx:83
-msgid "Last signal"
+#: src/pages/workspace/sections/UtilitiesSection.tsx:228
+msgid "Lease"
 msgstr ""
 
 #. placeholder {0}: charge.leaseId
-#. placeholder {0}: lease.leaseId
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:104
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:167
+#. placeholder {0}: row.leaseId
+#: src/pages/workspace/sections/LeasingSection.tsx:127
+#: src/pages/workspace/sections/UtilitiesSection.tsx:159
 msgid "Lease {0}"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:31
-#: src/pages/workspace/PipelineMap.tsx:80
-#: src/pages/workspace/WorkspaceRail.tsx:38
+#. placeholder {0}: lease.leaseId
+#: src/pages/workspace/sections/UtilitiesSection.tsx:236
+msgid "Lease #{0}"
+msgstr ""
+
+#: src/pages/workspace/PipelineMap.tsx:116
+#: src/pages/workspace/sections/LeasingSection.tsx:49
+#: src/pages/workspace/WorkspaceView.tsx:84
 msgid "Leasing"
 msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:237
 msgid "Leave"
 msgstr "退出"
+
+#: src/pages/workspace/sections/SystemSection.tsx:162
+msgid "Legend"
+msgstr ""
 
 #: src/pages/RoutineEditor.tsx:47
 msgid "Linear issue"
@@ -2698,7 +2968,7 @@ msgstr "Linear 工单"
 msgid "Link a chat app"
 msgstr "关联聊天应用"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:258
+#: src/pages/workspace/sections/EmailSection.tsx:352
 msgid "Links"
 msgstr ""
 
@@ -2710,19 +2980,15 @@ msgstr ""
 msgid "List endpoints take <0>limit</0> (1–100, default 50) and return <1>next_cursor</1>. Pass it back as <2>cursor</2> to fetch the next page; a <3>null</3> cursor means you have everything. Cursors are stable across writes, so syncs never skip or repeat rows."
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:73
-msgid "List health"
-msgstr ""
-
 #: src/pages/CallView.tsx:245
 msgid "Listening…"
 msgstr "正在听…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:139
+#: src/pages/workspace/sections/LeasingSection.tsx:179
 msgid "Listing type"
 msgstr ""
 
-#: src/pages/Shell.tsx:4445
+#: src/pages/Shell.tsx:4487
 msgid "Load earlier messages"
 msgstr "加载更早的消息"
 
@@ -2730,7 +2996,7 @@ msgstr "加载更早的消息"
 msgid "Load more"
 msgstr ""
 
-#: src/pages/workspace/bits.tsx:159
+#: src/pages/workspace/bits.tsx:161
 msgid "Loading"
 msgstr ""
 
@@ -2771,7 +3037,7 @@ msgstr "正在加载语音提供方…"
 #: src/pages/crm/CrmView.tsx:197
 #: src/pages/Onboarding.tsx:214
 #: src/pages/PeerMessagesOverlay.tsx:160
-#: src/pages/Shell.tsx:4445
+#: src/pages/Shell.tsx:4487
 msgid "Loading…"
 msgstr "加载中…"
 
@@ -2779,7 +3045,7 @@ msgstr "加载中…"
 msgid "Local"
 msgstr "本地"
 
-#: src/pages/Shell.tsx:3084
+#: src/pages/Shell.tsx:3126
 msgid "Log out"
 msgstr "退出登录"
 
@@ -2795,7 +3061,7 @@ msgstr "正在查找仓库…"
 msgid "Lost"
 msgstr ""
 
-#: src/pages/Shell.tsx:6393
+#: src/pages/Shell.tsx:6435
 msgid "Low"
 msgstr "低"
 
@@ -2839,11 +3105,19 @@ msgstr ""
 msgid "Mark won"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:145
+#: src/pages/workspace/sections/LeasingSection.tsx:245
 msgid "Market"
 msgstr ""
 
-#: src/pages/Shell.tsx:6397
+#: src/pages/workspace/sections/LeasingSection.tsx:185
+msgid "Market rent"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:96
+msgid "matched to an active lease"
+msgstr ""
+
+#: src/pages/Shell.tsx:6439
 msgid "Max"
 msgstr "最大"
 
@@ -2857,7 +3131,7 @@ msgstr "MCP 服务器"
 msgid "Meaning"
 msgstr ""
 
-#: src/pages/Shell.tsx:6394
+#: src/pages/Shell.tsx:6436
 msgid "Medium"
 msgstr "中"
 
@@ -2871,15 +3145,15 @@ msgstr "成员（选择 {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} 个）"
 
 #: src/pages/KnowledgeSection.tsx:25
 #: src/pages/MemorySettingsOverlay.tsx:135
-#: src/pages/Shell.tsx:3037
+#: src/pages/Shell.tsx:3079
 msgid "Memory"
 msgstr "记忆"
 
-#: src/pages/Shell.tsx:6277
+#: src/pages/Shell.tsx:6319
 msgid "Memory scope"
 msgstr "记忆范围"
 
-#: src/pages/Shell.tsx:4903
+#: src/pages/Shell.tsx:4945
 msgid "Mentions"
 msgstr "提及"
 
@@ -2888,29 +3162,29 @@ msgstr "提及"
 msgid "Message"
 msgstr "消息"
 
-#: src/pages/Shell.tsx:5186
-#: src/pages/Shell.tsx:5337
+#: src/pages/Shell.tsx:5228
+#: src/pages/Shell.tsx:5379
 msgid "Message"
 msgstr "消息"
 
-#: src/pages/Shell.tsx:5182
-#: src/pages/Shell.tsx:5186
+#: src/pages/Shell.tsx:5224
+#: src/pages/Shell.tsx:5228
 msgid "Message {activeName}"
 msgstr "给 {activeName} 发消息"
 
-#: src/pages/Shell.tsx:4822
+#: src/pages/Shell.tsx:4864
 msgid "Message composer"
 msgstr "消息输入框"
 
-#: src/pages/Shell.tsx:5616
+#: src/pages/Shell.tsx:5658
 msgid "Message from {peer}"
 msgstr "来自 {peer} 的消息"
 
-#: src/pages/Shell.tsx:5183
+#: src/pages/Shell.tsx:5225
 msgid "Message…"
 msgstr "消息…"
 
-#: src/pages/Shell.tsx:5616
+#: src/pages/Shell.tsx:5658
 msgid "Messaged {peer}"
 msgstr "已发给 {peer}"
 
@@ -2923,7 +3197,7 @@ msgstr "消息"
 msgid "Microphone failed"
 msgstr "麦克风失败"
 
-#: src/pages/Shell.tsx:6396
+#: src/pages/Shell.tsx:6438
 msgid "Minimal"
 msgstr "最低"
 
@@ -2939,8 +3213,12 @@ msgstr "分钟"
 msgid "minutes"
 msgstr "分钟"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:68
+#: src/pages/workspace/sections/EmailSection.tsx:139
 msgid "Mobile"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:264
+msgid "Mode"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:433
@@ -2949,7 +3227,7 @@ msgstr ""
 #: src/pages/Onboarding.tsx:298
 #: src/pages/Onboarding.tsx:347
 #: src/pages/Onboarding.tsx:355
-#: src/pages/Shell.tsx:6233
+#: src/pages/Shell.tsx:6275
 msgid "Model"
 msgstr "模型"
 
@@ -2971,7 +3249,7 @@ msgid "Model updated."
 msgstr "模型已更新。"
 
 #: src/pages/ModelSettingsOverlay.tsx:305
-#: src/pages/Shell.tsx:3024
+#: src/pages/Shell.tsx:3066
 msgid "Models"
 msgstr "模型"
 
@@ -2997,7 +3275,7 @@ msgstr ""
 msgid "Monthly"
 msgstr "每月"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:91
+#: src/pages/workspace/sections/LeasingSection.tsx:95
 msgid "Monthly submissions"
 msgstr ""
 
@@ -3010,7 +3288,7 @@ msgstr ""
 msgid "Move {0} to section"
 msgstr "将 {0} 移到分组"
 
-#: src/pages/Shell.tsx:6725
+#: src/pages/Shell.tsx:6767
 msgid "Move them to your shared memory."
 msgstr "把它们移到共享记忆。"
 
@@ -3026,15 +3304,15 @@ msgstr "移动到"
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:516
 #: src/pages/RoutineEditor.tsx:296
-#: src/pages/Shell.tsx:6022
-#: src/pages/Shell.tsx:6189
-#: src/pages/Shell.tsx:6469
-#: src/pages/Shell.tsx:6551
+#: src/pages/Shell.tsx:6064
+#: src/pages/Shell.tsx:6231
+#: src/pages/Shell.tsx:6511
+#: src/pages/Shell.tsx:6593
 msgid "Name"
 msgstr "名称"
 
 #: src/pages/Onboarding.tsx:520
-#: src/pages/Shell.tsx:6027
+#: src/pages/Shell.tsx:6069
 msgid "Name this bot"
 msgstr "给这个 Bot 命名"
 
@@ -3046,20 +3324,32 @@ msgstr "给这个群组命名"
 msgid "Name this routine"
 msgstr "给这个例行任务命名"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:249
+#: src/pages/workspace/sections/TeamSection.tsx:105
+msgid "need review"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:283
 msgid "Needed a person"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:104
+msgid "Needs attention"
 msgstr ""
 
 #: src/pages/ActivityList.tsx:155
 msgid "Needs input"
 msgstr "需要输入"
 
+#: src/pages/workspace/sections/TeamSection.tsx:65
+msgid "Needs review"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:157
 msgid "Needs takeover"
 msgstr "需要接管"
 
-#: src/pages/Shell.tsx:2575
-#: src/pages/Shell.tsx:6010
+#: src/pages/Shell.tsx:2612
+#: src/pages/Shell.tsx:6052
 msgid "New bot"
 msgstr "新建 Bot"
 
@@ -3073,8 +3363,12 @@ msgstr ""
 msgid "New deal"
 msgstr ""
 
+#: src/pages/workspace/sections/SocialSection.tsx:110
+msgid "New followers"
+msgstr ""
+
 #: src/pages/GroupPanel.tsx:98
-#: src/pages/Shell.tsx:2585
+#: src/pages/Shell.tsx:2622
 msgid "New group"
 msgstr "新建群组"
 
@@ -3096,7 +3390,7 @@ msgid "New pipeline"
 msgstr ""
 
 #: src/pages/BotContextMenu.tsx:130
-#: src/pages/Shell.tsx:6545
+#: src/pages/Shell.tsx:6587
 msgid "New section"
 msgstr "新建分组"
 
@@ -3104,8 +3398,8 @@ msgstr "新建分组"
 msgid "New skill"
 msgstr ""
 
-#: src/pages/Shell.tsx:2597
-#: src/pages/Shell.tsx:6465
+#: src/pages/Shell.tsx:2634
+#: src/pages/Shell.tsx:6507
 msgid "New space"
 msgstr "新建工作区"
 
@@ -3116,17 +3410,12 @@ msgstr ""
 #: src/pages/crm/CrmModuleSheet.tsx:58
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:712
-#: src/pages/workspace/panels/VoicePanel.tsx:158
+#: src/pages/workspace/bits.tsx:752
 msgid "No"
 msgstr ""
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:40
+#: src/pages/workspace/sections/UtilitiesSection.tsx:55
 msgid "No active lease"
-msgstr ""
-
-#: src/pages/workspace/panels/TeamPanel.tsx:106
-msgid "No activity yet"
 msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:253
@@ -3145,21 +3434,25 @@ msgstr "无认证"
 msgid "No authentication"
 msgstr "无认证"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:62
+#: src/pages/workspace/sections/UtilitiesSection.tsx:117
 msgid "No bills yet"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:131
-msgid "No calls in this window"
+#: src/pages/workspace/sections/VoiceSection.tsx:192
+msgid "No calls in this range"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:100
-msgid "No campaigns in this window"
+#: src/pages/workspace/sections/EmailSection.tsx:168
+msgid "No campaigns in this range"
 msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:139
 msgid "No chat apps linked yet."
 msgstr "还没有关联聊天应用。"
+
+#: src/pages/workspace/sections/EmailSection.tsx:226
+msgid "No clicks recorded"
+msgstr ""
 
 #. placeholder {0}: item.name
 #: src/pages/PluginsOverlay.tsx:183
@@ -3175,9 +3468,17 @@ msgstr ""
 msgid "No contacts yet"
 msgstr ""
 
+#: src/pages/workspace/sections/SkillsSection.tsx:65
+msgid "No context saved yet"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:12
 msgid "No credential saved"
 msgstr "未保存凭据"
+
+#: src/pages/workspace/sections/SystemSection.tsx:125
+msgid "no data"
+msgstr ""
 
 #: src/pages/crm/CrmHome.tsx:127
 msgid "No deals yet"
@@ -3195,7 +3496,7 @@ msgstr "此工作区中还没有 git 仓库。机器人在仓库中工作后，�
 msgid "No group chats yet."
 msgstr "还没有群聊。"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:106
+#: src/pages/workspace/sections/LeasingSection.tsx:118
 msgid "No leases expire soon"
 msgstr ""
 
@@ -3227,15 +3528,20 @@ msgstr "还没有与 {peerBotName} 的消息。"
 msgid "No model catalog is available."
 msgstr "没有可用的模型目录。"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:43
+#. placeholder {0}: formatAgeHours(pipe.ageHours)
+#: src/pages/workspace/sections/SystemSection.tsx:122
+msgid "no new data for {0}"
+msgstr ""
+
+#: src/pages/workspace/sections/SystemSection.tsx:66
 msgid "No pipes configured"
 msgstr ""
 
-#: src/pages/workspace/panels/SocialPanel.tsx:87
-msgid "No posts in this window"
+#: src/pages/workspace/sections/SocialSection.tsx:135
+msgid "No posts in this range"
 msgstr ""
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:141
+#: src/pages/workspace/sections/UtilitiesSection.tsx:202
 msgid "No properties mapped yet"
 msgstr ""
 
@@ -3243,11 +3549,11 @@ msgstr ""
 msgid "No providers found."
 msgstr "未找到提供方。"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:161
+#: src/pages/workspace/sections/LeasingSection.tsx:196
 msgid "No rentals match"
 msgstr ""
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:38
+#: src/pages/workspace/sections/ReportsSection.tsx:53
 msgid "No reports yet"
 msgstr ""
 
@@ -3259,7 +3565,7 @@ msgstr "无结果"
 msgid "No runs yet"
 msgstr "还没有运行记录"
 
-#: src/pages/workspace/panels/SkillsPanel.tsx:24
+#: src/pages/workspace/sections/SkillsSection.tsx:48
 msgid "No skills saved yet"
 msgstr ""
 
@@ -3271,11 +3577,11 @@ msgstr ""
 msgid "No trigger"
 msgstr "无触发器"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:80
+#: src/pages/workspace/sections/TeamSection.tsx:109
 msgid "No workers yet"
 msgstr ""
 
-#: src/pages/workspace/WorkspaceView.tsx:103
+#: src/pages/workspace/WorkspaceView.tsx:110
 msgid "No workspace is connected to this account."
 msgstr ""
 
@@ -3300,15 +3606,15 @@ msgstr "未连接"
 msgid "Not in the plugin catalog"
 msgstr "不在插件目录中"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:153
+#: src/pages/workspace/sections/UtilitiesSection.tsx:212
 msgid "Not matched to a property"
 msgstr ""
 
-#: src/pages/Shell.tsx:7218
+#: src/pages/Shell.tsx:7260
 msgid "Not now"
 msgstr "暂不"
 
-#: src/pages/workspace/PipelineMap.tsx:85
+#: src/pages/workspace/PipelineMap.tsx:121
 msgid "Not synced yet"
 msgstr ""
 
@@ -3317,7 +3623,7 @@ msgstr ""
 msgid "Notes"
 msgstr ""
 
-#: src/pages/workspace/panels/TeamPanel.tsx:128
+#: src/pages/workspace/sections/TeamSection.tsx:171
 msgid "Nothing logged yet"
 msgstr ""
 
@@ -3327,8 +3633,10 @@ msgid "Nothing remembered yet"
 msgstr ""
 
 #: src/pages/crm/CrmHome.tsx:284
-#: src/pages/workspace/bits.tsx:312
-#: src/pages/workspace/bits.tsx:415
+#: src/pages/workspace/bits.tsx:354
+#: src/pages/workspace/bits.tsx:457
+#: src/pages/workspace/bits.tsx:882
+#: src/pages/workspace/bits.tsx:963
 msgid "Nothing to chart yet"
 msgstr ""
 
@@ -3361,38 +3669,50 @@ msgstr "OAuth 连接失败"
 msgid "OAuth will be available for providers that support browser authorization. Static headers work today."
 msgstr "支持浏览器授权的提供方可以使用 OAuth。静态请求头现在就可以用。"
 
+#: src/pages/workspace/sections/LeasingSection.tsx:66
+msgid "of decided applications"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:408
 msgid "On a schedule"
 msgstr "按计划"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:101
+msgid "on record"
+msgstr ""
 
 #. placeholder {0}: preset.time
 #: src/pages/RoutineSchedule.tsx:96
 msgid "on the 1st at {0}"
 msgstr "每月 1 日 {0}"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:91
+msgid "on the utility account"
+msgstr ""
+
 #: src/pages/CrmApiAccessPanel.tsx:256
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr ""
 
-#: src/pages/Shell.tsx:5269
+#: src/pages/Shell.tsx:5311
 msgid "Only use connected plugins, never the computer"
 msgstr ""
 
-#: src/pages/Shell.tsx:5267
+#: src/pages/Shell.tsx:5309
 msgid "Only use the computer and sandbox, never connected plugins"
 msgstr ""
 
 #: src/pages/crm/CrmHome.tsx:52
 #: src/pages/ScratchpadSection.tsx:157
-#: src/pages/Shell.tsx:3556
-#: src/pages/Shell.tsx:3561
-#: src/pages/Shell.tsx:5908
-#: src/pages/workspace/panels/EmailPanel.tsx:131
+#: src/pages/Shell.tsx:3598
+#: src/pages/Shell.tsx:3603
+#: src/pages/Shell.tsx:5950
+#: src/pages/workspace/sections/EmailSection.tsx:199
 msgid "Open"
 msgstr "打开"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:2652
+#: src/pages/Shell.tsx:2694
 msgid "Open {0}"
 msgstr "打开 {0}"
 
@@ -3400,27 +3720,28 @@ msgstr "打开 {0}"
 msgid "Open deals"
 msgstr ""
 
-#: src/pages/Shell.tsx:3513
+#: src/pages/Shell.tsx:3555
 msgid "Open in full window"
 msgstr "在完整窗口中打开"
 
-#: src/pages/Shell.tsx:3499
+#: src/pages/Shell.tsx:3541
 msgid "Open in new tab"
 msgstr ""
 
-#: src/pages/Shell.tsx:3134
+#: src/pages/Shell.tsx:3176
 msgid "Open navigation"
 msgstr "打开导航"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:105
+#: src/pages/workspace/sections/SocialSection.tsx:157
 msgid "Open post"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:60
+#: src/pages/workspace/Overview.tsx:88
+#: src/pages/workspace/sections/EmailSection.tsx:116
 msgid "Open rate"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:299
+#: src/pages/workspace/sections/VoiceSection.tsx:333
 msgid "Open recording"
 msgstr ""
 
@@ -3445,11 +3766,11 @@ msgstr ""
 msgid "OpenAPI document"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:218
+#: src/pages/workspace/sections/EmailSection.tsx:312
 msgid "Opened"
 msgstr ""
 
-#: src/pages/Shell.tsx:5743
+#: src/pages/Shell.tsx:5785
 msgid "Opened its thread."
 msgstr "已打开其对话。"
 
@@ -3457,7 +3778,7 @@ msgstr "已打开其对话。"
 msgid "Opening your Space…"
 msgstr "正在打开工作区…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:64
+#: src/pages/workspace/sections/EmailSection.tsx:135
 msgid "Opens by device"
 msgstr ""
 
@@ -3498,6 +3819,10 @@ msgstr "自然"
 msgid "Organization API key"
 msgstr "组织 API 密钥"
 
+#: src/pages/workspace/sections/VoiceSection.tsx:159
+msgid "Other"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx:455
 #: src/pages/Onboarding.tsx:314
 msgid "Other model…"
@@ -3507,11 +3832,7 @@ msgstr "其他模型…"
 msgid "Outbound webhooks"
 msgstr ""
 
-#: src/pages/workspace/panels/SystemPanel.tsx:29
-msgid "Overdue"
-msgstr ""
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:37
+#: src/pages/workspace/WorkspaceView.tsx:79
 msgid "Overview"
 msgstr ""
 
@@ -3527,6 +3848,10 @@ msgstr ""
 #: src/pages/ScratchpadSection.tsx:147
 msgid "Park"
 msgstr "搁置"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:53
+msgid "Pass-through"
+msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:188
 msgid "password"
@@ -3570,13 +3895,13 @@ msgstr "粘贴你的 API 密钥"
 msgid "Paused"
 msgstr "已暂停"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:53
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:44
+#: src/pages/workspace/sections/UtilitiesSection.tsx:59
 msgid "Pending"
 msgstr ""
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:67
-msgid "per month"
+#. placeholder {0}: formatNumber(data.leases.expiringNext90d)
+#: src/pages/workspace/sections/LeasingSection.tsx:82
+msgid "per month · {0} expiring in 90d"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:519
@@ -3587,7 +3912,7 @@ msgstr "个人凭据"
 #: src/pages/crm/CrmContacts.tsx:377
 #: src/pages/crm/CrmContactsSheet.tsx:109
 #: src/pages/crm/CrmModuleSheet.tsx:259
-#: src/pages/workspace/panels/VoicePanel.tsx:142
+#: src/pages/workspace/sections/VoiceSection.tsx:205
 msgid "Phone"
 msgstr ""
 
@@ -3599,15 +3924,16 @@ msgstr "选择语音"
 msgid "Pin"
 msgstr "置顶"
 
-#: src/pages/workspace/panels/SystemPanel.tsx:47
-msgid "Pipe"
-msgstr ""
-
 #: src/pages/crm/CrmView.tsx:29
 msgid "Pipeline"
 msgstr ""
 
-#: src/pages/workspace/PipelineMap.tsx:293
+#. placeholder {0}: workspace.name
+#: src/pages/workspace/sections/SystemSection.tsx:51
+msgid "Pipeline health for {0} · every pipe feeds this workspace's private data vault"
+msgstr ""
+
+#: src/pages/workspace/PipelineMap.tsx:354
 msgid "Pipeline map"
 msgstr ""
 
@@ -3627,14 +3953,14 @@ msgstr ""
 msgid "Playing…"
 msgstr "播放中…"
 
-#: src/pages/Shell.tsx:5258
+#: src/pages/Shell.tsx:5300
 msgid "Plugins only"
 msgstr ""
 
 #. placeholder {0}: activePreview.port
 #. placeholder {0}: block.port
-#: src/pages/Shell.tsx:3490
-#: src/pages/Shell.tsx:5899
+#: src/pages/Shell.tsx:3532
+#: src/pages/Shell.tsx:5941
 msgid "Port {0}"
 msgstr ""
 
@@ -3642,16 +3968,16 @@ msgstr ""
 msgid "POST to"
 msgstr "POST 到"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:45
+#: src/pages/workspace/sections/UtilitiesSection.tsx:60
 msgid "Posted"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:253
+#: src/pages/workspace/sections/EmailSection.tsx:347
 msgid "Preheader"
 msgstr ""
 
-#: src/pages/Shell.tsx:3396
-#: src/pages/Shell.tsx:5896
+#: src/pages/Shell.tsx:3438
+#: src/pages/Shell.tsx:5938
 msgid "Preview"
 msgstr ""
 
@@ -3660,20 +3986,30 @@ msgstr ""
 msgid "Preview {0}"
 msgstr "预览 {0}"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:212
-msgid "Previous period"
-msgstr ""
-
-#: src/pages/Shell.tsx:5965
+#: src/pages/Shell.tsx:6007
 msgid "Private"
 msgstr "私有"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:49
-msgid "Profile views 28d"
+#: src/pages/workspace/sections/SocialSection.tsx:96
+msgid "Profile views"
 msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:250
 msgid "Prompt copied"
+msgstr ""
+
+#: src/pages/workspace/sections/LeasingSection.tsx:122
+#: src/pages/workspace/sections/LeasingSection.tsx:200
+#: src/pages/workspace/sections/UtilitiesSection.tsx:206
+msgid "Property"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:87
+msgid "Property owners"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:87
+msgid "Prospective & current tenants"
 msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx:195
@@ -3689,23 +4025,24 @@ msgstr "提供方"
 msgid "Queued"
 msgstr "排队中"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:54
+#: src/pages/workspace/sections/EmailSection.tsx:90
+#: src/pages/workspace/sections/ReportsSection.tsx:69
+#: src/pages/workspace/sections/SocialSection.tsx:65
+#: src/pages/workspace/sections/VoiceSection.tsx:115
 msgid "Range"
 msgstr ""
 
-#: src/pages/workspace/panels/SocialPanel.tsx:64
+#: src/pages/workspace/sections/SocialSection.tsx:86
+#: src/pages/workspace/sections/SocialSection.tsx:105
+#: src/pages/workspace/sections/SocialSection.tsx:170
 msgid "Reach"
-msgstr ""
-
-#: src/pages/workspace/panels/SocialPanel.tsx:43
-msgid "Reach 28d"
 msgstr ""
 
 #: src/pages/DocsView.tsx:386
 msgid "read / write"
 msgstr ""
 
-#: src/pages/Shell.tsx:6309
+#: src/pages/Shell.tsx:6351
 msgid "Read replies aloud"
 msgstr "朗读回复"
 
@@ -3714,7 +4051,7 @@ msgstr "朗读回复"
 msgid "read-only"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:269
+#: src/pages/workspace/sections/VoiceSection.tsx:303
 msgid "Reason"
 msgstr ""
 
@@ -3722,11 +4059,11 @@ msgstr ""
 msgid "Recent"
 msgstr "最近"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:116
+#: src/pages/workspace/sections/TeamSection.tsx:157
 msgid "Recent activity"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:94
+#: src/pages/workspace/sections/EmailSection.tsx:160
 msgid "Recent campaigns"
 msgstr ""
 
@@ -3734,7 +4071,7 @@ msgstr ""
 msgid "Recent deals"
 msgstr ""
 
-#: src/pages/workspace/panels/SystemPanel.tsx:56
+#: src/pages/workspace/sections/SystemSection.tsx:98
 msgid "Recent runs"
 msgstr ""
 
@@ -3780,7 +4117,7 @@ msgstr "恢复会替换无法访问的电脑，并保留已保存工作区中的
 msgid "Recovering…"
 msgstr "正在恢复…"
 
-#: src/pages/workspace/panels/TeamPanel.tsx:123
+#: src/pages/workspace/sections/TeamSection.tsx:165
 msgid "Refresh"
 msgstr ""
 
@@ -3804,11 +4141,11 @@ msgstr ""
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr ""
 
-#: src/pages/workspace/panels/TeamPanel.tsx:54
+#: src/pages/workspace/sections/TeamSection.tsx:66
 msgid "Rejected"
 msgstr ""
 
-#: src/pages/Shell.tsx:5435
+#: src/pages/Shell.tsx:5477
 msgid "Release"
 msgstr "释放"
 
@@ -3828,12 +4165,12 @@ msgid "Remove \"{0}\"?"
 msgstr ""
 
 #. placeholder {0}: attachment.file.name
-#: src/pages/Shell.tsx:4889
+#: src/pages/Shell.tsx:4931
 msgid "Remove {0}"
 msgstr "移除 {0}"
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:5111
+#: src/pages/Shell.tsx:5153
 msgid "Remove mention {0}"
 msgstr "移除提及 {0}"
 
@@ -3842,7 +4179,7 @@ msgid "Remove schedule"
 msgstr "移除计划"
 
 #. placeholder {0}: selectedSkill.name
-#: src/pages/Shell.tsx:5090
+#: src/pages/Shell.tsx:5132
 msgid "Remove skill {0}"
 msgstr "移除技能 {0}"
 
@@ -3854,8 +4191,8 @@ msgstr ""
 msgid "Remove this schedule"
 msgstr "移除此计划"
 
-#: src/pages/Shell.tsx:4492
-#: src/pages/Shell.tsx:5376
+#: src/pages/Shell.tsx:4534
+#: src/pages/Shell.tsx:5418
 msgid "Remove thumbs-up"
 msgstr "取消点赞"
 
@@ -3863,7 +4200,7 @@ msgstr "取消点赞"
 msgid "Remove webhook"
 msgstr "移除 Webhook"
 
-#: src/pages/Shell.tsx:5742
+#: src/pages/Shell.tsx:5784
 msgid "Removed with chat, computer, and memory."
 msgstr "已连同对话、电脑和记忆一起移除。"
 
@@ -3878,13 +4215,10 @@ msgstr "已移除，但列表刷新失败"
 msgid "Removing…"
 msgstr "正在移除…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:118
-#: src/pages/workspace/panels/LeasingPanel.tsx:187
+#: src/pages/workspace/sections/LeasingSection.tsx:143
+#: src/pages/workspace/sections/LeasingSection.tsx:224
+#: src/pages/workspace/sections/UtilitiesSection.tsx:251
 msgid "Rent"
-msgstr ""
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:65
-msgid "Rent roll"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:118
@@ -3901,24 +4235,24 @@ msgstr "替换 API 密钥"
 msgid "Replace key"
 msgstr "替换密钥"
 
-#: src/pages/Shell.tsx:5367
+#: src/pages/Shell.tsx:5409
 msgid "Reply"
 msgstr "回复"
 
-#: src/pages/Shell.tsx:4852
+#: src/pages/Shell.tsx:4894
 msgid "Replying to {replyName}"
 msgstr "正在回复 {replyName}"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:139
+#: src/pages/workspace/sections/ReportsSection.tsx:163
 msgid "Report"
 msgstr ""
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:27
-#: src/pages/workspace/WorkspaceRail.tsx:35
+#: src/pages/workspace/sections/ReportsSection.tsx:42
+#: src/pages/workspace/WorkspaceView.tsx:81
 msgid "Reports"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:166
+#: src/pages/workspace/sections/VoiceSection.tsx:232
 msgid "Requested"
 msgstr ""
 
@@ -3949,12 +4283,8 @@ msgstr "重置你的密码"
 msgid "Resetting…"
 msgstr "正在重置…"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:274
+#: src/pages/workspace/sections/VoiceSection.tsx:308
 msgid "Resolution notes"
-msgstr ""
-
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:38
-msgid "Resolved"
 msgstr ""
 
 #: src/pages/DocsView.tsx:27
@@ -3962,8 +4292,8 @@ msgid "REST"
 msgstr ""
 
 #: src/pages/crm/CrmContacts.tsx:467
-#: src/pages/Shell.tsx:2882
-#: src/pages/Shell.tsx:2912
+#: src/pages/Shell.tsx:2924
+#: src/pages/Shell.tsx:2954
 msgid "Restore"
 msgstr "恢复"
 
@@ -4006,8 +4336,8 @@ msgid "Rotate key"
 msgstr "轮换密钥"
 
 #: src/pages/RoutineEditor.tsx:249
-#: src/pages/Shell.tsx:3744
-#: src/pages/Shell.tsx:3754
+#: src/pages/Shell.tsx:3786
+#: src/pages/Shell.tsx:3796
 msgid "Routine"
 msgstr "例行任务"
 
@@ -4024,7 +4354,11 @@ msgstr "运行时间"
 msgid "Run history"
 msgstr "运行记录"
 
-#: src/pages/Shell.tsx:3737
+#: src/pages/workspace/sections/SystemSection.tsx:177
+msgid "run history, oldest → newest"
+msgstr ""
+
+#: src/pages/Shell.tsx:3779
 msgid "Run time must be in the future."
 msgstr "运行时间必须是将来的时间。"
 
@@ -4051,7 +4385,7 @@ msgstr "正在运行…"
 #: src/pages/KnowledgeSection.tsx:363
 #: src/pages/ModelSettingsOverlay.tsx:676
 #: src/pages/RoutineEditor.tsx:478
-#: src/pages/Shell.tsx:6365
+#: src/pages/Shell.tsx:6407
 msgid "Save"
 msgstr "保存"
 
@@ -4089,13 +4423,17 @@ msgstr "说点什么。静音即发送。"
 msgid "Say yes or no, or answer in a sentence."
 msgstr "回答是或否，或一句话说明。"
 
+#: src/pages/workspace/sections/LeasingSection.tsx:80
+msgid "Scheduled rent"
+msgstr ""
+
 #: src/pages/DocsView.tsx:113
 #: src/pages/DocsView.tsx:166
 msgid "Scope"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:940
-#: src/pages/Shell.tsx:2608
+#: src/pages/Shell.tsx:2645
 msgid "Search"
 msgstr "搜索"
 
@@ -4104,8 +4442,11 @@ msgstr "搜索"
 msgid "Search apps"
 msgstr "搜索应用"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:121
-#: src/pages/workspace/panels/VoicePanel.tsx:122
+#: src/pages/workspace/sections/VoiceSection.tsx:182
+msgid "Search caller, phone, summary…"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:183
 msgid "Search calls"
 msgstr ""
 
@@ -4131,8 +4472,8 @@ msgstr "搜索提供方和模型"
 msgid "Searching…"
 msgstr "正在搜索…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:144
-#: src/pages/workspace/panels/LeasingPanel.tsx:199
+#: src/pages/workspace/sections/LeasingSection.tsx:184
+#: src/pages/workspace/sections/LeasingSection.tsx:243
 msgid "Section 8"
 msgstr ""
 
@@ -4144,12 +4485,12 @@ msgstr ""
 msgid "Select"
 msgstr ""
 
-#: src/pages/Shell.tsx:3166
+#: src/pages/Shell.tsx:3208
 msgid "Select a bot"
 msgstr "选择 Bot"
 
-#: src/pages/Shell.tsx:5204
-#: src/pages/Shell.tsx:5226
+#: src/pages/Shell.tsx:5246
+#: src/pages/Shell.tsx:5268
 msgid "Send"
 msgstr "发送"
 
@@ -4184,15 +4525,14 @@ msgstr ""
 msgid "Sending…"
 msgstr "正在发送…"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:58
-#: src/pages/workspace/panels/EmailPanel.tsx:119
-#: src/pages/workspace/panels/EmailPanel.tsx:215
-#: src/pages/workspace/panels/ReportsPanel.tsx:79
+#: src/pages/workspace/sections/EmailSection.tsx:187
+#: src/pages/workspace/sections/EmailSection.tsx:305
+#: src/pages/workspace/sections/ReportsSection.tsx:94
 msgid "Sent"
 msgstr ""
 
-#. placeholder {0}: row.sentTo
-#: src/pages/workspace/panels/ReportsPanel.tsx:114
+#. placeholder {0}: data.sentTo
+#: src/pages/workspace/sections/ReportsSection.tsx:132
 msgid "Sent to {0}"
 msgstr ""
 
@@ -4210,7 +4550,7 @@ msgstr "服务器名称"
 msgid "Server URL"
 msgstr "服务器 URL"
 
-#: src/pages/Shell.tsx:3175
+#: src/pages/Shell.tsx:3217
 msgid "Set up voice to call"
 msgstr "设置通话语音"
 
@@ -4218,15 +4558,15 @@ msgstr "设置通话语音"
 msgid "Set up with an AI agent"
 msgstr ""
 
-#: src/pages/workspace/panels/TeamPanel.tsx:48
-#: src/pages/workspace/PipelineMap.tsx:218
+#: src/pages/workspace/PipelineMap.tsx:263
+#: src/pages/workspace/sections/TeamSection.tsx:60
 msgid "Setting up"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:115
-#: src/pages/Shell.tsx:3001
-#: src/pages/Shell.tsx:3011
-#: src/pages/Shell.tsx:3394
+#: src/pages/Shell.tsx:3043
+#: src/pages/Shell.tsx:3053
+#: src/pages/Shell.tsx:3436
 msgid "Settings"
 msgstr "设置"
 
@@ -4234,11 +4574,11 @@ msgstr "设置"
 msgid "Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and the CRM tools appear in every conversation."
 msgstr ""
 
-#: src/pages/Shell.tsx:5280
+#: src/pages/Shell.tsx:5322
 msgid "Settings: General"
 msgstr "设置：通用"
 
-#: src/pages/Shell.tsx:5282
+#: src/pages/Shell.tsx:5324
 msgid "Settings: Usage"
 msgstr "设置：用量"
 
@@ -4248,7 +4588,7 @@ msgid "Setup help"
 msgstr "设置帮助"
 
 #: src/pages/MemorySettingsOverlay.tsx:40
-#: src/pages/Shell.tsx:6283
+#: src/pages/Shell.tsx:6325
 msgid "Shared"
 msgstr "共享"
 
@@ -4260,21 +4600,30 @@ msgstr ""
 msgid "Sheet"
 msgstr ""
 
-#: src/pages/Shell.tsx:3409
-#: src/pages/Shell.tsx:3423
-#: src/pages/Shell.tsx:3435
+#. placeholder {0}: formatNumber(data.recentCampaigns.length)
+#: src/pages/workspace/sections/EmailSection.tsx:219
+msgid "Show all {0}"
+msgstr ""
+
+#: src/pages/Shell.tsx:3451
+#: src/pages/Shell.tsx:3465
+#: src/pages/Shell.tsx:3477
 msgid "Show computer"
 msgstr "显示电脑"
 
-#: src/pages/Shell.tsx:3423
+#: src/pages/workspace/sections/EmailSection.tsx:218
+msgid "Show fewer"
+msgstr ""
+
+#: src/pages/Shell.tsx:3465
 msgid "Show files"
 msgstr "显示文件"
 
-#: src/pages/Shell.tsx:3192
+#: src/pages/Shell.tsx:3234
 msgid "Show live activity"
 msgstr ""
 
-#: src/pages/workspace/panels/TeamPanel.tsx:165
+#: src/pages/workspace/sections/TeamSection.tsx:208
 msgid "Show more"
 msgstr ""
 
@@ -4282,11 +4631,11 @@ msgstr ""
 msgid "Show password"
 msgstr "显示密码"
 
-#: src/pages/Shell.tsx:3409
+#: src/pages/Shell.tsx:3451
 msgid "Show preview"
 msgstr ""
 
-#: src/pages/Shell.tsx:3435
+#: src/pages/Shell.tsx:3477
 msgid "Show settings"
 msgstr "显示设置"
 
@@ -4316,17 +4665,16 @@ msgid "Site"
 msgstr ""
 
 #. placeholder {0}: skill.name
-#: src/pages/Shell.tsx:4950
+#: src/pages/Shell.tsx:4992
 msgid "Skill {0}"
 msgstr "技能 {0}"
 
 #: src/pages/KnowledgeSection.tsx:26
-#: src/pages/workspace/panels/SkillsPanel.tsx:16
-#: src/pages/workspace/WorkspaceRail.tsx:41
+#: src/pages/workspace/WorkspaceView.tsx:87
 msgid "Skills"
 msgstr ""
 
-#: src/pages/Shell.tsx:5442
+#: src/pages/Shell.tsx:5484
 msgid "Skip"
 msgstr "跳过"
 
@@ -4338,12 +4686,12 @@ msgstr "暂时跳过"
 msgid "Skip or deploy key"
 msgstr "跳过或使用部署密钥"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:46
+#: src/pages/workspace/sections/UtilitiesSection.tsx:61
 msgid "Skipped"
 msgstr ""
 
 #. placeholder {0}: skipped.join(", ")
-#: src/pages/Shell.tsx:1984
+#: src/pages/Shell.tsx:2021
 msgid "Skipped {0}"
 msgstr "已跳过 {0}"
 
@@ -4351,14 +4699,12 @@ msgstr "已跳过 {0}"
 msgid "Slack message"
 msgstr "Slack 消息"
 
-#: src/pages/workspace/panels/SocialPanel.tsx:26
-#: src/pages/workspace/PipelineMap.tsx:78
-#: src/pages/workspace/WorkspaceRail.tsx:37
+#: src/pages/workspace/PipelineMap.tsx:114
+#: src/pages/workspace/WorkspaceView.tsx:83
 msgid "Social"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:76
-#: src/pages/workspace/panels/EmailPanel.tsx:242
+#: src/pages/workspace/sections/EmailSection.tsx:336
 msgid "Soft bounces"
 msgstr ""
 
@@ -4367,15 +4713,15 @@ msgstr ""
 msgid "Software update"
 msgstr "软件更新"
 
-#: src/pages/workspace/PipelineMap.tsx:156
+#: src/pages/workspace/PipelineMap.tsx:196
 msgid "Source"
 msgstr ""
 
-#: src/pages/workspace/PipelineMap.tsx:281
+#: src/pages/workspace/PipelineMap.tsx:341
 msgid "Sources"
 msgstr ""
 
-#: src/pages/Shell.tsx:6243
+#: src/pages/Shell.tsx:6285
 msgid "Space default"
 msgstr "工作区默认"
 
@@ -4383,16 +4729,16 @@ msgstr "工作区默认"
 msgid "Space stops it · Esc hangs up"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:243
+#: src/pages/workspace/sections/EmailSection.tsx:337
 msgid "Spam"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:78
+#: src/pages/workspace/sections/EmailSection.tsx:151
 msgid "Spam complaints"
 msgstr ""
 
-#: src/pages/Shell.tsx:5585
-#: src/pages/Shell.tsx:5840
+#: src/pages/Shell.tsx:5627
+#: src/pages/Shell.tsx:5882
 msgid "Speak"
 msgstr "朗读"
 
@@ -4404,8 +4750,8 @@ msgstr "朗读 + 转写"
 msgid "Speak only"
 msgstr "仅朗读"
 
-#: src/pages/Shell.tsx:5581
-#: src/pages/Shell.tsx:5836
+#: src/pages/Shell.tsx:5623
+#: src/pages/Shell.tsx:5878
 msgid "Speak this reply"
 msgstr "朗读这条回复"
 
@@ -4426,7 +4772,7 @@ msgstr ""
 msgid "Start recording"
 msgstr "开始录制"
 
-#: src/pages/Shell.tsx:3483
+#: src/pages/Shell.tsx:3525
 msgid "Start the computer to load the preview."
 msgstr ""
 
@@ -4440,13 +4786,12 @@ msgstr "正在开始"
 msgid "Starting…"
 msgstr "正在开始…"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:162
+#: src/pages/workspace/sections/ReportsSection.tsx:186
 msgid "Stats"
 msgstr ""
 
 #: src/pages/crm/CrmContactsSheet.tsx:116
 #: src/pages/DocsView.tsx:262
-#: src/pages/workspace/panels/SystemPanel.tsx:76
 msgid "Status"
 msgstr ""
 
@@ -4458,11 +4803,11 @@ msgstr "步骤"
 msgid "Still working — talk anytime to steer it."
 msgstr ""
 
-#: src/pages/Shell.tsx:4159
-#: src/pages/Shell.tsx:4164
-#: src/pages/Shell.tsx:5214
-#: src/pages/Shell.tsx:5585
-#: src/pages/Shell.tsx:5840
+#: src/pages/Shell.tsx:4201
+#: src/pages/Shell.tsx:4206
+#: src/pages/Shell.tsx:5256
+#: src/pages/Shell.tsx:5627
+#: src/pages/Shell.tsx:5882
 msgid "Stop"
 msgstr "停止"
 
@@ -4470,12 +4815,12 @@ msgstr "停止"
 msgid "Stop & talk"
 msgstr ""
 
-#: src/pages/Shell.tsx:5005
+#: src/pages/Shell.tsx:5047
 msgid "Stop dictation"
 msgstr "停止口述"
 
-#: src/pages/Shell.tsx:5581
-#: src/pages/Shell.tsx:5836
+#: src/pages/Shell.tsx:5623
+#: src/pages/Shell.tsx:5878
 msgid "Stop speaking"
 msgstr "停止朗读"
 
@@ -4498,7 +4843,7 @@ msgstr ""
 msgid "Stored encrypted"
 msgstr "已加密存储"
 
-#: src/pages/Shell.tsx:5694
+#: src/pages/Shell.tsx:5736
 msgid "subagent"
 msgstr "子 Agent"
 
@@ -4512,9 +4857,9 @@ msgstr "提交"
 msgid "Submitted"
 msgstr "已提交"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:121
-#: src/pages/workspace/panels/VoicePanel.tsx:173
-#: src/pages/workspace/panels/VoicePanel.tsx:263
+#: src/pages/workspace/sections/ReportsSection.tsx:137
+#: src/pages/workspace/sections/VoiceSection.tsx:239
+#: src/pages/workspace/sections/VoiceSection.tsx:297
 msgid "Summary"
 msgstr ""
 
@@ -4523,21 +4868,25 @@ msgid "Switching…"
 msgstr "正在切换…"
 
 #. placeholder {0}: formatAgo(iso, i18n.locale)
-#: src/pages/workspace/PipelineMap.tsx:85
+#: src/pages/workspace/PipelineMap.tsx:121
 msgid "Synced {0}"
 msgstr ""
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:151
-#: src/pages/workspace/panels/ReportsPanel.tsx:157
+#: src/pages/workspace/sections/TeamSection.tsx:57
+msgid "Syncing now"
+msgstr ""
+
+#: src/pages/workspace/sections/ReportsSection.tsx:175
+#: src/pages/workspace/sections/ReportsSection.tsx:181
 msgid "Synthesis"
 msgstr ""
 
-#: src/pages/workspace/panels/SystemPanel.tsx:36
-#: src/pages/workspace/WorkspaceRail.tsx:42
+#: src/pages/workspace/sections/SystemSection.tsx:50
+#: src/pages/workspace/WorkspaceView.tsx:88
 msgid "System"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:69
+#: src/pages/workspace/sections/EmailSection.tsx:140
 msgid "Tablet"
 msgstr ""
 
@@ -4552,15 +4901,15 @@ msgstr ""
 msgid "Teach a task"
 msgstr "示范任务"
 
-#: src/pages/Shell.tsx:3308
+#: src/pages/Shell.tsx:3350
 msgid "Teaching in progress — stop teaching before sending a new message."
 msgstr "正在示范，发送新消息前请先停止示范。"
 
-#: src/pages/Shell.tsx:5965
+#: src/pages/Shell.tsx:6007
 msgid "Team"
 msgstr "团队"
 
-#: src/pages/Shell.tsx:6899
+#: src/pages/Shell.tsx:6941
 msgid "Team Computer"
 msgstr "团队电脑"
 
@@ -4568,7 +4917,7 @@ msgstr "团队电脑"
 msgid "Teams message"
 msgstr "Teams 消息"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:67
+#: src/pages/workspace/sections/VoiceSection.tsx:110
 msgid "Tenants"
 msgstr ""
 
@@ -4592,7 +4941,7 @@ msgstr ""
 msgid "The API did not come back. Refresh this page."
 msgstr "API 未恢复。请刷新此页面。"
 
-#: src/pages/Shell.tsx:5575
+#: src/pages/Shell.tsx:5617
 msgid "the bot"
 msgstr "机器人"
 
@@ -4624,24 +4973,24 @@ msgstr "所选记忆提供方在此构建中不可用。"
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr ""
 
-#: src/pages/Shell.tsx:6260
+#: src/pages/Shell.tsx:6302
 msgid "Thinking"
 msgstr "思考"
 
-#: src/pages/Shell.tsx:3126
+#: src/pages/Shell.tsx:3168
 msgid "this bot"
 msgstr "此机器人"
 
-#: src/pages/Shell.tsx:3517
+#: src/pages/Shell.tsx:3559
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 msgstr "此 Bot 运行在这台电脑上，而不是 Linux 桌面。Shell 和文件使用你的主目录。"
 
-#: src/pages/Shell.tsx:4212
+#: src/pages/Shell.tsx:4254
 msgid "This bot runs on this computer. There is no separate Linux desktop. Ask it to use the shell; working directories under your home folder are allowed."
 msgstr "此 Bot 运行在这台电脑上，没有单独的 Linux 桌面。让它使用 shell；主目录下的工作目录可用。"
 
-#: src/pages/Shell.tsx:6741
-#: src/pages/Shell.tsx:6820
+#: src/pages/Shell.tsx:6783
+#: src/pages/Shell.tsx:6862
 msgid "This cannot be undone."
 msgstr "此操作无法撤销。"
 
@@ -4665,7 +5014,7 @@ msgstr "无法显示此文件。"
 msgid "This file is not valid UTF-8 Markdown."
 msgstr "此文件不是有效的 UTF-8 Markdown。"
 
-#: src/pages/Shell.tsx:3125
+#: src/pages/Shell.tsx:3167
 msgid "this group"
 msgstr "此群组"
 
@@ -4677,7 +5026,12 @@ msgstr "这台 Mac"
 msgid "This Mac runs shell commands with your account, including files in your home folder. Do not turn it on for a shared or public server."
 msgstr "这台 Mac 会用你的账户运行 shell，包括主目录中的文件。不要在共享或公开服务器上开启。"
 
-#: src/pages/Shell.tsx:6626
+#: src/pages/workspace/sections/VoiceSection.tsx:85
+#: src/pages/workspace/sections/VoiceSection.tsx:122
+msgid "This month"
+msgstr ""
+
+#: src/pages/Shell.tsx:6668
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr "将永久删除全部消息并停止当前工作。聊天仍可使用。"
 
@@ -4689,7 +5043,7 @@ msgstr "此提供方不能在这里粘贴密钥。若部署已有凭据，请跳
 msgid "This reset link is invalid or expired"
 msgstr "此重置链接无效或已过期"
 
-#: src/pages/Shell.tsx:7166
+#: src/pages/Shell.tsx:7208
 msgid "This server cannot be assigned without a bot."
 msgstr "没有 Bot 就无法分配此服务器。"
 
@@ -4701,7 +5055,7 @@ msgstr "此服务器未请求浏览器授权。"
 msgid "This server is already connected. Disconnect it first to authorize again."
 msgstr "此服务器已连接。请先断开再重新授权。"
 
-#: src/pages/Shell.tsx:7205
+#: src/pages/Shell.tsx:7247
 msgid "This server uses browser sign-in. Authorize it to let your agents use its tools — a popup will open."
 msgstr "此服务器使用浏览器登录。授权后 Agent 才能使用其工具，将打开弹窗。"
 
@@ -4714,11 +5068,16 @@ msgid "Time of day"
 msgstr "时间"
 
 #: src/pages/Onboarding.tsx:525
-#: src/pages/Shell.tsx:6032
-#: src/pages/Shell.tsx:6198
-#: src/pages/workspace/panels/ReportsPanel.tsx:42
+#: src/pages/Shell.tsx:6074
+#: src/pages/Shell.tsx:6240
+#: src/pages/workspace/sections/ReportsSection.tsx:57
 msgid "Title"
 msgstr "标题"
+
+#. placeholder {0}: formatDate(lease.leaseTo)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:239
+msgid "to {0}"
+msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:171
 msgid "Tokens are shown once. Store them in your server or automation platform, never browser code."
@@ -4728,7 +5087,7 @@ msgstr ""
 msgid "Tool"
 msgstr ""
 
-#: src/pages/Shell.tsx:5046
+#: src/pages/Shell.tsx:5088
 msgid "Tool routing"
 msgstr ""
 
@@ -4740,19 +5099,19 @@ msgstr "工具源"
 msgid "Tools"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:151
-msgid "Top links"
+#: src/pages/workspace/sections/EmailSection.tsx:223
+msgid "Top clicked links"
 msgstr ""
 
-#: src/pages/workspace/panels/SocialPanel.tsx:83
+#: src/pages/workspace/sections/SocialSection.tsx:132
 msgid "Top posts"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:238
+#: src/pages/workspace/sections/EmailSection.tsx:332
 msgid "Topic"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:194
+#: src/pages/workspace/sections/VoiceSection.tsx:133
 msgid "Total calls"
 msgstr ""
 
@@ -4760,7 +5119,7 @@ msgstr ""
 msgid "Total pipeline"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:303
+#: src/pages/workspace/sections/VoiceSection.tsx:337
 msgid "Transcript"
 msgstr ""
 
@@ -4768,7 +5127,8 @@ msgstr ""
 msgid "Treg token"
 msgstr "Treg token"
 
-#: src/pages/workspace/panels/ReportsPanel.tsx:48
+#: src/pages/workspace/sections/LeasingSection.tsx:240
+#: src/pages/workspace/sections/ReportsSection.tsx:63
 msgid "Type"
 msgstr ""
 
@@ -4793,23 +5153,22 @@ msgstr "未分配"
 msgid "Unavailable"
 msgstr "不可用"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:110
-msgid "Unit"
-msgstr ""
-
 #. placeholder {0}: charge.unitNumber
 #. placeholder {0}: lease.unitNumber
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:103
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:166
+#. placeholder {0}: row.unitNumber
+#: src/pages/workspace/sections/LeasingSection.tsx:130
+#: src/pages/workspace/sections/LeasingSection.tsx:207
+#: src/pages/workspace/sections/UtilitiesSection.tsx:158
+#: src/pages/workspace/sections/UtilitiesSection.tsx:238
 msgid "Unit {0}"
 msgstr ""
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:74
+#: src/pages/workspace/sections/UtilitiesSection.tsx:129
 msgid "Unknown address"
 msgstr ""
 
-#: src/pages/workspace/panels/VoicePanel.tsx:138
-#: src/pages/workspace/panels/VoicePanel.tsx:237
+#: src/pages/workspace/sections/VoiceSection.tsx:199
+#: src/pages/workspace/sections/VoiceSection.tsx:274
 msgid "Unknown caller"
 msgstr ""
 
@@ -4817,11 +5176,11 @@ msgstr ""
 msgid "Unlink"
 msgstr "取消关联"
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:41
+#: src/pages/workspace/sections/UtilitiesSection.tsx:56
 msgid "Unmatched"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:239
+#: src/pages/workspace/sections/EmailSection.tsx:333
 msgid "Unopened"
 msgstr ""
 
@@ -4829,29 +5188,25 @@ msgstr ""
 msgid "Unpin"
 msgstr "取消置顶"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:143
-msgid "Unsubs"
-msgstr ""
-
-#: src/pages/workspace/panels/EmailPanel.tsx:87
+#: src/pages/workspace/sections/EmailSection.tsx:146
 msgid "Unsubscribe rate"
 msgstr ""
 
-#: src/pages/workspace/panels/EmailPanel.tsx:245
+#: src/pages/workspace/sections/EmailSection.tsx:339
 msgid "Unsubscribes"
 msgstr ""
 
 #. placeholder {0}: pending.file.name
-#: src/pages/Shell.tsx:2061
+#: src/pages/Shell.tsx:2098
 msgid "Unsupported file type: {0}"
 msgstr "不支持的文件类型：{0}"
 
 #: src/components/SoftwareUpdateSection.tsx:247
-#: src/pages/workspace/panels/TeamPanel.tsx:46
+#: src/pages/workspace/sections/TeamSection.tsx:58
 msgid "Up to date"
 msgstr "已是最新"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:101
+#: src/pages/workspace/sections/LeasingSection.tsx:111
 msgid "Upcoming expirations"
 msgstr ""
 
@@ -4883,7 +5238,9 @@ msgid "Updated"
 msgstr "已更新"
 
 #. placeholder {0}: formatAgo(newestPipe, i18n.locale)
-#: src/pages/workspace/PipelineMap.tsx:185
+#. placeholder {0}: formatDateTime(entry.updatedAt)
+#: src/pages/workspace/PipelineMap.tsx:226
+#: src/pages/workspace/sections/SkillsSection.tsx:142
 msgid "Updated {0}"
 msgstr ""
 
@@ -4902,7 +5259,7 @@ msgid "URLs must be HTTPS. The response includes the endpoint and its signing se
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:208
-#: src/pages/Shell.tsx:3062
+#: src/pages/Shell.tsx:3104
 msgid "Usage"
 msgstr "用量"
 
@@ -4923,13 +5280,13 @@ msgstr "使用此模型"
 msgid "Username or email"
 msgstr ""
 
-#: src/pages/Shell.tsx:5271
+#: src/pages/Shell.tsx:5313
 msgid "Uses whichever fits the task"
 msgstr ""
 
-#: src/pages/workspace/panels/UtilitiesPanel.tsx:52
-#: src/pages/workspace/PipelineMap.tsx:81
-#: src/pages/workspace/WorkspaceRail.tsx:39
+#: src/pages/workspace/PipelineMap.tsx:117
+#: src/pages/workspace/sections/UtilitiesSection.tsx:80
+#: src/pages/workspace/WorkspaceView.tsx:85
 msgid "Utilities"
 msgstr ""
 
@@ -4946,7 +5303,7 @@ msgstr ""
 msgid "Value distribution"
 msgstr ""
 
-#: src/pages/workspace/PipelineMap.tsx:282
+#: src/pages/workspace/PipelineMap.tsx:342
 msgid "Vault"
 msgstr ""
 
@@ -4962,28 +5319,25 @@ msgstr ""
 msgid "Verifying…"
 msgstr "正在校验…"
 
-#: src/pages/workspace/panels/LeasingPanel.tsx:33
-msgid "View"
+#: src/pages/workspace/sections/SkillsSection.tsx:103
+msgid "View content"
 msgstr ""
 
-#: src/pages/Shell.tsx:3050
-#: src/pages/Shell.tsx:6313
+#. placeholder {0}: formatNumber(entry.content.length)
+#: src/pages/workspace/sections/SkillsSection.tsx:137
+msgid "View content ({0} chars)"
+msgstr ""
+
+#: src/pages/Shell.tsx:3092
+#: src/pages/Shell.tsx:6355
 #: src/pages/VoiceSettingsOverlay.tsx:145
 #: src/pages/VoiceSettingsOverlay.tsx:305
-#: src/pages/workspace/panels/VoicePanel.tsx:58
-#: src/pages/workspace/PipelineMap.tsx:74
-#: src/pages/workspace/WorkspaceRail.tsx:34
+#: src/pages/workspace/PipelineMap.tsx:110
+#: src/pages/workspace/sections/VoiceSection.tsx:102
+#: src/pages/workspace/sections/VoiceSection.tsx:267
+#: src/pages/workspace/WorkspaceView.tsx:80
 msgid "Voice"
 msgstr "语音"
-
-#: src/pages/workspace/panels/VoicePanel.tsx:197
-#: src/pages/workspace/panels/VoicePanel.tsx:209
-msgid "vs previous"
-msgstr ""
-
-#: src/pages/workspace/panels/LeasingPanel.tsx:77
-msgid "vs prior 30d"
-msgstr ""
 
 #: src/components/ActivityTimeline.tsx:114
 msgid "Waiting for {name}…"
@@ -5000,7 +5354,7 @@ msgstr "等待登录…"
 msgid "Waiting for the API to come back…"
 msgstr "正在等待 API 恢复…"
 
-#: src/pages/Shell.tsx:7049
+#: src/pages/Shell.tsx:7091
 msgid "Waiting…"
 msgstr "等待中…"
 
@@ -5010,6 +5364,11 @@ msgstr "唤醒计算机"
 
 #: src/pages/Welcome.tsx:73
 msgid "Watch it work"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:89
+#: src/pages/workspace/sections/UtilitiesSection.tsx:195
+msgid "Water-billed properties"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx:458
@@ -5042,9 +5401,13 @@ msgstr ""
 msgid "Weekdays"
 msgstr "工作日"
 
-#: src/pages/Shell.tsx:6711
+#: src/pages/Shell.tsx:6753
 msgid "What about its memories?"
 msgstr "它的记忆怎么处理？"
+
+#: src/pages/workspace/sections/EmailSection.tsx:223
+msgid "What readers acted on"
+msgstr ""
 
 #: src/components/teach/TeachComputerOverlay.tsx:185
 msgid "What result will you demonstrate?"
@@ -5054,8 +5417,12 @@ msgstr "你要示范什么结果？"
 msgid "What should this routine do each time it runs?"
 msgstr "每次运行时，这个例行任务应做什么？"
 
+#: src/pages/workspace/sections/TeamSection.tsx:158
+msgid "What the team logged, newest first"
+msgstr ""
+
 #: src/pages/Onboarding.tsx:538
-#: src/pages/Shell.tsx:6047
+#: src/pages/Shell.tsx:6089
 msgid "What this bot is for"
 msgstr "这个 Bot 是做什么的"
 
@@ -5063,7 +5430,11 @@ msgstr "这个 Bot 是做什么的"
 msgid "What to return"
 msgstr "返回什么"
 
-#: src/pages/workspace/panels/VoicePanel.tsx:145
+#: src/pages/workspace/sections/SkillsSection.tsx:39
+msgid "What your AI has learned"
+msgstr ""
+
+#: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr ""
 
@@ -5088,11 +5459,6 @@ msgstr ""
 msgid "Where should bots run?"
 msgstr "Bot 应在哪里运行？"
 
-#: src/pages/workspace/panels/EmailPanel.tsx:36
-#: src/pages/workspace/panels/VoicePanel.tsx:72
-msgid "Window"
-msgstr ""
-
 #: src/pages/crm/CrmHome.tsx:53
 msgid "Won"
 msgstr ""
@@ -5101,28 +5467,24 @@ msgstr ""
 msgid "Won revenue"
 msgstr ""
 
-#: src/pages/workspace/panels/TeamPanel.tsx:45
-msgid "Working"
-msgstr ""
-
 #: src/pages/Auth.tsx:236
 #: src/pages/Auth.tsx:351
 #: src/pages/CallView.tsx:244
 msgid "Working…"
 msgstr "处理中…"
 
-#: src/pages/Shell.tsx:2941
-#: src/pages/workspace/WorkspaceView.tsx:117
+#: src/pages/Shell.tsx:2983
+#: src/pages/workspace/WorkspaceView.tsx:128
 msgid "Workspace"
+msgstr ""
+
+#: src/pages/workspace/sections/SkillsSection.tsx:58
+msgid "Workspace context"
 msgstr ""
 
 #: src/components/FilesPanel.tsx:395
 msgid "workspace root"
 msgstr "工作区根目录"
-
-#: src/pages/workspace/WorkspaceRail.tsx:71
-msgid "Workspace sections"
-msgstr ""
 
 #: src/pages/DocsView.tsx:199
 msgid "Writes need the <0>crm:write</0> scope. Upsert is the safest way in — it matches on <1>source</1> + <2>external_id</2> (or email) so replaying the same call never duplicates a contact:"
@@ -5131,14 +5493,12 @@ msgstr ""
 #: src/pages/crm/CrmModuleSheet.tsx:56
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
-#: src/pages/workspace/bits.tsx:712
-#: src/pages/workspace/panels/LeasingPanel.tsx:201
-#: src/pages/workspace/panels/VoicePanel.tsx:156
+#: src/pages/workspace/bits.tsx:752
 msgid "Yes"
 msgstr ""
 
-#: src/pages/Shell.tsx:1758
-#: src/pages/Shell.tsx:2494
+#: src/pages/Shell.tsx:1795
+#: src/pages/Shell.tsx:2531
 msgid "You"
 msgstr "你"
 
@@ -5150,9 +5510,13 @@ msgstr "如果没有自动跳转，可以关闭此标签页。"
 msgid "You can close this window."
 msgstr "可以关闭此窗口。"
 
-#: src/pages/Shell.tsx:4149
+#: src/pages/Shell.tsx:4191
 msgid "You have control"
 msgstr "你已接管"
+
+#: src/pages/workspace/sections/TeamSection.tsx:92
+msgid "Your AI team"
+msgstr ""
 
 #: src/pages/Auth.tsx:150
 msgid "Your email address"

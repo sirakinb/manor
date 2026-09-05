@@ -319,6 +319,7 @@ export const SocialSnapshotSchema = z.object({
       day: DayString,
       reach: z.number().int().nullable(),
       followers: z.number().int().nullable(),
+      newFollowers: z.number().int().nullable(),
     }),
   ),
   topPosts: z.array(
@@ -356,6 +357,7 @@ export const LeasingSnapshotSchema = z.object({
     upcomingExpirations: z.array(
       z.object({
         leaseId: z.number().int(),
+        propertyAddress: z.string().nullable(),
         unitNumber: z.string().nullable(),
         leaseTo: DayString,
         rent: z.number().nullable(),

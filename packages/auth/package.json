@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@rakazo/adapter-kit": "workspace:*",
+    "@rakazo/brands": "workspace:*",
     "@rakazo/core": "workspace:*",
     "@rakazo/db": "workspace:*",
     "better-auth": "^1.6.27"

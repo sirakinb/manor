@@ -1,37 +1,63 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceOverview, WorkspaceSummary } from "@rakazo/contracts";
-import { X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { rpc } from "../../lib/rpc";
 import { isSectionKey, Loading, type SectionKey } from "./bits";
-import { PipelineMap } from "./PipelineMap";
-import { EmailPanel } from "./panels/EmailPanel";
-import { LeasingPanel } from "./panels/LeasingPanel";
-import { ReportsPanel } from "./panels/ReportsPanel";
-import { SkillsPanel } from "./panels/SkillsPanel";
-import { SocialPanel } from "./panels/SocialPanel";
-import { SystemPanel } from "./panels/SystemPanel";
-import { TeamPanel } from "./panels/TeamPanel";
-import { UtilitiesPanel } from "./panels/UtilitiesPanel";
-import { VoicePanel } from "./panels/VoicePanel";
-import { railSections, useSectionLabels, WorkspaceRail } from "./WorkspaceRail";
+import { Overview } from "./Overview";
+import { EmailSection } from "./sections/EmailSection";
+import { LeasingSection } from "./sections/LeasingSection";
+import { ReportsSection } from "./sections/ReportsSection";
+import { SkillsSection } from "./sections/SkillsSection";
+import { SocialSection } from "./sections/SocialSection";
+import { SystemSection } from "./sections/SystemSection";
+import { TeamSection } from "./sections/TeamSection";
+import { UtilitiesSection } from "./sections/UtilitiesSection";
+import { VoiceSection } from "./sections/VoiceSection";
+
+export type WorkspaceTab = "overview" | SectionKey;
+
+/** Which tabs a workspace shows: Overview, its channels, and the always-on four. */
+export function workspaceTabs(workspace: WorkspaceSummary): WorkspaceTab[] {
+  const has = (channel: WorkspaceSummary["channels"][number]) =>
+    workspace.channels.includes(channel);
+  const tabs: WorkspaceTab[] = ["overview"];
+  if (has("voice")) tabs.push("voice");
+  tabs.push("reports");
+  if (has("email")) tabs.push("email");
+  if (has("social")) tabs.push("social");
+  if (has("leasing")) tabs.push("leasing");
+  if (has("utilities")) tabs.push("utilities");
+  tabs.push("team", "skills", "system");
+  return tabs;
+}
+
+export function workspacePath(tab: WorkspaceTab, detailId?: string): string {
+  if (tab === "overview") return "/app/workspace";
+  return detailId ? `/app/workspace/${tab}/${detailId}` : `/app/workspace/${tab}`;
+}
 
 /**
- * The Workspace place: the client's pipeline map as a canvas, a rail of
- * sections on the right, and one section panel at a time sliding over the
- * canvas. The open section lives in the URL so a reload lands on it.
+ * The Workspace place: Manor's CRM header and tab bar over the client's
+ * operations warehouse. The Overview tab is the pipeline map; every other
+ * tab takes the whole pane, with detail screens on their own routes.
  */
-export function WorkspaceView() {
+export function WorkspaceView({
+  organizationName = null,
+}: {
+  /** The current organization, passed only when the user belongs to several. */
+  organizationName?: string | null;
+}) {
   const { t } = useLingui();
-  const labels = useSectionLabels();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const splat = useParams()["*"] ?? "";
+  const [first, second] = splat.split("/").filter(Boolean);
+  const tab: WorkspaceTab | null = !first ? "overview" : isSectionKey(first) ? first : null;
+  const detailId = second;
+
   const [status, setStatus] = useState<WorkspaceSummary | null | undefined>(undefined);
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const sectionParam = searchParams.get("section");
-  const section: SectionKey | null = isSectionKey(sectionParam) ? sectionParam : null;
 
   const load = useCallback(async () => {
     try {
@@ -49,35 +75,18 @@ export function WorkspaceView() {
     void load();
   }, [load]);
 
-  const openSection = useCallback(
-    (next: SectionKey | null) => {
-      setSearchParams(
-        (current) => {
-          const params = new URLSearchParams(current);
-          if (next) params.set("section", next);
-          else params.delete("section");
-          return params;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
-
-  // Keyboard users land inside the drawer when it opens.
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (section) closeButtonRef.current?.focus();
-  }, [section]);
-
-  useEffect(() => {
-    if (!section) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") openSection(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [section, openSection]);
+  const labels: Record<WorkspaceTab, string> = {
+    overview: t`Overview`,
+    voice: t`Voice`,
+    reports: t`Reports`,
+    email: t`Email`,
+    social: t`Social`,
+    leasing: t`Leasing`,
+    utilities: t`Utilities`,
+    team: t`AI team`,
+    skills: t`Skills`,
+    system: t`System`,
+  };
 
   // A failed status read is not "no workspace": say so instead of the empty line.
   if (status === undefined && error) {
@@ -87,7 +96,6 @@ export function WorkspaceView() {
       </div>
     );
   }
-
   if (status === undefined) {
     return (
       <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E] px-[22px]">
@@ -95,7 +103,6 @@ export function WorkspaceView() {
       </div>
     );
   }
-
   if (status === null) {
     return (
       <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
@@ -106,106 +113,98 @@ export function WorkspaceView() {
     );
   }
 
-  const sections = railSections(status);
-  const activeSection = section && sections.includes(section) ? section : null;
+  const tabs = workspaceTabs(status);
+  if (!tab || !tabs.includes(tab)) return <Navigate to="/app/workspace" replace />;
+
+  const open = (next: WorkspaceTab, id?: string) => navigate(workspacePath(next, id));
+  const eyebrow = `${status.name} · ${labels[tab]}`;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
       <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[13px]">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">
-            <Trans>Workspace</Trans>
+        <div className="flex min-w-0 items-center gap-5">
+          <span className="flex min-w-0 flex-col">
+            <span className="flex min-w-0 items-baseline gap-2 text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">
+              <Trans>Workspace</Trans>
+              <span className="truncate text-[13px] font-normal text-[#6E6975]">
+                · {status.name}
+              </span>
+            </span>
+            {organizationName ? (
+              <span className="truncate text-[11px] text-[#6E6975]">{organizationName}</span>
+            ) : null}
           </span>
-          <span className="truncate text-[13px] text-[#6E6975]">{status.name}</span>
+          <div
+            data-testid="workspace-tabs"
+            className="rk-scroll flex min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-[#202023] bg-[#131315] p-1"
+          >
+            {tabs.map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                aria-current={tab === entry ? "page" : undefined}
+                onClick={() => open(entry)}
+                className={`shrink-0 cursor-pointer rounded-full px-3.5 py-1 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
+                  tab === entry
+                    ? "bg-[#232326] text-[#ECECEE]"
+                    : "text-[#85858A] hover:text-[#C9C9CE]"
+                }`}
+              >
+                {labels[entry]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        <div className="relative min-w-0 flex-1">
-          <div className="rk-scroll h-full overflow-y-auto px-[22px] py-5">
-            {error ? (
-              <p className="text-[13px] text-[#E8A33C]">{error}</p>
-            ) : overview ? (
-              <PipelineMap overview={overview} onOpen={openSection} />
-            ) : (
+      {tab === "overview" ? (
+        <div className="min-h-0 flex-1">
+          {error ? (
+            <p className="px-[22px] py-6 text-[13px] text-[#E8A33C]">{error}</p>
+          ) : overview ? (
+            <Overview overview={overview} onOpen={open} />
+          ) : (
+            <div className="px-[22px]">
               <Loading />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1180px] px-[22px] py-5">
+            {tab === "voice" ? (
+              <VoiceSection workspace={status} eyebrow={eyebrow} callId={detailId} onOpen={open} />
+            ) : tab === "reports" ? (
+              <ReportsSection
+                workspace={status}
+                eyebrow={eyebrow}
+                reportId={detailId}
+                onOpen={open}
+              />
+            ) : tab === "email" ? (
+              <EmailSection workspace={status} eyebrow={eyebrow} />
+            ) : tab === "social" ? (
+              <SocialSection workspace={status} eyebrow={eyebrow} />
+            ) : tab === "leasing" ? (
+              <LeasingSection workspace={status} eyebrow={eyebrow} />
+            ) : tab === "utilities" ? (
+              <UtilitiesSection workspace={status} eyebrow={eyebrow} />
+            ) : tab === "team" ? (
+              <TeamSection
+                workspace={status}
+                eyebrow={eyebrow}
+                overview={overview}
+                error={error}
+                onRefresh={load}
+              />
+            ) : tab === "skills" ? (
+              <SkillsSection workspace={status} eyebrow={eyebrow} />
+            ) : (
+              <SystemSection workspace={status} eyebrow={eyebrow} />
             )}
           </div>
-
-          {activeSection ? (
-            <div
-              className="absolute inset-0 z-20 flex justify-end bg-[rgba(4,4,5,.6)]"
-              onPointerDown={() => openSection(null)}
-            >
-              <section
-                role="dialog"
-                aria-modal="false"
-                aria-label={labels[activeSection]}
-                data-testid="workspace-panel"
-                onPointerDown={(event) => event.stopPropagation()}
-                className="rk-scroll h-full w-full max-w-[780px] overflow-y-auto border-l border-[#202023] bg-[#0F0F11] px-5 py-4 shadow-[-24px_0_60px_rgba(0,0,0,.5)]"
-              >
-                <div className="mb-2 flex justify-end">
-                  <button
-                    ref={closeButtonRef}
-                    type="button"
-                    aria-label={t`Close`}
-                    onClick={() => openSection(null)}
-                    className="grid h-7 w-7 place-items-center rounded-full text-[#85858A] hover:bg-[#1A1A1D] hover:text-[#ECECEE]"
-                  >
-                    <X size={15} strokeWidth={1.8} />
-                  </button>
-                </div>
-                <SectionPanel
-                  key={activeSection}
-                  section={activeSection}
-                  overview={overview}
-                  overviewError={error}
-                  onOverviewChanged={load}
-                />
-              </section>
-            </div>
-          ) : null}
         </div>
-        <WorkspaceRail
-          sections={sections}
-          active={activeSection}
-          onSelect={(next) => openSection(next === activeSection ? null : next)}
-        />
-      </div>
+      )}
     </div>
   );
-}
-
-function SectionPanel({
-  section,
-  overview,
-  overviewError,
-  onOverviewChanged,
-}: {
-  section: SectionKey;
-  overview: WorkspaceOverview | null;
-  overviewError: string | null;
-  onOverviewChanged: () => Promise<void>;
-}) {
-  switch (section) {
-    case "voice":
-      return <VoicePanel />;
-    case "reports":
-      return <ReportsPanel />;
-    case "email":
-      return <EmailPanel />;
-    case "social":
-      return <SocialPanel />;
-    case "leasing":
-      return <LeasingPanel />;
-    case "utilities":
-      return <UtilitiesPanel />;
-    case "team":
-      return <TeamPanel overview={overview} error={overviewError} onRefresh={onOverviewChanged} />;
-    case "skills":
-      return <SkillsPanel />;
-    case "system":
-      return <SystemPanel />;
-  }
 }

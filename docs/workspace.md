@@ -130,6 +130,31 @@ The status math is pure and covered by `workspace-pipes.test.ts`; the
 Postgres-gated `workspace.postgres.test.ts` seeds a small workspace and
 checks the aggregates end to end.
 
+## Client staff sign-up
+
+A client's staff should land in the client's organization, not in an empty
+personal one. `organization.brandId` (unique, nullable) names the white-label
+brand from `packages/brands` whose sign-ups join that organization. The
+Better Auth `user.create.after` hook reads the request's Origin (falling
+back to X-Forwarded-Host, then Host), resolves the brand, and when an
+organization claims it, `bootstrapUserSpace` adds the new user as a plain
+`member` of the organization and of its default space, seeds the space
+memory file and notification row, and creates nothing else. The default
+brand, an unknown host, or a brand nobody claims all take the existing
+personal bootstrap. The signup policy (enabled flag and allowlist) is
+enforced before either path, unchanged.
+
+There is no UI for `brandId`. Claim a brand for the JRH organization once,
+in production, with the organization id from the `organization` table:
+
+```sql
+update organization set "brandId" = 'jrh' where id = '<jrh-organization-id>';
+```
+
+Unset it with `set "brandId" = null`. Members of several organizations see
+every space they belong to in the space list; each entry carries
+`organizationId` and `organizationName`.
+
 ## Deliberately not ported yet
 
 - The syncs themselves (Retell, Zoho Campaigns, Meta Graph, Buildium, the
