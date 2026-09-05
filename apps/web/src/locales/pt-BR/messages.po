@@ -52,7 +52,7 @@ msgid "{0} · applications, rent roll & renewals"
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/TeamSection.tsx:93
+#: src/pages/workspace/sections/TeamSection.tsx:94
 msgid "{0} · connected workers, what they've done, and what's running now"
 msgstr ""
 
@@ -95,7 +95,7 @@ msgid "{0} active · {1} Section 8 · {2} market{3}"
 msgstr ""
 
 #. placeholder {0}: formatAgeHours(pipe.ageHours)
-#: src/pages/workspace/sections/SystemSection.tsx:124
+#: src/pages/workspace/sections/SystemSection.tsx:160
 msgid "{0} ago"
 msgstr ""
 
@@ -244,6 +244,11 @@ msgstr ""
 #. placeholder {0}: formatCompact(social.reach28d)
 #: src/pages/workspace/Overview.tsx:98
 msgid "{0} reach · 28d"
+msgstr ""
+
+#. placeholder {0}: formatNumber(lastRun.recordsLoaded)
+#: src/pages/workspace/AutomationsCard.tsx:140
+msgid "{0} records"
 msgstr ""
 
 #. placeholder {0}: formatMoney(leasing.monthlyRentRoll)
@@ -499,7 +504,7 @@ msgstr ""
 msgid "Active model"
 msgstr "Modelo ativo"
 
-#: src/pages/workspace/sections/TeamSection.tsx:104
+#: src/pages/workspace/sections/TeamSection.tsx:105
 msgid "active today"
 msgstr ""
 
@@ -733,7 +738,7 @@ msgstr "Permitir sempre esta ferramenta"
 msgid "Always allowed"
 msgstr "Sempre permitido"
 
-#: src/pages/workspace/sections/TeamSection.tsx:134
+#: src/pages/workspace/sections/TeamSection.tsx:135
 msgid "Always on"
 msgstr ""
 
@@ -814,11 +819,11 @@ msgstr "Limites de aprovação"
 msgid "Approval rate"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:96
+#: src/pages/workspace/sections/TeamSection.tsx:97
 msgid "Approvals: auto"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:96
+#: src/pages/workspace/sections/TeamSection.tsx:97
 msgid "Approvals: manual"
 msgstr ""
 
@@ -839,7 +844,7 @@ msgid "Approve this server to let your agent use its tools."
 msgstr "Aprove este servidor para permitir que seu agente use suas ferramentas."
 
 #: src/pages/workspace/sections/ReportsSection.tsx:51
-#: src/pages/workspace/sections/TeamSection.tsx:63
+#: src/pages/workspace/sections/TeamSection.tsx:64
 msgid "Approved"
 msgstr ""
 
@@ -955,8 +960,12 @@ msgid "Authorize"
 msgstr "Autorizar"
 
 #: src/pages/Shell.tsx:5302
-#: src/pages/workspace/sections/TeamSection.tsx:64
+#: src/pages/workspace/sections/TeamSection.tsx:65
 msgid "Auto"
+msgstr ""
+
+#: src/pages/workspace/AutomationsCard.tsx:98
+msgid "Automations"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:234
@@ -1218,7 +1227,7 @@ msgstr "cancelar resposta"
 msgid "Cancelled"
 msgstr "Cancelado"
 
-#: src/pages/workspace/sections/TeamSection.tsx:59
+#: src/pages/workspace/sections/TeamSection.tsx:60
 msgid "Catching up"
 msgstr ""
 
@@ -1926,6 +1935,10 @@ msgstr "Não foi possível revogar a conexão"
 msgid "Could not revoke credential"
 msgstr "Não foi possível revogar a credencial"
 
+#: src/pages/workspace/AutomationsCard.tsx:59
+msgid "Could not run"
+msgstr ""
+
 #: src/pages/Shell.tsx:3849
 msgid "Could not run routine"
 msgstr "Não foi possível executar a rotina"
@@ -2004,6 +2017,7 @@ msgid "Could not take control"
 msgstr "Não foi possível assumir o controle"
 
 #: src/pages/ScratchpadSection.tsx:76
+#: src/pages/workspace/AutomationsCard.tsx:92
 msgid "Could not update"
 msgstr "Não foi possível atualizar"
 
@@ -2147,6 +2161,10 @@ msgstr "Módulos personalizados"
 msgid "Customer support"
 msgstr "Suporte ao cliente"
 
+#: src/pages/workspace/bits.tsx:1167
+msgid "daily {time}"
+msgstr ""
+
 #: src/pages/workspace/sections/SocialSection.tsx:101
 msgid "Daily reach"
 msgstr ""
@@ -2155,7 +2173,7 @@ msgstr ""
 msgid "Data vault"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:154
+#: src/pages/workspace/sections/SystemSection.tsx:190
 msgid "DATA VAULT"
 msgstr ""
 
@@ -2536,6 +2554,11 @@ msgstr "Eventos"
 msgid "Every"
 msgstr "A cada"
 
+#. placeholder {0}: everyMinutes[1]
+#: src/pages/workspace/bits.tsx:1163
+msgid "every {0} min"
+msgstr ""
+
 #: src/pages/RoutineSchedule.tsx:259
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "cada {intervalAmountSelect} {intervalUnitSelect}"
@@ -2627,20 +2650,21 @@ msgstr "Não foi possível parar"
 msgid "Failed."
 msgstr "Falhou."
 
-#: src/pages/workspace/sections/SystemSection.tsx:56
+#: src/pages/workspace/sections/SystemSection.tsx:69
 msgid "failing"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:39
-#: src/pages/workspace/sections/SystemSection.tsx:40
+#: src/pages/workspace/AutomationsCard.tsx:77
+#: src/pages/workspace/sections/SystemSection.tsx:52
+#: src/pages/workspace/sections/SystemSection.tsx:53
 msgid "Failing"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:165
+#: src/pages/workspace/sections/SystemSection.tsx:201
 msgid "failing (last run failed)"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:166
+#: src/pages/workspace/sections/SystemSection.tsx:202
 msgid "failing (no new data)"
 msgstr ""
 
@@ -2699,12 +2723,13 @@ msgstr "Nome"
 msgid "Flag unexpected actions"
 msgstr "Sinalizar ações inesperadas"
 
-#: src/pages/workspace/sections/SystemSection.tsx:55
-#: src/pages/workspace/sections/SystemSection.tsx:164
+#: src/pages/workspace/sections/SystemSection.tsx:68
+#: src/pages/workspace/sections/SystemSection.tsx:200
 msgid "flowing"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:38
+#: src/pages/workspace/AutomationsCard.tsx:75
+#: src/pages/workspace/sections/SystemSection.tsx:51
 msgid "Flowing"
 msgstr ""
 
@@ -2737,8 +2762,12 @@ msgstr ""
 msgid "Free"
 msgstr "Gratuito"
 
-#: src/pages/workspace/sections/SystemSection.tsx:95
+#: src/pages/workspace/sections/SystemSection.tsx:131
 msgid "Freshness signal"
+msgstr ""
+
+#: src/pages/workspace/bits.tsx:1155
+msgid "Fri"
 msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:160
@@ -2878,6 +2907,10 @@ msgstr "MCP hospedado"
 msgid "hour"
 msgstr "hora"
 
+#: src/pages/workspace/bits.tsx:1164
+msgid "hourly"
+msgstr ""
+
 #: src/pages/RoutineSchedule.tsx:53
 msgid "hours"
 msgstr "horas"
@@ -2898,11 +2931,12 @@ msgstr "Eu terminei."
 msgid "Idempotency"
 msgstr "Idempotência"
 
-#: src/pages/workspace/sections/SystemSection.tsx:41
+#: src/pages/workspace/AutomationsCard.tsx:78
+#: src/pages/workspace/sections/SystemSection.tsx:54
 msgid "Idle"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:167
+#: src/pages/workspace/sections/SystemSection.tsx:203
 msgid "idle (no data)"
 msgstr ""
 
@@ -3084,7 +3118,7 @@ msgstr ""
 msgid "Leave"
 msgstr "Sair"
 
-#: src/pages/workspace/sections/SystemSection.tsx:162
+#: src/pages/workspace/sections/SystemSection.tsx:198
 msgid "Legend"
 msgstr ""
 
@@ -3408,13 +3442,25 @@ msgstr "Nome do módulo"
 msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
 msgstr "Módulos são as planilhas definidas pelo usuário no CRM — cada um declara campos tipados (texto, número, data, checkbox, seleção, e-mail, telefone, URL) e guarda registros validados contra eles. O <0>values</0> do registro aceita rótulos ou ids de campo como chaves:"
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Mon"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:156
 msgid "Monday"
+msgstr ""
+
+#: src/pages/workspace/bits.tsx:1176
+msgid "month-end {time}"
 msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:96
 msgid "Monthly"
 msgstr "Mensalmente"
+
+#: src/pages/workspace/bits.tsx:1177
+msgid "monthly on day {dom} {time}"
+msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:95
 msgid "Monthly submissions"
@@ -3470,7 +3516,7 @@ msgstr "Dar nome ao grupo"
 msgid "Name this routine"
 msgstr "Dê um nome a esta rotina"
 
-#: src/pages/workspace/sections/TeamSection.tsx:105
+#: src/pages/workspace/sections/TeamSection.tsx:106
 msgid "need review"
 msgstr ""
 
@@ -3486,7 +3532,7 @@ msgstr ""
 msgid "Needs input"
 msgstr "Precisa de entrada"
 
-#: src/pages/workspace/sections/TeamSection.tsx:65
+#: src/pages/workspace/sections/TeamSection.tsx:66
 msgid "Needs review"
 msgstr ""
 
@@ -3553,6 +3599,13 @@ msgstr "Novo espaço"
 msgid "New tag"
 msgstr "Nova tag"
 
+#. placeholder {0}: formatDateTime(automation.nextRunAt)
+#. placeholder {0}: formatDateTime(nextRunFor(pipe.automationKey))
+#: src/pages/workspace/AutomationsCard.tsx:151
+#: src/pages/workspace/sections/SystemSection.tsx:101
+msgid "Next {0}"
+msgstr ""
+
 #: src/pages/crm/CrmModuleSheet.tsx:58
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
@@ -3579,6 +3632,10 @@ msgstr "sem autenticação"
 #: src/pages/PluginsOverlay.tsx:506
 msgid "No authentication"
 msgstr "Sem autenticação"
+
+#: src/pages/workspace/AutomationsCard.tsx:104
+msgid "No automations yet"
+msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:184
 msgid "No bills yet"
@@ -3622,7 +3679,7 @@ msgstr ""
 msgid "No credential saved"
 msgstr "Nenhuma credencial salva"
 
-#: src/pages/workspace/sections/SystemSection.tsx:125
+#: src/pages/workspace/sections/SystemSection.tsx:161
 msgid "no data"
 msgstr ""
 
@@ -3679,11 +3736,11 @@ msgid "No model catalog is available."
 msgstr "Nenhum catálogo de modelos está disponível."
 
 #. placeholder {0}: formatAgeHours(pipe.ageHours)
-#: src/pages/workspace/sections/SystemSection.tsx:122
+#: src/pages/workspace/sections/SystemSection.tsx:158
 msgid "no new data for {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:66
+#: src/pages/workspace/sections/SystemSection.tsx:79
 msgid "No pipes configured"
 msgstr ""
 
@@ -3712,6 +3769,7 @@ msgid "No results"
 msgstr "Nenhum resultado"
 
 #: src/pages/RoutineEditor.tsx:490
+#: src/pages/workspace/AutomationsCard.tsx:146
 msgid "No runs yet"
 msgstr "Nenhuma execução ainda"
 
@@ -3727,7 +3785,7 @@ msgstr "Ainda não há habilidades"
 msgid "No trigger"
 msgstr "Sem gatilho"
 
-#: src/pages/workspace/sections/TeamSection.tsx:109
+#: src/pages/workspace/sections/TeamSection.tsx:110
 msgid "No workers yet"
 msgstr ""
 
@@ -3764,6 +3822,10 @@ msgstr ""
 msgid "Not now"
 msgstr "Agora não"
 
+#: src/pages/workspace/AutomationsCard.tsx:153
+msgid "Not scheduled"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:448
 msgid "Not set"
 msgstr ""
@@ -3777,7 +3839,7 @@ msgstr ""
 msgid "Notes"
 msgstr "Notas"
 
-#: src/pages/workspace/sections/TeamSection.tsx:171
+#: src/pages/workspace/sections/TeamSection.tsx:176
 msgid "Nothing logged yet"
 msgstr ""
 
@@ -3990,6 +4052,10 @@ msgstr "Outro modelo..."
 msgid "Outbound webhooks"
 msgstr "Webhooks de saída"
 
+#: src/pages/workspace/AutomationsCard.tsx:76
+msgid "Overdue"
+msgstr ""
+
 #: src/pages/workspace/WorkspaceView.tsx:83
 msgid "Overview"
 msgstr ""
@@ -4049,7 +4115,13 @@ msgstr "Cole o endereço compatível com OpenAI do seu servidor. Rakazo adiciona
 msgid "Paste your API key"
 msgstr "Cole sua chave API"
 
+#. placeholder {0}: automation.label
+#: src/pages/workspace/AutomationsCard.tsx:172
+msgid "Pause {0}"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:84
+#: src/pages/workspace/AutomationsCard.tsx:129
 msgid "Paused"
 msgstr "Pausada"
 
@@ -4087,7 +4159,7 @@ msgid "Pipeline"
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/SystemSection.tsx:51
+#: src/pages/workspace/sections/SystemSection.tsx:64
 msgid "Pipeline health for {0} · every pipe feeds this workspace's private data vault"
 msgstr ""
 
@@ -4210,6 +4282,8 @@ msgid "Providers"
 msgstr "Provedores"
 
 #: src/pages/ActivityList.tsx:149
+#: src/pages/workspace/AutomationsCard.tsx:159
+#: src/pages/workspace/sections/SystemSection.tsx:104
 msgid "Queued"
 msgstr "Na fila"
 
@@ -4247,7 +4321,7 @@ msgstr ""
 msgid "Recent"
 msgstr "Recente"
 
-#: src/pages/workspace/sections/TeamSection.tsx:157
+#: src/pages/workspace/sections/TeamSection.tsx:162
 msgid "Recent activity"
 msgstr ""
 
@@ -4259,7 +4333,7 @@ msgstr ""
 msgid "Recent deals"
 msgstr "Negócios recentes"
 
-#: src/pages/workspace/sections/SystemSection.tsx:98
+#: src/pages/workspace/sections/SystemSection.tsx:134
 msgid "Recent runs"
 msgstr ""
 
@@ -4309,7 +4383,7 @@ msgstr "Recuperar substitui um computador inacessível e mantém os arquivos no 
 msgid "Recovering…"
 msgstr "Recuperando…"
 
-#: src/pages/workspace/sections/TeamSection.tsx:165
+#: src/pages/workspace/sections/TeamSection.tsx:170
 msgid "Refresh"
 msgstr ""
 
@@ -4333,7 +4407,7 @@ msgstr "Registrar um endpoint"
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr "Rejeite entregas cujo timestamp tenha mais do que alguns minutos para bloquear replays."
 
-#: src/pages/workspace/sections/TeamSection.tsx:66
+#: src/pages/workspace/sections/TeamSection.tsx:67
 msgid "Rejected"
 msgstr ""
 
@@ -4512,6 +4586,11 @@ msgstr "Restaurar"
 msgid "Restore the last saved workspace. Unsaved work on the computer is lost."
 msgstr "Restaure o último espaço de trabalho salvo. O trabalho não salvo no computador será perdido."
 
+#. placeholder {0}: automation.label
+#: src/pages/workspace/AutomationsCard.tsx:173
+msgid "Resume {0}"
+msgstr ""
+
 #: src/pages/workspace/sections/UtilitiesSection.tsx:532
 msgid "Retry"
 msgstr ""
@@ -4569,8 +4648,13 @@ msgstr "Executar em"
 msgid "Run history"
 msgstr "Histórico de execuções"
 
-#: src/pages/workspace/sections/SystemSection.tsx:177
+#: src/pages/workspace/sections/SystemSection.tsx:213
 msgid "run history, oldest → newest"
+msgstr ""
+
+#: src/pages/workspace/AutomationsCard.tsx:166
+#: src/pages/workspace/sections/SystemSection.tsx:111
+msgid "Run now"
 msgstr ""
 
 #: src/pages/Shell.tsx:3779
@@ -4588,6 +4672,10 @@ msgstr "Em execução · Parar"
 #: src/pages/RoutineEditor.tsx:290
 msgid "Running…"
 msgstr "Executando..."
+
+#: src/pages/workspace/bits.tsx:1155
+msgid "Sat"
+msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:161
 msgid "Saturday"
@@ -4645,6 +4733,10 @@ msgstr "Diga alguma coisa. O silêncio manda."
 #: src/pages/CallView.tsx:42
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Diga sim ou não, ou responda em uma frase."
+
+#: src/pages/workspace/AutomationsCard.tsx:98
+msgid "Scheduled pipelines and their newest run"
+msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:80
 msgid "Scheduled rent"
@@ -4803,7 +4895,7 @@ msgid "Set up with an AI agent"
 msgstr "Configurar com um agente de IA"
 
 #: src/pages/workspace/PipelineMap.tsx:263
-#: src/pages/workspace/sections/TeamSection.tsx:60
+#: src/pages/workspace/sections/TeamSection.tsx:61
 msgid "Setting up"
 msgstr ""
 
@@ -4873,7 +4965,7 @@ msgstr "Mostrar arquivos"
 msgid "Show live activity"
 msgstr "Mostrar atividade ao vivo"
 
-#: src/pages/workspace/sections/TeamSection.tsx:208
+#: src/pages/workspace/sections/TeamSection.tsx:213
 msgid "Show more"
 msgstr ""
 
@@ -5116,6 +5208,10 @@ msgstr "Enviado"
 msgid "Summary"
 msgstr ""
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Sun"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:155
 msgid "Sunday"
 msgstr ""
@@ -5129,7 +5225,7 @@ msgstr "Alternando…"
 msgid "Synced {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:57
+#: src/pages/workspace/sections/TeamSection.tsx:58
 msgid "Syncing now"
 msgstr ""
 
@@ -5138,7 +5234,7 @@ msgstr ""
 msgid "Synthesis"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:50
+#: src/pages/workspace/sections/SystemSection.tsx:63
 #: src/pages/workspace/WorkspaceView.tsx:92
 msgid "System"
 msgstr ""
@@ -5320,6 +5416,10 @@ msgstr "Este servidor usa o login do navegador. Autorize-o a permitir que seus a
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr "Este login por assinatura ainda não está disponível no {brandName}. Use uma credencial da implantação ou escolha outro provedor."
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Thu"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:159
 msgid "Thursday"
 msgstr ""
@@ -5394,6 +5494,10 @@ msgstr ""
 #: src/pages/PluginsOverlay.tsx:530
 msgid "Treg token"
 msgstr "Token Treg"
+
+#: src/pages/workspace/bits.tsx:1155
+msgid "Tue"
+msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:157
 msgid "Tuesday"
@@ -5478,7 +5582,7 @@ msgid "Unsupported file type: {0}"
 msgstr "Tipo de arquivo não suportado: {0}"
 
 #: src/components/SoftwareUpdateSection.tsx:247
-#: src/pages/workspace/sections/TeamSection.tsx:58
+#: src/pages/workspace/sections/TeamSection.tsx:59
 msgid "Up to date"
 msgstr "Em dia"
 
@@ -5676,6 +5780,10 @@ msgstr ""
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "Webhooks também fluem na outra direção — cada bot tem uma URL de entrada para a qual serviços externos podem fazer POST. O payload chega como mensagem e qualquer rotina com gatilho de webhook é executada, então o bot pode agir com suas ferramentas. Configure no editor de rotinas do bot."
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Wed"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:158
 msgid "Wednesday"
 msgstr ""
@@ -5707,7 +5815,7 @@ msgstr "Que resultado você demonstrará?"
 msgid "What should this routine do each time it runs?"
 msgstr "O que esta rotina deve fazer cada vez que for executada?"
 
-#: src/pages/workspace/sections/TeamSection.tsx:158
+#: src/pages/workspace/sections/TeamSection.tsx:163
 msgid "What the team logged, newest first"
 msgstr ""
 
@@ -5808,7 +5916,7 @@ msgstr "Você pode fechar esta janela."
 msgid "You have control"
 msgstr "Você tem o controle"
 
-#: src/pages/workspace/sections/TeamSection.tsx:92
+#: src/pages/workspace/sections/TeamSection.tsx:93
 msgid "Your AI team"
 msgstr ""
 

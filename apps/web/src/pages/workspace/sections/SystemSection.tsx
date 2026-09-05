@@ -2,7 +2,9 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspacePipe, WorkspaceSummary } from "@rakazo/contracts";
 import { accentColor } from "../../../lib/brand";
 import { rpc } from "../../../lib/rpc";
+import { useRunAutomation } from "../AutomationsCard";
 import {
+  CLICKABLE_TEXT,
   CountPill,
   Empty,
   ErrorLine,
@@ -33,7 +35,18 @@ export function SystemSection({
 }) {
   const { t } = useLingui();
   const formatAgeHours = useFormatAgeHours();
-  const { data, error, loading } = useSectionData(() => rpc.workspace.system(), "system");
+  const { data, error, loading, reload } = useSectionData(
+    () =>
+      Promise.all([rpc.workspace.system(), rpc.workspace.automations.list()]).then(
+        ([system, automations]) => ({ pipes: system.pipes, automations }),
+      ),
+    "system",
+  );
+  const runner = useRunAutomation(reload);
+  const nextRunFor = (key: string | null) =>
+    key
+      ? (data?.automations.find((automation) => automation.key === key)?.nextRunAt ?? null)
+      : null;
   const statusLabel: Record<WorkspacePipe["status"], string> = {
     flowing: t`Flowing`,
     overdue: t`Failing`,
@@ -82,6 +95,29 @@ export function SystemSection({
                         <p className="truncate text-[12px] text-[#6E6975]">
                           {pipe.source} · {pipe.cadence}
                         </p>
+                        {pipe.automationKey ? (
+                          <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11.5px] text-[#6E6975]">
+                            {nextRunFor(pipe.automationKey) ? (
+                              <span>{t`Next ${formatDateTime(nextRunFor(pipe.automationKey))}`}</span>
+                            ) : null}
+                            {runner.queued.has(pipe.automationKey) ? (
+                              <StatusPill tone="accent">{t`Queued`}</StatusPill>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => void runner.run(pipe.automationKey!)}
+                                className={`text-[#A6A6AD] ${CLICKABLE_TEXT}`}
+                              >
+                                <Trans>Run now</Trans>
+                              </button>
+                            )}
+                            {runner.errors[pipe.automationKey] ? (
+                              <span className="text-[#E8A33C]">
+                                {runner.errors[pipe.automationKey]}
+                              </span>
+                            ) : null}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="min-w-0">
                         <div

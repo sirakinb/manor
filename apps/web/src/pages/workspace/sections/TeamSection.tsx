@@ -7,6 +7,7 @@ import type {
 } from "@rakazo/contracts";
 import { useState } from "react";
 import { rpc } from "../../../lib/rpc";
+import { AutomationsCard } from "../AutomationsCard";
 import {
   Card,
   CLICKABLE_TEXT,
@@ -151,6 +152,10 @@ export function TeamSection({
               ))}
             </div>
           )}
+
+          <div className="mt-4">
+            <AutomationsCard />
+          </div>
 
           <Card
             className="mt-4"

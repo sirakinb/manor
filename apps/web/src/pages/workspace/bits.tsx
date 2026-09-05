@@ -1148,3 +1148,34 @@ export function formatCompact(value: number | null | undefined): string {
   if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}K`;
   return formatNumber(value);
 }
+
+/** Cron expressions in words: "every 10 min", "hourly", "daily 09:00", "Mon 08:00 + month-end 09:00". */
+export function useCronWords(): (crons: string[]) => string {
+  const { t } = useLingui();
+  const days = [t`Sun`, t`Mon`, t`Tue`, t`Wed`, t`Thu`, t`Fri`, t`Sat`];
+  const clock = (hour: string, minute: string) =>
+    `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+  const one = (cron: string): string => {
+    const parts = cron.trim().split(/\s+/);
+    if (parts.length !== 5) return cron;
+    const [minute, hour, dom, , dow] = parts as [string, string, string, string, string];
+    const everyMinutes = /^\*\/(\d+)$/.exec(minute);
+    if (everyMinutes && hour === "*") return t`every ${everyMinutes[1]} min`;
+    if (/^\d+$/.test(minute) && hour === "*") return t`hourly`;
+    if (!/^\d+$/.test(minute) || !/^\d+$/.test(hour)) return cron;
+    const time = clock(hour, minute);
+    if (dom === "*" && dow === "*") return t`daily ${time}`;
+    if (dom === "*" && /^[\d,]+$/.test(dow)) {
+      const names = dow
+        .split(",")
+        .map((day) => days[Number(day) % 7] ?? day)
+        .join(", ");
+      return `${names} ${time}`;
+    }
+    if (dom === "L" || /^2[89]-3[01]$/.test(dom) || /^3[01]$/.test(dom))
+      return t`month-end ${time}`;
+    if (/^\d+$/.test(dom)) return t`monthly on day ${dom} ${time}`;
+    return cron;
+  };
+  return (crons) => crons.map(one).join(" + ");
+}

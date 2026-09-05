@@ -181,6 +181,17 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByText("Freshness signal").first()).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-system");
 
+  // AI team: the default automations list with a Run now that queues.
+  await tabs.getByRole("button", { name: "AI team", exact: true }).click();
+  await page.waitForURL(/\/app\/workspace\/team$/);
+  const automations = page.getByTestId("workspace-automations");
+  await expect(automations).toBeVisible();
+  const voiceAutomation = automations.locator("li").filter({ hasText: "Voice calls" });
+  await expect(voiceAutomation).toBeVisible();
+  await voiceAutomation.getByRole("button", { name: "Run now" }).click();
+  await expect(voiceAutomation.getByText("Queued", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-automations");
+
   // Utilities: the seeded charge can be skipped and restored.
   await tabs.getByRole("button", { name: "Utilities", exact: true }).click();
   await page.waitForURL(/\/app\/workspace\/utilities$/);

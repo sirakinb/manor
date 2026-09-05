@@ -51,7 +51,7 @@ msgid "{0} · applications, rent roll & renewals"
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/TeamSection.tsx:93
+#: src/pages/workspace/sections/TeamSection.tsx:94
 msgid "{0} · connected workers, what they've done, and what's running now"
 msgstr ""
 
@@ -94,7 +94,7 @@ msgid "{0} active · {1} Section 8 · {2} market{3}"
 msgstr ""
 
 #. placeholder {0}: formatAgeHours(pipe.ageHours)
-#: src/pages/workspace/sections/SystemSection.tsx:124
+#: src/pages/workspace/sections/SystemSection.tsx:160
 msgid "{0} ago"
 msgstr ""
 
@@ -243,6 +243,11 @@ msgstr ""
 #. placeholder {0}: formatCompact(social.reach28d)
 #: src/pages/workspace/Overview.tsx:98
 msgid "{0} reach · 28d"
+msgstr ""
+
+#. placeholder {0}: formatNumber(lastRun.recordsLoaded)
+#: src/pages/workspace/AutomationsCard.tsx:140
+msgid "{0} records"
 msgstr ""
 
 #. placeholder {0}: formatMoney(leasing.monthlyRentRoll)
@@ -498,7 +503,7 @@ msgstr ""
 msgid "Active model"
 msgstr "当前模型"
 
-#: src/pages/workspace/sections/TeamSection.tsx:104
+#: src/pages/workspace/sections/TeamSection.tsx:105
 msgid "active today"
 msgstr ""
 
@@ -732,7 +737,7 @@ msgstr "始终允许此工具"
 msgid "Always allowed"
 msgstr "始终允许"
 
-#: src/pages/workspace/sections/TeamSection.tsx:134
+#: src/pages/workspace/sections/TeamSection.tsx:135
 msgid "Always on"
 msgstr ""
 
@@ -813,11 +818,11 @@ msgstr "审批边界"
 msgid "Approval rate"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:96
+#: src/pages/workspace/sections/TeamSection.tsx:97
 msgid "Approvals: auto"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:96
+#: src/pages/workspace/sections/TeamSection.tsx:97
 msgid "Approvals: manual"
 msgstr ""
 
@@ -838,7 +843,7 @@ msgid "Approve this server to let your agent use its tools."
 msgstr "批准此服务器后，Agent 才能使用它的工具。"
 
 #: src/pages/workspace/sections/ReportsSection.tsx:51
-#: src/pages/workspace/sections/TeamSection.tsx:63
+#: src/pages/workspace/sections/TeamSection.tsx:64
 msgid "Approved"
 msgstr ""
 
@@ -954,8 +959,12 @@ msgid "Authorize"
 msgstr "授权"
 
 #: src/pages/Shell.tsx:5302
-#: src/pages/workspace/sections/TeamSection.tsx:64
+#: src/pages/workspace/sections/TeamSection.tsx:65
 msgid "Auto"
+msgstr ""
+
+#: src/pages/workspace/AutomationsCard.tsx:98
+msgid "Automations"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:234
@@ -1217,7 +1226,7 @@ msgstr "取消回复"
 msgid "Cancelled"
 msgstr "已取消"
 
-#: src/pages/workspace/sections/TeamSection.tsx:59
+#: src/pages/workspace/sections/TeamSection.tsx:60
 msgid "Catching up"
 msgstr ""
 
@@ -1925,6 +1934,10 @@ msgstr "无法撤销连接"
 msgid "Could not revoke credential"
 msgstr ""
 
+#: src/pages/workspace/AutomationsCard.tsx:59
+msgid "Could not run"
+msgstr ""
+
 #: src/pages/Shell.tsx:3849
 msgid "Could not run routine"
 msgstr "无法运行例行任务"
@@ -2003,6 +2016,7 @@ msgid "Could not take control"
 msgstr "无法接管"
 
 #: src/pages/ScratchpadSection.tsx:76
+#: src/pages/workspace/AutomationsCard.tsx:92
 msgid "Could not update"
 msgstr "无法更新"
 
@@ -2146,6 +2160,10 @@ msgstr ""
 msgid "Customer support"
 msgstr "客户支持"
 
+#: src/pages/workspace/bits.tsx:1167
+msgid "daily {time}"
+msgstr ""
+
 #: src/pages/workspace/sections/SocialSection.tsx:101
 msgid "Daily reach"
 msgstr ""
@@ -2154,7 +2172,7 @@ msgstr ""
 msgid "Data vault"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:154
+#: src/pages/workspace/sections/SystemSection.tsx:190
 msgid "DATA VAULT"
 msgstr ""
 
@@ -2535,6 +2553,11 @@ msgstr ""
 msgid "Every"
 msgstr "每"
 
+#. placeholder {0}: everyMinutes[1]
+#: src/pages/workspace/bits.tsx:1163
+msgid "every {0} min"
+msgstr ""
+
 #: src/pages/RoutineSchedule.tsx:259
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "每 {intervalAmountSelect} {intervalUnitSelect}"
@@ -2626,20 +2649,21 @@ msgstr "停止失败"
 msgid "Failed."
 msgstr "失败。"
 
-#: src/pages/workspace/sections/SystemSection.tsx:56
+#: src/pages/workspace/sections/SystemSection.tsx:69
 msgid "failing"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:39
-#: src/pages/workspace/sections/SystemSection.tsx:40
+#: src/pages/workspace/AutomationsCard.tsx:77
+#: src/pages/workspace/sections/SystemSection.tsx:52
+#: src/pages/workspace/sections/SystemSection.tsx:53
 msgid "Failing"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:165
+#: src/pages/workspace/sections/SystemSection.tsx:201
 msgid "failing (last run failed)"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:166
+#: src/pages/workspace/sections/SystemSection.tsx:202
 msgid "failing (no new data)"
 msgstr ""
 
@@ -2698,12 +2722,13 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "标记异常操作"
 
-#: src/pages/workspace/sections/SystemSection.tsx:55
-#: src/pages/workspace/sections/SystemSection.tsx:164
+#: src/pages/workspace/sections/SystemSection.tsx:68
+#: src/pages/workspace/sections/SystemSection.tsx:200
 msgid "flowing"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:38
+#: src/pages/workspace/AutomationsCard.tsx:75
+#: src/pages/workspace/sections/SystemSection.tsx:51
 msgid "Flowing"
 msgstr ""
 
@@ -2736,8 +2761,12 @@ msgstr ""
 msgid "Free"
 msgstr "免费"
 
-#: src/pages/workspace/sections/SystemSection.tsx:95
+#: src/pages/workspace/sections/SystemSection.tsx:131
 msgid "Freshness signal"
+msgstr ""
+
+#: src/pages/workspace/bits.tsx:1155
+msgid "Fri"
 msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:160
@@ -2877,6 +2906,10 @@ msgstr ""
 msgid "hour"
 msgstr "小时"
 
+#: src/pages/workspace/bits.tsx:1164
+msgid "hourly"
+msgstr ""
+
 #: src/pages/RoutineSchedule.tsx:53
 msgid "hours"
 msgstr "小时"
@@ -2897,11 +2930,12 @@ msgstr "我做完了"
 msgid "Idempotency"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:41
+#: src/pages/workspace/AutomationsCard.tsx:78
+#: src/pages/workspace/sections/SystemSection.tsx:54
 msgid "Idle"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:167
+#: src/pages/workspace/sections/SystemSection.tsx:203
 msgid "idle (no data)"
 msgstr ""
 
@@ -3083,7 +3117,7 @@ msgstr ""
 msgid "Leave"
 msgstr "退出"
 
-#: src/pages/workspace/sections/SystemSection.tsx:162
+#: src/pages/workspace/sections/SystemSection.tsx:198
 msgid "Legend"
 msgstr ""
 
@@ -3407,13 +3441,25 @@ msgstr ""
 msgid "Modules are the user-defined sheets in the CRM — each one declares typed fields (text, number, date, checkbox, select, email, phone, URL) and holds records validated against them. Record <0>values</0> accept field labels or field ids as keys:"
 msgstr ""
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Mon"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:156
 msgid "Monday"
+msgstr ""
+
+#: src/pages/workspace/bits.tsx:1176
+msgid "month-end {time}"
 msgstr ""
 
 #: src/pages/RoutineSchedule.tsx:96
 msgid "Monthly"
 msgstr "每月"
+
+#: src/pages/workspace/bits.tsx:1177
+msgid "monthly on day {dom} {time}"
+msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:95
 msgid "Monthly submissions"
@@ -3469,7 +3515,7 @@ msgstr "给这个群组命名"
 msgid "Name this routine"
 msgstr "给这个例行任务命名"
 
-#: src/pages/workspace/sections/TeamSection.tsx:105
+#: src/pages/workspace/sections/TeamSection.tsx:106
 msgid "need review"
 msgstr ""
 
@@ -3485,7 +3531,7 @@ msgstr ""
 msgid "Needs input"
 msgstr "需要输入"
 
-#: src/pages/workspace/sections/TeamSection.tsx:65
+#: src/pages/workspace/sections/TeamSection.tsx:66
 msgid "Needs review"
 msgstr ""
 
@@ -3552,6 +3598,13 @@ msgstr "新建工作区"
 msgid "New tag"
 msgstr ""
 
+#. placeholder {0}: formatDateTime(automation.nextRunAt)
+#. placeholder {0}: formatDateTime(nextRunFor(pipe.automationKey))
+#: src/pages/workspace/AutomationsCard.tsx:151
+#: src/pages/workspace/sections/SystemSection.tsx:101
+msgid "Next {0}"
+msgstr ""
+
 #: src/pages/crm/CrmModuleSheet.tsx:58
 #: src/pages/crm/CrmModuleSheet.tsx:85
 #: src/pages/crm/CrmModuleSheet.tsx:101
@@ -3578,6 +3631,10 @@ msgstr "无认证"
 #: src/pages/PluginsOverlay.tsx:506
 msgid "No authentication"
 msgstr "无认证"
+
+#: src/pages/workspace/AutomationsCard.tsx:104
+msgid "No automations yet"
+msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:184
 msgid "No bills yet"
@@ -3621,7 +3678,7 @@ msgstr ""
 msgid "No credential saved"
 msgstr "未保存凭据"
 
-#: src/pages/workspace/sections/SystemSection.tsx:125
+#: src/pages/workspace/sections/SystemSection.tsx:161
 msgid "no data"
 msgstr ""
 
@@ -3678,11 +3735,11 @@ msgid "No model catalog is available."
 msgstr "没有可用的模型目录。"
 
 #. placeholder {0}: formatAgeHours(pipe.ageHours)
-#: src/pages/workspace/sections/SystemSection.tsx:122
+#: src/pages/workspace/sections/SystemSection.tsx:158
 msgid "no new data for {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:66
+#: src/pages/workspace/sections/SystemSection.tsx:79
 msgid "No pipes configured"
 msgstr ""
 
@@ -3711,6 +3768,7 @@ msgid "No results"
 msgstr "无结果"
 
 #: src/pages/RoutineEditor.tsx:490
+#: src/pages/workspace/AutomationsCard.tsx:146
 msgid "No runs yet"
 msgstr "还没有运行记录"
 
@@ -3726,7 +3784,7 @@ msgstr ""
 msgid "No trigger"
 msgstr "无触发器"
 
-#: src/pages/workspace/sections/TeamSection.tsx:109
+#: src/pages/workspace/sections/TeamSection.tsx:110
 msgid "No workers yet"
 msgstr ""
 
@@ -3763,6 +3821,10 @@ msgstr ""
 msgid "Not now"
 msgstr "暂不"
 
+#: src/pages/workspace/AutomationsCard.tsx:153
+msgid "Not scheduled"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:448
 msgid "Not set"
 msgstr ""
@@ -3776,7 +3838,7 @@ msgstr ""
 msgid "Notes"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:171
+#: src/pages/workspace/sections/TeamSection.tsx:176
 msgid "Nothing logged yet"
 msgstr ""
 
@@ -3989,6 +4051,10 @@ msgstr "其他模型…"
 msgid "Outbound webhooks"
 msgstr ""
 
+#: src/pages/workspace/AutomationsCard.tsx:76
+msgid "Overdue"
+msgstr ""
+
 #: src/pages/workspace/WorkspaceView.tsx:83
 msgid "Overview"
 msgstr ""
@@ -4048,7 +4114,13 @@ msgstr "粘贴服务器的 OpenAI 兼容地址。需要时 Rakazo 会补上 /v1�
 msgid "Paste your API key"
 msgstr "粘贴你的 API 密钥"
 
+#. placeholder {0}: automation.label
+#: src/pages/workspace/AutomationsCard.tsx:172
+msgid "Pause {0}"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:84
+#: src/pages/workspace/AutomationsCard.tsx:129
 msgid "Paused"
 msgstr "已暂停"
 
@@ -4086,7 +4158,7 @@ msgid "Pipeline"
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/SystemSection.tsx:51
+#: src/pages/workspace/sections/SystemSection.tsx:64
 msgid "Pipeline health for {0} · every pipe feeds this workspace's private data vault"
 msgstr ""
 
@@ -4209,6 +4281,8 @@ msgid "Providers"
 msgstr "提供方"
 
 #: src/pages/ActivityList.tsx:149
+#: src/pages/workspace/AutomationsCard.tsx:159
+#: src/pages/workspace/sections/SystemSection.tsx:104
 msgid "Queued"
 msgstr "排队中"
 
@@ -4246,7 +4320,7 @@ msgstr ""
 msgid "Recent"
 msgstr "最近"
 
-#: src/pages/workspace/sections/TeamSection.tsx:157
+#: src/pages/workspace/sections/TeamSection.tsx:162
 msgid "Recent activity"
 msgstr ""
 
@@ -4258,7 +4332,7 @@ msgstr ""
 msgid "Recent deals"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:98
+#: src/pages/workspace/sections/SystemSection.tsx:134
 msgid "Recent runs"
 msgstr ""
 
@@ -4308,7 +4382,7 @@ msgstr "恢复会替换无法访问的电脑，并保留已保存工作区中的
 msgid "Recovering…"
 msgstr "正在恢复…"
 
-#: src/pages/workspace/sections/TeamSection.tsx:165
+#: src/pages/workspace/sections/TeamSection.tsx:170
 msgid "Refresh"
 msgstr ""
 
@@ -4332,7 +4406,7 @@ msgstr ""
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:66
+#: src/pages/workspace/sections/TeamSection.tsx:67
 msgid "Rejected"
 msgstr ""
 
@@ -4511,6 +4585,11 @@ msgstr "恢复"
 msgid "Restore the last saved workspace. Unsaved work on the computer is lost."
 msgstr "还原上次保存的工作区。电脑上未保存的工作会丢失。"
 
+#. placeholder {0}: automation.label
+#: src/pages/workspace/AutomationsCard.tsx:173
+msgid "Resume {0}"
+msgstr ""
+
 #: src/pages/workspace/sections/UtilitiesSection.tsx:532
 msgid "Retry"
 msgstr ""
@@ -4568,8 +4647,13 @@ msgstr "运行时间"
 msgid "Run history"
 msgstr "运行记录"
 
-#: src/pages/workspace/sections/SystemSection.tsx:177
+#: src/pages/workspace/sections/SystemSection.tsx:213
 msgid "run history, oldest → newest"
+msgstr ""
+
+#: src/pages/workspace/AutomationsCard.tsx:166
+#: src/pages/workspace/sections/SystemSection.tsx:111
+msgid "Run now"
 msgstr ""
 
 #: src/pages/Shell.tsx:3779
@@ -4587,6 +4671,10 @@ msgstr "运行中 · 停止"
 #: src/pages/RoutineEditor.tsx:290
 msgid "Running…"
 msgstr "正在运行…"
+
+#: src/pages/workspace/bits.tsx:1155
+msgid "Sat"
+msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:161
 msgid "Saturday"
@@ -4644,6 +4732,10 @@ msgstr "说点什么。静音即发送。"
 #: src/pages/CallView.tsx:42
 msgid "Say yes or no, or answer in a sentence."
 msgstr "回答是或否，或一句话说明。"
+
+#: src/pages/workspace/AutomationsCard.tsx:98
+msgid "Scheduled pipelines and their newest run"
+msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:80
 msgid "Scheduled rent"
@@ -4802,7 +4894,7 @@ msgid "Set up with an AI agent"
 msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:263
-#: src/pages/workspace/sections/TeamSection.tsx:60
+#: src/pages/workspace/sections/TeamSection.tsx:61
 msgid "Setting up"
 msgstr ""
 
@@ -4872,7 +4964,7 @@ msgstr "显示文件"
 msgid "Show live activity"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:208
+#: src/pages/workspace/sections/TeamSection.tsx:213
 msgid "Show more"
 msgstr ""
 
@@ -5115,6 +5207,10 @@ msgstr "已提交"
 msgid "Summary"
 msgstr ""
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Sun"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:155
 msgid "Sunday"
 msgstr ""
@@ -5128,7 +5224,7 @@ msgstr "正在切换…"
 msgid "Synced {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/TeamSection.tsx:57
+#: src/pages/workspace/sections/TeamSection.tsx:58
 msgid "Syncing now"
 msgstr ""
 
@@ -5137,7 +5233,7 @@ msgstr ""
 msgid "Synthesis"
 msgstr ""
 
-#: src/pages/workspace/sections/SystemSection.tsx:50
+#: src/pages/workspace/sections/SystemSection.tsx:63
 #: src/pages/workspace/WorkspaceView.tsx:92
 msgid "System"
 msgstr ""
@@ -5319,6 +5415,10 @@ msgstr "此服务器使用浏览器登录。授权后 Agent 才能使用其工�
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
 msgstr ""
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Thu"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:159
 msgid "Thursday"
 msgstr ""
@@ -5393,6 +5493,10 @@ msgstr ""
 #: src/pages/PluginsOverlay.tsx:530
 msgid "Treg token"
 msgstr "Treg token"
+
+#: src/pages/workspace/bits.tsx:1155
+msgid "Tue"
+msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:157
 msgid "Tuesday"
@@ -5477,7 +5581,7 @@ msgid "Unsupported file type: {0}"
 msgstr "不支持的文件类型：{0}"
 
 #: src/components/SoftwareUpdateSection.tsx:247
-#: src/pages/workspace/sections/TeamSection.tsx:58
+#: src/pages/workspace/sections/TeamSection.tsx:59
 msgid "Up to date"
 msgstr "已是最新"
 
@@ -5675,6 +5779,10 @@ msgstr ""
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr ""
 
+#: src/pages/workspace/bits.tsx:1155
+msgid "Wed"
+msgstr ""
+
 #: src/pages/workspace/sections/SettingsSection.tsx:158
 msgid "Wednesday"
 msgstr ""
@@ -5706,7 +5814,7 @@ msgstr "你要示范什么结果？"
 msgid "What should this routine do each time it runs?"
 msgstr "每次运行时，这个例行任务应做什么？"
 
-#: src/pages/workspace/sections/TeamSection.tsx:158
+#: src/pages/workspace/sections/TeamSection.tsx:163
 msgid "What the team logged, newest first"
 msgstr ""
 
@@ -5807,7 +5915,7 @@ msgstr "可以关闭此窗口。"
 msgid "You have control"
 msgstr "你已接管"
 
-#: src/pages/workspace/sections/TeamSection.tsx:92
+#: src/pages/workspace/sections/TeamSection.tsx:93
 msgid "Your AI team"
 msgstr ""
 
