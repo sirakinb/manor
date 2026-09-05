@@ -9,9 +9,9 @@ standalone Pentridge Agent Workspace (FastAPI + Supabase) and re-homed in
 Manor's own Postgres, behind Manor's own contract, so the pipeline map and
 the section panels live where the bots live.
 
-Everything in v1 is a **read**. Write paths (approving activities, posting
-water charges to Buildium, generating and sending reports) arrive with the
-ingestion move, when the syncs themselves run inside Manor.
+The warehouse supports section reads, managed automations, water charges,
+report review and sending, and bot tools. Consequential actions retain their
+authorization and approval boundaries.
 
 ## Tenancy
 
@@ -288,12 +288,46 @@ Twilio and SMTP workspace
 credentials are reserved for future adapters; outbound reports still use
 the deployment email provider.
 
+## Bots and native knowledge
+
+Every section offers **Ask the team**, which opens an accessible bot with an
+editable question and the current record reference. It never submits the
+question. The bot selector chooses the recipient; an empty team gets one
+Workspace assistant on first use. AI team shows real bots beside Automations,
+with native skills and memory under Knowledge. The old Skills tab is retired.
+
+`workspace.team.list/open` uses the actor's current space membership and bot
+ownership. The shared executor exposes `workspace_*` tools only when that
+membership resolves to an organization with a workspace, and checks membership
+again on execution. Read tools cover overview, voice, reports, email, social,
+leasing, rentals, utilities, system, activities, and automations.
+`workspace_log_activity` records an attributed, pending agent note with replay
+deduplication. It cannot approve an action. `workspace_run_automation` reuses the
+API enqueue path, requires an organization owner/admin, and passes through the
+executor's normal action approval policy.
+
+Latest versions of `workspace_skills` become native SKILL.md records named
+`workspace-<name>`; `workspace_context` becomes memory at `workspace/<key>.md`.
+Conversion runs when a member opens the team, native knowledge, or a bot/routine
+run. Native records retain the existing space-and-user boundary, so each member
+gets an independent editable copy. `workspace_knowledge_imports` claims the
+conversion transaction once per workspace/member/space. Concurrent visits cannot
+duplicate it, and later visits preserve native edits and deletions. Existing
+memory paths take precedence; colliding skill names receive a suffix.
+
+Original source rows remain for ingestion compatibility and rollback. Imported
+playbooks include guidance to use current workspace tools and treat old commands
+and integrations as historical reference; unavailable actions stay unavailable.
+Credentials are not read from the credential store by conversion. The behavior
+uses shared database and executor code, requires no hosted provider, and also
+serves Electron and mobile's existing chat, skills, and memory surfaces.
+
 ## Deliberately not ported yet
 
 - Retell prompt refresh and the weekly email recap generator/reminders.
-- Remaining write paths: `log_activity`, `save_skill`, `set_context`,
-  activity approval, ad-hoc report generation (OpenRouter synthesis).
+- Remaining write paths: activity approval and ad-hoc report generation.
+  Bots use native skills/memory tools for knowledge changes.
 - Tour links and the TTS-friendly address rendering used by the voice agent.
 - Channels other clients had (intake, cases, SEO, TikTok, YouTube, Meta Ads).
-- The MCP/REST surface the old app exposed to agents; Manor's bots will get
-  workspace tools the way the CRM got `crm-tools.ts`.
+- The external MCP/REST surface the old app exposed to agents; Manor's own bots
+  use the shared executor tools.

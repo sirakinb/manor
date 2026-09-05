@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { BUILTIN_AGENT_SKILLS } from "@rakazo/adapters";
 import type { Actor, AgentSkill, AgentSkillSource } from "@rakazo/contracts";
 import { buildSkillMd, isSkillReadOnly, parseSkillMd, type SkillSource } from "@rakazo/core";
-import { IsolationError, type PrismaClient } from "@rakazo/db";
+import { IsolationError, importWorkspaceKnowledge, type PrismaClient } from "@rakazo/db";
 
 type AgentSkillRow = {
   id: string;
@@ -126,6 +126,7 @@ export function createAgentSkillsService(prisma: PrismaClient) {
 
   return {
     async list(actor: Actor): Promise<Omit<AgentSkill, "content">[]> {
+      await importWorkspaceKnowledge(prisma, actor);
       const rows = await prisma.agentSkill.findMany({
         where: { spaceId: actor.spaceId, userId: actor.userId },
         orderBy: [{ name: "asc" }, { id: "asc" }],
@@ -137,6 +138,7 @@ export function createAgentSkillsService(prisma: PrismaClient) {
     },
 
     async listWithContent(actor: Actor): Promise<AgentSkill[]> {
+      await importWorkspaceKnowledge(prisma, actor);
       const rows = await prisma.agentSkill.findMany({
         where: { spaceId: actor.spaceId, userId: actor.userId },
         orderBy: [{ name: "asc" }, { id: "asc" }],

@@ -216,16 +216,17 @@ model Space {
 }
 
 model SpaceMember {
-  id               String                 @id
-  spaceId          String
-  organizationId   String
-  space            Space                  @relation(fields: [spaceId, organizationId], references: [id, organizationId], onDelete: Cascade)
-  userId           String
-  member           Member                 @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Cascade)
-  role             String                 @default("member")
-  createdAt        DateTime
-  modelPreferences SpaceModelPreference[]
-  voicePreferences SpaceVoicePreference[]
+  workspaceKnowledgeImports WorkspaceKnowledgeImport[]
+  id                        String                     @id
+  spaceId                   String
+  organizationId            String
+  space                     Space                      @relation(fields: [spaceId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  userId                    String
+  member                    Member                     @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Cascade)
+  role                      String                     @default("member")
+  createdAt                 DateTime
+  modelPreferences          SpaceModelPreference[]
+  voicePreferences          SpaceVoicePreference[]
 
   @@unique([spaceId, userId])
   @@index([organizationId, userId])
@@ -1430,13 +1431,14 @@ model CrmWebhookDelivery {
 // because rewriting eight working pipelines buys nothing visible.
 
 model Workspace {
-  id               String       @id @default(cuid())
-  organizationId   String       @unique
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  knowledgeImports WorkspaceKnowledgeImport[]
+  id               String                     @id @default(cuid())
+  organizationId   String                     @unique
+  organization     Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name             String
-  slug             String       @unique
-  channels         String[]     @default([]) // voice | email | social | leasing | utilities
-  activityApproval String       @default("manual") // manual | auto
+  slug             String                     @unique
+  channels         String[]                   @default([]) // voice | email | social | leasing | utilities
+  activityApproval String                     @default("manual") // manual | auto
 
   monthlyVoiceReportsEnabled Boolean   @default(false)
   monthlyVoiceReportDay      Int       @default(0) // 0 = last day of month, 1-28 = that day
@@ -2117,4 +2119,17 @@ model WorkspaceContext {
 
   @@unique([workspaceId, key])
   @@map("workspace_context")
+}
+
+// A receipt, separate from editable knowledge, prevents recreating deleted imports.
+model WorkspaceKnowledgeImport {
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade, map: "workspace_knowledge_imports_workspace_fkey")
+  spaceId     String
+  userId      String
+  member      SpaceMember @relation(fields: [spaceId, userId], references: [spaceId, userId], onDelete: Cascade, map: "workspace_knowledge_imports_member_fkey")
+  createdAt   DateTime    @default(now())
+
+  @@id([workspaceId, spaceId, userId])
+  @@map("workspace_knowledge_imports")
 }

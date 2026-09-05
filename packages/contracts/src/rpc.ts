@@ -312,6 +312,10 @@ export const appContract = {
   /// The client's operations warehouse. `status` is cheap and drives the nav;
   /// `overview` is the one round trip the pipeline map needs.
   workspace: {
+    team: {
+      list: oc.output(z.array(BotSchema)),
+      open: oc.input(z.object({ botId: Id.optional() })).output(BotSchema),
+    },
     status: oc.output(z.object({ workspace: WorkspaceSummarySchema.nullable() })),
     overview: oc.output(WorkspaceOverviewSchema),
     system: oc.output(z.object({ pipes: z.array(WorkspacePipeSchema) })),

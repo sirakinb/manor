@@ -95,7 +95,11 @@ export function AutomationsCard() {
   }
 
   return (
-    <Card title={t`Automations`} subtitle={t`Scheduled pipelines and their newest run`}>
+    <Card
+      className="@container"
+      title={t`Automations`}
+      subtitle={t`Scheduled pipelines and their newest run`}
+    >
       {error ? <ErrorLine message={error} /> : null}
       {loading ? <Loading /> : null}
       {data ? (
@@ -111,7 +115,7 @@ export function AutomationsCard() {
               return (
                 <li
                   key={automation.key}
-                  className="grid grid-cols-1 items-center gap-x-5 gap-y-2 py-3 text-[12.5px] md:grid-cols-[minmax(180px,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 py-3 text-[12.5px] @min-[700px]:grid-cols-[minmax(180px,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]"
                 >
                   <div className="min-w-0">
                     <p className="flex items-center gap-2">
@@ -124,7 +128,7 @@ export function AutomationsCard() {
                       {cronWords(automation.crons)} · {automation.timezone}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-end gap-2 @min-[700px]:justify-start">
                     <StatusPill tone={automation.enabled ? pipeTone(automation.status) : "dim"}>
                       {automation.enabled ? statusLabel[automation.status] : t`Paused`}
                     </StatusPill>
@@ -177,7 +181,7 @@ export function AutomationsCard() {
                     />
                   </div>
                   {rowError ? (
-                    <p className="text-[11.5px] text-[#E8A33C] md:col-span-4">{rowError}</p>
+                    <p className="col-span-full text-[11.5px] text-[#E8A33C]">{rowError}</p>
                   ) : null}
                 </li>
               );

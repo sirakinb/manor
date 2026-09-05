@@ -26,11 +26,23 @@ test("workspace appears once the organization has one and its map opens sections
   const databaseUrl = process.env.DATABASE_URL;
   expect(databaseUrl, "the harness exports DATABASE_URL").toBeTruthy();
   const { prisma, pool } = createDb(databaseUrl!);
+  let selectedBotId = "";
   try {
     const member = await prisma.member.findFirstOrThrow({
       where: { user: { email } },
-      select: { organizationId: true },
+      select: { organizationId: true, userId: true },
     });
+    const membership = await prisma.spaceMember.findFirstOrThrow({ where: member });
+    const selectedBot = await prisma.bot.create({
+      data: {
+        spaceId: membership.spaceId,
+        userId: member.userId,
+        name: "Operations",
+        color: "#123456",
+        thread: { create: { spaceId: membership.spaceId, userId: member.userId } },
+      },
+    });
+    selectedBotId = selectedBot.id;
     const workspace = await prisma.workspace.create({
       data: {
         organizationId: member.organizationId,
@@ -141,6 +153,22 @@ test("workspace appears once the organization has one and its map opens sections
         verification: "auto",
       },
     });
+    await prisma.workspaceSkill.create({
+      data: {
+        workspaceId: workspace.id,
+        name: "callback-playbook",
+        content: "# Callbacks\nCheck requested callbacks before scheduling follow-up.",
+        createdBy: "import",
+      },
+    });
+    await prisma.workspaceContext.create({
+      data: {
+        workspaceId: workspace.id,
+        key: "office-hours",
+        content: "Office hours are weekdays 9–5.",
+        updatedBy: "import",
+      },
+    });
   } finally {
     await prisma.$disconnect();
     await pool.end();
@@ -172,6 +200,21 @@ test("workspace appears once the organization has one and its map opens sections
   await page.getByText("Dana Reyes").click();
   await page.waitForURL(/\/app\/workspace\/voice\/[^/]+$/);
   await expect(page.getByRole("heading", { name: "Dana Reyes" })).toBeVisible();
+  await page.getByRole("combobox", { name: "Workspace bot" }).selectOption(selectedBotId);
+  let sentMessages = 0;
+  page.on("request", (request) => {
+    if (/threads(?:\/|\.)send/.test(request.url())) sentMessages += 1;
+  });
+  await page.getByRole("button", { name: "Ask the team", exact: true }).click();
+  await page.waitForURL(`**/app/${selectedBotId}`);
+  const draft = page.getByTestId("composer-bar").locator("textarea");
+  await expect(draft).toHaveValue(/Review Dana Reyes in our workspace/);
+  await expect(draft).toHaveValue(/Record:/);
+  await draft.fill("My edited workspace question");
+  await expect(draft).toHaveValue("My edited workspace question");
+  expect(sentMessages).toBe(0);
+  await captureScreenshot(page, testInfo, "workspace-ask-team-draft");
+  await sidebar.getByRole("button", { name: "Workspace", exact: true }).click();
 
   await tabs.getByRole("button", { name: "Overview", exact: true }).click();
   await page.waitForURL(/\/app\/workspace$/);
@@ -184,10 +227,25 @@ test("workspace appears once the organization has one and its map opens sections
   // AI team: the default automations list with a Run now that queues.
   await tabs.getByRole("button", { name: "AI team", exact: true }).click();
   await page.waitForURL(/\/app\/workspace\/team$/);
+  await expect(tabs.getByRole("button", { name: "Skills", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Chat", exact: true }).first()).toBeVisible();
   const automations = page.getByTestId("workspace-automations");
-  await expect(automations).toBeVisible();
   const voiceAutomation = automations.locator("li").filter({ hasText: "Voice calls" });
   await expect(voiceAutomation).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-team");
+  await page.getByRole("button", { name: "Knowledge", exact: true }).first().click();
+  const knowledge = page.getByTestId("bot-knowledge");
+  await knowledge.getByRole("button", { name: "Skills", exact: true }).click();
+  await expect(
+    knowledge.getByText("workspace-callback-playbook", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByTestId("space-memory-list")
+      .getByText(/office-hours/)
+      .first(),
+  ).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-native-knowledge");
   await voiceAutomation.getByRole("button", { name: "Run now" }).click();
   await expect(voiceAutomation.getByText("Queued", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-automations");

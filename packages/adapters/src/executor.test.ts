@@ -397,6 +397,8 @@ describe("createRunExecutor", () => {
       thread: {
         findFirst: vi.fn(async () => ({ id: "group-thread-1" })),
       },
+      spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
+      workspace: { findUnique: vi.fn(async () => null) },
       agentSkill: {
         findMany: vi.fn(async () => []),
       },
@@ -467,6 +469,8 @@ describe("createRunExecutor", () => {
         })),
       },
       thread: { findFirst },
+      spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
+      workspace: { findUnique: vi.fn(async () => null) },
       agentSkill: { findMany: vi.fn(async () => []) },
       $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
         callback({
@@ -532,6 +536,8 @@ describe("createRunExecutor", () => {
         })),
       },
       thread: { findFirst },
+      spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
+      workspace: { findUnique: vi.fn(async () => null) },
       agentSkill: { findMany: vi.fn(async () => []) },
       $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
         callback({
@@ -604,6 +610,8 @@ description: Prepare standup notes
           thread: { id: "thread-1" },
         })),
       },
+      spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
+      workspace: { findUnique: vi.fn(async () => null) },
       agentSkill: {
         findMany: vi.fn(async () => [
           {
@@ -665,6 +673,8 @@ description: Prepare standup notes
           thread: { id: "thread-1" },
         })),
       },
+      spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
+      workspace: { findUnique: vi.fn(async () => null) },
       agentSkill: {
         findMany: vi.fn(async () => []),
       },
@@ -721,6 +731,8 @@ description: Prepare standup notes
           thread: { id: "thread-1" },
         })),
       },
+      spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
+      workspace: { findUnique: vi.fn(async () => null) },
       agentSkill: {
         findMany: vi.fn(async () => []),
       },

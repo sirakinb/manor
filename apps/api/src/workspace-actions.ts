@@ -1,5 +1,4 @@
 import type { JobPublisher, PropertyLedger, TransactionalEmailProvider } from "@rakazo/adapter-kit";
-import { workspaceAutomationRunNowJob } from "@rakazo/adapter-kit";
 import {
   type BuildiumCredential,
   buildBuildiumChargePayload,
@@ -9,7 +8,9 @@ import {
   listWorkspaceCredentials,
   loadWorkspaceCredential,
   parseBuildiumCredential,
+  requestWorkspaceAutomationRun,
   saveWorkspaceCredential,
+  WorkspaceAutomationRequestError,
 } from "@rakazo/adapters";
 import type {
   Actor,
@@ -37,7 +38,6 @@ import {
   IsolationError,
   listWorkspaceAutomations,
   type PrismaClient,
-  requireWorkspaceAutomation,
   updateWorkspaceAutomation,
   type WorkspaceActorScope,
 } from "@rakazo/db";
@@ -350,22 +350,13 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
 
     /** Enqueue one run immediately; the sync-run row exists before the job does. */
     async runAutomation(actor: ChargeActor, key: string): Promise<{ runId: string }> {
-      const workspace = await requireWorkspace(actor);
-      await requireManager(actor);
-      if (!deps.jobs) throw new WorkspaceActionError("Background jobs are not available");
-      await ensureDefaultAutomations(prisma, workspace, now());
-      const automation = await requireWorkspaceAutomation(prisma, workspace.id, key);
-      const run = await prisma.workspaceSyncRun.create({
-        data: {
-          workspaceId: workspace.id,
-          automationId: automation.id,
-          status: "queued",
-          startedAt: now(),
-          metadata: { requestedBy: actor.email },
-        },
-      });
-      await deps.jobs.enqueue(workspaceAutomationRunNowJob(automation.id, run.id));
-      return { runId: run.id };
+      try {
+        return await requestWorkspaceAutomationRun(prisma, deps.jobs, actor, key, now());
+      } catch (error) {
+        if (error instanceof WorkspaceAutomationRequestError)
+          throw new WorkspaceActionError(error.message);
+        throw error;
+      }
     },
 
     async updateAutomation(

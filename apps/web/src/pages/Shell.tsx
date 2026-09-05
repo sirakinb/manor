@@ -156,6 +156,7 @@ import {
   shouldNotifyBrowser,
 } from "../lib/browser-notifications";
 import { chartViewport } from "../lib/chart-viewport";
+import { type ComposerPrefill, composerPrefillFromState } from "../lib/composer-prefill";
 import { dictation } from "../lib/dictation";
 import { localTimezone } from "../lib/local-timezone";
 import { connectMcpOauth } from "../lib/mcp-connect";
@@ -332,7 +333,8 @@ export function ShellPage() {
   const [botSections, setBotSections] = useState<BotSection[]>([]);
   // The CRM and docs are places, not panels, so they live on their own routes
   // and win the main pane whenever the address says so.
-  const placePathname = useLocation().pathname;
+  const location = useLocation();
+  const placePathname = location.pathname;
   const crmOpen = placePathname === "/app/crm";
   const docsOpen = placePathname === "/app/docs";
   const workspaceOpen =
@@ -3148,7 +3150,15 @@ export function ShellPage() {
         className="flex min-w-0 flex-1 flex-col bg-[#0D0D0E]"
       >
         {workspaceOpen ? (
-          <WorkspaceView organizationName={currentOrganizationName} />
+          <WorkspaceView
+            organizationName={currentOrganizationName}
+            onOpenBot={(bot, text) => {
+              setBots((current) =>
+                current.some((candidate) => candidate.id === bot.id) ? current : [...current, bot],
+              );
+              navigate(`/app/${bot.id}`, { state: { composerPrefill: { botId: bot.id, text } } });
+            }}
+          />
         ) : crmOpen ? (
           <CrmView />
         ) : docsOpen ? (
@@ -3352,6 +3362,14 @@ export function ShellPage() {
             ) : null}
             <Composer
               key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
+              prefill={
+                inGroup
+                  ? undefined
+                  : composerPrefillFromState(location.state, location.key, botId, active?.id)
+              }
+              onPrefillConsumed={() =>
+                navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+              }
               activeName={inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name}
               running={composerRunning}
               disabled={Boolean(recordingSkill)}
@@ -4599,6 +4617,8 @@ function FileDropOverlay({ name }: { name: string }) {
 }
 
 const Composer = memo(function Composer({
+  prefill,
+  onPrefillConsumed,
   activeName,
   running,
   disabled,
@@ -4628,6 +4648,8 @@ const Composer = memo(function Composer({
   onDictateStart,
   onDictateStop,
 }: {
+  prefill?: ComposerPrefill;
+  onPrefillConsumed?: () => void;
   activeName?: string;
   running: boolean;
   disabled?: boolean;
@@ -4669,6 +4691,14 @@ const Composer = memo(function Composer({
   const [selectedSkill, setSelectedSkill] = useState<AgentSkillCatalogEntry | null>(null);
   const [selectedMentions, setSelectedMentions] = useState<ComposerMention[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const consumedPrefill = useRef<string | null>(null);
+  useEffect(() => {
+    if (!prefill || consumedPrefill.current === prefill.key) return;
+    consumedPrefill.current = prefill.key;
+    setDraft((current) => (current ? `${current}\n\n${prefill.text}` : prefill.text));
+    textareaRef.current?.focus();
+    onPrefillConsumed?.();
+  }, [prefill, onPrefillConsumed]);
   const runErrorRef = useRef<HTMLDivElement>(null);
   const presentedRunErrorIdRef = useRef<string | null>(null);
   const mentionListboxId = useId();

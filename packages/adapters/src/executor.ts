@@ -71,6 +71,7 @@ import {
   findDefaultModelCredential,
   findModelCredential,
   InvalidSpaceNameError,
+  importWorkspaceKnowledge,
   type McpServer,
   type Prisma,
   type PrismaClient,
@@ -253,6 +254,7 @@ import { advanceToolCallLoopGuard } from "./tool-loop.js";
 import { textContentArg } from "./tool-text.js";
 import { createWebProvider } from "./web-provider-factory.js";
 import { webFetchFromTool, webSearchFromTool } from "./web-tools.js";
+import { executeWorkspaceTool, WORKSPACE_READ_ONLY_TOOL_NAMES } from "./workspace-tools.js";
 
 const modelCredentialLocks = new Map<string, Promise<void>>();
 const READ_ONLY_AGENT_TOOLS = new Set([
@@ -266,6 +268,7 @@ const READ_ONLY_AGENT_TOOLS = new Set([
   "scratchpad_list",
   "skill_read",
   ...CRM_READ_ONLY_TOOL_NAMES,
+  ...WORKSPACE_READ_ONLY_TOOL_NAMES,
   "web_search",
   "web_fetch",
 ]);
@@ -688,6 +691,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             routine.timezone,
           );
       const previousLastRunAt = routine.lastRunAt;
+      await importWorkspaceKnowledge(deps.prisma, routine);
       const skillRecords = await listAgentSkillRecords(deps.prisma, {
         spaceId: routine.spaceId,
         userId: routine.userId,
@@ -893,6 +897,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
       const runSecrets = [...deps.secrets];
       try {
+        const agentWorkspace = await importWorkspaceKnowledge(deps.prisma, run);
         const [
           bot,
           thread,
@@ -1205,6 +1210,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             groupId: thread.groupId,
             trigger: run.trigger,
             semanticMemoryEnabled,
+            workspaceEnabled: Boolean(agentWorkspace),
             // Messaging channels belong to one bot, so no other bot is offered the tool.
           })
             .filter((tool) => botMayUseChannels(bot.id) || tool.name !== "send_channel_message")
@@ -2249,6 +2255,20 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 ? formatObservation(result.observation, `launched ${application}`)
                 : { ok: true };
             }, finish);
+          }
+          if (name.startsWith("workspace_")) {
+            const result = await executeWorkspaceTool(
+              deps,
+              {
+                spaceId: run.spaceId,
+                userId: run.userId,
+                botId: bot.id,
+                executionId: effectKey,
+              },
+              name,
+              args,
+            );
+            return finish(result ?? { error: "Unknown workspace tool." });
           }
           if (name.startsWith("crm_")) {
             const organizationId = await resolveOrganizationId(deps.prisma, run.spaceId);
@@ -3764,11 +3784,17 @@ export function selectBuiltinToolsForRun(options: {
   groupId: string | null;
   trigger: string;
   semanticMemoryEnabled: boolean;
+  workspaceEnabled?: boolean;
 }) {
   return selectMemoryTools(
     filterBuiltinToolsForRun(
       filterBuiltinToolsForThread(
-        filterImageReturningComputerTools(builtinAgentTools, options.graphicalToolsAllowed),
+        filterImageReturningComputerTools(
+          builtinAgentTools.filter(
+            (tool) => options.workspaceEnabled || !tool.name.startsWith("workspace_"),
+          ),
+          options.graphicalToolsAllowed,
+        ),
         options.groupId,
       ),
       options.trigger,

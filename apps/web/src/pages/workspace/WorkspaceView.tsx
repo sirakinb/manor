@@ -1,16 +1,17 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { WorkspaceOverview, WorkspaceSummary } from "@rakazo/contracts";
+import type { Bot, WorkspaceOverview, WorkspaceSummary } from "@rakazo/contracts";
 import { Settings } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { BuiButton } from "../../components/beautiful-ui/primitives";
 import { rpc } from "../../lib/rpc";
+import { AskTeamButton, WorkspaceTeamContext } from "./AskTeam";
 import { isSectionKey, Loading, type SectionKey } from "./bits";
 import { Overview } from "./Overview";
 import { EmailSection } from "./sections/EmailSection";
 import { LeasingSection } from "./sections/LeasingSection";
 import { ReportsSection } from "./sections/ReportsSection";
 import { SettingsSection } from "./sections/SettingsSection";
-import { SkillsSection } from "./sections/SkillsSection";
 import { SocialSection } from "./sections/SocialSection";
 import { SystemSection } from "./sections/SystemSection";
 import { TeamSection } from "./sections/TeamSection";
@@ -30,7 +31,7 @@ export function workspaceTabs(workspace: WorkspaceSummary): WorkspaceTab[] {
   if (has("social")) tabs.push("social");
   if (has("leasing")) tabs.push("leasing");
   if (has("utilities")) tabs.push("utilities");
-  tabs.push("team", "skills", "system");
+  tabs.push("team", "system");
   return tabs;
 }
 
@@ -46,7 +47,9 @@ export function workspacePath(tab: WorkspaceTab, detailId?: string): string {
  */
 export function WorkspaceView({
   organizationName = null,
+  onOpenBot,
 }: {
+  onOpenBot: (bot: Bot, prompt: string) => void;
   /** The current organization, passed only when the user belongs to several. */
   organizationName?: string | null;
 }) {
@@ -62,6 +65,62 @@ export function WorkspaceView({
   const [status, setStatus] = useState<WorkspaceSummary | null | undefined>(undefined);
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [team, setTeam] = useState<Bot[] | null>(null);
+  const [teamError, setTeamError] = useState<string | null>(null);
+  const [selectedBotId, setSelectedBotId] = useState("");
+  const [asking, setAsking] = useState(false);
+  const askingRef = useRef(false);
+  const mounted = useRef(true);
+  const [teamEpoch, setTeamEpoch] = useState(0);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!status) return;
+    let cancelled = false;
+    rpc.workspace.team
+      .list()
+      .then((bots) => {
+        if (!cancelled) {
+          setTeam(bots);
+          setSelectedBotId((value) => (bots.some((bot) => bot.id === value) ? value : ""));
+          setTeamError(null);
+        }
+      })
+      .catch((cause) => {
+        if (!cancelled)
+          setTeamError(cause instanceof Error ? cause.message : t`Could not load the team`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [t, teamEpoch, status?.id]);
+
+  async function ask(subject: string, botId = selectedBotId) {
+    if (askingRef.current) return;
+    askingRef.current = true;
+    setAsking(true);
+    try {
+      const bot = await rpc.workspace.team.open({ botId: botId || undefined });
+      if (!mounted.current) return;
+      const record = detailId ? `\nRecord: ${detailId}` : "";
+      onOpenBot(
+        bot,
+        t`Review ${subject} in our workspace. Check current data and highlight what needs attention.` +
+          record,
+      );
+    } catch (cause) {
+      if (mounted.current)
+        setTeamError(cause instanceof Error ? cause.message : t`Could not open the team`);
+    } finally {
+      askingRef.current = false;
+      if (mounted.current) setAsking(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -88,7 +147,6 @@ export function WorkspaceView({
     leasing: t`Leasing`,
     utilities: t`Utilities`,
     team: t`AI team`,
-    skills: t`Skills`,
     system: t`System`,
   };
 
@@ -124,110 +182,145 @@ export function WorkspaceView({
   const eyebrow = `${status.name} · ${settingsOpen ? t`Settings` : labels[tab]}`;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
-      <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[13px]">
-        <div className="flex min-w-0 items-center gap-5">
-          <span className="flex min-w-0 flex-col">
-            <span className="flex min-w-0 items-baseline gap-2 text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">
-              <Trans>Workspace</Trans>
-              <span className="truncate text-[13px] font-normal text-[#6E6975]">
-                · {status.name}
+    <WorkspaceTeamContext.Provider
+      value={{
+        bots: team ?? [],
+        ask: (subject, botId) => void ask(subject, botId),
+        busy: asking || team === null,
+      }}
+    >
+      <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
+        <div className="flex items-center justify-between border-b border-[#141416] px-[22px] py-[13px]">
+          <div className="flex min-w-0 items-center gap-5">
+            <span className="flex min-w-0 flex-col">
+              <span className="flex min-w-0 items-baseline gap-2 text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">
+                <Trans>Workspace</Trans>
+                <span className="truncate text-[13px] font-normal text-[#6E6975]">
+                  · {status.name}
+                </span>
               </span>
+              {organizationName ? (
+                <span className="truncate text-[11px] text-[#6E6975]">{organizationName}</span>
+              ) : null}
             </span>
-            {organizationName ? (
-              <span className="truncate text-[11px] text-[#6E6975]">{organizationName}</span>
-            ) : null}
-          </span>
-          <div
-            data-testid="workspace-tabs"
-            className="rk-scroll flex min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-[#202023] bg-[#131315] p-1"
-          >
-            {tabs.map((entry) => (
-              <button
-                key={entry}
-                type="button"
-                aria-current={tab === entry && !settingsOpen ? "page" : undefined}
-                onClick={() => open(entry)}
-                className={`shrink-0 cursor-pointer rounded-full px-3.5 py-1 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
-                  tab === entry && !settingsOpen
-                    ? "bg-[#232326] text-[#ECECEE]"
-                    : "text-[#85858A] hover:text-[#C9C9CE]"
-                }`}
+            {team && team.length > 1 ? (
+              <select
+                aria-label={t`Workspace bot`}
+                value={selectedBotId}
+                onChange={(event) => setSelectedBotId(event.target.value)}
+                className="max-w-40 rounded border border-[#202023] bg-[#131315] px-2 py-1 text-[13px] text-[#ECECEE]"
               >
-                {labels[entry]}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            aria-label={t`Workspace settings`}
-            aria-current={settingsOpen ? "page" : undefined}
-            onClick={() => navigate("/app/workspace/settings")}
-            className={`grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
-              settingsOpen
-                ? "bg-[#232326] text-[#ECECEE]"
-                : "text-[#85858A] hover:bg-[#131315] hover:text-[#C9C9CE]"
-            }`}
-          >
-            <Settings size={15} strokeWidth={1.7} />
-          </button>
-        </div>
-      </div>
-
-      {settingsOpen ? (
-        <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[1180px] px-[22px] py-5">
-            <SettingsSection workspace={status} eyebrow={eyebrow} />
-          </div>
-        </div>
-      ) : tab === "overview" ? (
-        <div className="min-h-0 flex-1">
-          {error ? (
-            <p className="px-[22px] py-6 text-[13px] text-[#E8A33C]">{error}</p>
-          ) : overview ? (
-            <Overview overview={overview} onOpen={open} />
-          ) : (
-            <div className="px-[22px]">
-              <Loading />
+                <option value="">{t`Choose a bot`}</option>
+                {team.map((bot) => (
+                  <option key={bot.id} value={bot.id}>
+                    {bot.name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            {tab === "overview" && !settingsOpen ? <AskTeamButton subject={t`Overview`} /> : null}
+            <div
+              data-testid="workspace-tabs"
+              className="rk-scroll flex min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-[#202023] bg-[#131315] p-1"
+            >
+              {tabs.map((entry) => (
+                <button
+                  key={entry}
+                  type="button"
+                  aria-current={tab === entry && !settingsOpen ? "page" : undefined}
+                  onClick={() => open(entry)}
+                  className={`shrink-0 cursor-pointer rounded-full px-3.5 py-1 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
+                    tab === entry && !settingsOpen
+                      ? "bg-[#232326] text-[#ECECEE]"
+                      : "text-[#85858A] hover:text-[#C9C9CE]"
+                  }`}
+                >
+                  {labels[entry]}
+                </button>
+              ))}
             </div>
-          )}
+            <button
+              type="button"
+              aria-label={t`Workspace settings`}
+              aria-current={settingsOpen ? "page" : undefined}
+              onClick={() => navigate("/app/workspace/settings")}
+              className={`grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rk-accent)] ${
+                settingsOpen
+                  ? "bg-[#232326] text-[#ECECEE]"
+                  : "text-[#85858A] hover:bg-[#131315] hover:text-[#C9C9CE]"
+              }`}
+            >
+              <Settings size={15} strokeWidth={1.7} />
+            </button>
+          </div>
         </div>
-      ) : (
-        <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[1180px] px-[22px] py-5">
-            {tab === "voice" ? (
-              <VoiceSection workspace={status} eyebrow={eyebrow} callId={detailId} onOpen={open} />
-            ) : tab === "reports" ? (
-              <ReportsSection
-                workspace={status}
-                eyebrow={eyebrow}
-                reportId={detailId}
-                onOpen={open}
-              />
-            ) : tab === "email" ? (
-              <EmailSection workspace={status} eyebrow={eyebrow} />
-            ) : tab === "social" ? (
-              <SocialSection workspace={status} eyebrow={eyebrow} />
-            ) : tab === "leasing" ? (
-              <LeasingSection workspace={status} eyebrow={eyebrow} />
-            ) : tab === "utilities" ? (
-              <UtilitiesSection workspace={status} eyebrow={eyebrow} />
-            ) : tab === "team" ? (
-              <TeamSection
-                workspace={status}
-                eyebrow={eyebrow}
-                overview={overview}
-                error={error}
-                onRefresh={load}
-              />
-            ) : tab === "skills" ? (
-              <SkillsSection workspace={status} eyebrow={eyebrow} />
+
+        {settingsOpen ? (
+          <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-[1180px] px-[22px] py-5">
+              <SettingsSection workspace={status} eyebrow={eyebrow} />
+            </div>
+          </div>
+        ) : tab === "overview" ? (
+          <div className="min-h-0 flex-1">
+            {error ? (
+              <p className="px-[22px] py-6 text-[13px] text-[#E8A33C]">{error}</p>
+            ) : overview ? (
+              <Overview overview={overview} onOpen={open} />
             ) : (
-              <SystemSection workspace={status} eyebrow={eyebrow} />
+              <div className="px-[22px]">
+                <Loading />
+              </div>
             )}
           </div>
-        </div>
-      )}
-    </div>
+        ) : (
+          <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-[1180px] px-[22px] py-5">
+              {tab === "voice" ? (
+                <VoiceSection
+                  workspace={status}
+                  eyebrow={eyebrow}
+                  callId={detailId}
+                  onOpen={open}
+                />
+              ) : tab === "reports" ? (
+                <ReportsSection
+                  workspace={status}
+                  eyebrow={eyebrow}
+                  reportId={detailId}
+                  onOpen={open}
+                />
+              ) : tab === "email" ? (
+                <EmailSection workspace={status} eyebrow={eyebrow} />
+              ) : tab === "social" ? (
+                <SocialSection workspace={status} eyebrow={eyebrow} />
+              ) : tab === "leasing" ? (
+                <LeasingSection workspace={status} eyebrow={eyebrow} />
+              ) : tab === "utilities" ? (
+                <UtilitiesSection workspace={status} eyebrow={eyebrow} />
+              ) : tab === "team" ? (
+                <TeamSection
+                  workspace={status}
+                  eyebrow={eyebrow}
+                  overview={overview}
+                  error={error}
+                  onRefresh={load}
+                />
+              ) : (
+                <SystemSection workspace={status} eyebrow={eyebrow} />
+              )}
+            </div>
+          </div>
+        )}
+        {teamError ? (
+          <p role="alert" className="px-[22px] py-2 text-[13px] text-[#E8A33C]">
+            {teamError}{" "}
+            <BuiButton onClick={() => setTeamEpoch((value) => value + 1)}>
+              <Trans>Retry</Trans>
+            </BuiButton>
+          </p>
+        ) : null}
+      </div>
+    </WorkspaceTeamContext.Provider>
   );
 }

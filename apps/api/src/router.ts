@@ -111,6 +111,7 @@ import {
   formatMessagingLinkCode,
   InvalidSpaceNameError,
   IsolationError,
+  importWorkspaceKnowledge,
   issueMessagingLinkCode,
   lockOwnedGroup,
   newestModelCredentialOrder,
@@ -181,6 +182,7 @@ import {
   type PropertyLedgerFactory,
   WorkspaceActionError,
 } from "./workspace-actions.js";
+import { createWorkspaceTeam } from "./workspace-team.js";
 
 const MAX_COMPUTER_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const THREAD_MESSAGE_PAGE_SIZE = 100;
@@ -423,6 +425,7 @@ export function createRouter(deps: RouterDeps) {
   const groupRepos = createGroupRepos(deps.prisma);
   const crm = createCrmRepos(deps.prisma);
   const workspace = createWorkspaceRepos(deps.prisma);
+  const workspaceTeam = createWorkspaceTeam(deps.prisma);
   const workspaceActions = createWorkspaceActions({
     prisma: deps.prisma,
     secrets: deps.secrets,
@@ -1095,6 +1098,14 @@ export function createRouter(deps: RouterDeps) {
       ),
     },
     workspace: {
+      team: {
+        list: authed.workspace.team.list.handler(({ context }) =>
+          workspaceTeam.list(context.actor),
+        ),
+        open: authed.workspace.team.open.handler(({ context, input }) =>
+          workspaceTeam.open(context.actor, input.botId),
+        ),
+      },
       status: authed.workspace.status.handler(async ({ context }) =>
         workspace.status(context.actor),
       ),
@@ -2256,6 +2267,7 @@ export function createRouter(deps: RouterDeps) {
     },
     memory: {
       list: authed.memory.list.handler(async ({ context, input }) => {
+        await importWorkspaceKnowledge(deps.prisma, context.actor);
         const docs = await deps.prisma.memoryDocument.findMany({
           where: {
             spaceId: context.actor.spaceId,

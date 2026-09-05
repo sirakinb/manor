@@ -1,5 +1,6 @@
 import type { ConnectorTool } from "@rakazo/adapter-kit";
 import { crmAgentTools } from "./crm-tools.js";
+import { workspaceAgentTools } from "./workspace-tools.js";
 
 export const DELEGATION_TOOL_NAMES = new Set([
   "run_subagent",
@@ -676,6 +677,7 @@ export const builtinAgentTools: ConnectorTool[] = [
     },
   },
   ...crmAgentTools,
+  ...workspaceAgentTools,
 ];
 
 /** Agent-connection tools, exposed only when the messaging surface is enabled. */

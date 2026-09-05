@@ -88,5 +88,6 @@ export * from "./web-limits.js";
 export * from "./web-provider-factory.js";
 export * from "./web-ssrf.js";
 export * from "./web-tools.js";
+export * from "./workspace-automation-request.js";
 export * from "./workspace-automation-runner.js";
 export * from "./workspace-credentials.js";
