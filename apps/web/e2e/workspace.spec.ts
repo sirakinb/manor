@@ -11,6 +11,8 @@ test("workspace appears once the organization has one and its map opens sections
   page,
 }, testInfo) => {
   const stamp = Date.now();
+  const mcpBoundary = await page.request.post("/mcp/workspace", { data: {} });
+  expect(mcpBoundary.status()).toBe(401);
   const email = `workspace-${stamp}@rakazo.test`;
   await signup(page, email, "password12", "Jackson Tester");
   await completeOnboarding(page);
