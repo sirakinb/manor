@@ -145,6 +145,26 @@ test("workspace appears once the organization has one and its map opens sections
         parseStatus: "parsed",
       },
     });
+    await prisma.workspaceUtilityProperty.create({
+      data: {
+        workspaceId: workspace.id,
+        address: "24 Meadow Lane",
+        addressNorm: "24 meadow lane",
+        billingMode: "blocked",
+        notes: "Bills are sent to service address",
+      },
+    });
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId: workspace.id,
+        utility: "water",
+        gmailMessageId: `unmatched-${stamp}`,
+        serviceAddress: "90 Sample Road",
+        serviceAddressNorm: "90 sample road",
+        accountBalance: 25,
+        parseStatus: "parsed",
+      },
+    });
     await prisma.workspaceActivity.create({
       data: {
         workspaceId: workspace.id,
@@ -332,6 +352,35 @@ test("workspace appears once the organization has one and its map opens sections
   // Utilities: the seeded charge can be skipped and restored.
   await tabs.getByRole("button", { name: "Utilities", exact: true }).click();
   await page.waitForURL(/\/app\/workspace\/utilities$/);
+  await expect(page.getByRole("columnheader", { name: "Next step", exact: true })).toBeVisible();
+  const manualProperty = page.getByRole("row").filter({ hasText: "24 Meadow Lane" });
+  await expect(manualProperty.getByText("Manual handling", { exact: true })).toBeVisible();
+  await expect(
+    manualProperty.getByText("Bills are sent to service address", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    manualProperty.getByText("Handle manually using the billing instructions."),
+  ).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-utilities-properties");
+  const utilityViewport = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("columnheader", { name: "Next step", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await captureScreenshot(page, testInfo, "workspace-utilities-properties-narrow");
+  await page.setViewportSize(utilityViewport);
+  await page.getByRole("button", { name: "Unmatched bills (1)", exact: true }).click();
+  await expect(page.getByTestId("workspace-bill")).toHaveCount(1);
+  await expect(page.getByTestId("workspace-bill")).toContainText("90 Sample Road");
+  await page.getByRole("button", { name: "Properties", exact: true }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "12 Harbor Way" })
+    .getByRole("button", { name: "Review bill", exact: true })
+    .click();
+  await expect(page.getByTestId("workspace-bill")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: /Post all pending/ })).toBeHidden();
   const bill = page.getByTestId("workspace-bill").filter({ hasText: "12 Harbor Way" });
   await expect(bill).toBeVisible();
   await expect(bill.getByRole("button", { name: "Post to Buildium" })).toBeHidden();

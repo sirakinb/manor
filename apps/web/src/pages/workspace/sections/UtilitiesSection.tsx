@@ -76,28 +76,42 @@ export function UtilitiesSection({
   const [postAllBusy, setPostAllBusy] = useState(false);
   const [postAllError, setPostAllError] = useState<string | null>(null);
   const [batch, setBatch] = useState<ChargePostBatch | null>(null);
-  const [view, setView] = useState<"bills" | "properties">("bills");
-  const [filter, setFilter] = useState<"all" | "pending" | "attention" | "posted">("all");
+  const [view, setView] = useState<"bills" | "properties">("properties");
+  const [filter, setFilter] = useState<"all" | "pending" | "attention" | "unmatched" | "posted">(
+    "all",
+  );
   const [search, setSearch] = useState("");
+  const [propertyFilter, setPropertyFilter] = useState<string | null>(null);
 
   const targetLabel: Record<UtilityBillingTarget["targetStatus"], string> = {
-    blocked: t`Blocked`,
+    blocked: t`Manual handling`,
     tenant_direct: t`Tenant pays directly`,
     owner_sends_bill: t`Owner sends bill`,
-    resolved: t`Pass-through`,
-    ambiguous: t`Ambiguous`,
+    resolved: t`Bill through Buildium`,
+    ambiguous: t`Choose lease`,
     no_active_lease: t`No active lease`,
-    unmatched: t`Unmatched`,
+    unmatched: t`Match property`,
   };
 
   const resolved = data?.targets.filter((target) => target.targetStatus === "resolved").length ?? 0;
   const bills = data?.bills ?? [];
-  const attention = bills.filter(
-    (bill) =>
-      bill.resolutionStatus !== "resolved" ||
-      bill.parseStatus === "needs_review" ||
-      bill.charges.some((charge) => charge.postStatus === "error"),
-  ).length;
+  const propertyIssues =
+    data?.targets.filter((target) =>
+      ["blocked", "unmatched", "no_active_lease", "ambiguous"].includes(target.targetStatus),
+    ).length ?? 0;
+  const unmatchedBills = bills.filter((bill) => bill.resolutionStatus === "unmatched").length;
+  const selectedProperty = data?.targets.find(
+    (target) => target.utilityPropertyId === propertyFilter,
+  );
+  const nextStep: Record<UtilityBillingTarget["targetStatus"], string> = {
+    blocked: t`Handle manually using the billing instructions.`,
+    tenant_direct: t`Tenant pays the utility provider. No ledger charge.`,
+    owner_sends_bill: t`Obtain the bill from the owner and handle manually.`,
+    resolved: t`Review the bill amount, then post to the tenant ledger.`,
+    ambiguous: t`Confirm which lease to bill or how to split the charge.`,
+    no_active_lease: t`Confirm the active lease in Buildium before charging.`,
+    unmatched: t`Match this address to a Buildium property before charging.`,
+  };
   const pendingCharges = bills
     .filter((bill) => bill.resolutionStatus === "resolved")
     .flatMap((bill) => bill.charges.filter((charge) => charge.postStatus === "pending"));
@@ -107,12 +121,14 @@ export function UtilitiesSection({
   ).length;
   const query = search.trim().toLocaleLowerCase();
   const visibleBills = bills.filter((bill) => {
+    if (propertyFilter && bill.utilityPropertyId !== propertyFilter) return false;
     if (
       query &&
       !`${bill.serviceAddress ?? ""} ${bill.billingMonth ?? ""}`.toLocaleLowerCase().includes(query)
     )
       return false;
     if (filter === "pending") return bill.charges.some((charge) => charge.postStatus === "pending");
+    if (filter === "unmatched") return bill.resolutionStatus === "unmatched";
     if (filter === "attention")
       return (
         bill.resolutionStatus !== "resolved" ||
@@ -125,6 +141,20 @@ export function UtilitiesSection({
       );
     return true;
   });
+
+  function showPropertyBills(target: UtilityBillingTarget) {
+    setPropertyFilter(target.utilityPropertyId);
+    setSearch("");
+    setFilter("all");
+    setView("bills");
+  }
+
+  function showUnmatchedBills() {
+    setView("bills");
+    setFilter("unmatched");
+    setSearch("");
+    setPropertyFilter(null);
+  }
 
   async function postAll() {
     setPostAllBusy(true);
@@ -143,7 +173,11 @@ export function UtilitiesSection({
 
   return (
     <div className="ws-refined">
-      <PageHeader eyebrow={eyebrow} title={t`Utilities`} subtitle={workspace.name} />
+      <PageHeader
+        eyebrow={eyebrow}
+        title={t`Utilities`}
+        subtitle={t`${workspace.name} · Water billing`}
+      />
       {error ? <ErrorLine message={error} /> : null}
       {loading ? <Loading /> : null}
       {data ? (
@@ -155,19 +189,19 @@ export function UtilitiesSection({
               caption={t`on the utility account`}
             />
             <KpiTile
-              label={t`Pass-through properties`}
+              label={t`Bill through Buildium`}
               value={formatNumber(resolved)}
               caption={t`matched to an active lease`}
             />
             <KpiTile
-              label={t`Bills`}
-              value={formatNumber(data.bills.length)}
-              caption={t`on record`}
+              label={t`Property issues`}
+              value={formatNumber(propertyIssues)}
+              caption={t`manual handling or setup needed`}
             />
             <KpiTile
-              label={t`Needs attention`}
-              value={formatNumber(attention)}
-              caption={attention ? t`Review billing matches and charges` : t`No billing issues`}
+              label={t`Bills to review`}
+              value={formatNumber(pendingBillCount)}
+              caption={t`${formatNumber(pendingCharges.length)} pending tenant charges`}
             />
           </div>
 
@@ -175,10 +209,14 @@ export function UtilitiesSection({
             <Segmented
               label={t`Utilities view`}
               value={view}
-              onChange={setView}
+              onChange={(next) => {
+                setView(next);
+                setPropertyFilter(null);
+                setSearch("");
+              }}
               options={[
-                { key: "bills", label: t`Bills` },
                 { key: "properties", label: t`Properties` },
+                { key: "bills", label: t`Bills` },
               ]}
             />
             <label className="relative w-full sm:w-64">
@@ -198,11 +236,15 @@ export function UtilitiesSection({
 
           {view === "bills" ? (
             <Card
-              title={t`Bills`}
-              subtitle={t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoney(pendingTotal)}`}
+              title={selectedProperty ? selectedProperty.address : t`Water bills`}
+              subtitle={
+                selectedProperty
+                  ? t`Review the bill and its tenant charges`
+                  : t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoney(pendingTotal)}`
+              }
               className="mt-4"
               right={
-                pendingCharges.length > 0 ? (
+                pendingCharges.length > 0 && !propertyFilter && !query && filter === "all" ? (
                   <BuiButton
                     tone="accent"
                     onClick={() => setPostAllOpen(true)}
@@ -213,6 +255,16 @@ export function UtilitiesSection({
                 ) : null
               }
             >
+              {selectedProperty ? (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[12px]">
+                  <span className="text-[var(--ws-muted)]">
+                    {selectedProperty.notes ?? nextStep[selectedProperty.targetStatus]}
+                  </span>
+                  <BuiButton onClick={() => setPropertyFilter(null)}>
+                    <Trans>Show all bills</Trans>
+                  </BuiButton>
+                </div>
+              ) : null}
               <div className="mb-3 overflow-x-auto">
                 <Segmented
                   label={t`Bill status`}
@@ -222,6 +274,7 @@ export function UtilitiesSection({
                     { key: "all", label: t`All` },
                     { key: "pending", label: t`Pending` },
                     { key: "attention", label: t`Needs attention` },
+                    { key: "unmatched", label: t`Unmatched` },
                     { key: "posted", label: t`Posted` },
                   ]}
                 />
@@ -257,7 +310,16 @@ export function UtilitiesSection({
                     <BillCard
                       key={bill.waterBillId}
                       bill={bill}
-                      statusLabel={targetLabel[bill.resolutionStatus]}
+                      statusLabel={
+                        bill.resolutionStatus === "unmatched"
+                          ? t`Unmatched bill`
+                          : targetLabel[bill.resolutionStatus]
+                      }
+                      guidance={
+                        bill.resolutionStatus === "unmatched"
+                          ? t`Confirm this bill belongs on the property roster, then check the service address mapping.`
+                          : nextStep[bill.resolutionStatus]
+                      }
                       onChanged={setData}
                       onPosted={reload}
                     />
@@ -268,7 +330,14 @@ export function UtilitiesSection({
           ) : (
             <Card
               title={t`Water-billed properties`}
-              subtitle={t`Each property billed for water, with the lease that carries the charge`}
+              subtitle={t`Billing instructions, tenant leases, and the next step for each property`}
+              right={
+                unmatchedBills > 0 ? (
+                  <BuiButton onClick={showUnmatchedBills}>
+                    {t`Unmatched bills (${formatNumber(unmatchedBills)})`}
+                  </BuiButton>
+                ) : null
+              }
               className="mt-4"
             >
               <Table<UtilityBillingTarget>
@@ -285,13 +354,15 @@ export function UtilitiesSection({
                   {
                     key: "property",
                     label: t`Property`,
-                    width: "34%",
+                    width: "26%",
                     render: (target) => (
                       <div>
                         <p className="font-medium text-[#ECECEE]">{target.address}</p>
-                        <p className="text-[11.5px] text-[var(--ws-muted,#6E6975)]">
-                          {target.buildiumAddress ?? t`Not matched to a property`}
-                        </p>
+                        {target.notes ? (
+                          <p className="mt-1 max-w-64 text-[12px] leading-relaxed text-[var(--ws-muted)]">
+                            {target.notes}
+                          </p>
+                        ) : null}
                       </div>
                     ),
                   },
@@ -306,7 +377,7 @@ export function UtilitiesSection({
                   },
                   {
                     key: "lease",
-                    label: t`Lease`,
+                    label: t`Lease / split`,
                     render: (target) =>
                       target.leases.length === 0 ? (
                         "—"
@@ -317,9 +388,9 @@ export function UtilitiesSection({
                               <span className="font-medium text-[#ECECEE]">{t`Lease #${lease.leaseId}`}</span>
                               <span className="text-[var(--ws-muted,#6E6975)]">
                                 {lease.unitNumber ? ` · ${t`Unit ${lease.unitNumber}`}` : ""}
-                                {lease.leaseTo ? ` · ${t`to ${formatDate(lease.leaseTo)}`}` : ""}
+
                                 {target.leases.length > 1
-                                  ? ` · ${formatPct(lease.chargeShare * 100)}`
+                                  ? ` · ${t`${formatPct(lease.chargeShare * 100)} of bill`}`
                                   : ""}
                               </span>
                             </li>
@@ -328,18 +399,54 @@ export function UtilitiesSection({
                       ),
                   },
                   {
-                    key: "rent",
-                    label: t`Rent`,
-                    align: "right",
+                    key: "next",
+                    label: t`Next step`,
+                    width: "30%",
                     render: (target) => {
-                      const total = target.leases.reduce(
-                        (sum, lease) => sum + (lease.rent ?? 0),
-                        0,
+                      const propertyBills = bills.filter(
+                        (bill) => bill.utilityPropertyId === target.utilityPropertyId,
                       );
-                      return target.leases.length ? (
-                        <span className="font-semibold text-[#ECECEE]">{formatMoney(total)}</span>
-                      ) : (
-                        "—"
+                      const pending = propertyBills.filter((bill) =>
+                        bill.charges.some(
+                          (charge) =>
+                            charge.postStatus === "pending" || charge.postStatus === "error",
+                        ),
+                      );
+                      return (
+                        <div className="space-y-1.5">
+                          <p className="text-[12px] leading-relaxed text-[var(--ws-muted)]">
+                            {target.targetStatus !== "resolved"
+                              ? nextStep[target.targetStatus]
+                              : pending.length
+                                ? nextStep.resolved
+                                : propertyBills.length
+                                  ? t`No pending tenant charges. Review bill history if needed.`
+                                  : unmatchedBills > 0
+                                    ? t`No matched bill. Check the unmatched bills.`
+                                    : t`Await the next water bill.`}
+                          </p>
+                          {propertyBills.length > 0 ? (
+                            <button
+                              type="button"
+                              className={`text-[12px] font-medium text-[var(--ws-accent)] ${CLICKABLE_TEXT}`}
+                              onClick={() => showPropertyBills(target)}
+                            >
+                              {pending.length === 1
+                                ? t`Review bill`
+                                : pending.length
+                                  ? t`Review ${formatNumber(pending.length)} bills`
+                                  : t`View bills`}
+                            </button>
+                          ) : target.targetStatus === "resolved" && unmatchedBills > 0 ? (
+                            <button
+                              type="button"
+                              className={`text-[12px] font-medium text-[var(--ws-accent)] ${CLICKABLE_TEXT}`}
+                              onClick={showUnmatchedBills}
+                            >
+                              <Trans>Check unmatched bills</Trans>
+                            </button>
+                          ) : null}
+                        </div>
                       );
                     },
                   },
@@ -398,11 +505,13 @@ function BatchSummary({ batch, onDismiss }: { batch: ChargePostBatch; onDismiss:
 function BillCard({
   bill,
   statusLabel,
+  guidance,
   onChanged,
   onPosted,
 }: {
   bill: WaterBillGroup;
   statusLabel: string;
+  guidance: string;
   onChanged: (next: UtilitiesOverview) => void;
   onPosted: () => void;
 }) {
@@ -428,6 +537,9 @@ function BillCard({
           <ChevronDown size={15} className="ws-expand text-[#A6A6AD] transition-transform" />
         </div>
       </summary>
+      {bill.resolutionStatus !== "resolved" ? (
+        <p className="mt-2 text-[12px] text-[var(--ws-muted)]">{guidance}</p>
+      ) : null}
       {bill.memo ? <p className="mt-2 text-[12px] text-[#85858A]">{bill.memo}</p> : null}
       {bill.charges.length ? (
         <ul className="mt-3 divide-y divide-[#1C1C1F] border-t border-[#1C1C1F]">

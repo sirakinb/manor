@@ -166,6 +166,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
         workspaceId,
         address: "12 Test St",
         addressNorm: "12 test street",
+        notes: "Split the water bill across both units.",
         propertyId: 1001,
         splitEvenly: true,
       },
@@ -346,6 +347,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     expect(utilities.targets).toHaveLength(1);
     expect(utilities.targets[0]).toMatchObject({
       address: "12 Test St",
+      notes: "Split the water bill across both units.",
       buildiumAddress: "12 Test St",
       propertyId: 1001,
       activeLeaseCount: 2,
@@ -364,6 +366,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     ]);
     const [matched, unmatched] = utilities.bills;
     expect(matched).toMatchObject({
+      utilityPropertyId: utilities.targets[0]!.utilityPropertyId,
       memo: `${MONTH_START.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${MONTH_START.getUTCFullYear()} water`,
       billAmount: 100.5,
       resolutionStatus: "resolved",
@@ -386,6 +389,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       }),
     ]);
     expect(unmatched).toMatchObject({
+      utilityPropertyId: null,
       resolutionStatus: "unmatched",
       billingMode: null,
       charges: [],

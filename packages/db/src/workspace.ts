@@ -421,6 +421,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           utilityPropertyId: property.id,
           address: property.address,
           billingMode: property.billingMode,
+          notes: property.notes,
           propertyId: property.propertyId,
           buildiumAddress:
             property.propertyId === null
@@ -452,6 +453,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
       return {
         waterBillId: bill.id,
+        utilityPropertyId: target?.utilityPropertyId ?? null,
         serviceAddress: bill.serviceAddress,
         billingMonth: day(bill.billingMonth),
         memo,

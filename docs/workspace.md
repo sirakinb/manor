@@ -404,3 +404,10 @@ Utility summaries distinguish bills, properties and per-lease charges. A split
 bill can produce multiple charges. Only `pass_through` properties create pending
 charges; blocked, tenant-direct and owner-sent billing modes retain their labels
 and cannot be posted through single or bulk charge actions.
+
+Utilities opens on the property roster. Each row shows the imported billing notes,
+current lease allocation, and the next step. Manual handling stays distinct from
+bills whose service address is unmatched. Property bill links use the resolved
+utility-property ID, including when the bill address uses different formatting.
+The Bills view keeps charge review, skip/restore, and posting behind the existing
+confirmation flow. Bulk posting is only offered in the unfiltered, all-bills view.

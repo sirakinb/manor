@@ -439,6 +439,7 @@ export const UtilityBillingTargetSchema = z.object({
   utilityPropertyId: Id,
   address: z.string(),
   billingMode: z.string(),
+  notes: z.string().nullable().optional(),
   propertyId: z.number().int().nullable(),
   buildiumAddress: z.string().nullable(),
   activeLeaseCount: z.number().int(),
@@ -470,6 +471,7 @@ export const WaterBillChargeSchema = z.object({
 
 export const WaterBillGroupSchema = z.object({
   waterBillId: Id,
+  utilityPropertyId: Id.nullable().optional(),
   serviceAddress: z.string().nullable(),
   billingMonth: DayString.nullable(),
   memo: z.string().nullable(),
