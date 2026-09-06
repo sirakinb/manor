@@ -42,9 +42,11 @@ and review account on a physical device.
 ## Over-the-air updates
 
 Production and preview builds include `expo-updates` and use the corresponding
-EAS Update channel. The runtime version follows the public app version, so bump
-`expo.version` whenever native code, config plugins, permissions, or native
-dependencies change, then create and submit new store builds.
+EAS Update channel. The update URL is derived from `extra.eas.projectId` in
+`app.config.ts`, so builds and updates use the same linked project. The runtime
+version uses Expo's `fingerprint` policy: native code, configuration, and dependency
+changes generate a different runtime and require new store builds. Use the same
+production environment for builds and updates so their fingerprints agree.
 
 After the full GitHub Actions test suite passes on `main`, CI publishes a
 production OTA update when the revision only changes the mobile JavaScript,

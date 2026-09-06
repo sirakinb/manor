@@ -20,5 +20,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     }
   }
 
-  return config as ExpoConfig;
+  const projectId = config.extra?.eas?.projectId;
+  return {
+    ...config,
+    // Keep the build and its update destination on the same linked project.
+    ...(typeof projectId === "string" && projectId
+      ? { updates: { ...config.updates, url: `https://u.expo.dev/${projectId}` } }
+      : {}),
+  } as ExpoConfig;
 };

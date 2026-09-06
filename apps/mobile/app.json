@@ -4,7 +4,7 @@
     "slug": "manor",
     "owner": "defipapi-org",
     "scheme": "manor",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
@@ -80,10 +80,7 @@
       }
     },
     "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/07f7eb04-45e3-47fe-9374-99a2f991131e"
+      "policy": "fingerprint"
     }
   }
 }
