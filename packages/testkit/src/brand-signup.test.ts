@@ -163,7 +163,7 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
     expect(spoofed.status).toBe(403);
   });
 
-  it("lists every space across organizations for a member of two", async () => {
+  it("keeps each portal within its organization for a member of two", async () => {
     const outsider = await handles.prisma.user.findUniqueOrThrow({
       where: { email: outsiderEmail },
       include: { members: true },
@@ -189,19 +189,22 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
     const navigation = await rpc<SpaceNavigation>(app, cookie, "spaces/list");
     expect(
       navigation.spaces.map((space) => [space.organizationId, space.organizationName]),
-    ).toEqual([
-      [personalOrganizationId, "Personal"],
-      [clientOrganizationId, "Jackson Rental Homes"],
-    ]);
+    ).toEqual([[personalOrganizationId, "Personal"]]);
     // The current space is still the one the session resolved (the personal default).
     expect(navigation.current.id).toBe(personalOrganizationId);
 
-    // Switching to the other organization's space works through the same header as today.
-    const switched = await rpc<SpaceNavigation>(app, cookie, "spaces/list", {}, DEFAULT_ORIGIN, {
-      "x-rakazo-space-id": clientSpaceId,
+    // A saved selection or forged header cannot make Manor enter a client organization.
+    const denied = await app.request("/rpc/spaces/list", {
+      method: "POST",
+      headers: {
+        cookie,
+        origin: DEFAULT_ORIGIN,
+        "content-type": "application/json",
+        "x-rakazo-space-id": clientSpaceId,
+      },
+      body: JSON.stringify({ json: {} }),
     });
-    expect(switched.current.id).toBe(clientSpaceId);
-    expect(switched.spaces).toHaveLength(2);
+    expect(denied.status).toBe(401);
     const clientView = await rpc<SpaceNavigation>(app, cookie, "spaces/list", {}, BRAND_ORIGIN);
     expect(clientView.spaces.map((space) => space.organizationId)).toEqual([clientOrganizationId]);
     expect(clientView.current.id).toBe(clientSpaceId);

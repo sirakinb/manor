@@ -24,9 +24,11 @@ export async function assertPortalAccess(prisma: PrismaClient, userId: string, h
   });
   if (user.portalBrandId && user.portalBrandId !== brandId)
     throw new APIError("FORBIDDEN", { message: "Use your organization's sign-in page." });
-  if (!brandId) return null;
+  // Manor belongs to the account's first main-portal organization. Membership
+  // in a client team must not turn the main portal into an administration view.
   const member = await prisma.member.findFirst({
     where: { userId, organization: { brandId } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: { organizationId: true },
   });
   if (!member)
@@ -46,5 +48,5 @@ export async function requirePortalMembership(
     request.headers.get("x-rakazo-space-id"),
     portalOrganizationId,
   );
-  return { ...actor, ...(portalOrganizationId ? { portalOrganizationId } : {}) };
+  return { ...actor, portalOrganizationId };
 }

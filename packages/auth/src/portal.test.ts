@@ -43,6 +43,52 @@ describe("client portal access", () => {
       ),
     ).rejects.toThrow("This account cannot access this portal.");
   });
+  it("resolves the main account's first unbranded organization independently of the space header", async () => {
+    const prisma = fixture(null);
+    prisma.member.findFirst.mockResolvedValue({ organizationId: "main-org" });
+    await expect(
+      assertPortalAccess(
+        prisma as unknown as PrismaClient,
+        "admin",
+        new Headers({
+          host: "manor.pentridgemedia.com",
+          "x-rakazo-space-id": "client-space",
+        }),
+      ),
+    ).resolves.toBe("main-org");
+    expect(prisma.member.findFirst).toHaveBeenCalledWith({
+      where: { userId: "admin", organization: { brandId: null } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      select: { organizationId: true },
+    });
+  });
+  it("rejects a client space on the main portal even for an administrator", async () => {
+    const prisma = fixture(null);
+    prisma.member.findFirst.mockResolvedValue({ organizationId: "main-org" });
+    await expect(
+      requirePortalMembership(
+        prisma as unknown as PrismaClient,
+        "admin",
+        new Request("https://manor.pentridgemedia.com/rpc/me", {
+          headers: { host: "manor.pentridgemedia.com", "x-rakazo-space-id": "client-space" },
+        }),
+      ),
+    ).rejects.toThrow();
+    expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "admin", spaceId: "client-space", organizationId: "main-org" },
+      }),
+    );
+  });
+  it("denies the main portal when there is no main-portal organization", async () => {
+    await expect(
+      assertPortalAccess(
+        fixture(null, false) as unknown as PrismaClient,
+        "client-admin",
+        new Headers({ host: "manor.pentridgemedia.com" }),
+      ),
+    ).rejects.toThrow("This account cannot access this portal.");
+  });
   it("restricts even an administrator's requested space to the portal organization", async () => {
     const prisma = fixture(null);
     await expect(

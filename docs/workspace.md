@@ -146,8 +146,12 @@ enforce this boundary. The migration assigns existing users who belong only
 to a single branded organization, excluding the deployment owner. Main
 portal accounts may access a branded portal only when they belong to its
 organization. Its navigation and requested-space checks remain scoped to
-that organization, even for administrators. Main portal navigation lists
-all authorized memberships.
+that organization, even for administrators. The main portal resolves the
+account's earliest membership in an unbranded organization (ordered by
+membership creation time, then ID). Its navigation and requested-space
+checks stay within that organization too. A saved selection from another
+organization is recovered when opening the app; writes are never retried
+in a different space. Client teams are accessed through their own portals.
 
 Set `organization.brandId` to a registered brand identifier before inviting
 client staff. Each brand can belong to only one organization.

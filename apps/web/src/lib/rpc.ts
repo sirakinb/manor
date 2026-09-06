@@ -64,3 +64,24 @@ const link = new RPCLink<RpcClientContext>({
 });
 
 export const rpc: ContractRouterClient<AppContract, RpcClientContext> = createORPCClient(link);
+
+/** Recover a stale saved selection only while opening the app, never replay a mutation. */
+export async function recoverInitialSpace(error: unknown, previousSpaceId: string | null) {
+  if (
+    !previousSpaceId ||
+    selectedSpaceId() !== previousSpaceId ||
+    !(error instanceof Error) ||
+    !("code" in error) ||
+    error.code !== "UNAUTHORIZED"
+  ) {
+    throw error;
+  }
+  const me = await rpc.me(undefined, { context: { spaceId: null } });
+  if (selectedSpaceId() !== previousSpaceId || !selectSpace(me.spaceId)) throw error;
+  return me;
+}
+
+export async function initialMe() {
+  const spaceId = selectedSpaceId();
+  return rpc.me().catch((error) => recoverInitialSpace(error, spaceId));
+}

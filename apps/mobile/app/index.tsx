@@ -29,6 +29,7 @@ import {
 import { loadActivityMode, saveActivityMode } from "../lib/activity-mode";
 import {
   currentApiBase,
+  initialMe,
   loadSessionToken,
   type MobileBot,
   type MobileBotSection,
@@ -108,10 +109,8 @@ export default function Home() {
     const requestId = ++inboxRequestId.current;
     setError(null);
     try {
-      const [navigation, nextMe] = await Promise.all([
-        rpc<MobileSpaceNavigation>("spaces/list"),
-        rpc<MobileMe>("me"),
-      ]);
+      const nextMe = await initialMe();
+      const navigation = await rpc<MobileSpaceNavigation>("spaces/list");
       if (requestId !== inboxRequestId.current) return;
       if (!(await selectInitialSpace(nextMe.spaceId))) {
         throw new Error("Could not save the default space");

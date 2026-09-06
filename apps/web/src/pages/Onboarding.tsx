@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { localizedProviderHint } from "../lib/localized-provider-hint";
 import type { ModelCatalogEntry } from "../lib/model-auth";
-import { rpc } from "../lib/rpc";
+import { initialMe, rpc } from "../lib/rpc";
 import { useModelOAuthSignIn } from "../lib/use-model-oauth-signin";
 
 export function OnboardingPage() {
@@ -49,8 +49,11 @@ export function OnboardingPage() {
   });
 
   useEffect(() => {
-    void Promise.all([rpc.me(), rpc.models.list().catch(() => [])])
-      .then(([me, models]) => {
+    let cancelled = false;
+    void initialMe()
+      .then(async (me) => {
+        const models = await rpc.models.list().catch(() => []);
+        if (cancelled) return;
         setCatalog(models);
         const preferred =
           models.find(
@@ -62,10 +65,13 @@ export function OnboardingPage() {
           setProvider(preferred.provider);
           setModelId(preferred.provider === OPENAI_COMPATIBLE_PROVIDER_ID ? "" : preferred.id);
         }
-        setStep("model");
+        setStep(me.needsModel ? "model" : "bot");
       })
-      .catch(() => setStep("bot"));
+      .catch(() => {
+        if (!cancelled) setError(t`Could not load setup. Reload to try again.`);
+      });
     return () => {
+      cancelled = true;
       probeRequestIdRef.current += 1;
     };
   }, []);
@@ -210,9 +216,7 @@ export function OnboardingPage() {
     <div className="flex min-h-full items-center justify-center bg-[#0D0D0E] px-6">
       <div className="w-[560px]">
         {step === "loading" ? (
-          <p className="text-[#85858A]">
-            <Trans>Loading…</Trans>
-          </p>
+          <p className="text-[#85858A]">{error ?? <Trans>Loading…</Trans>}</p>
         ) : null}
         {step === "model" ? (
           <div>

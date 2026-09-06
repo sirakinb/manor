@@ -1,7 +1,7 @@
 import type { AppBootstrap } from "@rakazo/contracts";
 import { initialBootstrapTarget } from "./bootstrap-target";
 import { markOnce } from "./performance";
-import { rpc } from "./rpc";
+import { recoverInitialSpace, rpc, selectedSpaceId } from "./rpc";
 
 let primedBootstrap: { botId?: string; promise: Promise<AppBootstrap> } | null = null;
 
@@ -25,10 +25,13 @@ export function takeInitialBootstrap(botId?: string) {
   return requestBootstrap(botId);
 }
 
-function requestBootstrap(botId?: string) {
+async function requestBootstrap(botId?: string) {
   markOnce("rk:renderer:bootstrap-request-start");
-  return rpc.bootstrap(botId ? { botId } : {}).then((bootstrap) => {
-    markOnce("rk:renderer:bootstrap-response");
-    return bootstrap;
+  const spaceId = selectedSpaceId();
+  const bootstrap = await rpc.bootstrap(botId ? { botId } : {}).catch(async (error) => {
+    await recoverInitialSpace(error, spaceId);
+    return rpc.bootstrap({});
   });
+  markOnce("rk:renderer:bootstrap-response");
+  return bootstrap;
 }

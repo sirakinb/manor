@@ -7,6 +7,7 @@ import {
   changePassword,
   currentApiBase,
   deleteAccount,
+  initialMe,
   loadApiBase,
   type MobileMessage,
   type MobileSnapshot,
@@ -57,6 +58,36 @@ describe("mobile API authentication", () => {
     vi.mocked(SecureStore.deleteItemAsync).mockReset();
     vi.mocked(resumeLiveNotifications).mockClear();
     await restoreSessionToken("");
+  });
+
+  it("recovers an unauthorized saved space only while loading the inbox", async () => {
+    await selectSpace("client-space");
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "Unauthorized" } }), { status: 401 }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ json: { spaceId: "main-space" } })));
+    vi.stubGlobal("fetch", fetch);
+    await expect(initialMe()).resolves.toMatchObject({ spaceId: "main-space" });
+    expect(fetch.mock.calls[0]![1].headers["x-rakazo-space-id"]).toBe("client-space");
+    expect(fetch.mock.calls[1]![1].headers["x-rakazo-space-id"]).toBeUndefined();
+    expect(selectedSpaceId()).toBe("main-space");
+    await selectSpace("");
+  });
+
+  it("does not replay a denied mutation in another space", async () => {
+    await selectSpace("client-space");
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ error: { message: "Unauthorized" } }), { status: 401 }),
+      );
+    vi.stubGlobal("fetch", fetch);
+    await expect(rpc("bots/create", { name: "Assistant" })).rejects.toThrow("Unauthorized");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(selectedSpaceId()).toBe("client-space");
+    await selectSpace("");
   });
 
   it("persists a successful sign-in token and sends the native origin", async () => {

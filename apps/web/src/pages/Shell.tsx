@@ -1447,22 +1447,7 @@ export function ShellPage() {
             ]
           : [];
     const showSpaceNames = sidebarSpaces.length > 1;
-    // A member of several organizations sees spaces grouped under each one,
-    // in first-seen order; a single organization renders exactly as before.
-    const organizationOrder = [...new Set(sidebarSpaces.map((space) => space.organizationId))];
-    const showOrganizations = organizationOrder.length > 1;
-    const orderedSpaces = showOrganizations
-      ? organizationOrder.flatMap((organizationId) =>
-          sidebarSpaces.filter((space) => space.organizationId === organizationId),
-        )
-      : sidebarSpaces;
-    const labelledOrganizations = new Set<string>();
-    return orderedSpaces.flatMap((space) => {
-      const organizationLabel =
-        showOrganizations && !labelledOrganizations.has(space.organizationId)
-          ? space.organizationName
-          : undefined;
-      if (organizationLabel !== undefined) labelledOrganizations.add(space.organizationId);
+    return sidebarSpaces.flatMap((space) => {
       const visibleBots = space.bots.filter((bot) =>
         `${bot.name} ${bot.title ?? ""} ${bot.preview ?? ""}`.toLowerCase().includes(needle),
       );
@@ -1485,11 +1470,8 @@ export function ShellPage() {
           : group.title,
         showLock: showSpaceNames,
         emptySpaceId: undefined as string | undefined,
-        organizationLabel: undefined as string | undefined,
       }));
       if (sections.length > 0) {
-        if (organizationLabel !== undefined && sections[0])
-          sections[0].organizationLabel = organizationLabel;
         return sections;
       }
       // Keep empty spaces selectable; chat clicks are the only switch control.
@@ -1502,16 +1484,13 @@ export function ShellPage() {
           bots: [],
           showLock: true,
           emptySpaceId: space.id,
-          organizationLabel,
         },
       ];
     });
   }, [bootstrapMe, botSections, bots, groups, spaces, query]);
 
-  // Shown under the Workspace header only when the user belongs to several organizations.
+  // Navigation contains only the account's organization for this portal.
   const currentOrganizationName = useMemo(() => {
-    const organizations = new Set(spaces.map((space) => space.organizationId));
-    if (organizations.size < 2) return null;
     const currentSpaceId = selectedSpaceId() ?? bootstrapMe?.spaceId;
     return spaces.find((space) => space.id === currentSpaceId)?.organizationName ?? null;
   }, [spaces, bootstrapMe?.spaceId]);
@@ -2666,6 +2645,11 @@ export function ShellPage() {
                   }}
                 />
               ) : null}
+              {currentOrganizationName ? (
+                <p className="truncate px-2.5 pt-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#6E6975]">
+                  {currentOrganizationName}
+                </p>
+              ) : null}
               {sidebarGroups.map((group) => {
                 const collapsed = Boolean(group.title) && collapsedSidebarSections.has(group.key);
                 const groupBotIds = group.bots.flatMap((item) =>
@@ -2673,11 +2657,6 @@ export function ShellPage() {
                 );
                 return (
                   <div key={group.key} data-sidebar-group={group.key}>
-                    {group.organizationLabel ? (
-                      <p className="truncate px-2.5 pt-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#6E6975]">
-                        {group.organizationLabel}
-                      </p>
-                    ) : null}
                     {group.title ? (
                       <div className="pt-2">
                         <button

@@ -4206,11 +4206,11 @@ async function spaceNavigationDto(
   repos: ReturnType<typeof createRepos>,
   groupRepos: ReturnType<typeof createGroupRepos>,
 ): Promise<SpaceNavigation> {
-  // The main portal lists all memberships; branded portals stay within their organization.
+  // Every product surface lists spaces only within the resolved organization.
   const memberships = await deps.prisma.spaceMember.findMany({
     where: {
       userId: actor.userId,
-      ...(actor.portalOrganizationId ? { organizationId: actor.portalOrganizationId } : {}),
+      organizationId: actor.organizationId,
     },
     select: {
       spaceId: true,

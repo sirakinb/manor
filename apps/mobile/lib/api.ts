@@ -373,6 +373,43 @@ export async function deleteAccount(password: string) {
   await clearSpace();
 }
 
+class RpcError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+/** Recover an old space selection when opening the inbox; never retry writes. */
+export async function initialMe(): Promise<MobileMe> {
+  const context = await captureApiRequestContext();
+  const spaceId = context.headers["x-rakazo-space-id"];
+  try {
+    return await rpc<MobileMe>("me", {}, { requestContext: context });
+  } catch (error) {
+    if (!(error instanceof RpcError) || error.status !== 401 || !spaceId) throw error;
+    const { "x-rakazo-space-id": _spaceId, ...headers } = context.headers;
+    const me = await rpc<MobileMe>(
+      "me",
+      {},
+      {
+        requestContext: { ...context, headers },
+      },
+    );
+    const authorization = (await authHeaders()).authorization;
+    if (
+      currentApiBase() !== context.apiBase ||
+      selectedSpaceId() !== spaceId ||
+      authorization !== context.headers.authorization ||
+      !(await selectSpace(me.spaceId))
+    )
+      throw error;
+    return me;
+  }
+}
+
 export async function rpc<T>(
   proc: string,
   body: unknown = {},
@@ -400,7 +437,8 @@ export async function rpc<T>(
       signal: controller.signal,
     });
     const parsed = (await res.json()) as { json?: T; error?: { message?: string } };
-    if (!res.ok || parsed.error) throw new Error(parsed.error?.message ?? `rpc ${proc} failed`);
+    if (!res.ok || parsed.error)
+      throw new RpcError(parsed.error?.message ?? `rpc ${proc} failed`, res.status);
     return parsed.json as T;
   } finally {
     if (timer) clearTimeout(timer);

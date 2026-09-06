@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { brandById } from "@rakazo/brands";
 import { createDb } from "../../../packages/db/src/client";
 import { createDemoWorkspace } from "../../../packages/db/src/demo-workspace";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
@@ -53,6 +54,16 @@ test("demo has isolated sample operations and yellow branding", async ({ page },
         thread: { create: { spaceId: demo.spaceId, userId: user.id } },
       },
     });
+    // Exercise the client's portal boundary while serving the UI from local Vite.
+    await page.route(/\/(?:api\/auth|rpc)\//, async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const response = await route.fetch({
+        url: new URL(`${url.pathname}${url.search}`, process.env.API_URL!).toString(),
+        headers: { ...request.headers(), host: brandById("meridian")!.hostnames[0]! },
+      });
+      await route.fulfill({ response });
+    });
     await page.goto("/app?__brand=meridian");
     const sidebar = page.locator("aside").first();
     await sidebar.getByText("Meridian assistant", { exact: true }).click();
@@ -92,6 +103,8 @@ test("demo has isolated sample operations and yellow branding", async ({ page },
     ).toBeVisible();
     await captureScreenshot(page, testInfo, "meridian-documentation");
   } finally {
+    // Thread subscriptions are intentionally long-lived; close the local portal bridge on teardown.
+    await page.unrouteAll({ behavior: "ignoreErrors" });
     if (organizationId) await prisma.organization.delete({ where: { id: organizationId } });
     await prisma.$disconnect();
     await pool.end();
