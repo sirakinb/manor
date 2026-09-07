@@ -184,6 +184,7 @@ class Workspace:
         bundle = self.state / (self.workspace_id + ".bundle")
         bundle.write_bytes(data)
         run(["git", "-c", "core.hooksPath=/dev/null", "-c", "fetch.fsckObjects=true",
+             "-c", "safe.directory=" + repository,
              "-C", repository, "fetch", str(bundle), "HEAD:refs/manor-workspaces/" + self.workspace_id + "/" + revision])
         return {"revision": revision}
 
