@@ -20,6 +20,8 @@ import {
   normalizeWorkspacePath,
   placeholderObservation,
 } from "./computer-support.js";
+import { fakeWorkspaceFiles } from "./fake-workspace-files.js";
+import { WORKSPACE_FILE_SCRIPT } from "./workspace-file-script.js";
 
 export interface FakeBox {
   ref: ComputerRef;
@@ -89,7 +91,9 @@ export class FakeSandboxProvider implements SandboxProvider {
       return;
     }
     const cmd = request.argv.join(" ");
-    if (request.argv[0] === "echo") {
+    if (request.argv[0] === "python3" && request.argv[2] === WORKSPACE_FILE_SCRIPT) {
+      yield { type: "stdout", data: fakeWorkspaceFiles(box, request.argv[3] ?? "{}") };
+    } else if (request.argv[0] === "echo") {
       yield { type: "stdout", data: `${request.argv.slice(1).join(" ")}\n` };
     } else if (cmd.startsWith("cat ")) {
       const file = normalizeWorkspacePath(request.argv[1] ?? "");

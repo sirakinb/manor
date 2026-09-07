@@ -47,6 +47,7 @@ import {
   loadBotCredentialSecret,
   McpOAuthBroker,
   type MemoryProviderResolver,
+  manageWorkspaceFiles,
   mapScratchpadItem,
   modelCredentialDto,
   type PiOAuthLogins,
@@ -74,6 +75,7 @@ import {
   toStringRecord,
   touchRunningComputer,
   verifyMcpInstall,
+  WorkspaceFileError,
 } from "@rakazo/adapters";
 import type { Auth } from "@rakazo/auth";
 import {
@@ -84,6 +86,7 @@ import {
   type Me,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   type SpaceNavigation,
+  workspaceOperationMutates,
 } from "@rakazo/contracts";
 import {
   ACTIVE_RUN_STATUSES,
@@ -1658,6 +1661,90 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     computer: {
+      workspace: authed.computer.workspace.handler(async ({ context, input }) => {
+        const bot = await repos.getBot(context.actor, input.botId);
+        const computer = bot.computer;
+        if (!computer) throw new IsolationError();
+        const team = computer.scope === "team";
+        if (
+          !team &&
+          (input.location === "shared" ||
+            (input.operation.action === "move" && input.operation.destinationLocation === "shared"))
+        ) {
+          throw new ORPCError("BAD_REQUEST", { message: "Shared files belong to a Team Computer" });
+        }
+        if (computer.state !== "running" || !computer.providerRef) {
+          throw new ORPCError("BAD_REQUEST", { message: "Wake the computer to manage its files" });
+        }
+        const base = (location: "bot" | "shared") =>
+          team ? (location === "shared" ? "shared" : `bots/${bot.id}`) : "";
+        const mutation = workspaceOperationMutates(input.operation);
+        const operationId = `workspace-files:${randomUUID()}`;
+        const ctx = computerContext(context.actor, bot.id, operationId);
+        if (mutation) {
+          const claimed = await deps.prisma.computer.updateMany({
+            where: {
+              id: computer.id,
+              state: "running",
+              OR: [{ executionRunId: null }, { executionLeaseExpiresAt: { lt: new Date() } }],
+            },
+            data: {
+              executionRunId: operationId,
+              executionLeaseExpiresAt: new Date(Date.now() + 120_000),
+            },
+          });
+          if (!claimed.count)
+            throw new ORPCError("CONFLICT", {
+              message: "The computer is busy. Try again when it finishes.",
+            });
+        }
+        try {
+          if (mutation) {
+            const activeRun = await deps.prisma.run.findFirst({
+              where: { bot: { computerId: computer.id }, status: { in: [...ACTIVE_RUN_STATUSES] } },
+              select: { id: true },
+            });
+            const lease = await deps.prisma.computerExecutionLease.findFirst({
+              where: { computerId: computer.id, expiresAt: { gt: new Date() } },
+              select: { id: true },
+            });
+            if (activeRun || lease)
+              throw new ORPCError("CONFLICT", {
+                message:
+                  "A bot is working on this computer. Wait for it to finish before changing files.",
+              });
+          }
+          await deps.prisma.computer.updateMany({
+            where: { id: computer.id, state: "running" },
+            data: { updatedAt: new Date() },
+          });
+          await touchRunningComputer(deps, { ...computer, providerRef: computer.providerRef });
+          const result = await manageWorkspaceFiles(
+            deps.sandbox,
+            toComputerRef(computer),
+            {
+              base: base(input.location),
+              ...(input.operation.action === "move"
+                ? { destinationBase: base(input.operation.destinationLocation) }
+                : {}),
+              operation: input.operation,
+            },
+            ctx,
+          );
+          return result;
+        } catch (error) {
+          if (error instanceof WorkspaceFileError)
+            throw new ORPCError(error.code, { message: error.message });
+          throw error;
+        } finally {
+          if (mutation)
+            await deps.prisma.computer.updateMany({
+              where: { id: computer.id, executionRunId: operationId },
+              data: { executionRunId: null, executionLeaseExpiresAt: null },
+            });
+          scheduleComputerSleep(deps.jobs, computer.id);
+        }
+      }),
       status: authed.computer.status.handler(async ({ context, input }) =>
         computerStatus(deps, context.actor, input.botId),
       ),

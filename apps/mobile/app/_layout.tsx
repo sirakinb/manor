@@ -87,6 +87,7 @@ export default function Layout() {
                 <Stack.Screen name="thread" options={{ title: "Thread" }} />
                 <Stack.Screen name="routine" options={{ title: "Routine" }} />
                 <Stack.Screen name="computer" options={{ title: "Computer" }} />
+                <Stack.Screen name="files" options={{ title: "Files" }} />
                 <Stack.Screen name="crm" options={{ title: "CRM" }} />
               </Stack>
               <Ridges />

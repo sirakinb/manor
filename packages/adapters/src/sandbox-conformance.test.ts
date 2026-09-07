@@ -30,12 +30,14 @@ async function drain(provider: SandboxProvider, computer: ComputerRef) {
 }
 
 describe("sandbox conformance", () => {
+  const desktopRoot = mkdtempSync(path.join(tmpdir(), "rakazo-desktop-conformance-"));
+  afterAll(() => rmSync(desktopRoot, { recursive: true, force: true }));
   it("runs the same graphical command across fake, managed-provider emulators, and desktop", async () => {
     const fake = new FakeSandboxProvider();
     const managed = new ManagedSandboxEmulator();
     const daytona = new DaytonaSandboxEmulator();
     const box = new BoxSandboxEmulator();
-    const desktop = new DesktopSandboxProvider();
+    const desktop = new DesktopSandboxProvider({ root: desktopRoot });
     const a = await provisionPrepared(fake, { botId: "bot-a", homePath: "/tmp/a" }, ctx);
     const b = await provisionPrepared(managed, { botId: "bot-b", homePath: "/tmp/b" }, ctx);
     const c = await provisionPrepared(daytona, { botId: "bot-c", homePath: "/tmp/c" }, ctx);
@@ -65,7 +67,7 @@ describe("sandbox conformance", () => {
       new ManagedSandboxEmulator(),
       new DaytonaSandboxEmulator(),
       new BoxSandboxEmulator(),
-      new DesktopSandboxProvider(),
+      new DesktopSandboxProvider({ root: desktopRoot }),
     ];
     for (const [index, provider] of providers.entries()) {
       const computer = await provisionPrepared(
@@ -114,7 +116,7 @@ describe("sandbox conformance", () => {
   });
 
   it("desktop executor refuses paths outside the computer home", async () => {
-    const desktop = new DesktopSandboxProvider();
+    const desktop = new DesktopSandboxProvider({ root: desktopRoot });
     const computer = await desktop.provision({ botId: "grant", homePath: "/tmp/grant" }, ctx);
     let stderr = "";
     let code = 0;

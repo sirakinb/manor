@@ -85,6 +85,14 @@ export async function sleepComputerIfIdle(
 ): Promise<void> {
   let computer = await loadComputer(deps.prisma, computerId);
   if (!computer?.providerRef || computer.state !== "running") return;
+  if (
+    computer.executionRunId?.startsWith("workspace-files:") &&
+    computer.executionLeaseExpiresAt &&
+    computer.executionLeaseExpiresAt > new Date()
+  ) {
+    scheduleComputerSleep(deps.jobs, computerId);
+    return;
+  }
 
   if (computer.controlBotId && computer.controlLeaseId && !hasActiveComputerControl(computer)) {
     await expireComputerControl(deps, computer.id, computer.controlLeaseId);
@@ -220,6 +228,8 @@ function loadComputer(prisma: PrismaClient, computerId: string) {
       controlLeaseId: true,
       controlLeaseExpiresAt: true,
       controlBotId: true,
+      executionRunId: true,
+      executionLeaseExpiresAt: true,
       updatedAt: true,
     },
   });

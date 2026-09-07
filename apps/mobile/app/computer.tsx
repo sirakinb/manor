@@ -1,5 +1,5 @@
 import type { ComputerMode, ComputerReleaseReason } from "@rakazo/contracts";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { Link, useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import {
@@ -190,6 +190,11 @@ export default function Computer() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0A0A0B", padding: 24 }}>
+      <Link href={{ pathname: "/files", params: { botId: botId ?? "", name } }} asChild>
+        <Pressable accessibilityRole="button" style={{ paddingVertical: 12, marginBottom: 12 }}>
+          <Text style={{ color: "#ECECEE" }}>Files →</Text>
+        </Pressable>
+      </Link>
       {error ? <Text style={{ color: "#85858A", marginBottom: 12 }}>{error}</Text> : null}
       <View
         style={{

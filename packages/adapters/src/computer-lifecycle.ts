@@ -274,6 +274,12 @@ export async function acquireComputerExecutionLease(
   },
 ): Promise<ComputerExecutionLease | null> {
   const computer = await prisma.computer.findUniqueOrThrow({ where: { id: input.computerId } });
+  if (
+    computer.executionRunId?.startsWith("workspace-files:") &&
+    computer.executionLeaseExpiresAt &&
+    computer.executionLeaseExpiresAt > new Date()
+  )
+    throw new ComputerBusyError();
   if (computer.scope !== "team") return null;
   if (computer.state === "suspending") throw new ComputerBusyError();
   const now = new Date();
@@ -328,9 +334,17 @@ async function validateAcquiredComputerLease(
 ): Promise<ComputerExecutionLease> {
   const computer = await prisma.computer.findUniqueOrThrow({
     where: { id: lease.computerId },
-    select: { state: true },
+    select: { state: true, executionRunId: true, executionLeaseExpiresAt: true },
   });
-  if (computer.state !== "suspending") return lease;
+  if (
+    computer.state !== "suspending" &&
+    !(
+      computer.executionRunId?.startsWith("workspace-files:") &&
+      computer.executionLeaseExpiresAt &&
+      computer.executionLeaseExpiresAt > new Date()
+    )
+  )
+    return lease;
   await releaseComputerExecutionLease(prisma, lease);
   throw new ComputerBusyError();
 }

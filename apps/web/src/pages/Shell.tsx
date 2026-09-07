@@ -64,6 +64,7 @@ import {
   speechFromBlocks,
   truncateSlashDescription,
   userVisibleMessages,
+  WorkspaceFilesController,
 } from "@rakazo/core";
 import {
   AvatarStyleProvider,
@@ -369,6 +370,29 @@ export function ShellPage() {
   const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<Panel>(null);
+  // Keep unsaved drafts when a panel closes or the user switches bots, scoped to this signed-in shell.
+  const fileControllers = useRef(new Map<string, WorkspaceFilesController>());
+  const filesForBot = (botId: string) => {
+    const key = `${botId}:${computer?.mode ?? "team"}`;
+    let controller = fileControllers.current.get(key);
+    if (!controller) {
+      controller = new WorkspaceFilesController(botId, (request) =>
+        rpc.computer.workspace(request),
+      );
+      fileControllers.current.set(key, controller);
+    }
+    return controller;
+  };
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if ([...fileControllers.current.values()].some((controller) => controller.dirty)) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, []);
   const [peerConversation, setPeerConversation] = useState<{
     peerBotId: string;
     peerBotName: string;
@@ -1971,8 +1995,8 @@ export function ShellPage() {
     [t],
   );
   const onAttachmentPick = useCallback(
-    async (files: FileList | null) => {
-      const threadKey = activeGroupId.current ?? activeBotId.current;
+    async (files: FileList | readonly File[] | null, targetThreadKey?: string) => {
+      const threadKey = targetThreadKey ?? activeGroupId.current ?? activeBotId.current;
       if (!threadKey || !files?.length) return;
       const existing = attachmentsForThread(pendingAttachments, threadKey);
       const next: PendingAttachment[] = [];
@@ -3490,9 +3514,12 @@ export function ShellPage() {
             ) : null}
             {panel === "files" && active ? (
               <FilesPanel
-                botId={active.id}
+                key={`${active.id}:${computer?.mode ?? "team"}`}
+                controller={filesForBot(active.id)}
+                team={computer?.mode === "team"}
                 computerState={computer?.state}
                 running={transcriptRunning}
+                onAttach={(file) => onAttachmentPick([file], active.id)}
                 onWake={() => {
                   void rpc.computer
                     .boot({ botId: active.id })

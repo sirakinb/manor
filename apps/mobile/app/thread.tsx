@@ -5,6 +5,7 @@ import type {
   ConnectionCatalogItem,
   MessageBlock,
   Routine,
+  WorkspaceFileResult,
 } from "@rakazo/contracts";
 import { canReactToThreadMessage } from "@rakazo/contracts";
 import {
@@ -12,6 +13,7 @@ import {
   attachmentsForThread,
   buildComposerMentionOptions,
   type ComposerMention,
+  inferAttachmentMimeType,
   isApprovalAskBlock,
   isRunTerminalEvent,
   isSecretAskBlock,
@@ -93,6 +95,7 @@ import {
   pickFromLibrary,
   takePhoto,
 } from "../lib/pick-attachments";
+import { filterPickedAttachments } from "../lib/pick-attachments-filter";
 import { threadRefreshDelayMs } from "../lib/refresh";
 import {
   type ThreadScrollAction,
@@ -196,11 +199,22 @@ function Thread() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
-  const { botId, groupId, name, messageId } = useLocalSearchParams<{
+  const {
+    botId,
+    groupId,
+    name,
+    messageId,
+    workspaceFile,
+    workspaceLocation,
+    workspaceAttachmentId,
+  } = useLocalSearchParams<{
     botId?: string;
     groupId?: string;
     name?: string;
     messageId?: string;
+    workspaceFile?: string;
+    workspaceLocation?: string;
+    workspaceAttachmentId?: string;
   }>();
   const inGroup = Boolean(groupId);
   const scroll = useRef<FlatList<MobileMessage>>(null);
@@ -280,6 +294,53 @@ function Thread() {
   );
   const latestMessageId = visibleMessages.at(-1)?.id ?? null;
   const activePendingAttachments = attachmentsForThread(pendingAttachments, threadKey);
+  const workspaceAttachmentHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !botId ||
+      inGroup ||
+      !workspaceFile ||
+      !workspaceAttachmentId ||
+      workspaceAttachmentHandled.current === workspaceAttachmentId
+    )
+      return;
+    let active = true;
+    void rpc<WorkspaceFileResult>(
+      "computer/workspace",
+      {
+        botId,
+        location: workspaceLocation === "shared" ? "shared" : "bot",
+        operation: { action: "download", path: workspaceFile },
+      },
+      { timeoutMs: 90_000 },
+    )
+      .then((result) => {
+        if (!active || result.kind !== "file" || result.dataBase64 === undefined) return;
+        const filename = workspaceFile.split("/").at(-1) ?? "file";
+        const picked = filterPickedAttachments(activePendingAttachments.length, [
+          {
+            name: filename,
+            size: result.size,
+            mimeType: inferAttachmentMimeType(filename, result.mimeType),
+            contentBase64: result.dataBase64,
+          },
+        ]);
+        setPendingAttachments((current) => [
+          ...current,
+          ...picked.attachments.map((attachment) => ({ ...attachment, threadKey: botId })),
+        ]);
+        setAttachmentNotice(picked.skipped.length ? "This file cannot be attached to chat." : null);
+        workspaceAttachmentHandled.current = workspaceAttachmentId;
+        router.setParams({ workspaceFile: "", workspaceAttachmentId: "", workspaceLocation: "" });
+      })
+      .catch((error) => {
+        if (active)
+          setAttachmentNotice(error instanceof Error ? error.message : "Could not attach file");
+      });
+    return () => {
+      active = false;
+    };
+  }, [botId, inGroup, workspaceFile, workspaceLocation, workspaceAttachmentId, router]);
   const composerMentionTargets = useMemo(
     () =>
       buildComposerMentionOptions({
@@ -1793,6 +1854,16 @@ function Thread() {
           >
             <Pressable style={{ marginTop: 16 }}>
               <Text style={{ color: "#C9C9CE" }}>Open computer →</Text>
+            </Pressable>
+          </Link>
+        ) : null}
+        {!inGroup ? (
+          <Link
+            href={{ pathname: "/files", params: { botId: botId ?? "", name: name ?? "Bot" } }}
+            asChild
+          >
+            <Pressable accessibilityRole="button" style={{ marginTop: 12, paddingVertical: 8 }}>
+              <Text style={{ color: "#C9C9CE" }}>Files →</Text>
             </Pressable>
           </Link>
         ) : null}

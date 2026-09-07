@@ -37,6 +37,7 @@ import {
   WorkspaceSkillSchema,
   WorkspaceSummarySchema,
 } from "./workspace.js";
+import { WorkspaceFileRequestSchema, WorkspaceFileResultSchema } from "./workspace-files.js";
 
 export const WorkspaceChangeStatusSchema = z.enum([
   "added",
@@ -700,6 +701,7 @@ export const appContract = {
     markUnread: oc.input(threadTarget).output(z.object({ ok: z.literal(true) })),
   },
   computer: {
+    workspace: oc.input(WorkspaceFileRequestSchema).output(WorkspaceFileResultSchema),
     status: oc.input(botId).output(ComputerStatusSchema),
     boot: oc.input(botId).output(ComputerStatusSchema),
     stop: oc.input(botId).output(ComputerStatusSchema),
