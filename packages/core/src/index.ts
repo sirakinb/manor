@@ -21,6 +21,8 @@ export * from "./message-visibility.js";
 export * from "./messaging-commands.js";
 export * from "./messaging-prompts.js";
 export * from "./model-oauth.js";
+export * from "./run-diagnostics.js";
+export * from "./run-logs.js";
 export * from "./run-state.js";
 export * from "./sandbox-command.js";
 export * from "./screen-lease.js";

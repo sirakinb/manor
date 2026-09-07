@@ -3,6 +3,7 @@ import {
   type MessageBlock,
   MessageBlock as MessageBlockSchema,
   type ProductEvent,
+  type RunFailureDiagnostic,
 } from "@rakazo/contracts";
 import {
   blocksToAgentHistoryText,
@@ -109,7 +110,7 @@ interface FinalizeRunBase {
 export type FinalizeRunInput = FinalizeRunBase &
   (
     | { outcome: "completed"; blocks: MessageBlock[]; markUnread?: boolean }
-    | { outcome: "failed"; error: string }
+    | { outcome: "failed"; error: string; diagnostic?: RunFailureDiagnostic }
   );
 
 export interface PauseRunForInput {
@@ -988,7 +989,10 @@ async function finalizeRunOnce(
       botId: input.botId,
       type: input.outcome === "completed" ? "run.completed" : "run.failed",
       runId: input.runId,
-      payload: input.outcome === "completed" ? {} : { error: input.error },
+      payload:
+        input.outcome === "completed"
+          ? {}
+          : { error: input.error, ...(input.diagnostic ? { diagnostic: input.diagnostic } : {}) },
     });
     await tx.event.deleteMany({
       where: { runId: input.runId, type: { in: ["thread.progress", "thread.thinking"] } },

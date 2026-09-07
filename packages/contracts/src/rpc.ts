@@ -135,7 +135,7 @@ import {
 } from "./domain.js";
 import { ProductEventSchema } from "./events.js";
 import { Id, IsoDate } from "./ids.js";
-import { RunsListOutputSchema } from "./runs.js";
+import { BotRunHistorySchema, RunDiagnosticsSchema, RunsListOutputSchema } from "./runs.js";
 import { SearchQueryOutputSchema } from "./search.js";
 
 const botId = z.object({ botId: Id });
@@ -1100,6 +1100,10 @@ export const appContract = {
   },
   runs: {
     list: oc.input(z.object({ filter: z.enum(["active", "recent"]) })).output(RunsListOutputSchema),
+    history: oc.input(botId).output(BotRunHistorySchema),
+    diagnostics: oc
+      .input(z.object({ runId: Id, before: z.number().int().nonnegative().optional() }))
+      .output(RunDiagnosticsSchema),
   },
   voice: {
     catalog: oc.output(z.array(VoiceCatalogEntrySchema)),

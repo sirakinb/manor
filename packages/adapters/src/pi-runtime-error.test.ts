@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+const modelFailure = vi.hoisted(() => ({ message: "" }));
+
 vi.mock("@earendil-works/pi-agent-core", () => ({
   Agent: class {
-    state = { errorMessage: "WebSocket closed 1006", messages: [] };
+    state = { errorMessage: modelFailure.message, messages: [] };
 
     subscribe() {}
     async prompt() {}
@@ -31,7 +33,15 @@ vi.mock("./pi-openai-compatible-provider.js", () => ({
 import { PiAgentRuntime } from "./pi-runtime.js";
 
 describe("Pi runtime errors", () => {
-  it("propagates provider failures instead of completing with error text", async () => {
+  it.each([
+    ["WebSocket closed 1006", "WebSocket closed 1006", "unknown"],
+    [
+      "fetch failed https://private.example.test?token=fake-secret",
+      "Model request connection failed.",
+      "network",
+    ],
+  ])("propagates and attributes provider failures: %s", async (message, expected, category) => {
+    modelFailure.message = message;
     const runtime = new PiAgentRuntime();
     const consume = async () => {
       for await (const _event of runtime.run(
@@ -57,6 +67,9 @@ describe("Pi runtime errors", () => {
       }
     };
 
-    await expect(consume()).rejects.toThrow("WebSocket closed 1006");
+    await expect(consume()).rejects.toMatchObject({
+      message: expected,
+      diagnostic: { stage: "model", category, code: null },
+    });
   });
 });
