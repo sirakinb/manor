@@ -37,6 +37,7 @@ import {
   connectorKindFromToolName,
   containsSecret,
   createStreamingRedactor,
+  diagnoseRunFailure,
   endsSentence,
   expandSkillReferencesInPrompt,
   formatSkillRunPrompt,
@@ -52,6 +53,7 @@ import {
   nextFence,
   planActionGate,
   promptInvokesSkill,
+  RunExecutionError,
   redactSecrets,
   renderBotDirectory,
   resolveActionApprovalDetail,
@@ -1406,6 +1408,46 @@ export function createRunExecutor(deps: ExecutorDeps) {
         };
 
         const applyTool = async (
+          name: string,
+          args: Record<string, unknown>,
+          executionId: string,
+        ) => {
+          const startedAt = Date.now();
+          let status: "completed" | "failed" | "paused" = "failed";
+          try {
+            const result = await executeTool(name, args, executionId);
+            status = isToolPauseResult(result)
+              ? "paused"
+              : result && typeof result === "object" && "error" in result && result.error
+                ? "failed"
+                : "completed";
+            return result;
+          } catch (error) {
+            throw new RunExecutionError(
+              error instanceof Error ? error.message : String(error),
+              diagnoseRunFailure(error, "tool"),
+            );
+          } finally {
+            // Diagnostics must not turn a successful external action into a retry.
+            await deps.events
+              .append({
+                spaceId: run.spaceId,
+                threadId: thread.id,
+                botId: bot.id,
+                runId,
+                type: "agent.tool.finished",
+                payload: {
+                  name,
+                  executionId,
+                  status,
+                  durationMs: Math.max(0, Date.now() - startedAt),
+                },
+              })
+              .catch(() => console.error("run tool diagnostics unavailable", { runId }));
+          }
+        };
+
+        const executeTool = async (
           name: string,
           args: Record<string, unknown>,
           executionId: string,
@@ -3590,8 +3632,17 @@ export function createRunExecutor(deps: ExecutorDeps) {
             leaseFence: fence,
             outcome: "failed",
             error: message,
+            diagnostic: diagnoseRunFailure(error, "execution"),
           });
           if (!failed) return;
+          console.error(
+            JSON.stringify({
+              event: "run.failed",
+              runId,
+              attemptId: attempt.id,
+              ...diagnoseRunFailure(error, "execution"),
+            }),
+          );
           if (failed.continuationRunId) {
             await deps.jobs
               .enqueue(runContinueJob(failed.continuationRunId))

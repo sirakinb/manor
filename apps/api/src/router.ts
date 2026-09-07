@@ -148,7 +148,7 @@ import {
 } from "./computer-status.js";
 import { buildMcpUpdateMaterial } from "./mcp-material.js";
 import { chooseFocus, markAppConnected, startOnboarding } from "./onboarding.js";
-import { listSpaceRuns } from "./runs.js";
+import { getRunDiagnostics, listBotRunHistory, listSpaceRuns } from "./runs.js";
 import { addPreviewProxyCapability, addScreenProxyCapability } from "./screen-proxy.js";
 import { querySpaceSearch } from "./search.js";
 import { withSerializableRetry } from "./serializable-retry.js";
@@ -1418,6 +1418,9 @@ export function createRouter(deps: RouterDeps) {
           input.cursor,
           context.signal,
         )) {
+          // Diagnostic-only events are read through runs.diagnostics. Older installed
+          // clients validate the chat event enum, so keep this stream compatible.
+          if (event.type === "agent.tool.finished") continue;
           if (await isPeerRun(deps.prisma, event.runId, peerRunCache)) {
             // Keep terminal peer-run events so clients can clear working state.
             // Keep compact peer receipts for mobile; drop peer activity/replies.
@@ -4173,6 +4176,12 @@ export function createRouter(deps: RouterDeps) {
       })),
     },
     runs: {
+      history: authed.runs.history.handler(({ context, input }) =>
+        listBotRunHistory(deps.prisma, context.actor, input.botId),
+      ),
+      diagnostics: authed.runs.diagnostics.handler(({ context, input }) =>
+        getRunDiagnostics(deps.prisma, context.actor, input),
+      ),
       list: authed.runs.list.handler(async ({ context, input }) => ({
         runs: await listSpaceRuns(deps.prisma, context.actor, input.filter),
       })),

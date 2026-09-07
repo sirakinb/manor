@@ -1867,6 +1867,13 @@ function Thread() {
             </Pressable>
           </Link>
         ) : null}
+        {!inGroup ? (
+          <Link href={{ pathname: "/run-logs", params: { botId: botId ?? "" } }} asChild>
+            <Pressable accessibilityRole="button" style={{ marginTop: 12, paddingVertical: 8 }}>
+              <Text style={{ color: "#C9C9CE" }}>Run logs →</Text>
+            </Pressable>
+          </Link>
+        ) : null}
       </View>
       {markdownPreview && artifactTarget ? (
         <MarkdownArtifactPreview

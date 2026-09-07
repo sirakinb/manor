@@ -20,6 +20,7 @@ import type {
   AgentToolExecutionResult,
   ConnectorTool,
 } from "@rakazo/adapter-kit";
+import { diagnoseRunFailure, RunExecutionError, runFailureSummary } from "@rakazo/core";
 import { isToolPauseResult } from "./approval-effect.js";
 import { builtinAgentTools, DELEGATION_TOOL_NAMES } from "./builtin-tools.js";
 import { PiRuntimeCredentialStore, toOAuthCredential } from "./pi-credentials.js";
@@ -294,7 +295,13 @@ export class PiAgentRuntime implements AgentRuntime {
         const budgetExceeded = host.toolCallBudget.exceeded;
         const error = agent.state.errorMessage;
         if (error && !budgetExceeded) {
-          throw new Error(sanitizeError(error));
+          const diagnostic = diagnoseRunFailure(error, "model");
+          throw new RunExecutionError(
+            diagnostic.category === "unknown"
+              ? sanitizeError(error)
+              : runFailureSummary(diagnostic),
+            diagnostic,
+          );
         }
         if (budgetExceeded) {
           const budgetMessage = toolCallBudgetExceededMessage(host.toolCallBudget.limit);
@@ -321,7 +328,7 @@ export class PiAgentRuntime implements AgentRuntime {
         queue.push(streamed.trim() ? { type: "done", text: streamed } : { type: "done" });
       } catch (error) {
         const message = sanitizeError(error instanceof Error ? error.message : String(error));
-        queue.fail(new Error(message));
+        queue.fail(new RunExecutionError(message, diagnoseRunFailure(error, "execution")));
       } finally {
         queue.close();
       }
