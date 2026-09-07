@@ -2,6 +2,12 @@ import { eventIterator, oc } from "@orpc/contract";
 import * as z from "zod";
 import { ATTACHMENT_MAX_BASE64_LENGTH, ATTACHMENT_MAX_COUNT } from "./attachments.js";
 import {
+  MaintenanceApprovalSchema,
+  MaintenanceCreateSchema,
+  MaintenanceJobSchema,
+  MaintenanceOverviewSchema,
+} from "./maintenance.js";
+import {
   AvailableRentalsSchema,
   ChargePostBatchSchema,
   ChargePostResultSchema,
@@ -200,6 +206,12 @@ const threadSendInput = threadTarget
   });
 
 export const appContract = {
+  maintenance: {
+    list: oc.output(MaintenanceOverviewSchema),
+    create: oc.input(MaintenanceCreateSchema).output(MaintenanceJobSchema),
+    approve: oc.input(MaintenanceApprovalSchema).output(MaintenanceJobSchema),
+    cancel: oc.input(z.object({ id: z.string().min(1) })).output(MaintenanceJobSchema),
+  },
   health: oc.output(z.object({ ok: z.literal(true), version: z.string() })),
   me: oc.output(MeSchema),
   preferences: {

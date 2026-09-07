@@ -45,6 +45,8 @@ export * from "./ingestion-runner.js";
 export * from "./installed-connectors.js";
 export * from "./job-reconciler.js";
 export * from "./keyless-http-web.js";
+export * from "./maintenance.js";
+export * from "./maintenance-test-adapter.js";
 export * from "./mcp-connector.js";
 export * from "./mcp-emulator.js";
 export * from "./mcp-oauth.js";

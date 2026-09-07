@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import path from "node:path";
 import { implement, ORPCError } from "@orpc/server";
+import type { MaintenanceAdapter } from "@rakazo/adapter-kit";
 import {
   type AdapterContext,
   type AgentHomeStore,
@@ -9,6 +10,7 @@ import {
   computerControlExpireJobKey,
   type JobPublisher,
   type MemoryStore,
+  maintenanceAdvanceJob,
   messagingDeliverJob,
   routineJobKey,
   routineWakeupJob,
@@ -30,6 +32,7 @@ import {
   type ConnectorRegistry,
   checkpointAndRecordComputerWorkspace,
   computerSupportsUpdate,
+  createMaintenanceService,
   createVoiceProvider,
   deletePushToken,
   deploymentAutoReviewDefault,
@@ -45,6 +48,7 @@ import {
   listPiCatalog,
   listScratchpadItems,
   loadBotCredentialSecret,
+  MaintenanceError,
   McpOAuthBroker,
   type MemoryProviderResolver,
   manageWorkspaceFiles,
@@ -59,6 +63,7 @@ import {
   type RemoteConnectorDependencies,
   releaseComputerExecutionLease,
   replaceComputer,
+  requireMaintenanceOwner,
   resolveAutoReviewChecker,
   resolveBotWorkspaceCwd,
   resolveBotWorkspacePath,
@@ -373,6 +378,7 @@ function mcpAssignmentDto(row: {
 }
 
 export interface RouterDeps {
+  maintenance?: MaintenanceAdapter;
   prisma: PrismaClient;
   events: ThreadEvents;
   auth: Auth;
@@ -424,6 +430,20 @@ export interface RouterDeps {
 
 export function createRouter(deps: RouterDeps) {
   const os = implement(appContract).$context<{ actor: Actor | null; signal?: AbortSignal }>();
+  const maintenance = createMaintenanceService(deps.prisma, deps.maintenance);
+  const maintenanceAction = async <T>(action: () => Promise<T>): Promise<T> => {
+    try {
+      return await action();
+    } catch (error) {
+      if (error instanceof MaintenanceError)
+        throw new ORPCError(error.code, { message: error.message });
+      throw error;
+    }
+  };
+  const wakeMaintenance = async (id: string) => {
+    // The DB reconciler recovers a lost wake after broker or process failure.
+    await deps.jobs.enqueue(maintenanceAdvanceJob(id)).catch(() => undefined);
+  };
   const repos = createRepos(deps.prisma);
   const mcpOAuth = deps.mcpOAuth ?? new McpOAuthBroker(deps.prisma, deps.secrets);
   const groupRepos = createGroupRepos(deps.prisma);
@@ -464,6 +484,36 @@ export function createRouter(deps: RouterDeps) {
   });
 
   return os.router({
+    maintenance: {
+      list: authed.maintenance.list.handler(({ context }) =>
+        maintenanceAction(() => maintenance.list(context.actor.userId)),
+      ),
+      create: authed.maintenance.create.handler(({ context, input }) =>
+        maintenanceAction(async () => {
+          await requireMaintenanceOwner(deps.prisma, context.actor.userId);
+          const evidence = input.runId
+            ? await getRunDiagnostics(deps.prisma, context.actor, { runId: input.runId })
+            : {};
+          const job = await maintenance.create(
+            context.actor.userId,
+            input,
+            JSON.parse(JSON.stringify(evidence)),
+          );
+          if (job.status === "queued") await wakeMaintenance(job.id);
+          return job;
+        }),
+      ),
+      approve: authed.maintenance.approve.handler(({ context, input }) =>
+        maintenanceAction(async () => {
+          const job = await maintenance.approve(context.actor.userId, input);
+          await wakeMaintenance(job.id);
+          return job;
+        }),
+      ),
+      cancel: authed.maintenance.cancel.handler(({ context, input }) =>
+        maintenanceAction(() => maintenance.cancel(context.actor.userId, input.id)),
+      ),
+    },
     health: os.health.handler(async () => ({ ok: true as const, version: "0.1.0" })),
     me: authed.me.handler(async ({ context }): Promise<Me> => meDto(deps, context.actor)),
     preferences: {

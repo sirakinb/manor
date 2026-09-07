@@ -11,6 +11,7 @@ import {
   sessionRetryDelayMs,
   showSessionUnavailable,
 } from "./lib/session-gate";
+import { MaintenancePage } from "./pages/Maintenance";
 import { McpOAuthCallbackPage } from "./pages/McpOAuthCallback";
 import { ShellPage } from "./pages/Shell";
 
@@ -95,6 +96,10 @@ export function App() {
           <Route
             path="/mcp/oauth/callback"
             element={user ? <McpOAuthCallbackPage /> : <Navigate to="/sign-in" replace />}
+          />
+          <Route
+            path="/app/maintenance"
+            element={user ? <MaintenancePage /> : <Navigate to="/sign-in" replace />}
           />
           <Route path="/app" element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />} />
           <Route

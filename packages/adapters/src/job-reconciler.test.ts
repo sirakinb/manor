@@ -32,6 +32,7 @@ function fakePrisma(
   }> = [],
 ) {
   return {
+    maintenanceJob: { findMany: vi.fn(async () => []) },
     run: { findMany: vi.fn(async () => runs) },
     routine: { findMany: vi.fn(async () => routines) },
     workspaceAutomation: { findMany: vi.fn(async () => []) },
@@ -41,6 +42,17 @@ function fakePrisma(
 }
 
 describe("createJobReconciler", () => {
+  it("recovers maintenance jobs after a lost broker wake or worker restart", async () => {
+    const prisma = fakePrisma();
+    vi.mocked(prisma.maintenanceJob.findMany).mockResolvedValue([{ id: "maintenance-1" }] as never);
+    const { jobs, enqueue } = publisher();
+    await createJobReconciler({ prisma, jobs }).reconcileOnce();
+    expect(enqueue).toHaveBeenCalledWith({
+      name: "maintenance.advance",
+      payload: { jobId: "maintenance-1" },
+      replaceKey: "maintenance:maintenance-1",
+    });
+  });
   it("restores a due pending messaging outbox drain", async () => {
     const prisma = fakePrisma();
     vi.mocked(prisma.messagingOutbound.findFirst).mockResolvedValue({ id: "outbound-1" } as never);
@@ -176,6 +188,7 @@ describe("createJobReconciler", () => {
         },
       ]);
     const prisma = {
+      maintenanceJob: { findMany: vi.fn(async () => []) },
       run: { findMany: vi.fn(async () => []) },
       routine: { findMany: vi.fn(async () => []) },
       workspaceAutomation: { findMany: vi.fn(async () => []) },
@@ -240,6 +253,7 @@ describe("createJobReconciler", () => {
       .mockResolvedValueOnce(routines.slice(2, 4))
       .mockResolvedValueOnce(routines.slice(4));
     const prisma = {
+      maintenanceJob: { findMany: vi.fn(async () => []) },
       run: { findMany: runFindMany },
       routine: { findMany: routineFindMany },
       workspaceAutomation: { findMany: vi.fn(async () => []) },
@@ -338,6 +352,7 @@ describe("createJobReconciler", () => {
       return [];
     });
     const prisma = {
+      maintenanceJob: { findMany: vi.fn(async () => []) },
       run: { findMany: runFindMany, updateMany: vi.fn(async () => ({ count: 1 })) },
       routine: { findMany: vi.fn(async () => []) },
       workspaceAutomation: { findMany: vi.fn(async () => []) },

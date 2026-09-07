@@ -7,6 +7,7 @@ import type {
 } from "./types.js";
 
 const payloadSchemas = {
+  "maintenance.advance": z.object({ jobId: z.string().min(1) }),
   "workspace.report.generate": z.object({ reportId: z.string().min(1) }),
   "run.continue": z.object({ runId: z.string().min(1) }),
   "routine.wakeup": z.object({
@@ -160,4 +161,8 @@ export function workspaceAutomationRunNowJob(automationId: string, runId: string
     payload: { automationId, runId },
     replaceKey: `${workspaceAutomationJobKey(automationId)}:${runId}`,
   };
+}
+
+export function maintenanceAdvanceJob(jobId: string): BackgroundJob {
+  return { name: "maintenance.advance", payload: { jobId }, replaceKey: `maintenance:${jobId}` };
 }

@@ -1,4 +1,4 @@
-import type { AvatarStyle } from "@rakazo/contracts";
+import type { AvatarStyle, Me } from "@rakazo/contracts";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -43,7 +43,7 @@ import { registerPushToken } from "../lib/push";
 export default function Account() {
   const router = useRouter();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
-  const [me, setMe] = useState<MobileMe | null>(null);
+  const [me, setMe] = useState<(MobileMe & Partial<Pick<Me, "isDeploymentOwner">>) | null>(null);
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [avatarPending, setAvatarPending] = useState(false);
@@ -221,6 +221,15 @@ export default function Account() {
           {me?.email ? <Text style={styles.email}>{me.email}</Text> : null}
         </View>
         {focus !== "usage" ? usageBlock : null}
+        {me?.isDeploymentOwner ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/maintenance")}
+            style={styles.profile}
+          >
+            <Text style={styles.name}>Maintenance Agent</Text>
+          </Pressable>
+        ) : null}
 
         <View accessibilityLabel="Password" style={styles.profile}>
           <Text style={styles.settingsTitle}>Password</Text>

@@ -91,6 +91,7 @@ async function main() {
           "pnpm exec vitest run --no-file-parallelism",
           "packages/testkit/src/journeys.test.ts",
           "packages/testkit/src/authorization.test.ts",
+          "packages/adapters/src/maintenance.postgres.test.ts",
           "packages/testkit/src/attachments.test.ts",
           "packages/testkit/src/voice.test.ts",
           "packages/testkit/src/search.test.ts",
@@ -119,7 +120,13 @@ async function main() {
     }
 
     const [
-      { ComposioEmulator, EmailEmulator, PipedreamConnector, ThirdPartyConnectorEmulator },
+      {
+        ComposioEmulator,
+        EmailEmulator,
+        PipedreamConnector,
+        ThirdPartyConnectorEmulator,
+        TestMaintenanceAdapter,
+      },
       { createApp },
     ] = await Promise.all([import("@rakazo/adapters"), import("../../../../apps/api/src/app.ts")]);
     const { serve } = await import("@hono/node-server");
@@ -136,6 +143,7 @@ async function main() {
     );
     const email = new EmailEmulator();
     const handles = await createApp({
+      maintenance: new TestMaintenanceAdapter(),
       databaseUrl,
       prisma: undefined,
       composio: new ComposioEmulator(),

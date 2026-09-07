@@ -8,6 +8,7 @@ datasource db {
 }
 
 model User {
+  maintenanceJobs MaintenanceJob[]
   id                          String                       @id
   name                        String
   email                       String
@@ -2133,4 +2134,27 @@ model WorkspaceKnowledgeImport {
 
   @@id([workspaceId, spaceId, userId])
   @@map("workspace_knowledge_imports")
+}
+
+model MaintenanceJob {
+  id String @id
+  ownerUserId String
+  owner User @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  requestId String
+  issue String
+  runId String?
+  evidence Json
+  status String @default("queued")
+  review Json?
+  reviewKey String?
+  approvedRevision String?
+  message String @default("")
+  simulated Boolean @default(false)
+  version Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([ownerUserId, requestId])
+  @@index([status, nextAttemptAt])
+  @@index([ownerUserId, createdAt])
 }
