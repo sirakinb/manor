@@ -344,7 +344,9 @@ class DockerAdapter:
         )
         image_container = self.docker(
             "create", "--label", self.label, "--label", "manor.release.build=true",
-            "--network", "none", "--user", "0:0", "--cap-drop", "ALL",
+            # Only this fixed cleaner has DAC override, inside an unmounted, networkless
+            # helper. Toolchains may own /app as root or as the non-root app user.
+            "--network", "none", "--user", "0:0", "--cap-drop", "ALL", "--cap-add", "DAC_OVERRIDE",
             "--security-opt", "no-new-privileges", "--memory", "128m", "--memory-swap", "128m",
             "--cpus", "1", "--pids-limit", "64",
             self.policy["toolchainImage"], "node", "-e", cleaner).decode().strip()
