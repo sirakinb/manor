@@ -204,7 +204,9 @@ class Workspace:
                 "access": "authenticated SSH tunnel; preview also requires bearer token"}
 
     def destroy(self):
-        # Explicit operator-only disposal of this workspace's synthetic resources.
+        # The record is removed last, so a missing record makes a completed retry a no-op.
+        if not self.record.exists():
+            return {"id": self.workspace_id, "state": "destroyed"}
         config = self.read()
         ids = self.docker("ps", "-aq", "--filter", "label=manor.workspace=" + self.workspace_id).decode().split()
         for container in ids:
@@ -212,10 +214,13 @@ class Workspace:
         networks = self.docker("network", "ls", "-q", "--filter", "label=manor.workspace=" + self.workspace_id).decode().split()
         for network in networks:
             self.docker("network", "rm", network)
-        run(["umount", config["volume"]])
-        Path(config["volume"]).rmdir()
-        (self.state / (self.workspace_id + ".ext4")).unlink()
-        self.record.unlink()
+        volume = Path(config["volume"])
+        if os.path.ismount(volume):
+            run(["umount", str(volume)])
+        if volume.exists():
+            volume.rmdir()
+        (self.state / (self.workspace_id + ".ext4")).unlink(missing_ok=True)
+        self.record.unlink(missing_ok=True)
         return {"id": self.workspace_id, "state": "destroyed"}
 
 

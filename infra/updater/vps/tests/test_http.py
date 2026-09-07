@@ -74,3 +74,9 @@ class HTTPTests(unittest.TestCase):
     def test_owner_and_developer_credentials_must_differ(self):
         with self.assertRaises(Refused):
             create_server(self.controller, {"owner": "x" * 40, "developer": "x" * 40}, 0)
+
+    def test_unauthenticated_post_is_rejected_and_queues_nothing(self):
+        request = {"action": "prepare", "requestId": str(uuid.uuid4()), "revision": REVISION}
+        self.assertEqual(self.call("/v1/operations", request)[0], 401)
+        with self.assertRaises(Refused):
+            self.controller.store.operation(request["requestId"])

@@ -1,4 +1,6 @@
+import os
 import sys
+from unittest import mock
 import unittest
 from pathlib import Path
 
@@ -21,3 +23,16 @@ class CommandBoundaryTests(unittest.TestCase):
             run([sys.executable, "-c", "import sys; sys.stderr.write('synthetic-detail');sys.exit(1)"])
         self.assertEqual(str(caught.exception), "command_failed")
         self.assertEqual(caught.exception.diagnostic, "synthetic-detail")
+
+    def test_timeout_after_child_closes_output_is_classified(self):
+        with self.assertRaisesRegex(Refused, "command_timeout"):
+            run([sys.executable, "-c", "import os,time;os.close(1);os.close(2);time.sleep(5)"], timeout=0.15)
+
+    def test_cleanup_exit_race_preserves_original_failure(self):
+        kill = os.killpg
+        def raced_kill(pid, signal):
+            kill(pid, signal)
+            raise ProcessLookupError()
+        with mock.patch("docker_adapter.os.killpg", side_effect=raced_kill):
+            with self.assertRaisesRegex(Refused, "command_output_limit"):
+                run([sys.executable, "-c", "import time;print('x'*65536,flush=True);time.sleep(5)"], max_output=1024)

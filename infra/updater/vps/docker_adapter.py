@@ -1,4 +1,5 @@
 """Trusted Linux/Docker adapter. Never load policy or Compose from candidate source."""
+import contextlib
 import hashlib
 import io
 import json
@@ -60,14 +61,19 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
                             output.extend(chunk)
                         elif len(diagnostic) < 8192:
                             diagnostic.extend(chunk[:8192-len(diagnostic)])
-            if child.wait(timeout=max(0.01, deadline-time.monotonic())):
+            try:
+                status = child.wait(timeout=max(0.01, deadline-time.monotonic()))
+            except subprocess.TimeoutExpired:
+                raise Refused("command_timeout") from None
+            if status:
                 error = Refused("command_failed")
                 error.diagnostic = diagnostic.decode("utf-8", errors="replace")
                 raise error
             return bytes(output)
         finally:
             if child.poll() is None:
-                os.killpg(child.pid, signal.SIGKILL)
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(child.pid, signal.SIGKILL)
                 child.wait()
             child.stdout.close()
             child.stderr.close()
@@ -81,7 +87,8 @@ def load_policy(filename):
     policy = json.loads(path.read_text())
     required = {"stateDir", "repository", "toolchainImage", "composeFile",
                 "envFile", "project", "services", "testCommand", "buildCommand",
-                "maintenanceUrl", "maintenanceTokenFile", "mode"}
+                "maintenanceUrl", "maintenanceTokenFile", "mode",
+                "ownerTokenFile", "developerTokenFile"}
     if not required <= set(policy):
         raise Refused("incomplete_policy")
     if policy["mode"] not in {"isolated", "production"}:
@@ -94,9 +101,13 @@ def load_policy(filename):
         raise Refused("invalid_project")
     if policy["mode"] == "isolated" and not policy["project"].startswith("manor-test-"):
         raise Refused("isolated_project_required")
-    for key in ("composeFile", "envFile"):
-        info = Path(policy[key]).lstat()
-        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o022:
+    for key in ("composeFile", "envFile", "maintenanceTokenFile", "ownerTokenFile", "developerTokenFile"):
+        try:
+            info = Path(policy[key]).lstat()
+        except (OSError, TypeError):
+            raise Refused("deployment_config_unavailable") from None
+        forbidden = 0o077 if key.endswith("TokenFile") else 0o022
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & forbidden:
             raise Refused("deployment_config_must_be_operator_owned")
     for key in (("healthUrl", "maintenanceUrl") if "healthUrl" in policy else ("maintenanceUrl",)):
         # The operator installs a loopback adapter/proxy; callers cannot choose URLs.

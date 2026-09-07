@@ -164,6 +164,16 @@ class Store:
             db.execute("INSERT INTO events(at,operation,event) VALUES (?,?,?)",
                        (time.time(), operation_id, event))
 
+    def record_error(self, error):
+        # Operator-only, bounded diagnostics must never disrupt durable operation state.
+        with contextlib.suppress(OSError):
+            path = self.directory / "last-error.txt"
+            path.write_text(canonical({
+                "at": time.time(), "code": str(error)[:512],
+                "diagnostic": getattr(error, "diagnostic", "")[:7000],
+            })[:8192])
+            path.chmod(0o600)
+
     def finish(self, operation_id, state, release_id=None, error=None):
         with self.connect() as db:
             db.execute("UPDATE operations SET state=?,release_id=?,error=?,updated=? WHERE id=?",
@@ -193,6 +203,12 @@ class Controller:
                            (request["requestId"], body, role, now, now))
         return self.store.operation(request["requestId"])
 
+    def poll(self):
+        try:
+            self.process()
+        except Exception as error:
+            self.store.record_error(error)
+
     def process(self):
         """One executor owns the lock through external effects, including child cleanup."""
         with self.store.lock():
@@ -215,9 +231,7 @@ class Controller:
                 except Exception as error:
                     # No command output, secrets, paths or exception text crosses the public boundary.
                     code = str(error) if isinstance(error, Refused) else "executor_error"
-                    diagnostic = getattr(error, "diagnostic", "")
-                    if diagnostic:
-                        (self.store.directory / "last-error.txt").write_text(diagnostic[:8192])
+                    self.store.record_error(error)
                     self.store.finish(row["id"], "failed", request.get("releaseId"), code)
                     self.store.event(row["id"], code)
 
@@ -417,11 +431,7 @@ def serve(controller, tokens, port):
 
     def worker():
         while True:
-            try:
-                controller.process()
-            except Exception:
-                # Keep polling recoverable storage/Docker failures without exposing diagnostics.
-                pass
+            controller.poll()
             time.sleep(0.5)
 
     threading.Thread(target=worker, daemon=True).start()
@@ -447,7 +457,7 @@ def main():
     elif args.command == "process":
         controller.process()
     else:
-        print(canonical(store.releases()))
+        print(canonical(store.history()))
 
 
 if __name__ == "__main__":

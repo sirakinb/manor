@@ -131,7 +131,14 @@ def release_rehearsal(state, args, committed, workspace):
             "networks": {"private": {"internal": True}},
         }))
         compose.chmod(0o600)
+        credential_files = {}
+        for role in ("owner", "developer"):
+            path = state / (role + ".token")
+            path.write_text(secrets.token_hex(32))
+            path.chmod(0o600)
+            credential_files[role + "TokenFile"] = str(path)
         policy = {
+            **credential_files,
             "mode": "isolated", "stateDir": str(state / "controller"),
             "repository": args.repository, "toolchainImage": args.toolchain,
             "composeFile": str(compose), "envFile": str(env),

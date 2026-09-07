@@ -9,14 +9,17 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
         },
         "action": {
           "const": "prepare"
         },
         "revision": {
           "type": "string",
-          "pattern": "^[0-9a-f]{40}$"
+          "pattern": "^[0-9a-f]{40}$",
+          "maxLength": 40
         }
       }
     },
@@ -27,18 +30,22 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
         },
         "action": {
           "enum": ["approve", "deploy", "rollback"]
         },
         "releaseId": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 64
         },
         "manifestHash": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 64
         }
       }
     },
@@ -49,7 +56,9 @@
       "properties": {
         "requestId": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
         },
         "action": {
           "const": "recover"
