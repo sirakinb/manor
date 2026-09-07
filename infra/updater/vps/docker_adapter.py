@@ -31,7 +31,7 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
             child = subprocess.Popen(
                 argv, cwd=cwd, stdin=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 start_new_session=True,
-                env={"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": "/nonexistent",
+                env={"PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin", "HOME": "/nonexistent",
                      "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
                      "GIT_NO_REPLACE_OBJECTS": "1", "GIT_TERMINAL_PROMPT": "0"},
             )
@@ -203,8 +203,14 @@ def quota_directory(state, name, size_mb):
     root = state / name
     disk = state / (name + ".ext4")
     if not disk.exists():
-        run(["truncate", "-s", str(size_mb * MIB), str(disk)])
-        run(["mkfs.ext4", "-q", "-m", "0", "-F", str(disk)])
+        temporary = disk.with_suffix(".creating")
+        try:
+            with temporary.open("xb") as target:
+                target.truncate(size_mb * MIB)
+            run(["mkfs.ext4", "-q", "-m", "0", "-F", str(temporary)])
+            temporary.replace(disk)
+        finally:
+            temporary.unlink(missing_ok=True)
     root.mkdir(exist_ok=True)
     if not os.path.ismount(root):
         run(["mount", "-o", "loop,nodev,nosuid", str(disk), str(root)])
@@ -245,6 +251,9 @@ class DockerAdapter:
             return self._prepare(revision, operation)
 
     def _prepare(self, revision, operation):
+        development = self.docker("ps", "--filter", "label=manor.workspace", "--format", "{{.Names}}").decode().split()
+        if any(not name.endswith("-db") for name in development):
+            raise Refused("suspend_workspace_before_build")
         memory = self.policy.get("buildMemoryMb", 1024)
         if not 128 <= memory <= 1024:
             raise Refused("build_memory_out_of_bounds")
@@ -279,7 +288,7 @@ class DockerAdapter:
                     "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
                     "--cpus", "1", "--memory", str(memory) + "m",
                     "--memory-swap", str(memory) + "m", "--pids-limit", "128",
-                    "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=1",
+                    "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",
                     "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,uid=1000,gid=1000",
                     "--mount", "type=bind,src=" + str(app) + ",dst=/app",
                     "--workdir", "/app", "--env", "NODE_OPTIONS=--max-old-space-size=" + str(max(64, memory - 128)),

@@ -86,12 +86,17 @@ class Store:
                     singleton INTEGER PRIMARY KEY CHECK(singleton=1), body TEXT NOT NULL);
             """)
 
+    @contextlib.contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=10)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("PRAGMA synchronous=FULL")
-        return db
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
 
     @contextlib.contextmanager
     def lock(self):

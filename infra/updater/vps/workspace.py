@@ -23,6 +23,9 @@ def heavy_lock():
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise Refused("heavy_job_busy") from None
+        stale = run(["docker", "ps", "-aq", "--filter", "label=manor.release.build=true"]).decode().split()
+        for container in stale:
+            run(["docker", "rm", "-f", container])
         yield
 
 
@@ -87,7 +90,7 @@ class Workspace:
             "--network", self.name, "--network-alias", "postgres", "--user", "999:999",
             "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
             "--cpus", "0.25", "--memory", "128m", "--memory-swap", "128m", "--pids-limit", "64",
-            "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=1",
+            "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",
             "--env", "POSTGRES_USER=synthetic", "--env", "POSTGRES_DB=synthetic",
             "--env", "POSTGRES_PASSWORD=" + config["password"],
             "--mount", "type=bind,src=" + str(volume / "postgres") + ",dst=/var/lib/postgresql/data",
@@ -126,7 +129,7 @@ class Workspace:
             "--network", self.name, "--read-only", "--user", "1000:1000",
             "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
             "--cpus", "1", "--memory", "256m", "--memory-swap", "256m", "--pids-limit", "128",
-            "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=1",
+            "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",
             "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,uid=1000,gid=1000",
             "--mount", "type=bind,src=" + str(volume) + ",dst=/workspace",
             "--workdir", "/workspace/tree", "--publish", "127.0.0.1:" + str(config["port"]) + ":5173",
@@ -187,9 +190,12 @@ class Workspace:
     def destroy(self):
         # Explicit operator-only disposal of this workspace's synthetic resources.
         config = self.read()
-        for name in (self.name, self.name + "-db"):
-            self.docker("rm", "-f", name)
-        self.docker("network", "rm", self.name)
+        ids = self.docker("ps", "-aq", "--filter", "label=manor.workspace=" + self.workspace_id).decode().split()
+        for container in ids:
+            self.docker("rm", "-f", container)
+        networks = self.docker("network", "ls", "-q", "--filter", "label=manor.workspace=" + self.workspace_id).decode().split()
+        for network in networks:
+            self.docker("network", "rm", network)
         run(["umount", config["volume"]])
         Path(config["volume"]).rmdir()
         (self.state / (self.workspace_id + ".ext4")).unlink()

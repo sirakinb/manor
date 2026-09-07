@@ -58,10 +58,12 @@ def main():
     # Wait for the brand-new synthetic database, without consulting production.
     for _ in range(60):
         try:
-            workspace.docker("exec", workspace.name + "-db", "pg_isready", "-U", "synthetic")
+            workspace.docker("exec", workspace.name + "-db", "pg_isready", "-h", "127.0.0.1", "-U", "synthetic", "-d", "synthetic")
             break
         except Exception:
             time.sleep(0.5)
+    else:
+        raise RuntimeError("Synthetic database did not become ready")
     workspace.docker("exec", workspace.name + "-db", "psql", "-U", "synthetic", "-d", "synthetic",
                      "-c", "CREATE TABLE rehearsal(value text); INSERT INTO rehearsal VALUES ('synthetic only');")
     workspace.execute(["python3", "-c",
@@ -111,7 +113,7 @@ def main():
                 "cpus": 0.25, "pids_limit": 64,
                 "environment": {"PREVIEW_TOKEN": "${PREVIEW_TOKEN}"},
                 "ports": ["127.0.0.1:18081:5173"], "networks": ["private"],
-                "logging": {"driver": "local", "options": {"max-size": "1m", "max-file": "1"}},
+                "logging": {"driver": "local", "options": {"max-size": "1m", "max-file": "2"}},
             }},
             "networks": {"private": {"internal": True}},
         }))
