@@ -76,7 +76,7 @@ def load_policy(filename):
     policy = json.loads(path.read_text())
     required = {"stateDir", "repository", "toolchainImage", "composeFile",
                 "envFile", "project", "services", "testCommand", "buildCommand",
-                "maintenanceUrl", "maintenanceTokenFile", "healthUrl", "mode"}
+                "maintenanceUrl", "maintenanceTokenFile", "mode"}
     if not required <= set(policy):
         raise Refused("incomplete_policy")
     if policy["mode"] not in {"isolated", "production"}:
@@ -93,10 +93,18 @@ def load_policy(filename):
         info = Path(policy[key]).lstat()
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o022:
             raise Refused("deployment_config_must_be_operator_owned")
-    for key in ("healthUrl", "maintenanceUrl"):
+    for key in (("healthUrl", "maintenanceUrl") if "healthUrl" in policy else ("maintenanceUrl",)):
         # The operator installs a loopback adapter/proxy; callers cannot choose URLs.
         if not re.fullmatch(r"http://127[.]0[.]0[.]1:[0-9]{1,5}(?:/[a-zA-Z0-9/_-]*)?", policy[key]):
             raise Refused("loopback_adapter_required")
+    probe = policy.get("healthProbe")
+    if probe is not None:
+        if (not isinstance(probe, dict) or probe.get("service") not in policy["services"]
+                or type(probe.get("port")) is not int or not 1 <= probe["port"] <= 65535
+                or not re.fullmatch(r"/[a-zA-Z0-9/_-]*", probe.get("path", ""))):
+            raise Refused("invalid_health_probe")
+    elif "healthUrl" not in policy:
+        raise Refused("health_probe_required")
     if not policy["services"] or any(not re.fullmatch(r"[a-z][a-z0-9_-]{0,30}", s) for s in policy["services"]):
         raise Refused("invalid_services")
     if any(s in {"postgres", "updater", "cloudflared", "caddy", "data-init"} for s in policy["services"]):
@@ -120,7 +128,7 @@ def source_archive(repository, revision):
     if not COMMIT.fullmatch(revision):
         raise Refused("exact_revision_required")
     base = ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
-            "-C", repository]
+            "-c", "safe.directory=" + repository, "-C", repository]
     actual = run(base + ["rev-parse", "--verify", revision + "^{commit}"]).decode().strip()
     if actual != revision:
         raise Refused("revision_not_found")
@@ -382,6 +390,13 @@ class DockerAdapter:
         deadline = time.monotonic() + self.policy.get("healthTimeoutSeconds", 30)
         while time.monotonic() < deadline:
             try:
+                probe = self.policy.get("healthProbe")
+                if probe:
+                    container = self.compose("ps", "-q", probe["service"]).decode().strip()
+                    url = "http://127.0.0.1:" + str(probe["port"]) + probe["path"]
+                    code = "fetch(" + json.dumps(url) + ",{redirect:'error',signal:AbortSignal.timeout(3000)}).then(async r=>{if(!r.ok||(await r.json()).ok!==true)process.exit(1)}).catch(()=>process.exit(1))"
+                    self.docker("exec", container, "node", "-e", code, timeout=5, max_output=MIB)
+                    return
                 with urllib.request.urlopen(self.policy["healthUrl"], timeout=3) as response:
                     if response.status == 200 and json.load(response).get("ok") is True:
                         return

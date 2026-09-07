@@ -66,7 +66,7 @@ class Workspace:
         tree = volume / "tree"
         if repository_path.exists():
             raise Refused("partial_workspace_requires_operator_inspection")
-        run(["git", "clone", "--bare", "--no-hardlinks", repository, str(repository_path)])
+        run(["git", "-c", "safe.directory=" + repository, "clone", "--bare", "--no-hardlinks", repository, str(repository_path)])
         run(["git", "-c", "core.hooksPath=/dev/null", "--git-dir=" + str(repository_path),
              "worktree", "add", "-b", "workspace/" + self.workspace_id, str(tree), revision])
         # Rewrite absolute worktree pointers for the container's only mounted workspace.
@@ -132,7 +132,7 @@ class Workspace:
             "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",
             "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,uid=1000,gid=1000",
             "--mount", "type=bind,src=" + str(volume) + ",dst=/workspace",
-            "--workdir", "/workspace/tree", "--publish", "127.0.0.1:" + str(config["port"]) + ":5173",
+            "--workdir", "/workspace/tree",
             "--env", "DATABASE_URL=postgres://synthetic:" + config["password"] + "@postgres:5432/synthetic",
             "--env", "DATA_DIR=/workspace/data", "--env", "PREVIEW_TOKEN=" + config["previewToken"],
             "--env", "NODE_OPTIONS=--max-old-space-size=192",
@@ -180,6 +180,14 @@ class Workspace:
         run(["git", "-c", "core.hooksPath=/dev/null", "-c", "fetch.fsckObjects=true",
              "-C", repository, "fetch", str(bundle), "HEAD:refs/workspaces/" + self.workspace_id])
         return {"revision": revision}
+
+    def preview_url(self):
+        import ipaddress
+        networks = json.loads(self.docker("inspect", "--format", "{{json .NetworkSettings.Networks}}", self.name))
+        address = networks[self.name]["IPAddress"]
+        if not ipaddress.ip_address(address).is_private:
+            raise Refused("private_preview_required")
+        return "http://" + address + ":5173"
 
     def status(self):
         config = self.read()

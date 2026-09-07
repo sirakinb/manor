@@ -74,7 +74,7 @@ def main():
     committed = workspace.submit(args.repository)["revision"]
     workspace.docker("exec", "-d", workspace.name, "node", "/app/infra/updater/vps/fixtures/app.mjs")
     config = workspace.read()
-    preview_url = "http://127.0.0.1:18080"
+    preview_url = workspace.preview_url()
     for _ in range(30):
         try:
             with urllib.request.urlopen(preview_url + "/health", timeout=2):
@@ -112,7 +112,7 @@ def main():
                 "security_opt": ["no-new-privileges:true"], "mem_limit": "128m",
                 "cpus": 0.25, "pids_limit": 64,
                 "environment": {"PREVIEW_TOKEN": "${PREVIEW_TOKEN}"},
-                "ports": ["127.0.0.1:18081:5173"], "networks": ["private"],
+                "networks": ["private"],
                 "logging": {"driver": "local", "options": {"max-size": "1m", "max-file": "2"}},
             }},
             "networks": {"private": {"internal": True}},
@@ -127,7 +127,8 @@ def main():
             "buildCommand": ["node", "--check", "infra/updater/vps/fixtures/app.mjs"],
             "buildMemoryMb": 256,
             "maintenanceUrl": "http://127.0.0.1:18082",
-            "maintenanceTokenFile": str(token_file), "healthUrl": "http://127.0.0.1:18081/health",
+            "maintenanceTokenFile": str(token_file),
+            "healthProbe": {"service": "app", "port": 5173, "path": "/health"},
             "drainTimeoutSeconds": 3,
         }
         policy_file = state / "policy.json"
