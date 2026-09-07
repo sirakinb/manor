@@ -32,6 +32,10 @@ def request(controller, action, **fields):
 def approve(controller, revision):
     prepared = request(controller, "prepare", revision=revision)
     release = controller.store.release(prepared["releaseId"])
+    config = json.loads(controller.adapter.docker("image", "inspect", "--format", "{{json .Config}}", release["imageId"]))
+    assert config["User"] == "1000:1000"
+    assert config["Labels"]["manor.release.build"] == "false"
+    assert not (controller.adapter.state / "build.ext4").exists()
     request(controller, "approve", releaseId=release["releaseId"], manifestHash=release["manifestHash"])
     return release
 
@@ -51,7 +55,7 @@ def main():
     workspace = Workspace(state / "workspaces", "rehearsal")
     with heavy_lock():
         workspace.create(args.repository, args.revision, args.toolchain, args.postgres_image, 18080)
-    print("workspace: isolated source, synthetic Postgres, bounded storage and private loopback port", flush=True)
+    print("workspace: isolated source, synthetic Postgres, bounded storage and private bridge preview", flush=True)
     command = ["git", "-c", "user.name=Manor contributors", "-c", "user.email=contributors@example.invalid"]
     workspace.execute(command + ["config", "user.name", "Manor contributors"])
     workspace.execute(command + ["config", "user.email", "contributors@example.invalid"])

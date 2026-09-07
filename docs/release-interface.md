@@ -25,6 +25,8 @@ Deployment approval is an explicit owner action, never an LLM tool action.
 `requestId` (a UUID) and `action`. Responses are durable operation records;
 long work runs asynchronously. Poll `GET /v1/operations/<requestId>`.
 `GET /v1/releases` returns the newest 100 release records.
+`GET /v1/history` returns the newest 100 operations.
+`GET /v1/deployment` reports the accepted image and any pending recovery phase.
 `GET /health` returns liveness only. All other routes require bearer auth.
 
 | Action | Input | Who |

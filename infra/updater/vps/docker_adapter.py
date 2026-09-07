@@ -244,6 +244,16 @@ class DockerAdapter:
         from workspace import heavy_lock
         with heavy_lock():
             self._cleanup_builds()
+            self._discard_build_volume()
+
+    def _discard_build_volume(self):
+        volume = self.state / "build"
+        disk = self.state / "build.ext4"
+        if os.path.ismount(volume):
+            run(["umount", str(volume)])
+        if volume.exists():
+            volume.rmdir()
+        disk.unlink(missing_ok=True)
 
     def _cleanup_builds(self):
         ids = self.docker("ps", "-aq", "--filter", "label=" + self.label,
@@ -261,7 +271,11 @@ class DockerAdapter:
     def prepare(self, revision, operation):
         from workspace import heavy_lock
         with heavy_lock():
-            return self._prepare(revision, operation)
+            try:
+                return self._prepare(revision, operation)
+            finally:
+                self._cleanup_builds()
+                self._discard_build_volume()
 
     def _prepare(self, revision, operation):
         development = self.docker("ps", "--filter", "label=manor.workspace", "--format", "{{.Names}}").decode().split()

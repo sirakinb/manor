@@ -227,8 +227,10 @@ def main():
     parser.add_argument("--toolchain")
     parser.add_argument("--postgres-image")
     parser.add_argument("--port", type=int, default=18080)
-    parser.add_argument("argv", nargs=argparse.REMAINDER)
-    args = parser.parse_args()
+    args, trailing = parser.parse_known_args()
+    if args.action != "exec" and trailing:
+        parser.error("Unexpected arguments")
+    args.argv = trailing
     workspace = Workspace(args.state, args.id)
     with heavy_lock():
         if args.action == "create":

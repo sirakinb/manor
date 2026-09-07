@@ -75,6 +75,7 @@ class Store:
                     id TEXT PRIMARY KEY, body TEXT NOT NULL, role TEXT NOT NULL,
                     state TEXT NOT NULL, release_id TEXT, error TEXT,
                     created REAL NOT NULL, updated REAL NOT NULL);
+                CREATE INDEX IF NOT EXISTS operations_pending ON operations(state,created);
                 CREATE TABLE IF NOT EXISTS releases(
                     id TEXT PRIMARY KEY, body TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS journal(
@@ -116,6 +117,20 @@ class Store:
             "requestId": row["id"], "action": json.loads(row["body"])["action"],
             "state": row["state"], "releaseId": row["release_id"], "error": row["error"],
             "createdAt": row["created"], "updatedAt": row["updated"],
+        }
+
+    def history(self):
+        with self.connect() as db:
+            ids = [row[0] for row in db.execute("SELECT id FROM operations ORDER BY created DESC LIMIT 100")]
+        return [self.operation(operation_id) for operation_id in ids]
+
+    def deployment(self):
+        with self.connect() as db:
+            row = db.execute("SELECT body FROM deployment WHERE singleton=1").fetchone()
+        journal = self.journal()
+        return {
+            "current": json.loads(row[0]) if row else None,
+            "recovery": {"phase": journal["phase"], "requestId": journal["operation"]} if journal else None,
         }
 
     def releases(self):
@@ -283,13 +298,17 @@ class Controller:
                 "releaseId": release["releaseId"], "imageId": release["imageId"],
                 "previousReleaseId": accepted["releaseId"] if accepted else None,
                 "previousImageId": previous,
+                "backupReceipt": journal["backupReceipt"],
             }
-            # Commit accepted deployment and clear recovery intent atomically.
+            # Commit accepted deployment, release state and cleared recovery intent together.
+            release["state"] = "deployed"
             with self.store.connect() as db:
                 db.execute("INSERT OR REPLACE INTO deployment VALUES (1,?)", (canonical(deployment),))
+                db.execute("INSERT INTO events(at,operation,event) VALUES (?,?,?)",
+                           (time.time(), request["requestId"], "backup_verified:" + journal["backupReceipt"]))
+                db.execute("INSERT OR REPLACE INTO releases VALUES (?,?)",
+                           (release["releaseId"], canonical(release)))
                 db.execute("DELETE FROM journal")
-            release["state"] = "deployed"
-            self.store.save_release(release)
         except Exception:
             self.restore(journal)
             raise
@@ -309,7 +328,7 @@ class Controller:
         self.store.journal(clear=True)
 
 
-def serve(controller, tokens, port):
+def create_server(controller, tokens, port):
     if (len(tokens["owner"]) < 32 or len(tokens["developer"]) < 32
             or hmac.compare_digest(tokens["owner"], tokens["developer"])):
         raise Refused("distinct_strong_credentials_required")
@@ -341,6 +360,10 @@ def serve(controller, tokens, port):
                 self.role()
                 if self.path == "/v1/releases":
                     return self.reply(200, controller.store.releases())
+                if self.path == "/v1/history":
+                    return self.reply(200, controller.store.history())
+                if self.path == "/v1/deployment":
+                    return self.reply(200, controller.store.deployment())
                 prefix = "/v1/operations/"
                 if self.path.startswith(prefix):
                     return self.reply(200, controller.store.operation(self.path[len(prefix):]))
@@ -367,16 +390,41 @@ def serve(controller, tokens, port):
             super().setup()
             self.connection.settimeout(10)
 
+    class BoundedServer(ThreadingHTTPServer):
+        slots = threading.BoundedSemaphore(16)
+
+        def process_request(self, request, client_address):
+            if not self.slots.acquire(blocking=False):
+                self.shutdown_request(request)
+                return
+            try:
+                super().process_request(request, client_address)
+            except BaseException:
+                self.slots.release()
+                raise
+
+        def process_request_thread(self, request, client_address):
+            try:
+                super().process_request_thread(request, client_address)
+            finally:
+                self.slots.release()
+
+    return BoundedServer(("127.0.0.1", port), Handler)
+
+
+def serve(controller, tokens, port):
+    server = create_server(controller, tokens, port)
+
     def worker():
         while True:
             try:
                 controller.process()
-            except Refused:
+            except Exception:
+                # Keep polling recoverable storage/Docker failures without exposing diagnostics.
                 pass
-            time.sleep(0.2)
+            time.sleep(0.5)
 
     threading.Thread(target=worker, daemon=True).start()
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.serve_forever()
 
 
