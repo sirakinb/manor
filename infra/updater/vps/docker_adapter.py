@@ -38,6 +38,7 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
         except OSError:
             raise Refused("command_unavailable") from None
         output = bytearray()
+        diagnostic = bytearray()
         total = 0
         deadline = time.monotonic() + timeout
         try:
@@ -57,8 +58,12 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
                             raise Refused("command_output_limit")
                         if key.fileobj is child.stdout:
                             output.extend(chunk)
+                        elif len(diagnostic) < 8192:
+                            diagnostic.extend(chunk[:8192-len(diagnostic)])
             if child.wait(timeout=max(0.01, deadline-time.monotonic())):
-                raise Refused("command_failed")
+                error = Refused("command_failed")
+                error.diagnostic = diagnostic.decode("utf-8", errors="replace")
+                raise error
             return bytes(output)
         finally:
             if child.poll() is None:
@@ -325,7 +330,7 @@ class DockerAdapter:
         )
         image_container = self.docker(
             "create", "--label", self.label, "--label", "manor.release.build=true",
-            "--network", "none", "--user", "1000:1000", "--cap-drop", "ALL",
+            "--network", "none", "--user", "0:0", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--memory", "128m", "--memory-swap", "128m",
             "--cpus", "1", "--pids-limit", "64",
             self.policy["toolchainImage"], "node", "-e", cleaner).decode().strip()
@@ -335,7 +340,12 @@ class DockerAdapter:
             if code != "0":
                 raise Refused("image_preparation_failed")
             self.docker("cp", "-", image_container + ":/app", data=artifact)
+            original_command = json.loads(self.docker("image", "inspect", "--format", "{{json .Config.Cmd}}",
+                                                       self.policy["toolchainImage"]))
             image = self.docker("commit", "--change", "ENV GIT_SHA=" + revision,
+                                "--change", "LABEL manor.release.build=false",
+                                "--change", "USER 1000:1000",
+                                "--change", "CMD " + json.dumps(original_command),
                                 image_container, self.policy["project"] + "-candidate:" + operation).decode().strip()
         finally:
             self.docker("rm", "-f", image_container)

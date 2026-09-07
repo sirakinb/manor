@@ -66,7 +66,7 @@ class Workspace:
         tree = volume / "tree"
         if repository_path.exists():
             raise Refused("partial_workspace_requires_operator_inspection")
-        run(["git", "-c", "safe.directory=" + repository, "clone", "--bare", "--no-hardlinks", repository, str(repository_path)])
+        run(["git", "-c", "safe.directory=" + repository, "-c", "safe.directory=" + repository + "/.git", "clone", "--bare", "--no-hardlinks", repository, str(repository_path)])
         run(["git", "-c", "core.hooksPath=/dev/null", "--git-dir=" + str(repository_path),
              "worktree", "add", "-b", "workspace/" + self.workspace_id, str(tree), revision])
         # Rewrite absolute worktree pointers for the container's only mounted workspace.
@@ -158,7 +158,13 @@ class Workspace:
     def resume(self):
         config = self.read()
         admission(self.state, 256, disk_mb=0)
-        self.docker("start", self.name + "-db", self.name)
+        quota_directory(self.state, self.workspace_id, 256)
+        actual = self.docker("inspect", "--format", "{{.State.Running}}", self.name).decode().strip()
+        if actual != "true":
+            # Recreate source mounts after edits, validating all paths again.
+            self.docker("rm", self.name)
+            self.start_container(config)
+        self.docker("start", self.name + "-db")
         config["state"] = "running"
         self.record.write_text(canonical(config))
         return self.status()
@@ -178,7 +184,7 @@ class Workspace:
         bundle = self.state / (self.workspace_id + ".bundle")
         bundle.write_bytes(data)
         run(["git", "-c", "core.hooksPath=/dev/null", "-c", "fetch.fsckObjects=true",
-             "-C", repository, "fetch", str(bundle), "HEAD:refs/workspaces/" + self.workspace_id])
+             "-C", repository, "fetch", str(bundle), "HEAD:refs/manor-workspaces/" + self.workspace_id + "/" + revision])
         return {"revision": revision}
 
     def preview_url(self):

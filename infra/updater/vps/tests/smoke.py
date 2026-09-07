@@ -90,6 +90,10 @@ def main():
     with urllib.request.urlopen(preview_request, timeout=3) as response:
         assert "remote-edit" in response.read().decode()
     print("remote edit -> offline tests -> authenticated preview: passed", flush=True)
+    release_rehearsal(state, args, committed, workspace)
+
+
+def release_rehearsal(state, args, committed, workspace):
     # Suspend the preview during heavy builds and reuse the same shared job lock.
     workspace.suspend()
     workspace.docker("start", workspace.name + "-db")

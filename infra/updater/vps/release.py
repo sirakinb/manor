@@ -200,6 +200,9 @@ class Controller:
                 except Exception as error:
                     # No command output, secrets, paths or exception text crosses the public boundary.
                     code = str(error) if isinstance(error, Refused) else "executor_error"
+                    diagnostic = getattr(error, "diagnostic", "")
+                    if diagnostic:
+                        (self.store.directory / "last-error.txt").write_text(diagnostic[:8192])
                     self.store.finish(row["id"], "failed", request.get("releaseId"), code)
                     self.store.event(row["id"], code)
 
