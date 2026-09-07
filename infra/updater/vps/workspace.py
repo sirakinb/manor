@@ -87,7 +87,8 @@ class Workspace:
         self.docker("network", "create", "--internal", "--label", "manor.workspace=" + self.workspace_id, self.name)
         self.docker(
             "run", "-d", "--name", self.name + "-db", "--label", "manor.workspace=" + self.workspace_id,
-            "--network", self.name, "--network-alias", "postgres", "--user", "999:999",
+            "--network", self.name, "--network-alias", "postgres", "--user", "999:999", "--read-only",
+            "--tmpfs", "/tmp:rw,nosuid,nodev,size=16m,uid=999,gid=999",
             "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
             "--cpus", "0.25", "--memory", "128m", "--memory-swap", "128m", "--pids-limit", "64",
             "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",

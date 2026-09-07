@@ -55,6 +55,11 @@ def main():
     workspace = Workspace(state / "workspaces", "rehearsal")
     with heavy_lock():
         workspace.create(args.repository, args.revision, args.toolchain, args.postgres_image, 18080)
+    for name in (workspace.name, workspace.name + "-db"):
+        container = json.loads(workspace.docker("inspect", name))[0]
+        assert container["HostConfig"]["ReadonlyRootfs"]
+        assert container["HostConfig"]["Memory"] > 0
+        assert not any(mount["Destination"] == "/var/run/docker.sock" for mount in container["Mounts"])
     print("workspace: isolated source, synthetic Postgres, bounded storage and private bridge preview", flush=True)
     command = ["git", "-c", "user.name=Manor contributors", "-c", "user.email=contributors@example.invalid"]
     workspace.execute(command + ["config", "user.name", "Manor contributors"])
