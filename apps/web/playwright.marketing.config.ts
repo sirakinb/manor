@@ -14,7 +14,8 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["iPhone 13"], defaultBrowserType: "chromium" } },
   ],
   webServer: {
-    command: "pnpm --filter @rakazo/www build && pnpm --filter @rakazo/www preview",
+    command:
+      "pnpm --filter @rakazo/www build && exec python3 -m http.server 4321 --bind 127.0.0.1 --directory ../www/dist",
     url: "http://127.0.0.1:4321",
     reuseExistingServer: false,
     timeout: 120_000,
