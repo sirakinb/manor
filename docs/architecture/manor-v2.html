@@ -8,7 +8,7 @@
 </style>
 </head>
 <body>
-<header><div class="brand"><span>M</span> MANOR</div><nav class="versions" aria-label="Architecture versions"><a href="http://127.0.0.1:8766/" target="_blank" rel="noopener">Current architecture · V1 ↗</a><strong>V2 · VPS + Maintenance</strong></nav></header>
+<header><div class="brand"><span>M</span> MANOR</div><nav class="versions" aria-label="Architecture versions"><a href="./index.html" data-local-v1 target="_blank" rel="noopener">Current architecture · V1 ↗</a><strong>V2 · VPS + Maintenance</strong></nav></header>
 <main>
 <div class="eyebrow">Architecture / Version 2</div>
 <h1>Your laptop controls the work.<br>The VPS does the work.</h1>
@@ -85,11 +85,22 @@
 <tr><td>Public repository</td><td>Reviewed public source. Private issue evidence and diagnostic data never belong in commits or PRs.</td><td>A separate reviewed publication workflow</td></tr>
 </tbody></table>
 <div class="note"><p>Maintenance commits remain private on the VPS unless separately reviewed and published. Keeping them synchronized with the public main branch is a deliberate Git step; deploying a private fix does not automatically create a public PR.</p></div>
-<div class="grid"><article class="card"><h3>No development root</h3><p>Code runs as a non-root user. The development container does not receive the host Docker socket, production credentials or production data mounts.</p></article><article class="card"><h3>One heavy job at a time</h3><p>The host checks free memory and disk before work begins. A build must preserve operating headroom and retained rollback images.</p></article><article class="card"><h3>V1 stays intact</h3><p>This document is a new version. <a href="http://127.0.0.1:8766/" target="_blank" rel="noopener">Open the original architecture</a> to compare the previous system view.</p></article></div>
+<div class="grid"><article class="card"><h3>No development root</h3><p>Code runs as a non-root user. The development container does not receive the host Docker socket, production credentials or production data mounts.</p></article><article class="card"><h3>One heavy job at a time</h3><p>The host checks free memory and disk before work begins. A build must preserve operating headroom and retained rollback images.</p></article><article class="card"><h3>V1 stays intact</h3><p>This document is a new version. <a href="./index.html" data-local-v1 target="_blank" rel="noopener">Open the original architecture</a> to compare the previous system view.</p></article></div>
 </section>
 <footer>Manor architecture V2 · source-based description of the maintenance and VPS integration. The status above distinguishes implemented behavior from production activation.</footer>
 </main>
 <script>
+// This document is served locally alongside a preserved V1 page. Never direct
+// a remotely hosted copy to the reader's unrelated loopback service.
+for (const link of document.querySelectorAll('[data-local-v1]')) {
+  if (['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname)) {
+    link.href = 'http://127.0.0.1:8766/';
+  } else {
+    link.removeAttribute('href');
+    link.textContent = 'V1 is available in the local architecture viewer';
+  }
+}
+
 const tabs=[...document.querySelectorAll('[data-tab]')];function selectTab(id){tabs.forEach(b=>{const active=b.dataset.tab===id;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;document.getElementById(b.dataset.tab).hidden=!active});history.replaceState(null,'',`#${id}`)}tabs.forEach((b,i)=>{b.addEventListener('click',()=>selectTab(b.dataset.tab));b.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const n=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;selectTab(tabs[n].dataset.tab);tabs[n].focus()})});const initial=location.hash.slice(1);selectTab(tabs.some(b=>b.dataset.tab===initial)?initial:'overview');
 const steps=[['Describe the issue','Open Maintenance as the deployment owner. Describe a bug or improvement, optionally including a run ID. The issue and scoped diagnostics are stored privately in a durable job.'],['Investigate the evidence','The existing agent runtime reads the issue and bounded diagnostics. Its only execution tool targets the private development container. Logs and repository instructions cannot grant deployment authority.'],['Edit isolated source','The agent edits a branch based on the running revision. The container uses synthetic data and has no production keys, host root access or Docker socket. Arbitrary commands receive durable identities and resource limits.'],['Test outside the agent’s claim','The workspace is suspended. The release controller imports the committed revision, runs its configured checks, builds an immutable image and records a manifest that includes the test evidence and policy.'],['Review the actual change','Inspect the private source diff, independent results and exact revision. A failing check or unsupported change blocks deployment. Source preview is available; an authenticated live app preview is not claimed here.'],['Approve this release','Your explicit action approves the entire tested review bundle. The backend submits approval using a separate credential that the model never sees. A different revision or manifest needs a fresh review.']];document.querySelectorAll('[data-step]').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('[data-step]').forEach(x=>{x.setAttribute('aria-pressed',String(x===b))});const s=steps[Number(b.dataset.step)];document.getElementById('step-title').textContent=s[0];document.getElementById('step-text').textContent=s[1]});});
 </script>

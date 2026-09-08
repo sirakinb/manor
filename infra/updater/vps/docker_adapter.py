@@ -334,7 +334,7 @@ class DockerAdapter:
                     "--cpus", "1", "--memory", str(memory) + "m",
                     "--memory-swap", str(memory) + "m", "--pids-limit", "128",
                     "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",
-                    "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,uid=1000,gid=1000",
+                    "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=64m,uid=1000,gid=1000",
                     "--mount", "type=bind,src=" + str(app) + ",dst=/app",
                     "--workdir", "/app", "--env", "NODE_OPTIONS=--max-old-space-size=" + str(max(64, memory - 128)),
                     "--env", "RAKAZO_ALLOW_DEV_SECRETS=1",
@@ -395,7 +395,7 @@ class DockerAdapter:
                 "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
                 "--cpus", "1", "--memory", str(memory) + "m", "--memory-swap", str(memory) + "m",
                 "--pids-limit", "128", "--workdir", "/app",
-                "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,uid=1000,gid=1000",
+                "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=64m,uid=1000,gid=1000",
                 image, *self.policy["testCommand"], timeout=1800, max_output=MIB)
             evidence.update(output)
         finally:
@@ -464,7 +464,8 @@ class DockerAdapter:
             headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
         )
         try:
-            with urllib.request.urlopen(request, timeout=300 if action == "backup" else 10) as response:
+            timeout = self.policy.get("backupTimeoutSeconds", 600) if action == "backup" else 10
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 value = json.load(response)
             if not isinstance(value, dict):
                 raise ValueError()

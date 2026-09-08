@@ -95,6 +95,9 @@ describe("maintenance Unix transport", () => {
         await control.call("workspace", "/v1/workspaces/operations", { action: "create" }),
       ).toEqual({ state: "queued" });
       await expect(control.call("developer", "/refused")).rejects.toThrow("refused");
+      await expect(
+        control.call("workspace", "/v1/workspaces/operations", { argv: ["界".repeat(180000)] }),
+      ).rejects.toThrow("request exceeded");
       expect(received).toEqual([`Bearer ${tokens.workspace}`, `Bearer ${tokens.developer}`]);
     } finally {
       await control.close();

@@ -20,11 +20,14 @@ export class MaintenanceControl {
     body?: unknown,
     signal?: AbortSignal,
   ): Promise<unknown> {
+    const serialized = body === undefined ? undefined : JSON.stringify(body);
+    if (serialized !== undefined && Buffer.byteLength(serialized, "utf8") > 512 * 1024)
+      throw new Error("Maintenance control request exceeded its limit.");
     const response = await request(`http://localhost${path}`, {
       dispatcher: this.dispatcher,
       method: body === undefined ? "GET" : "POST",
       headers: { authorization: `Bearer ${this.tokens[role]}`, "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: serialized,
       signal,
       headersTimeout: 10_000,
       bodyTimeout: 10_000,

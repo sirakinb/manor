@@ -122,6 +122,19 @@ class OperatorBoundaryTests(unittest.TestCase):
             self.assertEqual(workspace.destroy()["state"], "destroyed")
         self.assertFalse(workspace.record.exists())
 
+    def test_backup_timeout_uses_operator_budget(self):
+        for configured, expected in ((None, 600), (900, 900)):
+            policy = self.policy()
+            if configured is not None:
+                policy["backupTimeoutSeconds"] = configured
+            adapter = DockerAdapter(policy)
+            with mock.patch("docker_adapter.urllib.request.urlopen", return_value=io.BytesIO(b'{"verified":true}')) as call:
+                self.assertEqual(adapter.maintenance("backup"), {"verified": True})
+                self.assertEqual(call.call_args.kwargs["timeout"], expected)
+            with mock.patch("docker_adapter.urllib.request.urlopen", return_value=io.BytesIO(b'{"closed":true}')) as call:
+                adapter.maintenance("close")
+                self.assertEqual(call.call_args.kwargs["timeout"], 10)
+
     def test_automatic_rollback_requires_ancestry_and_compatible_source(self):
         policy = {**self.policy(), "mode": "production", "compatibilityPolicy": "unchanged-schema-and-toolchain-v1"}
         adapter = DockerAdapter(policy)

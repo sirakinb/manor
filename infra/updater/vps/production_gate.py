@@ -143,6 +143,7 @@ class ProductionGate:
         restore_data = restore / "database"
         restore_data.mkdir(mode=0o700, exist_ok=True)
         run(["chown", "999:999", str(restore_data)])
+        restore_failed = False
         try:
             run(["docker", "run", "-d", "--name", name, "--network", "none", "--read-only", "--user", "999:999",
                  "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "256m", "--memory-swap", "256m",
@@ -166,13 +167,21 @@ class ProductionGate:
                                     "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"], stdin=source, stdout=errors, stderr=errors, timeout=120, check=True)
                 except (subprocess.SubprocessError, OSError):
                     raise Refused("database_restore_verification_failed") from None
+        except BaseException:
+            restore_failed = True
+            raise
         finally:
-            with contextlib.suppress(Refused):
+            try:
                 run(["docker", "rm", "-f", name])
-            if os.path.ismount(restore):
-                run(["umount", str(restore)])
-            restore.rmdir()
-            (directory / "restore.ext4").unlink(missing_ok=True)
+                if os.path.ismount(restore):
+                    run(["umount", str(restore)])
+                restore.rmdir()
+                (directory / "restore.ext4").unlink(missing_ok=True)
+            except (Refused, OSError):
+                # Preserve the original restore failure. A cleanup failure after a
+                # successful restore must still refuse rollout and retain evidence.
+                if not restore_failed:
+                    raise Refused("backup_cleanup_failed") from None
         # A fixed trusted utility image reads only the application volume and writes
         # only this backup directory. No retention/pruning or production restore.
         run(["docker", "run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL",

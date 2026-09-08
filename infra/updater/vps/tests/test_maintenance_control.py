@@ -54,6 +54,27 @@ class AdmissionTests(unittest.TestCase):
         restored.action("leave", self.lease, "application")
         self.assertEqual(restored.action("status", {}, "operator")["active"], 0)
 
+    def test_restore_failure_survives_cleanup_failure_and_success_requires_cleanup(self):
+        self.gate.policy.update({"databaseContainer": "synthetic-db", "databaseUser": "synthetic",
+                                 "databaseName": "synthetic", "postgresImage": "synthetic-image"})
+        self.gate.action("close", self.operation, "operator")
+        restore = Path(self.temp.name) / "synthetic-restore"
+        restore.mkdir()
+        def command(argv, **_kwargs):
+            if argv[:3] == ["docker", "rm", "-f"]:
+                raise Refused("synthetic_cleanup_failure")
+            return b""
+        for restore_failure, expected in ((True, "database_restore_verification_failed"), (False, "backup_cleanup_failed")):
+            calls = [None, OSError("synthetic restore failure") if restore_failure else None]
+            with patch.object(self.gate, "producer_ids", return_value=[]), patch("production_gate.admission"), \
+                    patch("production_gate.quota_directory", return_value=restore), \
+                    patch("production_gate.run", side_effect=command), \
+                    patch("production_gate.subprocess.run", side_effect=calls):
+                with self.assertRaisesRegex(Refused, expected):
+                    self.gate.action("backup", self.operation, "operator")
+            with self.gate.connect() as db:
+                self.assertEqual(db.execute("SELECT count(*) FROM backups").fetchone()[0], 0)
+
     def test_backup_failure_resumes_only_recorded_producers_without_receipt(self):
         self.gate.policy.update({"databaseContainer": "synthetic-db", "databaseUser": "synthetic", "databaseName": "synthetic"})
         self.gate.action("close", self.operation, "operator")
@@ -122,7 +143,7 @@ class AdmissionTests(unittest.TestCase):
 class BrokerTests(unittest.TestCase):
     def test_shared_native_schema_and_toolchain_changes_need_separate_release(self):
         self.assertTrue(automatic_source_compatible(["apps/web/src/example.ts", "packages/adapters/src/example.ts"]))
-        for name in ("apps/mobile/app/index.tsx", "packages/core/src/example.ts", "packages/contracts/src/example.ts", "packages/brands/src/example.ts",
+        for name in ("pnpm-workspace.yaml", "tsconfig.base.json", "turbo.json", "vitest.config.ts", ".npmrc", "Dockerfile", "apps/mobile/app/index.tsx", "packages/core/src/example.ts", "packages/contracts/src/example.ts", "packages/brands/src/example.ts",
                      "packages/db/prisma/schema.prisma", "pnpm-lock.yaml", "apps/web/package.json", "infra/updater/vps/release.py"):
             self.assertFalse(automatic_source_compatible(["apps/web/src/example.ts", name]))
         self.assertFalse(automatic_source_compatible([]))
