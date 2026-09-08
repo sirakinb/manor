@@ -49,7 +49,7 @@ def main():
             finally:
                 run(["docker", "rm", container])
         run(["docker", "run", "--rm", "--network", "none", "--mount", "type=volume,src=" + volume + ",dst=/data",
-             args.backup_image, "sh", "-c", "printf 'synthetic storage only\\n' > /data/fixture.txt"])
+             args.backup_image, "sh", "-c", "printf 'synthetic storage only\\n' > /data/fixture.txt && chown 1000:1000 /data/fixture.txt && chmod 600 /data/fixture.txt"])
         pgdata = state / "database"
         pgdata.mkdir(mode=0o700)
         run(["chown", "999:999", str(pgdata)])

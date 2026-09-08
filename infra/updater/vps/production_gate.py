@@ -185,6 +185,7 @@ class ProductionGate:
         # A fixed trusted utility image reads only the application volume and writes
         # only this backup directory. No retention/pruning or production restore.
         run(["docker", "run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL",
+             "--cap-add", "DAC_READ_SEARCH",
              "--security-opt", "no-new-privileges", "--memory", "128m", "--pids-limit", "32",
              "--mount", "type=volume,src=" + self.policy["dataVolume"] + ",dst=/data,readonly",
              "--mount", "type=bind,src=" + str(directory) + ",dst=/backup",
