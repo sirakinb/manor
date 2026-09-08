@@ -22,7 +22,10 @@ describe("host-aware sandbox", () => {
   });
 
   it("lets this-mac cwd run under a host root", async () => {
-    const desktop = new DesktopSandboxProvider({ root: path.join(hostRoot, "data"), hostRoots: [hostRoot] });
+    const desktop = new DesktopSandboxProvider({
+      root: path.join(hostRoot, "data"),
+      hostRoots: [hostRoot],
+    });
     const computer = await desktop.provision({ botId: "host", homePath: "/tmp/host-home" }, ctx);
     let code = 1;
     for await (const event of desktop.execute(
@@ -37,7 +40,10 @@ describe("host-aware sandbox", () => {
   });
 
   it("still refuses paths outside home and host roots", async () => {
-    const desktop = new DesktopSandboxProvider({ root: path.join(hostRoot, "data"), hostRoots: [hostRoot] });
+    const desktop = new DesktopSandboxProvider({
+      root: path.join(hostRoot, "data"),
+      hostRoots: [hostRoot],
+    });
     const computer = await desktop.provision({ botId: "deny", homePath: "/tmp/deny" }, ctx);
     let stderr = "";
     let code = 0;
