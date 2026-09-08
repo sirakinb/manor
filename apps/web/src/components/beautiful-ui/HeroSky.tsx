@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /* Hero sky — a living layer over the landing's painted night: slow violet
    mist (three octaves of value noise, two drifting wavefronts) and a field of
@@ -80,8 +80,10 @@ function compile(gl: WebGLRenderingContext, type: number, source: string) {
  */
 export function HeroSky({ mist = 0.85, className }: { mist?: number; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    setReady(false);
     const canvas = canvasRef.current;
     if (!canvas) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -95,12 +97,20 @@ export function HeroSky({ mist = 0.85, className }: { mist?: number; className?:
     const vs = compile(gl, gl.VERTEX_SHADER, VERTEX);
     const fs = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
     const program = gl.createProgram();
-    if (!vs || !fs || !program) return;
+    if (!vs || !fs || !program) {
+      if (vs) gl.deleteShader(vs);
+      if (fs) gl.deleteShader(fs);
+      if (program) gl.deleteProgram(program);
+      return;
+    }
     gl.attachShader(program, vs);
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.warn("hero sky link", gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
       return;
     }
     // biome-ignore lint/correctness/useHookAtTopLevel: WebGL API method, not a React hook
@@ -117,6 +127,7 @@ export function HeroSky({ mist = 0.85, className }: { mist?: number; className?:
     gl.uniform1f(uMist, mist);
 
     let frame = 0;
+    let painted = false;
     let visible = true;
     let last = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -138,6 +149,10 @@ export function HeroSky({ mist = 0.85, className }: { mist?: number; className?:
       resize();
       gl.uniform1f(uT, (now - started) / 1000);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (!painted && !gl.isContextLost()) {
+        painted = true;
+        setReady(true);
+      }
     };
     const observer =
       typeof IntersectionObserver === "function"
@@ -149,15 +164,31 @@ export function HeroSky({ mist = 0.85, className }: { mist?: number; className?:
     const onVisibility = () => {
       visible = document.visibilityState === "visible";
     };
+    const onContextLost = () => {
+      cancelAnimationFrame(frame);
+      setReady(false);
+    };
+    canvas.addEventListener("webglcontextlost", onContextLost);
     document.addEventListener("visibilitychange", onVisibility);
     frame = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(frame);
       observer?.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      canvas.removeEventListener("webglcontextlost", onContextLost);
+      // StrictMode reuses this canvas on its next setup; keep its context alive.
+      gl.deleteBuffer(buffer);
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
     };
   }, [mist]);
 
-  return <canvas ref={canvasRef} className={className} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      style={{ visibility: ready ? "visible" : "hidden" }}
+    />
+  );
 }
