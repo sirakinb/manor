@@ -9,6 +9,8 @@ User=root
 UMask=0077
 RuntimeDirectory=manor-maintenance
 RuntimeDirectoryMode=0755
+# API/worker bind-mount this directory; replacing its inode strands their socket.
+RuntimeDirectoryPreserve=yes
 ExecStart=/usr/bin/python3 /usr/local/lib/manor-release/control.py --policy /etc/manor-release/policy.json
 Restart=on-failure
 RestartSec=5

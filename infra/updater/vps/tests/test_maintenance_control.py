@@ -1,4 +1,6 @@
 import concurrent.futures
+import contextlib
+import fcntl
 import json
 import sys
 import tempfile
@@ -190,6 +192,41 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(restarted.submit(request)["state"], "interrupted")
         with patch.object(restarted, "execute") as execute:
             restarted.process()
+            execute.assert_not_called()
+
+    def test_busy_host_lock_keeps_command_queued_until_it_can_execute_once(self):
+        request = self.command()
+        self.broker.submit(request)
+        lock_path = Path(self.temp.name) / "heavy.lock"
+        with patch("workspace.HEAVY_LOCK", str(lock_path)), patch("workspace.run", return_value=b""), \
+                patch.object(self.broker, "execute", return_value={"ok": True}) as execute:
+            with lock_path.open("w") as holder:
+                fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self.broker.process()
+                self.assertEqual(self.broker.operation(request["requestId"])["state"], "queued")
+                execute.assert_not_called()
+            self.broker.process()
+            self.broker.process()
+            self.assertEqual(self.broker.operation(request["requestId"])["state"], "succeeded")
+            execute.assert_called_once_with(request)
+
+    def test_error_after_command_starts_is_terminal_even_if_named_busy(self):
+        request = self.command()
+        self.broker.submit(request)
+        with patch("workspace_broker.heavy_lock", contextlib.nullcontext), \
+                patch.object(self.broker, "execute", side_effect=Refused("heavy_job_busy")) as execute:
+            self.broker.process()
+            self.broker.process()
+            self.assertEqual(self.broker.operation(request["requestId"])["state"], "failed")
+            execute.assert_called_once_with(request)
+
+    def test_other_admission_errors_fail_without_executing(self):
+        request = self.command()
+        self.broker.submit(request)
+        with patch("workspace_broker.heavy_lock", side_effect=Refused("command_unavailable")), \
+                patch.object(self.broker, "execute") as execute:
+            self.broker.process()
+            self.assertEqual(self.broker.operation(request["requestId"])["state"], "failed")
             execute.assert_not_called()
 
     def test_no_host_paths_release_actions_or_unbounded_argv(self):

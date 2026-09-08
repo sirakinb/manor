@@ -92,13 +92,19 @@ class WorkspaceBroker:
                 row = db.execute("SELECT id,body FROM operations WHERE state='queued' ORDER BY created LIMIT 1").fetchone()
                 if not row:
                     return
-                db.execute("UPDATE operations SET state='running' WHERE id=?", (row[0],))
+            started = False
             try:
                 with heavy_lock():
+                    # Claim only after admission; contention has no command effects.
+                    with self.connect() as db:
+                        db.execute("UPDATE operations SET state='running' WHERE id=?", (row[0],))
+                    started = True
                     result = self.execute(json.loads(row[1]))
                 state = "succeeded"
             except Exception as error:
-                # Raw command output is private evidence, never an error identifier.
+                if not started and isinstance(error, Refused) and str(error) == "heavy_job_busy":
+                    return
+                # Never replay after execution begins, or expose raw command output.
                 result = {"error": str(error) if isinstance(error, Refused) else "workspace_error"}
                 state = "failed"
             with self.connect() as db:
