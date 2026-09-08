@@ -220,6 +220,15 @@ class BrokerTests(unittest.TestCase):
             self.assertEqual(self.broker.operation(request["requestId"])["state"], "failed")
             execute.assert_called_once_with(request)
 
+    def test_other_admission_errors_fail_without_executing(self):
+        request = self.command()
+        self.broker.submit(request)
+        with patch("workspace_broker.heavy_lock", side_effect=Refused("command_unavailable")), \
+                patch.object(self.broker, "execute") as execute:
+            self.broker.process()
+            self.assertEqual(self.broker.operation(request["requestId"])["state"], "failed")
+            execute.assert_not_called()
+
     def test_no_host_paths_release_actions_or_unbounded_argv(self):
         for fields in ({"action": "deploy"}, {"workspaceId": "../../production"}, {"repository": "/production"},
                        {"argv": "sh"}, {"argv": []}, {"argv": ["x"] * 101}, {"argv": ["a\x00b"]}):
