@@ -1,0 +1,45 @@
+name: VPS release foundation
+on:
+  pull_request:
+    paths:
+      - "infra/updater/vps/**"
+      - "packages/contracts/release-v1.schema.json"
+      - ".github/workflows/vps-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s infra/updater/vps/tests -v
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Prepare synthetic toolchain
+        run: |
+          docker build -t manor-rehearsal-toolchain -f infra/updater/vps/tests/Dockerfile.toolchain .
+          docker pull postgres:16@sha256:e17e86066e5ef83e0952a9347f5c792b7ece00972e2aa787a6986f471b3dd3d5
+      - name: Exercise isolated remote release lifecycle
+        run: |
+          sudo python3 infra/updater/vps/tests/smoke.py \
+            --repository "$GITHUB_WORKSPACE" \
+            --revision "$GITHUB_SHA" \
+            --toolchain "$(docker image inspect manor-rehearsal-toolchain --format '{{.Id}}')" \
+            --postgres-image "$(docker image inspect postgres:16@sha256:e17e86066e5ef83e0952a9347f5c792b7ece00972e2aa787a6986f471b3dd3d5 --format '{{.Id}}')" \
+            --state /var/tmp/manor-release-rehearsal

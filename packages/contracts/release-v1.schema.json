@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Manor release interface v1 operation request",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestId", "action", "revision"],
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "action": {
+          "const": "prepare"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "maxLength": 40
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestId", "action", "releaseId", "manifestHash"],
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "action": {
+          "enum": ["approve", "deploy", "rollback"]
+        },
+        "releaseId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 64
+        },
+        "manifestHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 64
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestId", "action"],
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "action": {
+          "const": "recover"
+        }
+      }
+    }
+  ]
+}

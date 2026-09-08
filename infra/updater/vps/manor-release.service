@@ -1,0 +1,22 @@
+[Unit]
+Description=Manor release controller
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/local/lib/manor-release/release.py --policy /etc/manor-release/policy.json serve
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=10
+MemoryMax=512M
+CPUQuota=50%
+TasksMax=128
+# The operator-owned executor needs Docker and loop mounts. Never expose it
+# through a developer shell or give its credentials to a workspace.
+
+[Install]
+WantedBy=multi-user.target

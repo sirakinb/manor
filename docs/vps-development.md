@@ -1,7 +1,9 @@
 # Developing and maintaining Manor from a VPS
 
-Status: proposal. This document does not provision a development environment or
-give agents production access.
+Status: a Linux foundation is implemented in [infra/updater/vps](../infra/updater/vps/README.md).
+The [release interface](release-interface.md) is available for the Maintenance
+Agent workstream. Production activation still requires a separate release review;
+the included maintenance adapter is synthetic and must not be used for production.
 
 The laptop can become an access device: an editor, terminal or Manor chat controls
 a persistent development checkout on the VPS. Source changes, test databases,
