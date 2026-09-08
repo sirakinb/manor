@@ -22,6 +22,7 @@ requires these fixed values. Never derive paths, images or service names from a 
 | `dataVolume` | Existing application storage volume, never a candidate-selected mount |
 | `productionAdmission: true` | Require guarded health and verified backup before switching |
 | `compatibilityPolicy: unchanged-schema-and-toolchain-v1` | Permit only compatible application changes |
+| `unguardedBootstrapImage` | Optional exact pre-integration rollback image; health may lack admission only for this operator-reviewed image |
 | `schemaCompatibleRevisions` | Explicitly reviewed bootstrap revisions, including their rollback compatibility |
 
 Private token files must be operator-owned regular files with mode 0600. Configure
@@ -54,6 +55,10 @@ must archive and retire obsolete retained artifacts before headroom runs out.
 Prepare the exact bootstrap revision using the trusted matching toolchain. Review
 the tests, manifest, migration compatibility and existing rollback image. The first
 activation must establish a quiet boundary for services that predate admission.
+The optional `unguardedBootstrapImage` permits health verification of the exact old
+rollback image, which predates the guard. Reverting to it also reverts maintenance
+capability; another bootstrap needs the same operator-established quiet boundary.
+Remove that exception after retaining a guarded previous release.
 Subsequent compatible releases close admission, drain, verify backups and switch
 only configured application services. Never enable the guard before the private
 controller and credentials are available.

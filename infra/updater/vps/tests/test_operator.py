@@ -137,6 +137,24 @@ class OperatorBoundaryTests(unittest.TestCase):
             with self.assertRaisesRegex(Refused, "separate_operator_release_required"):
                 adapter.require_compatible(previous, "rollback")
 
+    def test_only_exact_reviewed_bootstrap_image_may_lack_admission_health(self):
+        old, candidate = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+        adapter = DockerAdapter({**self.policy(), "productionAdmission": True, "unguardedBootstrapImage": old,
+                                 "healthProbe": {"service": "app", "port": 3100, "path": "/health"}, "healthTimeoutSeconds": 0.01})
+        def legacy_probe(*args, **_kwargs):
+            if "maintenanceAdmission" in args[-1]:
+                raise Refused("legacy_image_has_no_guard")
+            return b""
+        with mock.patch.object(adapter, "compose", return_value=b"synthetic"), \
+                mock.patch.object(adapter, "docker", side_effect=legacy_probe), \
+                mock.patch.object(adapter, "current_image", return_value=old):
+            adapter.health(old)
+        with mock.patch.object(adapter, "compose", return_value=b"synthetic"), \
+                mock.patch.object(adapter, "docker", side_effect=legacy_probe), \
+                mock.patch.object(adapter, "current_image", return_value=candidate):
+            with self.assertRaisesRegex(Refused, "health_check_failed"):
+                adapter.health(candidate)
+
     def test_failed_provisioning_retains_cleanup_record(self):
         workspace = Workspace(self.root, "partial")
         with mock.patch("workspace.admission"), mock.patch("docker_adapter.source_archive"), \

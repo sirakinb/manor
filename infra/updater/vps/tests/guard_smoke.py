@@ -68,7 +68,7 @@ def main():
                 time.sleep(0.5)
         run(["docker", "exec", database, "psql", "-U", "postgres", "-c",
              "CREATE TABLE synthetic_guard(value text); INSERT INTO synthetic_guard VALUES ('preserve across releases');"])
-        fixture = "require('node:http').createServer((q,r)=>{const ok=process.env.FIXTURE_HEALTH!=='unhealthy';r.writeHead(ok?200:503,{'content-type':'application/json'});r.end(JSON.stringify({ok,maintenanceAdmission:true}))}).listen(3100,'0.0.0.0')"
+        fixture = "require('node:http').createServer((q,r)=>{const ok=process.env.FIXTURE_HEALTH!=='unhealthy';r.writeHead(ok?200:503,{'content-type':'application/json'});r.end(JSON.stringify({ok,maintenanceAdmission:process.env.FIXTURE_HEALTH==='healthy-a'?undefined:true}))}).listen(3100,'0.0.0.0')"
         compose = state / "compose.json"
         compose.write_text(canonical({"services": {"app": {"image": images[0], "command": ["node", "-e", fixture],
             "user": "1000:1000", "read_only": True, "cap_drop": ["ALL"], "security_opt": ["no-new-privileges:true"],
@@ -85,7 +85,7 @@ def main():
             "gateStateDir": str(state / "gate"), "computerNetwork": network, "databaseContainer": database,
             "databaseUser": "postgres", "databaseName": "postgres", "postgresImage": args.postgres_image,
             "backupImage": args.backup_image, "dataVolume": volume, "backupReserveMb": 1152,
-            "maintenanceTokenFile": str(token_file), "productionAdmission": True,
+            "maintenanceTokenFile": str(token_file), "productionAdmission": True, "unguardedBootstrapImage": images[0],
             "healthProbe": {"service": "app", "port": 3100, "path": "/health"},
             "healthTimeoutSeconds": 2, "drainTimeoutSeconds": 1}
         gate = ProductionGate(policy)
@@ -121,6 +121,9 @@ def main():
             releases.append({"releaseId": release_id, "manifestHash": release["manifestHash"]})
         request("deploy", **releases[0])
         assert gate.action("status", {}, "operator") == {"closed": False, "active": 0}
+        assert request("deploy", expect="failed", **releases[2])["error"] == "health_check_failed"
+        assert adapter.current_image() == images[0]
+        assert not gate.action("status", {}, "operator")["closed"]
         lease = {"id": str(uuid.uuid4()), "instance": adapter.compose("ps", "-q", "app").decode().strip()[:12]}
         gate.action("enter", lease, "application")
         assert request("deploy", expect="failed", **releases[1])["error"] == "drain_timeout"
@@ -150,7 +153,7 @@ def main():
         assert not gate.action("status", {}, "operator")["closed"]
         data = run(["docker", "exec", database, "psql", "-U", "postgres", "-Atc", "SELECT value FROM synthetic_guard;"]).decode().strip()
         assert data == "preserve across releases"
-        assert len(list((state / "gate").glob("*/database.dump"))) == 4
+        assert len(list((state / "gate").glob("*/database.dump"))) == 5
         assert all(not Path(path).exists() for path in (state / "gate").glob("*/restore.ext4"))
         verification = {"admission": "passed", "databaseRestore": "passed", "storageBackup": "passed",
                         "healthRollback": "passed", "restartRecovery": "passed", "productionTouched": False}

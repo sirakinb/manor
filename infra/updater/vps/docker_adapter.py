@@ -97,6 +97,8 @@ def load_policy(filename):
         raise Refused("invalid_mode")
     if policy["mode"] == "production" and policy.get("productionReviewed") is not True:
         raise Refused("production_review_required")
+    if policy.get("unguardedBootstrapImage") is not None and not IMAGE.fullmatch(policy["unguardedBootstrapImage"]):
+        raise Refused("immutable_bootstrap_image_required")
     if not IMAGE.fullmatch(policy["toolchainImage"]):
         raise Refused("toolchain_must_be_immutable")
     if not re.fullmatch(r"manor-[a-z0-9-]{1,40}", policy["project"]):
@@ -439,7 +441,7 @@ class DockerAdapter:
                 if probe:
                     container = self.compose("ps", "-q", probe["service"]).decode().strip()
                     url = "http://127.0.0.1:" + str(probe["port"]) + probe["path"]
-                    require_guard = "||s.maintenanceAdmission!==true" if self.policy.get("productionAdmission") is True else ""
+                    require_guard = "||s.maintenanceAdmission!==true" if self.policy.get("productionAdmission") is True and image != self.policy.get("unguardedBootstrapImage") else ""
                     code = "fetch(" + json.dumps(url) + ",{redirect:'error',signal:AbortSignal.timeout(3000)}).then(async r=>{const s=await r.json();if(!r.ok||s.ok!==true" + require_guard + ")process.exit(1)}).catch(()=>process.exit(1))"
                     self.docker("exec", container, "node", "-e", code, timeout=5, max_output=MIB)
                     return
