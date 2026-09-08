@@ -12,7 +12,7 @@ test("marketing page renders without the unverified bundled font", async ({ page
     if (url.hostname === "fonts.googleapis.com") {
       await route.fulfill({
         contentType: "text/css",
-        body: '@font-face { font-family: Geist; src: url("/__test-geist.woff2"); font-weight: 100 900; }',
+        body: '@font-face { font-family: Geist; src: url("http://127.0.0.1:4321/__test-geist.woff2"); font-weight: 100 900; }',
       });
     } else if (url.pathname === "/__test-geist.woff2") {
       await route.fulfill({
