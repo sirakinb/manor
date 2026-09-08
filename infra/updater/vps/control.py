@@ -152,6 +152,8 @@ def main():
     broker, gate = WorkspaceBroker(policy), ProductionGate(policy)
     socket = Path(policy["controlSocket"])
     socket.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    # The private process umask must not make the socket unreachable to the app group.
+    socket.parent.chmod(0o755)
     if socket.exists():
         if not stat.S_ISSOCK(socket.lstat().st_mode):
             raise Refused("control_socket_path_occupied")
