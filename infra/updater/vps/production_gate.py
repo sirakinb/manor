@@ -118,10 +118,10 @@ class ProductionGate:
                 return {"verified": True, "receipt": prior[0]}
         admission(self.state, 256, disk_mb=self.policy.get("backupReserveMb", 4096))
         for container in self.producer_ids():
-            with self.connect() as db:
-                db.execute("INSERT OR IGNORE INTO paused VALUES (?)", (container,))
             paused = run(["docker", "inspect", "--format", "{{.State.Paused}}", container]).decode().strip()
             if paused != "true":
+                with self.connect() as db:
+                    db.execute("INSERT OR IGNORE INTO paused VALUES (?)", (container,))
                 run(["docker", "pause", container])
         directory = self.state / operation
         directory.mkdir(mode=0o700, exist_ok=True)

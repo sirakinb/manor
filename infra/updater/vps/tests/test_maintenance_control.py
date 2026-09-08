@@ -92,6 +92,22 @@ class AdmissionTests(unittest.TestCase):
             self.assertEqual(command.call_args_list[-1].args[0], ["docker", "unpause", container])
         self.assertFalse(self.gate.action("status", {}, "operator")["closed"])
 
+    def test_backup_preserves_a_producer_already_paused_by_the_operator(self):
+        self.gate.policy.update({"databaseContainer": "synthetic-db", "databaseUser": "synthetic", "databaseName": "synthetic"})
+        self.gate.action("close", self.operation, "operator")
+        container = "b" * 64
+        with patch.object(self.gate, "producer_ids", return_value=[container]), \
+                patch("production_gate.admission"), patch("production_gate.run", return_value=b"true") as command, \
+                patch("production_gate.subprocess.run", side_effect=OSError("synthetic failure")):
+            with self.assertRaisesRegex(Refused, "database_backup_failed"):
+                self.gate.action("backup", self.operation, "operator")
+            self.assertEqual(len(command.call_args_list), 1)
+        restored = ProductionGate(self.policy)
+        with patch("production_gate.run") as command:
+            restored.action("open", self.operation, "operator")
+            command.assert_not_called()
+        self.assertFalse(restored.action("status", {}, "operator")["closed"])
+
     def test_application_cannot_close_open_backup_or_inspect_admission(self):
         for action in ("close", "open", "status", "backup"):
             with self.assertRaisesRegex(Refused, "operator_required"):

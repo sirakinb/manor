@@ -32,6 +32,7 @@ def main():
         raise RuntimeError("Use an unused synthetic project and state directory")
     state.mkdir(mode=0o700, parents=True)
     network, volume, database = PROJECT + "-computers", PROJECT + "-data", PROJECT + "-db"
+    prepaused = PROJECT + "-prepaused"
     images = []
     server = None
     adapter = None
@@ -103,6 +104,11 @@ def main():
         bootstrap = DockerAdapter({**policy, "productionAdmission": False})
         bootstrap.activate(images[0])
         adapter.health(images[0])
+        run(["docker", "run", "-d", "--name", prepaused, "--network", network,
+             "--read-only", "--user", "1000:1000", "--cap-drop", "ALL",
+             "--security-opt", "no-new-privileges", "--memory", "64m", "--pids-limit", "16",
+             args.toolchain, "sleep", "infinity"])
+        run(["docker", "pause", prepaused])
         controller = Controller(Store(policy["stateDir"]), adapter, digest(policy))
 
         def request(action, expect="succeeded", **fields):
@@ -155,6 +161,7 @@ def main():
         assert not controller.store.journal()
         assert not gate.action("status", {}, "operator")["closed"]
         data = run(["docker", "exec", database, "psql", "-U", "postgres", "-Atc", "SELECT value FROM synthetic_guard;"]).decode().strip()
+        assert run(["docker", "inspect", "--format", "{{.State.Paused}}", prepaused]).decode().strip() == "true"
         assert data == "preserve across releases"
         assert len(list((state / "gate").glob("*/database.dump"))) == 5
         assert all(not Path(path).exists() for path in (state / "gate").glob("*/restore.ext4"))
@@ -169,7 +176,8 @@ def main():
         if server:
             server.shutdown()
             server.server_close()
-        for command in (["docker", "rm", "-f", database], ["docker", "network", "rm", network], ["docker", "volume", "rm", volume]):
+        for command in (["docker", "unpause", prepaused], ["docker", "rm", "-f", prepaused],
+                        ["docker", "rm", "-f", database], ["docker", "network", "rm", network], ["docker", "volume", "rm", volume]):
             with __import__("contextlib").suppress(Exception):
                 run(command)
         for image in images:
