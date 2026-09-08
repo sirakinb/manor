@@ -88,6 +88,18 @@ class OperatorBoundaryTests(unittest.TestCase):
         store.record_error(Refused("x" * 20000))
         self.assertLessEqual(diagnostic.stat().st_size, 8192)
 
+    def test_private_diagnostics_remain_valid_json_with_escaped_output(self):
+        store = Store(self.root / "state")
+        error = Refused("💥" * 512)
+        error.diagnostic = ("\x1b[31m💥" * 7000) + "final_failure"
+        store.record_error(error)
+        diagnostic = store.directory / "last-error.txt"
+        self.assertLessEqual(diagnostic.stat().st_size, 8192)
+        record = json.loads(diagnostic.read_text())
+        self.assertEqual(record["code"], str(error))
+        self.assertTrue(record["diagnostic"].endswith("final_failure"))
+        self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
+
     def test_history_cli_returns_operations(self):
         directory = self.root / "state"
         controller = Controller(Store(directory), Adapter(), "policy")

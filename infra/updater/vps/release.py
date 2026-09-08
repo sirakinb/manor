@@ -168,10 +168,14 @@ class Store:
         # Operator-only, bounded diagnostics must never disrupt durable operation state.
         with contextlib.suppress(OSError):
             path = self.directory / "last-error.txt"
-            path.write_text(canonical({
+            record = {
                 "at": time.time(), "code": str(error)[:512],
                 "diagnostic": getattr(error, "diagnostic", "")[-7000:],
-            })[:8192])
+            }
+            # Bound the encoded document, preserving the diagnostic tail and valid JSON.
+            while len(canonical(record).encode("utf-8")) > 8192:
+                record["diagnostic"] = record["diagnostic"][256:]
+            path.write_text(canonical(record))
             path.chmod(0o600)
 
     def finish(self, operation_id, state, release_id=None, error=None):

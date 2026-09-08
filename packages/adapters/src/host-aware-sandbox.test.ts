@@ -22,7 +22,7 @@ describe("host-aware sandbox", () => {
   });
 
   it("lets this-mac cwd run under a host root", async () => {
-    const desktop = new DesktopSandboxProvider({ hostRoots: [hostRoot] });
+    const desktop = new DesktopSandboxProvider({ root: path.join(hostRoot, "data"), hostRoots: [hostRoot] });
     const computer = await desktop.provision({ botId: "host", homePath: "/tmp/host-home" }, ctx);
     let code = 1;
     for await (const event of desktop.execute(
@@ -37,7 +37,7 @@ describe("host-aware sandbox", () => {
   });
 
   it("still refuses paths outside home and host roots", async () => {
-    const desktop = new DesktopSandboxProvider({ hostRoots: [hostRoot] });
+    const desktop = new DesktopSandboxProvider({ root: path.join(hostRoot, "data"), hostRoots: [hostRoot] });
     const computer = await desktop.provision({ botId: "deny", homePath: "/tmp/deny" }, ctx);
     let stderr = "";
     let code = 0;
@@ -56,7 +56,7 @@ describe("host-aware sandbox", () => {
 
   it("provisions on the host provider when enabled", async () => {
     const isolated = new FakeSandboxProvider();
-    const host = new DesktopSandboxProvider();
+    const host = new DesktopSandboxProvider({ root: path.join(hostRoot, "data") });
     const sandbox = new HostAwareSandbox(isolated, host, async () => true);
     const computer = await sandbox.provision({ botId: "switch", homePath: "/tmp/switch" }, ctx);
     expect(computer.kind).toBe("desktop");
@@ -65,7 +65,7 @@ describe("host-aware sandbox", () => {
 
   it("provisions on the isolated provider when this-mac is off", async () => {
     const isolated = new FakeSandboxProvider();
-    const host = new DesktopSandboxProvider();
+    const host = new DesktopSandboxProvider({ root: path.join(hostRoot, "data") });
     const sandbox = new HostAwareSandbox(isolated, host, async () => false);
     const computer = await sandbox.provision({ botId: "iso", homePath: "/tmp/iso" }, ctx);
     expect(computer.kind).toBe("fake");
@@ -73,7 +73,7 @@ describe("host-aware sandbox", () => {
   });
 
   it("maps the Linux bot home cwd onto the desktop home", async () => {
-    const desktop = new DesktopSandboxProvider();
+    const desktop = new DesktopSandboxProvider({ root: path.join(hostRoot, "data") });
     const computer = await desktop.provision({ botId: "alias", homePath: "/tmp/alias" }, ctx);
     let code = 1;
     for await (const event of desktop.execute(
