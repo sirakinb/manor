@@ -6549,3 +6549,7 @@ msgstr "Adın"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>Her zaman açık yapay zeka ajanlarından</0> oluşan,<1/><2>gerçek işler</2> verebileceğiniz ekibiniz."
+
+#: src/pages/RoutineEditor.tsx
+msgid "Generate key"
+msgstr "Anahtar oluştur"

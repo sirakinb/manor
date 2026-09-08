@@ -6549,3 +6549,7 @@ msgstr "이름"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>항상 켜져 있는 AI 에이전트</0> 팀에게<1/><2>실제 업무</2>를 맡기세요."
+
+#: src/pages/RoutineEditor.tsx
+msgid "Generate key"
+msgstr "키 생성"

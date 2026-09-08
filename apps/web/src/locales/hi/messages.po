@@ -6549,3 +6549,7 @@ msgstr "आपका नाम"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>हमेशा सक्रिय AI एजेंटों</0> की आपकी टीम,<1/>जिसे आप <2>असली काम</2> सौंप सकते हैं।"
+
+#: src/pages/RoutineEditor.tsx
+msgid "Generate key"
+msgstr "कुंजी जनरेट करें"

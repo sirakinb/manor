@@ -132,6 +132,31 @@ export function inferScript(
   resumeFromCheckpoint?: string,
 ): NonNullable<AgentRunRequest["script"]> {
   const lower = prompt.toLowerCase();
+  // Offline chat-to-routine journey; live runtimes choose the same builtin tool.
+  const routineRequest =
+    /^create a (webhook|scheduled) routine named "([^"]+)" with instructions "([^"]+)"\.?$/i.exec(
+      prompt.trim(),
+    );
+  if (routineRequest) {
+    const trigger = routineRequest[1]!.toLowerCase() === "webhook" ? "webhook" : "schedule";
+    return [
+      {
+        assistant: "Creating the routine in Routines.",
+        toolCalls: [
+          {
+            name: "schedule_create",
+            args: {
+              name: routineRequest[2],
+              prompt: routineRequest[3],
+              trigger,
+              ...(trigger === "schedule" ? { cron: "0 9 * * *", timezone: "UTC" } : {}),
+            },
+          },
+        ],
+        complete: true,
+      },
+    ];
+  }
   if (resumeFromCheckpoint === "takeover-skipped") {
     return [
       {

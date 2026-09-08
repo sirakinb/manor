@@ -18,6 +18,147 @@ async function saveAndReturn(page: Page, procedure: "routines/create" | "routine
   await page.getByRole("button", { name: "Back" }).click();
 }
 
+for (const trigger of ["webhook", "scheduled"] as const) {
+  test(`chat creates a ${trigger} routine that opens in the editor`, async ({ page }, testInfo) => {
+    await signup(
+      page,
+      `chat-routine-${trigger}-${Date.now()}@rakazo.test`,
+      "password12",
+      "Chat Routines",
+    );
+    await completeOnboarding(page);
+    const botId = activeBotId(page);
+    const name = trigger === "webhook" ? "Form welcome" : "Daily check-in";
+    const instruction =
+      trigger === "webhook"
+        ? "Send the approved welcome email with welcome-guide.pdf to the form submitter."
+        : "Summarize new leads.";
+    await page
+      .getByRole("combobox", { name: "Message Chief" })
+      .fill(`Create a ${trigger} routine named "${name}" with instructions "${instruction}"`);
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect
+      .poll(async () => (await rpc<Routine[]>(page, "routines/list", { botId })).length)
+      .toBe(1);
+    const [routine] = await rpc<Routine[]>(page, "routines/list", { botId });
+    expect(routine).toMatchObject({
+      name,
+      prompt: instruction,
+      webhookEnabled: trigger === "webhook",
+      crons: trigger === "webhook" ? [] : ["0 9 * * *"],
+    });
+    await page.getByTitle("Agent computer").click();
+    await page
+      .getByTestId("side-panel")
+      .getByRole("button", { name: new RegExp(`^${name}`) })
+      .click();
+    await expect(page.locator("label:has-text('Name') input")).toHaveValue(name);
+    await expect(page.locator("label:has-text('Instruction') textarea")).toHaveValue(instruction);
+    await captureScreenshot(page, testInfo, `chat-created-${trigger}-routine`);
+    if (trigger === "webhook") {
+      const generate = page.getByRole("button", { name: "Generate key" });
+      await expect(generate).toBeVisible();
+      const rotated = page.waitForResponse(
+        (response) => response.url().includes("/rpc/bots/rotateWebhookSecret") && response.ok(),
+      );
+      await generate.click();
+      await rotated;
+      await expect(generate).toHaveCount(0);
+      await expect(page.getByText("Not configured", { exact: true })).toHaveCount(0);
+    }
+  });
+}
+
+test("routine trigger menu offers schedule and webhook only", async ({ page }, testInfo) => {
+  await signup(
+    page,
+    `routine-triggers-${Date.now()}@rakazo.test`,
+    "password12",
+    "Routine Triggers",
+  );
+  await completeOnboarding(page);
+  await page.getByTitle("Agent computer").click();
+  await page.getByRole("button", { name: "Create Routine" }).click();
+  await page.getByRole("button", { name: "Add trigger" }).click();
+  await expect(page.getByRole("menuitem")).toHaveText(["On a schedule", "Webhook"]);
+  await captureScreenshot(page, testInfo, "routine-trigger-menu");
+  await page.getByRole("menuitem", { name: "Webhook", exact: true }).click();
+  await page.locator("label:has-text('Name') input").fill("Welcome guide");
+  await page
+    .locator("label:has-text('Instruction') textarea")
+    .fill("Send the approved welcome email and PDF to the form submitter.");
+  const response = page.waitForResponse((r) => r.url().includes("/rpc/routines/create") && r.ok());
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await response;
+  const [routine] = await rpc<Routine[]>(page, "routines/list", { botId: activeBotId(page) });
+  expect(routine).toMatchObject({ name: "Welcome guide", crons: [], webhookEnabled: true });
+  await expect(
+    page.getByText(
+      `${new URL(page.url()).origin}/api/v1/bots/${activeBotId(page)}/routines/${routine!.id}/webhook`,
+      { exact: true },
+    ),
+  ).toBeVisible();
+  // Capture only the menu above: webhook credentials must not enter screenshots.
+});
+
+test("targeted webhook deliveries deduplicate retries and reject paused routines", async ({
+  page,
+}) => {
+  await signup(
+    page,
+    `routine-delivery-${Date.now()}@rakazo.test`,
+    "password12",
+    "Routine Delivery",
+  );
+  await completeOnboarding(page);
+  const botId = activeBotId(page);
+  const routine = await rpc<Routine>(page, "routines/create", {
+    botId,
+    name: "Welcome guide",
+    prompt: "Record the form submission for review.",
+    webhookEnabled: true,
+    active: true,
+  });
+  await rpc<Routine>(page, "routines/create", {
+    botId,
+    name: "Unrelated automation",
+    prompt: "This unrelated routine must not run.",
+    webhookEnabled: true,
+    active: true,
+  });
+  const { secret } = await rpc<{ secret: string }>(page, "bots/rotateWebhookSecret", { botId });
+  const url = `/api/v1/bots/${botId}/routines/${routine.id}/webhook`;
+  const deliver = (id: string) =>
+    page.request.post(url, {
+      headers: { authorization: `Bearer ${secret}` },
+      data: { id, email: "submitter@example.com" },
+    });
+  const first = await deliver("submission-1");
+  expect(first.status()).toBe(200);
+  const accepted = await first.json();
+  expect(accepted.runId).toBeTruthy();
+  const retry = await deliver("submission-1");
+  expect(await retry.json()).toMatchObject({
+    messageId: accepted.messageId,
+    runId: accepted.runId,
+  });
+  const second = await deliver("submission-2");
+  expect(second.status()).toBe(200);
+  expect((await second.json()).runId).not.toBe(accepted.runId);
+  const thread = await rpc<{ messages: Array<{ blocks: Array<{ kind: string; text?: string }> }> }>(
+    page,
+    "threads/get",
+    { botId },
+  );
+  const messages = thread.messages.flatMap((message) =>
+    message.blocks.filter((block) => block.kind === "text").map((block) => block.text),
+  );
+  expect(messages.join("\n")).toContain("Record the form submission for review.");
+  expect(messages.join("\n")).not.toContain("This unrelated routine must not run.");
+  await rpc(page, "routines/update", { routineId: routine.id, active: false });
+  expect((await deliver("submission-3")).status()).toBe(404);
+});
+
 test("routine active switch keeps its thumb inside the track", async ({ page }, testInfo) => {
   const stamp = Date.now();
   await signup(page, `routine-toggle-${stamp}@rakazo.test`, "password12", "Routine Toggle");

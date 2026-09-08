@@ -40,15 +40,6 @@ const SCHEDULE_PRESETS: CronFreq[] = [
   "Advanced",
 ];
 
-const COMING_SOON = [
-  { id: "slack", label: () => t`Slack message` },
-  { id: "git", label: () => t`Git event` },
-  { id: "teams", label: () => t`Teams message` },
-  { id: "linear", label: () => t`Linear issue` },
-  { id: "sentry", label: () => t`Sentry alert` },
-  { id: "pagerduty", label: () => t`PagerDuty incident` },
-] as const;
-
 export type RoutineDraftState = {
   name: string;
   prompt: string;
@@ -354,7 +345,7 @@ export function RoutineEditor({
               secret={webhook.secret}
               configured={webhook.configured}
               onRemove={() => onChange({ ...draft, webhookEnabled: false })}
-              onRotate={() => void onEnsureWebhook()}
+              onRotate={onEnsureWebhook}
             />
           ) : null}
 
@@ -429,24 +420,6 @@ export function RoutineEditor({
                 ) : null}
               </div>
 
-              {COMING_SOON.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="menuitem"
-                  disabled
-                  title={t`Coming soon`}
-                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-start text-[14px] text-[#6C6C70]"
-                >
-                  <span
-                    aria-hidden
-                    className="inline-block h-3.5 w-3.5 rounded-[4px]"
-                    style={{ background: comingSoonColor(item.id), opacity: 0.55 }}
-                  />
-                  {item.label()}
-                </button>
-              ))}
-
               <button
                 type="button"
                 role="menuitem"
@@ -507,29 +480,30 @@ function WebhookTriggerCard({
   secret: string | null;
   configured: boolean;
   onRemove: () => void;
-  onRotate: () => void;
+  onRotate: () => Promise<void>;
 }) {
   const { t } = useLingui();
+  const [preparing, setPreparing] = useState(false);
   const pending = !saved;
   const placeholder = t`Available after the routine is saved`;
   const postValue = pending ? placeholder : path;
   const keyValue = pending
     ? placeholder
-    : (secret ?? (configured ? t`Saved. Rotate to reveal.` : placeholder));
+    : (secret ?? (configured ? t`Saved. Rotate to reveal.` : t`Not configured`));
   const headerValue = pending
     ? placeholder
     : secret
       ? `Authorization: Bearer ${secret}`
       : configured
         ? "Authorization: Bearer …"
-        : placeholder;
+        : t`Not configured`;
   const tokenUrlValue = pending
     ? placeholder
     : secret
       ? `${path}?token=${secret}`
       : configured
         ? `${path}?token=…`
-        : placeholder;
+        : t`Not configured`;
 
   return (
     <div className="rounded-[13px] border border-[#26262A] p-3">
@@ -574,13 +548,19 @@ function WebhookTriggerCard({
             {tokenUrlValue}
           </div>
         </div>
-        {saved && configured && !secret ? (
+        {saved && !secret ? (
           <button
             type="button"
-            onClick={onRotate}
+            disabled={preparing}
+            onClick={() => {
+              setPreparing(true);
+              void onRotate()
+                .catch(() => undefined)
+                .finally(() => setPreparing(false));
+            }}
             className="text-[12.5px] text-[#9A9AA0] hover:text-[#ECECEE]"
           >
-            <Trans>Rotate key</Trans>
+            {configured ? t`Rotate key` : t`Generate key`}
           </button>
         ) : null}
       </div>
@@ -606,23 +586,6 @@ function schedulePresetLabel(freq: CronFreq): string {
       return t`Advanced...`;
     default:
       return freq;
-  }
-}
-
-function comingSoonColor(id: string): string {
-  switch (id) {
-    case "slack":
-      return "#E01E5A";
-    case "git":
-      return "#8B949E";
-    case "teams":
-      return "#6264A7";
-    case "linear":
-      return "#5E6AD2";
-    case "sentry":
-      return "#A467FD";
-    default:
-      return "#06AC38";
   }
 }
 

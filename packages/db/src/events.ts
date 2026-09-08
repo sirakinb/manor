@@ -185,6 +185,8 @@ export interface SendUserMessageInput {
   blocks: MessageBlock[];
   prompt: string;
   trigger: "user" | "follow_up" | "webhook" | "messaging";
+  /** Targeted webhook deliveries are independent runs, never chat steering. */
+  routineId?: string;
   clientNonce?: string;
   linkMessageToRun?: boolean;
 }
@@ -379,14 +381,16 @@ export async function sendUserMessage(
         blocks: input.blocks,
         clientNonce: input.clientNonce,
       });
-      const busy = await tx.run.findFirst({
-        where: {
-          threadId: input.threadId,
-          botId: input.botId,
-          status: { in: ["running", "queued", "leased", "waiting_input", "waiting_takeover"] },
-        },
-        select: { id: true, taskId: true },
-      });
+      const busy = input.routineId
+        ? null
+        : await tx.run.findFirst({
+            where: {
+              threadId: input.threadId,
+              botId: input.botId,
+              status: { in: ["running", "queued", "leased", "waiting_input", "waiting_takeover"] },
+            },
+            select: { id: true, taskId: true },
+          });
       let task = null;
       let run = null;
       if (!busy) {
@@ -409,6 +413,7 @@ export async function sendUserMessage(
             userId: input.userId,
             status: "queued",
             trigger: input.trigger,
+            routineId: input.routineId,
             clientNonce: input.clientNonce ? `send:${message.id}` : undefined,
             sourceMessageId: message.id,
           },

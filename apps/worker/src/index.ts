@@ -140,6 +140,7 @@ async function main() {
     listConnectedPluginSlugs: stack.composio?.listConnectedSlugs.bind(stack.composio),
     secrets: [deploymentModelKey ?? "", process.env.COMPOSIO_API_KEY ?? ""].filter(Boolean),
     secretStore: secrets,
+    webhookBaseUrl: process.env.API_URL ?? process.env.WEB_ORIGIN,
     deploymentModelKey,
     dataDir,
     notifications: new ExpoPushProvider(dataDir),

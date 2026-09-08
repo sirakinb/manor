@@ -57,6 +57,7 @@ import {
   reorderBotTo,
   resolveComposerSendPlan,
   resolveMentionPickerKey,
+  routineWebhookPath,
   SLASH_ACTIONS,
   type SlashActionId,
   searchHitThreadTarget,
@@ -1282,6 +1283,8 @@ export function ShellPage() {
             if (
               isRunTerminalEvent(event) ||
               event.type === "run.waiting_input" ||
+              event.type === "routine.created" ||
+              event.type === "routine.updated" ||
               event.type === "skill.teaching.stopped"
             ) {
               // waiting_input: reconcile ask cards if a stale post-send refresh raced SSE.
@@ -3777,8 +3780,8 @@ export function ShellPage() {
                 webhook={{
                   path:
                     typeof window !== "undefined"
-                      ? `${window.location.origin}/api/v1/bots/${active.id}/webhook`
-                      : `/api/v1/bots/${active.id}/webhook`,
+                      ? `${window.location.origin}${routineWebhookPath(active.id, editingRoutine?.id ?? "pending")}`
+                      : routineWebhookPath(active.id, editingRoutine?.id ?? "pending"),
                   secret: routineWebhookSecret,
                   configured: active.webhookConfigured || Boolean(routineWebhookSecret),
                 }}
@@ -3788,13 +3791,25 @@ export function ShellPage() {
                 onBack={() => setPanel("computer")}
                 onClose={() => setPanel(null)}
                 onEnsureWebhook={async () => {
-                  const result = await rpc.bots.rotateWebhookSecret({ botId: active.id });
-                  setRoutineWebhookSecret(result.secret);
-                  setBots((current) =>
-                    current.map((bot) =>
-                      bot.id === active.id ? { ...bot, webhookConfigured: true } : bot,
-                    ),
-                  );
+                  const targetBotId = active.id;
+                  try {
+                    const result = await rpc.bots.rotateWebhookSecret({ botId: targetBotId });
+                    setBots((current) =>
+                      current.map((bot) =>
+                        bot.id === targetBotId ? { ...bot, webhookConfigured: true } : bot,
+                      ),
+                    );
+                    if (activeBotId.current !== targetBotId) return;
+                    setRoutineWebhookSecret(result.secret);
+                    setRoutineError(null);
+                  } catch (error) {
+                    if (activeBotId.current === targetBotId) {
+                      setRoutineError(
+                        error instanceof Error ? error.message : t`Could not save routine`,
+                      );
+                    }
+                    throw error;
+                  }
                 }}
                 onSave={async () => {
                   if (routineSavePending.current) return;

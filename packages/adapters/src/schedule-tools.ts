@@ -17,7 +17,9 @@ export function filterBuiltinToolsForRun<T extends { name: string }>(
   tools: T[],
   runTrigger: string,
 ): T[] {
-  return runTrigger === "routine" ? tools.filter((tool) => tool.name !== "schedule_create") : tools;
+  return runTrigger === "routine" || runTrigger === "webhook"
+    ? tools.filter((tool) => !["schedule_create", "routine_prepare_webhook"].includes(tool.name))
+    : tools;
 }
 
 /** Keep cross-bot messaging thread-specific while exposing schedules in DMs and groups. */
@@ -30,7 +32,7 @@ export function filterBuiltinToolsForThread<T extends { name: string }>(
       (groupId || tool.name !== "handoff_to_bot") &&
       // In a group the room is the shared surface: hand the stage to a member
       // rather than starting a private thread off to one side.
-      (!groupId || tool.name !== "message_bot"),
+      (!groupId || !["message_bot", "routine_prepare_webhook"].includes(tool.name)),
   );
 }
 
@@ -183,16 +185,28 @@ export async function createScheduleFromTool(
     name: string;
     prompt: string;
     timezone?: string;
+    trigger?: string;
     schedule: Record<string, unknown>;
   },
 ) {
   const name = input.name.trim();
   const prompt = input.prompt.trim();
   if (!name) return { error: "name is required." };
+  if (name.length > 80) return { error: "name must be at most 80 characters." };
   if (!prompt) return { error: "prompt is required." };
 
   const timezone = String(input.timezone ?? "UTC");
-  const resolved = resolveScheduleTiming(input.schedule, timezone);
+  const trigger = input.trigger ?? "schedule";
+  if (trigger !== "schedule" && trigger !== "webhook") {
+    return { error: "trigger must be schedule or webhook." };
+  }
+  if (trigger === "webhook" && Object.values(input.schedule).some((value) => value !== undefined)) {
+    return { error: "A webhook routine does not take schedule timing fields." };
+  }
+  const resolved =
+    trigger === "webhook"
+      ? { ok: true as const, cron: null, nextRunAt: null, oneShot: false }
+      : resolveScheduleTiming(input.schedule, timezone);
   if (!resolved.ok) return { error: resolved.error };
 
   const row = await deps.prisma.routine.create({
@@ -203,7 +217,8 @@ export async function createScheduleFromTool(
       threadId: input.threadId,
       name,
       prompt,
-      crons: [resolved.cron],
+      crons: resolved.cron ? [resolved.cron] : [],
+      webhookEnabled: trigger === "webhook",
       timezone,
       notify: true,
       active: true,
@@ -212,7 +227,7 @@ export async function createScheduleFromTool(
   });
 
   try {
-    await deps.jobs.enqueue(routineWakeupJob(row.id, resolved.nextRunAt));
+    if (resolved.nextRunAt) await deps.jobs.enqueue(routineWakeupJob(row.id, resolved.nextRunAt));
   } catch {
     try {
       await deps.prisma.routine.delete({ where: { id: row.id } });
@@ -241,8 +256,17 @@ export async function createScheduleFromTool(
   return {
     ok: true as const,
     routineId: row.id,
+    editorPath: `/app/${encodeURIComponent(input.botId)}?routine=${encodeURIComponent(row.id)}`,
     name: row.name,
-    cron: row.crons[0],
+    cron: row.crons[0] ?? null,
+    trigger,
+    ...(trigger === "webhook"
+      ? {
+          setupRequired: true,
+          nextStep:
+            "Call routine_prepare_webhook with this routineId, then configure the external sender on the computer. Creating the routine does not connect the form or send an email.",
+        }
+      : {}),
     nextRunAt: row.nextRunAt?.toISOString() ?? null,
     oneShot: resolved.oneShot,
   };
@@ -269,6 +293,8 @@ export async function listSchedulesFromTool(
       prompt: row.prompt,
       crons: row.crons,
       active: row.active,
+      webhookEnabled: row.webhookEnabled,
+      timezone: row.timezone,
       nextRunAt: row.nextRunAt?.toISOString() ?? null,
       oneShot: isOneShotRoutineCrons(row.crons),
     })),

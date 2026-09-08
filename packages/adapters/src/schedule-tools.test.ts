@@ -88,6 +88,20 @@ describe("resolveScheduleTiming", () => {
 });
 
 describe("filterBuiltinToolsForThread", () => {
+  it("keeps webhook setup private and hides creation/setup from inbound events", () => {
+    const setup = [
+      { name: "schedule_create" },
+      { name: "routine_prepare_webhook" },
+      { name: "schedule_list" },
+    ];
+    expect(filterBuiltinToolsForThread(setup, "group-1").map((tool) => tool.name)).not.toContain(
+      "routine_prepare_webhook",
+    );
+    for (const trigger of ["routine", "webhook"]) {
+      expect(filterBuiltinToolsForRun(setup, trigger)).toEqual([{ name: "schedule_list" }]);
+    }
+    expect(filterBuiltinToolsForRun(setup, "user")).toEqual(setup);
+  });
   const tools = [
     { name: "handoff_to_bot" },
     { name: "message_bot" },
@@ -158,6 +172,70 @@ describe("isOneShotRoutineCron", () => {
 });
 
 describe("schedule tool persistence", () => {
+  it("creates a webhook routine with exact instructions and no timer job", async () => {
+    const create = vi.fn(async ({ data }) => ({ id: "routine-1", ...data }));
+    const enqueue = vi.fn();
+    const append = vi.fn();
+    const result = await createScheduleFromTool(
+      {
+        prisma: { routine: { create } },
+        jobs: { enqueue },
+        events: { append },
+      } as unknown as Parameters<typeof createScheduleFromTool>[0],
+      {
+        spaceId: "ws-1",
+        botId: "bot-1",
+        userId: "user-1",
+        threadId: "thread-1",
+        name: "Welcome guide",
+        prompt: "Send the approved welcome message with welcome-guide.pdf to the form submitter.",
+        trigger: "webhook",
+        schedule: {},
+      },
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      routineId: "routine-1",
+      trigger: "webhook",
+      nextRunAt: null,
+      setupRequired: true,
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        crons: [],
+        webhookEnabled: true,
+        active: true,
+        prompt: "Send the approved welcome message with welcome-guide.pdf to the form submitter.",
+      }),
+    });
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(append).toHaveBeenCalledWith(expect.objectContaining({ type: "routine.created" }));
+  });
+
+  it("rejects unsupported triggers, mixed timing, and oversized names before persistence", async () => {
+    const create = vi.fn();
+    const deps = { prisma: { routine: { create } } } as unknown as Parameters<
+      typeof createScheduleFromTool
+    >[0];
+    const input = {
+      spaceId: "ws-1",
+      botId: "bot-1",
+      userId: "user-1",
+      threadId: "thread-1",
+      name: "Welcome",
+      prompt: "Send guide",
+      schedule: {},
+    };
+    for (const patch of [
+      { trigger: "slack" },
+      { trigger: "webhook", schedule: { every: 5, unit: "minutes" } },
+      { name: "a".repeat(81) },
+    ]) {
+      expect(await createScheduleFromTool(deps, { ...input, ...patch })).toHaveProperty("error");
+    }
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it("creates routines with routine.created and enqueues wakeup", async () => {
     const append = vi.fn(async () => undefined);
     const enqueue = vi.fn(async () => undefined);

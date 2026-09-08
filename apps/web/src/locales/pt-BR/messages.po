@@ -6549,3 +6549,7 @@ msgstr "O seu nome"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "Sua equipe de <0>agentes de IA sempre ativos</0><1/>para quem você pode dar <2>trabalho de verdade</2>."
+
+#: src/pages/RoutineEditor.tsx
+msgid "Generate key"
+msgstr "Gerar chave"
