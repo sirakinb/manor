@@ -1,10 +1,12 @@
 FROM node:22-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+# Keep the pinned package manager readable by non-root offline workspaces.
+ENV COREPACK_HOME=/opt/corepack
 RUN corepack enable
 WORKDIR /app
 # Normalize modes: a restrictive host umask (e.g. 077 on hardened hosts) would otherwise
 # leave the copied tree unreadable to USER node at runtime.
 COPY --chmod=755 . .
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile && chmod -R a+rX /opt/corepack
 RUN pnpm --filter @rakazo/db generate
 RUN RAKAZO_ALLOW_DEV_SECRETS=1 pnpm --filter @rakazo/web build
 RUN install -d -m 750 -o node -g node /data /app/apps/web/node_modules/.vite-temp

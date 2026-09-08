@@ -338,7 +338,9 @@ class DockerAdapter:
         evidence = hashlib.sha256()
         try:
             self.docker("start", name)
-            for command in (self.policy["testCommand"], self.policy["buildCommand"]):
+            # Generate/build source first so checks can import generated clients. The
+            # same checks run again against the immutable final image below.
+            for command in (self.policy["buildCommand"], self.policy["testCommand"]):
                 output = self.docker("exec", name, *command, timeout=1800, max_output=MIB)
                 evidence.update(canonical(command).encode())
                 evidence.update(output)
