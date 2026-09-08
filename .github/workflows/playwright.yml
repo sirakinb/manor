@@ -1,3 +1,4 @@
+# Modified for Manor: capture the marketing font replacement in CI.
 name: Playwright
 
 on:
@@ -105,6 +106,9 @@ jobs:
         run: |
           mkdir -p test-report/e2e
           printf '%s\n' "$PLAYWRIGHT_RESULT" > test-report/e2e/outcome.txt
+      - name: Verify marketing typography
+        if: ${{ !cancelled() && (steps.playwright_tests.outcome == 'success' || steps.playwright_tests.outcome == 'failure') }}
+        run: pnpm --filter @rakazo/web exec playwright test --config playwright.marketing.config.ts
       - name: Upload Playwright artifacts
         if: always() && inputs.upload_artifacts
         uses: actions/upload-artifact@v4
@@ -114,6 +118,7 @@ jobs:
             playwright-report
             apps/web/test-results
             test-report/e2e
+            test-report/marketing
           retention-days: 7
           if-no-files-found: warn
       - name: Publish Playwright visual report

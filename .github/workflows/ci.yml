@@ -1,3 +1,4 @@
+# Modified for Manor: verify license notices in the compiled web distribution.
 name: ci
 on:
   push:
@@ -65,7 +66,14 @@ jobs:
           BETTER_AUTH_SECRET: ci-build-auth-secret-at-least-32-characters
           ENCRYPTION_KEY: ci-build-encryption-key-at-least-32-characters
       - name: Electron smoke
+        # Electron includes this same web distribution in its extra resources.
         run: xvfb-run --auto-servernum pnpm --filter @rakazo/desktop exec playwright test --config e2e/playwright.config.ts
+      - name: Verify bundled license notices
+        run: |
+          for name in LICENSE NOTICE THIRD_PARTY_NOTICES.md; do
+            cmp "$name" "apps/web/dist/licenses/$name"
+          done
+          cmp apps/web/public/fonts/OFL.txt apps/web/dist/fonts/OFL.txt
 
   test:
     name: Unit tests

@@ -1,3 +1,5 @@
+// Modified for Manor: include the distribution's license and attribution texts in web builds.
+import { readFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
@@ -252,6 +254,18 @@ export default defineConfig(({ mode }) => {
   const performanceAssetDelayMs = Number(process.env.RAKAZO_PERFORMANCE_ASSET_DELAY_MS ?? 0);
   return {
     plugins: [
+      {
+        name: "manor-distribution-notices",
+        generateBundle() {
+          for (const name of ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"]) {
+            this.emitFile({
+              type: "asset",
+              fileName: `licenses/${name}`,
+              source: readFileSync(path.resolve(import.meta.dirname, "../..", name)),
+            });
+          }
+        },
+      },
       react({
         babel: {
           plugins: ["@lingui/babel-plugin-lingui-macro"],

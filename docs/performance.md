@@ -1,6 +1,7 @@
+<!-- Modified for Manor: project terminology and documentation guidance. -->
 # Desktop performance benchmarks
 
-Rakazo measures the production Vite renderer inside a packaged Electron directory build against a
+Manor measures the production Vite renderer inside a packaged Electron directory build against a
 disposable Postgres database, the scripted agent runtime, and the fake sandbox. No provider account
 or production data is used.
 

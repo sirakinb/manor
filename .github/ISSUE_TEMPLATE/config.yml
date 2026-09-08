@@ -1,11 +1,9 @@
+# Modified for Manor: route security reports and support to this repository.
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerabilities
-    url: https://github.com/elie222/rakazo/blob/main/SECURITY.md
-    about: Report security issues to security@rakazo.com — do not open a public issue.
-  - name: User support
-    url: mailto:support@rakazo.com
-    about: Questions about using Rakazo or self-hosting help.
-  - name: Maintainer
-    url: mailto:elie@rakazo.com
-    about: Reach the maintainer directly.
+    url: https://github.com/sirakinb/manor/security/advisories/new
+    about: Report vulnerabilities privately to Manor's maintainers. Do not open a public issue.
+  - name: Setup and documentation
+    url: https://github.com/sirakinb/manor/blob/main/README.md
+    about: Start here for Manor setup, configuration, and self-hosting guidance.

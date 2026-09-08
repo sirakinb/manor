@@ -1,4 +1,5 @@
-# Self-hosting Rakazo
+<!-- Modified for Manor: project terminology and documentation guidance. -->
+# Self-hosting Manor
 
 The signed-in product is a long-running API, a Graphile Worker, Postgres, and a computer provider (Docker supervisor, E2B, Daytona, or Box). It is not a static site. The marketing site in `apps/www` can be hosted separately.
 
@@ -8,19 +9,35 @@ Same as the README quick start: `.env` from `.env.example`, Postgres via Compose
 
 ## Published images (no checkout)
 
-Pull Postgres and `ghcr.io/elie222/rakazo/app` into any empty folder. No clone or image build.
+Pull Postgres and `ghcr.io/sirakinb/manor/app` into any empty folder. No clone or image build.
 Requires Docker Engine, the Compose plugin, curl, and OpenSSL.
 
 ```bash
-mkdir -p rakazo && cd rakazo &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
-bash install-images.sh
+mkdir -p manor && cd manor &&
+export RAKAZO_DOWNLOAD_BASE=https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose &&
+curl -fsSLO https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-images.sh &&
+bash install-images.sh --prepare-only
 ```
 
 The installer downloads `docker-compose.images.yml` and `.env.images.example`, creates `.env` with
-random secrets, then pulls and starts the images. It preserves an existing `.env` when rerun. To
-customize the public URL, image tag, or optional providers before startup, run
-`bash install-images.sh --prepare-only`, edit `.env`, then run `bash install-images.sh`.
+random secrets. It preserves an existing `.env` when rerun. Before starting a new Manor instance,
+set these image values in the generated `.env`; the shared installer defaults otherwise point
+to the original project's images:
+
+```env
+RAKAZO_IMAGE=ghcr.io/sirakinb/manor/app
+RAKAZO_COMPUTER_IMAGE=ghcr.io/sirakinb/manor/computer
+RAKAZO_UPDATER_IMAGE=ghcr.io/sirakinb/manor/updater
+```
+
+Review the public URL, image tags, and optional providers, then start using the downloaded files:
+
+```bash
+bash install-images.sh --local
+```
+
+The `RAKAZO_` configuration keys are retained compatibility identifiers. If an existing installation
+uses another image namespace, review its data and upgrade compatibility before switching images.
 Flags may be combined in either order: `--prepare-only`, `--local`.
 
 ### Restricted networks / mirror downloads
@@ -30,7 +47,7 @@ Stage B of the installer (Compose YAML and `.env.images.example`) downloads from
 vendor-specific CDN defaults:
 
 ```bash
-export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/rakazo/infra/compose
+export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/manor/infra/compose
 bash install-images.sh
 ```
 
@@ -54,14 +71,17 @@ Stage A (fetching `install-images.sh` itself) is separate. When raw GitHub is un
 bootstrap curl at your mirror of the installer script, for example:
 
 ```bash
-export RAKAZO_INSTALLER_URL=https://example.com/mirror/rakazo/infra/compose/install-images.sh
-mkdir -p rakazo && cd rakazo &&
+export RAKAZO_INSTALLER_URL=https://example.com/mirror/manor/infra/compose/install-images.sh
+export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/manor/infra/compose
+mkdir -p manor && cd manor &&
 curl -fsSLO "${RAKAZO_INSTALLER_URL}" &&
-bash install-images.sh
+bash install-images.sh --prepare-only
 ```
 
+Use the same mirror for both variables, then apply the Manor image settings above before startup.
+
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
-(from the app image, on the internal network only) and pulls `ghcr.io/elie222/rakazo/computer`.
+(from the app image, on the internal network only) and pulls `ghcr.io/sirakinb/manor/computer`.
 Signup and local Docker computers work without an E2B account. Optional remote providers: set
 `SANDBOX_PROVIDER` to `e2b`, `daytona`, or `box` and add the matching API key. Compose requires
 `SANDBOX_SUPERVISOR_TOKEN` for the Docker path; leave it empty and `compose up` fails closed.
@@ -115,20 +135,20 @@ Cookies and CORS follow those origins. `SIGNUPS_ENABLED` / `SIGNUP_ALLOWLIST` se
 ### Password recovery email
 
 Password changes for signed-in users require no email configuration. Forgotten-password recovery
-appears on sign-in only when a transactional email provider is available. Rakazo uses a
+appears on sign-in only when a transactional email provider is available. Manor uses a
 provider-neutral contract and ships an SMTP adapter, so Amazon SES, Resend, and self-hosted SMTP
 servers use the same configuration:
 
 ```env
 SMTP_URL=smtps://smtp-user:replace-with-password@smtp.example.com:465
-EMAIL_FROM=Rakazo <no-reply@example.com>
+EMAIL_FROM=Manor <no-reply@example.com>
 ```
 
 For Resend, use `smtp.resend.com`, username `resend`, and an API key as the password. For Amazon
 SES, use the regional SMTP endpoint and SES SMTP credentials; these are different from ordinary AWS
 access keys. Verify the sender/domain with the provider before testing delivery. Keep credentials in
 `.env`, never in tracked files. `smtps://` uses implicit TLS; `smtp://` is also supported but requires
-STARTTLS. Rakazo rejects configuration that disables TLS or certificate verification.
+STARTTLS. Manor rejects configuration that disables TLS or certificate verification.
 
 Local source development can use the offline email emulator instead. It captures email without
 contacting a provider:
@@ -168,15 +188,15 @@ RAKAZO_LOCAL_CONTEXT_WINDOW=32768
 RAKAZO_LOCAL_MAX_TOKENS=4096
 ```
 
-The loopback default is suitable when running Rakazo from a source checkout. In Docker Compose,
+The loopback default is suitable when running Manor from a source checkout. In Docker Compose,
 use the model server's Compose service name or another address reachable from the containers.
 Only configure an endpoint you control: prompts, attachments, and tool results sent to that model
-leave Rakazo through this URL. Leave `RAKAZO_LOCAL_MODELS` blank to disable the provider.
+leave Manor through this URL. Leave `RAKAZO_LOCAL_MODELS` blank to disable the provider.
 
 Each user can also connect their own OpenAI-compatible endpoint from **Connect a model** /
 **Settings → Models** on web and mobile. Choose **OpenAI-compatible**, enter the server base URL
 (for example `http://127.0.0.1:8000/v1` for Rapid-MLX, Ollama, LM Studio, llama.cpp, or vLLM),
-the exact model id from that server, and an optional API key. By default Rakazo only allows
+the exact model id from that server, and an optional API key. By default Manor only allows
 loopback, RFC1918, and `host.docker.internal` targets. To permit public hostnames, set
 `RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC=1` in the deployment environment. Public hostnames must resolve
 only to public addresses; redirects and DNS answers that reach private or link-local networks are
@@ -188,19 +208,20 @@ Do not commit `.env`. Never put `COMPOSIO_API_KEY`, OpenRouter keys, or provider
 
 The Electron desktop app is a client of the same API. Docker and E2B still apply. On first launch, Electron asks the deployment owner whether bots should keep using Docker or run on this Mac as you. `SANDBOX_PROVIDER=desktop` is a separate, explicit provider that always runs commands on the service host.
 
-- **Published images** (`docker-compose.images.yml`) default to `SANDBOX_PROVIDER=docker` with a
-  local supervisor and published `ghcr.io/elie222/rakazo/computer` image. No E2B account required.
+- **Published images** (`docker-compose.images.yml`) default to `SANDBOX_PROVIDER=docker`. With
+  the Manor image settings above, the local supervisor uses `ghcr.io/sirakinb/manor/computer`.
+  No E2B account required.
   Optional: set `e2b`, `daytona`, or `box` plus the matching API key for remote computers.
 - **Docker** is the quick-start default for published images and for a source checkout / full local
   Compose stack. Workspace bots share a persistent Team Computer by default; Private computers are
   optional. Keep the supervisor private, as the included Compose files do.
-- **E2B** runs bot computers away from the Rakazo host and is a good choice for public or multi-user
-  production deployments. Rakazo checkpoints the portable workspace and browser-profile directory to
+- **E2B** runs bot computers away from the Manor host and is a good choice for public or multi-user
+  production deployments. Manor checkpoints the portable workspace and browser-profile directory to
   `DATA_DIR`; the E2B disk is a runtime cache, not the durable source of truth.
 - **Daytona** provides the same remote-computer contract through Daytona sandboxes. Configure
   `DAYTONA_API_KEY` and optionally `DAYTONA_API_URL` / `DAYTONA_TARGET`.
 - **Box by ASCII** provides a managed Linux desktop through `BOX_API_KEY` and optionally
-  `BOX_API_URL`. Rakazo always creates or resumes boxes with `noEnv: true`, keeps the portable
+  `BOX_API_URL`. Manor always creates or resumes boxes with `noEnv: true`, keeps the portable
   workspace under `/home/user/rakazo-home`, and refreshes a two-hour TTL. A Box currently exposes one
   shared desktop, so concurrent Team bots can still use shell and files but only one can use
   graphical tools at a time.
@@ -393,17 +414,18 @@ this repository that is:
 
 | Image | Contents |
 | --- | --- |
-| `ghcr.io/elie222/rakazo/app` | api, worker, web, and sandbox supervisor — one image, multiple commands |
-| `ghcr.io/elie222/rakazo/computer` | Linux desktop used as each bot computer |
-| `ghcr.io/elie222/rakazo/updater` | the updater sidecar, plus the Docker CLI |
+| `ghcr.io/sirakinb/manor/app` | api, worker, web, and sandbox supervisor — one image, multiple commands |
+| `ghcr.io/sirakinb/manor/computer` | Linux desktop used as each bot computer |
+| `ghcr.io/sirakinb/manor/updater` | the updater sidecar, plus the Docker CLI |
 
 `infra/compose/docker-compose.images.yml` is the no-checkout path for those app and computer tags
 plus Postgres. The supervisor runs from the app image on the internal network only (not a separate
 published supervisor image, and no host port). Production Compose (`docker-compose.prod.yml`) can
 also pull the same app tags once `RAKAZO_IMAGE_TAG` is set to a published value.
 
-If you deploy from your own fork, set `RAKAZO_IMAGE` and `RAKAZO_UPDATER_IMAGE` to your namespace —
-your CI cannot publish into someone else's.
+Set `RAKAZO_IMAGE`, `RAKAZO_COMPUTER_IMAGE`, and `RAKAZO_UPDATER_IMAGE` to the Manor image names
+above when using the shared Compose examples. If you publish your own distribution, use its
+namespace instead; your CI cannot publish into someone else's.
 
 | Tag | Published on | Moves? |
 | --- | --- | --- |
@@ -531,7 +553,7 @@ least 32 characters in production). It must differ from `BETTER_AUTH_SECRET`,
 `SANDBOX_SUPERVISOR_TOKEN`, and `SCREEN_PROXY_SECRET`. Leave the profile disabled if you would
 rather not grant the capability.
 
-## What “Rakazo Cloud” still needs
+## Hosted deployment requirements
 
 The product cannot be “pushed live” as a Vercel serverless app. Graphile Worker, Postgres `LISTEN`, Pi runs, and Docker computers need durable processes and a sandbox host.
 
@@ -540,13 +562,13 @@ To run a hosted product (same codebase):
 1. Push `main` (this checkout may be ahead of GitHub).
 2. Provision managed Postgres 16 and run `pnpm db:migrate`.
 3. Run **API** and **worker** as always-on Node 22 services (Fly machines, a VM, ECS, k8s). Not lambda-style request handlers.
-4. Persist and back up `DATA_DIR` (bot homes, browser profiles, artifacts). Today the concrete store is a local filesystem (`LocalAgentHomeStore`), so attach a Rakazo-owned durable volume shared by API and worker processes. The storage contract is separate from the computer-provider contract, but an object-storage implementation is not wired yet.
-5. Choose computers: **`SANDBOX_PROVIDER=e2b`**, `daytona`, or `box` with the matching provider key for a public or multi-user production service. Each Team or Private Computer reconnects to its sandbox id (`providerRef`), while workspace state is checkpointed outside the provider at run completion, explicit stop, and idle suspension. If that sandbox is gone—or the deployment changes providers—the replacement is hydrated from Rakazo's copy. Idle computers pause after `SANDBOX_IDLE_MS` (default 10 minutes) and resume on the next message or Take control. Docker remains the local and trusted single-machine default.
+4. Persist and back up `DATA_DIR` (bot homes, browser profiles, artifacts). Today the concrete store is a local filesystem (`LocalAgentHomeStore`), so attach a Manor-owned durable volume shared by API and worker processes. The storage contract is separate from the computer-provider contract, but an object-storage implementation is not wired yet.
+5. Choose computers: **`SANDBOX_PROVIDER=e2b`**, `daytona`, or `box` with the matching provider key for a public or multi-user production service. Each Team or Private Computer reconnects to its sandbox id (`providerRef`), while workspace state is checkpointed outside the provider at run completion, explicit stop, and idle suspension. If that sandbox is gone—or the deployment changes providers—the replacement is hydrated from Manor's copy. Idle computers pause after `SANDBOX_IDLE_MS` (default 10 minutes) and resume on the next message or Take control. Docker remains the local and trusted single-machine default.
 6. A Hetzner CX22 (2 vCPU / 4 GB) is enough for API + worker + Postgres when E2B owns the desktops. 2 GB works for a quiet box; 8 GB is only needed if you also run Docker computers on that same machine.
 7. Set public HTTPS `WEB_ORIGIN` / `BETTER_AUTH_URL` / `API_URL`, secrets, and an OpenRouter (or other Pi) deployment key if you want to skip per-user model keys.
 8. Put the web app behind the same origin as `/api`, `/rpc`, `/v1`, and `/mcp` (Vite preview proxy, or a reverse proxy). Docker noVNC connections use short-lived signed `/novnc/*` capabilities; do not replace that route with an unrestricted port proxy.
 9. Deploy `apps/www` to your public website and point `app.example.com` (or similar) at the product origin.
-10. Turn on `SIGNUP_ALLOWLIST` until you want open registration. There is no Rakazo-managed model billing in version 1 — users bring keys.
+10. Turn on `SIGNUP_ALLOWLIST` until you want open registration. There is no Manor-managed model billing in version 1 — users bring keys.
 
 Expo / desktop installers are clients of that origin (`EXPO_PUBLIC_API_URL`, `RAKAZO_WEB_URL`). They are not a Cloud control plane.
 
