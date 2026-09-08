@@ -120,7 +120,7 @@ Do not run both executors against the same deployment.
 
 `control.py` exposes the same release operation protocol over a Unix socket. Its
 separate workspace credential can access only `/v1/workspaces/operations` and
-operation polling. Its application credential can only enter/leave admission;
+operation polling. Its application credential can only enter/leave admission and probe readiness;
 it cannot close the gate, inspect jobs, approve or deploy. The operator credential
 alone closes, snapshots, switches and reopens production. All five credentials
 are distinct. Only the API and worker receive the four application-side tokens;

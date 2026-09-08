@@ -78,6 +78,13 @@ class AdmissionTests(unittest.TestCase):
         with self.assertRaisesRegex(Refused, "unauthorized"):
             self.gate.action("enter", self.lease, "workspace")
 
+    def test_authenticated_health_probe_does_not_open_gate_or_create_writer(self):
+        self.gate.action("close", self.operation, "operator")
+        self.assertEqual(self.gate.action("probe", {}, "application"), {"ready": True})
+        self.assertEqual(self.gate.action("status", {}, "operator"), {"closed": True, "active": 0})
+        with self.assertRaisesRegex(Refused, "unauthorized"):
+            self.gate.action("probe", {}, "workspace")
+
     def test_wrong_instance_cannot_finish_another_writer(self):
         self.gate.action("enter", self.lease, "application")
         self.gate.action("leave", {**self.lease, "instance": "b" * 12}, "application")

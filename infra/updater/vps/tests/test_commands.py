@@ -36,3 +36,10 @@ class CommandBoundaryTests(unittest.TestCase):
         with mock.patch("docker_adapter.os.killpg", side_effect=raced_kill):
             with self.assertRaisesRegex(Refused, "command_output_limit"):
                 run([sys.executable, "-c", "import time;print('x'*65536,flush=True);time.sleep(5)"], max_output=1024)
+
+    def test_failed_command_retains_final_diagnostic_after_noisy_output(self):
+        with self.assertRaises(Refused) as caught:
+            run([sys.executable, "-c", "import sys;sys.stderr.write('noise'*4000+'FINAL_FAILURE');print('result summary');sys.exit(1)"])
+        self.assertIn("FINAL_FAILURE", caught.exception.diagnostic)
+        self.assertIn("result summary", caught.exception.diagnostic)
+        self.assertLess(len(caught.exception.diagnostic), 8000)

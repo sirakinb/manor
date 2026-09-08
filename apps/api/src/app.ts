@@ -501,21 +501,25 @@ export async function createApp(
     mountMessagingWebhookRoutes(app, { messaging });
   }
 
-  app.get("/health", (c) =>
-    c.json({
-      ok: true,
-      runtime: env.agentRuntime,
-      sandbox: env.sandboxProvider,
-      composio: Boolean(stack.composio),
-      pipedream: Boolean(pipedream),
-      messaging: Boolean(messaging),
-      email: email?.describe().id ?? null,
-      jobs: jobKind,
-      realtime: realtime.describe().id,
-      revision: env.gitSha ?? null,
-      maintenanceAdmission: Boolean(admission),
-    }),
-  );
+  app.get("/health", async (c) => {
+    const ready = admission ? await admission.ready() : true;
+    return c.json(
+      {
+        ok: ready,
+        runtime: env.agentRuntime,
+        sandbox: env.sandboxProvider,
+        composio: Boolean(stack.composio),
+        pipedream: Boolean(pipedream),
+        messaging: Boolean(messaging),
+        email: email?.describe().id ?? null,
+        jobs: jobKind,
+        realtime: realtime.describe().id,
+        revision: env.gitSha ?? null,
+        maintenanceAdmission: Boolean(admission) && ready,
+      },
+      ready ? 200 : 503,
+    );
+  });
 
   return {
     app,

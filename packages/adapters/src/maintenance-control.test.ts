@@ -11,6 +11,14 @@ import {
 } from "./maintenance-control.js";
 
 describe("maintenance admission client", () => {
+  it("requires an authenticated live guard probe without acquiring a writer lease", async () => {
+    const call = vi.fn().mockResolvedValue({ ready: true });
+    const gate = new MaintenanceAdmission({ call }, "a".repeat(12));
+    expect(await gate.ready()).toBe(true);
+    expect(call.mock.calls[0]?.slice(0, 3)).toEqual(["application", "/v1/admission/probe", {}]);
+    call.mockRejectedValue(new Error("invalid credentials or unavailable"));
+    expect(await gate.ready()).toBe(false);
+  });
   it("does not execute work when admission is closed or unreachable", async () => {
     const call = vi.fn().mockRejectedValue(new Error("closed"));
     const work = vi.fn();

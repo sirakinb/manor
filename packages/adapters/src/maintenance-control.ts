@@ -72,6 +72,21 @@ export class MaintenanceAdmission {
     if (!/^[a-f0-9]{12,64}$/.test(instance))
       throw new Error("A container identity is required for maintenance admission.");
   }
+  async ready(): Promise<boolean> {
+    try {
+      z.object({ ready: z.literal(true) }).parse(
+        await this.control.call(
+          "application",
+          "/v1/admission/probe",
+          {},
+          AbortSignal.timeout(3000),
+        ),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
   async enter() {
     const body = { id: randomUUID(), instance: this.instance };
     z.object({ accepted: z.literal(true) }).parse(

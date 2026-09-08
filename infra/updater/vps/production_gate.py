@@ -41,7 +41,7 @@ class ProductionGate:
 
     def action(self, action, payload, role):
         if role == "application":
-            if action not in {"enter", "leave"}:
+            if action not in {"enter", "leave", "probe"}:
                 raise Refused("operator_required")
         elif role != "operator":
             raise Refused("unauthorized")
@@ -55,6 +55,8 @@ class ProductionGate:
             with self.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
                 closed, operation = db.execute("SELECT closed,operation FROM gate WHERE id=1").fetchone()
+                if action == "probe":
+                    return {"ready": True}
                 if action in {"enter", "leave"}:
                     lease = payload.get("id", "")
                     instance = payload.get("instance", "")

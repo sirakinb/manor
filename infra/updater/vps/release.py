@@ -170,7 +170,7 @@ class Store:
             path = self.directory / "last-error.txt"
             path.write_text(canonical({
                 "at": time.time(), "code": str(error)[:512],
-                "diagnostic": getattr(error, "diagnostic", "")[:7000],
+                "diagnostic": getattr(error, "diagnostic", "")[-7000:],
             })[:8192])
             path.chmod(0o600)
 

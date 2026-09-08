@@ -61,8 +61,9 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
                             raise Refused("command_output_limit")
                         if key.fileobj is child.stdout:
                             output.extend(chunk)
-                        elif len(diagnostic) < 8192:
-                            diagnostic.extend(chunk[:8192-len(diagnostic)])
+                        else:
+                            diagnostic.extend(chunk)
+                            del diagnostic[:-6000]
             try:
                 status = child.wait(timeout=max(0.01, deadline-time.monotonic()))
             except subprocess.TimeoutExpired:
@@ -70,6 +71,8 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
             if status:
                 error = Refused("command_failed")
                 error.diagnostic = diagnostic.decode("utf-8", errors="replace")
+                if output:
+                    error.diagnostic += "\nOutput tail:\n" + output[-1800:].decode("utf-8", errors="replace")
                 raise error
             return bytes(output)
         finally:
