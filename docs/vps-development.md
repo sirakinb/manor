@@ -1,5 +1,10 @@
 # Developing and maintaining Manor from a VPS
 
+> Status: maintenance-agent and VM coding-CLI product workflows are
+> [dropped directions](../WISHLIST.md#dropped-directions). This document records
+> the earlier development approach. Existing code has not been removed by this
+> decision; ordinary VPS administration remains separate.
+
 The Linux development and release foundation is implemented in
 [infra/updater/vps](../infra/updater/vps/README.md). The owner-only Maintenance Agent
 connects through the shared [release interface](release-interface.md), private

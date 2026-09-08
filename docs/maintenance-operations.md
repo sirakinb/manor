@@ -1,5 +1,9 @@
 # Operating connected maintenance
 
+> Status: the maintenance agent is a [dropped direction](../WISHLIST.md#dropped-directions).
+> This guide is retained for existing installations, not recommended as a new
+> setup path. Removal of the implementation is a separate task.
+
 Install the reviewed `infra/updater/vps` Python files outside every writable source
 checkout. Use `manor-maintenance.service` for the private bridge and the existing
 release controller. Keep the legacy updater disabled for this deployment.

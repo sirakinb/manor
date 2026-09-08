@@ -1,5 +1,9 @@
 # Maintenance Agent
 
+> Status: dropped from the [product roadmap](../WISHLIST.md#dropped-directions).
+> This document records the existing implementation. Code removal is a separate
+> task; this status does not disable an existing installation.
+
 This workstream owns owner-only intake, durable orchestration, review and revision-bound
 approval. The VPS workstream owns isolated workspaces and the release executor.
 

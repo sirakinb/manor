@@ -1,5 +1,8 @@
 # Maintenance and VPS production integration
 
+> Status: superseded by the decision to [drop the maintenance agent](../../WISHLIST.md#dropped-directions).
+> This plan is retained as implementation history, not an active workstream.
+
 ## Outcome
 
 The deployment owner can submit a private issue, let the existing agent runtime
