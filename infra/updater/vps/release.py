@@ -174,7 +174,7 @@ class Store:
             }
             # Bound the encoded document, preserving the diagnostic tail and valid JSON.
             while len(canonical(record).encode("utf-8")) > 8192:
-                record["diagnostic"] = record["diagnostic"][256:]
+                record["diagnostic"] = record["diagnostic"][max(1, len(record["diagnostic"]) // 8):]
             path.write_text(canonical(record))
             path.chmod(0o600)
 
