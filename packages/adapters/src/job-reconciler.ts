@@ -1,5 +1,6 @@
 import {
   type JobPublisher,
+  maintenanceAdvanceJob,
   messagingDeliverJob,
   routineWakeupJob,
   runContinueJob,
@@ -121,6 +122,17 @@ export function createJobReconciler(
       if (deps.leadership && !(await deps.leadership.tryAcquire())) return;
 
       const now = new Date();
+      const maintenanceJobs = await deps.prisma.maintenanceJob.findMany({
+        where: {
+          status: { in: ["queued", "investigating", "approved", "releasing"] },
+          nextAttemptAt: { lte: now },
+        },
+        orderBy: [{ nextAttemptAt: "asc" }, { id: "asc" }],
+        take: batchSize,
+        select: { id: true },
+      });
+      for (const job of maintenanceJobs) await deps.jobs.enqueue(maintenanceAdvanceJob(job.id));
+
       controlScanDeadline ??= new Date(now.getTime() + CONTROL_LOOKAHEAD_MS);
       const runCursorFilter = runCursor
         ? {

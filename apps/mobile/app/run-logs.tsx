@@ -1,11 +1,18 @@
-import type { Run, RunDiagnostics } from "@rakazo/contracts";
+import type { Me, Run, RunDiagnostics } from "@rakazo/contracts";
 import { RunLogsController } from "@rakazo/core";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from "react-native";
 import { rpc } from "../lib/api";
 
 export default function RunLogs() {
+  const router = useRouter();
+  const [isOwner, setIsOwner] = useState(false);
+  useEffect(() => {
+    void rpc<Me>("me")
+      .then((me) => setIsOwner(me.isDeploymentOwner))
+      .catch(() => setIsOwner(false));
+  }, []);
   const { botId } = useLocalSearchParams<{ botId: string }>();
   const controller = useMemo(
     () =>
@@ -44,6 +51,14 @@ export default function RunLogs() {
           </Pressable>
         ) : null}
       </View>
+      {isOwner && data ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: "/maintenance", params: { runId: data.run.id } })}
+        >
+          <Text style={{ color: "#C4B5FD" }}>Report issue</Text>
+        </Pressable>
+      ) : null}
       {state.loading ? <ActivityIndicator accessibilityLabel="Loading run logs" /> : null}
       {state.error ? (
         <Text accessibilityRole="alert" style={{ color: "#F3A59B" }}>

@@ -4,6 +4,7 @@ import type {
   BackgroundJobHandlers,
   IngestionRunner,
   JobPublisher,
+  MaintenanceAdapter,
   MessagingSurface,
   SandboxProvider,
 } from "@rakazo/adapter-kit";
@@ -13,6 +14,7 @@ import { expireComputerControl } from "./computer-control.js";
 import { scheduleComputerSleep, sleepComputerIfIdle } from "./computer-idle.js";
 import type { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
+import { createMaintenanceService } from "./maintenance.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-delivery.js";
 import type { EncryptedSecretStore } from "./secrets.js";
@@ -21,6 +23,7 @@ import { runWorkspaceAutomation } from "./workspace-automation-runner.js";
 import { runWorkspaceReport } from "./workspace-report-runner.js";
 
 export function createBackgroundJobHandlers(deps: {
+  maintenance?: MaintenanceAdapter;
   executor: ReturnType<typeof createRunExecutor>;
   prisma: PrismaClient;
   sandbox: SandboxProvider;
@@ -52,6 +55,9 @@ export function createBackgroundJobHandlers(deps: {
   };
 
   return {
+    "maintenance.advance": async ({ jobId }) => {
+      await createMaintenanceService(deps.prisma, deps.maintenance).advance(jobId);
+    },
     "workspace.report.generate": async ({ reportId }) => {
       await runWorkspaceReport(
         { prisma: deps.prisma, secrets: deps.secretStore, ingestion: deps.ingestion },
