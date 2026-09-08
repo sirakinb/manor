@@ -72,10 +72,13 @@ bootstrap curl at your mirror of the installer script, for example:
 
 ```bash
 export RAKAZO_INSTALLER_URL=https://example.com/mirror/manor/infra/compose/install-images.sh
+export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/manor/infra/compose
 mkdir -p manor && cd manor &&
 curl -fsSLO "${RAKAZO_INSTALLER_URL}" &&
 bash install-images.sh --prepare-only
 ```
+
+Use the same mirror for both variables, then apply the Manor image settings above before startup.
 
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
 (from the app image, on the internal network only) and pulls `ghcr.io/sirakinb/manor/computer`.

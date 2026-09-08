@@ -33,6 +33,13 @@ test("marketing page renders without the unverified bundled font", async ({ page
   await expect(heading).toBeVisible();
   await expect(heading).toHaveCSS("font-family", /Geist/);
   await page.evaluate(() => document.fonts.ready);
+  expect(
+    await page.evaluate(() =>
+      Array.from(document.fonts).some(
+        (font) => font.family === "Geist" && font.status === "loaded",
+      ),
+    ),
+  ).toBe(true);
   expect(fontRequests).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("marketing-font.png"), fullPage: true });
 });

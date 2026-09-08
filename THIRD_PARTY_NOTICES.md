@@ -1,5 +1,7 @@
 # Third-party notices
 
+<!-- markdownlint-disable MD003 -->
+
 The Apache-2.0 license for Manor does not replace the separate licenses below.
 This file covers the identified copied components and bundled font, not an exhaustive
 list of package-manager dependencies or operating-system packages. Retain the licenses

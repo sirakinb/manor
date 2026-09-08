@@ -40,12 +40,14 @@ Setup:
 1. Create the directory if needed and enter it.
 2. Download and inspect this installer (do not clone the repository):
    https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-images.sh
-   If that host is unreachable, use a mirror URL (e.g. set `RAKAZO_INSTALLER_URL` to
-   `https://example.com/mirror/manor/infra/compose/install-images.sh` and curl that instead).
+   If that host is unreachable, set both `RAKAZO_INSTALLER_URL` to
+   `https://example.com/mirror/manor/infra/compose/install-images.sh` and `RAKAZO_DOWNLOAD_BASE`
+   to `https://example.com/mirror/manor/infra/compose`, then curl that installer URL instead.
 3. Set `RAKAZO_DOWNLOAD_BASE=https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose`,
    then run `bash install-images.sh --prepare-only`. It downloads the Compose and environment example
    files, then creates `.env` with all required random secrets when one does not already exist.
-   Optional: set `RAKAZO_DOWNLOAD_BASE` to a generic mirror of `infra/compose`, and/or use
+   When using a mirror, retain the matching mirror `RAKAZO_DOWNLOAD_BASE` from step 2 instead.
+   Optional: use
    `--local` / `RAKAZO_DOWNLOAD_SKIP_EXISTING=1` when Compose files are already present locally.
    See docs/self-host.md (Restricted networks / mirror downloads).
 4. Preserve existing values. Keep `SANDBOX_PROVIDER=docker` unless I chose a remote computer

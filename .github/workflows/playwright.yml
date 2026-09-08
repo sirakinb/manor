@@ -107,6 +107,7 @@ jobs:
           mkdir -p test-report/e2e
           printf '%s\n' "$PLAYWRIGHT_RESULT" > test-report/e2e/outcome.txt
       - name: Verify marketing typography
+        if: ${{ !cancelled() && (steps.playwright_tests.outcome == 'success' || steps.playwright_tests.outcome == 'failure') }}
         run: pnpm --filter @rakazo/web exec playwright test --config playwright.marketing.config.ts
       - name: Upload Playwright artifacts
         if: always() && inputs.upload_artifacts
