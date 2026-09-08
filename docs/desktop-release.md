@@ -1,7 +1,8 @@
+<!-- Modified for Manor: repository visibility description. -->
 # Desktop releases (Manor)
 
 The `release-desktop` workflow builds, signs, notarizes, attests, and publishes
-the Manor desktop app from a `vMAJOR.MINOR.PATCH` tag on `main` of the private
+the Manor desktop app from a `vMAJOR.MINOR.PATCH` tag on `main` of the Manor
 source repository. Installers and the auto-update feed land in the public
 release repository `sirakinb/manor-desktop`, which the app's updater reads
 without any token. The app ships pointed at `https://manor.pentridgemedia.com`
@@ -68,3 +69,10 @@ git push origin v0.1.1
 
 The workflow refuses tags that do not match the desktop version, are not on
 `main`, or are not newer than the latest published release.
+
+## License review before publication
+
+Follow the [distribution review](licensing.md) for each installer or mobile binary.
+Verify required license texts, attribution, asset permissions, and applicable dependency
+obligations in the actual artifact before publishing it. Source-level attribution alone
+does not establish that a downloadable build includes the required notices.

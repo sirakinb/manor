@@ -1,5 +1,6 @@
+# Modified for Manor: product name and private security reporting route.
 name: Bug report
-description: Something is broken in Rakazo
+description: Something is broken in Manor
 title: "[Bug]: "
 labels:
   - bug
@@ -7,7 +8,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        For **security vulnerabilities**, email [security@rakazo.com](mailto:security@rakazo.com) — do not use this form. See [SECURITY.md](https://github.com/elie222/rakazo/blob/main/SECURITY.md).
+        For **security vulnerabilities**, use [Manor's private reporting form](https://github.com/sirakinb/manor/security/advisories/new) — do not use this form. See [SECURITY.md](https://github.com/sirakinb/manor/blob/main/SECURITY.md).
 
   - type: checkboxes
     id: not-security
@@ -55,7 +56,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Rakazo version or commit
+      label: Manor version or commit
       placeholder: v0.1.0 or abc1234
     validations:
       required: true

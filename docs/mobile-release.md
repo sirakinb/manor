@@ -1,10 +1,11 @@
+<!-- Modified for Manor: project terminology and documentation guidance. -->
 # Mobile builds and store releases
 
-Rakazo's public repository does not contain production App Store Connect,
+Manor's public repository does not contain production App Store Connect,
 Google Play, Apple team, or private EAS submission identifiers. Those values
 belong in the release operator's private configuration.
 
-Self-hosters normally do not need to publish their own mobile app: the Rakazo
+Self-hosters normally do not need to publish their own mobile app: the Manor
 client can select a compatible server from the sign-in screen. If you distribute
 your own branded build, use your own Expo and store accounts.
 
@@ -65,3 +66,10 @@ Installed release builds download a compatible update in the background on
 launch and apply it after the next restart. Builds created before
 `expo-updates` was configured cannot receive OTA updates and must be replaced
 with a new iOS and Android build once.
+
+## License review before publication
+
+Follow the [distribution review](licensing.md) for each installer or mobile binary.
+Verify required license texts, attribution, asset permissions, and applicable dependency
+obligations in the actual artifact before publishing it. Source-level attribution alone
+does not establish that a downloadable build includes the required notices.

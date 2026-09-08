@@ -1,3 +1,4 @@
+<!-- Modified for Manor: project presentation, setup guidance, and community links. -->
 <p align="center">
   <img src="./apps/web/public/manor-mark.png" width="96" alt="Manor" />
 </p>
@@ -90,21 +91,10 @@ That runs Manor locally. To put it in the cloud — your own always-on instance 
 
 ### Self-host from published images
 
-No clone or Node install required — you need Docker Engine, the Compose plugin, curl, and OpenSSL.
-Manor tracks upstream's published images:
-
-```bash
-mkdir -p manor && cd manor &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
-bash install-images.sh
-```
-
-The installer downloads the Compose files, creates `.env` with random secrets, and starts the stack.
-It preserves an existing `.env` when rerun. Default image tag is `edge` (main builds,
-`linux/amd64`); on arm64, pin `RAKAZO_IMAGE_TAG` to a release (`latest` / `vX.Y.Z`).
-
-For deployment, provider selection, backups, and upgrades, see the
-[self-hosting guide](./docs/self-host.md).
+To install without a source checkout or Node.js, follow the
+[published-image setup](./docs/self-host.md#published-images-no-checkout). It uses Manor's image
+namespace and explains how to select compatible tags. You need Docker Engine, the Compose plugin,
+curl, and OpenSSL.
 
 ## Desktop and mobile
 
@@ -133,6 +123,16 @@ Português (Brasil), and 简体中文. Change it under **Settings → Language**
 homepage (`apps/www`) is available in en/de/ko via footer language links (`/`, `/de/`,
 `/ko/`); other marketing pages stay English.
 
-## License
+## Contributing and support
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development and pull-request guidance.
+Use [Manor issues](https://github.com/sirakinb/manor/issues/new/choose) for bugs and self-hosting help.
+Report vulnerabilities privately using [SECURITY.md](./SECURITY.md).
+
+## License and acknowledgments
 
 Apache 2.0 — see [LICENSE](./LICENSE).
+
+Manor is built on [Rakazo](https://github.com/elie222/rakazo) and includes modifications for Manor.
+See [NOTICE](./NOTICE) for attribution and [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
+for separately licensed bundled material.

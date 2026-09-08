@@ -1,14 +1,7 @@
+/* Modified for Manor: use the existing open-license Geist font instead of Aeonik. */
 @import "tailwindcss";
 
 @source "../../../../packages/ui-web/src/button.tsx";
-
-@font-face {
-  font-family: "Aeonik";
-  src: url("/fonts/aeonik-medium.woff") format("woff");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
 
 :root {
   --page: #fdfdfd;
@@ -173,7 +166,7 @@ button {
 }
 
 .brand-lockup__word {
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
   font-size: 21px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -351,7 +344,7 @@ button {
 .privacy-copy h1 {
   margin: 0;
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -501,7 +494,7 @@ button {
 .comparison-card h3 {
   margin: 0;
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
   font-size: 20px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -703,7 +696,7 @@ button {
   max-width: 390px;
   margin: 0;
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
   font-size: 30px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -897,7 +890,7 @@ button {
 
 .stat-value {
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
   font-size: 30px;
   letter-spacing: -0.02em;
 }

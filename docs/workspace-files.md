@@ -1,6 +1,7 @@
+<!-- Modified for Manor: product terminology. Runtime identity examples remain literal. -->
 # Workspace files
 
-Files provides a file manager for the bot's computer across web, Electron, and mobile. With a VM provider, file operations and Git run in that VM's portable workspace. Rakazo's persisted workspace copy is on the deployment's storage. Neither is the end user's device filesystem. Upload explicitly imports a device file; Download explicitly exports one. The optional desktop sandbox remains a separately configured local execution provider.
+Files provides a file manager for the bot's computer across web, Electron, and mobile. With a VM provider, file operations and Git run in that VM's portable workspace. Manor's persisted workspace copy is on the deployment's storage. Neither is the end user's device filesystem. Upload explicitly imports a device file; Download explicitly exports one. The optional desktop sandbox remains a separately configured local execution provider.
 
 ## Browse
 
