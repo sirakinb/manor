@@ -61,6 +61,14 @@ class Workspace:
             raise Refused("workspace_limit_reached")
         admission(self.state, 256, disk_mb=512)
         source_archive(repository, revision)  # Fail closed on unsafe tracked paths.
+        volume = self.state / self.workspace_id
+        config = {
+            "id": self.workspace_id, "volume": str(volume), "toolchain": toolchain,
+            "postgresImage": postgres_image, "port": port, "password": secrets.token_hex(24),
+            "previewToken": secrets.token_hex(24), "state": "provisioning",
+        }
+        self.record.write_text(canonical(config))
+        self.record.chmod(0o600)
         volume = quota_directory(self.state, self.workspace_id, 256)
         repository_path = volume / "repository.git"
         tree = volume / "tree"
@@ -77,13 +85,6 @@ class Workspace:
         run(["chown", "-R", "1000:1000", str(volume)])
         run(["chown", "-R", "999:999", str(volume / "postgres")])
         (volume / "postgres").chmod(0o700)
-        config = {
-            "id": self.workspace_id, "volume": str(volume), "toolchain": toolchain,
-            "postgresImage": postgres_image, "port": port, "password": secrets.token_hex(24),
-            "previewToken": secrets.token_hex(24), "state": "provisioning",
-        }
-        self.record.write_text(canonical(config))
-        self.record.chmod(0o600)
         self.docker("network", "create", "--internal", "--label", "manor.workspace=" + self.workspace_id, self.name)
         self.docker(
             "run", "-d", "--name", self.name + "-db", "--label", "manor.workspace=" + self.workspace_id,

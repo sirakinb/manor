@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createBackgroundJobHandlers } from "./background-job-handlers.js";
 import { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
+import { MaintenanceAdmission } from "./maintenance-control.js";
 import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-delivery.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 
@@ -20,6 +21,21 @@ vi.mock("./messaging-delivery.js", () => ({
 }));
 
 describe("createBackgroundJobHandlers", () => {
+  it("gates every business job while leaving maintenance recovery pollable", async () => {
+    const call = vi.fn().mockRejectedValue(new Error("closed"));
+    const maintenanceLookup = vi.fn(async () => null);
+    const handlers = createBackgroundJobHandlers({
+      admission: new MaintenanceAdmission({ call }, "a".repeat(12)),
+      prisma: { maintenanceJob: { findUnique: maintenanceLookup } },
+    } as unknown as Parameters<typeof createBackgroundJobHandlers>[0]);
+    for (const [name, handler] of Object.entries(handlers)) {
+      if (name === "maintenance.advance") continue;
+      await expect(handler({} as never)).rejects.toThrow("closed");
+    }
+    await handlers["maintenance.advance"]({ jobId: "synthetic-job" });
+    expect(maintenanceLookup).toHaveBeenCalledOnce();
+    expect(call).toHaveBeenCalledTimes(Object.keys(handlers).length - 1);
+  });
   it("delivers directly when shutdown rejects a completed run's mirror job", async () => {
     const enqueueError = new Error("Background job publisher is closing");
     const jobs = {

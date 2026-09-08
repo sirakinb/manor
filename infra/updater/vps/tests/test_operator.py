@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from docker_adapter import load_policy
+from docker_adapter import DockerAdapter, load_policy
 from release import Controller, Refused, Store, canonical, main, validate
 from test_release import Adapter, REVISION
 from workspace import Workspace
@@ -121,6 +121,31 @@ class OperatorBoundaryTests(unittest.TestCase):
         with mock.patch.object(workspace, "docker", return_value=b""):
             self.assertEqual(workspace.destroy()["state"], "destroyed")
         self.assertFalse(workspace.record.exists())
+
+    def test_automatic_rollback_requires_ancestry_and_compatible_source(self):
+        policy = {**self.policy(), "mode": "production", "compatibilityPolicy": "unchanged-schema-and-toolchain-v1"}
+        adapter = DockerAdapter(policy)
+        base, previous = "a" * 40, "b" * 40
+        with mock.patch.object(adapter, "current_image", return_value="sha256:" + "c" * 64), \
+                mock.patch.object(adapter, "docker", return_value=json.dumps(["GIT_SHA=" + base]).encode()), \
+                mock.patch("docker_adapter.run", side_effect=[b"", b"apps/web/src/fix.ts\0"]) as command:
+            adapter.require_compatible(previous, "rollback")
+            self.assertEqual(command.call_args_list[0].args[0][-4:], ["merge-base", "--is-ancestor", previous, base])
+        with mock.patch.object(adapter, "current_image", return_value="sha256:" + "c" * 64), \
+                mock.patch.object(adapter, "docker", return_value=json.dumps(["GIT_SHA=" + base]).encode()), \
+                mock.patch("docker_adapter.run", side_effect=[b"", b"packages/db/prisma/schema.prisma\0"]):
+            with self.assertRaisesRegex(Refused, "separate_operator_release_required"):
+                adapter.require_compatible(previous, "rollback")
+
+    def test_failed_provisioning_retains_cleanup_record(self):
+        workspace = Workspace(self.root, "partial")
+        with mock.patch("workspace.admission"), mock.patch("docker_adapter.source_archive"), \
+                mock.patch("workspace.quota_directory", side_effect=Refused("synthetic_quota_failure")):
+            with self.assertRaisesRegex(Refused, "synthetic_quota_failure"):
+                workspace.create("synthetic", REVISION, "sha256:" + "a" * 64, "sha256:" + "b" * 64, 18080)
+        self.assertEqual(workspace.read()["state"], "provisioning")
+        with mock.patch.object(workspace, "docker", return_value=b""):
+            self.assertEqual(workspace.destroy()["state"], "destroyed")
 
     def test_request_id_schema_matches_canonical_runtime_ids(self):
         schema = json.loads((Path(__file__).resolve().parents[4] / "packages/contracts/release-v1.schema.json").read_text())

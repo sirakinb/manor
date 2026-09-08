@@ -17,6 +17,13 @@ export class TestMaintenanceAdapter implements MaintenanceAdapter {
         isolationVerified: true,
         requiredChecksPassed: true,
         publicationSafe: true,
+        release: {
+          releaseId: "c".repeat(64),
+          manifestHash: "c".repeat(64),
+          evidenceHash: "d".repeat(64),
+          policyHash: "e".repeat(64),
+          imageId: `sha256:${"f".repeat(64)}`,
+        },
         previewUrl: null,
         previewSummary:
           "Synthetic preview: the status label reads ready. No real workspace was created.",

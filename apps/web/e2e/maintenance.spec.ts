@@ -38,6 +38,8 @@ test("deployment owner reviews a simulated maintenance fix and preserves a draft
       timeout: 60_000,
     });
     await page.getByText("Review diff", { exact: true }).click();
+    await page.getByText("Release manifest", { exact: true }).click();
+    await expect(page.getByTestId("maintenance-job")).toContainText("sha256:");
     await expect(page.getByTestId("maintenance-job")).toContainText(
       "export const status = 'ready'",
     );

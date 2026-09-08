@@ -4,7 +4,7 @@ export const MaintenanceRevisionSchema = z.string().regex(/^[a-f0-9]{40}$/);
 export const MaintenanceReviewSchema = z.object({
   baseRevision: MaintenanceRevisionSchema,
   revision: MaintenanceRevisionSchema,
-  branch: z.string().regex(/^maintenance\/[a-zA-Z0-9-]+$/),
+  branch: z.string().regex(/^(?:maintenance|workspace)\/[a-zA-Z0-9-]+$/),
   diff: z.string().max(200_000),
   checks: z
     .array(z.object({ name: z.string().min(1).max(120), passed: z.boolean() }))
@@ -14,6 +14,15 @@ export const MaintenanceReviewSchema = z.object({
   isolationVerified: z.literal(true),
   requiredChecksPassed: z.boolean(),
   publicationSafe: z.boolean(),
+  release: z
+    .object({
+      releaseId: z.string().regex(/^[a-f0-9]{64}$/),
+      manifestHash: z.string().regex(/^[a-f0-9]{64}$/),
+      evidenceHash: z.string().regex(/^[a-f0-9]{64}$/),
+      policyHash: z.string().regex(/^[a-f0-9]{64}$/),
+      imageId: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+    })
+    .optional(),
   previewUrl: z
     .string()
     .url()

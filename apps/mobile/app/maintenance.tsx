@@ -181,6 +181,12 @@ function MaintenanceContent() {
                       {check.passed ? "Passed" : "Failed"} · {check.name}
                     </Text>
                   ))}
+                  {job.review.release ? (
+                    <Text selectable style={{ color: native.secondaryLabel, fontSize: 12 }}>
+                      Release manifest{"\n"}
+                      {job.review.release.manifestHash}
+                    </Text>
+                  ) : null}
                   <Text style={{ color: native.label }}>{job.review.previewSummary}</Text>
                   {job.review.previewUrl ? (
                     <Action

@@ -27,8 +27,10 @@ import {
   isPipedreamEnabled,
   LocalAgentHomeStore,
   LocalArtifactStore,
+  MaintenanceAdmission,
   McpConnector,
   McpOAuthBroker,
+  maintenanceControlFromEnv,
   messagingEnvFromProcess,
   messagingPlatformsFromEnv,
   PiAgentRuntime,
@@ -39,6 +41,7 @@ import {
   resolveSandboxProvider,
   ScriptedAgentRuntime,
   SpaceMemoryProviderResolver,
+  VpsMaintenanceAdapter,
 } from "@rakazo/adapters";
 import { resolveEncryptionKey, resolveSupervisorToken } from "@rakazo/core";
 import { createDb, createThreadEvents } from "@rakazo/db";
@@ -58,6 +61,13 @@ async function main() {
   });
   const runtime =
     process.env.AGENT_RUNTIME === "scripted" ? new ScriptedAgentRuntime() : new PiAgentRuntime();
+  const control = maintenanceControlFromEnv();
+  const admission = control
+    ? new MaintenanceAdmission(control, process.env.HOSTNAME ?? "")
+    : undefined;
+  const maintenance = control
+    ? new VpsMaintenanceAdapter({ prisma, runtime, control, revision: process.env.GIT_SHA ?? "" })
+    : undefined;
   const dataDir = process.env.DATA_DIR ?? "./data";
   // Same resolver the API uses, so both processes agree on provider, model and key.
   const { key: deploymentModelKey } = resolveDeploymentModel();
@@ -141,6 +151,8 @@ async function main() {
   });
 
   const jobHandlers = createBackgroundJobHandlers({
+    maintenance,
+    admission,
     executor,
     prisma,
     sandbox,
@@ -157,6 +169,7 @@ async function main() {
   });
   await jobHost.start(jobHandlers);
   const reconciler = createJobReconciler({
+    admission,
     prisma,
     jobs,
     events,
@@ -174,6 +187,7 @@ async function main() {
     await realtime.close();
     await connector.stop();
     await mcp.close();
+    await control?.close();
     await prisma.$disconnect().catch(() => undefined);
     await pool.end().catch(() => undefined);
   };

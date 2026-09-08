@@ -1,8 +1,9 @@
 # VPS release interface v1
 
-Status: foundation; production activation requires a separate release review.
-The Linux executor is in `infra/updater/vps`. It is shared by developers and
-the future Maintenance Agent. It contains no agent framework or UI.
+The Linux executor in `infra/updater/vps` is shared by developers and the
+Maintenance Agent backend. The executor contains no agent framework or UI.
+Activation remains an explicit operator configuration; see
+[maintenance operations](maintenance-operations.md).
 
 ## Trust boundary
 
@@ -113,3 +114,25 @@ warnings. It cannot serve this protocol unchanged: its lock/history are
 in-memory, its fork flow selects a moving branch, it trusts checkout Compose,
 and it does not implement approvals, backup receipts or admission closure.
 Do not run both executors against the same deployment.
+
+
+## Private application bridge
+
+`control.py` exposes the same release operation protocol over a Unix socket. Its
+separate workspace credential can access only `/v1/workspaces/operations` and
+operation polling. Its application credential can only enter/leave admission;
+it cannot close the gate, inspect jobs, approve or deploy. The operator credential
+alone closes, snapshots, switches and reopens production. All five credentials
+are distinct. Only the API and worker receive the four application-side tokens;
+none is passed into a coding container, model prompt or ordinary bot.
+
+The bridge bounds request bodies to 512 KiB for container commands; release
+requests retain the exact v1 schema and fields. The standalone release HTTP
+listener retains its 16 KiB limit. Both authenticate before looking up requests.
+
+The production guard retains leases across restarts without time-based expiry.
+Before backup, it drains API/business workers and pauses the explicitly configured
+remaining producers and computer network members. Backup verifies a database dump
+by restoring into a bounded isolated PostgreSQL instance, and checks the compressed
+application-storage archive. Health failures restore the previous application image;
+no production database restore occurs automatically.

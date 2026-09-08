@@ -11,6 +11,7 @@ import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
+import type { MaintenanceAdmission } from "./maintenance-control.js";
 
 const DEFAULT_INTERVAL_MS = 30_000;
 const DEFAULT_BATCH_SIZE = 100;
@@ -104,6 +105,7 @@ export function createJobReconciler(
     jobs: JobPublisher;
     events?: ThreadEvents;
     leadership?: ReconciliationLeadership;
+    admission?: MaintenanceAdmission;
   },
   options: { intervalMs?: number; batchSize?: number } = {},
 ) {
@@ -118,6 +120,7 @@ export function createJobReconciler(
 
   const reconcileOnce = async () => {
     if (reconciling) return reconciling;
+    let leave: (() => Promise<void>) | undefined;
     reconciling = (async () => {
       if (deps.leadership && !(await deps.leadership.tryAcquire())) return;
 
@@ -132,7 +135,7 @@ export function createJobReconciler(
         select: { id: true },
       });
       for (const job of maintenanceJobs) await deps.jobs.enqueue(maintenanceAdvanceJob(job.id));
-
+      leave = await deps.admission?.enter();
       controlScanDeadline ??= new Date(now.getTime() + CONTROL_LOOKAHEAD_MS);
       const runCursorFilter = runCursor
         ? {
@@ -351,8 +354,12 @@ export function createJobReconciler(
           ? { at: lastControl.controlLeaseExpiresAt, id: lastControl.id }
           : undefined;
       if (!controlCursor) controlScanDeadline = undefined;
-    })().finally(() => {
-      reconciling = undefined;
+    })().finally(async () => {
+      try {
+        await leave?.();
+      } finally {
+        reconciling = undefined;
+      }
     });
     return reconciling;
   };

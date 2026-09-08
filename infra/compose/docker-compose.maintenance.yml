@@ -1,0 +1,14 @@
+# Optional overlay. Install the reviewed private control service and validate its
+# policy first. The application env file contains only these four control tokens
+# and MAINTENANCE_CONTROL_SOCKET; never mount the operator policy/token directory.
+services:
+  api:
+    env_file:
+      - /etc/manor-release/application.env
+    volumes:
+      - /run/manor-maintenance:/run/manor-maintenance:ro
+  worker:
+    env_file:
+      - /etc/manor-release/application.env
+    volumes:
+      - /run/manor-maintenance:/run/manor-maintenance:ro

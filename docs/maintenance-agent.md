@@ -5,16 +5,21 @@ approval. The VPS workstream owns isolated workspaces and the release executor.
 
 ## Integration status
 
-Production defaults to **unavailable**. Issues can be saved, but no code-writing agent,
-workspace, preview, public commit, PR or deployment starts until a trusted adapter is
-injected into the API and worker composition roots. `TestMaintenanceAdapter` is
-explicitly injected by tests; it is never enabled by a production environment flag.
-Its UI labels every result as simulated. It does not edit source code or deploy.
+The connected adapter uses the existing AgentRuntime, a private Unix-socket workspace
+broker and the versioned VPS release service. It is opt-in: without
+`MAINTENANCE_CONTROL_SOCKET`, issues are retained but execution remains unavailable.
+Partial credentials fail startup; there is no production simulation flag.
+`TestMaintenanceAdapter` is injected only by tests and labels its results simulated.
 
-The handoff contract is `MaintenanceAdapter` in `packages/adapter-kit/src/maintenance.ts`.
-The review schema and RPCs live in `packages/contracts/src/maintenance.ts`. The VPS
-workstream should implement this adapter against its service, rather than calling the
-existing branch-based updater from the Maintenance Agent.
+The coding runtime receives one tool, `workspace_exec`, with bounded container argv.
+The backend captures the private commit, suspends development, requests independent
+checks and displays the exact release manifest. The model has no release tool or
+credentials. Owner approval binds the full review and manifest, including image,
+evidence and policy hashes. A service restart never blindly repeats an uncertain
+coding command; interrupted investigations fail with an explanation.
+
+See [operator setup and recovery](maintenance-operations.md). Installation and activation
+are separate from merging the code. An unconfigured deployment remains unavailable.
 
 ## Service obligations
 
@@ -63,8 +68,16 @@ the current composer. Maintenance drafts are saved in session storage before rel
 storage failure enables a navigation warning. The UI never reloads a window automatically.
 Mobile uses the same contracts/controller and gives native update advice after release.
 
-## Remaining wiring
+## Supported preview and update boundaries
 
-The production workspace/agent adapter, authenticated preview hosting and release service
-are deliberately not implemented here. Blocked issues are retained for review; resubmit
-them after connecting the service. No production deployment is performed by this PR.
+The connected adapter provides a private source diff preview. Authenticated live
+application preview hosting and automatic public PR publication are not connected.
+Candidates remain in the private VPS Git import repository. The owner must inspect
+the complete diff; credential-pattern checks are not a guarantee of privacy.
+
+Automatic maintenance releases support web and backend changes with an unchanged
+schema and toolchain. Infrastructure, dependencies, database and native/shared-native
+source require a separate operator release. The review explains browser reloads;
+installed desktop/mobile binaries still require their normal distribution workflow.
+No client is reloaded automatically. Native maintenance drafts remain in the current
+screen; native update advice never triggers an update or discards that screen.

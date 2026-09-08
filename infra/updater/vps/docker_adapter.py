@@ -14,9 +14,11 @@ import tempfile
 import tarfile
 import time
 import urllib.request
+import urllib.error
 from pathlib import Path
 
 from release import COMMIT, IMAGE, Refused, canonical
+from source_policy import automatic_source_compatible
 
 MAX_ARCHIVE = 128 * 1024 * 1024
 MIB = 1024 * 1024
@@ -418,6 +420,10 @@ class DockerAdapter:
 
     def activate(self, image):
         self.verify_image(image)
+        if self.policy.get("productionAdmission") is True:
+            # Resume application processes behind closed admission before Compose
+            # replaces them. Ancillary producers stay frozen until release completes.
+            self.maintenance("switch")
         self.compose("up", "-d", "--no-deps", "--no-build", "--pull", "never",
                      "--wait", "--wait-timeout", "120", *self.policy["services"], image=image)
 
@@ -431,7 +437,8 @@ class DockerAdapter:
                 if probe:
                     container = self.compose("ps", "-q", probe["service"]).decode().strip()
                     url = "http://127.0.0.1:" + str(probe["port"]) + probe["path"]
-                    code = "fetch(" + json.dumps(url) + ",{redirect:'error',signal:AbortSignal.timeout(3000)}).then(async r=>{if(!r.ok||(await r.json()).ok!==true)process.exit(1)}).catch(()=>process.exit(1))"
+                    require_guard = "||s.maintenanceAdmission!==true" if self.policy.get("productionAdmission") is True else ""
+                    code = "fetch(" + json.dumps(url) + ",{redirect:'error',signal:AbortSignal.timeout(3000)}).then(async r=>{const s=await r.json();if(!r.ok||s.ok!==true" + require_guard + ")process.exit(1)}).catch(()=>process.exit(1))"
                     self.docker("exec", container, "node", "-e", code, timeout=5, max_output=MIB)
                     return
                 with urllib.request.urlopen(self.policy["healthUrl"], timeout=3) as response:
@@ -450,11 +457,16 @@ class DockerAdapter:
             headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
         )
         try:
-            with urllib.request.urlopen(request, timeout=10) as response:
+            with urllib.request.urlopen(request, timeout=300 if action == "backup" else 10) as response:
                 value = json.load(response)
             if not isinstance(value, dict):
                 raise ValueError()
             return value
+        except urllib.error.HTTPError as response:
+            error = Refused("maintenance_adapter_unavailable")
+            error.diagnostic = response.read(4096).decode("utf-8", errors="replace")
+            response.close()
+            raise error from None
         except Exception:
             raise Refused("maintenance_adapter_unavailable") from None
 
@@ -486,5 +498,18 @@ class DockerAdapter:
 
     def require_compatible(self, revision, action):
         # No automatic database restore. Production must explicitly allow the tested commit.
-        if self.policy["mode"] == "production" and revision not in self.policy.get("schemaCompatibleRevisions", []):
+        if self.policy["mode"] != "production" or revision in self.policy.get("schemaCompatibleRevisions", []):
+            return
+        if self.policy.get("compatibilityPolicy") != "unchanged-schema-and-toolchain-v1":
             raise Refused("database_recovery_review_required")
+        environment = json.loads(self.docker("image", "inspect", "--format", "{{json .Config.Env}}", self.current_image()))
+        base = next((value.removeprefix("GIT_SHA=") for value in environment if value.startswith("GIT_SHA=")), "")
+        if not COMMIT.fullmatch(base):
+            raise Refused("running_revision_unknown")
+        git = ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
+               "-c", "safe.directory=" + self.policy["repository"], "-C", self.policy["repository"]]
+        ancestor, descendant = (revision, base) if action == "rollback" else (base, revision)
+        run(git + ["merge-base", "--is-ancestor", ancestor, descendant])
+        changed = run(git + ["diff", "--name-only", "-z", base, revision], max_output=65536).decode().split("\x00")
+        if not automatic_source_compatible(changed):
+            raise Refused("separate_operator_release_required")

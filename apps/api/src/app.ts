@@ -41,8 +41,10 @@ import {
   isPipedreamEnabled,
   LocalAgentHomeStore,
   LocalArtifactStore,
+  MaintenanceAdmission,
   McpConnector,
   McpOAuthBroker,
+  maintenanceControlFromEnv,
   messagingPlatformsFromEnv,
   PiAgentRuntime,
   PiOAuthLogins,
@@ -54,6 +56,7 @@ import {
   ScriptedAgentRuntime,
   SmtpEmailProvider,
   SpaceMemoryProviderResolver,
+  VpsMaintenanceAdapter,
 } from "@rakazo/adapters";
 import {
   assertPortalAccess,
@@ -76,6 +79,7 @@ import { mountChannelRoutes } from "./channels.js";
 import { createCrmIntegrationService, mountCrmIntegrationRoutes } from "./crm-integrations.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createGoogleFormsTokenBroker } from "./google-forms-token-broker.js";
+import { mountMaintenanceAdmission } from "./maintenance-admission.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
 import { createRouter } from "./router.js";
@@ -116,7 +120,7 @@ export async function createApp(
     messaging: messagingOverride,
     email: emailOverride,
     remoteConnectors,
-    maintenance,
+    maintenance: maintenanceOverride,
     ...envOverrides
   } = overrides;
   const env = { ...loadEnv(process.env), ...envOverrides };
@@ -283,6 +287,15 @@ export async function createApp(
   void pipedream?.warmDirectory?.().catch(() => undefined);
   const runtime =
     env.agentRuntime === "scripted" ? new ScriptedAgentRuntime() : new PiAgentRuntime();
+  const control = maintenanceControlFromEnv();
+  const admission = control
+    ? new MaintenanceAdmission(control, process.env.HOSTNAME ?? "")
+    : undefined;
+  const maintenance =
+    maintenanceOverride ??
+    (control
+      ? new VpsMaintenanceAdapter({ prisma, runtime, control, revision: env.gitSha ?? "" })
+      : undefined);
   const notifications = new ExpoPushProvider(env.dataDir);
   const executor = createRunExecutor({
     prisma,
@@ -309,6 +322,7 @@ export async function createApp(
 
   const jobHandlers = createBackgroundJobHandlers({
     maintenance,
+    admission,
     executor,
     prisma,
     sandbox,
@@ -329,7 +343,7 @@ export async function createApp(
   if (inMemoryJobs) {
     await inMemoryJobs.start(jobHandlers);
   }
-  const reconciler = inMemoryJobs ? createJobReconciler({ prisma, jobs }) : undefined;
+  const reconciler = inMemoryJobs ? createJobReconciler({ prisma, jobs, admission }) : undefined;
   reconciler?.start();
 
   const router = createRouter({
@@ -385,6 +399,7 @@ export async function createApp(
       credentials: true,
     }),
   );
+  mountMaintenanceAdmission(app, admission);
   app.get("/api/auth/capabilities", (c) =>
     c.json({
       passwordReset: Boolean(email),
@@ -498,6 +513,7 @@ export async function createApp(
       jobs: jobKind,
       realtime: realtime.describe().id,
       revision: env.gitSha ?? null,
+      maintenanceAdmission: Boolean(admission),
     }),
   );
 
@@ -521,6 +537,7 @@ export async function createApp(
       await realtime.close();
       await connector.stop();
       await mcp.close();
+      await control?.close();
       await prisma.$disconnect().catch(() => undefined);
       await created.pool?.end().catch(() => undefined);
     },

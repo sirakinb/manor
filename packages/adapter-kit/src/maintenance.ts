@@ -14,12 +14,17 @@ export interface MaintenanceAdapter {
     issue: string;
     evidence: unknown;
     signal: AbortSignal;
-  }): Promise<{ status: "running" } | { status: "review"; review: MaintenanceReview }>;
+  }): Promise<
+    | { status: "running" }
+    | { status: "failed"; message: string }
+    | { status: "review"; review: MaintenanceReview }
+  >;
   release(input: {
     operationId: string;
     ownerUserId: string;
     revision: string;
     reviewKey: string;
+    review: MaintenanceReview;
     signal: AbortSignal;
   }): Promise<{ status: "running" | "completed" | "failed" }>;
 }
