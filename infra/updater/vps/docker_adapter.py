@@ -417,9 +417,19 @@ class DockerAdapter:
         images = set()
         for service in self.policy["services"]:
             container = self.compose("ps", "-q", service).decode().strip()
+            stopped_bootstrap = not container and self.policy.get("unguardedBootstrapImage")
+            if stopped_bootstrap:
+                # Initial writers predate admission. Keep them stopped across backup
+                # and replacement; only the operator-pinned old image may use this.
+                container = self.compose("ps", "--all", "-q", service).decode().strip()
             if not container or "\n" in container:
                 raise Refused("single_running_service_required")
             image = self.docker("inspect", "--format", "{{.Image}}", container).decode().strip()
+            if stopped_bootstrap:
+                state = json.loads(self.docker("inspect", "--format", "{{json .State}}", container))
+                if (image != self.policy["unguardedBootstrapImage"] or state.get("Running") is not False
+                        or state.get("Restarting") is not False or state.get("Pid") != 0):
+                    raise Refused("stopped_bootstrap_image_required")
             images.add(image)
         if len(images) != 1:
             raise Refused("mixed_application_images")

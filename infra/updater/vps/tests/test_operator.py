@@ -101,6 +101,32 @@ class OperatorBoundaryTests(unittest.TestCase):
             self.assertTrue(record["diagnostic"].endswith("final_failure"))
             self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
 
+    def test_stopped_bootstrap_requires_the_exact_image_and_no_live_process(self):
+        old = "sha256:" + "b" * 64
+        adapter = DockerAdapter({**self.policy(), "unguardedBootstrapImage": old})
+        for image, state, accepted in (
+            (old, {"Running": False, "Restarting": False, "Pid": 0}, True),
+            ("sha256:" + "c" * 64, {"Running": False, "Restarting": False, "Pid": 0}, False),
+            (old, {"Running": True, "Restarting": False, "Pid": 42}, False),
+            (old, {"Running": False, "Restarting": True, "Pid": 0}, False),
+            (old, {"Running": False, "Restarting": False, "Pid": 42}, False),
+        ):
+            with mock.patch.object(adapter, "compose", side_effect=[b"", b"synthetic-container"]), \
+                    mock.patch.object(adapter, "docker", side_effect=[image.encode(), canonical(state).encode()]):
+                if accepted:
+                    self.assertEqual(adapter.current_image(), old)
+                else:
+                    with self.assertRaisesRegex(Refused, "stopped_bootstrap_image_required"):
+                        adapter.current_image()
+        with mock.patch.object(adapter, "compose", side_effect=[b"", b"one\ntwo"]):
+            with self.assertRaisesRegex(Refused, "single_running_service_required"):
+                adapter.current_image()
+        adapter.policy.pop("unguardedBootstrapImage")
+        with mock.patch.object(adapter, "compose", return_value=b"") as compose:
+            with self.assertRaisesRegex(Refused, "single_running_service_required"):
+                adapter.current_image()
+            compose.assert_called_once()
+
     def test_history_cli_returns_operations(self):
         directory = self.root / "state"
         controller = Controller(Store(directory), Adapter(), "policy")

@@ -56,6 +56,10 @@ must archive and retire obsolete retained artifacts before headroom runs out.
 Prepare the exact bootstrap revision using the trusted matching toolchain. Review
 the tests, manifest, migration compatibility and existing rollback image. The first
 activation must establish a quiet boundary for services that predate admission.
+Block external ingress, finish active work and stop the old application writers
+before requesting the first rollout. The controller accepts stopped services only
+when they use the exact operator-pinned bootstrap image and Docker confirms no live
+process remains. They stay stopped through backup and are replaced by Compose.
 The optional `unguardedBootstrapImage` permits health verification of the exact old
 rollback image, which predates the guard. Reverting to it also reverts maintenance
 capability; another bootstrap needs the same operator-established quiet boundary.

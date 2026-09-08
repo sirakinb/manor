@@ -119,6 +119,9 @@ def main():
             release = controller.store.release(release_id)
             request("approve", releaseId=release_id, manifestHash=release["manifestHash"])
             releases.append({"releaseId": release_id, "manifestHash": release["manifestHash"]})
+        # The pre-admission application remains stopped through the first backup.
+        adapter.compose("stop", "app")
+        assert adapter.current_image() == images[0]
         request("deploy", **releases[0])
         assert gate.action("status", {}, "operator") == {"closed": False, "active": 0}
         assert request("deploy", expect="failed", **releases[2])["error"] == "health_check_failed"
