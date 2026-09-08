@@ -1,36 +1,76 @@
-# Manor Wishlist
+# Manor product priorities
 
-Parked ideas and follow-ups. Roughly ordered by value within each section.
+Manor is an AI agent platform for service businesses: a home for business data,
+customer records, and a team of agents. This roadmap describes intended work,
+not a list of finished capabilities. The maintainer sets the direction; forks can
+adapt it to their own businesses.
 
-## Transparency / activity feed
+## 1. Agent workspace
 
-- **Thinking-token streaming** (parked 2026-08-21, plan agreed):
-  Pi already emits `thinking_delta` / `thinking_end`; our adapter drops them.
-  1. `packages/adapters/src/pi-runtime.ts` (~L108): handle `thinking_delta` in `agent.subscribe`, push `{ type: "thinking", text }`
-  2. `adapter-kit`: add `"thinking"` to the runtime event union
-  3. `packages/adapters/src/executor.ts`: batch deltas (reuse the 250ms `pendingProgress` flush pattern, ~L745) → append as `thread.progress` with a `thinking: true` payload flag (inherits `clearRunProgress` cleanup; nothing persists to history)
-  4. `apps/web` Activity card: rolling collapsible "thinking" block (muted italic, last ~300 chars) interleaved with tool lines; same header toggle
-  - Caveat: providers only emit thinking when enabled (`thinkingBudgets` in pi-ai); degrades gracefully per model
-- Persist activity per run so finished runs can be inspected (currently live-only, cleared on bot switch)
-- Friendly display names for tools (`computer_act` → "Computer", `gmail_send_email` → "Gmail")
+Make the workspace a configurable home for a company's relevant data, connected
+tools, and operations. A business should be able to shape its own workspace from
+a blank canvas instead of adopting another company's structure.
 
-## Brand / UI
+- Bring data from connected business tools into useful operational views.
+- Let people and agents work from the same business context.
+- Make sections and workflows adaptable to the business. For property management,
+  examples include leases, utilities, and email campaigns.
+- Show whether connected data is current and whether recurring processes ran.
 
-- Grow the sprite family past 7 (or add a variation badge) so 8+ bots don't twin; regen pipeline was in `/tmp/manor-sprites` (gen_gemini.py + postprocess.py — wiped on reboot, recreate if needed; re-run all sprites together so scale normalization holds)
-- `// empty` mono placeholders for empty states (empty column style from Aligno) — empty thread, no routines, no plugins connected
-- Door-swing arc from the logo as a loading spinner
-- Option to mask the scanline ridge overlay off the live computer pane
-- Deeper purple-tint sweep of Shell's remaining hardcoded neutral grays
-- Lazy-load / proxy plugin catalog logos (console 404 noise, broken logo hosts)
+The current workspace has specific operational sections. Generalizing its setup
+and configuration is part of this priority. See [workspace implementation](docs/workspace.md).
 
-## Product
+## 2. CRM as the system of record
 
-- Attachments v2: multi-file, drag-and-drop onto the thread, image preview blocks in chat (needs a MessageBlock type extension)
-- Code-level guard against plugin/computer double-work (suppress browser navigation to apps with a connected plugin) if the prompt-level fix regresses
-- Post-onboarding settings surface: consolidate AI model switcher, plugins, usage into a real settings page
+Keep customer relationships and their next steps in Manor, connected to the work
+agents do for the business.
 
-## Infrastructure
+- Connect websites and lead forms to contact intake.
+- Use agent routines to organize incoming information and update customer records.
+- Build follow-up sequences around contacts and deals.
+- Track lead progress and conversion results alongside business operations.
 
-- Filter `._*` AppleDouble files in sandbox `listFiles` (exFAT artifact; breaks `sandbox-conformance.test.ts` and pollutes agent file listings) — or move dev off exFAT entirely
-- Composio meta-tools mode: consider making it the default (vs direct_tools fallback) once model behavior with search+execute is validated
-- Docker-on-sparse-image fragility: superseded by cloud deployment (see task #3); if local dev continues long-term, reformat SSD to APFS
+See [CRM documentation](docs/CRM.md) for the existing foundation. Intake connections
+and sequences should be verified individually rather than assumed to be complete.
+
+## 3. Reliable business agents
+
+Make it straightforward to create an agent with a useful business role, then expand
+the team as the business needs it. Example roles include intake, content, and payments.
+
+- Reduce the steps between creating an agent and completing its first useful task.
+- Improve consistency for scheduled routines and webhook-triggered work.
+- Make responsibilities, approval boundaries, outcomes, and failures clear.
+- Keep models and integrations optional and interchangeable through shared contracts.
+
+## First-run experience
+
+The intended path is to clone Manor, run a guided VPS setup command, and create
+one agent that removes a specific source of friction in the business. That guided
+source-checkout command is planned. Today, use the [VPS deployment guide](docs/DEPLOY.md)
+or the separate [published-image setup](docs/self-host.md#published-images-no-checkout).
+
+## Dropped directions
+
+- **Maintenance agent:** stop pursuing an agent that changes and updates Manor itself.
+  The complexity does not serve the current product priorities.
+- **Coding CLIs inside VMs for SSH-based development:** stop pursuing this as a Manor
+  product workflow for tools such as Codex, Cursor, or Claude Code. This does not
+  remove ordinary SSH access used to administer a self-hosted server.
+
+Related code and documentation may still be present. Removing them is a separate
+implementation task; this roadmap change does not disable existing installations.
+
+## Supporting backlog
+
+These earlier ideas remain unprioritized and need a current implementation check
+before work starts:
+
+- Improve agent activity visibility and friendly tool names.
+- Improve attachments, empty states, settings, and integration-logo loading.
+- Avoid duplicate work across connected integrations and the agent computer.
+- Filter generated filesystem artifacts from sandbox file listings.
+- Evaluate integration-tool discovery improvements when they reduce setup friction.
+
+The current logo and sprite set are the approved baseline. Expanding or redesigning
+them is not a current priority; forks can use their own branding.

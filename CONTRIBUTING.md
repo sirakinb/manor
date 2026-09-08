@@ -1,9 +1,17 @@
 <!-- Modified for Manor: contribution scope, project links, and reporting contacts. -->
 # Contributing to Manor
 
-Thanks for helping improve Manor. Keep changes focused and testable.
+Manor is a template you can adapt for your own service business. The maintainer
+continues to develop the core product; using or customizing a fork does not require
+contributing changes back.
 
-Open issues and pull requests in [the Manor repository](https://github.com/sirakinb/manor).
+Suggestions and bug reports are welcome in
+[the Manor repository](https://github.com/sirakinb/manor). Before investing in a
+large pull request, open an issue to discuss whether it fits the
+[product priorities](WISHLIST.md). Business-specific features can stay in your fork.
+Pull requests are considered for fit with the product direction; acceptance and
+ongoing support for custom deployments are not guaranteed. Keep changes focused
+and testable.
 For vulnerabilities, use the private reporting process in [SECURITY.md](SECURITY.md).
 
 ## Run locally
@@ -12,7 +20,7 @@ See [README.md](README.md) for full details. Quick start from the repo root:
 
 ```bash
 cp .env.example .env
-# Set BETTER_AUTH_SECRET and ENCRYPTION_KEY to long random strings.
+# Configure the required secrets and sandbox token as described in README.md.
 docker compose --env-file .env -f infra/compose/docker-compose.yml up postgres -d
 pnpm install
 pnpm db:generate

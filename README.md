@@ -5,7 +5,7 @@
 
 <h1 align="center">Manor</h1>
 
-<p align="center"><em>Your team of always-on AI agents that you can give real work to.</em></p>
+<p align="center"><em>A home for your service business, with a team of AI agents.</em></p>
 
 <p align="center">by <a href="https://pentridgemedia.com">Pentridge</a></p>
 
@@ -13,15 +13,50 @@
 
 ## The problem with running a service business
 
-If you run a service business — property management, a law practice, a med spa, a cleaning company, an agency — you already know the shape of the problem, because you live inside it.
-
-You find the leads. You answer the phone. You write the follow-ups. You chase the invoices. You update the CRM, when you remember to. Every task in the business waits for the same person: you. Software was supposed to help, and instead it gave you eleven more tabs to check.
-
-The tools never actually *did* the work. They just held the work until you got there.
+Leads, customer records, invoices, and recurring tasks often live in separate tools.
+AI adds more options, but connecting them to everyday business operations still
+takes work. Manor gives service businesses a shared place to organize that work
+and build a team of agents around it.
 
 ## What Manor is
 
-Manor is a different bet: instead of giving you another tool, it gives you **staff**.
+Manor is an AI agent platform for service businesses. It brings a team of agents,
+a built-in CRM, business data, and recurring work into one place: a home for your
+business that connects with the tools and AI platforms you already use.
+
+The product centers on three areas:
+
+- **Agent workspace:** bring relevant operational data together so agents and people
+  can work from shared context. A property management business might organize leases,
+  utility workflows, and campaign results here.
+- **CRM:** keep contacts and deals in a system of record alongside the agents that
+  work with them. The direction is to connect website and form intake to follow-up
+  workflows and track how leads become customers.
+- **Business agents:** give each agent a role, responsibilities, and boundaries.
+  Intake, content, and payments are examples of roles you can build toward, with
+  routines and webhook triggers connecting them to business processes.
+
+See the [product priorities](./WISHLIST.md) for the intended direction and the
+[documentation index](./docs/README.md) for implementation details. The workspace
+currently has specific operational sections; a freely configurable canvas is a
+product priority, not a finished setup experience.
+
+## Make it your own
+
+Use Manor as a template for your own service business. Fork or clone it, run your
+own instance, and adapt the agents, workflows, workspace, and branding to fit your
+operations. You can keep the current logo and sprites or use your own branding;
+see the [asset guide](./public/README.md).
+
+Start with one agent and one recurring source of friction. Give it a clear role,
+connect the tools it needs, and verify a small task before adding routines or more
+agents. The first useful result matters more than configuring an entire team.
+
+This repository follows the maintainer's product direction. Suggestions and bug
+reports are welcome; contributing changes back is optional. Business-specific
+customizations can live in your own fork.
+
+## Agent computers
 
 Each agent in Manor is hired like an employee, not prompted like a chatbot. You give it a name, a role, and a charter — what it owns, what good work looks like, and where it must stop and ask you. Then it gets the thing no chatbot has ever had:
 
@@ -47,7 +82,8 @@ TypeScript end to end — React 19 + Vite on the web, Electron on desktop, Expo 
 
 ## Run it yourself
 
-You'll need Node.js 22+, pnpm 9, and Docker Desktop.
+For a source checkout, use Node.js 22.22.2 or a version supported by
+[`package.json`](./package.json), pnpm 9.15.0, and Docker with the Compose plugin.
 
 ```bash
 git clone https://github.com/sirakinb/manor.git
@@ -87,7 +123,10 @@ pnpm dev
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173), create an account, connect a model, and create
 your first bot.
 
-That runs Manor locally. To put it in the cloud — your own always-on instance behind a Cloudflare Tunnel, like the one this repo was built for — follow the step-by-step guide in [`docs/DEPLOY.md`](./docs/DEPLOY.md). Three accounts (a ~$15/mo VPS, a domain, free Cloudflare), six steps, about 45 minutes.
+That runs Manor locally. To deploy a source checkout on a VPS, follow the
+[deployment guide](./docs/DEPLOY.md). It covers server preparation, configuration,
+and the Compose launch command. A guided command that takes a fresh clone through
+VPS setup and first-agent verification is planned; it is not available yet.
 
 ### Self-host from published images
 
