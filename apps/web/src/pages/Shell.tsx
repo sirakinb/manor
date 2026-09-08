@@ -3540,7 +3540,13 @@ export function ShellPage() {
                 </div>
               </div>
             ) : null}
-            {panel === "logs" && active ? <RunLogsPanel key={active.id} botId={active.id} /> : null}
+            {panel === "logs" && active ? (
+              <RunLogsPanel
+                key={active.id}
+                botId={active.id}
+                isDeploymentOwner={bootstrapMe?.isDeploymentOwner === true}
+              />
+            ) : null}
             {panel === "files" && active ? (
               <FilesPanel
                 key={`${active.id}:${computer?.mode ?? "team"}`}

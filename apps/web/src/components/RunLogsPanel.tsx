@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { rpc } from "../lib/rpc";
 import { BuiButton, BuiCard, LoadingState } from "./beautiful-ui/primitives";
 
-export function RunLogsPanel({ botId }: { botId: string }) {
+export function RunLogsPanel({
+  botId,
+  isDeploymentOwner = false,
+}: {
+  botId: string;
+  isDeploymentOwner?: boolean;
+}) {
   const { t } = useLingui();
   const controller = useMemo(() => new RunLogsController(botId, rpc.runs), [botId]);
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
@@ -36,6 +42,16 @@ export function RunLogsPanel({ botId }: { botId: string }) {
         >
           <Trans>Copy diagnostics</Trans>
         </BuiButton>
+        {isDeploymentOwner && data ? (
+          <a
+            href={`/app/maintenance?runId=${encodeURIComponent(data.run.id)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full px-4 py-2 text-[#C4B5FD]"
+          >
+            <Trans>Report issue</Trans>
+          </a>
+        ) : null}
         <span role="status">{copyStatus}</span>
       </div>
       {state.error ? (

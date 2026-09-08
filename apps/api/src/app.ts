@@ -4,6 +4,7 @@ import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import type {
   JobPublisher,
+  MaintenanceAdapter,
   ManagedConnectorProvider,
   MessagingSurface,
   RealtimeFanout,
@@ -97,6 +98,7 @@ export interface AppHandles {
 
 export async function createApp(
   overrides: Partial<AppEnv> & {
+    maintenance?: MaintenanceAdapter;
     prisma?: PrismaClient;
     realtime?: RealtimeFanout;
     composio?: ComposioProvider;
@@ -114,6 +116,7 @@ export async function createApp(
     messaging: messagingOverride,
     email: emailOverride,
     remoteConnectors,
+    maintenance,
     ...envOverrides
   } = overrides;
   const env = { ...loadEnv(process.env), ...envOverrides };
@@ -305,6 +308,7 @@ export async function createApp(
   });
 
   const jobHandlers = createBackgroundJobHandlers({
+    maintenance,
     executor,
     prisma,
     sandbox,
@@ -329,6 +333,7 @@ export async function createApp(
   reconciler?.start();
 
   const router = createRouter({
+    maintenance,
     prisma,
     events,
     auth,
