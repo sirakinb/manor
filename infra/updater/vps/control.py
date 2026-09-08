@@ -131,7 +131,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--policy", required=True)
     args = parser.parse_args()
-    policy = load_policy(args.policy)
+    policy = load_policy(args.policy, connected=True)
     state = Path(policy["stateDir"])
     state.mkdir(mode=0o700, parents=True, exist_ok=True)
     # A second process must not mark a live broker command interrupted or replace

@@ -49,6 +49,34 @@ class OperatorBoundaryTests(unittest.TestCase):
             with self.assertRaisesRegex(Refused, "incomplete_policy"):
                 load_policy(self.save_policy(policy))
 
+    def test_connected_policy_requires_paths_and_private_credentials_before_startup(self):
+        policy = self.policy()
+        paths = ("controlSocket", "workspaceStateDir", "gateStateDir")
+        tokens = ("workspaceTokenFile", "applicationTokenFile", "operatorTokenFile")
+        for key in paths:
+            policy[key] = str(self.root / key)
+        for key in tokens:
+            file = self.root / key
+            file.write_text("synthetic-" + key + "-" * 40)
+            file.chmod(0o600)
+            policy[key] = str(file)
+        self.assertEqual(load_policy(self.save_policy(policy), connected=True), policy)
+        for key in paths + tokens:
+            invalid = {k: v for k, v in policy.items() if k != key}
+            with self.assertRaisesRegex(Refused, "incomplete_policy"):
+                load_policy(self.save_policy(invalid), connected=True)
+        for key in paths:
+            with self.assertRaisesRegex(Refused, "absolute_control_paths_required"):
+                load_policy(self.save_policy({**policy, key: "relative"}), connected=True)
+        for key in tokens:
+            file = Path(policy[key])
+            file.chmod(0o640)
+            with self.assertRaisesRegex(Refused, "deployment_config_must_be_operator_owned"):
+                load_policy(self.save_policy(policy), connected=True)
+            file.chmod(0o600)
+            with self.assertRaisesRegex(Refused, "deployment_config_unavailable"):
+                load_policy(self.save_policy({**policy, key: str(file) + "-missing"}), connected=True)
+
     def test_credentials_must_be_private_regular_operator_files(self):
         for key in ("ownerTokenFile", "developerTokenFile", "maintenanceTokenFile"):
             policy = self.policy()

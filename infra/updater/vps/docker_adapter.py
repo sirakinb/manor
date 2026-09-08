@@ -84,7 +84,7 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
             child.stderr.close()
 
 
-def load_policy(filename):
+def load_policy(filename, *, connected=False):
     path = Path(filename)
     info = path.lstat()
     if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o022:
@@ -94,8 +94,15 @@ def load_policy(filename):
                 "envFile", "project", "services", "testCommand", "buildCommand",
                 "maintenanceUrl", "maintenanceTokenFile", "mode",
                 "ownerTokenFile", "developerTokenFile"}
+    if connected:
+        required |= {"workspaceTokenFile", "applicationTokenFile", "operatorTokenFile",
+                     "controlSocket", "workspaceStateDir", "gateStateDir"}
     if not required <= set(policy):
         raise Refused("incomplete_policy")
+    if connected:
+        for key in ("controlSocket", "workspaceStateDir", "gateStateDir"):
+            if not isinstance(policy[key], str) or not Path(policy[key]).is_absolute():
+                raise Refused("absolute_control_paths_required")
     if policy["mode"] not in {"isolated", "production"}:
         raise Refused("invalid_mode")
     if policy["mode"] == "production" and policy.get("productionReviewed") is not True:
@@ -108,7 +115,10 @@ def load_policy(filename):
         raise Refused("invalid_project")
     if policy["mode"] == "isolated" and not policy["project"].startswith("manor-test-"):
         raise Refused("isolated_project_required")
-    for key in ("composeFile", "envFile", "maintenanceTokenFile", "ownerTokenFile", "developerTokenFile"):
+    private_files = ("composeFile", "envFile", "maintenanceTokenFile", "ownerTokenFile", "developerTokenFile")
+    if connected:
+        private_files += ("workspaceTokenFile", "applicationTokenFile", "operatorTokenFile")
+    for key in private_files:
         try:
             info = Path(policy[key]).lstat()
         except (OSError, TypeError):

@@ -19,7 +19,7 @@ requires these fixed values. Never derive paths, images or service names from a 
 | `producerServices`, `computerNetwork` | Exact production writers and dedicated computer network |
 | `databaseContainer`, `databaseUser`, `databaseName` | Operator-selected production database to back up |
 | `postgresImage`, `backupImage` | Immutable trusted PostgreSQL and archive utility image IDs |
-| `backupTimeoutSeconds` | Operator backup request budget; defaults to 600 seconds for dump, restore and archive stages |
+| `backupTimeoutSeconds` | Backup request budget, shared by dump, restore and archive stages; defaults to 600 seconds |
 | `dataVolume` | Existing application storage volume, never a candidate-selected mount |
 | `productionAdmission: true` | Require guarded health and verified backup before switching |
 | `compatibilityPolicy: unchanged-schema-and-toolchain-v1` | Permit only compatible application changes |

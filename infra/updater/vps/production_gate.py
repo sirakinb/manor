@@ -7,6 +7,7 @@ import re
 import sqlite3
 import subprocess
 import threading
+import time
 from pathlib import Path
 
 from docker_adapter import admission, quota_directory, run
@@ -116,6 +117,12 @@ class ProductionGate:
             prior = db.execute("SELECT receipt FROM backups WHERE id=?", (operation,)).fetchone()
             if prior:
                 return {"verified": True, "receipt": prior[0]}
+        deadline = time.monotonic() + self.policy.get("backupTimeoutSeconds", 600)
+        def remaining():
+            budget = deadline - time.monotonic()
+            if budget <= 0:
+                raise Refused("backup_timeout")
+            return budget
         admission(self.state, 256, disk_mb=self.policy.get("backupReserveMb", 4096))
         for container in self.producer_ids():
             paused = run(["docker", "inspect", "--format", "{{.State.Paused}}", container]).decode().strip()
@@ -131,7 +138,7 @@ class ProductionGate:
                    "--no-owner", "--no-privileges", "-U", self.policy["databaseUser"], self.policy["databaseName"]]
         with database.open("wb") as output, (directory / "backup-error.txt").open("wb") as errors:
             try:
-                subprocess.run(command, stdout=output, stderr=errors, timeout=120, check=True)
+                subprocess.run(command, stdout=output, stderr=errors, timeout=remaining(), check=True)
             except (subprocess.SubprocessError, OSError):
                 raise Refused("database_backup_failed") from None
             output.flush()
@@ -139,18 +146,18 @@ class ProductionGate:
         # Verify a real restore in an isolated disposable database, not only a TOC.
         name = "manor-backup-check-" + operation
         postgres = self.policy["postgresImage"]
-        restore = quota_directory(directory, "restore", 1024)
-        restore_data = restore / "database"
-        restore_data.mkdir(mode=0o700, exist_ok=True)
-        run(["chown", "999:999", str(restore_data)])
+        restore = directory / "restore"
         restore_failed = False
         try:
+            restore = quota_directory(directory, "restore", 1024)
+            restore_data = restore / "database"
+            restore_data.mkdir(mode=0o700, exist_ok=True)
+            run(["chown", "999:999", str(restore_data)])
             run(["docker", "run", "-d", "--name", name, "--network", "none", "--read-only", "--user", "999:999",
                  "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "256m", "--memory-swap", "256m",
                  "--cpus", "0.5", "--pids-limit", "64", "--mount", "type=bind,src=" + str(restore_data) + ",dst=/var/lib/postgresql/data",
                  "--tmpfs", "/var/run/postgresql:rw,uid=999,gid=999,size=8m",
                  "--env", "POSTGRES_HOST_AUTH_METHOD=trust", postgres])
-            import time
             for attempt in range(30):
                 try:
                     # The image's temporary initialization server accepts Unix
@@ -164,7 +171,7 @@ class ProductionGate:
             with database.open("rb") as source, (directory / "restore-error.txt").open("wb") as errors:
                 try:
                     subprocess.run(["docker", "exec", "-i", name, "pg_restore", "--exit-on-error", "--no-owner", "--no-privileges",
-                                    "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"], stdin=source, stdout=errors, stderr=errors, timeout=120, check=True)
+                                    "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"], stdin=source, stdout=errors, stderr=errors, timeout=remaining(), check=True)
                 except (subprocess.SubprocessError, OSError):
                     raise Refused("database_restore_verification_failed") from None
         except BaseException:
@@ -172,10 +179,12 @@ class ProductionGate:
             raise
         finally:
             try:
-                run(["docker", "rm", "-f", name])
+                if run(["docker", "ps", "-aq", "--filter", "name=^" + name + "$"]).strip():
+                    run(["docker", "rm", "-f", name])
                 if os.path.ismount(restore):
                     run(["umount", str(restore)])
-                restore.rmdir()
+                if restore.exists():
+                    restore.rmdir()
                 (directory / "restore.ext4").unlink(missing_ok=True)
             except (Refused, OSError):
                 # Preserve the original restore failure. A cleanup failure after a
@@ -189,7 +198,7 @@ class ProductionGate:
              "--security-opt", "no-new-privileges", "--memory", "128m", "--pids-limit", "32",
              "--mount", "type=volume,src=" + self.policy["dataVolume"] + ",dst=/data,readonly",
              "--mount", "type=bind,src=" + str(directory) + ",dst=/backup",
-             self.policy["backupImage"], "sh", "-c", "tar -czf /backup/application.tar.gz -C /data . && tar -tzf /backup/application.tar.gz >/dev/null"], timeout=120)
+             self.policy["backupImage"], "sh", "-c", "tar -czf /backup/application.tar.gz -C /data . && tar -tzf /backup/application.tar.gz >/dev/null"], timeout=remaining())
         hashes = {}
         for path in (database, directory / "application.tar.gz"):
             with path.open("rb") as source:
@@ -229,10 +238,11 @@ class ProductionGate:
             closed, operation = db.execute("SELECT closed,operation FROM gate WHERE id=1").fetchone()
             if not closed or not db.execute("SELECT id FROM backups WHERE id=?", (operation,)).fetchone():
                 raise Refused("verified_backup_required")
+            owned = {row[0] for row in db.execute("SELECT id FROM paused")}
         for service in self.policy["services"]:
-            ids = run(["docker", "ps", "-q", "--filter", "label=com.docker.compose.project=" + self.policy["project"],
+            ids = run(["docker", "ps", "-q", "--no-trunc", "--filter", "label=com.docker.compose.project=" + self.policy["project"],
                        "--filter", "label=com.docker.compose.service=" + service]).decode().split()
             for container in ids:
-                if run(["docker", "inspect", "--format", "{{.State.Paused}}", container]).decode().strip() == "true":
+                if container in owned and run(["docker", "inspect", "--format", "{{.State.Paused}}", container]).decode().strip() == "true":
                     run(["docker", "unpause", container])
         return {"closed": True}

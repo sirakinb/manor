@@ -61,6 +61,8 @@ class AdmissionTests(unittest.TestCase):
         restore = Path(self.temp.name) / "synthetic-restore"
         restore.mkdir()
         def command(argv, **_kwargs):
+            if argv[:3] == ["docker", "ps", "-aq"]:
+                return b"synthetic-container"
             if argv[:3] == ["docker", "rm", "-f"]:
                 raise Refused("synthetic_cleanup_failure")
             return b""
