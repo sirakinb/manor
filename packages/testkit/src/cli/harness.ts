@@ -92,6 +92,7 @@ async function main() {
           "packages/testkit/src/journeys.test.ts",
           "packages/testkit/src/authorization.test.ts",
           "packages/adapters/src/maintenance.postgres.test.ts",
+          "packages/adapters/src/maintenance-vps.postgres.test.ts",
           "packages/testkit/src/attachments.test.ts",
           "packages/testkit/src/voice.test.ts",
           "packages/testkit/src/search.test.ts",

@@ -14,9 +14,11 @@ import tempfile
 import tarfile
 import time
 import urllib.request
+import urllib.error
 from pathlib import Path
 
 from release import COMMIT, IMAGE, Refused, canonical
+from source_policy import automatic_source_compatible
 
 MAX_ARCHIVE = 128 * 1024 * 1024
 MIB = 1024 * 1024
@@ -59,8 +61,9 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
                             raise Refused("command_output_limit")
                         if key.fileobj is child.stdout:
                             output.extend(chunk)
-                        elif len(diagnostic) < 8192:
-                            diagnostic.extend(chunk[:8192-len(diagnostic)])
+                        else:
+                            diagnostic.extend(chunk)
+                            del diagnostic[:-6000]
             try:
                 status = child.wait(timeout=max(0.01, deadline-time.monotonic()))
             except subprocess.TimeoutExpired:
@@ -68,6 +71,8 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
             if status:
                 error = Refused("command_failed")
                 error.diagnostic = diagnostic.decode("utf-8", errors="replace")
+                if output:
+                    error.diagnostic += "\nOutput tail:\n" + output[-1800:].decode("utf-8", errors="replace")
                 raise error
             return bytes(output)
         finally:
@@ -79,7 +84,7 @@ def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
             child.stderr.close()
 
 
-def load_policy(filename):
+def load_policy(filename, *, connected=False):
     path = Path(filename)
     info = path.lstat()
     if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o022:
@@ -89,19 +94,31 @@ def load_policy(filename):
                 "envFile", "project", "services", "testCommand", "buildCommand",
                 "maintenanceUrl", "maintenanceTokenFile", "mode",
                 "ownerTokenFile", "developerTokenFile"}
+    if connected:
+        required |= {"workspaceTokenFile", "applicationTokenFile", "operatorTokenFile",
+                     "controlSocket", "workspaceStateDir", "gateStateDir"}
     if not required <= set(policy):
         raise Refused("incomplete_policy")
+    if connected:
+        for key in ("controlSocket", "workspaceStateDir", "gateStateDir"):
+            if not isinstance(policy[key], str) or not Path(policy[key]).is_absolute():
+                raise Refused("absolute_control_paths_required")
     if policy["mode"] not in {"isolated", "production"}:
         raise Refused("invalid_mode")
     if policy["mode"] == "production" and policy.get("productionReviewed") is not True:
         raise Refused("production_review_required")
+    if policy.get("unguardedBootstrapImage") is not None and not IMAGE.fullmatch(policy["unguardedBootstrapImage"]):
+        raise Refused("immutable_bootstrap_image_required")
     if not IMAGE.fullmatch(policy["toolchainImage"]):
         raise Refused("toolchain_must_be_immutable")
     if not re.fullmatch(r"manor-[a-z0-9-]{1,40}", policy["project"]):
         raise Refused("invalid_project")
     if policy["mode"] == "isolated" and not policy["project"].startswith("manor-test-"):
         raise Refused("isolated_project_required")
-    for key in ("composeFile", "envFile", "maintenanceTokenFile", "ownerTokenFile", "developerTokenFile"):
+    private_files = ("composeFile", "envFile", "maintenanceTokenFile", "ownerTokenFile", "developerTokenFile")
+    if connected:
+        private_files += ("workspaceTokenFile", "applicationTokenFile", "operatorTokenFile")
+    for key in private_files:
         try:
             info = Path(policy[key]).lstat()
         except (OSError, TypeError):
@@ -327,7 +344,7 @@ class DockerAdapter:
                     "--cpus", "1", "--memory", str(memory) + "m",
                     "--memory-swap", str(memory) + "m", "--pids-limit", "128",
                     "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",
-                    "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,uid=1000,gid=1000",
+                    "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=64m,uid=1000,gid=1000",
                     "--mount", "type=bind,src=" + str(app) + ",dst=/app",
                     "--workdir", "/app", "--env", "NODE_OPTIONS=--max-old-space-size=" + str(max(64, memory - 128)),
                     "--env", "RAKAZO_ALLOW_DEV_SECRETS=1",
@@ -336,7 +353,9 @@ class DockerAdapter:
         evidence = hashlib.sha256()
         try:
             self.docker("start", name)
-            for command in (self.policy["testCommand"], self.policy["buildCommand"]):
+            # Generate/build source first so checks can import generated clients. The
+            # same checks run again against the immutable final image below.
+            for command in (self.policy["buildCommand"], self.policy["testCommand"]):
                 output = self.docker("exec", name, *command, timeout=1800, max_output=MIB)
                 evidence.update(canonical(command).encode())
                 evidence.update(output)
@@ -386,7 +405,7 @@ class DockerAdapter:
                 "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
                 "--cpus", "1", "--memory", str(memory) + "m", "--memory-swap", str(memory) + "m",
                 "--pids-limit", "128", "--workdir", "/app",
-                "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,uid=1000,gid=1000",
+                "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=64m,uid=1000,gid=1000",
                 image, *self.policy["testCommand"], timeout=1800, max_output=MIB)
             evidence.update(output)
         finally:
@@ -408,9 +427,19 @@ class DockerAdapter:
         images = set()
         for service in self.policy["services"]:
             container = self.compose("ps", "-q", service).decode().strip()
+            stopped_bootstrap = not container and self.policy.get("unguardedBootstrapImage")
+            if stopped_bootstrap:
+                # Initial writers predate admission. Keep them stopped across backup
+                # and replacement; only the operator-pinned old image may use this.
+                container = self.compose("ps", "--all", "-q", service).decode().strip()
             if not container or "\n" in container:
                 raise Refused("single_running_service_required")
             image = self.docker("inspect", "--format", "{{.Image}}", container).decode().strip()
+            if stopped_bootstrap:
+                state = json.loads(self.docker("inspect", "--format", "{{json .State}}", container))
+                if (image != self.policy["unguardedBootstrapImage"] or state.get("Running") is not False
+                        or state.get("Restarting") is not False or state.get("Pid") != 0):
+                    raise Refused("stopped_bootstrap_image_required")
             images.add(image)
         if len(images) != 1:
             raise Refused("mixed_application_images")
@@ -418,6 +447,10 @@ class DockerAdapter:
 
     def activate(self, image):
         self.verify_image(image)
+        if self.policy.get("productionAdmission") is True:
+            # Resume application processes behind closed admission before Compose
+            # replaces them. Ancillary producers stay frozen until release completes.
+            self.maintenance("switch")
         self.compose("up", "-d", "--no-deps", "--no-build", "--pull", "never",
                      "--wait", "--wait-timeout", "120", *self.policy["services"], image=image)
 
@@ -431,7 +464,8 @@ class DockerAdapter:
                 if probe:
                     container = self.compose("ps", "-q", probe["service"]).decode().strip()
                     url = "http://127.0.0.1:" + str(probe["port"]) + probe["path"]
-                    code = "fetch(" + json.dumps(url) + ",{redirect:'error',signal:AbortSignal.timeout(3000)}).then(async r=>{if(!r.ok||(await r.json()).ok!==true)process.exit(1)}).catch(()=>process.exit(1))"
+                    require_guard = "||s.maintenanceAdmission!==true" if self.policy.get("productionAdmission") is True and image != self.policy.get("unguardedBootstrapImage") else ""
+                    code = "fetch(" + json.dumps(url) + ",{redirect:'error',signal:AbortSignal.timeout(3000)}).then(async r=>{const s=await r.json();if(!r.ok||s.ok!==true" + require_guard + ")process.exit(1)}).catch(()=>process.exit(1))"
                     self.docker("exec", container, "node", "-e", code, timeout=5, max_output=MIB)
                     return
                 with urllib.request.urlopen(self.policy["healthUrl"], timeout=3) as response:
@@ -450,11 +484,17 @@ class DockerAdapter:
             headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
         )
         try:
-            with urllib.request.urlopen(request, timeout=10) as response:
+            timeout = self.policy.get("backupTimeoutSeconds", 600) if action == "backup" else 10
+            with urllib.request.urlopen(request, timeout=timeout) as response:
                 value = json.load(response)
             if not isinstance(value, dict):
                 raise ValueError()
             return value
+        except urllib.error.HTTPError as response:
+            error = Refused("maintenance_adapter_unavailable")
+            error.diagnostic = response.read(4096).decode("utf-8", errors="replace")
+            response.close()
+            raise error from None
         except Exception:
             raise Refused("maintenance_adapter_unavailable") from None
 
@@ -486,5 +526,18 @@ class DockerAdapter:
 
     def require_compatible(self, revision, action):
         # No automatic database restore. Production must explicitly allow the tested commit.
-        if self.policy["mode"] == "production" and revision not in self.policy.get("schemaCompatibleRevisions", []):
+        if self.policy["mode"] != "production" or revision in self.policy.get("schemaCompatibleRevisions", []):
+            return
+        if self.policy.get("compatibilityPolicy") != "unchanged-schema-and-toolchain-v1":
             raise Refused("database_recovery_review_required")
+        environment = json.loads(self.docker("image", "inspect", "--format", "{{json .Config.Env}}", self.current_image()))
+        base = next((value.removeprefix("GIT_SHA=") for value in environment if value.startswith("GIT_SHA=")), "")
+        if not COMMIT.fullmatch(base):
+            raise Refused("running_revision_unknown")
+        git = ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
+               "-c", "safe.directory=" + self.policy["repository"], "-C", self.policy["repository"]]
+        ancestor, descendant = (revision, base) if action == "rollback" else (base, revision)
+        run(git + ["merge-base", "--is-ancestor", ancestor, descendant])
+        changed = run(git + ["diff", "--name-only", "-z", base, revision], max_output=65536).decode().split("\x00")
+        if not automatic_source_compatible(changed):
+            raise Refused("separate_operator_release_required")

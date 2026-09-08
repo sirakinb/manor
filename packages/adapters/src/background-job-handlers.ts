@@ -15,6 +15,7 @@ import { scheduleComputerSleep, sleepComputerIfIdle } from "./computer-idle.js";
 import type { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
 import { createMaintenanceService } from "./maintenance.js";
+import type { MaintenanceAdmission } from "./maintenance-control.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-delivery.js";
 import type { EncryptedSecretStore } from "./secrets.js";
@@ -24,6 +25,7 @@ import { runWorkspaceReport } from "./workspace-report-runner.js";
 
 export function createBackgroundJobHandlers(deps: {
   maintenance?: MaintenanceAdapter;
+  admission?: MaintenanceAdmission;
   executor: ReturnType<typeof createRunExecutor>;
   prisma: PrismaClient;
   sandbox: SandboxProvider;
@@ -54,7 +56,7 @@ export function createBackgroundJobHandlers(deps: {
     );
   };
 
-  return {
+  const handlers: BackgroundJobHandlers = {
     "maintenance.advance": async ({ jobId }) => {
       await createMaintenanceService(deps.prisma, deps.maintenance).advance(jobId);
     },
@@ -121,4 +123,14 @@ export function createBackgroundJobHandlers(deps: {
       );
     },
   };
+  if (!deps.admission) return handlers;
+  const admission = deps.admission;
+  return Object.fromEntries(
+    Object.entries(handlers).map(([name, handler]) => [
+      name,
+      name === "maintenance.advance"
+        ? handler
+        : (payload: never) => admission.run(() => handler(payload)),
+    ]),
+  ) as BackgroundJobHandlers;
 }

@@ -1,9 +1,12 @@
 # Developing and maintaining Manor from a VPS
 
-Status: a Linux foundation is implemented in [infra/updater/vps](../infra/updater/vps/README.md).
-The [release interface](release-interface.md) is available for the Maintenance
-Agent workstream. Production activation still requires a separate release review;
-the included maintenance adapter is synthetic and must not be used for production.
+The Linux development and release foundation is implemented in
+[infra/updater/vps](../infra/updater/vps/README.md). The owner-only Maintenance Agent
+connects through the shared [release interface](release-interface.md), private
+workspace broker and production admission guard. Activation is opt-in and requires
+the [operator configuration](maintenance-operations.md); merging source does not
+turn it on. The automated agent currently offers a source diff preview. Live
+application preview hosting remains a separate integration.
 
 The laptop can become an access device: an editor, terminal or Manor chat controls
 a persistent development checkout on the VPS. Source changes, test databases,
@@ -60,10 +63,10 @@ automating incident intake.
 
 ## Release controller
 
-The repository has an updater API and sidecar under `infra/updater`; the VPS
-Compose configuration does not currently deploy that sidecar. Audit its repository
-allowlist, image/build assumptions, backup support and rollback behavior for this
-fork before enabling it. It is an update executor, not a code-writing agent.
+The trusted controller in `infra/updater/vps` is installed outside candidate source.
+Its durable release journal, admission guard and verified backup boundary are shared
+by remote developers and Maintenance. The legacy updater stays disabled for the same
+deployment; there must be one release executor.
 
 The release boundary accepts an exact reviewed revision, runs required checks,
 prepares a restorable backup, waits for active work to reach a safe boundary, then

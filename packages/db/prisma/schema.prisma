@@ -2148,6 +2148,8 @@ model MaintenanceJob {
   review Json?
   reviewKey String?
   approvedRevision String?
+  execution Json?
+  executionLeaseUntil DateTime?
   message String @default("")
   simulated Boolean @default(false)
   version Int @default(0)

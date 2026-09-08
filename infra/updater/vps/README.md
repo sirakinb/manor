@@ -24,11 +24,11 @@ Expose workspace commands through an operator-controlled broker that fixes
 the state directory and workspace identity; do not expose the operator CLI
 or let a caller choose policy paths.
 
-Production activation additionally requires a real maintenance adapter.
-The synthetic adapter in `fixtures/gate.py` is a test fixture, not a
-production implementation. Until admission, all worker producers and backup
-verification are integrated, leave the controller disconnected from production.
-The old updater must remain disabled for the same target.
+The connected `control.py` bridge includes the workspace broker and durable
+production guard. Follow [maintenance operations](../../../docs/maintenance-operations.md)
+for its separate credentials, producer policy and backup configuration. The synthetic
+adapter in `fixtures/gate.py` remains test-only. Activation requires a passing
+rehearsal and reviewed policy. The old updater stays disabled for the same target.
 
 ## Capacity and isolation
 
@@ -198,8 +198,7 @@ native client or production migration was exercised.
    and scoped workspace broker. Do not give the agent owner approval authority.
 6. Configure operator-only service startup and recover an interrupted rehearsal
    before enabling production. A pending journal requires explicit owner recovery.
-7. Obtain deployment-owner approval for the exact tested manifest. This task
-   opens a draft PR; it does not merge or activate the production controller.
+7. Obtain deployment-owner approval for the exact tested manifest before activation.
 
 Web, Electron and mobile keep their existing server API. Native installer and
 store releases continue through their existing documented release workflows.

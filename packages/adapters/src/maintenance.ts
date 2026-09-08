@@ -111,6 +111,7 @@ export function createMaintenanceService(prisma: PrismaClient, adapter?: Mainten
         row.status !== "review" ||
         !review.success ||
         !maintenanceReviewPassed(review.data) ||
+        (adapter.mode === "connected" && !review.data.release) ||
         row.reviewKey !== input.reviewKey ||
         row.reviewKey !== approvalEffectKey(row.id, "maintenance.release", review.data) ||
         review.data.revision !== input.revision
@@ -183,11 +184,15 @@ export function createMaintenanceService(prisma: PrismaClient, adapter?: Mainten
             ownerUserId: row.ownerUserId,
             issue: row.issue,
             evidence: row.evidence,
-            signal: AbortSignal.timeout(20_000),
+            signal: AbortSignal.timeout(adapter.mode === "connected" ? 20 * 60_000 : 20_000),
           });
           await requireMaintenanceOwner(prisma, row.ownerUserId);
           if (result.status === "running") {
             await change(row, { nextAttemptAt });
+            return;
+          }
+          if (result.status === "failed") {
+            await change(row, { status: "failed", message: result.message });
             return;
           }
           const review = MaintenanceReviewSchema.parse(result.review);
@@ -204,6 +209,7 @@ export function createMaintenanceService(prisma: PrismaClient, adapter?: Mainten
           const review = MaintenanceReviewSchema.parse(row.review);
           if (
             !maintenanceReviewPassed(review) ||
+            (adapter.mode === "connected" && !review.release) ||
             row.approvedRevision !== review.revision ||
             row.reviewKey !== approvalEffectKey(row.id, "maintenance.release", review)
           ) {
@@ -218,6 +224,7 @@ export function createMaintenanceService(prisma: PrismaClient, adapter?: Mainten
             ownerUserId: row.ownerUserId,
             revision: review.revision,
             reviewKey: row.reviewKey,
+            review,
             signal: AbortSignal.timeout(20_000),
           });
           await requireMaintenanceOwner(prisma, row.ownerUserId);

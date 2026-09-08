@@ -181,6 +181,19 @@ function MaintenancePanel({ userId }: { userId: string }) {
                         </li>
                       ))}
                     </ul>
+                    {job.review.release ? (
+                      <details>
+                        <summary className="cursor-pointer">Release manifest</summary>
+                        <dl className="mt-3 space-y-2 break-all text-xs text-[#A8A8AD]">
+                          <dt>Manifest</dt>
+                          <dd>{job.review.release.manifestHash}</dd>
+                          <dt>Prepared image</dt>
+                          <dd>{job.review.release.imageId}</dd>
+                          <dt>Test evidence</dt>
+                          <dd>{job.review.release.evidenceHash}</dd>
+                        </dl>
+                      </details>
+                    ) : null}
                     <p className="text-sm">{job.review.previewSummary}</p>
                     {job.review.previewUrl ? (
                       <a
