@@ -53,6 +53,11 @@ For each web bundle, container image, desktop installer, and mobile binary:
    Do not describe a release as license-cleared while required permissions or
    distribution obligations are unresolved.
 
+The web build emits the root `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.md`
+under `dist/licenses/`; CI compares them with their source files. Electron includes
+that web distribution in its resources. This covers those identified notices, not
+an inventory of all bundled dependencies.
+
 The application container copies the source tree, including its root license files.
 The selective-copy updater/supervisor images, computer image, desktop packaging,
 and mobile packaging need artifact-specific verification. This public-page change
