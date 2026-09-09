@@ -212,7 +212,7 @@ import {
   renderPlotSpecToSvg,
   searchChartCatalog,
 } from "./plot-tool.js";
-import { prepareRoutineWebhook, routineWebhookToken } from "./routine-webhook.js";
+import { prepareRoutineWebhook, routineWebhookRedactionSecrets } from "./routine-webhook.js";
 import {
   commitConsumedRunSecret,
   reconcileManagedConnection,
@@ -974,27 +974,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const hasModelOverride = Boolean(bot.modelProvider && bot.modelId);
         // A temporary setup file may be used again on a later turn. Keep its
         // routine credentials out of persisted narration and tool summaries too.
-        if (bot.webhookSecretId) {
-          const webhookSecret = await deps.prisma.secret.findFirst({
-            where: {
-              id: bot.webhookSecretId,
-              kind: "webhook",
-              spaceId: run.spaceId,
-              userId: bot.userId,
-            },
-          });
-          if (webhookSecret) {
-            const key = deps.secretStore.load(webhookSecret.ciphertext, webhookSecret.id);
-            runSecrets.push(key);
-            const webhookRoutines = await deps.prisma.routine.findMany({
-              where: { botId: bot.id, spaceId: run.spaceId, webhookEnabled: true },
-              select: { id: true },
-            });
-            runSecrets.push(
-              ...webhookRoutines.map((routine) => routineWebhookToken(key, routine.id)),
-            );
-          }
-        }
+        runSecrets.push(...(await routineWebhookRedactionSecrets(deps, bot)));
         const overrideCredential =
           hasModelOverride && bot.modelProvider
             ? await findModelCredential(deps.prisma, run, bot.modelProvider)

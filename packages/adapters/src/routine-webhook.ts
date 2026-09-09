@@ -11,6 +11,29 @@ export function routineWebhookToken(botSecret: string, routineId: string): strin
     .digest("base64url");
 }
 
+/** Load redaction values without making an unreadable webhook key block chat. */
+export async function routineWebhookRedactionSecrets(
+  deps: { prisma: PrismaClient; secretStore: EncryptedSecretStore },
+  bot: { id: string; spaceId: string; userId: string; webhookSecretId: string | null },
+): Promise<string[]> {
+  if (!bot.webhookSecretId) return [];
+  const secret = await deps.prisma.secret.findFirst({
+    where: { id: bot.webhookSecretId, kind: "webhook", spaceId: bot.spaceId, userId: bot.userId },
+  });
+  if (!secret) return [];
+  let key: string;
+  try {
+    key = deps.secretStore.load(secret.ciphertext, secret.id);
+  } catch {
+    return [];
+  }
+  const routines = await deps.prisma.routine.findMany({
+    where: { botId: bot.id, spaceId: bot.spaceId, webhookEnabled: true },
+    select: { id: true },
+  });
+  return [key, ...routines.map((routine) => routineWebhookToken(key, routine.id))];
+}
+
 export async function prepareRoutineWebhook(
   deps: {
     prisma: PrismaClient;

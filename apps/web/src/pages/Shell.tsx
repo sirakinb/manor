@@ -3805,7 +3805,9 @@ export function ShellPage() {
                   } catch (error) {
                     if (activeBotId.current === targetBotId) {
                       setRoutineError(
-                        error instanceof Error ? error.message : t`Could not save routine`,
+                        error instanceof Error
+                          ? error.message
+                          : t`Could not generate the webhook key`,
                       );
                     }
                     throw error;

@@ -4,7 +4,11 @@ import path from "node:path";
 import { promisify } from "node:util";
 import type { AdapterContext, CommandRequest, ComputerRef } from "@rakazo/adapter-kit";
 import { describe, expect, it, vi } from "vitest";
-import { prepareRoutineWebhook, routineWebhookToken } from "./routine-webhook.js";
+import {
+  prepareRoutineWebhook,
+  routineWebhookRedactionSecrets,
+  routineWebhookToken,
+} from "./routine-webhook.js";
 
 const context = {
   spaceId: "space-1",
@@ -38,7 +42,10 @@ function fixture(existing = true) {
     yield { type: "exit", code: 0 };
   });
   const prisma = {
-    routine: { findFirst: vi.fn().mockResolvedValue(routine) },
+    routine: {
+      findFirst: vi.fn().mockResolvedValue(routine),
+      findMany: vi.fn().mockResolvedValue([{ id: routine.id }]),
+    },
     bot: {
       findFirst: vi.fn().mockResolvedValue({
         id: "bot-1",
@@ -73,6 +80,24 @@ function fixture(existing = true) {
 }
 
 describe("routine webhook setup handoff", () => {
+  it("keeps chat available with an unreadable webhook key, while retaining unrelated errors", async () => {
+    const f = fixture();
+    const bot = { id: "bot-1", spaceId: "space-1", userId: "user-1", webhookSecretId: "secret-1" };
+    const deps = f.deps as unknown as Parameters<typeof routineWebhookRedactionSecrets>[0];
+    expect(await routineWebhookRedactionSecrets(deps, bot)).toEqual([
+      key,
+      routineWebhookToken(key, routine.id),
+    ]);
+    f.secretStore.load.mockImplementation(() => {
+      throw new Error("Malformed ciphertext");
+    });
+    f.prisma.routine.findMany.mockClear();
+    await expect(routineWebhookRedactionSecrets(deps, bot)).resolves.toEqual([]);
+    expect(f.prisma.routine.findMany).not.toHaveBeenCalled();
+    f.prisma.secret.findFirst.mockRejectedValue(new Error("Database unavailable"));
+    await expect(routineWebhookRedactionSecrets(deps, bot)).rejects.toThrow("Database unavailable");
+  });
+
   it.skipIf(process.platform === "win32")(
     "writes a private file without evaluating the instructions as shell code",
     async () => {
