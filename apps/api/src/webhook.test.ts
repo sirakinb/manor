@@ -1,3 +1,4 @@
+import { routineWebhookToken } from "@rakazo/adapters";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -94,6 +95,95 @@ describe("formatWebhookPrompt", () => {
 });
 
 describe("inbound webhook HTTP route", () => {
+  it("targets only the chosen routine and keeps all submission fields as event data", async () => {
+    const deps = createDeps();
+    vi.mocked(deps.prisma.routine.findMany).mockResolvedValue([
+      {
+        id: "routine-1",
+        name: "Welcome",
+        prompt: "Send the approved email and PDF.",
+        threadId: null,
+      },
+    ] as never);
+    const res = await mount(deps).request("/api/v1/bots/bot-1/routines/routine-1/webhook", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${routineWebhookToken(SECRET, "routine-1")}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: "submission-1",
+        text: "submitted",
+        email: "submitter@example.com",
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(deps.prisma.routine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          botId: "bot-1",
+          spaceId: "ws-1",
+          id: "routine-1",
+          active: true,
+          webhookEnabled: true,
+        },
+      }),
+    );
+    expect(deps.sendUserMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routineId: "routine-1",
+        threadId: "thread-1",
+        trigger: "webhook",
+        prompt: expect.stringContaining('"email": "submitter@example.com"'),
+        clientNonce: expect.stringContaining("webhook:bot-1:routine-1:"),
+      }),
+    );
+    expect(deps.sendUserMessage.mock.calls[0]?.[0].prompt).toContain(
+      "Send the approved email and PDF.",
+    );
+  });
+
+  it("does not let a routine token call another routine or the bot-wide endpoint", async () => {
+    const deps = createDeps();
+    for (const path of [
+      "/api/v1/bots/bot-1/routines/routine-2/webhook",
+      "/api/v1/bots/bot-1/webhook",
+    ]) {
+      const res = await mount(deps).request(path, {
+        method: "POST",
+        headers: { authorization: `Bearer ${routineWebhookToken(SECRET, "routine-1")}` },
+        body: "{}",
+      });
+      expect(res.status).toBe(401);
+    }
+    expect(deps.sendUserMessage).not.toHaveBeenCalled();
+  });
+
+  it("does not fall back to a generic bot run for a paused, removed, or foreign routine", async () => {
+    const deps = createDeps();
+    const res = await mount(deps).request("/api/v1/bots/bot-1/routines/missing/webhook", {
+      method: "POST",
+      headers: { authorization: `Bearer ${SECRET}` },
+      body: "{}",
+    });
+    expect(res.status).toBe(404);
+    expect(deps.sendUserMessage).not.toHaveBeenCalled();
+  });
+
+  it("accepts scoped query tokens and asks senders to retry dispatch failures", async () => {
+    const deps = createDeps();
+    vi.mocked(deps.prisma.routine.findMany).mockResolvedValue([
+      { id: "routine-1", name: "Welcome", prompt: "Send guide", threadId: null },
+    ] as never);
+    deps.enqueue.mockRejectedValue(new Error("unavailable"));
+    const res = await mount(deps).request(
+      `/api/v1/bots/bot-1/routines/routine-1/webhook?token=${routineWebhookToken(SECRET, "routine-1")}`,
+      { method: "POST", body: '{"id":"submission-1"}' },
+    );
+    expect(res.status).toBe(503);
+    expect(await res.json()).toHaveProperty("error", expect.stringContaining("same event ID"));
+  });
+
   it("rejects missing authorization", async () => {
     const deps = createDeps();
     const app = mount(deps);

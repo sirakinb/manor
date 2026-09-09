@@ -69,6 +69,7 @@ export default function RoutineDetail() {
             <Text style={{ color: routine.active ? "#4ECB71" : "#85858A", fontSize: 14 }}>
               {routine.active ? "Active" : "Paused"} · {routine.crons.join(", ")} ·{" "}
               {routine.timezone}
+              {routine.webhookEnabled ? " · Webhook" : ""}
             </Text>
           </View>
           <View style={{ gap: 8 }}>

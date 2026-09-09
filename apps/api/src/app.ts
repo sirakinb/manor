@@ -310,6 +310,7 @@ export async function createApp(
     listConnectedPluginSlugs: stack.composio?.listConnectedSlugs.bind(stack.composio),
     secrets: [env.deploymentModelKey ?? "", env.composioApiKey ?? ""].filter(Boolean),
     secretStore: secrets,
+    webhookBaseUrl: env.apiUrl,
     deploymentModelKey: env.deploymentModelKey,
     dataDir: env.dataDir,
     notifications,

@@ -212,6 +212,7 @@ import {
   renderPlotSpecToSvg,
   searchChartCatalog,
 } from "./plot-tool.js";
+import { prepareRoutineWebhook, routineWebhookRedactionSecrets } from "./routine-webhook.js";
 import {
   commitConsumedRunSecret,
   reconcileManagedConnection,
@@ -285,6 +286,7 @@ const BUILTIN_AGENT_TOOL_NAMES = new Set(builtinAgentTools.map((tool) => tool.na
  * management) which stays available no matter which side toolRoutingMode pins.
  */
 const COMPUTER_SURFACE_TOOL_NAMES = new Set([
+  "routine_prepare_webhook",
   "computer_observe",
   "computer_act",
   "list_files",
@@ -434,6 +436,8 @@ export interface ExecutorDeps {
   connectors?: { managed(id: string): ManagedConnectorProvider | undefined };
   secrets: string[];
   secretStore: EncryptedSecretStore;
+  /** Public deployment origin used by external routine senders. */
+  webhookBaseUrl?: string;
   deploymentModelKey?: string;
   dataDir?: string;
   notifications?: NotificationProvider;
@@ -968,6 +972,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }),
         ]);
         const hasModelOverride = Boolean(bot.modelProvider && bot.modelId);
+        // A temporary setup file may be used again on a later turn. Keep its
+        // routine credentials out of persisted narration and tool summaries too.
+        runSecrets.push(...(await routineWebhookRedactionSecrets(deps, bot)));
         const overrideCredential =
           hasModelOverride && bot.modelProvider
             ? await findModelCredential(deps.prisma, run, bot.modelProvider)
@@ -1454,6 +1461,17 @@ export function createRunExecutor(deps: ExecutorDeps) {
         ) => {
           if (handedOff) {
             return { error: "This stage was handed off. End the turn without more tool calls." };
+          }
+          if (
+            ["schedule_create", "routine_prepare_webhook"].includes(name) &&
+            ["routine", "webhook"].includes(run.trigger)
+          ) {
+            return { error: "Routine creation and webhook setup must be requested in chat." };
+          }
+          if (name === "routine_prepare_webhook" && !computerToolsAvailable) {
+            return {
+              error: "The computer is unavailable while this conversation is pinned to plugins.",
+            };
           }
           if (IMAGE_RETURNING_COMPUTER_TOOLS.has(name) && !acceptsImages) {
             return { error: MODEL_CANNOT_SEE_MESSAGE };
@@ -2421,6 +2439,27 @@ export function createRunExecutor(deps: ExecutorDeps) {
             });
             return finish(removed);
           }
+          if (name === "routine_prepare_webhook") {
+            return finish(
+              await prepareRoutineWebhook(
+                deps,
+                {
+                  botId: bot.id,
+                  routineId: String(args.routineId ?? ""),
+                  groupId: thread.groupId,
+                },
+                computer,
+                context,
+                (token) => {
+                  runSecrets.push(token);
+                  pendingProgress += progressRedactor.finish();
+                  progressRedactor = createStreamingRedactor(runSecrets);
+                  currentThinking += thinkingRedactor.finish();
+                  thinkingRedactor = createStreamingRedactor(runSecrets);
+                },
+              ),
+            );
+          }
           if (name === "schedule_create") {
             const created = await createScheduleFromTool(deps, {
               spaceId: run.spaceId,
@@ -2430,6 +2469,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               name: String(args.name ?? ""),
               prompt: String(args.prompt ?? ""),
               timezone: args.timezone ? String(args.timezone) : undefined,
+              trigger: args.trigger !== undefined ? String(args.trigger) : undefined,
               schedule: {
                 cron: args.cron,
                 every: args.every,

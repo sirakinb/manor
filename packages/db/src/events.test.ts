@@ -1199,77 +1199,83 @@ describe("answerRunInput", () => {
 });
 
 describe("sendUserMessage", () => {
-  it("creates the message, run, and event in one transaction and publishes once", async () => {
-    const fanout = new TestFanout();
-    const publish = vi.spyOn(fanout, "publish");
-    const tx = {
-      thread: {
-        update: vi
-          .fn()
-          .mockResolvedValueOnce({ nextMessageSeq: 5 })
-          .mockResolvedValueOnce({ nextEventSeq: 9 }),
-      },
-      message: {
-        create: vi.fn().mockResolvedValue({ id: "message-1", seq: 4 }),
-        update: vi.fn(),
-      },
-      task: { create: vi.fn().mockResolvedValue({ id: "task-1" }) },
-      run: {
-        create: vi.fn().mockResolvedValue({ id: "run-1" }),
-        findFirst: vi.fn().mockResolvedValue(null),
-        findUnique: vi.fn().mockResolvedValue({ status: "queued" }),
-      },
-      event: {
-        create: vi.fn(async ({ data }: { data: { seq: number; type: string } }) => ({
-          ...event(data.seq),
-          type: data.type,
-          runId: "run-1",
-        })),
-      },
-    };
-    const prisma = {
-      message: { findUnique: vi.fn().mockResolvedValue(null) },
-      $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
-    } as unknown as PrismaClient;
-
-    await expect(
-      sendUserMessage(
-        prisma,
-        {
-          spaceId: "workspace-1",
-          threadId: "thread-1",
-          botId: "bot-1",
-          userId: "user-1",
-          blocks: [{ kind: "text", text: "hello" }],
-          prompt: "hello",
-          trigger: "user",
-          clientNonce: "nonce-1",
-          linkMessageToRun: true,
+  it.each([undefined, "routine-1"])(
+    "creates an independent transactional run for routine %s",
+    async (routineId) => {
+      const fanout = new TestFanout();
+      const publish = vi.spyOn(fanout, "publish");
+      const tx = {
+        thread: {
+          update: vi
+            .fn()
+            .mockResolvedValueOnce({ nextMessageSeq: 5 })
+            .mockResolvedValueOnce({ nextEventSeq: 9 }),
         },
-        fanout,
-      ),
-    ).resolves.toEqual({ messageId: "message-1", seq: 4, taskId: "task-1", runId: "run-1" });
+        message: {
+          create: vi.fn().mockResolvedValue({ id: "message-1", seq: 4 }),
+          update: vi.fn(),
+        },
+        task: { create: vi.fn().mockResolvedValue({ id: "task-1" }) },
+        run: {
+          create: vi.fn().mockResolvedValue({ id: "run-1" }),
+          findFirst: vi.fn().mockResolvedValue(routineId ? { id: "busy-run" } : null),
+          findUnique: vi.fn().mockResolvedValue({ status: "queued" }),
+        },
+        event: {
+          create: vi.fn(async ({ data }: { data: { seq: number; type: string } }) => ({
+            ...event(data.seq),
+            type: data.type,
+            runId: "run-1",
+          })),
+        },
+      };
+      const prisma = {
+        message: { findUnique: vi.fn().mockResolvedValue(null) },
+        $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+      } as unknown as PrismaClient;
 
-    expect(tx.run.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          trigger: "user",
-          clientNonce: "send:message-1",
-          sourceMessageId: "message-1",
+      await expect(
+        sendUserMessage(
+          prisma,
+          {
+            spaceId: "workspace-1",
+            threadId: "thread-1",
+            botId: "bot-1",
+            userId: "user-1",
+            blocks: [{ kind: "text", text: "hello" }],
+            prompt: "hello",
+            trigger: routineId ? "webhook" : "user",
+            routineId,
+            clientNonce: "nonce-1",
+            linkMessageToRun: true,
+          },
+          fanout,
+        ),
+      ).resolves.toEqual({ messageId: "message-1", seq: 4, taskId: "task-1", runId: "run-1" });
+
+      expect(tx.run.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            trigger: routineId ? "webhook" : "user",
+            routineId,
+            clientNonce: "send:message-1",
+            sourceMessageId: "message-1",
+          }),
         }),
-      }),
-    );
-    expect(tx.message.update).toHaveBeenCalledWith({
-      where: { id: "message-1" },
-      data: { runId: "run-1" },
-    });
-    expect(tx.event.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ type: "thread.message.created", runId: "run-1" }),
-      }),
-    );
-    expect(publish).toHaveBeenCalledWith("thread:thread-1", JSON.stringify({ cursor: 8 }));
-  });
+      );
+      expect(tx.message.update).toHaveBeenCalledWith({
+        where: { id: "message-1" },
+        data: { runId: "run-1" },
+      });
+      if (routineId) expect(tx.run.findFirst).not.toHaveBeenCalled();
+      expect(tx.event.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ type: "thread.message.created", runId: "run-1" }),
+        }),
+      );
+      expect(publish).toHaveBeenCalledWith("thread:thread-1", JSON.stringify({ cursor: 8 }));
+    },
+  );
 
   it("persists steering instead of starting a parallel run when the bot is busy", async () => {
     const tx = {

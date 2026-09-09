@@ -452,11 +452,12 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "schedule_create",
     description:
-      'Create a reminder or recurring job for this bot. Use for "remind me in 10 minutes" or "every morning send a joke". Repeats: cron or every/unit (min 1 minute). One-shot: runAt, delayMinutes, or delaySeconds.',
+      "Create a routine in this bot's Routines UI from the user's description. Fill in a short name and complete reusable instructions. trigger=schedule (default): cron or every/unit (min 1 minute), or runAt/delayMinutes/delaySeconds for one-shot. trigger=webhook: omit all timing fields; then call routine_prepare_webhook and configure the sender on the computer. Preserve specified email wording and attachment references in prompt; ask for missing details rather than inventing them.",
     inputSchema: {
       type: "object",
       properties: {
         name: { type: "string", description: "Short label shown in Routines." },
+        trigger: { type: "string", enum: ["schedule", "webhook"] },
         prompt: {
           type: "string",
           description: "What the bot should do when the schedule fires.",
@@ -483,6 +484,16 @@ export const builtinAgentTools: ConnectorTool[] = [
         timezone: { type: "string", description: "IANA timezone (default UTC)." },
       },
       required: ["name", "prompt"],
+    },
+  },
+  {
+    name: "routine_prepare_webhook",
+    description:
+      "Prepare an existing webhook routine for external setup. Writes a private setup JSON file with its URL and authorization on this bot's computer, without exposing credentials in chat. Use the file in a script or browser on the computer to configure the user's form or automation. Do not print, publish, commit, or attach this file. Use stable event IDs to avoid duplicate runs. Never claim the source is connected until verified. Only available in this bot's direct conversation.",
+    inputSchema: {
+      type: "object",
+      properties: { routineId: { type: "string" } },
+      required: ["routineId"],
     },
   },
   {

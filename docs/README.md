@@ -22,6 +22,7 @@ planned. The deployment guide describes the current manual steps.
 - [Channels](CHANNELS.md) and [multi-bot rooms](MULTI-BOT-ROOMS.md)
 - [Agent computer runtime](computer-runtime.md)
 - [Run diagnostics](run-diagnostics.md)
+- [Routines from chat and webhook setup](routines.md)
 - [Desktop releases](desktop-release.md) and [mobile releases](mobile-release.md)
 - [Brand assets](../public/README.md) and [design references](../references/README.md)
 
