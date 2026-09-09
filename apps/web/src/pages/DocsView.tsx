@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceAccess } from "@rakazo/contracts";
 import { useState } from "react";
-import { BuiButton, BuiCard, LoadingState } from "../components/beautiful-ui/primitives";
+import { BuiButton, LoadingState } from "../components/beautiful-ui/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import {
   CONTACT_ENDPOINTS,
@@ -18,13 +18,56 @@ import {
 } from "../lib/api-catalog";
 import { brandName } from "../lib/brand";
 import { useWorkspaceAccess } from "../lib/use-workspace-access";
+import { AgentConnectionSetup } from "./AgentConnectionSetup";
+import { UserGuide } from "./UserGuide";
 
-type DocsTab = "start" | "workspace" | "rest" | "mcp" | "webhooks";
+type DocsTab = "start" | "agents" | "business" | "api";
 
-/** The Manor API reference. The CRM is the first surface; new areas add tabs here. */
 export function DocsView() {
   const { t } = useLingui();
   const [tab, setTab] = useState<DocsTab>("start");
+  const tabs: Array<{ key: DocsTab; label: string }> = [
+    { key: "start", label: t`Getting started` },
+    { key: "agents", label: t`Working with agents` },
+    { key: "business", label: t`Business data` },
+    { key: "api", label: t`Connect other agents` },
+  ];
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
+      <div className="flex flex-wrap items-center gap-3 border-b border-[#202023] px-[22px] py-[13px]">
+        <span className="text-[16px] font-medium text-[#ECECEE]">
+          <Trans>Documentation</Trans>
+        </span>
+        <nav aria-label={t`Documentation topics`} className="flex flex-wrap gap-1">
+          {tabs.map((entry) => (
+            <button
+              key={entry.key}
+              type="button"
+              aria-pressed={tab === entry.key}
+              onClick={() => setTab(entry.key)}
+              className={`rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${
+                tab === entry.key
+                  ? "bg-[#232326] text-[#ECECEE]"
+                  : "text-[#85858A] hover:text-[#C9C9CE]"
+              }`}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+      <div key={tab} className="rk-scroll min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-3xl px-[22px] py-8">
+          {tab === "api" ? <ApiReference /> : <UserGuide topic={tab} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ApiReference() {
+  const { t } = useLingui();
   const origin = window.location.origin;
   const { access, failed, retry } = useWorkspaceAccess();
   if (!access)
@@ -40,76 +83,109 @@ export function DocsView() {
             </BuiButton>
           </>
         ) : (
-          <LoadingState label={t`Loading documentation`} />
+          <LoadingState label={t`Loading connection guide`} />
         )}
       </div>
     );
   const organizationName = access.organization.name;
 
-  const tabs: Array<{ key: DocsTab; label: string }> = [
-    { key: "start", label: t`Getting started` },
-    ...(access.workspace ? [{ key: "workspace" as const, label: t`Workspace` }] : []),
-    { key: "rest", label: t`REST` },
-    { key: "mcp", label: "MCP" },
-    { key: "webhooks", label: t`Webhooks` },
-  ];
-
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#0D0D0E]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#141416] px-[22px] py-[13px]">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <span className="text-[16px] font-medium tracking-[0.01em] text-[#ECECEE]">
-            <Trans>Documentation</Trans>
-          </span>
-          <div className="flex max-w-full flex-wrap items-center gap-1 rounded-full border border-[#202023] bg-[#131315] p-1">
-            {tabs.map((entry) => (
-              <button
-                key={entry.key}
-                type="button"
-                onClick={() => setTab(entry.key)}
-                className={`rounded-full px-3.5 py-1 text-[13px] transition-colors ${
-                  tab === entry.key
-                    ? "bg-[#232326] text-[#ECECEE]"
-                    : "text-[#85858A] hover:text-[#C9C9CE]"
-                }`}
-              >
-                {entry.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <a
-          href="/v1/openapi.json"
-          target="_blank"
-          rel="noreferrer"
-          title={t`Machine-readable OpenAPI 3.1 document`}
-          className="text-[13px] text-[#AEB5FF] hover:text-[#D1D5FF]"
-        >
-          <Trans>Platform OpenAPI (JSON) ↗</Trans>
-        </a>
-      </div>
-
-      <div className="rk-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-[22px] py-6">
-          <h1 className="mb-3 break-words text-xl font-medium text-[#ECECEE]">
-            <Trans>{organizationName} API & MCP</Trans>
-          </h1>
+    <>
+      <h1 className="mb-3 text-2xl font-medium tracking-tight text-[#ECECEE]">
+        <Trans>Connect an agent to {organizationName}</Trans>
+      </h1>
+      <Prose>
+        <Trans>
+          Use an agent in Claude Code, Codex, or Cursor to work with your {brandName} data. Choose
+          your app below to connect it.
+        </Trans>
+      </Prose>
+      <Prose>
+        <Trans>
+          Bots inside {brandName} can already work with your CRM. This setup connects an outside
+          agent.
+        </Trans>
+      </Prose>
+      <ApiSetup origin={origin} access={access} />
+      <div className="mt-8 border-t border-[#202023] pt-6">
+        <h2 className="mb-2 text-[15px] font-medium text-[#ECECEE]">
+          <Trans>Details for your agent</Trans>
+        </h2>
+        <Prose>
+          <Trans>
+            The setup prompt includes the connection instructions. These references are here when
+            you or your agent need a specific tool, permission, or endpoint.
+          </Trans>
+        </Prose>
+        <ReferenceDetails title={<Trans>CRM tools and connection details</Trans>}>
+          <McpReference origin={origin} access={access} />
+        </ReferenceDetails>
+        {access.workspace ? (
+          <ReferenceDetails title={<Trans>Workspace tools and connection details</Trans>}>
+            <WorkspaceReference origin={origin} access={access} />
+          </ReferenceDetails>
+        ) : null}
+        <ReferenceDetails title={<Trans>Token permissions</Trans>}>
           <Prose>
             <Trans>
-              Tokens created in {organizationName} access this organization only. Each token’s
-              scopes control which tools it can use.
+              Permissions are called scopes in the token form. Read scopes let an agent inspect
+              data; write scopes let it change data. Enable only the ones needed for its task.
             </Trans>
           </Prose>
-          {tab === "start" ? <GettingStarted origin={origin} access={access} /> : null}
-          {tab === "workspace" && access.workspace ? (
-            <WorkspaceReference origin={origin} access={access} />
-          ) : null}
-          {tab === "rest" ? <RestReference origin={origin} /> : null}
-          {tab === "mcp" ? <McpReference origin={origin} access={access} /> : null}
-          {tab === "webhooks" ? <WebhooksReference origin={origin} /> : null}
-        </div>
+          <Table
+            head={[<Trans key="s">Scope</Trans>, <Trans key="g">Allows</Trans>]}
+            rows={SCOPES.filter(
+              (row) => access.workspace || !row.scope.startsWith("workspace:"),
+            ).map((row) => [<Mono key="s">{row.scope}</Mono>, row.grants])}
+          />
+        </ReferenceDetails>
+        <ReferenceDetails title={<Trans>HTTP API reference</Trans>}>
+          <Prose>
+            <Trans>
+              Use the API when connecting a script, a website, or an app that cannot use MCP. An
+              endpoint is the address for an operation, such as adding a contact. Your agent can use
+              this reference to build the connection.
+            </Trans>
+          </Prose>
+          <a
+            href="/v1/openapi.json"
+            target="_blank"
+            rel="noreferrer"
+            className="mb-5 inline-block text-[13px] text-[#AEB5FF] hover:text-[#D1D5FF]"
+          >
+            <Trans>Download OpenAPI specification ↗</Trans>
+          </a>
+          <RestReference origin={origin} />
+        </ReferenceDetails>
+        <ReferenceDetails title={<Trans>Send CRM changes to another app</Trans>}>
+          <Prose>
+            <Trans>
+              A webhook notifies another app when something changes in your CRM. For example, a new
+              contact can trigger a workflow in that app. Your agent can help configure the
+              receiving app and the events to send.
+            </Trans>
+          </Prose>
+          <WebhooksReference origin={origin} />
+        </ReferenceDetails>
       </div>
-    </div>
+    </>
+  );
+}
+
+function ReferenceDetails({
+  title,
+  children,
+}: {
+  title: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group border-b border-[#202023]">
+      <summary className="cursor-pointer py-4 text-[14px] font-medium text-[#C9C9CE] hover:text-[#ECECEE]">
+        {title}
+      </summary>
+      <div className="min-w-0 pb-4 pt-2">{children}</div>
+    </details>
   );
 }
 
@@ -198,25 +274,23 @@ function WorkspaceReference({ origin, access }: OrganizationDocsProps) {
         </Prose>
       </Section>
       <Section title={<Trans>Available tools</Trans>}>
-        <Table
-          head={[
-            <Trans key="tool">Tool</Trans>,
-            <Trans key="args">Arguments</Trans>,
-            <Trans key="scope">Scope</Trans>,
-          ]}
-          rows={WORKSPACE_MCP_TOOLS.filter((tool) => access.tools.includes(tool.name)).map(
-            (tool) => [
-              <span key="name">
+        <ul className="mb-3 divide-y divide-[#202023] rounded-xl border border-[#202023] bg-[#131315]">
+          {WORKSPACE_MCP_TOOLS.filter((tool) => access.tools.includes(tool.name)).map((tool) => (
+            <li
+              key={tool.name}
+              className="min-w-0 space-y-2 p-4 text-[13px] leading-6 [overflow-wrap:anywhere]"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 <Mono>{tool.name}</Mono>
-                <span className="mt-2 block text-[12px] text-[#939A9E]">{tool.summary}</span>
-              </span>,
-              <span key="args" className="text-[12px]">
-                {tool.args}
-              </span>,
-              <Mono key="scope">{tool.scope}</Mono>,
-            ],
-          )}
-        />
+                <Mono>{tool.scope}</Mono>
+              </div>
+              <p className="text-[#A8A8AD]">{tool.summary}</p>
+              <p className="text-[#85858A]">
+                <Trans>Arguments:</Trans> {tool.args}
+              </p>
+            </li>
+          ))}
+        </ul>
       </Section>
       <Section title={<Trans>Call the same tools over HTTP</Trans>}>
         <Prose>
@@ -228,7 +302,7 @@ function WorkspaceReference({ origin, access }: OrganizationDocsProps) {
           </Trans>
         </Prose>
         <Code>{`curl "${origin}/v1/workspace/tools/workspace_get_context" \\\n  -H "Authorization: Bearer $MANOR_API_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{}'`}</Code>
-        <EndpointTable
+        <EndpointList
           endpoints={WORKSPACE_ENDPOINTS.filter((endpoint) =>
             access.tools.some((name) => endpoint.path.endsWith(`/${name}`)),
           )}
@@ -264,7 +338,7 @@ function Prose({ children }: { children: React.ReactNode }) {
 
 function Code({ children }: { children: string }) {
   return (
-    <pre className="mb-3 overflow-x-auto rounded-xl border border-[#202023] bg-[#131315] p-4 font-mono text-[12px] leading-[1.7] text-[#C9C9CE]">
+    <pre className="mb-3 max-w-full overflow-x-auto whitespace-pre-wrap rounded-xl [overflow-wrap:anywhere] border border-[#202023] bg-[#131315] p-4 font-mono text-[12px] leading-[1.7] text-[#C9C9CE]">
       {children}
     </pre>
   );
@@ -272,160 +346,92 @@ function Code({ children }: { children: string }) {
 
 function Mono({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded bg-[#1C1C1F] px-1.5 py-0.5 font-mono text-[12px] text-[#C9C9CE]">
+    <code className="rounded [overflow-wrap:anywhere] bg-[#1C1C1F] px-1.5 py-0.5 font-mono text-[12px] text-[#C9C9CE]">
       {children}
     </code>
   );
 }
 
-function EndpointTable({ endpoints }: { endpoints: Endpoint[] }) {
+function EndpointList({ endpoints }: { endpoints: Endpoint[] }) {
   return (
-    <Table
-      head={[
-        <Trans key="e">Endpoint</Trans>,
-        <Trans key="s">Scope</Trans>,
-        <Trans key="d">Description</Trans>,
-      ]}
-      rows={endpoints.map((row) => [
-        <span key="e" className="whitespace-nowrap font-mono text-[12px]">
-          <span className="text-[#8AB7FF]">{row.method}</span> {row.path}
-        </span>,
-        <Mono key="s">{row.scope}</Mono>,
-        row.summary,
-      ])}
-    />
+    <ul
+      className="mb-3 divide-y divide-[#202023] rounded-xl border border-[#202023] bg-[#131315]"
+      data-testid="documentation-endpoints"
+    >
+      {endpoints.map((row) => (
+        <li
+          key={`${row.method} ${row.path}`}
+          className="min-w-0 space-y-2 p-4 [overflow-wrap:anywhere]"
+        >
+          <div className="font-mono text-[12px] leading-6 text-[#C9C9CE]">
+            <span className="text-[#8AB7FF]">{row.method}</span> {row.path}
+          </div>
+          <p className="text-[13px] leading-6 text-[#A8A8AD]">{row.summary}</p>
+          <p className="text-[12px] leading-6 text-[#85858A]">
+            <Trans>Required permission:</Trans> <Mono>{row.scope}</Mono>
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function GettingStarted({ origin, access }: OrganizationDocsProps) {
-  const organizationName = access.organization.name;
+function ApiSetup({ origin, access }: OrganizationDocsProps) {
   return (
     <>
-      <BuiCard className="mb-6 p-4">
-        <Section title={<Trans>Available in {organizationName}</Trans>}>
+      <AgentConnectionSetup origin={origin} access={access} />
+      <div className="my-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#202023] pt-6">
+        <p className="text-[13px] text-[#A8A8AD]">
+          <Trans>Prefer to let your agent handle setup?</Trans>
+        </p>
+        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin, access })} />
+      </div>
+      <ReferenceDetails title={<Trans>What can I do with this connection?</Trans>}>
+        <Section title={<Trans>Customer records and deals · CRM</Trans>}>
           <Prose>
-            <Trans>CRM: contacts, pipelines, deals, modules and webhooks.</Trans>
+            <Trans>
+              Find or add contacts, organize leads, update deals, and work with custom CRM sheets.
+              Try: “Add these inquiries as leads, check for existing contacts, and show me the
+              records you changed.”
+            </Trans>
           </Prose>
-          {access.workspace ? (
-            <Prose>
-              <Trans>
-                Workspace: shared context, skills, reports and activity history. The Workspace tab
-                lists this organization’s enabled tools.
-              </Trans>
-            </Prose>
-          ) : null}
         </Section>
-        {access.sources.length ? (
-          <Section title={<Trans>Workspace data sources</Trans>}>
-            <Table
-              head={[<Trans key="source">Source</Trans>, <Trans key="status">Status</Trans>]}
-              rows={access.sources.map((source) => [source.name, source.status])}
-            />
+        {access.workspace ? (
+          <Section title={<Trans>Shared knowledge and operations · Workspace</Trans>}>
             <Prose>
               <Trans>
-                These sources feed workspace data. API tokens do not grant direct access to their
-                accounts.
+                Read shared instructions and available business data. Save findings and a record of
+                work for the next agent. Try: “Read our shared instructions, review the available
+                reports, and save a summary for the team.”
               </Trans>
             </Prose>
           </Section>
         ) : null}
-      </BuiCard>
-      <Prose>
-        <Trans>
-          The {organizationName} API connects websites, automation tools, and AI clients to this
-          organization. It speaks plain REST for scripts and servers, MCP for AI clients, and
-          webhooks for pushing CRM changes back to you.
-        </Trans>
-      </Prose>
-      <Section title={<Trans>Set up with an AI agent</Trans>}>
+      </ReferenceDetails>
+      <ReferenceDetails title={<Trans>How do MCP and the API fit together?</Trans>}>
         <Prose>
           <Trans>
-            Copy this prompt into Claude, Cursor, or any coding agent along with a token — it
-            connects over MCP and verifies the connection itself. Tokens live at the top of
-            Integrations, under API & agent access.
+            MCP lets an agent discover and use {brandName} tools from a conversation. The API
+            exposes operations directly to software. Both work with your organization’s data and
+            respect the permissions on its token.
           </Trans>
         </Prose>
-        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin, access })} />
-      </Section>
-      <Section title={<Trans>Base URL</Trans>}>
-        <Code>{origin}</Code>
         <Prose>
           <Trans>
-            REST endpoints are under <Mono>/v1</Mono>. The address is shared; your token selects the
-            organization. Create the token while {organizationName} is selected.
+            CRM tools work with customer records and deals. Workspace tools work with shared
+            knowledge and enabled operational data. These connections do not provide the logins for
+            your other apps.
           </Trans>
         </Prose>
-      </Section>
-      <Section title={<Trans>1 · Create a token</Trans>}>
-        <Prose>
-          <Trans>
-            At the top of Integrations, open API & agent access → CRM API access, name the
-            credential, pick its scopes, and copy the token — it is shown once. Tokens start with{" "}
-            <Mono>manor_</Mono> and can be revoked at any time.
-          </Trans>
-        </Prose>
-        <Table
-          head={[<Trans key="s">Scope</Trans>, <Trans key="g">Grants</Trans>]}
-          rows={SCOPES.filter((row) => access.workspace || !row.scope.startsWith("workspace:")).map(
-            (row) => [<Mono key="s">{row.scope}</Mono>, row.grants],
-          )}
-        />
-      </Section>
-      <Section title={<Trans>2 · Make a request</Trans>}>
-        <Prose>
-          <Trans>
-            Send the token as a bearer header on every call. This lists the workspace's contacts:
-          </Trans>
-        </Prose>
-        <Code>{`curl ${origin}/v1/crm/contacts \\
-  -H "Authorization: Bearer manor_..."
-
-{
-  "data": [
-    {
-      "id": "cmf…",
-      "first_name": "Ana",
-      "last_name": "Rivera",
-      "company": "Rivera Holdings",
-      "email": null,
-      "phone": null,
-      "status": "active",
-      "tags": ["VIP"],
-      "created_at": "2026-08-29T02:11:00.000Z",
-      "updated_at": "2026-08-29T02:11:00.000Z"
-    }
-  ],
-  "next_cursor": null
-}`}</Code>
-      </Section>
-      <Section title={<Trans>3 · Write something</Trans>}>
-        <Prose>
-          <Trans>
-            Writes need the <Mono>crm:write</Mono> scope. Upsert is the safest way in — it matches
-            on <Mono>source</Mono> + <Mono>external_id</Mono> (or email) so replaying the same call
-            never duplicates a contact:
-          </Trans>
-        </Prose>
-        <Code>{`curl -X POST ${origin}/v1/crm/contacts/upsert \\
-  -H "Authorization: Bearer manor_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "source": "website",
-    "external_id": "form-4821",
-    "first_name": "Jordan",
-    "email": "jordan@example.com",
-    "tags": ["Lead"]
-  }'`}</Code>
-      </Section>
-      <Section title={<Trans>Where next</Trans>}>
-        <Prose>
-          <Trans>
-            The REST tab is the full endpoint reference — conventions, pagination, and every route.
-            AI clients can skip REST entirely and connect over MCP. Webhooks push changes to your
-            servers as they happen.
-          </Trans>
-        </Prose>
-      </Section>
+      </ReferenceDetails>
+      {access.sources.length ? (
+        <ReferenceDetails title={<Trans>Connected workspace data</Trans>}>
+          <Table
+            head={[<Trans key="n">Source</Trans>, <Trans key="s">Status</Trans>]}
+            rows={access.sources.map((source) => [source.name, source.status])}
+          />
+        </ReferenceDetails>
+      ) : null}
     </>
   );
 }
@@ -490,10 +496,10 @@ function RestReference({ origin }: { origin: string }) {
         </Prose>
       </Section>
       <Section title={<Trans>Contacts</Trans>}>
-        <EndpointTable endpoints={CONTACT_ENDPOINTS} />
+        <EndpointList endpoints={CONTACT_ENDPOINTS} />
       </Section>
       <Section title={<Trans>Pipelines and deals</Trans>}>
-        <EndpointTable endpoints={DEAL_ENDPOINTS} />
+        <EndpointList endpoints={DEAL_ENDPOINTS} />
         <Code>{`curl -X POST ${origin}/v1/crm/deals \\
   -H "Authorization: Bearer manor_..." \\
   -H "Content-Type: application/json" \\
@@ -512,7 +518,7 @@ function RestReference({ origin }: { origin: string }) {
             them. Record <Mono>values</Mono> accept field labels or field ids as keys:
           </Trans>
         </Prose>
-        <EndpointTable endpoints={MODULE_ENDPOINTS} />
+        <EndpointList endpoints={MODULE_ENDPOINTS} />
         <Code>{`curl -X POST ${origin}/v1/crm/modules/cmf…/records \\
   -H "Authorization: Bearer manor_..." \\
   -H "Content-Type: application/json" \\
@@ -521,9 +527,12 @@ function RestReference({ origin }: { origin: string }) {
   }'`}</Code>
       </Section>
       <Section title={<Trans>Webhook management</Trans>}>
-        <EndpointTable endpoints={WEBHOOK_ENDPOINTS} />
+        <EndpointList endpoints={WEBHOOK_ENDPOINTS} />
         <Prose>
-          <Trans>Delivery format, retries, and signatures are on the Webhooks tab.</Trans>
+          <Trans>
+            For delivery format, retries, and signatures, open “Send CRM changes to another app”
+            below.
+          </Trans>
         </Prose>
       </Section>
       <Section title={<Trans>OpenAPI document</Trans>}>
@@ -539,79 +548,52 @@ function RestReference({ origin }: { origin: string }) {
   );
 }
 
-function McpReference({ origin, access }: OrganizationDocsProps) {
+function McpReference({ origin }: OrganizationDocsProps) {
   const { t } = useLingui();
-  const organizationName = access.organization.name;
   return (
     <>
-      <Prose>
-        <Trans>
-          Connect an MCP client to {organizationName} using a token created in this organization.
-        </Trans>
-      </Prose>
-      {access.workspace ? (
-        <Section title={<Trans>{organizationName} Workspace MCP</Trans>}>
-          <Code>{`${origin}/mcp/workspace`}</Code>
-          <Prose>
-            <Trans>
-              Read operations and shared knowledge, then save context, skill versions and activity
-              evidence. Choose the Workspace tab for tools, scopes and a complete read–work–write
-              example. CRM tokens need workspace scopes added through a new token before they can
-              use these tools.
-            </Trans>
-          </Prose>
-        </Section>
-      ) : null}
-      <Section title={<Trans>{organizationName} CRM MCP</Trans>}>
-        <Code>{`${origin}/mcp/crm`}</Code>
+      <Section title={<Trans>CRM connection</Trans>}>
         <Prose>
           <Trans>
-            Authenticate with the same bearer token as REST. Read-only tools need{" "}
-            <Mono>crm:read</Mono>; mutating tools need <Mono>crm:write</Mono>. Tools the token
-            cannot use are not advertised at all.
+            This connection provides the customer record tools listed below. Use Streamable HTTP
+            with a bearer token. Clients that require an OAuth sign-in flow cannot use this endpoint
+            directly.
+          </Trans>
+        </Prose>
+        <Code>{`${origin}/mcp/crm\nAuthorization: Bearer <token>`}</Code>
+        <Prose>
+          <Trans>
+            Reading requires <Mono>crm:read</Mono>; changing records requires <Mono>crm:write</Mono>
+            . The connection only advertises tools your token can use.
           </Trans>
         </Prose>
       </Section>
-      <Section title={<Trans>Connect from Claude</Trans>}>
+      <Section title={<Trans>CRM tools</Trans>}>
+        <ul className="mb-3 divide-y divide-[#202023] rounded-xl border border-[#202023] bg-[#131315]">
+          {MCP_TOOLS.map((tool) => (
+            <li
+              key={tool.name}
+              className="min-w-0 space-y-2 p-4 text-[13px] leading-6 [overflow-wrap:anywhere]"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <Mono>{tool.name}</Mono>
+                <span className="text-[#85858A]">
+                  {tool.writes ? t`read / write` : t`read-only`}
+                </span>
+              </div>
+              <p className="text-[#A8A8AD]">
+                <Trans>Arguments:</Trans> {tool.args}
+              </p>
+            </li>
+          ))}
+        </ul>
         <Prose>
           <Trans>
-            Settings → Connectors → Add custom connector. Paste the endpoint URL and the token, and
-            the CRM tools appear in every conversation.
+            Custom sheets are called modules in the tools. Identify a module by name or id, and use
+            field labels in record values.
           </Trans>
         </Prose>
-      </Section>
-      <Section title={<Trans>Connect a coding agent</Trans>}>
-        <Prose>
-          <Trans>
-            Copy this prompt into Claude, Cursor, or any coding agent along with a token — it
-            connects over MCP and verifies the connection itself.
-          </Trans>
-        </Prose>
-        <CopyPromptButton prompt={buildAgentSetupPrompt({ origin, access })} />
-      </Section>
-      <Section title={<Trans>Tools</Trans>}>
-        <Table
-          head={[
-            <Trans key="t">Tool</Trans>,
-            <Trans key="r">Arguments</Trans>,
-            <Trans key="a">Access</Trans>,
-          ]}
-          rows={MCP_TOOLS.map((tool) => [
-            <Mono key="t">{tool.name}</Mono>,
-            <span key="r" className="font-mono text-[12px] text-[#85858A]">
-              {tool.args}
-            </span>,
-            tool.writes ? t`read / write` : t`read-only`,
-          ])}
-        />
-        <Prose>
-          <Trans>
-            Record tools address modules by name or id, and record <Mono>values</Mono> use field
-            labels as keys — an agent can say{" "}
-            <Mono>{`{"module": "Tenants", "values": {"Rent": 1450}}`}</Mono> without ever seeing an
-            internal id.
-          </Trans>
-        </Prose>
+        <Code>{`{"module": "Leads", "values": {"Name": "Jordan Ellis"}}`}</Code>
       </Section>
     </>
   );
@@ -717,11 +699,14 @@ x-manor-signature: v1=<hex>
 function Table({ head, rows }: { head: React.ReactNode[]; rows: React.ReactNode[][] }) {
   return (
     <div className="mb-3 overflow-hidden rounded-xl border border-[#202023]">
-      <table className="w-full border-collapse bg-[#131315] text-left text-[13px]">
+      <table className="w-full table-fixed border-collapse bg-[#131315] text-left text-[13px]">
         <thead>
           <tr className="border-b border-[#1C1C1F]">
             {head.map((cell, index) => (
-              <th key={index} className="px-4 py-2.5 font-medium text-[#85858A]">
+              <th
+                key={index}
+                className="px-4 py-2.5 align-top font-medium text-[#85858A] [overflow-wrap:anywhere]"
+              >
                 {cell}
               </th>
             ))}
@@ -731,7 +716,10 @@ function Table({ head, rows }: { head: React.ReactNode[]; rows: React.ReactNode[
           {rows.map((cells, rowIndex) => (
             <tr key={rowIndex} className="border-b border-[#1C1C1F] last:border-b-0">
               {cells.map((cell, cellIndex) => (
-                <td key={cellIndex} className="px-4 py-2.5 text-[#C9C9CE]">
+                <td
+                  key={cellIndex}
+                  className="px-4 py-2.5 align-top text-[#C9C9CE] [overflow-wrap:anywhere]"
+                >
                   {cell}
                 </td>
               ))}

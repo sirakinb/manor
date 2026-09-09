@@ -7,6 +7,13 @@ This file covers the identified copied components and bundled font, not an exhau
 list of package-manager dependencies or operating-system packages. Retain the licenses
 and notices shipped with those dependencies when distributing them.
 
+## Agent client logos
+
+Claude, Cursor, and Codex SVGs in `apps/web/public/agent-logos/` are from
+https://github.com/lobehub/lobe-icons (MIT, Copyright (c) 2023 LobeHub).
+The full license is included alongside the SVGs. Product names and logos identify
+their respective clients; no affiliation or endorsement is implied.
+
 ## Beautiful UI
 
 Source: https://github.com/TurboKach/ai-native-react-components

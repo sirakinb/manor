@@ -483,12 +483,15 @@ test("workspace appears once the organization has one and its map opens sections
   await captureScreenshot(page, testInfo, "workspace-settings");
   await sidebar.getByRole("button", { name: "Documentation", exact: true }).click();
   await expect(page.getByRole("button", { name: "Getting started", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your first useful task" })).toBeVisible();
+  await captureScreenshot(page, testInfo, "workspace-user-guide");
+  await page.getByRole("button", { name: "Connect other agents", exact: true }).click();
   await expect(page.getByRole("button", { name: "Copy setup prompt", exact: true })).toHaveCSS(
     "background-color",
     "rgb(168, 85, 247)",
   );
   await captureScreenshot(page, testInfo, "workspace-documentation-purple");
-  await page.getByRole("button", { name: "Workspace", exact: true }).last().click();
+  await page.getByText("Workspace tools and connection details", { exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Bring context into another agent platform" }),
   ).toBeVisible();

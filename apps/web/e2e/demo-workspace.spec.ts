@@ -98,8 +98,10 @@ test("demo has isolated sample operations and yellow branding", async ({ page },
       await captureScreenshot(page, testInfo, `meridian-${section.toLowerCase()}`);
     }
     await sidebar.getByRole("button", { name: "Documentation", exact: true }).click();
+    await expect(main.getByRole("heading", { name: "Your first useful task" })).toBeVisible();
+    await main.getByRole("button", { name: "Connect other agents", exact: true }).click();
     await expect(
-      main.getByRole("heading", { name: "Meridian Properties API & MCP" }),
+      main.getByRole("heading", { name: "Connect an agent to Meridian Properties" }),
     ).toBeVisible();
     await captureScreenshot(page, testInfo, "meridian-documentation");
   } finally {
