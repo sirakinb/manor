@@ -1,5 +1,5 @@
-import { createDb } from "@rakazo/db";
-import { verifyPassword } from "better-auth/crypto";
+import { bootstrapUserSpace, createDb } from "@rakazo/db";
+import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { provisionPortalTeam } from "./provision-team.js";
 
@@ -8,10 +8,18 @@ postgres("operator portal provisioning", () => {
   const db = createDb(process.env.DATABASE_URL!);
   const suffix = `${process.pid}-${Date.now()}`;
   const email = `provision-${suffix}@example.test`;
+  const existingEmail = `existing-${suffix}@example.test`;
+  const foreignEmail = `foreign-${suffix}@example.test`;
+  const rollbackEmail = `rollback-${suffix}@example.test`;
   let organizationId: string | undefined;
+  let personalOrganizationId: string | undefined;
   afterAll(async () => {
     if (organizationId) await db.prisma.organization.delete({ where: { id: organizationId } });
-    await db.prisma.user.deleteMany({ where: { email } });
+    if (personalOrganizationId)
+      await db.prisma.organization.delete({ where: { id: personalOrganizationId } });
+    await db.prisma.user.deleteMany({
+      where: { email: { in: [email, existingEmail, foreignEmail, rollbackEmail] } },
+    });
     await db.prisma.$disconnect();
     await db.pool.end();
   });
@@ -41,5 +49,60 @@ postgres("operator portal provisioning", () => {
     expect(
       (await db.prisma.account.findUniqueOrThrow({ where: { id: account.id } })).password,
     ).toBe(account.password);
+  });
+  it("adds an existing main-portal account without changing its password or original organization", async () => {
+    const user = await db.prisma.user.create({
+      data: { id: `existing-${suffix}`, email: existingEmail, name: "Existing Tester" },
+    });
+    const personal = await bootstrapUserSpace(
+      db.prisma,
+      user,
+      { signupsEnabled: "true", signupAllowlist: "" },
+      { claimDeploymentOwner: false },
+    );
+    personalOrganizationId = personal.organizationId;
+    const hash = await hashPassword("existing-test-password");
+    await db.prisma.account.create({
+      data: {
+        id: `account-${suffix}`,
+        userId: user.id,
+        accountId: user.id,
+        providerId: "credential",
+        password: hash,
+      },
+    });
+    const result = await provisionPortalTeam(db.prisma, {
+      brandId: "vibecodephilly",
+      members: [{ email: existingEmail.toUpperCase(), name: "Ignored rename" }],
+    });
+    expect(result.accounts[0]).toEqual({ email: existingEmail, password: null, created: false });
+    expect(await db.prisma.member.count({ where: { userId: user.id } })).toBe(2);
+    expect(await db.prisma.user.findUnique({ where: { id: user.id } })).toMatchObject({
+      name: "Existing Tester",
+      portalBrandId: null,
+    });
+    expect(
+      (await db.prisma.account.findUniqueOrThrow({ where: { id: `account-${suffix}` } })).password,
+    ).toBe(hash);
+  });
+  it("rolls back the batch if an account is restricted to a different client", async () => {
+    await db.prisma.user.create({
+      data: {
+        id: `foreign-${suffix}`,
+        email: foreignEmail,
+        name: "Other Client",
+        portalBrandId: "other-client",
+      },
+    });
+    await expect(
+      provisionPortalTeam(db.prisma, {
+        brandId: "vibecodephilly",
+        members: [
+          { email: rollbackEmail, name: "Rolled Back" },
+          { email: foreignEmail, name: "Other Client" },
+        ],
+      }),
+    ).rejects.toThrow("another client portal");
+    expect(await db.prisma.user.findUnique({ where: { email: rollbackEmail } })).toBeNull();
   });
 });
