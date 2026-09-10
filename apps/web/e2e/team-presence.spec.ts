@@ -59,6 +59,11 @@ test("branded team shows active and last-seen members without exposing other org
     await expect(page.locator("html")).toHaveAttribute("data-brand", "vibecodephilly");
     await team.scrollIntoViewIfNeeded();
     await captureScreenshot(page, testInfo, "vibecodephilly-team-presence");
+    await page.context().clearCookies();
+    await page.goto("/sign-in?__brand=vibecodephilly");
+    await expect(page.getByRole("img", { name: "Vibe Code Philly" })).toBeVisible();
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await captureScreenshot(page, testInfo, "vibecodephilly-sign-in");
   } finally {
     await page.unrouteAll({ behavior: "ignoreErrors" });
     if (organizationId)
