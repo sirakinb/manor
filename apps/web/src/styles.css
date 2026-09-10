@@ -466,8 +466,8 @@ body,
   }
 }
 
-/* Pentridge action color on integration access and documentation controls. */
+/* Brand action color on integration access and documentation controls. */
 .rk-integrations,
 .rk-setup-prompt {
-  --bui-accent: #a855f7;
+  --bui-accent: var(--rk-accent);
 }

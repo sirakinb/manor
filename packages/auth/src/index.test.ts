@@ -62,6 +62,27 @@ describe("assertSignupAllowed", () => {
 });
 
 describe("auth policy", () => {
+  it("records successful session creation without overwriting a newer sign-in", async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const auth = createAuth({ user: { updateMany } } as never, {
+      secret: "test-secret-at-least-32-characters-long",
+      baseURL: "http://localhost",
+      webOrigin: "http://localhost",
+      ...env,
+    });
+    const createdAt = new Date("2026-09-10T12:00:00Z");
+    await auth.options.databaseHooks?.session?.create?.after?.({
+      userId: "user-a",
+      createdAt,
+    } as never);
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "user-a",
+        OR: [{ lastSignedInAt: null }, { lastSignedInAt: { lt: createdAt } }],
+      },
+      data: { lastSignedInAt: createdAt },
+    });
+  });
   it("blocks invitation and org-creation paths in version 1", () => {
     expect(blockedAuthPaths.some((path) => path.includes("invite"))).toBe(true);
     expect(blockedAuthPaths.some((path) => path.includes("create"))).toBe(true);

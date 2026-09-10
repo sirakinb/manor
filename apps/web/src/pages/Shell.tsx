@@ -132,6 +132,7 @@ import {
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { AskCard } from "../components/AskCard";
 import { BotCredentialsSettings } from "../components/BotCredentialsSettings";
+import { BrandLogo } from "../components/BrandLogo";
 import {
   ActiveBotGlyph,
   CollaborationMarker,
@@ -318,6 +319,7 @@ function readCollapsedSidebarSections(userId: string | null | undefined): Set<st
 }
 
 export function ShellPage() {
+  useTeamPresence();
   const { t } = useLingui();
   const { botId, groupId } = useParams();
   const navigate = useNavigate();
@@ -2573,10 +2575,14 @@ export function ShellPage() {
         <div className="app-drag flex items-center justify-between px-[18px] pb-3 pt-4">
           <div className="flex items-center gap-2.5">
             <WindowChrome />
-            <img
-              src={brand.logo.src}
-              alt={brand.logo.alt}
-              className={brand.logo.wide ? "h-[22px] w-auto" : "h-[22px] w-[22px]"}
+            <BrandLogo
+              className={
+                brand.logo.viewBox
+                  ? "h-[42px] w-[74px]"
+                  : brand.logo.wide
+                    ? "h-[22px] w-auto"
+                    : "h-[22px] w-[22px]"
+              }
             />
             {brand.logo.wide ? null : (
               <span className="rk-wordmark text-[14px] text-[#F1F0F3]">
@@ -7585,3 +7591,5 @@ function readFileAsBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+import { useTeamPresence } from "../lib/use-team-presence";

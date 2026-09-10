@@ -7,6 +7,7 @@ import {
   MaintenanceJobSchema,
   MaintenanceOverviewSchema,
 } from "./maintenance.js";
+import { TeamMemberSchema } from "./team.js";
 import {
   AvailableRentalsSchema,
   ChargePostBatchSchema,
@@ -206,6 +207,10 @@ const threadSendInput = threadTarget
   });
 
 export const appContract = {
+  team: {
+    list: oc.output(z.array(TeamMemberSchema)),
+    heartbeat: oc.output(z.object({ ok: z.literal(true) })),
+  },
   maintenance: {
     list: oc.output(MaintenanceOverviewSchema),
     create: oc.input(MaintenanceCreateSchema).output(MaintenanceJobSchema),

@@ -16,6 +16,7 @@ import {
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
 import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
+import { TeamMembers } from "../components/TeamMembers";
 import { authClient } from "../lib/auth";
 import { getActiveUiLocale, setUiLocale } from "../lib/i18n";
 import { UI_LOCALE_LABELS, UI_LOCALES, type UiLocale } from "../lib/ui-locale";
@@ -133,6 +134,7 @@ export function AccountSettingsOverlay({
           {email ? <p className="mt-1 text-[13px] text-[#7A7A80]">{email}</p> : null}
         </section>
 
+        <TeamMembers />
         <ChangePasswordSection />
 
         {messagingEnabled && onOpenMessaging ? (

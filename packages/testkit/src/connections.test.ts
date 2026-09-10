@@ -125,7 +125,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const failure = vi
       .spyOn(handles.prisma.connection, "findMany")
-      .mockRejectedValueOnce(new Error("simulated reconciliation failure"));
+      .mockRejectedValue(new Error("simulated reconciliation failure"));
 
     const catalog = await rpc<Array<{ slug: string; connected: boolean }>>(
       app,
@@ -135,12 +135,12 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     );
 
     expect(catalog).toContainEqual(expect.objectContaining({ slug: "SLACK", connected: true }));
+    failure.mockRestore();
     await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "pending" }]);
     expect(log).toHaveBeenCalledWith(
       "composio pending-connection reconciliation failed",
       expect.any(Error),
     );
-    failure.mockRestore();
     log.mockRestore();
   });
 

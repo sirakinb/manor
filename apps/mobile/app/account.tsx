@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAvatarStyle } from "../components/avatar-style";
 import { BotAvatar } from "../components/bot-avatar";
+import { TeamMembers } from "../components/team-members";
 import type { MobileBot } from "../lib/api";
 import {
   changePassword as changeAccountPassword,
@@ -221,6 +222,7 @@ export default function Account() {
           {me?.email ? <Text style={styles.email}>{me.email}</Text> : null}
         </View>
         {focus !== "usage" ? usageBlock : null}
+        <TeamMembers />
         {me?.isDeploymentOwner ? (
           <Pressable
             accessibilityRole="button"
