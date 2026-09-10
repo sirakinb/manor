@@ -10,6 +10,7 @@ test("branded team shows active and last-seen members without exposing other org
   const email = `team-${randomUUID()}@rakazo.test`;
   await signup(page, email, "password12", "Team Tester");
   await completeOnboarding(page);
+  const signupCookies = await page.context().cookies();
   const { prisma, pool } = createDb(process.env.DATABASE_URL!);
   const teammateId = randomUUID();
   let organizationId: string | undefined;
@@ -65,11 +66,26 @@ test("branded team shows active and last-seen members without exposing other org
     await expect(page.getByLabel("Email")).toBeVisible();
     await captureScreenshot(page, testInfo, "vibecodephilly-sign-in");
   } finally {
-    await page.unrouteAll({ behavior: "ignoreErrors" });
-    if (organizationId)
-      await prisma.organization.update({ where: { id: organizationId }, data: { brandId: null } });
-    await prisma.user.deleteMany({ where: { id: teammateId } });
-    await prisma.$disconnect();
-    await pool.end();
+    try {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+      if (organizationId)
+        await prisma.organization.update({ where: { id: organizationId }, data: { brandId: null } });
+      await prisma.user.deleteMany({ where: { id: teammateId } });
+      await page.context().addCookies(signupCookies);
+      const removed = await page.request.post("/api/auth/delete-user", {
+        data: { password: "password12" },
+        headers: { origin: new URL(page.url()).origin },
+      });
+      expect(removed.ok()).toBe(true);
+      expect(await prisma.user.findUnique({ where: { email } })).toBeNull();
+      if (organizationId)
+        expect(await prisma.organization.findUnique({ where: { id: organizationId } })).toBeNull();
+    } finally {
+      try {
+        await prisma.$disconnect();
+      } finally {
+        await pool.end();
+      }
+    }
   }
 });

@@ -3,11 +3,31 @@ import { brandById } from "@rakazo/brands";
 import { joinOrganization, type PrismaClient } from "@rakazo/db";
 import { hashPassword } from "better-auth/crypto";
 
+type PortalTeamInput = { brandId: string; members: Array<{ email: string; name: string }> };
+
+export function parsePortalTeamInput(value: unknown): PortalTeamInput {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("brandId" in value) ||
+    typeof value.brandId !== "string" ||
+    !("members" in value) ||
+    !Array.isArray(value.members) ||
+    !value.members.every(
+      (member) =>
+        member &&
+        typeof member === "object" &&
+        typeof member.email === "string" &&
+        typeof member.name === "string",
+    )
+  ) {
+    throw new Error("Expected brandId and a members array containing email and name strings");
+  }
+  return { brandId: value.brandId, members: value.members };
+}
+
 /** Operator-only provisioning. Never expose this helper through a public endpoint. */
-export async function provisionPortalTeam(
-  prisma: PrismaClient,
-  input: { brandId: string; members: Array<{ email: string; name: string }> },
-) {
+export async function provisionPortalTeam(prisma: PrismaClient, input: PortalTeamInput) {
   const brand = brandById(input.brandId);
   if (!brand || brand.id === "manor") throw new Error("Choose a registered client brand");
   if (!input.members.length) throw new Error("Provide at least one member");

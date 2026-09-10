@@ -32,7 +32,12 @@ describe("organization team activity", () => {
     await repos.list(actor, now);
     await repos.heartbeat(actor, now);
     expect(member.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { organizationId: "team-a" } }),
+      expect.objectContaining({
+        where: {
+          organizationId: "team-a",
+          organization: { members: { some: { userId: "viewer" } } },
+        },
+      }),
     );
     expect(member.updateMany).toHaveBeenCalledWith({
       where: {
