@@ -6847,28 +6847,28 @@ msgstr "Dein Team aus <0>Always-on-KI-Agenten</0>,<1/>denen du <2>echte Arbeit</
 
 #: src/components/TeamMembers.tsx:64
 msgid "Active now"
-msgstr ""
+msgstr "Jetzt aktiv"
 
 #: src/components/TeamMembers.tsx:67
 msgid "Last active"
-msgstr ""
+msgstr "Zuletzt aktiv"
 
 #: src/components/TeamMembers.tsx:77
 msgid "Last sign-in"
-msgstr ""
+msgstr "Letzte Anmeldung"
 
 #: src/components/TeamMembers.tsx:73
 msgid "No activity yet"
-msgstr ""
+msgstr "Noch keine Aktivität"
 
 #: src/components/TeamMembers.tsx:83
 msgid "Not recorded yet"
-msgstr ""
+msgstr "Noch nicht erfasst"
 
 #: src/components/TeamMembers.tsx:62
 msgid "Status unavailable"
-msgstr ""
+msgstr "Status nicht verfügbar"
 
 #: src/components/TeamMembers.tsx:44
 msgid "Team activity is unavailable. Retrying…"
-msgstr ""
+msgstr "Teamaktivität ist nicht verfügbar. Neuer Versuch…"

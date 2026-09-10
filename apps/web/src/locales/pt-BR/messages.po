@@ -6847,28 +6847,28 @@ msgstr "Sua equipe de <0>agentes de IA sempre ativos</0><1/>para quem você pode
 
 #: src/components/TeamMembers.tsx:64
 msgid "Active now"
-msgstr ""
+msgstr "Ativo agora"
 
 #: src/components/TeamMembers.tsx:67
 msgid "Last active"
-msgstr ""
+msgstr "Última atividade"
 
 #: src/components/TeamMembers.tsx:77
 msgid "Last sign-in"
-msgstr ""
+msgstr "Último acesso"
 
 #: src/components/TeamMembers.tsx:73
 msgid "No activity yet"
-msgstr ""
+msgstr "Nenhuma atividade ainda"
 
 #: src/components/TeamMembers.tsx:83
 msgid "Not recorded yet"
-msgstr ""
+msgstr "Ainda não registrado"
 
 #: src/components/TeamMembers.tsx:62
 msgid "Status unavailable"
-msgstr ""
+msgstr "Status indisponível"
 
 #: src/components/TeamMembers.tsx:44
 msgid "Team activity is unavailable. Retrying…"
-msgstr ""
+msgstr "A atividade da equipe está indisponível. Tentando novamente…"

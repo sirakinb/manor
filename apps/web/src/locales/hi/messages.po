@@ -6847,28 +6847,28 @@ msgstr "<0>हमेशा सक्रिय AI एजेंटों</0> क�
 
 #: src/components/TeamMembers.tsx:64
 msgid "Active now"
-msgstr ""
+msgstr "अभी सक्रिय"
 
 #: src/components/TeamMembers.tsx:67
 msgid "Last active"
-msgstr ""
+msgstr "पिछली गतिविधि"
 
 #: src/components/TeamMembers.tsx:77
 msgid "Last sign-in"
-msgstr ""
+msgstr "पिछला साइन-इन"
 
 #: src/components/TeamMembers.tsx:73
 msgid "No activity yet"
-msgstr ""
+msgstr "अभी तक कोई गतिविधि नहीं"
 
 #: src/components/TeamMembers.tsx:83
 msgid "Not recorded yet"
-msgstr ""
+msgstr "अभी तक दर्ज नहीं किया गया"
 
 #: src/components/TeamMembers.tsx:62
 msgid "Status unavailable"
-msgstr ""
+msgstr "स्थिति उपलब्ध नहीं है"
 
 #: src/components/TeamMembers.tsx:44
 msgid "Team activity is unavailable. Retrying…"
-msgstr ""
+msgstr "टीम की गतिविधि उपलब्ध नहीं है। फिर से प्रयास किया जा रहा है…"
