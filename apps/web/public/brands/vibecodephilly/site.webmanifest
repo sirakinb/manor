@@ -1,0 +1,9 @@
+{
+  "name": "Vibe Code Philly",
+  "short_name": "Vibe Code PHL",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101416",
+  "theme_color": "#ff2468",
+  "icons": [{ "src": "/brands/vibecodephilly/logo.png", "type": "image/png", "sizes": "1048x1062" }]
+}

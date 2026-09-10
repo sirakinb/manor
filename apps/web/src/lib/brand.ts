@@ -67,6 +67,7 @@ export function applyBrand() {
     root.style.setProperty(`--rk-${token}`, color);
   }
   if (brand.colors.accent) {
+    root.style.setProperty("--bui-accent", brand.colors.accent);
     const hsl = hexToHsl(brand.colors.accent);
     if (hsl) {
       root.style.setProperty("--primary", hsl);

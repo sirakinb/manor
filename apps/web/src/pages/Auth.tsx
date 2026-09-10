@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { BrandLogo } from "../components/BrandLogo";
 import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { authClient } from "../lib/auth";
 import { brand, brandName } from "../lib/brand";
@@ -96,10 +97,14 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   return (
     <div className="flex min-h-full items-center justify-center bg-[var(--rk-page)] px-6 py-16 text-[#F1F0F3]">
       <form onSubmit={submit} className="flex w-[460px] flex-col items-center">
-        <img
-          src={brand.logo.src}
-          alt=""
-          className={brand.logo.wide ? "h-12 w-auto" : "h-[74px] w-[74px]"}
+        <BrandLogo
+          className={
+            brand.logo.viewBox
+              ? "h-[90px] w-[156px]"
+              : brand.logo.wide
+                ? "h-12 w-auto"
+                : "h-[74px] w-[74px]"
+          }
         />
         {brand.id === "manor" ? (
           <div className="mt-5 w-[300px]">

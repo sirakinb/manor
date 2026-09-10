@@ -109,6 +109,7 @@ import {
   createGroupRepos,
   createRepos,
   createSpaceForMember,
+  createTeamRepos,
   createThreadMessageInTransaction,
   createWorkspaceRepos,
   deleteUnreferencedCredentialSecret,
@@ -484,6 +485,14 @@ export function createRouter(deps: RouterDeps) {
   });
 
   return os.router({
+    team: {
+      list: authed.team.list.handler(({ context }) =>
+        createTeamRepos(deps.prisma).list(context.actor),
+      ),
+      heartbeat: authed.team.heartbeat.handler(({ context }) =>
+        createTeamRepos(deps.prisma).heartbeat(context.actor),
+      ),
+    },
     maintenance: {
       list: authed.maintenance.list.handler(({ context }) =>
         maintenanceAction(() => maintenance.list(context.actor.userId)),

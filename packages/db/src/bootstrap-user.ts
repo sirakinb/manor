@@ -94,8 +94,10 @@ export async function joinOrganization(
       if (!isUniqueViolation(error)) throw error;
     });
   await prisma.spaceMember
-    .create({
-      data: {
+    .upsert({
+      where: { spaceId_userId: { spaceId: organization.defaultSpaceId, userId: user.id } },
+      update: {},
+      create: {
         id: newId(),
         spaceId: organization.defaultSpaceId,
         organizationId: organization.id,

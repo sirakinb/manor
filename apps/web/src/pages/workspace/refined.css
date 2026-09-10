@@ -17,7 +17,8 @@
   --ws-muted: #98a3a7;
 }
 
-[data-brand="meridian"] .ws-refined {
+[data-brand="meridian"] .ws-refined,
+[data-brand="vibecodephilly"] .ws-refined {
   --bui-accent: var(--rk-accent);
   --bui-green: var(--rk-accent-strong);
   --ws-accent: var(--rk-accent);

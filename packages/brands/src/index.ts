@@ -1,6 +1,7 @@
 import { jrh } from "./clients/jrh.js";
 import { manor } from "./clients/manor.js";
 import { meridian } from "./clients/meridian.js";
+import { vibecodephilly } from "./clients/vibecodephilly.js";
 
 /**
  * A white-label client brand. Colors override the matching `--rk-*` custom
@@ -17,14 +18,14 @@ export interface BrandConfig {
   /** Overrides keyed by ui-token name (kebab-case, no `--rk-` prefix). */
   colors: Record<string, string>;
   /** `wide` marks a full-wordmark logo that replaces the name text next to it. */
-  logo: { src: string; alt: string; wide?: boolean };
+  logo: { src: string; alt: string; wide?: boolean; viewBox?: string };
   favicon: string;
   appleTouchIcon: string;
   icon192: string;
   icon512: string;
 }
 
-export const brands: readonly BrandConfig[] = [manor, jrh, meridian];
+export const brands: readonly BrandConfig[] = [manor, jrh, meridian, vibecodephilly];
 
 export const defaultBrand: BrandConfig = manor;
 

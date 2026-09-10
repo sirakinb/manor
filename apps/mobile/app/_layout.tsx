@@ -13,12 +13,14 @@ import {
 } from "../lib/live-notifications";
 import { manor } from "../lib/native";
 import { applyMobileUiDirection } from "../lib/ui-direction";
+import { useTeamPresence } from "../lib/use-team-presence";
 
 applyMobileUiDirection();
 configureForegroundNotifications();
 
 export default function Layout() {
   const [ready, setReady] = useState(false);
+  const teamActivity = useTeamPresence(ready);
 
   useEffect(() => {
     void loadApiBase()
@@ -34,7 +36,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={teamActivity}>
       <KeyboardProvider>
         {ready ? (
           <AvatarStyleProvider>

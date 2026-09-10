@@ -18,6 +18,7 @@ model User {
   updatedAt                   DateTime                     @updatedAt
   avatarStyle                 String                       @default("robot")
   portalBrandId               String?
+  lastSignedInAt              DateTime?
   sessions                    Session[]
   accounts                    Account[]
   members                     Member[]
@@ -160,6 +161,7 @@ model Member {
   role             String
   createdAt        DateTime
   spaceMemberships SpaceMember[]
+  lastActiveAt     DateTime?
 
   @@unique([organizationId, userId])
   @@index([organizationId])

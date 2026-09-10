@@ -156,6 +156,29 @@ in a different space. Client teams are accessed through their own portals.
 Set `organization.brandId` to a registered brand identifier before inviting
 client staff. Each brand can belong to only one organization.
 
+## Team activity and client provisioning
+
+Settings shows the current organization's human team, with last sign-in and
+last activity timestamps. Web and Electron send a heartbeat every 30 seconds
+while the window is visible, focused, and has received input within five minutes.
+Mobile sends the same heartbeat while foregrounded with recent touch activity.
+The server expires the green activity indicator after 90 seconds and requires a
+live session. Signing out of the last session clears the indicator on the next
+refresh. Unrecorded history remains unknown; background agents do not count as
+human activity. Every roster read and heartbeat checks current membership.
+
+Client brands include Vibe Code Philly at `vibecodephilly.agentworkspace.cloud`,
+using the supplied logo and magenta accents. Set up DNS and tunnel routing to the
+same web service as the other client portals before use.
+
+Operators can run `packages/auth/src/provision-team-cli.ts` with the deployment's
+database connection. Supply a private JSON object on stdin with `brandId` and
+`members` (each has `email` and `name`). Capture stdout to a private file: it
+contains newly generated passwords. Existing account passwords and roles are
+preserved; new accounts are ordinary members restricted to that client portal.
+Never put the input or output in the repository. Account creation and membership
+assignment are transactional, and repeating provisioning preserves existing access.
+
 ## Demonstration workspace
 
 `createDemoWorkspace` in `packages/db/src/demo-workspace.ts` creates the

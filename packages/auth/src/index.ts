@@ -185,6 +185,15 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       },
       session: {
         create: {
+          after: async (session) => {
+            await prisma.user.updateMany({
+              where: {
+                id: session.userId,
+                OR: [{ lastSignedInAt: null }, { lastSignedInAt: { lt: session.createdAt } }],
+              },
+              data: { lastSignedInAt: session.createdAt },
+            });
+          },
           before: async (session, context) => {
             if (context && newUserContexts.has(context)) return;
             await assertPortalAccess(
