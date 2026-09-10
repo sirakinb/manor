@@ -18,6 +18,7 @@ export function createTeamRepos(prisma: PrismaClient) {
       const members = await prisma.member.findMany({
         where: {
           organizationId: actor.organizationId,
+          user: { isSpaceAccount: false },
           organization: { members: { some: { userId: actor.userId } } },
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],

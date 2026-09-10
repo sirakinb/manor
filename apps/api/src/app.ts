@@ -71,6 +71,7 @@ import {
   createThreadEvents,
   type PrismaClient,
   provisionMessagingIdentity,
+  spaceResourceActor,
 } from "@rakazo/db";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
@@ -464,7 +465,9 @@ export async function createApp(
   mountVoiceHttpRoutes(app, { prisma, secrets }, async (c) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
     if (!session?.user) return null;
-    return requirePortalMembership(prisma, session.user.id, c.req.raw).catch(() => null);
+    return requirePortalMembership(prisma, session.user.id, c.req.raw)
+      .then((actor) => spaceResourceActor(prisma, actor))
+      .catch(() => null);
   });
   mountWebhookHttpRoutes(app, { prisma, secrets, events, jobs });
   // Messaging webhooks only exist when the surface is enabled.

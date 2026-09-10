@@ -10,6 +10,10 @@ export const ActorSchema = z.object({
   email: z.string().email(),
   isDeploymentOwner: z.boolean(),
   portalOrganizationId: Id.optional(),
+  /** Authenticated person, retained when operating on a shared space account. */
+  initiatedByUserId: Id.optional(),
+  /** Server-resolved account for the active space; never accepted from request input. */
+  spaceAccountUserId: Id.optional(),
 });
 export type Actor = z.infer<typeof ActorSchema>;
 

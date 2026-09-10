@@ -1,4 +1,10 @@
-import type { CapabilityInstall, Connection, ConnectionCatalogItem } from "@rakazo/contracts";
+import type {
+  CapabilityInstall,
+  Connection,
+  ConnectionCatalogItem,
+  Space,
+  SpaceNavigation,
+} from "@rakazo/contracts";
 import {
   abortableDelay,
   buildFeaturedConnectorTiles,
@@ -41,6 +47,7 @@ export default function Integrations() {
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [lastBotId, setLastBotId] = useState("");
   const [catalogReady, setCatalogReady] = useState(false);
+  const [space, setSpace] = useState<Space | null>(null);
   const connectionAttempt = useRef<AbortController | null>(null);
 
   const featuredTiles = useMemo(() => buildFeaturedConnectorTiles(catalog), [catalog]);
@@ -67,6 +74,11 @@ export default function Integrations() {
   }
 
   useEffect(() => {
+    void rpc<SpaceNavigation>("spaces/list")
+      .then((navigation) =>
+        setSpace(navigation.spaces.find((space) => space.id === navigation.current.id) ?? null),
+      )
+      .catch(() => setSpace(null));
     void refresh().catch((reason) => {
       setCatalogReady(false);
       setCatalogError(reason instanceof Error ? reason.message : "Could not load integrations");
@@ -222,7 +234,11 @@ export default function Integrations() {
   return (
     <SafeAreaView edges={["bottom"]} style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.explanation}>Connect apps.</Text>
+        <Text style={styles.explanation}>
+          {space
+            ? `${space.name} · ${space.shared ? "Shared with your team" : "Personal"}`
+            : "Connect apps."}
+        </Text>
 
         {catalogError ? <Text style={styles.error}>{catalogError}</Text> : null}
 

@@ -1479,7 +1479,6 @@ export function ShellPage() {
               },
             ]
           : [];
-    const showSpaceNames = sidebarSpaces.length > 1;
     return sidebarSpaces.flatMap((space) => {
       const visibleBots = space.bots.filter((bot) =>
         `${bot.name} ${bot.title ?? ""} ${bot.preview ?? ""}`.toLowerCase().includes(needle),
@@ -1495,20 +1494,16 @@ export function ShellPage() {
         space.botSections,
       ).map((group) => ({
         ...group,
-        key: showSpaceNames ? `space:${space.id}:${group.key}` : group.key,
-        title: showSpaceNames
-          ? group.title
-            ? `${space.name} · ${group.title}`
-            : space.name
-          : group.title,
-        showLock: showSpaceNames,
+        key: `space:${space.id}:${group.key}`,
+        title: group.title ? `${space.name} · ${group.title}` : space.name,
+        showLock: true,
+        shared: "shared" in space && Boolean(space.shared),
         emptySpaceId: undefined as string | undefined,
       }));
       if (sections.length > 0) {
         return sections;
       }
       // Keep empty spaces selectable; chat clicks are the only switch control.
-      if (!showSpaceNames) return [];
       if (needle && (space.bots.length > 0 || space.groups.length > 0)) return [];
       return [
         {
@@ -1516,6 +1511,7 @@ export function ShellPage() {
           title: space.name,
           bots: [],
           showLock: true,
+          shared: "shared" in space && Boolean(space.shared),
           emptySpaceId: space.id,
         },
       ];
@@ -2717,7 +2713,13 @@ export function ShellPage() {
                         >
                           <span className="flex min-w-0 items-center gap-1.5 truncate">
                             {group.showLock ? (
-                              <Lock size={11} strokeWidth={2} aria-hidden="true" />
+                              group.shared ? (
+                                <span role="img" aria-label={t`Shared team space`}>
+                                  👥
+                                </span>
+                              ) : (
+                                <Lock size={11} strokeWidth={2} aria-hidden="true" />
+                              )
                             ) : null}
                             <span className="truncate">{group.title}</span>
                           </span>
@@ -4081,8 +4083,8 @@ export function ShellPage() {
         {newSpaceOpen ? (
           <NewSpaceDialog
             onCancel={() => setNewSpaceOpen(false)}
-            onConfirm={async (name) => {
-              const space = await rpc.spaces.create({ name });
+            onConfirm={async (name, shared) => {
+              const space = await rpc.spaces.create({ name, shared });
               if (!selectSpace(space.id)) {
                 setNewSpaceOpen(false);
                 await refreshBots();
@@ -4140,6 +4142,7 @@ export function ShellPage() {
         {pluginsOpen ? (
           <PluginsOverlay
             activeBotId={activeBotId.current}
+            space={spaces.find((space) => space.id === bootstrapMe?.spaceId)}
             onClose={() => setPluginsOpen(false)}
             onOpenMcp={() => {
               setPluginsOpen(false);
@@ -4574,6 +4577,11 @@ const Transcript = memo(function Transcript({
               {peerReceipt ? null : (
                 <MessageHoverActions message={message} onReply={onReply} onReact={onReact} />
               )}
+              {message.authorName ? (
+                <div className="mb-1 text-right text-[12px] text-[#85858A]">
+                  {message.authorName}
+                </div>
+              ) : null}
               <MessageView
                 artifactTarget={artifactTarget}
                 message={message}
@@ -6574,10 +6582,11 @@ function NewSpaceDialog({
   onConfirm,
 }: {
   onCancel: () => void;
-  onConfirm: (name: string) => Promise<void>;
+  onConfirm: (name: string, shared: boolean) => Promise<void>;
 }) {
   const { t } = useLingui();
   const [name, setName] = useState("");
+  const [shared, setShared] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -6594,7 +6603,7 @@ function NewSpaceDialog({
     if (!trimmed || saving) return;
     setSaving(true);
     setError(null);
-    void onConfirm(trimmed).catch((reason: unknown) => {
+    void onConfirm(trimmed, shared).catch((reason: unknown) => {
       setError(reason instanceof Error ? reason.message : t`Could not create space`);
       setSaving(false);
     });
@@ -6635,6 +6644,24 @@ function NewSpaceDialog({
             className="mt-2 w-full rounded-[11px] border border-[#343438] bg-[#101012] px-3.5 py-2.5 text-[14.5px] text-[#ECECEE] outline-none focus:border-[#66666D]"
           />
         </label>
+        <label className="mt-4 block text-[13.5px] text-[#C9C9CE]">
+          <Trans>Access</Trans>
+          <select
+            aria-label={t`Space access`}
+            value={shared ? "team" : "personal"}
+            disabled={saving}
+            onChange={(event) => setShared(event.target.value === "team")}
+            className="mt-2 w-full rounded-[11px] border border-[#343438] bg-[#101012] px-3.5 py-2.5"
+          >
+            <option value="personal">{t`Personal — only you`}</option>
+            <option value="team">{t`Team — everyone in this organization`}</option>
+          </select>
+        </label>
+        {shared ? (
+          <p className="mt-2 text-[12px] text-[#85858A]">
+            <Trans>Agents, conversations, files, and connected accounts are shared.</Trans>
+          </p>
+        ) : null}
         {error ? <p className="mt-3 text-[13.5px] text-[#EF4444]">{error}</p> : null}
         <div className="mt-5 flex justify-end gap-2.5">
           <BuiButton disabled={saving} onClick={onCancel}>

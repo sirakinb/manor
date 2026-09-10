@@ -131,6 +131,8 @@ import {
   SpaceLimitError,
   selectSpaceModelPreference,
   selectSpaceVoicePreference,
+  sharedMessageAuthor,
+  spaceResourceActor,
   type ThreadEvents,
   touchGroupUpdatedAt,
 } from "@rakazo/db";
@@ -483,6 +485,12 @@ export function createRouter(deps: RouterDeps) {
     if (!context.actor) throw new ORPCError("UNAUTHORIZED");
     return next({ context: { ...context, actor: context.actor } });
   });
+  // Account/preferences/admin routes retain the signed-in person. Only space
+  // resources use the shared account, after rechecking that person's membership.
+  const spaceAuthed = authed.use(async ({ context, next }) => {
+    const actor = await spaceResourceActor(deps.prisma, context.actor);
+    return next({ context: { ...context, actor } });
+  });
 
   return os.router({
     team: {
@@ -545,6 +553,7 @@ export function createRouter(deps: RouterDeps) {
             currentSpaceId: context.actor.spaceId,
             userId: context.actor.userId,
             name: input.name,
+            shared: input.shared,
           });
         } catch (error) {
           if (error instanceof SpaceLimitError || error instanceof InvalidSpaceNameError) {
@@ -556,6 +565,7 @@ export function createRouter(deps: RouterDeps) {
           id: space.id,
           name: space.name,
           isDefault: false,
+          shared: input.shared ?? false,
           organizationId: space.organizationId,
           organizationName: space.organizationName,
           bots: [],
@@ -565,10 +575,10 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     bootstrap: authed.bootstrap.handler(async ({ context, input }) => {
-      const actor = context.actor;
+      const actor = await spaceResourceActor(deps.prisma, context.actor);
       const [me, navigation, archivedBots, archivedGroups] = await Promise.all([
-        meDto(deps, actor),
-        spaceNavigationDto(deps, actor, repos, groupRepos),
+        meDto(deps, context.actor),
+        spaceNavigationDto(deps, context.actor, repos, groupRepos),
         repos.listBots(actor, { archived: true }),
         groupRepos.listGroups(actor, { archived: true }),
       ]);
@@ -652,7 +662,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     models: {
-      list: authed.models.list.handler(async () =>
+      list: spaceAuthed.models.list.handler(async () =>
         [...listPiCatalog(), scriptedCatalogEntry].map((entry) => ({
           ...entry,
           deploymentAvailable: Boolean(
@@ -660,7 +670,7 @@ export function createRouter(deps: RouterDeps) {
           ),
         })),
       ),
-      credentials: authed.models.credentials.handler(async ({ context }) => {
+      credentials: spaceAuthed.models.credentials.handler(async ({ context }) => {
         const rows = await deps.prisma.userModelCredential.findMany({
           where: { userId: context.actor.userId },
           include: {
@@ -698,7 +708,7 @@ export function createRouter(deps: RouterDeps) {
           }
         });
       }),
-      connect: authed.models.connect.handler(async ({ context, input }) => {
+      connect: spaceAuthed.models.connect.handler(async ({ context, input }) => {
         let plaintext: string;
         try {
           plaintext = buildModelConnectPlaintext(input);
@@ -715,7 +725,7 @@ export function createRouter(deps: RouterDeps) {
           signal: context.signal,
         });
       }),
-      probeOpenAiCompatible: authed.models.probeOpenAiCompatible.handler(
+      probeOpenAiCompatible: spaceAuthed.models.probeOpenAiCompatible.handler(
         async ({ context, input }) => {
           try {
             const models = await probeOpenAiCompatibleModels(input, fetch, context.signal);
@@ -727,7 +737,7 @@ export function createRouter(deps: RouterDeps) {
           }
         },
       ),
-      beginOAuth: authed.models.beginOAuth.handler(async ({ context, input }) => {
+      beginOAuth: spaceAuthed.models.beginOAuth.handler(async ({ context, input }) => {
         return deps.oauthLogins.begin({
           userId: context.actor.userId,
           spaceId: context.actor.spaceId,
@@ -737,17 +747,17 @@ export function createRouter(deps: RouterDeps) {
           signal: context.signal,
         });
       }),
-      submitOAuthCode: authed.models.submitOAuthCode.handler(async ({ context, input }) => {
+      submitOAuthCode: spaceAuthed.models.submitOAuthCode.handler(async ({ context, input }) => {
         return deps.oauthLogins.submit(input.loginId, context.actor, input.code);
       }),
-      completeOAuth: authed.models.completeOAuth.handler(async ({ context, input }) => {
+      completeOAuth: spaceAuthed.models.completeOAuth.handler(async ({ context, input }) => {
         const result = await deps.oauthLogins.complete(input.loginId, {
           userId: context.actor.userId,
           spaceId: context.actor.spaceId,
         });
         return result.status === "connected" ? { status: "ready" as const } : result;
       }),
-      finishOAuth: authed.models.finishOAuth.handler(async ({ context, input }) => {
+      finishOAuth: spaceAuthed.models.finishOAuth.handler(async ({ context, input }) => {
         throwIfAborted(context.signal);
         const result = await deps.oauthLogins.finish(
           input.loginId,
@@ -770,11 +780,11 @@ export function createRouter(deps: RouterDeps) {
         }
         return result.value;
       }),
-      cancelOAuth: authed.models.cancelOAuth.handler(async ({ context, input }) => {
+      cancelOAuth: spaceAuthed.models.cancelOAuth.handler(async ({ context, input }) => {
         await deps.oauthLogins.cancel(input.loginId, context.actor);
         return { ok: true as const };
       }),
-      setDefault: authed.models.setDefault.handler(async ({ context, input }) => {
+      setDefault: spaceAuthed.models.setDefault.handler(async ({ context, input }) => {
         await withSerializableRetry(() =>
           deps.prisma.$transaction(
             async (tx) => {
@@ -796,19 +806,19 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     bots: {
-      list: authed.bots.list.handler(async ({ context }) => repos.listBots(context.actor)),
-      listArchived: authed.bots.listArchived.handler(async ({ context }) =>
+      list: spaceAuthed.bots.list.handler(async ({ context }) => repos.listBots(context.actor)),
+      listArchived: spaceAuthed.bots.listArchived.handler(async ({ context }) =>
         repos.listBots(context.actor, { archived: true }),
       ),
-      get: authed.bots.get.handler(async ({ context, input }) => {
+      get: spaceAuthed.bots.get.handler(async ({ context, input }) => {
         const found = (await repos.listBots(context.actor)).find((bot) => bot.id === input.botId);
         if (!found) throw new IsolationError();
         return found;
       }),
-      create: authed.bots.create.handler(async ({ context, input }) =>
+      create: spaceAuthed.bots.create.handler(async ({ context, input }) =>
         repos.createBot(context.actor, input),
       ),
-      duplicate: authed.bots.duplicate.handler(async ({ context, input }) => {
+      duplicate: spaceAuthed.bots.duplicate.handler(async ({ context, input }) => {
         const source = await repos.getBot(context.actor, input.botId);
         const duplicate = await repos.createBot(context.actor, {
           name: duplicateBotName(source.name),
@@ -843,11 +853,11 @@ export function createRouter(deps: RouterDeps) {
         }
         return duplicate;
       }),
-      reorder: authed.bots.reorder.handler(async ({ context, input }) => {
+      reorder: spaceAuthed.bots.reorder.handler(async ({ context, input }) => {
         await repos.reorderBots(context.actor, input.botIds);
         return { ok: true as const };
       }),
-      update: authed.bots.update.handler(async ({ context, input }) => {
+      update: spaceAuthed.bots.update.handler(async ({ context, input }) => {
         const existing = await repos.getBot(context.actor, input.botId);
         if (input.sectionId) {
           const section = await deps.prisma.botSection.findFirst({
@@ -925,7 +935,7 @@ export function createRouter(deps: RouterDeps) {
         if (!bot) throw new IsolationError();
         return bot;
       }),
-      setComputer: authed.bots.setComputer.handler(async ({ context, input }) => {
+      setComputer: spaceAuthed.bots.setComputer.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const currentMode = bot.computer.scope === "dedicated" ? "dedicated" : "team";
@@ -981,7 +991,7 @@ export function createRouter(deps: RouterDeps) {
           });
         }
       }),
-      archive: authed.bots.archive.handler(async ({ context, input }) => {
+      archive: spaceAuthed.bots.archive.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId, { includeArchived: true });
         await archiveBot(
           {
@@ -997,13 +1007,13 @@ export function createRouter(deps: RouterDeps) {
         );
         return { ok: true as const };
       }),
-      restore: authed.bots.restore.handler(async ({ context, input }) => {
+      restore: spaceAuthed.bots.restore.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId, { includeArchived: true });
         if (!bot.archivedAt) return { ok: true as const };
         await deps.prisma.bot.update({ where: { id: bot.id }, data: { archivedAt: null } });
         return { ok: true as const };
       }),
-      remove: authed.bots.remove.handler(async ({ context, input }) => {
+      remove: spaceAuthed.bots.remove.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId, { includeArchived: true });
         await destroyBot(
           {
@@ -1026,58 +1036,62 @@ export function createRouter(deps: RouterDeps) {
         );
         return { ok: true as const };
       }),
-      rotateWebhookSecret: authed.bots.rotateWebhookSecret.handler(async ({ context, input }) => {
-        const bot = await repos.getBot(context.actor, input.botId);
-        const plaintext = randomBytes(32).toString("base64url");
-        const stored = await deps.secrets.put(plaintext, {
-          operationId: "bots.rotateWebhookSecret",
-          traceId: "bots.rotateWebhookSecret",
-          spaceId: context.actor.spaceId,
-          userId: context.actor.userId,
-          signal: context.signal ?? new AbortController().signal,
-        });
-        await deps.prisma.$transaction(async (tx) => {
-          const previousSecretId = bot.webhookSecretId;
-          await tx.secret.create({
-            data: {
-              id: stored.id,
-              userId: context.actor.userId,
-              spaceId: context.actor.spaceId,
-              kind: "webhook",
-              ciphertext: stored.ciphertext,
-            },
+      rotateWebhookSecret: spaceAuthed.bots.rotateWebhookSecret.handler(
+        async ({ context, input }) => {
+          const bot = await repos.getBot(context.actor, input.botId);
+          const plaintext = randomBytes(32).toString("base64url");
+          const stored = await deps.secrets.put(plaintext, {
+            operationId: "bots.rotateWebhookSecret",
+            traceId: "bots.rotateWebhookSecret",
+            spaceId: context.actor.spaceId,
+            userId: context.actor.userId,
+            signal: context.signal ?? new AbortController().signal,
           });
-          await tx.bot.update({
-            where: { id: bot.id },
-            data: { webhookSecretId: stored.id },
-          });
-          if (previousSecretId) {
-            await tx.secret.deleteMany({
-              where: {
-                id: previousSecretId,
-                spaceId: context.actor.spaceId,
+          await deps.prisma.$transaction(async (tx) => {
+            const previousSecretId = bot.webhookSecretId;
+            await tx.secret.create({
+              data: {
+                id: stored.id,
                 userId: context.actor.userId,
+                spaceId: context.actor.spaceId,
                 kind: "webhook",
+                ciphertext: stored.ciphertext,
               },
             });
-          }
-        });
-        return {
-          secret: plaintext,
-          path: `/api/v1/bots/${bot.id}/webhook`,
-          webhookConfigured: true as const,
-        };
-      }),
+            await tx.bot.update({
+              where: { id: bot.id },
+              data: { webhookSecretId: stored.id },
+            });
+            if (previousSecretId) {
+              await tx.secret.deleteMany({
+                where: {
+                  id: previousSecretId,
+                  spaceId: context.actor.spaceId,
+                  userId: context.actor.userId,
+                  kind: "webhook",
+                },
+              });
+            }
+          });
+          return {
+            secret: plaintext,
+            path: `/api/v1/bots/${bot.id}/webhook`,
+            webhookConfigured: true as const,
+          };
+        },
+      ),
     },
     groups: {
-      create: authed.groups.create.handler(async ({ context, input }) =>
+      create: spaceAuthed.groups.create.handler(async ({ context, input }) =>
         groupRepos.createGroup(context.actor, input),
       ),
-      list: authed.groups.list.handler(async ({ context }) => groupRepos.listGroups(context.actor)),
-      listArchived: authed.groups.listArchived.handler(async ({ context }) =>
+      list: spaceAuthed.groups.list.handler(async ({ context }) =>
+        groupRepos.listGroups(context.actor),
+      ),
+      listArchived: spaceAuthed.groups.listArchived.handler(async ({ context }) =>
         groupRepos.listGroups(context.actor, { archived: true }),
       ),
-      get: authed.groups.get.handler(async ({ context, input }) => {
+      get: spaceAuthed.groups.get.handler(async ({ context, input }) => {
         const group = await groupRepos.getGroup(context.actor, input.groupId);
         return {
           ...groupRepos.mapGroup(group),
@@ -1091,14 +1105,14 @@ export function createRouter(deps: RouterDeps) {
           ).messages,
         };
       }),
-      duplicate: authed.groups.duplicate.handler(async ({ context, input }) => {
+      duplicate: spaceAuthed.groups.duplicate.handler(async ({ context, input }) => {
         const source = await groupRepos.getGroup(context.actor, input.groupId);
         return groupRepos.createGroup(context.actor, {
           name: duplicateBotName(source.name),
           botIds: source.members.map((member) => member.bot.id),
         });
       }),
-      update: authed.groups.update.handler(async ({ context, input }) => {
+      update: spaceAuthed.groups.update.handler(async ({ context, input }) => {
         if (input.sectionId) {
           const section = await deps.prisma.botSection.findFirst({
             where: {
@@ -1118,7 +1132,7 @@ export function createRouter(deps: RouterDeps) {
         );
         return updated.group;
       }),
-      archive: authed.groups.archive.handler(async ({ context, input }) => {
+      archive: spaceAuthed.groups.archive.handler(async ({ context, input }) => {
         const archived = await groupRepos.archiveGroup(context.actor, input.groupId);
         await Promise.all(
           archived.cancelledRunIds.map((runId) =>
@@ -1142,11 +1156,11 @@ export function createRouter(deps: RouterDeps) {
         );
         return { ok: true as const };
       }),
-      restore: authed.groups.restore.handler(async ({ context, input }) => {
+      restore: spaceAuthed.groups.restore.handler(async ({ context, input }) => {
         await groupRepos.restoreGroup(context.actor, input.groupId);
         return { ok: true as const };
       }),
-      remove: authed.groups.remove.handler(async ({ context, input }) => {
+      remove: spaceAuthed.groups.remove.handler(async ({ context, input }) => {
         const removed = await groupRepos.removeGroup(context.actor, input.groupId);
         const cleanup = await Promise.allSettled(
           removed.artifactStorageKeys.map((storageKey) =>
@@ -1163,19 +1177,19 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     botSections: {
-      list: authed.botSections.list.handler(async ({ context }) =>
+      list: spaceAuthed.botSections.list.handler(async ({ context }) =>
         repos.listBotSections(context.actor),
       ),
-      create: authed.botSections.create.handler(async ({ context, input }) =>
+      create: spaceAuthed.botSections.create.handler(async ({ context, input }) =>
         repos.createBotSection(context.actor, input),
       ),
     },
     workspace: {
       team: {
-        list: authed.workspace.team.list.handler(({ context }) =>
+        list: spaceAuthed.workspace.team.list.handler(({ context }) =>
           workspaceTeam.list(context.actor),
         ),
-        open: authed.workspace.team.open.handler(({ context, input }) =>
+        open: spaceAuthed.workspace.team.open.handler(({ context, input }) =>
           workspaceTeam.open(context.actor, input.botId),
         ),
       },
@@ -1449,15 +1463,15 @@ export function createRouter(deps: RouterDeps) {
       },
     },
     threads: {
-      head: authed.threads.head.handler(async ({ context, input }) => {
+      head: spaceAuthed.threads.head.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         return threadHead(deps.prisma, target);
       }),
-      get: authed.threads.get.handler(async ({ context, input }) => {
+      get: spaceAuthed.threads.get.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         return threadSnapshot(deps, target);
       }),
-      messages: authed.threads.messages.handler(async ({ context, input }) => {
+      messages: spaceAuthed.threads.messages.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         return loadMessagePage(
           deps.prisma,
@@ -1469,7 +1483,7 @@ export function createRouter(deps: RouterDeps) {
           input.includePeerReceipts,
         );
       }),
-      subscribe: authed.threads.subscribe.handler(async function* ({ context, input }) {
+      subscribe: spaceAuthed.threads.subscribe.handler(async function* ({ context, input }) {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         const peerRunCache = new Map<string, Promise<boolean>>();
         for await (const event of deps.events.follow(
@@ -1477,6 +1491,7 @@ export function createRouter(deps: RouterDeps) {
           input.cursor,
           context.signal,
         )) {
+          if (context.actor.initiatedByUserId) await spaceResourceActor(deps.prisma, context.actor);
           // Diagnostic-only events are read through runs.diagnostics. Older installed
           // clients validate the chat event enum, so keep this stream compatible.
           if (event.type === "agent.tool.finished") continue;
@@ -1504,14 +1519,14 @@ export function createRouter(deps: RouterDeps) {
           yield event;
         }
       }),
-      send: authed.threads.send.handler(async ({ context, input }) => {
+      send: spaceAuthed.threads.send.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         if (target.kind === "bot") {
           await assertTeachingSendAllowed(deps.prisma, context.actor.spaceId, target.botId);
         }
         return sendThreadMessage(deps, context.actor, target, input);
       }),
-      react: authed.threads.react.handler(async ({ context, input }) => {
+      react: spaceAuthed.threads.react.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         const result = await reactToThreadMessage(
           deps,
@@ -1532,12 +1547,12 @@ export function createRouter(deps: RouterDeps) {
         }
         return { ok: true as const };
       }),
-      stop: authed.threads.stop.handler(async ({ context, input }) => {
+      stop: spaceAuthed.threads.stop.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         await stopThreadRuns(deps, context.actor, target);
         return { ok: true as const };
       }),
-      clear: authed.threads.clear.handler(async ({ context, input }) => {
+      clear: spaceAuthed.threads.clear.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         const contextBotId = target.kind === "bot" ? target.botId : target.memberBotIds[0];
         if (!contextBotId) throw new IsolationError();
@@ -1586,11 +1601,13 @@ export function createRouter(deps: RouterDeps) {
         }
         return { ok: true as const };
       }),
-      followUp: authed.threads.followUp.handler(async ({ context, input }) => {
+      followUp: spaceAuthed.threads.followUp.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         if (target.kind === "bot") {
           await assertTeachingSendAllowed(deps.prisma, context.actor.spaceId, target.botId);
           const sent = await deps.events.sendUserMessage({
+            ...(await sharedMessageAuthor(deps.prisma, context.actor)),
+            initiatedByUserId: context.actor.initiatedByUserId,
             spaceId: context.actor.spaceId,
             threadId: target.threadId,
             botId: target.botId,
@@ -1606,6 +1623,7 @@ export function createRouter(deps: RouterDeps) {
           }
           return { ok: true as const };
         }
+        const author = await sharedMessageAuthor(deps.prisma, context.actor);
         const committed = await deps.prisma.$transaction(async (tx) => {
           await lockOwnedGroup(tx, context.actor, target.groupId);
           const group = await tx.chatGroup.findFirst({
@@ -1620,6 +1638,7 @@ export function createRouter(deps: RouterDeps) {
           if (!botId) throw new IsolationError();
           const blocks = [{ kind: "text" as const, text: input.text }];
           const message = await createThreadMessageInTransaction(tx, {
+            ...author,
             threadId: target.threadId,
             role: "user",
             blocks,
@@ -1650,6 +1669,7 @@ export function createRouter(deps: RouterDeps) {
                 botId,
                 threadId: target.threadId,
                 taskId: task.id,
+                initiatedByUserId: context.actor.initiatedByUserId,
                 userId: context.actor.userId,
                 status: "queued",
                 trigger: "follow_up",
@@ -1675,7 +1695,7 @@ export function createRouter(deps: RouterDeps) {
             botId,
             type: "thread.message.created",
             runId: run?.id ?? active?.id,
-            payload: { messageId: message.id, role: "user", blocks },
+            payload: { ...author, messageId: message.id, role: "user", blocks },
           });
           await touchGroupUpdatedAt(tx, target.groupId);
           return { runId: run?.id, eventSeq: event.seq };
@@ -1690,14 +1710,14 @@ export function createRouter(deps: RouterDeps) {
         }
         return { ok: true as const };
       }),
-      answer: authed.threads.answer.handler(async ({ context, input }) => {
+      answer: spaceAuthed.threads.answer.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         const answered = await deps.events.answerRunInput({
           spaceId: context.actor.spaceId,
           threadId: target.threadId,
           runId: input.runId,
           messageId: input.messageId,
-          answeredByUserId: context.actor.userId,
+          answeredByUserId: context.actor.initiatedByUserId ?? context.actor.userId,
           answer: input.answer,
         });
         if (!answered) {
@@ -1711,19 +1731,19 @@ export function createRouter(deps: RouterDeps) {
         });
         return { ok: true as const };
       }),
-      markRead: authed.threads.markRead.handler(async ({ context, input }) => {
+      markRead: spaceAuthed.threads.markRead.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         await setThreadUnreadState(deps.prisma, context.actor, target, false);
         return { ok: true as const };
       }),
-      markUnread: authed.threads.markUnread.handler(async ({ context, input }) => {
+      markUnread: spaceAuthed.threads.markUnread.handler(async ({ context, input }) => {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         await setThreadUnreadState(deps.prisma, context.actor, target, true);
         return { ok: true as const };
       }),
     },
     computer: {
-      workspace: authed.computer.workspace.handler(async ({ context, input }) => {
+      workspace: spaceAuthed.computer.workspace.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         const computer = bot.computer;
         if (!computer) throw new IsolationError();
@@ -1807,10 +1827,10 @@ export function createRouter(deps: RouterDeps) {
           scheduleComputerSleep(deps.jobs, computer.id);
         }
       }),
-      status: authed.computer.status.handler(async ({ context, input }) =>
+      status: spaceAuthed.computer.status.handler(async ({ context, input }) =>
         computerStatus(deps, context.actor, input.botId),
       ),
-      boot: authed.computer.boot.handler(async ({ context, input }) => {
+      boot: spaceAuthed.computer.boot.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         // Clients only call boot when the screen looks unhealthy, so even a
@@ -1849,7 +1869,7 @@ export function createRouter(deps: RouterDeps) {
         }
         return computerStatus(deps, context.actor, input.botId);
       }),
-      stop: authed.computer.stop.handler(async ({ context, input }) => {
+      stop: spaceAuthed.computer.stop.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const controlLeaseId = bot.computer.controlLeaseId;
@@ -1921,16 +1941,16 @@ export function createRouter(deps: RouterDeps) {
         );
         return computerStatus(deps, context.actor, input.botId);
       }),
-      recover: authed.computer.recover.handler(async ({ context, input }) =>
+      recover: spaceAuthed.computer.recover.handler(async ({ context, input }) =>
         runComputerReplace(deps, context, input.botId, "recover", "recover"),
       ),
-      reset: authed.computer.reset.handler(async ({ context, input }) =>
+      reset: spaceAuthed.computer.reset.handler(async ({ context, input }) =>
         runComputerReplace(deps, context, input.botId, "reset", "reset"),
       ),
-      update: authed.computer.update.handler(async ({ context, input }) =>
+      update: spaceAuthed.computer.update.handler(async ({ context, input }) =>
         runComputerReplace(deps, context, input.botId, "update", "update"),
       ),
-      takeover: authed.computer.takeover.handler(async ({ context, input }) => {
+      takeover: spaceAuthed.computer.takeover.handler(async ({ context, input }) => {
         let bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer?.providerRef || bot.computer.state !== "running") {
           throw new ORPCError("BAD_REQUEST", { message: "computer must be running" });
@@ -2072,7 +2092,7 @@ export function createRouter(deps: RouterDeps) {
         scheduleComputerSleep(deps.jobs, bot.computer.id);
         return { leaseId, expiresAt: expiresAt.toISOString() };
       }),
-      release: authed.computer.release.handler(async ({ context, input }) => {
+      release: spaceAuthed.computer.release.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const controlBotId = bot.computer.controlBotId;
@@ -2123,7 +2143,7 @@ export function createRouter(deps: RouterDeps) {
         scheduleComputerSleep(deps.jobs, bot.computer.id);
         return { ok: true as const };
       }),
-      input: authed.computer.input.handler(async ({ context, input }) => {
+      input: spaceAuthed.computer.input.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         const computer = bot.computer;
         if (!computer || !hasActiveComputerControl(computer) || computer.controlBotId !== bot.id) {
@@ -2169,7 +2189,7 @@ export function createRouter(deps: RouterDeps) {
         scheduleComputerSleep(deps.jobs, computer.id);
         return { ok: true as const };
       }),
-      files: authed.computer.files.handler(async ({ context, input }) => {
+      files: spaceAuthed.computer.files.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const computer = bot.computer;
@@ -2192,7 +2212,7 @@ export function createRouter(deps: RouterDeps) {
           path: displayBotWorkspacePath(computerMode, bot.id, input.path, entry.path),
         }));
       }),
-      readFile: authed.computer.readFile.handler(async ({ context, input }) => {
+      readFile: spaceAuthed.computer.readFile.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const computerMode = parseComputerMode(bot.computer.scope);
@@ -2223,7 +2243,7 @@ export function createRouter(deps: RouterDeps) {
         }
         return { path: input.path, content };
       }),
-      writeFile: authed.computer.writeFile.handler(async ({ context, input }) => {
+      writeFile: spaceAuthed.computer.writeFile.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const activeRun = await deps.prisma.run.findFirst({
@@ -2254,7 +2274,7 @@ export function createRouter(deps: RouterDeps) {
         }
         return { path: input.path };
       }),
-      changes: authed.computer.changes.handler(async ({ context, input }) => {
+      changes: spaceAuthed.computer.changes.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         if (bot.computer.state !== "running" || !bot.computer.providerRef) {
@@ -2274,7 +2294,7 @@ export function createRouter(deps: RouterDeps) {
         }
         return { available: true, repos: collected };
       }),
-      diff: authed.computer.diff.handler(async ({ context, input }) => {
+      diff: spaceAuthed.computer.diff.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         if (
@@ -2308,7 +2328,7 @@ export function createRouter(deps: RouterDeps) {
         );
         return truncateDiff(diff.stdout);
       }),
-      upload: authed.computer.upload.handler(async ({ context, input }) => {
+      upload: spaceAuthed.computer.upload.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const computerMode = parseComputerMode(bot.computer.scope);
@@ -2327,7 +2347,7 @@ export function createRouter(deps: RouterDeps) {
         await deps.sandbox.writeFile(computer, { path: storedPath, content: bytes }, ctx);
         return { path: uploadPath };
       }),
-      screenUrl: authed.computer.screenUrl.handler(async ({ context, input }) => {
+      screenUrl: spaceAuthed.computer.screenUrl.handler(async ({ context, input }) => {
         let bot = await repos.getBot(context.actor, input.botId);
         if (await expireStaleComputerControl(deps, bot.computer)) {
           bot = await repos.getBot(context.actor, input.botId);
@@ -2381,7 +2401,7 @@ export function createRouter(deps: RouterDeps) {
           ),
         };
       }),
-      previewUrl: authed.computer.previewUrl.handler(async ({ context, input }) => {
+      previewUrl: spaceAuthed.computer.previewUrl.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         const computer = bot.computer;
         if (!computer?.providerRef || computer.state !== "running" || computer.kind !== "docker") {
@@ -2414,7 +2434,7 @@ export function createRouter(deps: RouterDeps) {
           ),
         };
       }),
-      heartbeat: authed.computer.heartbeat.handler(async ({ context, input }) => {
+      heartbeat: spaceAuthed.computer.heartbeat.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (bot.computer?.state === "running" && bot.computer.providerRef) {
           await deps.prisma.computer.updateMany({
@@ -2435,7 +2455,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     memory: {
-      list: authed.memory.list.handler(async ({ context, input }) => {
+      list: spaceAuthed.memory.list.handler(async ({ context, input }) => {
         await importWorkspaceKnowledge(deps.prisma, context.actor);
         const docs = await deps.prisma.memoryDocument.findMany({
           where: {
@@ -2455,7 +2475,7 @@ export function createRouter(deps: RouterDeps) {
           updatedAt: doc.updatedAt.toISOString(),
         }));
       }),
-      update: authed.memory.update.handler(async ({ context, input }) => {
+      update: spaceAuthed.memory.update.handler(async ({ context, input }) => {
         const doc = await deps.prisma.memoryDocument.findFirst({
           where: {
             id: input.documentId,
@@ -2489,7 +2509,7 @@ export function createRouter(deps: RouterDeps) {
           updatedAt: new Date().toISOString(),
         };
       }),
-      exportMarkdown: authed.memory.exportMarkdown.handler(async ({ context, input }) => {
+      exportMarkdown: spaceAuthed.memory.exportMarkdown.handler(async ({ context, input }) => {
         const docs = await deps.prisma.memoryDocument.findMany({
           where: {
             spaceId: context.actor.spaceId,
@@ -2499,17 +2519,17 @@ export function createRouter(deps: RouterDeps) {
         });
         return docs.map((d) => `# ${d.path}\n\n${d.content}`).join("\n\n");
       }),
-      providerConfig: authed.memory.providerConfig.handler(async ({ context }) => {
+      providerConfig: spaceAuthed.memory.providerConfig.handler(async ({ context }) => {
         const config = await findSpaceMemoryConfig(deps.prisma, context.actor.spaceId);
         return config ? serializeSpaceMemoryConfig(config) : null;
       }),
-      connectProvider: authed.memory.connectProvider.handler(async ({ context, input }) =>
+      connectProvider: spaceAuthed.memory.connectProvider.handler(async ({ context, input }) =>
         persistMemoryProviderConfig(deps, context.actor, input),
       ),
-      setDefaultScope: authed.memory.setDefaultScope.handler(async ({ context, input }) =>
+      setDefaultScope: spaceAuthed.memory.setDefaultScope.handler(async ({ context, input }) =>
         updateMemoryProviderDefaultScope(deps, context.actor, input.defaultMemoryScope),
       ),
-      disconnectProvider: authed.memory.disconnectProvider.handler(async ({ context }) => {
+      disconnectProvider: spaceAuthed.memory.disconnectProvider.handler(async ({ context }) => {
         await requireSpaceOwner(deps.prisma, context.actor);
         await withSerializableRetry(() =>
           deps.prisma.$transaction(
@@ -2526,7 +2546,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     credentials: {
-      list: authed.credentials.list.handler(async ({ context, input }) => {
+      list: spaceAuthed.credentials.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         const rows = await deps.prisma.botCredential.findMany({
           where: { botId: input.botId, spaceId: context.actor.spaceId },
@@ -2534,7 +2554,7 @@ export function createRouter(deps: RouterDeps) {
         });
         return rows.map(botCredentialDto);
       }),
-      create: authed.credentials.create.handler(async ({ context, input }) => {
+      create: spaceAuthed.credentials.create.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         const payload = serializeBotCredentialSecret({
           password: input.password,
@@ -2575,7 +2595,7 @@ export function createRouter(deps: RouterDeps) {
         });
         return botCredentialDto(row);
       }),
-      update: authed.credentials.update.handler(async ({ context, input }) => {
+      update: spaceAuthed.credentials.update.handler(async ({ context, input }) => {
         const existing = await deps.prisma.botCredential.findFirst({
           where: { id: input.credentialId, spaceId: context.actor.spaceId },
         });
@@ -2639,7 +2659,7 @@ export function createRouter(deps: RouterDeps) {
         });
         return botCredentialDto(row);
       }),
-      remove: authed.credentials.remove.handler(async ({ context, input }) => {
+      remove: spaceAuthed.credentials.remove.handler(async ({ context, input }) => {
         const existing = await deps.prisma.botCredential.findFirst({
           where: { id: input.credentialId, spaceId: context.actor.spaceId },
           select: { id: true, secretId: true },
@@ -2659,11 +2679,11 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     routines: {
-      list: authed.routines.list.handler(async ({ context, input }) => {
+      list: spaceAuthed.routines.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         return listRoutinesDto(deps, context.actor, input.botId);
       }),
-      create: authed.routines.create.handler(async ({ context, input }) => {
+      create: spaceAuthed.routines.create.handler(async ({ context, input }) => {
         if (hasMixedOneShotSchedule(input.crons)) {
           throw new ORPCError("BAD_REQUEST", {
             message: "A one-time schedule can't be combined with other schedules.",
@@ -2710,7 +2730,7 @@ export function createRouter(deps: RouterDeps) {
         }
         return mapRoutine(row);
       }),
-      update: authed.routines.update.handler(async ({ context, input }) => {
+      update: spaceAuthed.routines.update.handler(async ({ context, input }) => {
         const existing = await deps.prisma.routine.findFirst({
           where: {
             id: input.routineId,
@@ -2818,7 +2838,7 @@ export function createRouter(deps: RouterDeps) {
         }
         return mapRoutine(row);
       }),
-      remove: authed.routines.remove.handler(async ({ context, input }) => {
+      remove: spaceAuthed.routines.remove.handler(async ({ context, input }) => {
         const existing = await deps.prisma.routine.findFirst({
           where: { id: input.routineId, spaceId: context.actor.spaceId },
         });
@@ -2827,7 +2847,7 @@ export function createRouter(deps: RouterDeps) {
         await deps.jobs.cancel(routineJobKey(existing.id));
         return { ok: true as const };
       }),
-      testRun: authed.routines.testRun.handler(async ({ context, input }) => {
+      testRun: spaceAuthed.routines.testRun.handler(async ({ context, input }) => {
         const routine = await deps.prisma.routine.findFirst({
           where: {
             id: input.routineId,
@@ -2904,7 +2924,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     scratchpad: {
-      list: authed.scratchpad.list.handler(async ({ context, input }) => {
+      list: spaceAuthed.scratchpad.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         return listScratchpadItems(
           { prisma: deps.prisma },
@@ -2916,7 +2936,7 @@ export function createRouter(deps: RouterDeps) {
           },
         );
       }),
-      create: authed.scratchpad.create.handler(async ({ context, input }) => {
+      create: spaceAuthed.scratchpad.create.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         const row = await deps.prisma.scratchpadItem.create({
           data: {
@@ -2930,7 +2950,7 @@ export function createRouter(deps: RouterDeps) {
         });
         return mapScratchpadItem(row);
       }),
-      update: authed.scratchpad.update.handler(async ({ context, input }) => {
+      update: spaceAuthed.scratchpad.update.handler(async ({ context, input }) => {
         const existing = await deps.prisma.scratchpadItem.findFirst({
           where: {
             id: input.itemId,
@@ -2952,7 +2972,7 @@ export function createRouter(deps: RouterDeps) {
         });
         return mapScratchpadItem(row);
       }),
-      remove: authed.scratchpad.remove.handler(async ({ context, input }) => {
+      remove: spaceAuthed.scratchpad.remove.handler(async ({ context, input }) => {
         const existing = await deps.prisma.scratchpadItem.findFirst({
           where: {
             id: input.itemId,
@@ -2966,59 +2986,61 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     skills: {
-      list: authed.skills.list.handler(async ({ context, input }) => {
+      list: spaceAuthed.skills.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         return taughtSkills.list(context.actor, input.botId);
       }),
-      get: authed.skills.get.handler(async ({ context, input }) =>
+      get: spaceAuthed.skills.get.handler(async ({ context, input }) =>
         taughtSkills.get(context.actor, input.skillId),
       ),
-      start: authed.skills.start.handler(async ({ context, input }) => {
+      start: spaceAuthed.skills.start.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         return taughtSkills.start(context.actor, input.botId, input.goal);
       }),
-      appendEvent: authed.skills.appendEvent.handler(async ({ context, input }) =>
+      appendEvent: spaceAuthed.skills.appendEvent.handler(async ({ context, input }) =>
         taughtSkills.appendEvent(context.actor, input.skillId, input.event),
       ),
-      snapshot: authed.skills.snapshot.handler(async ({ context, input }) =>
+      snapshot: spaceAuthed.skills.snapshot.handler(async ({ context, input }) =>
         taughtSkills.snapshot(context.actor, input.skillId),
       ),
-      stop: authed.skills.stop.handler(async ({ context, input }) =>
+      stop: spaceAuthed.skills.stop.handler(async ({ context, input }) =>
         taughtSkills.stop(context.actor, input.skillId),
       ),
-      updateDraft: authed.skills.updateDraft.handler(async ({ context, input }) =>
+      updateDraft: spaceAuthed.skills.updateDraft.handler(async ({ context, input }) =>
         taughtSkills.updateDraft(context.actor, input.skillId, {
           name: input.name,
           playbook: input.playbook,
         }),
       ),
-      save: authed.skills.save.handler(async ({ context, input }) =>
+      save: spaceAuthed.skills.save.handler(async ({ context, input }) =>
         taughtSkills.save(context.actor, input.skillId, input.name),
       ),
-      testRun: authed.skills.testRun.handler(async ({ context, input }) =>
+      testRun: spaceAuthed.skills.testRun.handler(async ({ context, input }) =>
         taughtSkills.testRun(context.actor, input.skillId, input.prompt),
       ),
-      remove: authed.skills.remove.handler(async ({ context, input }) =>
+      remove: spaceAuthed.skills.remove.handler(async ({ context, input }) =>
         taughtSkills.remove(context.actor, input.skillId),
       ),
     },
     agentSkills: {
-      list: authed.agentSkills.list.handler(async ({ context }) => agentSkills.list(context.actor)),
-      get: authed.agentSkills.get.handler(async ({ context, input }) =>
+      list: spaceAuthed.agentSkills.list.handler(async ({ context }) =>
+        agentSkills.list(context.actor),
+      ),
+      get: spaceAuthed.agentSkills.get.handler(async ({ context, input }) =>
         agentSkills.get(context.actor, input),
       ),
-      create: authed.agentSkills.create.handler(async ({ context, input }) =>
+      create: spaceAuthed.agentSkills.create.handler(async ({ context, input }) =>
         agentSkills.create(context.actor, input),
       ),
-      update: authed.agentSkills.update.handler(async ({ context, input }) =>
+      update: spaceAuthed.agentSkills.update.handler(async ({ context, input }) =>
         agentSkills.update(context.actor, input),
       ),
-      remove: authed.agentSkills.remove.handler(async ({ context, input }) =>
+      remove: spaceAuthed.agentSkills.remove.handler(async ({ context, input }) =>
         agentSkills.remove(context.actor, input.skillId),
       ),
     },
     capabilities: {
-      list: authed.capabilities.list.handler(async ({ context }) => {
+      list: spaceAuthed.capabilities.list.handler(async ({ context }) => {
         const rows = await deps.prisma.capabilityInstall.findMany({
           where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
         });
@@ -3034,7 +3056,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         }));
       }),
-      install: authed.capabilities.install.handler(async ({ context, input }) => {
+      install: spaceAuthed.capabilities.install.handler(async ({ context, input }) => {
         let source = input.source.trim();
         let config = input.config;
         const credential = input.credential?.trim() || undefined;
@@ -3137,7 +3159,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         };
       }),
-      remove: authed.capabilities.remove.handler(async ({ context, input }) => {
+      remove: spaceAuthed.capabilities.remove.handler(async ({ context, input }) => {
         await deps.prisma.$transaction(async (tx) => {
           const existing = await tx.capabilityInstall.findFirst({
             where: {
@@ -3168,7 +3190,7 @@ export function createRouter(deps: RouterDeps) {
     },
     mcp: {
       servers: {
-        list: authed.mcp.servers.list.handler(async ({ context }) => {
+        list: spaceAuthed.mcp.servers.list.handler(async ({ context }) => {
           const rows = await deps.prisma.mcpServer.findMany({
             where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
             orderBy: [{ name: "asc" }, { createdAt: "asc" }],
@@ -3195,7 +3217,7 @@ export function createRouter(deps: RouterDeps) {
             ),
           );
         }),
-        create: authed.mcp.servers.create.handler(async ({ context, input }) => {
+        create: spaceAuthed.mcp.servers.create.handler(async ({ context, input }) => {
           const secretPayload = buildMcpCredentialBlob(input);
           const stored = secretPayload
             ? await deps.secrets.put(
@@ -3239,7 +3261,7 @@ export function createRouter(deps: RouterDeps) {
           });
           return mcpServerDto(row, await mcpOAuth.statusFor(row, context.actor));
         }),
-        update: authed.mcp.servers.update.handler(async ({ context, input }) => {
+        update: spaceAuthed.mcp.servers.update.handler(async ({ context, input }) => {
           const config = input.config;
           const row = await deps.prisma.$transaction(async (tx) => {
             // Share the OAuth broker's per-server lock so a stale authorization
@@ -3338,7 +3360,7 @@ export function createRouter(deps: RouterDeps) {
           });
           return mcpServerDto(row, await mcpOAuth.statusFor(row, context.actor));
         }),
-        remove: authed.mcp.servers.remove.handler(async ({ context, input }) => {
+        remove: spaceAuthed.mcp.servers.remove.handler(async ({ context, input }) => {
           const server = await deps.prisma.mcpServer.findFirst({
             where: {
               id: input.id,
@@ -3367,7 +3389,7 @@ export function createRouter(deps: RouterDeps) {
         }),
       },
       assignments: {
-        all: authed.mcp.assignments.all.handler(async ({ context }) => {
+        all: spaceAuthed.mcp.assignments.all.handler(async ({ context }) => {
           const rows = await deps.prisma.botMcpServer.findMany({
             where: {
               spaceId: context.actor.spaceId,
@@ -3378,7 +3400,7 @@ export function createRouter(deps: RouterDeps) {
           });
           return rows.map(mcpAssignmentDto);
         }),
-        list: authed.mcp.assignments.list.handler(async ({ context, input }) => {
+        list: spaceAuthed.mcp.assignments.list.handler(async ({ context, input }) => {
           const bot = await deps.prisma.bot.findFirst({
             where: {
               id: input.botId,
@@ -3398,7 +3420,7 @@ export function createRouter(deps: RouterDeps) {
           });
           return rows.map(mcpAssignmentDto);
         }),
-        approve: authed.mcp.assignments.approve.handler(async ({ context, input }) => {
+        approve: spaceAuthed.mcp.assignments.approve.handler(async ({ context, input }) => {
           const row = await deps.prisma.$transaction(async (tx) => {
             const [bot, server] = await Promise.all([
               tx.bot.findFirst({
@@ -3435,7 +3457,7 @@ export function createRouter(deps: RouterDeps) {
           });
           return mcpAssignmentDto(row);
         }),
-        replace: authed.mcp.assignments.replace.handler(async ({ context, input }) => {
+        replace: spaceAuthed.mcp.assignments.replace.handler(async ({ context, input }) => {
           const result = await deps.prisma.$transaction(async (tx) => {
             const bot = await tx.bot.findFirst({
               where: {
@@ -3486,7 +3508,7 @@ export function createRouter(deps: RouterDeps) {
         }),
       },
       oauth: {
-        begin: authed.mcp.oauth.begin.handler(async ({ context, input }) => {
+        begin: spaceAuthed.mcp.oauth.begin.handler(async ({ context, input }) => {
           try {
             const expectedRedirect = new URL("/mcp/oauth/callback", deps.env.webOrigin).toString();
             if (new URL(input.redirectUri).toString() !== expectedRedirect) {
@@ -3503,7 +3525,7 @@ export function createRouter(deps: RouterDeps) {
             });
           }
         }),
-        complete: authed.mcp.oauth.complete.handler(async ({ context, input }) => {
+        complete: spaceAuthed.mcp.oauth.complete.handler(async ({ context, input }) => {
           try {
             await mcpOAuth.complete({
               ...input,
@@ -3517,7 +3539,7 @@ export function createRouter(deps: RouterDeps) {
             });
           }
         }),
-        disconnect: authed.mcp.oauth.disconnect.handler(async ({ context, input }) => {
+        disconnect: spaceAuthed.mcp.oauth.disconnect.handler(async ({ context, input }) => {
           await mcpOAuth.disconnect({
             ...input,
             spaceId: context.actor.spaceId,
@@ -3528,7 +3550,7 @@ export function createRouter(deps: RouterDeps) {
       },
     },
     onboarding: {
-      start: authed.onboarding.start.handler(async ({ context, input }) => {
+      start: spaceAuthed.onboarding.start.handler(async ({ context, input }) => {
         await startOnboarding(
           { prisma: deps.prisma, events: deps.events, composio: deps.composio },
           context.actor,
@@ -3536,7 +3558,7 @@ export function createRouter(deps: RouterDeps) {
         );
         return { ok: true as const };
       }),
-      choose: authed.onboarding.choose.handler(async ({ context, input }) => {
+      choose: spaceAuthed.onboarding.choose.handler(async ({ context, input }) => {
         await chooseFocus(
           { prisma: deps.prisma, events: deps.events, composio: deps.composio },
           context.actor,
@@ -3545,7 +3567,7 @@ export function createRouter(deps: RouterDeps) {
         );
         return { ok: true as const };
       }),
-      appConnected: authed.onboarding.appConnected.handler(async ({ context, input }) => {
+      appConnected: spaceAuthed.onboarding.appConnected.handler(async ({ context, input }) => {
         await markAppConnected(
           { prisma: deps.prisma, events: deps.events, composio: deps.composio },
           context.actor,
@@ -3556,7 +3578,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     connections: {
-      catalog: authed.connections.catalog.handler(async ({ context, input }) => {
+      catalog: spaceAuthed.connections.catalog.handler(async ({ context, input }) => {
         const adapterContext = connectionContext(
           context.actor,
           "connections.catalog",
@@ -3593,7 +3615,7 @@ export function createRouter(deps: RouterDeps) {
         );
         return catalogs.flat();
       }),
-      list: authed.connections.list.handler(async ({ context }) => {
+      list: spaceAuthed.connections.list.handler(async ({ context }) => {
         const rows = await deps.prisma.connection.findMany({
           where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
         });
@@ -3607,7 +3629,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         }));
       }),
-      begin: authed.connections.begin.handler(async ({ context, input }) => {
+      begin: spaceAuthed.connections.begin.handler(async ({ context, input }) => {
         const connector = deps.connectors.managed(input.connectorId);
         if (!connector) {
           throw new ORPCError("BAD_REQUEST", {
@@ -3650,7 +3672,7 @@ export function createRouter(deps: RouterDeps) {
           throw new ORPCError("BAD_REQUEST", { message: sanitizeComposioError(error) });
         }
       }),
-      complete: authed.connections.complete.handler(async ({ context, input }) => {
+      complete: spaceAuthed.connections.complete.handler(async ({ context, input }) => {
         const existing = await deps.prisma.connection.findFirst({
           where: {
             id: input.connectionId,
@@ -3699,7 +3721,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         };
       }),
-      revoke: authed.connections.revoke.handler(async ({ context, input }) => {
+      revoke: spaceAuthed.connections.revoke.handler(async ({ context, input }) => {
         const row = await deps.prisma.connection.findFirst({
           where: {
             id: input.connectionId,
@@ -3735,7 +3757,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     messaging: {
-      status: authed.messaging.status.handler(async ({ context }) => {
+      status: spaceAuthed.messaging.status.handler(async ({ context }) => {
         const identities = await deps.prisma.messagingIdentity.findMany({
           where: { userId: context.actor.userId },
           orderBy: { createdAt: "asc" },
@@ -3750,7 +3772,7 @@ export function createRouter(deps: RouterDeps) {
         };
       }),
       link: {
-        start: authed.messaging.link.start.handler(async ({ context, input }) => {
+        start: spaceAuthed.messaging.link.start.handler(async ({ context, input }) => {
           const bot = await deps.prisma.bot.findFirst({
             where: {
               id: input.botId,
@@ -3784,7 +3806,7 @@ export function createRouter(deps: RouterDeps) {
         }),
       },
       identities: {
-        setBot: authed.messaging.identities.setBot.handler(async ({ context, input }) => {
+        setBot: spaceAuthed.messaging.identities.setBot.handler(async ({ context, input }) => {
           const identity = await deps.prisma.messagingIdentity.findFirst({
             where: { id: input.identityId, userId: context.actor.userId },
           });
@@ -3817,7 +3839,7 @@ export function createRouter(deps: RouterDeps) {
             throw error;
           }
         }),
-        unlink: authed.messaging.identities.unlink.handler(async ({ context, input }) => {
+        unlink: spaceAuthed.messaging.identities.unlink.handler(async ({ context, input }) => {
           const { count } = await deps.prisma.messagingIdentity.deleteMany({
             where: { id: input.identityId, userId: context.actor.userId },
           });
@@ -3826,7 +3848,7 @@ export function createRouter(deps: RouterDeps) {
         }),
       },
       channels: {
-        list: authed.messaging.channels.list.handler(async ({ context }) => {
+        list: spaceAuthed.messaging.channels.list.handler(async ({ context }) => {
           const identities = await messagingIdentitiesFor(deps.prisma, context.actor.userId);
           if (identities.length === 0) return [];
           const memberships = await deps.prisma.messagingChannelMember.findMany({
@@ -3836,7 +3858,7 @@ export function createRouter(deps: RouterDeps) {
           });
           return memberships.map((membership) => messagingChannelDto(membership));
         }),
-        respond: authed.messaging.channels.respond.handler(async ({ context, input }) => {
+        respond: spaceAuthed.messaging.channels.respond.handler(async ({ context, input }) => {
           const identities = await messagingIdentitiesFor(deps.prisma, context.actor.userId);
           const membership = identities.length
             ? await deps.prisma.messagingChannelMember.findFirst({
@@ -3865,7 +3887,7 @@ export function createRouter(deps: RouterDeps) {
           });
           return messagingChannelDto(updated);
         }),
-        leave: authed.messaging.channels.leave.handler(async ({ context, input }) => {
+        leave: spaceAuthed.messaging.channels.leave.handler(async ({ context, input }) => {
           const identities = await messagingIdentitiesFor(deps.prisma, context.actor.userId);
           const membership = identities.length
             ? await deps.prisma.messagingChannelMember.findFirst({
@@ -3884,7 +3906,7 @@ export function createRouter(deps: RouterDeps) {
         }),
       },
       connections: {
-        list: authed.messaging.connections.list.handler(async ({ context }) => {
+        list: spaceAuthed.messaging.connections.list.handler(async ({ context }) => {
           const identities = await messagingIdentitiesFor(deps.prisma, context.actor.userId);
           if (identities.length === 0) return [];
           const botIds = identities.map((identity) => identity.botId);
@@ -3901,7 +3923,7 @@ export function createRouter(deps: RouterDeps) {
             ),
           );
         }),
-        respond: authed.messaging.connections.respond.handler(async ({ context, input }) => {
+        respond: spaceAuthed.messaging.connections.respond.handler(async ({ context, input }) => {
           const identities = await messagingIdentitiesFor(deps.prisma, context.actor.userId);
           const myBotIds = new Set(identities.map((identity) => identity.botId));
           const connection = identities.length
@@ -3959,7 +3981,7 @@ export function createRouter(deps: RouterDeps) {
           }
           return messagingConnectionDto(deps.prisma, myBotIds, updated);
         }),
-        revoke: authed.messaging.connections.revoke.handler(async ({ context, input }) => {
+        revoke: spaceAuthed.messaging.connections.revoke.handler(async ({ context, input }) => {
           const identities = await messagingIdentitiesFor(deps.prisma, context.actor.userId);
           const botIds = identities.map((identity) => identity.botId);
           const connection = identities.length
@@ -4000,7 +4022,7 @@ export function createRouter(deps: RouterDeps) {
       },
     },
     approvalRules: {
-      list: authed.approvalRules.list.handler(async ({ context }) => {
+      list: spaceAuthed.approvalRules.list.handler(async ({ context }) => {
         const rows = await deps.prisma.actionApprovalRule.findMany({
           where: {
             spaceId: context.actor.spaceId,
@@ -4016,7 +4038,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         }));
       }),
-      set: authed.approvalRules.set.handler(async ({ context, input }) => {
+      set: spaceAuthed.approvalRules.set.handler(async ({ context, input }) => {
         const row = await deps.prisma.actionApprovalRule.upsert({
           where: {
             spaceId_createdByUserId_effect_matchKind_matchValue: {
@@ -4044,7 +4066,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         };
       }),
-      remove: authed.approvalRules.remove.handler(async ({ context, input }) => {
+      remove: spaceAuthed.approvalRules.remove.handler(async ({ context, input }) => {
         await deps.prisma.actionApprovalRule.deleteMany({
           where: {
             id: input.id,
@@ -4056,10 +4078,10 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     autoReview: {
-      get: authed.autoReview.get.handler(async ({ context }) => {
+      get: spaceAuthed.autoReview.get.handler(async ({ context }) => {
         return loadAutoReviewSettings(deps, context.actor);
       }),
-      set: authed.autoReview.set.handler(async ({ context, input }) => {
+      set: spaceAuthed.autoReview.set.handler(async ({ context, input }) => {
         await deps.prisma.actionAutoReviewPreference.upsert({
           where: {
             spaceId_userId: {
@@ -4078,7 +4100,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     artifacts: {
-      list: authed.artifacts.list.handler(async ({ context, input }) => {
+      list: spaceAuthed.artifacts.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         const rows = await deps.prisma.artifact.findMany({
           where: {
@@ -4099,7 +4121,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         }));
       }),
-      create: authed.artifacts.create.handler(async ({ context, input }) => {
+      create: spaceAuthed.artifacts.create.handler(async ({ context, input }) => {
         const botId = input.botId
           ? (await repos.getBot(context.actor, input.botId)).id
           : (await groupRepos.getGroupTarget(context.actor, input.groupId!)).members[0]?.bot.id;
@@ -4113,7 +4135,7 @@ export function createRouter(deps: RouterDeps) {
           throw error;
         }
       }),
-      get: authed.artifacts.get.handler(async ({ context, input }) => {
+      get: spaceAuthed.artifacts.get.handler(async ({ context, input }) => {
         if (input.groupId) {
           const group = await groupRepos.getGroupTarget(context.actor, input.groupId);
           const contextBotId = group.members[0]?.bot.id;
@@ -4137,7 +4159,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     usage: {
-      list: authed.usage.list.handler(async ({ context }) => {
+      list: spaceAuthed.usage.list.handler(async ({ context }) => {
         const rows = await deps.prisma.usageRecord.findMany({
           where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
           orderBy: { createdAt: "desc" },
@@ -4154,7 +4176,7 @@ export function createRouter(deps: RouterDeps) {
           createdAt: row.createdAt.toISOString(),
         }));
       }),
-      summary: authed.usage.summary.handler(async ({ context }) => {
+      summary: spaceAuthed.usage.summary.handler(async ({ context }) => {
         const result = await deps.prisma.usageRecord.aggregate({
           where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
           _sum: { inputTokens: true, outputTokens: true },
@@ -4168,7 +4190,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     export: {
-      bot: authed.export.bot.handler(async ({ context, input }) => {
+      bot: spaceAuthed.export.bot.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.thread || !bot.computer) throw new IsolationError();
         const homeKey = bot.computer.homeKey;
@@ -4230,28 +4252,28 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     search: {
-      query: authed.search.query.handler(async ({ context, input }) => ({
+      query: spaceAuthed.search.query.handler(async ({ context, input }) => ({
         hits: await querySpaceSearch(deps.prisma, context.actor, input.q),
       })),
     },
     runs: {
-      history: authed.runs.history.handler(({ context, input }) =>
+      history: spaceAuthed.runs.history.handler(({ context, input }) =>
         listBotRunHistory(deps.prisma, context.actor, input.botId),
       ),
-      diagnostics: authed.runs.diagnostics.handler(({ context, input }) =>
+      diagnostics: spaceAuthed.runs.diagnostics.handler(({ context, input }) =>
         getRunDiagnostics(deps.prisma, context.actor, input),
       ),
-      list: authed.runs.list.handler(async ({ context, input }) => ({
+      list: spaceAuthed.runs.list.handler(async ({ context, input }) => ({
         runs: await listSpaceRuns(deps.prisma, context.actor, input.filter),
       })),
     },
     voice: {
-      catalog: authed.voice.catalog.handler(async () => listVoiceCatalog()),
-      status: authed.voice.status.handler(async ({ context }) => {
+      catalog: spaceAuthed.voice.catalog.handler(async () => listVoiceCatalog()),
+      status: spaceAuthed.voice.status.handler(async ({ context }) => {
         const cred = await findDefaultVoiceCredential(deps.prisma, context.actor);
         return toVoiceStatus(cred);
       }),
-      credentials: authed.voice.credentials.handler(async ({ context }) => {
+      credentials: spaceAuthed.voice.credentials.handler(async ({ context }) => {
         const rows = await deps.prisma.userVoiceCredential.findMany({
           where: { userId: context.actor.userId },
           include: {
@@ -4270,7 +4292,7 @@ export function createRouter(deps: RouterDeps) {
           });
         });
       }),
-      connect: authed.voice.connect.handler(async ({ context, input }) =>
+      connect: spaceAuthed.voice.connect.handler(async ({ context, input }) =>
         persistVoiceCredential(deps, context.actor, {
           provider: input.provider,
           plaintext: input.apiKey,
@@ -4278,7 +4300,7 @@ export function createRouter(deps: RouterDeps) {
           signal: context.signal,
         }),
       ),
-      setVoice: authed.voice.setVoice.handler(async ({ context, input }) => {
+      setVoice: spaceAuthed.voice.setVoice.handler(async ({ context, input }) => {
         const cred = await withSerializableRetry(() =>
           deps.prisma.$transaction(
             async (tx) => {
@@ -4310,7 +4332,7 @@ export function createRouter(deps: RouterDeps) {
         );
         return toVoiceStatus(cred);
       }),
-      voices: authed.voice.voices.handler(async ({ context, input }) => {
+      voices: spaceAuthed.voice.voices.handler(async ({ context, input }) => {
         const loaded = await loadDefaultVoiceCredential(deps, context.actor);
         if (!loaded) return [];
         const providerId = input.provider ?? loaded.cred.provider;
@@ -4324,7 +4346,7 @@ export function createRouter(deps: RouterDeps) {
           voiceContext(context.actor, context.signal),
         );
       }),
-      prepare: authed.voice.prepare.handler(async ({ context, input }) =>
+      prepare: spaceAuthed.voice.prepare.handler(async ({ context, input }) =>
         prepareVoice(deps, context.actor, input),
       ),
     },
@@ -4370,19 +4392,43 @@ async function spaceNavigationDto(
     select: {
       spaceId: true,
       organizationId: true,
-      space: { select: { name: true, isDefault: true, organization: { select: { name: true } } } },
+      space: {
+        select: {
+          name: true,
+          isDefault: true,
+          accountUserId: true,
+          organization: { select: { name: true } },
+        },
+      },
     },
     orderBy: { createdAt: "asc" },
   });
-  const spaceIds = memberships.map((membership) => membership.spaceId);
-  const inactiveSpaceIds = spaceIds.filter((spaceId) => spaceId !== actor.spaceId);
+  const currentActor = await spaceResourceActor(deps.prisma, actor);
+  // Batch by account so personal and team spaces never borrow each other's scope.
+  const accounts = new Map<string, string[]>();
+  for (const membership of memberships) {
+    const userId = membership.space.accountUserId ?? actor.userId;
+    accounts.set(userId, [...(accounts.get(userId) ?? []), membership.spaceId]);
+  }
+  const inactive = await Promise.all(
+    [...accounts].map(async ([userId, spaceIds]) => {
+      const scope = { ...actor, userId };
+      const inactiveIds = spaceIds.filter((id) => id !== actor.spaceId);
+      const [bots, groups, sections] = await Promise.all([
+        repos.listSpaceBotsForSpaces(scope, inactiveIds),
+        groupRepos.listSpaceGroupsForSpaces(scope, inactiveIds),
+        repos.listBotSectionsForSpaces(scope, spaceIds),
+      ]);
+      return { bots, groups, sections };
+    }),
+  );
   const [currentBots, currentGroups, inactiveBots, inactiveGroups, botSections] = await Promise.all(
     [
-      repos.listBots(actor),
-      groupRepos.listGroups(actor),
-      repos.listSpaceBotsForSpaces(actor, inactiveSpaceIds),
-      groupRepos.listSpaceGroupsForSpaces(actor, inactiveSpaceIds),
-      repos.listBotSectionsForSpaces(actor, spaceIds),
+      repos.listBots(currentActor),
+      groupRepos.listGroups(currentActor),
+      inactive.flatMap((entry) => entry.bots),
+      inactive.flatMap((entry) => entry.groups),
+      inactive.flatMap((entry) => entry.sections),
     ],
   );
   const currentMembership = memberships.find((membership) => membership.spaceId === actor.spaceId);
@@ -4409,6 +4455,7 @@ async function spaceNavigationDto(
         id: membership.spaceId,
         name: membership.space.name,
         isDefault: membership.space.isDefault,
+        shared: Boolean(membership.space.accountUserId),
         organizationId: membership.organizationId,
         organizationName: membership.space.organization.name,
         bots: spaceBots.map((bot) => ({
@@ -4479,16 +4526,18 @@ async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
 }
 
 async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
+  const resourceActor = await spaceResourceActor(deps.prisma, actor);
+  const personId = actor.initiatedByUserId ?? actor.userId;
   const [user, cred, settings] = await Promise.all([
-    deps.prisma.user.findUniqueOrThrow({ where: { id: actor.userId } }),
-    findDefaultModelCredential(deps.prisma, actor),
+    deps.prisma.user.findUniqueOrThrow({ where: { id: personId } }),
+    findDefaultModelCredential(deps.prisma, resourceActor),
     deps.prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
   ]);
   const hasDeployment = Boolean(
     settings?.deploymentModelCredentialCipher || deps.env.deploymentModelKey,
   );
   return {
-    userId: actor.userId,
+    userId: personId,
     email: user.email,
     name: user.name,
     spaceId: actor.spaceId,
@@ -4700,7 +4749,9 @@ async function persistModelCredential(
 
 async function requireSpaceOwner(prisma: PrismaClient, actor: Actor): Promise<void> {
   const member = await prisma.spaceMember.findUnique({
-    where: { spaceId_userId: { spaceId: actor.spaceId, userId: actor.userId } },
+    where: {
+      spaceId_userId: { spaceId: actor.spaceId, userId: actor.initiatedByUserId ?? actor.userId },
+    },
     select: { role: true },
   });
   const roles = member?.role.split(",").map((role) => role.trim());

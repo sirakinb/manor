@@ -182,6 +182,9 @@ export interface SendUserMessageInput {
   threadId: string;
   botId: string;
   userId: string;
+  initiatedByUserId?: string;
+  authorUserId?: string;
+  authorName?: string;
   blocks: MessageBlock[];
   prompt: string;
   trigger: "user" | "follow_up" | "webhook" | "messaging";
@@ -378,6 +381,8 @@ export async function sendUserMessage(
       const message = await createThreadMessageInTransaction(tx, {
         threadId: input.threadId,
         role: "user",
+        authorUserId: input.authorUserId,
+        authorName: input.authorName,
         blocks: input.blocks,
         clientNonce: input.clientNonce,
       });
@@ -410,6 +415,7 @@ export async function sendUserMessage(
             botId: input.botId,
             threadId: input.threadId,
             taskId: task.id,
+            initiatedByUserId: input.initiatedByUserId,
             userId: input.userId,
             status: "queued",
             trigger: input.trigger,
@@ -438,7 +444,14 @@ export async function sendUserMessage(
         botId: input.botId,
         type: "thread.message.created",
         runId: run?.id ?? busy?.id,
-        payload: { messageId: message.id, role: "user", blocks: input.blocks },
+        payload: {
+          messageId: message.id,
+          role: "user",
+          blocks: input.blocks,
+          ...(input.authorUserId
+            ? { authorUserId: input.authorUserId, authorName: input.authorName }
+            : {}),
+        },
       });
       return { message, task, run, busy, event };
     });
@@ -485,7 +498,7 @@ export async function claimSteering(
         OR: [{ runId: null }, { runId: input.runId }],
         message: { threadId: input.threadId },
       },
-      include: { message: { select: { blocks: true, seq: true } } },
+      include: { message: { select: { blocks: true, seq: true, authorName: true } } },
       orderBy: [{ message: { seq: "asc" } }, { id: "asc" }],
     });
     if (steering.length === 0) return [];
@@ -496,7 +509,7 @@ export async function claimSteering(
     return steering.map((item) => ({
       id: item.id,
       messageId: item.messageId,
-      text: blocksToAgentHistoryText(item.message.blocks as MessageBlock[]),
+      text: `${item.message.authorName ? `[${item.message.authorName}] ` : ""}${blocksToAgentHistoryText(item.message.blocks as MessageBlock[])}`,
       blocks: item.message.blocks as MessageBlock[],
     }));
   });
@@ -559,8 +572,19 @@ export async function answerRunInput(
       });
       if (!approvalEffect) return null;
       if (input.answer === "always") {
-        if (run.userId !== input.answeredByUserId) return null;
-        approvalUserId = input.answeredByUserId;
+        if (run.userId !== input.answeredByUserId) {
+          const member = await tx.spaceMember.findFirst({
+            where: {
+              spaceId: input.spaceId,
+              userId: input.answeredByUserId,
+              space: { accountUserId: run.userId },
+              member: { user: { isSpaceAccount: false } },
+            },
+            select: { id: true },
+          });
+          if (!member) return null;
+        }
+        approvalUserId = run.userId;
       }
     }
 
@@ -653,7 +677,12 @@ export async function answerRunInput(
       botId: run.botId,
       type: "thread.message.updated",
       runId: input.runId,
-      payload: { messageId: message.id, role: "bot", blocks },
+      payload: {
+        messageId: message.id,
+        role: "bot",
+        blocks,
+        answeredByUserId: input.answeredByUserId,
+      },
     });
     return { threadId: updated.threadId, seq: updated.seq };
   });
@@ -1041,7 +1070,7 @@ async function createSteeringContinuation(
       runId: null,
       message: { threadId: input.threadId },
     },
-    include: { message: { select: { id: true, blocks: true, seq: true } } },
+    include: { message: { select: { id: true, blocks: true, seq: true, authorUserId: true } } },
     orderBy: [{ message: { seq: "asc" } }, { id: "asc" }],
   });
   if (pending.length === 0) return null;
@@ -1066,6 +1095,7 @@ async function createSteeringContinuation(
       status: "queued",
       trigger: "follow_up",
       sourceMessageId: last.message.id,
+      initiatedByUserId: last.message.authorUserId,
     },
   });
   await tx.steeringMessage.updateMany({

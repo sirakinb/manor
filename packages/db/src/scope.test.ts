@@ -11,6 +11,7 @@ function prismaForMembership(found: boolean) {
               userId: where.userId,
               spaceId: where.spaceId ?? "space-default",
               organizationId: "org-1",
+              space: { accountUserId: null },
               member: { user: { email: "owner@example.test" } },
             }
           : null,
@@ -35,7 +36,11 @@ describe("requireMembership", () => {
     });
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: "user-1", spaceId: "space-support" },
+        where: {
+          userId: "user-1",
+          spaceId: "space-support",
+          member: { user: { isSpaceAccount: false } },
+        },
       }),
     );
   });

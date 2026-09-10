@@ -6872,3 +6872,31 @@ msgstr "Durum kullanılamıyor"
 #: src/components/TeamMembers.tsx:44
 msgid "Team activity is unavailable. Retrying…"
 msgstr "Ekip etkinliği kullanılamıyor. Yeniden deneniyor…"
+
+#: src/pages/Shell.tsx:6646
+msgid "Access"
+msgstr "Access"
+
+#: src/pages/Shell.tsx:6660
+msgid "Agents, conversations, files, and connected accounts are shared."
+msgstr "Agents, conversations, files, and connected accounts are shared."
+
+#: src/pages/Shell.tsx:6654
+msgid "Personal — only you"
+msgstr "Personal — only you"
+
+#: src/pages/Shell.tsx:2717
+msgid "Shared team space"
+msgstr "Shared team space"
+
+#: src/pages/PluginsOverlay.tsx:315
+msgid "Shared with your team"
+msgstr "Shared with your team"
+
+#: src/pages/Shell.tsx:6648
+msgid "Space access"
+msgstr "Space access"
+
+#: src/pages/Shell.tsx:6655
+msgid "Team — everyone in this organization"
+msgstr "Team — everyone in this organization"

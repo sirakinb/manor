@@ -20,11 +20,12 @@ export async function requireMembership(
   const membership = await prisma.spaceMember.findFirst({
     where: {
       userId,
+      member: { user: { isSpaceAccount: false } },
       ...(portalOrganizationId ? { organizationId: portalOrganizationId } : {}),
       ...(requestedSpaceId ? { spaceId: requestedSpaceId } : {}),
     },
     orderBy: [{ space: { isDefault: "desc" } }, { createdAt: "asc" }, { id: "asc" }],
-    include: { member: { include: { user: true } } },
+    include: { member: { include: { user: true } }, space: { select: { accountUserId: true } } },
   });
   if (!membership) {
     throw new IsolationError("No personal space");
@@ -38,6 +39,7 @@ export async function requireMembership(
     organizationId: membership.organizationId,
     email: membership.member.user.email,
     isDeploymentOwner: settings?.ownerUserId === membership.userId,
+    spaceAccountUserId: membership.space.accountUserId ?? undefined,
   };
 }
 

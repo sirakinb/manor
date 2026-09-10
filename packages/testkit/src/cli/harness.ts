@@ -98,6 +98,7 @@ async function main() {
           "packages/testkit/src/search.test.ts",
           "packages/testkit/src/executor-lifecycle.test.ts",
           "packages/testkit/src/connections.test.ts",
+          "packages/testkit/src/shared-spaces.test.ts",
           "packages/db/src/space-membership.postgres.test.ts",
           "packages/testkit/src/crm-integrations.test.ts",
           "packages/testkit/src/brand-signup.test.ts",

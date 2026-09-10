@@ -482,6 +482,8 @@ export type MobileMessage = {
   seq?: number;
   runId?: string;
   role: "user" | "bot" | "system";
+  authorUserId?: string;
+  authorName?: string;
   botId?: string;
   replyToMessageId?: string;
   thumbsUp?: boolean;
@@ -806,6 +808,10 @@ export function applyMobileThreadEvent(
       id: String(event.payload?.messageId ?? event.id ?? `msg:${event.seq ?? 0}`),
       runId: event.runId ? String(event.runId) : undefined,
       role: (event.payload?.role as MobileMessage["role"]) ?? "bot",
+      authorUserId:
+        typeof event.payload?.authorUserId === "string" ? event.payload.authorUserId : undefined,
+      authorName:
+        typeof event.payload?.authorName === "string" ? event.payload.authorName : undefined,
       blocks: (event.payload?.blocks as MobileMessage["blocks"]) ?? [],
       botId: event.botId ?? (event.payload?.botId ? String(event.payload.botId) : undefined),
       replyToMessageId: event.payload?.replyToMessageId

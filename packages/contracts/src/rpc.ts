@@ -224,7 +224,9 @@ export const appContract = {
   },
   spaces: {
     list: oc.output(SpaceNavigationSchema),
-    create: oc.input(z.object({ name: z.string().trim().min(1).max(60) })).output(SpaceSchema),
+    create: oc
+      .input(z.object({ name: z.string().trim().min(1).max(60), shared: z.boolean().optional() }))
+      .output(SpaceSchema),
   },
   bootstrap: oc.input(z.object({ botId: Id.optional() })).output(AppBootstrapSchema),
   deployment: {

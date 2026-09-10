@@ -20,8 +20,10 @@ export async function assertPortalAccess(prisma: PrismaClient, userId: string, h
   const brandId = portalBrandId(headers);
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { portalBrandId: true },
+    select: { portalBrandId: true, isSpaceAccount: true },
   });
+  if (user.isSpaceAccount)
+    throw new APIError("FORBIDDEN", { message: "This account cannot sign in." });
   if (user.portalBrandId && user.portalBrandId !== brandId)
     throw new APIError("FORBIDDEN", { message: "Use your organization's sign-in page." });
   // Manor belongs to the account's first main-portal organization. Membership

@@ -12,6 +12,7 @@ export * from "./messaging.js";
 export * from "./model-credentials.js";
 export * from "./repos.js";
 export * from "./scope.js";
+export * from "./space-account.js";
 export * from "./spaces.js";
 export * from "./team.js";
 export * from "./transaction-retry.js";

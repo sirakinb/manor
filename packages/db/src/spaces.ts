@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "./client.js";
 import { IsolationError } from "./scope.js";
+import { createSpaceAccount } from "./space-account.js";
 import { withTransactionRetry } from "./transaction-retry.js";
 
 /** Per member, per organization: one person cannot fan out unbounded boundaries. */
@@ -131,6 +132,7 @@ export async function createSpaceForMember(
     currentSpaceId: string;
     userId: string;
     name: string;
+    shared?: boolean;
   },
 ): Promise<{ id: string; name: string; organizationId: string; organizationName: string }> {
   const name = input.name.trim();
@@ -152,10 +154,16 @@ export async function createSpaceForMember(
           },
           select: {
             organizationId: true,
-            member: { select: { organization: { select: { name: true } } } },
+            member: {
+              select: {
+                user: { select: { isSpaceAccount: true } },
+                organization: { select: { name: true } },
+              },
+            },
           },
         });
-        if (!currentMembership) throw new IsolationError();
+        if (!currentMembership || currentMembership.member.user.isSpaceAccount)
+          throw new IsolationError();
         organization = {
           id: currentMembership.organizationId,
           name: currentMembership.member.organization.name,
@@ -175,17 +183,38 @@ export async function createSpaceForMember(
           name,
           createdAt,
         });
+        const resourceUserId = input.shared
+          ? await createSpaceAccount(tx, { id: spaceId, organizationId: organization.id, name })
+          : input.userId;
+        if (input.shared) {
+          const members = await tx.member.findMany({
+            where: { organizationId: organization.id, user: { isSpaceAccount: false } },
+            select: { userId: true },
+          });
+          await tx.spaceMember.createMany({
+            data: members.map((member) => ({
+              id: randomUUID(),
+              spaceId,
+              organizationId: organization.id,
+              userId: member.userId,
+              role: "member",
+              createdAt,
+            })),
+            skipDuplicates: true,
+          });
+        }
         await createSpaceDefaults(tx, {
           spaceId,
-          userId: input.userId,
+          userId: resourceUserId,
           memoryContent: "# Space memory\n\n",
         });
-        await copyProviderPreferences(tx, {
-          sourceSpaceId: input.currentSpaceId,
-          targetSpaceId: spaceId,
-          userId: input.userId,
-          createdAt,
-        });
+        if (!input.shared)
+          await copyProviderPreferences(tx, {
+            sourceSpaceId: input.currentSpaceId,
+            targetSpaceId: spaceId,
+            userId: input.userId,
+            createdAt,
+          });
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     ),

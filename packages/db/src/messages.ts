@@ -4,6 +4,8 @@ import type { Prisma, PrismaClient } from "./client.js";
 export interface CreateThreadMessageInput {
   threadId: string;
   role: "user" | "bot" | "system";
+  authorUserId?: string;
+  authorName?: string;
   blocks: MessageBlock[];
   botId?: string;
   replyToMessageId?: string;
@@ -36,6 +38,8 @@ export async function createThreadMessageInTransaction(
       threadId: input.threadId,
       seq: thread.nextMessageSeq - 1,
       role: input.role,
+      authorUserId: input.authorUserId,
+      authorName: input.authorName,
       blocks: input.blocks as Prisma.InputJsonValue,
       botId: input.botId,
       replyToMessageId: input.replyToMessageId,

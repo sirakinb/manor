@@ -76,7 +76,12 @@ describe("client portal access", () => {
     ).rejects.toThrow();
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: "admin", spaceId: "client-space", organizationId: "main-org" },
+        where: {
+          userId: "admin",
+          spaceId: "client-space",
+          organizationId: "main-org",
+          member: { user: { isSpaceAccount: false } },
+        },
       }),
     );
   });
@@ -102,7 +107,12 @@ describe("client portal access", () => {
     ).rejects.toThrow();
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: "admin", spaceId: "personal-space", organizationId: "client-org" },
+        where: {
+          userId: "admin",
+          spaceId: "personal-space",
+          organizationId: "client-org",
+          member: { user: { isSpaceAccount: false } },
+        },
       }),
     );
   });
