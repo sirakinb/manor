@@ -14,7 +14,7 @@ export function TeamMembers() {
       if (pending || document.visibilityState !== "visible") return;
       pending = true;
       try {
-        const next = await rpc.team.list();
+        const next = await rpc.team.list(undefined, { signal: AbortSignal.timeout(10_000) });
         if (!disposed) {
           setMembers(next);
           setFailed(false);
