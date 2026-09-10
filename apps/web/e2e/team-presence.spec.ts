@@ -69,7 +69,10 @@ test("branded team shows active and last-seen members without exposing other org
     try {
       await page.unrouteAll({ behavior: "ignoreErrors" });
       if (organizationId)
-        await prisma.organization.update({ where: { id: organizationId }, data: { brandId: null } });
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: { brandId: null },
+        });
       await prisma.user.deleteMany({ where: { id: teammateId } });
       await page.context().addCookies(signupCookies);
       const removed = await page.request.post("/api/auth/delete-user", {
