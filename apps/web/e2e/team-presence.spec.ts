@@ -56,6 +56,7 @@ test("branded team shows active and last-seen members without exposing other org
     await expect(team.getByTestId("team-member")).toHaveCount(2);
     await expect(team.getByText("Team Colleague", { exact: true })).toBeVisible();
     await expect(team.getByText("Last active", { exact: false })).toBeVisible();
+    await expect(team.getByText("Last sign-in", { exact: false })).toHaveCount(2);
     await expect(team.getByText("Active now", { exact: true })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-brand", "vibecodephilly");
     await team.scrollIntoViewIfNeeded();
@@ -64,6 +65,9 @@ test("branded team shows active and last-seen members without exposing other org
     await page.goto("/sign-in?__brand=vibecodephilly");
     await expect(page.getByRole("img", { name: "Vibe Code Philly" })).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to Vibe Code Philly" })).toHaveClass(
+      "sr-only",
+    );
     await captureScreenshot(page, testInfo, "vibecodephilly-sign-in");
   } finally {
     try {

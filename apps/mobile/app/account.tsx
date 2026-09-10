@@ -223,15 +223,6 @@ export default function Account() {
         </View>
         {focus !== "usage" ? usageBlock : null}
         <TeamMembers />
-        {me?.isDeploymentOwner ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push("/maintenance")}
-            style={styles.profile}
-          >
-            <Text style={styles.name}>Maintenance Agent</Text>
-          </Pressable>
-        ) : null}
 
         <View accessibilityLabel="Password" style={styles.profile}>
           <Text style={styles.settingsTitle}>Password</Text>

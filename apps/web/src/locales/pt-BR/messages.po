@@ -6844,3 +6844,31 @@ msgstr "O seu nome"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "Sua equipe de <0>agentes de IA sempre ativos</0><1/>para quem você pode dar <2>trabalho de verdade</2>."
+
+#: src/components/TeamMembers.tsx:64
+msgid "Active now"
+msgstr "Ativo agora"
+
+#: src/components/TeamMembers.tsx:67
+msgid "Last active"
+msgstr "Última atividade"
+
+#: src/components/TeamMembers.tsx:77
+msgid "Last sign-in"
+msgstr "Último acesso"
+
+#: src/components/TeamMembers.tsx:73
+msgid "No activity yet"
+msgstr "Nenhuma atividade ainda"
+
+#: src/components/TeamMembers.tsx:83
+msgid "Not recorded yet"
+msgstr "Ainda não registrado"
+
+#: src/components/TeamMembers.tsx:62
+msgid "Status unavailable"
+msgstr "Status indisponível"
+
+#: src/components/TeamMembers.tsx:44
+msgid "Team activity is unavailable. Retrying…"
+msgstr "A atividade da equipe está indisponível. Tentando novamente…"

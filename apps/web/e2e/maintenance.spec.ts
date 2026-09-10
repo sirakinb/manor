@@ -1,91 +1,38 @@
 import { expect, test } from "@playwright/test";
-import type { MaintenanceOverview, Me } from "@rakazo/contracts";
-import { createDb } from "../../../packages/db/src/client";
-import { captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import type { AppBootstrap } from "@rakazo/contracts";
+import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
-test("deployment owner reviews a simulated maintenance fix and preserves a draft", async ({
-  page,
-}, testInfo) => {
-  await page.setViewportSize({ width: 1440, height: 1100 });
-  const db = createDb(process.env.DATABASE_URL!);
-  let originalOwner: string | null | undefined;
-  try {
+for (const deploymentOwner of [false, true]) {
+  test(`retired maintenance UI stays hidden for ${deploymentOwner ? "deployment" : "organization"} owners`, async ({
+    page,
+  }, testInfo) => {
     await signup(
       page,
-      `maintenance-${Date.now()}@example.test`,
+      `retired-maintenance-${Date.now()}@example.test`,
       "password12",
-      "Maintenance tester",
+      "Settings tester",
     );
     await completeOnboarding(page);
-    const me = await rpc<Me>(page, "me", {});
-    originalOwner = (
-      await db.prisma.deploymentSettings.findUniqueOrThrow({ where: { id: "default" } })
-    ).ownerUserId;
-    await db.prisma.deploymentSettings.update({
-      where: { id: "default" },
-      data: { ownerUserId: me.userId },
+    // Exercise both UI roles without mutating the deployment owner shared by other specs.
+    await page.route("**/rpc/bootstrap", async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { json: AppBootstrap };
+      body.json.me.isDeploymentOwner = deploymentOwner;
+      await route.fulfill({ response, json: body });
     });
-    await page.goto("/app/maintenance");
-    await page
-      .getByRole("textbox", { name: "Bug or improvement" })
-      .fill("The synthetic status label needs a clearer ready state.");
-    await page.reload();
-    await expect(page.getByRole("textbox", { name: "Bug or improvement" })).toHaveValue(
-      "The synthetic status label needs a clearer ready state.",
+    await page.goto("/app/maintenance?runId=retired-bookmark");
+    await expect(page).not.toHaveURL(/\/app\/maintenance/);
+    await expect(page).toHaveURL(/\/app(?:\/[^/?]+)?$/);
+    await expect(page.getByText("Chief").first()).toBeVisible();
+    await expect(page.getByTestId("maintenance-page")).toHaveCount(0);
+    await page.getByTestId("user-menu-trigger").click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await expect(page.getByTestId("user-settings")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Maintenance Agent" })).toHaveCount(0);
+    await captureScreenshot(
+      page,
+      testInfo,
+      `settings-without-maintenance-${deploymentOwner ? "owner" : "member"}`,
     );
-    await page.getByRole("button", { name: "Submit issue", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Approve simulated release" })).toBeVisible({
-      timeout: 60_000,
-    });
-    await page.getByText("Review diff", { exact: true }).click();
-    await page.getByText("Release manifest", { exact: true }).click();
-    await expect(page.getByTestId("maintenance-job")).toContainText("sha256:");
-    await expect(page.getByTestId("maintenance-job")).toContainText(
-      "export const status = 'ready'",
-    );
-    await captureScreenshot(page, testInfo, "maintenance-owner-review");
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByRole("button", { name: "Approve simulated release" })).toBeVisible();
-    await page.getByTestId("maintenance-job").scrollIntoViewIfNeeded();
-    await captureScreenshot(page, testInfo, "maintenance-owner-review-mobile");
-    await page.getByRole("button", { name: "Approve simulated release" }).click();
-    await page.getByRole("button", { name: "Confirm simulated release" }).click();
-    await expect(page.getByTestId("maintenance-job")).toContainText("Simulation completed", {
-      timeout: 60_000,
-    });
-    await page.reload();
-    await expect(page.getByTestId("maintenance-job")).toContainText(
-      "No source code or deployment was changed",
-      { ignoreCase: true },
-    );
-    const jobs = await rpc<MaintenanceOverview>(page, "maintenance/list", {});
-    expect(jobs.jobs[0]?.approvedRevision).toBe("b".repeat(40));
-    await captureScreenshot(page, testInfo, "maintenance-simulated-completion");
-  } finally {
-    if (originalOwner !== undefined)
-      await db.prisma.deploymentSettings.update({
-        where: { id: "default" },
-        data: { ownerUserId: originalOwner },
-      });
-    await db.prisma.$disconnect();
-    await db.pool.end();
-  }
-});
-
-test("ordinary organization owner has no maintenance UI or API access", async ({
-  page,
-}, testInfo) => {
-  await signup(
-    page,
-    `maintenance-member-${Date.now()}@example.test`,
-    "password12",
-    "Organization tester",
-  );
-  await completeOnboarding(page);
-  await page.goto("/app/maintenance");
-  await expect(page.getByRole("alert")).toContainText("restricted to the deployment owner");
-  await expect(page.getByRole("textbox", { name: "Bug or improvement" })).toHaveCount(0);
-  const response = await page.request.post("/rpc/maintenance/list", { data: { json: {} } });
-  expect(response.status()).toBe(403);
-  await captureScreenshot(page, testInfo, "maintenance-nonowner-denied");
-});
+  });
+}

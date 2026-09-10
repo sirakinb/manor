@@ -6844,3 +6844,31 @@ msgstr "Adın"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>Her zaman açık yapay zeka ajanlarından</0> oluşan,<1/><2>gerçek işler</2> verebileceğiniz ekibiniz."
+
+#: src/components/TeamMembers.tsx:64
+msgid "Active now"
+msgstr "Şu anda aktif"
+
+#: src/components/TeamMembers.tsx:67
+msgid "Last active"
+msgstr "Son etkinlik"
+
+#: src/components/TeamMembers.tsx:77
+msgid "Last sign-in"
+msgstr "Son giriş"
+
+#: src/components/TeamMembers.tsx:73
+msgid "No activity yet"
+msgstr "Henüz etkinlik yok"
+
+#: src/components/TeamMembers.tsx:83
+msgid "Not recorded yet"
+msgstr "Henüz kaydedilmedi"
+
+#: src/components/TeamMembers.tsx:62
+msgid "Status unavailable"
+msgstr "Durum kullanılamıyor"
+
+#: src/components/TeamMembers.tsx:44
+msgid "Team activity is unavailable. Retrying…"
+msgstr "Ekip etkinliği kullanılamıyor. Yeniden deneniyor…"

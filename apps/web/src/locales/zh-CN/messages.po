@@ -6843,3 +6843,31 @@ msgstr "你的名字"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr ""
+
+#: src/components/TeamMembers.tsx:64
+msgid "Active now"
+msgstr "当前在线"
+
+#: src/components/TeamMembers.tsx:67
+msgid "Last active"
+msgstr "最后活动时间"
+
+#: src/components/TeamMembers.tsx:77
+msgid "Last sign-in"
+msgstr "上次登录"
+
+#: src/components/TeamMembers.tsx:73
+msgid "No activity yet"
+msgstr "暂无活动"
+
+#: src/components/TeamMembers.tsx:83
+msgid "Not recorded yet"
+msgstr "暂无记录"
+
+#: src/components/TeamMembers.tsx:62
+msgid "Status unavailable"
+msgstr "状态不可用"
+
+#: src/components/TeamMembers.tsx:44
+msgid "Team activity is unavailable. Retrying…"
+msgstr "团队活动暂时不可用。正在重试…"

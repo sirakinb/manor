@@ -6844,3 +6844,31 @@ msgstr "आपका नाम"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>हमेशा सक्रिय AI एजेंटों</0> की आपकी टीम,<1/>जिसे आप <2>असली काम</2> सौंप सकते हैं।"
+
+#: src/components/TeamMembers.tsx:64
+msgid "Active now"
+msgstr "अभी सक्रिय"
+
+#: src/components/TeamMembers.tsx:67
+msgid "Last active"
+msgstr "पिछली गतिविधि"
+
+#: src/components/TeamMembers.tsx:77
+msgid "Last sign-in"
+msgstr "पिछला साइन-इन"
+
+#: src/components/TeamMembers.tsx:73
+msgid "No activity yet"
+msgstr "अभी तक कोई गतिविधि नहीं"
+
+#: src/components/TeamMembers.tsx:83
+msgid "Not recorded yet"
+msgstr "अभी तक दर्ज नहीं किया गया"
+
+#: src/components/TeamMembers.tsx:62
+msgid "Status unavailable"
+msgstr "स्थिति उपलब्ध नहीं है"
+
+#: src/components/TeamMembers.tsx:44
+msgid "Team activity is unavailable. Retrying…"
+msgstr "टीम की गतिविधि उपलब्ध नहीं है। फिर से प्रयास किया जा रहा है…"
