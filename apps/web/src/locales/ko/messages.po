@@ -6844,3 +6844,31 @@ msgstr "이름"
 #: src/pages/Welcome.tsx:77
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>항상 켜져 있는 AI 에이전트</0> 팀에게<1/><2>실제 업무</2>를 맡기세요."
+
+#: src/components/TeamMembers.tsx:64
+msgid "Active now"
+msgstr ""
+
+#: src/components/TeamMembers.tsx:67
+msgid "Last active"
+msgstr ""
+
+#: src/components/TeamMembers.tsx:77
+msgid "Last sign-in"
+msgstr ""
+
+#: src/components/TeamMembers.tsx:73
+msgid "No activity yet"
+msgstr ""
+
+#: src/components/TeamMembers.tsx:83
+msgid "Not recorded yet"
+msgstr ""
+
+#: src/components/TeamMembers.tsx:62
+msgid "Status unavailable"
+msgstr ""
+
+#: src/components/TeamMembers.tsx:44
+msgid "Team activity is unavailable. Retrying…"
+msgstr ""

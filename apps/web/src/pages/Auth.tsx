@@ -22,6 +22,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [sent, setSent] = useState(false);
   const [reset, setReset] = useState<PasswordResetCapabilities | null>(null);
   const passwordFieldId = mode === "in" ? "current-password" : "new-password";
+  const logoOnly = mode === "in" && brand.id !== "manor";
   const title =
     mode === "in" ? (
       <Trans>Sign in to {brandName}</Trans>
@@ -112,7 +113,11 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           </div>
         ) : null}
         <h1
-          className={`rk-serif mb-[38px] text-center text-[38px] ${brand.id === "manor" ? "mt-3" : "mt-[30px]"}`}
+          className={
+            logoOnly
+              ? "sr-only"
+              : `rk-serif mb-[38px] text-center text-[38px] ${brand.id === "manor" ? "mt-3" : "mt-[30px]"}`
+          }
         >
           {title}
         </h1>
@@ -144,7 +149,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 />
               </label>
             ) : null}
-            <label className="w-full text-[16px] text-[#8A8590]">
+            <label className={`w-full text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}>
               <Trans>Email</Trans>
               <input
                 id="email"

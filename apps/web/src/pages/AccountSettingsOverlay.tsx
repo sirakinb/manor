@@ -221,16 +221,6 @@ export function AccountSettingsOverlay({
           </p>
         </div>
 
-        {isDeploymentOwner ? (
-          <a
-            href="/app/maintenance"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 block rounded-xl border border-[#303034] p-4 text-[#C4B5FD]"
-          >
-            Maintenance Agent
-          </a>
-        ) : null}
         <SoftwareUpdateSection isDeploymentOwner={isDeploymentOwner} />
 
         {isDeploymentOwner && computersAreUnavailable(sandboxProvider) ? (
