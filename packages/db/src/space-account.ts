@@ -133,6 +133,34 @@ export async function shareUnstartedSpace(prisma: PrismaClient, spaceId: string)
         ]);
         if (occupied.some(Boolean))
           throw new Error("This space has active account data and needs a reviewed migration.");
+        // Multiple private owners can have the same nullable-bot memory path.
+        // Coalesce only identical seed documents; preserve any edited history for review.
+        const memory = await tx.memoryDocument.findMany({
+          where: { spaceId },
+          orderBy: { id: "asc" },
+          include: { _count: { select: { revisions: true } } },
+        });
+        const byPath = new Map<string, (typeof memory)[number]>();
+        const duplicateIds: string[] = [];
+        for (const document of memory) {
+          const key = JSON.stringify([document.scope, document.botId, document.path]);
+          const previous = byPath.get(key);
+          if (!previous) {
+            byPath.set(key, document);
+            continue;
+          }
+          if (
+            previous.content !== document.content ||
+            previous.revision !== 1 ||
+            document.revision !== 1 ||
+            previous._count.revisions ||
+            document._count.revisions
+          )
+            throw new Error("This space has conflicting memory and needs a reviewed migration.");
+          duplicateIds.push(document.id);
+        }
+        if (duplicateIds.length)
+          await tx.memoryDocument.deleteMany({ where: { id: { in: duplicateIds } } });
         const accountUserId = await createSpaceAccount(tx, space);
         const members = await tx.member.findMany({
           where: { organizationId: space.organizationId, user: { isSpaceAccount: false } },

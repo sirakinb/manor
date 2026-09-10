@@ -303,7 +303,35 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
       },
       owner.spaceId,
     );
+    const memory = await handles.prisma.memoryDocument.findFirstOrThrow({
+      where: { spaceId: owner.spaceId, scope: "user", path: "MEMORY.md" },
+    });
+    const duplicate = await handles.prisma.memoryDocument.create({
+      data: {
+        spaceId: owner.spaceId,
+        userId: peer.userId,
+        scope: memory.scope,
+        path: memory.path,
+        content: "Conflicting personal memory",
+      },
+    });
+    await expect(shareUnstartedSpace(handles.prisma, owner.spaceId)).rejects.toThrow(
+      "conflicting memory",
+    );
+    expect(
+      (await handles.prisma.space.findUniqueOrThrow({ where: { id: owner.spaceId } }))
+        .accountUserId,
+    ).toBeNull();
+    await handles.prisma.memoryDocument.update({
+      where: { id: duplicate.id },
+      data: { content: memory.content },
+    });
     const id = await shareUnstartedSpace(handles.prisma, owner.spaceId);
+    expect(
+      await handles.prisma.memoryDocument.count({
+        where: { spaceId: owner.spaceId, scope: "user", path: "MEMORY.md", userId: id },
+      }),
+    ).toBe(1);
     userIds.push(id);
     expect(await shareUnstartedSpace(handles.prisma, owner.spaceId)).toBe(id);
     const shared = await rpc<Bot>(peerCookie, "bots/get", { botId: old.id }, owner.spaceId);

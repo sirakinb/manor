@@ -33,7 +33,8 @@ until explicitly converted. The operator helper `shareUnstartedSpace` supports
 spaces whose agents have not run and whose external accounts, stored secrets,
 and computers have not been configured. It preserves agent and conversation
 identifiers and moves their resource ownership in one serializable transaction.
-Re-running it returns the same account.
+Re-running it returns the same account. Identical, unedited seed memory documents
+are consolidated; conflicting content or revision history requires separate review.
 
 Run conversion while writes to the affected space are stopped, after a verified
 backup. The helper refuses spaces with existing execution or provider state;
