@@ -23,6 +23,15 @@ export interface BrandConfig {
   appleTouchIcon: string;
   icon192: string;
   icon512: string;
+  /** Optional link preview override, served in the initial HTML for social crawlers. */
+  socialPreview?: {
+    title: string;
+    image: string;
+    imageType: string;
+    width: number;
+    height: number;
+    imageAlt: string;
+  };
 }
 
 export const brands: readonly BrandConfig[] = [manor, jrh, meridian, vibecodephilly];
