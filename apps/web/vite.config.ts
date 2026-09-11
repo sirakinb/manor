@@ -11,6 +11,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type PreviewServer, type ViteDevServer } from "vite";
 import { brandHostnames } from "../../packages/brands/src/index.ts";
 import { resolveScreenProxySecret } from "../../packages/core/src/secrets-guard.ts";
+import { socialPreviewPlugin } from "./social-preview-plugin";
 import {
   resolveNovncTarget,
   resolvePreviewTarget,
@@ -254,6 +255,7 @@ export default defineConfig(({ mode }) => {
   const performanceAssetDelayMs = Number(process.env.RAKAZO_PERFORMANCE_ASSET_DELAY_MS ?? 0);
   return {
     plugins: [
+      socialPreviewPlugin(),
       {
         name: "manor-distribution-notices",
         generateBundle() {
@@ -304,6 +306,7 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       host: "127.0.0.1",
+      allowedHosts: brandHostnames(),
       port: webPort,
       strictPort: true,
       proxy: {
