@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { brandById } from "@rakazo/brands";
-import { joinOrganization, type PrismaClient } from "@rakazo/db";
+import { createSpaceAccount, joinOrganization, type PrismaClient } from "@rakazo/db";
 import { hashPassword } from "better-auth/crypto";
 
 type PortalTeamInput = { brandId: string; members: Array<{ email: string; name: string }> };
@@ -59,7 +59,7 @@ export async function provisionPortalTeam(prisma: PrismaClient, input: PortalTea
       let space = await tx.space.findFirst({
         where: { organizationId: organization.id, isDefault: true },
       });
-      if (!space)
+      if (!space) {
         space = await tx.space.create({
           data: {
             id: randomUUID(),
@@ -68,6 +68,10 @@ export async function provisionPortalTeam(prisma: PrismaClient, input: PortalTea
             isDefault: true,
           },
         });
+        // New organizations start with one shared team boundary. Existing
+        // spaces keep their ownership; live data needs a reviewed migration.
+        await createSpaceAccount(tx, space);
+      }
       const accounts: Array<{ email: string; password: string | null; created: boolean }> = [];
       for (const member of members) {
         let user = await tx.user.findFirst({

@@ -135,9 +135,18 @@ export async function startOnboarding(
     select: { name: true },
   });
   const firstName = (user?.name ?? "there").split(/\s+/)[0];
+  const space = await deps.prisma.space.findUniqueOrThrow({
+    where: { id: actor.spaceId },
+    select: { name: true, accountUserId: true },
+  });
   const target = { spaceId: actor.spaceId, botId: bot.id, threadId: thread.id };
   await post(deps, target, [
-    { kind: "text", text: `Hey ${firstName}. Fresh start on my side, so I’ll keep this short.` },
+    {
+      kind: "text",
+      text: space.accountUserId
+        ? `Welcome to ${space.name}. Agents, conversations, files, and connected accounts here are shared with everyone on your team. For private work, create a personal space from New space. Agents communicate within their own space.`
+        : `Hey ${firstName}. Fresh start on my side, so I’ll keep this short.`,
+    },
   ]);
   await post(deps, target, [
     {
@@ -209,10 +218,14 @@ export async function chooseFocus(
     .map((card) => (card.kind === "app_connect" ? card.name : ""))
     .filter(Boolean);
   const named = `${cardNames.slice(0, -1).join(", ")}${cardNames.length > 1 ? ", and " : ""}${cardNames.at(-1)}`;
+  const space = await deps.prisma.space.findUniqueOrThrow({
+    where: { id: actor.spaceId },
+    select: { accountUserId: true },
+  });
   await post(deps, target, [
     {
       kind: "text",
-      text: `${named} are a good place to start. Connect them here and I’ll use what you already have.`,
+      text: `${named} are a good place to start. ${space.accountUserId ? "Accounts connected here can be used by everyone on your team." : "Accounts connected here stay in this personal space."}`,
     },
   ]);
   await post(deps, target, cards);

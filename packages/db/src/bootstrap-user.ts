@@ -39,11 +39,11 @@ async function seedSpaceDefaults(
         if (!isUniqueViolation(error)) throw error;
       });
   }
-  await prisma.notificationPreference
-    .create({ data: { spaceId: input.spaceId, userId: input.userId } })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
+  await prisma.notificationPreference.upsert({
+    where: { spaceId_userId: input },
+    create: input,
+    update: {},
+  });
 }
 
 /** The organization that owns a brand's client team, with its default space. */
@@ -109,7 +109,14 @@ export async function joinOrganization(
     .catch((error: unknown) => {
       if (!isUniqueViolation(error)) throw error;
     });
-  await seedSpaceDefaults(prisma, { spaceId: organization.defaultSpaceId, userId: user.id });
+  const space = await prisma.space.findUniqueOrThrow({
+    where: { id: organization.defaultSpaceId },
+    select: { accountUserId: true },
+  });
+  await seedSpaceDefaults(prisma, {
+    spaceId: organization.defaultSpaceId,
+    userId: space.accountUserId ?? user.id,
+  });
   return { spaceId: organization.defaultSpaceId, organizationId: organization.id };
 }
 

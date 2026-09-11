@@ -3,6 +3,7 @@ import {
   OPENAI_COMPATIBLE_PROVIDER_ID,
   openAiCompatibleConnectReady,
   openAiCompatibleProbeSuccessMessage,
+  type Space,
 } from "@rakazo/contracts";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +18,7 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<"loading" | "model" | "bot">("loading");
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
+  const [space, setSpace] = useState<Space | null>(null);
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState("openrouter");
   const [modelId, setModelId] = useState("deepseek/deepseek-v4-flash-0731");
@@ -52,8 +54,17 @@ export function OnboardingPage() {
     let cancelled = false;
     void initialMe()
       .then(async (me) => {
-        const models = await rpc.models.list().catch(() => []);
+        const [models, navigation] = await Promise.all([
+          rpc.models.list().catch(() => []),
+          rpc.spaces.list(),
+        ]);
         if (cancelled) return;
+        setSpace(navigation.spaces.find((entry) => entry.id === me.spaceId) ?? null);
+        // A teammate may already have completed the shared setup.
+        if (navigation.current.bots[0]) {
+          navigate(`/app/${navigation.current.bots[0].id}`, { replace: true });
+          return;
+        }
         setCatalog(models);
         const preferred =
           models.find(
@@ -213,8 +224,16 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-[#0D0D0E] px-6">
+    <div className="flex min-h-full items-center justify-center bg-[#0D0D0E] px-6 py-8">
       <div className="w-[560px]">
+        {step !== "loading" && space?.shared ? (
+          <div className="mb-6 text-sm text-[#85858A]">
+            <p className="font-medium text-[#F1F1F2]">{space.name}</p>
+            <p className="mt-1">
+              <Trans>Agents, conversations, files, and connected accounts are shared.</Trans>
+            </p>
+          </div>
+        ) : null}
         {step === "loading" ? (
           <p className="text-[#85858A]">{error ?? <Trans>Loading…</Trans>}</p>
         ) : null}
