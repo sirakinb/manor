@@ -24,7 +24,7 @@ export const vibecodephilly: BrandConfig = {
     wide: true,
     viewBox: "24 32 64 37",
   },
-  favicon: "/brands/vibecodephilly/logo.png",
+  favicon: "/brands/vibecodephilly/favicon.png",
   appleTouchIcon: "/brands/vibecodephilly/logo.png",
   icon192: "/brands/vibecodephilly/logo.png",
   icon512: "/brands/vibecodephilly/logo.png",

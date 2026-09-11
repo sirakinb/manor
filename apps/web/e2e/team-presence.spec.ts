@@ -64,6 +64,10 @@ test("branded team shows active and last-seen members without exposing other org
     await page.context().clearCookies();
     await page.goto("/sign-in?__brand=vibecodephilly");
     await expect(page.getByRole("img", { name: "Vibe Code Philly" })).toBeVisible();
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
+      "href",
+      "/brands/vibecodephilly/favicon.png",
+    );
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Sign in to Vibe Code Philly" })).toHaveClass(
       "sr-only",
