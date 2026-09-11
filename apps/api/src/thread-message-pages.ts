@@ -138,6 +138,8 @@ function toThreadMessage(row: {
   blocks: Prisma.JsonValue;
   botId: string | null;
   replyToMessageId: string | null;
+  authorUserId?: string | null;
+  authorName?: string | null;
   runId: string | null;
   thumbsUp: boolean;
   createdAt: Date;
@@ -150,6 +152,8 @@ function toThreadMessage(row: {
     blocks: row.blocks as ThreadMessage["blocks"],
     botId: row.botId ?? undefined,
     replyToMessageId: row.replyToMessageId ?? undefined,
+    authorUserId: row.authorUserId ?? undefined,
+    authorName: row.authorName ?? undefined,
     runId: row.runId ?? undefined,
     thumbsUp: row.thumbsUp,
     createdAt: row.createdAt.toISOString(),

@@ -71,6 +71,10 @@ function formatApprovalDetail(
     lines.push(
       "Bots, groups, chats, files, memory, and integrations in this space stay separate from other spaces.",
     );
+    if (args.shared === true)
+      lines.push(
+        "Everyone in the organization can use this space, including its connected accounts.",
+      );
   }
   for (const key of ["collection", "title", "to", "subject", "amount", "body"]) {
     const value = args[key];

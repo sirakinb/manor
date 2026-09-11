@@ -10,7 +10,9 @@ test("the sidebar shows the organization and space creation requires approval", 
   await completeOnboarding(page);
 
   const sidebar = page.locator("aside").first();
-  await expect(sidebar.getByText("Personal", { exact: true })).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: "Collapse Personal", exact: true }),
+  ).toBeVisible();
   await expect(sidebar.getByRole("button", { name: /^Chief/ })).toHaveCount(1);
   await captureScreenshot(page, testInfo, "single-space-sidebar");
 

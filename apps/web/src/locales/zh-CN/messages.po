@@ -6871,3 +6871,31 @@ msgstr "状态不可用"
 #: src/components/TeamMembers.tsx:44
 msgid "Team activity is unavailable. Retrying…"
 msgstr "团队活动暂时不可用。正在重试…"
+
+#: src/pages/Shell.tsx:6646
+msgid "Access"
+msgstr "访问权限"
+
+#: src/pages/Shell.tsx:6660
+msgid "Agents, conversations, files, and connected accounts are shared."
+msgstr "智能体、对话、文件和已连接的账户均会共享。"
+
+#: src/pages/Shell.tsx:6654
+msgid "Personal — only you"
+msgstr "个人 — 仅您自己"
+
+#: src/pages/Shell.tsx:2717
+msgid "Shared team space"
+msgstr "团队共享空间"
+
+#: src/pages/PluginsOverlay.tsx:315
+msgid "Shared with your team"
+msgstr "与您的团队共享"
+
+#: src/pages/Shell.tsx:6648
+msgid "Space access"
+msgstr "空间访问权限"
+
+#: src/pages/Shell.tsx:6655
+msgid "Team — everyone in this organization"
+msgstr "团队 — 此组织中的所有人"

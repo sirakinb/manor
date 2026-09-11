@@ -603,6 +603,11 @@ export const builtinAgentTools: ConnectorTool[] = [
     inputSchema: {
       type: "object",
       properties: {
+        shared: {
+          type: "boolean",
+          description:
+            "True creates a team space shared with everyone in the organization, including connected accounts. False or omitted creates a personal space for the requesting member.",
+        },
         name: {
           type: "string",
           minLength: 1,

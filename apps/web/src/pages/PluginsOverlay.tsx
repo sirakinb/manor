@@ -37,10 +37,12 @@ export function PluginsOverlay({
   onClose,
   onOpenMcp,
   activeBotId,
+  space,
 }: {
   onClose: () => void;
   onOpenMcp?: () => void;
   activeBotId?: string;
+  space?: { name: string; shared?: boolean };
 }) {
   const { t } = useLingui();
   const [query, setQuery] = useState("");
@@ -310,6 +312,11 @@ export function PluginsOverlay({
           </button>
         </div>
 
+        {space ? (
+          <p className="px-8 pt-2 text-[13px] text-[#A0A0A6]">
+            {space.name} · {space.shared ? t`Shared with your team` : t`Personal`}
+          </p>
+        ) : null}
         <div className="px-8 pt-4">
           <input
             value={query}

@@ -6872,3 +6872,31 @@ msgstr "स्थिति उपलब्ध नहीं है"
 #: src/components/TeamMembers.tsx:44
 msgid "Team activity is unavailable. Retrying…"
 msgstr "टीम की गतिविधि उपलब्ध नहीं है। फिर से प्रयास किया जा रहा है…"
+
+#: src/pages/Shell.tsx:6646
+msgid "Access"
+msgstr "पहुँच"
+
+#: src/pages/Shell.tsx:6660
+msgid "Agents, conversations, files, and connected accounts are shared."
+msgstr "एजेंट, बातचीत, फ़ाइलें और जुड़े खाते साझा किए जाते हैं।"
+
+#: src/pages/Shell.tsx:6654
+msgid "Personal — only you"
+msgstr "निजी — केवल आप"
+
+#: src/pages/Shell.tsx:2717
+msgid "Shared team space"
+msgstr "साझा टीम स्पेस"
+
+#: src/pages/PluginsOverlay.tsx:315
+msgid "Shared with your team"
+msgstr "आपकी टीम के साथ साझा"
+
+#: src/pages/Shell.tsx:6648
+msgid "Space access"
+msgstr "स्पेस तक पहुँच"
+
+#: src/pages/Shell.tsx:6655
+msgid "Team — everyone in this organization"
+msgstr "टीम — इस संगठन के सभी लोग"

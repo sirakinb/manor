@@ -35,6 +35,7 @@ describe("organization team activity", () => {
       expect.objectContaining({
         where: {
           organizationId: "team-a",
+          user: { isSpaceAccount: false },
           organization: { members: { some: { userId: "viewer" } } },
         },
       }),

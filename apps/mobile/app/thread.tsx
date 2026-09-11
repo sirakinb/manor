@@ -1280,6 +1280,9 @@ function Thread() {
               marginBottom: 4,
             }}
           >
+            {message.authorName ? (
+              <Text style={{ color: "#85858A", fontSize: 12 }}>{message.authorName}</Text>
+            ) : null}
             <Pressable accessibilityLabel="Reply" onPress={() => setReplyTarget(message)}>
               <Text style={{ color: "#6C6C70", fontSize: 12 }}>Reply</Text>
             </Pressable>

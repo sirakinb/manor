@@ -24,6 +24,7 @@ import {
   lockOwnedGroup,
   type Prisma,
   type PrismaClient,
+  sharedMessageAuthor,
   type ThreadEvents,
   touchGroupUpdatedAt,
 } from "@rakazo/db";
@@ -549,8 +550,12 @@ export async function sendThreadMessage(
     toolRoutingMode?: ToolRoutingMode;
   },
 ) {
+  if (actor.initiatedByUserId && input.clientNonce) {
+    input = { ...input, clientNonce: `${actor.initiatedByUserId}:${input.clientNonce}` };
+  }
   const existing = await replayExistingSend(deps, target.threadId, input.clientNonce);
   if (existing) return existing;
+  const author = await sharedMessageAuthor(deps.prisma, actor);
 
   const commit = () =>
     deps.prisma.$transaction(async (tx) => {
@@ -577,6 +582,7 @@ export async function sendThreadMessage(
         );
         const blocks = buildUserMessageBlocks(input.text, attachmentBlocks);
         const message = await createThreadMessageInTransaction(tx, {
+          ...author,
           threadId: target.threadId,
           role: "user",
           blocks,
@@ -608,6 +614,7 @@ export async function sendThreadMessage(
             type: "thread.message.created",
             runId: active.id,
             payload: {
+              ...author,
               messageId: message.id,
               role: "user",
               blocks,
@@ -632,6 +639,7 @@ export async function sendThreadMessage(
             botId: target.botId,
             threadId: target.threadId,
             taskId: task.id,
+            initiatedByUserId: actor.initiatedByUserId,
             userId: actor.userId,
             status: "queued",
             trigger: "user",
@@ -653,6 +661,7 @@ export async function sendThreadMessage(
           type: "thread.message.created",
           runId: run.id,
           payload: {
+            ...author,
             messageId: message.id,
             role: "user",
             blocks,
@@ -685,6 +694,7 @@ export async function sendThreadMessage(
       );
       const blocks = buildUserMessageBlocks(input.text, attachmentBlocks);
       const message = await createThreadMessageInTransaction(tx, {
+        ...author,
         threadId: target.threadId,
         role: "user",
         blocks,
@@ -726,6 +736,7 @@ export async function sendThreadMessage(
             botId,
             threadId: target.threadId,
             taskId: task.id,
+            initiatedByUserId: actor.initiatedByUserId,
             userId: actor.userId,
             status: "queued",
             trigger: "user",
@@ -758,6 +769,7 @@ export async function sendThreadMessage(
         type: "thread.message.created",
         runId: firstRun?.id ?? activeRuns[0]?.id,
         payload: {
+          ...author,
           messageId: message.id,
           role: "user",
           blocks,

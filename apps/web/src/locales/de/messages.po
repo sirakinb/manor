@@ -6872,3 +6872,31 @@ msgstr "Status nicht verfügbar"
 #: src/components/TeamMembers.tsx:44
 msgid "Team activity is unavailable. Retrying…"
 msgstr "Teamaktivität ist nicht verfügbar. Neuer Versuch…"
+
+#: src/pages/Shell.tsx:6646
+msgid "Access"
+msgstr "Zugriff"
+
+#: src/pages/Shell.tsx:6660
+msgid "Agents, conversations, files, and connected accounts are shared."
+msgstr "Agenten, Unterhaltungen, Dateien und verbundene Konten werden geteilt."
+
+#: src/pages/Shell.tsx:6654
+msgid "Personal — only you"
+msgstr "Persönlich — nur Sie"
+
+#: src/pages/Shell.tsx:2717
+msgid "Shared team space"
+msgstr "Gemeinsamer Teambereich"
+
+#: src/pages/PluginsOverlay.tsx:315
+msgid "Shared with your team"
+msgstr "Mit Ihrem Team geteilt"
+
+#: src/pages/Shell.tsx:6648
+msgid "Space access"
+msgstr "Zugriff auf den Bereich"
+
+#: src/pages/Shell.tsx:6655
+msgid "Team — everyone in this organization"
+msgstr "Team — alle in dieser Organisation"

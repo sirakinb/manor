@@ -57,7 +57,7 @@ type InboxItem =
   | { type: "bot"; bot: MobileBot | SpaceBot }
   | { type: "group"; group: MobileGroup | SpaceGroup }
   | { type: "search"; hit: SearchHit }
-  | { type: "heading"; key: string; title: string };
+  | { type: "heading"; key: string; title: string; spaceId?: string };
 
 async function openMobileSpace(spaceId: string | undefined, open: () => void) {
   if (spaceId && !(await selectSpace(spaceId))) {
@@ -270,24 +270,27 @@ export default function Home() {
               },
             ]
           : [];
-    const showSpaceNames = sidebarSpaces.length > 1;
     return sidebarSpaces.flatMap((space) => {
       const chats = [
         ...space.bots.map((chat) => ({ type: "bot" as const, bot: chat, ...chat })),
         ...space.groups.map((chat) => ({ type: "group" as const, group: chat, ...chat })),
       ];
-      return groupBotsForSidebar(chats, space.botSections).flatMap((group) => [
-        ...(group.title || showSpaceNames
-          ? [
-              {
-                type: "heading" as const,
-                key: `${space.id}:${group.key}`,
-                title: showSpaceNames
-                  ? `🔒 ${space.name}${group.title ? ` · ${group.title}` : ""}`
-                  : (group.title ?? ""),
-              },
-            ]
-          : []),
+      const sections = groupBotsForSidebar(chats, space.botSections);
+      if (!sections.length)
+        return [
+          {
+            type: "heading" as const,
+            key: space.id,
+            title: `${"shared" in space && space.shared ? "👥" : "🔒"} ${space.name}`,
+            spaceId: space.id,
+          },
+        ];
+      return sections.flatMap((group) => [
+        {
+          type: "heading" as const,
+          key: `${space.id}:${group.key}`,
+          title: `${"shared" in space && space.shared ? "👥" : "🔒"} ${space.name}${group.title ? ` · ${group.title}` : ""}`,
+        },
         ...group.bots,
       ]);
     });
@@ -447,7 +450,19 @@ export default function Home() {
               }}
             />
           ) : item.type === "heading" ? (
-            <Text style={styles.sectionHeading}>{item.title}</Text>
+            item.spaceId ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${item.title}`}
+                onPress={() => void openMobileSpace(item.spaceId, () => router.push("/new"))}
+              >
+                <Text style={styles.sectionHeading}>{item.title}</Text>
+              </Pressable>
+            ) : (
+              <Text accessibilityRole="header" style={styles.sectionHeading}>
+                {item.title}
+              </Text>
+            )
           ) : item.type === "group" ? (
             <GroupRow
               group={item.group}

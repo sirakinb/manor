@@ -482,6 +482,8 @@ export type MobileMessage = {
   seq?: number;
   runId?: string;
   role: "user" | "bot" | "system";
+  authorUserId?: string;
+  authorName?: string;
   botId?: string;
   replyToMessageId?: string;
   thumbsUp?: boolean;
@@ -802,10 +804,22 @@ export function applyMobileThreadEvent(
   }
   if (event.type === "thread.message.created" || event.type === "thread.message.updated") {
     const { remaining } = takeMobileLiveMessage(prev, progressMessageId(event));
+    const existing = prev.messages.find(
+      (message) =>
+        message.id === String(event.payload?.messageId ?? event.id ?? `msg:${event.seq ?? 0}`),
+    );
     const next: MobileMessage = {
       id: String(event.payload?.messageId ?? event.id ?? `msg:${event.seq ?? 0}`),
       runId: event.runId ? String(event.runId) : undefined,
       role: (event.payload?.role as MobileMessage["role"]) ?? "bot",
+      authorUserId:
+        typeof event.payload?.authorUserId === "string"
+          ? event.payload.authorUserId
+          : existing?.authorUserId,
+      authorName:
+        typeof event.payload?.authorName === "string"
+          ? event.payload.authorName
+          : existing?.authorName,
       blocks: (event.payload?.blocks as MobileMessage["blocks"]) ?? [],
       botId: event.botId ?? (event.payload?.botId ? String(event.payload.botId) : undefined),
       replyToMessageId: event.payload?.replyToMessageId

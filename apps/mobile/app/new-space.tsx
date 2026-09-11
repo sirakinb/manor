@@ -7,6 +7,7 @@ import { rpc, selectSpace } from "../lib/api";
 export default function NewSpace() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [shared, setShared] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,7 +17,7 @@ export default function NewSpace() {
     setPending(true);
     setError(null);
     try {
-      const space = await rpc<Space>("spaces/create", { name: trimmed });
+      const space = await rpc<Space>("spaces/create", { name: trimmed, shared });
       if (!(await selectSpace(space.id))) {
         Alert.alert("Space created", "It could not be opened. Try again from the sidebar.");
         router.dismissAll();
@@ -81,6 +82,27 @@ export default function NewSpace() {
               fontSize: 16,
             }}
           />
+          <View accessibilityRole="radiogroup" style={{ marginTop: 20, gap: 12 }}>
+            {[false, true].map((team) => (
+              <Pressable
+                key={String(team)}
+                disabled={pending}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: shared === team }}
+                onPress={() => setShared(team)}
+              >
+                <Text style={{ color: shared === team ? "#F1F1F2" : "#85858A", fontSize: 15 }}>
+                  {shared === team ? "● " : "○ "}
+                  {team ? "Team — everyone in this organization" : "Personal — only you"}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {shared ? (
+            <Text style={{ color: "#85858A", marginTop: 12 }}>
+              Agents, conversations, files, and connected accounts are shared.
+            </Text>
+          ) : null}
           {error ? <Text style={{ color: "#EF4444", marginTop: 14 }}>{error}</Text> : null}
           <Pressable
             onPress={() => void create()}

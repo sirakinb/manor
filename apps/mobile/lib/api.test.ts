@@ -820,6 +820,36 @@ describe("mobile thread refresh targeting", () => {
 });
 
 describe("mobile thread event reduction", () => {
+  it("keeps author attribution when a message update omits it", () => {
+    const initial = snapshot([
+      {
+        ...mobileMessage("message-1", []),
+        role: "user",
+        authorUserId: "person-1",
+        authorName: "Alex",
+      },
+    ]);
+    const next = applyMobileThreadEvent(initial, {
+      type: "thread.message.updated",
+      seq: 4,
+      payload: { messageId: "message-1", role: "user", blocks: [{ kind: "text", text: "Edited" }] },
+    });
+    expect(next?.messages[0]).toMatchObject({
+      authorUserId: "person-1",
+      authorName: "Alex",
+      blocks: [{ kind: "text", text: "Edited" }],
+    });
+    const renamed = applyMobileThreadEvent(next!, {
+      type: "thread.message.updated",
+      seq: 5,
+      payload: { messageId: "message-1", role: "user", authorName: "Alex renamed", blocks: [] },
+    });
+    expect(renamed?.messages[0]).toMatchObject({
+      authorUserId: "person-1",
+      authorName: "Alex renamed",
+    });
+  });
+
   it("applies a persisted thumbs-up event to its message", () => {
     const initial = snapshot([mobileMessage("message-1", [{ kind: "text", text: "Done" }])]);
 

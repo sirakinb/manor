@@ -80,6 +80,7 @@ import {
   parseComputerMode,
   resolveOrganizationId,
   SpaceLimitError,
+  spaceNotificationRecipients,
   type ThreadEvents,
 } from "@rakazo/db";
 import { parse as parseShellCommand } from "shell-quote";
@@ -922,14 +923,21 @@ export function createRunExecutor(deps: ExecutorDeps) {
         ] = await Promise.all([
           deps.prisma.bot.findUniqueOrThrow({
             where: { id: run.botId },
-            include: { computer: true },
+            include: { computer: true, space: { select: { accountUserId: true, name: true } } },
           }),
           deps.prisma.thread.findUniqueOrThrow({ where: { id: run.threadId } }),
           deps.prisma.message.findMany({
             where: { threadId: run.threadId },
             orderBy: { seq: "desc" },
             take: LEGACY_HISTORY_WINDOW_SIZE,
-            select: { id: true, seq: true, role: true, runId: true, blocks: true },
+            select: {
+              id: true,
+              seq: true,
+              role: true,
+              runId: true,
+              blocks: true,
+              authorName: true,
+            },
           }),
           run.trigger === "bot_message"
             ? loadBotMessageContext(deps.prisma, run.sourceMessageId)
@@ -1056,7 +1064,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               | "user"
               | "assistant"
               | "system",
-            content: blocksToAgentHistoryText(m.blocks as MessageBlock[]),
+            content: `${m.role === "user" && m.authorName ? `[${m.authorName}] ` : ""}${blocksToAgentHistoryText(m.blocks as MessageBlock[])}`,
           })),
           summary: thread.historyCompactionSummary,
           historyCompactedUpToSeq: thread.historyCompactedUpToSeq,
@@ -2870,8 +2878,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
             try {
               const space = await createSpaceForMember(deps.prisma, {
                 currentSpaceId: run.spaceId,
-                userId: run.userId,
+                userId: run.initiatedByUserId ?? run.userId,
                 name: String(args.name ?? ""),
+                shared: args.shared === true,
               });
               return finish({ ok: true, spaceId: space.id, name: space.name });
             } catch (error) {
@@ -3150,6 +3159,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
               prompt,
               instructions: [
                 bot.instructions || `${bot.name}: ${bot.title}\n${bot.description}`,
+                bot.space?.accountUserId === run.userId
+                  ? "This is a shared team space. Its conversations, files, and connected accounts are available to the space's members. User messages may name their authors. Identify the connected account you will use for an external action. Personal spaces and their accounts are separate."
+                  : undefined,
                 groupContext,
                 messagingContext,
                 memoryContext ? redactSecrets(memoryContext, runSecrets) : undefined,
@@ -3811,18 +3823,26 @@ async function notifyRun(
     return false;
   });
   if (!enabled) return;
-  await deps.notifications
-    .send(message, {
-      operationId: "notify",
-      traceId: run.botId,
-      spaceId: run.spaceId,
-      userId: run.userId,
-      botId: run.botId,
-      signal: new AbortController().signal,
-    })
-    .catch((error) => {
-      console.error("run notification", error);
-    });
+  const recipients = await spaceNotificationRecipients(deps.prisma, run).catch((error) => {
+    console.error("notification recipient lookup", error);
+    return [];
+  });
+  await Promise.all(
+    recipients.map((userId) =>
+      deps
+        .notifications!.send(message, {
+          operationId: "notify",
+          traceId: run.botId,
+          spaceId: run.spaceId,
+          userId,
+          botId: run.botId,
+          signal: new AbortController().signal,
+        })
+        .catch((error) => {
+          console.error("run notification", error);
+        }),
+    ),
+  );
 }
 
 async function renewRunLease(
