@@ -36,6 +36,28 @@ test("Manor link preview is available without JavaScript or sign-in", async ({
   await captureScreenshot(page, testInfo, "manor-social-card");
 });
 
+test.describe("organization application bootstrap", () => {
+  test.use({ javaScriptEnabled: true });
+
+  test("branded HTML leaves application scripts and sign-in working", async ({ page }) => {
+    const brand = brandById("vibecodephilly")!;
+    await page.route("**/*", async (route) => {
+      const url = new URL(route.request().url());
+      // This UI smoke test needs no running API or real account.
+      if (url.pathname.startsWith("/api/")) {
+        return route.fulfill({ json: null });
+      }
+      const response = await route.fetch({ headers: { host: brand.hostnames[0]! } });
+      await route.fulfill({ response });
+    });
+    await page.goto("/sign-in?__brand=vibecodephilly");
+    await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Continue with email", exact: true }),
+    ).toBeVisible();
+  });
+});
+
 test("organization previews follow the request host without JavaScript", async ({
   page,
 }, testInfo) => {

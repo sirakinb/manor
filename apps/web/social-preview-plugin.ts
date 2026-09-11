@@ -13,6 +13,9 @@ export function socialPreviewPlugin(): Plugin {
       if (
         !brand?.socialPreview ||
         !["GET", "HEAD"].includes(req.method ?? "") ||
+        pathname.startsWith("/@") ||
+        (req.headers["sec-fetch-dest"] &&
+          !["document", "iframe", "empty"].includes(String(req.headers["sec-fetch-dest"]))) ||
         !/^(?:[^.]*|.*\.html)$/.test(pathname) ||
         /^\/(?:api|rpc|v1|mcp|novnc|preview)(?:\/|$)/.test(pathname) ||
         (req.headers.accept && !/text\/html|\*\/\*/.test(req.headers.accept))
