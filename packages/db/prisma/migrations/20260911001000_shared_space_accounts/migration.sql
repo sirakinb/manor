@@ -15,7 +15,8 @@ BEGIN
     NEW."organizationId", NEW."userId", NEW."role", NEW."createdAt"
   FROM "spaces" AS space
   WHERE space."organizationId" = NEW."organizationId"
-    AND (space."isDefault" OR (space."accountUserId" IS NOT NULL AND NEW."role" <> 'service'))
+    AND NEW."role" <> 'service'
+    AND (space."isDefault" OR space."accountUserId" IS NOT NULL)
   ON CONFLICT ("spaceId", "userId") DO NOTHING;
   RETURN NEW;
 END;

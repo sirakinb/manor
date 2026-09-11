@@ -21,11 +21,11 @@ test("titled sidebar section expands and collapses", async ({ page }, testInfo) 
   await dialog.getByLabel("Name").fill("Projects");
   await dialog.getByRole("button", { name: "Create" }).click();
 
-  const projects = sidebar.locator('[data-sidebar-group^="section:"]');
+  const projects = sidebar.locator('[data-sidebar-group*=":section:"]');
   await expect(projects).toContainText("Projects");
   await expect(projects).toContainText("Chief");
 
-  const toggle = projects.getByRole("button", { name: /Collapse Projects|Expand Projects/ });
+  const toggle = projects.getByRole("button", { name: /Collapse .*Projects|Expand .*Projects/ });
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
 
   // Rest (no hover): move pointer off the header before capturing.

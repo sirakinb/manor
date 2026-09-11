@@ -147,6 +147,14 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
 
   it("returns the same agents to both people and preserves each person's identity", async () => {
     expect(team.shared).toBe(true);
+    expect(
+      (
+        await handles.prisma.spaceMember.findMany({
+          where: { userId: accountUserId },
+          select: { spaceId: true },
+        })
+      ).map((m) => m.spaceId),
+    ).toEqual([team.id]);
     expect((await rpc<Bot[]>(peerCookie, "bots/list", {}, team.id)).map((b) => b.id)).toEqual([
       bot.id,
     ]);

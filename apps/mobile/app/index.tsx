@@ -450,14 +450,19 @@ export default function Home() {
               }}
             />
           ) : item.type === "heading" ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${item.title}`}
-              disabled={!item.spaceId}
-              onPress={() => void openMobileSpace(item.spaceId, () => router.push("/new"))}
-            >
-              <Text style={styles.sectionHeading}>{item.title}</Text>
-            </Pressable>
+            item.spaceId ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${item.title}`}
+                onPress={() => void openMobileSpace(item.spaceId, () => router.push("/new"))}
+              >
+                <Text style={styles.sectionHeading}>{item.title}</Text>
+              </Pressable>
+            ) : (
+              <Text accessibilityRole="header" style={styles.sectionHeading}>
+                {item.title}
+              </Text>
+            )
           ) : item.type === "group" ? (
             <GroupRow
               group={item.group}

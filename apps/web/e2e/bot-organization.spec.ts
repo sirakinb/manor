@@ -13,12 +13,12 @@ test("pinned bots and sidebar sections persist", async ({ page }, testInfo) => {
 
   await bot.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Pin", exact: true }).click();
-  await expect(sidebar.locator('[data-sidebar-group="pinned"]')).toContainText("Chief");
+  await expect(sidebar.locator('[data-sidebar-group$=":pinned"]')).toContainText("Chief");
   await captureScreenshot(page, testInfo, "pinned-bots");
 
   await bot.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Unpin", exact: true }).click();
-  await expect(sidebar.locator('[data-sidebar-group="pinned"]')).toHaveCount(0);
+  await expect(sidebar.locator('[data-sidebar-group$=":pinned"]')).toHaveCount(0);
 
   await bot.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Move to", exact: true }).click();
@@ -31,7 +31,7 @@ test("pinned bots and sidebar sections persist", async ({ page }, testInfo) => {
   await dialog.getByLabel("Name").fill("Projects");
   await dialog.getByRole("button", { name: "Create" }).click();
 
-  const projects = sidebar.locator('[data-sidebar-group^="section:"]');
+  const projects = sidebar.locator('[data-sidebar-group*=":section:"]');
   await expect(projects).toContainText("Projects");
   await expect(projects).toContainText("Chief");
   await captureScreenshot(page, testInfo, "bot-sections");
@@ -46,7 +46,7 @@ test("pinned bots and sidebar sections persist", async ({ page }, testInfo) => {
     .getByRole("menu", { name: /Move Chief to section/ })
     .getByRole("menuitem", { name: "Unassigned", exact: true })
     .click();
-  await expect(sidebar.locator('[data-sidebar-group="unassigned"]')).toContainText("Chief");
+  await expect(sidebar.locator('[data-sidebar-group$=":unassigned"]')).toContainText("Chief");
 });
 
 test("bots can be reordered by drag or keyboard and keep that order", async ({ page }) => {
@@ -226,7 +226,7 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
 
   await group.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Pin", exact: true }).click();
-  await expect(sidebar.locator('[data-sidebar-group="pinned"]')).toContainText("Group menu");
+  await expect(sidebar.locator('[data-sidebar-group$=":pinned"]')).toContainText("Group menu");
 
   await group.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Unpin", exact: true }).click();
@@ -239,7 +239,7 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
   const sectionDialog = page.getByRole("dialog", { name: "New section" });
   await sectionDialog.getByLabel("Name").fill("Teams");
   await sectionDialog.getByRole("button", { name: "Create" }).click();
-  await expect(sidebar.locator('[data-sidebar-group^="section:"]')).toContainText("Group menu");
+  await expect(sidebar.locator('[data-sidebar-group*=":section:"]')).toContainText("Group menu");
 
   await group.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Clear conversation", exact: true }).click();
