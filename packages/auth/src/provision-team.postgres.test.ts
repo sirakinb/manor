@@ -110,6 +110,14 @@ postgres("operator portal provisioning", () => {
     ).toBe(hash);
   });
   it("joins the same shared account on signup and creates a personal space only on request", async () => {
+    const provisioned = await provisionPortalTeam(db.prisma, {
+      brandId: "vibecodephilly",
+      members: [{ email, name: "Portal Tester" }],
+    });
+    organizationId = provisioned.organizationId;
+    spaceAccountId = (
+      await db.prisma.space.findUniqueOrThrow({ where: { id: provisioned.spaceId } })
+    ).accountUserId!;
     const user = await db.prisma.user.create({
       data: { id: `joining-${suffix}`, email: joiningEmail, name: "New Teammate" },
     });

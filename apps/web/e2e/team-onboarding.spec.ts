@@ -74,6 +74,7 @@ test("new organization starts with one shared space and teammates reuse its setu
     await peerContext.close();
     if (organizationId) await db.prisma.organization.delete({ where: { id: organizationId } });
     if (accountUserId) await db.prisma.user.delete({ where: { id: accountUserId } });
+    await db.prisma.user.deleteMany({ where: { email: { in: [ownerEmail, peerEmail] } } });
     await db.prisma.$disconnect();
     await db.pool.end();
   }
