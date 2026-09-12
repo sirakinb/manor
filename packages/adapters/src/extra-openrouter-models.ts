@@ -6,6 +6,7 @@
 // This module mutates the shared OPENROUTER_MODELS map, so it must be
 // imported before anything calls builtinModels() (import it first in
 // pi-models.ts and pi-runtime.ts).
+import "./recent-pi-models.js";
 import { OPENROUTER_MODELS } from "@earendil-works/pi-ai/providers/openrouter.models";
 
 const models = OPENROUTER_MODELS as unknown as Record<string, unknown>;

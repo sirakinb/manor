@@ -1,3 +1,4 @@
+import "./extra-openrouter-models.js";
 import type { Models } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { registerLocalProvider } from "./pi-local-provider.js";

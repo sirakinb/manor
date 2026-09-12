@@ -1,6 +1,40 @@
 import { expect, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
+test("recent models are selectable through OpenRouter and subscriptions", async ({
+  page,
+}, testInfo) => {
+  const stamp = Date.now();
+  const userName = `Recent models ${stamp}`;
+  await signup(page, `recent-models-${stamp}@rakazo.test`, "password12", userName);
+  await completeOnboarding(page);
+  await page.getByRole("button", { name: new RegExp(userName) }).click();
+  await page.getByRole("button", { name: "Models", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Close model settings" })).toBeVisible();
+
+  for (const [provider, query, label, screenshot] of [
+    ["OpenRouter", "Fable 5.1", "Anthropic: Claude Fable 5.1", "openrouter-fable-5-1"],
+    ["OpenRouter", "GPT-6 Astra", "OpenAI: GPT-6 Astra", "openrouter-gpt-6-astra"],
+    ["OpenRouter", "V4.1 Flash", "DeepSeek: DeepSeek V4.1 Flash", "openrouter-deepseek-v4-1-flash"],
+    ["Anthropic", "Fable 5.1", "Claude Fable 5.1", "subscription-fable-5-1"],
+    ["OpenAI Codex", "GPT-6 Astra", "GPT-6 Astra", "subscription-gpt-6-astra"],
+  ]) {
+    await page.getByPlaceholder("Search providers").fill(provider!);
+    await page.getByRole("button", { name: new RegExp(provider!) }).click();
+    const modelCombobox = page.getByRole("combobox", { name: "Model", exact: true });
+    await modelCombobox.click();
+    await page.getByRole("combobox", { name: "Search models" }).fill(query!);
+    const option = page.getByRole("listbox", { name: "Model options" }).getByRole("option", {
+      name: label!,
+      exact: true,
+    });
+    await expect(option).toBeVisible();
+    await option.click();
+    await expect(modelCombobox).toHaveText(label!);
+    await captureScreenshot(page, testInfo, screenshot!);
+  }
+});
+
 test("model dropdown search and provider group headers", async ({ page }, testInfo) => {
   const stamp = Date.now();
   const userName = `Model picker ${stamp}`;

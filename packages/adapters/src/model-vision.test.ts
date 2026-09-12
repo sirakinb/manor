@@ -25,6 +25,12 @@ describe("model vision gating for computer tools", () => {
     );
   });
 
+  it("loads recent vision models without relying on the runtime or picker import order", () => {
+    expect(modelAcceptsImageInput("anthropic", "claude-fable-5-1")).toBe(true);
+    expect(modelAcceptsImageInput("openai-codex", "gpt-6-astra")).toBe(true);
+    expect(modelAcceptsImageInput("openrouter", "deepseek/deepseek-v4.1-flash")).toBe(true);
+  });
+
   it("resolves the scripted placeholder like Pi before checking vision", () => {
     expect(resolveModelRefForVisionCheck("scripted", "scripted")).toEqual({
       provider: "openrouter",
