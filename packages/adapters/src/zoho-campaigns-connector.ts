@@ -25,7 +25,14 @@ export const ZOHO_CAMPAIGNS_PROVIDER = "zoho-campaigns";
 const ACCOUNTS_ROOT = "https://accounts.zoho.com";
 const API_ROOT = "https://campaigns.zoho.com/api/v1.1";
 const REQUEST_TIMEOUT_MS = 30_000;
-const REQUIRED_FIELDS = ["clientId", "clientSecret", "refreshToken"] as const;
+
+type ZohoCampaignsAuth = {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  accountsRoot?: string;
+  apiRoot?: string;
+};
 
 const CATALOG_QUERY_NEEDLES = ["zoho", "campaign", "campaigns", "email", "draft"];
 
@@ -150,7 +157,7 @@ export class ZohoCampaignsConnector implements ManagedConnectorProvider {
       const token = await this.accessToken(credential, context);
       secrets.push(token, credential.clientId, credential.clientSecret, credential.refreshToken);
       const result = await this.executeTool(
-        call.route?.toolName ?? call.tool,
+        call.route?.toolName || call.tool,
         call.args,
         token,
         credential,
@@ -166,7 +173,7 @@ export class ZohoCampaignsConnector implements ManagedConnectorProvider {
     name: string,
     args: Record<string, unknown>,
     token: string,
-    credential: WorkspaceCredentialFields,
+    credential: ZohoCampaignsAuth,
     context: AdapterContext,
   ): Promise<unknown> {
     if (name === "zoho_campaigns_list_lists") {
@@ -217,14 +224,15 @@ export class ZohoCampaignsConnector implements ManagedConnectorProvider {
     return Boolean(fields && hasRequiredCampaignsFields(fields));
   }
 
-  private async requireCredential(context: AdapterContext): Promise<WorkspaceCredentialFields> {
+  private async requireCredential(context: AdapterContext): Promise<ZohoCampaignsAuth> {
     const fields = await this.loadFields(context);
-    if (!fields || !hasRequiredCampaignsFields(fields)) {
+    const auth = campaignsAuth(fields);
+    if (!auth) {
       throw new Error(
         "Zoho Campaigns is not connected in Workspace Settings. Save the existing clientId, clientSecret, and refreshToken there first.",
       );
     }
-    return fields;
+    return auth;
   }
 
   private async loadFields(context: AdapterContext): Promise<WorkspaceCredentialFields | null> {
@@ -258,7 +266,7 @@ export class ZohoCampaignsConnector implements ManagedConnectorProvider {
   }
 
   private async accessToken(
-    credential: WorkspaceCredentialFields,
+    credential: ZohoCampaignsAuth,
     context: AdapterContext,
   ): Promise<string> {
     const accounts = credential.accountsRoot?.trim() || ACCOUNTS_ROOT;
@@ -284,7 +292,7 @@ export class ZohoCampaignsConnector implements ManagedConnectorProvider {
 
   private async zohoCall(
     token: string,
-    credential: WorkspaceCredentialFields,
+    credential: ZohoCampaignsAuth,
     path: string,
     params: Record<string, string>,
     context: AdapterContext,
@@ -316,8 +324,23 @@ export class ZohoCampaignsConnector implements ManagedConnectorProvider {
   }
 }
 
-function hasRequiredCampaignsFields(fields: WorkspaceCredentialFields): boolean {
-  return REQUIRED_FIELDS.every((key) => Boolean(fields[key]?.trim()));
+function hasRequiredCampaignsFields(fields: WorkspaceCredentialFields | null): boolean {
+  return campaignsAuth(fields) !== null;
+}
+
+function campaignsAuth(fields: WorkspaceCredentialFields | null): ZohoCampaignsAuth | null {
+  if (!fields) return null;
+  const clientId = fields.clientId?.trim();
+  const clientSecret = fields.clientSecret?.trim();
+  const refreshToken = fields.refreshToken?.trim();
+  if (!clientId || !clientSecret || !refreshToken) return null;
+  return {
+    clientId,
+    clientSecret,
+    refreshToken,
+    accountsRoot: fields.accountsRoot?.trim() || undefined,
+    apiRoot: fields.apiRoot?.trim() || undefined,
+  };
 }
 
 function matchesCatalogQuery(query?: string): boolean {

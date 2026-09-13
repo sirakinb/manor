@@ -107,6 +107,7 @@ describe("ZohoCampaignsConnector", () => {
       item.execute(
         {
           tool: "zoho_campaigns_create_draft",
+          executionId: "effect-1",
           args: {
             campaignName: "August 05",
             subject: "Find a Home That Fits",
@@ -151,6 +152,7 @@ describe("ZohoCampaignsConnector", () => {
         item.execute(
           {
             tool: "zoho_campaigns_create_draft",
+            executionId: "effect-2",
             args: {
               campaignName: "x",
               subject: "x",
@@ -166,7 +168,10 @@ describe("ZohoCampaignsConnector", () => {
     ).resolves.toEqual([{ type: "error", message: "contentUrl must be a public https URL" }]);
 
     const leaked = await collect(
-      item.execute({ tool: "zoho_campaigns_list_lists", args: {} }, context),
+      item.execute(
+        { tool: "zoho_campaigns_list_lists", executionId: "effect-3", args: {} },
+        context,
+      ),
     );
     expect(leaked[0]).toMatchObject({ type: "error" });
     expect(JSON.stringify(leaked)).not.toContain("super-secret-access-token");
