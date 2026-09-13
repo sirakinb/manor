@@ -42,6 +42,7 @@ import {
   ScriptedAgentRuntime,
   SpaceMemoryProviderResolver,
   VpsMaintenanceAdapter,
+  ZohoCampaignsConnector,
 } from "@rakazo/adapters";
 import { resolveEncryptionKey, resolveSupervisorToken } from "@rakazo/core";
 import { createDb, createThreadEvents } from "@rakazo/db";
@@ -117,6 +118,7 @@ async function main() {
   const stack = createConnectorStack(isComposioEnabled(process.env.COMPOSIO_API_KEY), undefined, [
     new InstalledConnectorProvider(prisma, secrets),
     ...(pipedream ? [pipedream] : []),
+    new ZohoCampaignsConnector({ prisma, secrets }),
     mcp,
   ]);
   const connector = stack.destination;

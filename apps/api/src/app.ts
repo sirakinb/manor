@@ -57,6 +57,7 @@ import {
   SmtpEmailProvider,
   SpaceMemoryProviderResolver,
   VpsMaintenanceAdapter,
+  ZohoCampaignsConnector,
 } from "@rakazo/adapters";
 import {
   assertPortalAccess,
@@ -276,10 +277,12 @@ export async function createApp(
     env.googleClientId && env.googleClientSecret
       ? new GoogleFormsConnector(createGoogleFormsTokenBroker(prisma, auth))
       : undefined;
+  const zohoCampaigns = new ZohoCampaignsConnector({ prisma, secrets });
   const stack = createConnectorStack(isComposioEnabled(env.composioApiKey), composioOverride, [
     installed,
     ...(pipedream ? [pipedream] : []),
     ...(googleForms ? [googleForms] : []),
+    zohoCampaigns,
     mcp,
   ]);
   const connector = stack.destination;

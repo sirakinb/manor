@@ -342,6 +342,12 @@ write path needs:
 | Post water charges | `buildium` credential with `clientId` and `clientSecret`; `waterGlAccountId` in settings |
 | Send reports | Deployment outbound email: `SMTP_URL` and `EMAIL_FROM` (the same provider account emails use); without them `reports.send` returns "Email sending is not configured" |
 
+Integrations → Zoho Campaigns is a first-party connector (not Composio). It
+reuses the same `zoho-campaigns` workspace credential as ingest. When that
+login is present, agents get draft-only tools: list lists, list topics, and
+create a draft from a public `content_url`. There is no send or schedule tool.
+Revoking the Integrations row does not delete the workspace ingest credential.
+
 The ingestion worker reads the Zoho CRM, Zoho Campaigns, Instagram, Gmail,
 Buildium, and recap provider credentials per run. Recaps prefer a saved OpenAI
 credential (default model `gpt-5.6-luna`), otherwise use OpenRouter. Only the

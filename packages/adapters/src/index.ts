@@ -99,3 +99,4 @@ export * from "./workspace-credentials.js";
 export * from "./workspace-files.js";
 export * from "./workspace-report-runner.js";
 export * from "./workspace-tools.js";
+export * from "./zoho-campaigns-connector.js";
