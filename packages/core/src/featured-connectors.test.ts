@@ -43,6 +43,12 @@ describe("featured connectors", () => {
     expect(featuredConnectorProvidersMatch("notion", "notion.so")).toBe(true);
   });
 
+  it("maps Zoho Campaigns catalog slugs", () => {
+    expect(matchFeaturedConnectorId("zoho-campaigns")).toBe("zoho-campaigns");
+    expect(matchFeaturedConnectorId("Zoho Campaigns")).toBe("zoho-campaigns");
+    expect(matchFeaturedConnectorId("zohocampaigns")).toBe("zoho-campaigns");
+  });
+
   it("returns null for unknown catalog entries", () => {
     expect(matchFeaturedConnectorId("salesforce")).toBeNull();
     expect(matchFeaturedConnectorId("outlook")).toBeNull();
@@ -58,7 +64,7 @@ describe("featured connectors", () => {
 
   it("marks all featured tiles missing when the catalog is empty", () => {
     const tiles = buildFeaturedConnectorTiles([]);
-    expect(tiles).toHaveLength(5);
+    expect(tiles).toHaveLength(6);
     expect(tiles.every((tile) => !tile.item && !tile.missing)).toBe(true);
   });
 

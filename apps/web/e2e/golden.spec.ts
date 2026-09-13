@@ -138,7 +138,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(page.getByPlaceholder("Search apps")).toBeVisible();
   const featured = page.getByTestId("featured-connectors");
   await expect(featured).toContainText(
-    /Gmail[\s\S]*Google Calendar[\s\S]*Google Drive[\s\S]*Slack[\s\S]*Notion/,
+    /Gmail[\s\S]*Google Calendar[\s\S]*Google Drive[\s\S]*Slack[\s\S]*Notion[\s\S]*Zoho Campaigns/,
   );
   await expect(page.getByText("GitHub", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add Treg", exact: true })).toBeHidden();

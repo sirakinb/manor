@@ -6,6 +6,7 @@ export const FEATURED_CONNECTOR_IDS = [
   "google-drive",
   "slack",
   "notion",
+  "zoho-campaigns",
 ] as const;
 
 export type FeaturedConnectorId = (typeof FEATURED_CONNECTOR_IDS)[number];
@@ -16,6 +17,7 @@ export const FEATURED_CONNECTOR_LABELS: Record<FeaturedConnectorId, string> = {
   "google-drive": "Google Drive",
   slack: "Slack",
   notion: "Notion",
+  "zoho-campaigns": "Zoho Campaigns",
 };
 
 const FEATURED_ALIASES: Record<FeaturedConnectorId, readonly string[]> = {
@@ -24,6 +26,7 @@ const FEATURED_ALIASES: Record<FeaturedConnectorId, readonly string[]> = {
   "google-drive": ["googledrive", "google drive", "google_drive", "gdrive"],
   slack: ["slack", "slackbot"],
   notion: ["notion", "notion.so"],
+  "zoho-campaigns": ["zoho campaigns", "zoho-campaigns", "zohocampaigns", "zoho_campaigns"],
 };
 
 export type FeaturedConnectorTile = {

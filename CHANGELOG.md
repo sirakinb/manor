@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Zoho Campaigns in Integrations: draft-only agent tools that reuse the existing workspace `zoho-campaigns` credential (list mailing lists/topics, create a draft). No send or schedule. Orgs without that workspace login see the tile disconnected until the existing client/refresh token is saved in Workspace Settings.
 - Bot and shared workspace file management across web, desktop, and mobile, with folders, transfers, document previews, protected edits, and Git review and commit controls.
 - Voice mode: speak replies, hold-to-talk dictation, and half-duplex calls. Speech sits behind a `VoiceProvider` interface (ElevenLabs, OpenAI, Cartesia) so the product is not tied to one vendor. Keys stay on the server.
 - Electron first-run: Docker (default) or this Mac. This Mac runs the bot shell as you, with working directories under your home folder. macOS does not show its own permission dialog; the consent is Rakazo's. The choice is owner-only and is refused when `SANDBOX_PROVIDER` is not `docker` (so E2B and test fakes cannot enable it).
