@@ -4,6 +4,7 @@ import { HeroSky } from "../components/beautiful-ui/HeroSky";
 import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { brand } from "../lib/brand";
 import { WindowChrome } from "./WindowChrome";
+import { trackEvent } from "../lib/analytics";
 
 export function WelcomePage() {
   const [demoOpen, setDemoOpen] = useState(false);
@@ -33,6 +34,9 @@ export function WelcomePage() {
           href="https://cal.com/akinyemi-bajulaiye-2jua88/30min?overlayCalendar=true"
           target="_blank"
           rel="noreferrer"
+          onClick={() =>
+            trackEvent("book_demo_clicked", { page: "/", cta_location: "header" })
+          }
           className="lp-glass app-no-drag inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[12px] text-[#fafafa9e] transition hover:text-[#fafafa]"
         >
           <svg

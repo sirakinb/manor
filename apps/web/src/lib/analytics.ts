@@ -9,9 +9,14 @@ import posthog from "posthog-js";
  * If the key isn't set, everything here is a safe no-op, so local/dev/self-hosted
  * builds without a token never call out to PostHog.
  *
- * Events fired from this app are tagged `environment: "app"` to distinguish
- * them from any marketing/landing-page traffic that may later land in the
- * same "Manor" PostHog project tagged `environment: "marketing"`.
+ * Scope (per Aki, Sept): tracking is intentionally limited to the
+ * SIGNED-OUT landing/marketing experience for now (WelcomePage at "/" and
+ * the sign-up flow in AuthPage), not the authenticated in-app product.
+ * The base script still loads globally on boot (main.tsx) since that's the
+ * simplest reliable way to guarantee it's ready before the landing page
+ * paints -- but no custom event is fired, and identify()/reset() are not
+ * wired to app login/logout, until that scope is revisited. Events fired
+ * from this phase are tagged `environment: "marketing"`.
  */
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
@@ -44,8 +49,12 @@ export function resetAnalytics() {
   posthog.reset();
 }
 
-/** Fires a custom event, tagged environment: "app" (this signed-in product). */
+/**
+ * Fires a custom event. Defaults to environment: "marketing" since every
+ * caller today is on the signed-out landing view; pass `environment: "app"`
+ * explicitly if/when this is wired into the authenticated product.
+ */
 export function trackEvent(name: string, props?: Record<string, unknown>) {
   if (!initialized) return;
-  posthog.capture(name, { environment: "app", ...props });
+  posthog.capture(name, { environment: "marketing", ...props });
 }
