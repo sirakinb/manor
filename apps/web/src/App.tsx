@@ -3,7 +3,6 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "re
 import { Navigate, Route, Routes } from "react-router-dom";
 import { BuiButton, LoadingState } from "./components/beautiful-ui/primitives";
 import { authClient } from "./lib/auth";
-import { identifyUser, resetAnalytics } from "./lib/analytics";
 import { brand } from "./lib/brand";
 import { markAfterPaint, markOnce } from "./lib/performance";
 import {
@@ -58,19 +57,6 @@ export function App() {
   }
 
   const user = session.data?.user;
-
-  const prevUserIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (session.isPending) return;
-    const uid = user?.id ?? null;
-    if (uid && uid !== prevUserIdRef.current) {
-      identifyUser(uid, { email: user?.email, name: user?.name });
-    } else if (!uid && prevUserIdRef.current) {
-      resetAnalytics();
-    }
-    prevUserIdRef.current = uid;
-  }, [user?.id, session.isPending]);
-
   return (
     <div className="h-full" data-rakazo-app-state="ready">
       <Suspense fallback={<div className="h-full bg-[var(--rk-page)]" />}>
