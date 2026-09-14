@@ -101,12 +101,12 @@ import {
   ExportManifestSchema,
   GroupDetailSchema,
   GroupSchema,
+  LocalComputerLiveSessionSchema,
+  LocalDeviceSchema,
   McpServerConfigInput,
   McpServerSchema,
   MemoryDocumentSchema,
   MemoryScopeSchema,
-  LocalComputerLiveSessionSchema,
-  LocalDeviceSchema,
   MeSchema,
   MessagingAgentConnectionSchema,
   MessagingChannelMembershipSchema,
@@ -1126,15 +1126,13 @@ export const appContract = {
   localComputer: {
     session: oc.output(LocalComputerLiveSessionSchema),
     devices: oc.output(z.array(LocalDeviceSchema)),
-    register: oc
-      .input(z.object({ name: z.string().trim().min(1).max(80).optional() }))
-      .output(
-        z.object({
-          deviceId: Id,
-          token: z.string(),
-          tokenPrefix: z.string(),
-        }),
-      ),
+    register: oc.input(z.object({ name: z.string().trim().min(1).max(80).optional() })).output(
+      z.object({
+        deviceId: Id,
+        token: z.string(),
+        tokenPrefix: z.string(),
+      }),
+    ),
     revoke: oc.input(z.object({ deviceId: Id })).output(z.object({ ok: z.literal(true) })),
     stop: oc.output(z.object({ ok: z.literal(true) })),
   },

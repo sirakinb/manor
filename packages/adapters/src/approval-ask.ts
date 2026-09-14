@@ -81,7 +81,17 @@ function formatApprovalDetail(
         "Everyone in the organization can use this space, including its connected accounts.",
       );
   }
-  for (const key of ["collection", "title", "to", "subject", "amount", "body", "command", "cwd", "path"]) {
+  for (const key of [
+    "collection",
+    "title",
+    "to",
+    "subject",
+    "amount",
+    "body",
+    "command",
+    "cwd",
+    "path",
+  ]) {
     const value = args[key];
     if (value == null || value === "") continue;
     if (key === "body" || key === "content") continue;
