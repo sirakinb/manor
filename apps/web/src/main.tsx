@@ -5,12 +5,14 @@ import { App } from "./App";
 import { I18nBootstrap } from "./components/I18nBootstrap";
 import { applyUiDirection } from "./lib/apply-ui-direction";
 import { applyBrand } from "./lib/brand";
+import { initAnalytics } from "./lib/analytics";
 import { markAfterPaint, markOnce } from "./lib/performance";
 import { resolveUiLocale } from "./lib/ui-locale";
 import "./styles.css";
 
 markOnce("rk:renderer:module-evaluated");
 applyBrand();
+initAnalytics();
 applyUiDirection(resolveUiLocale());
 
 function PerformanceProbe() {
