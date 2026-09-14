@@ -65,7 +65,10 @@ export function WelcomePage() {
         ) : null}
         <button
           type="button"
-          onClick={() => setDemoOpen(true)}
+          onClick={() => {
+            trackEvent("demo_video_clicked", { page: "/", cta_location: "hero" });
+            setDemoOpen(true);
+          }}
           className="lp-lumen app-no-drag absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-[58%] items-center gap-2 rounded-full px-5 py-2.5 text-sm text-[#fafafa] transition"
         >
           <span
