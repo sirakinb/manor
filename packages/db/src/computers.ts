@@ -4,18 +4,36 @@ import type { PrismaClient } from "./client.js";
 export type { ComputerMode } from "@rakazo/contracts";
 
 export function parseComputerMode(scope: string): ComputerMode {
-  if (scope === "team" || scope === "dedicated") return scope;
+  if (scope === "team" || scope === "dedicated" || scope === "local") return scope;
   throw new Error(`Unknown computer scope: ${scope}`);
 }
 
-export function computerScopeKey(mode: ComputerMode, spaceId: string, botId?: string) {
+export function computerScopeKey(
+  mode: ComputerMode,
+  spaceId: string,
+  botId?: string,
+  userId?: string,
+) {
   if (mode === "team") return `team:${spaceId}`;
+  if (mode === "local") {
+    if (!userId) throw new Error("Local computers require a user id");
+    return `local:${spaceId}:${userId}`;
+  }
   if (!botId) throw new Error("Dedicated computers require a bot id");
   return `bot:${botId}`;
 }
 
-export function computerHomeKey(mode: ComputerMode, spaceId: string, botId?: string) {
+export function computerHomeKey(
+  mode: ComputerMode,
+  spaceId: string,
+  botId?: string,
+  userId?: string,
+) {
   if (mode === "team") return `team-${spaceId}`;
+  if (mode === "local") {
+    if (!userId) throw new Error("Local computers require a user id");
+    return `local-${spaceId}-${userId}`;
+  }
   if (!botId) throw new Error("Dedicated computers require a bot id");
   return botId;
 }
@@ -32,7 +50,7 @@ export async function ensureComputerRecord(
     kind: string;
   },
 ) {
-  const scopeKey = computerScopeKey(input.mode, input.spaceId, input.botId);
+  const scopeKey = computerScopeKey(input.mode, input.spaceId, input.botId, input.userId);
   return prisma.computer.upsert({
     where: { scopeKey },
     create: {
@@ -40,7 +58,7 @@ export async function ensureComputerRecord(
       userId: input.userId,
       scope: input.mode,
       scopeKey,
-      homeKey: computerHomeKey(input.mode, input.spaceId, input.botId),
+      homeKey: computerHomeKey(input.mode, input.spaceId, input.botId, input.userId),
       kind: input.kind,
     },
     update: {},

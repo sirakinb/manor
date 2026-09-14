@@ -43,6 +43,15 @@ describe("toComputerStatus", () => {
     ).toBe(false);
     expect(
       toComputerStatus("bot-1", {
+        kind: "local",
+        state: "running",
+        scope: "local",
+        controlHolder: "none",
+        homeRevision: "r1",
+      }),
+    ).toMatchObject({ mode: "local", screenAvailable: false, updateAvailable: false });
+    expect(
+      toComputerStatus("bot-1", {
         kind: "e2b",
         state: "running",
         scope: "team",

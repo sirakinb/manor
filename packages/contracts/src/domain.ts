@@ -64,7 +64,7 @@ export const CrmOverviewSchema = z.object({
 });
 export type CrmOverview = z.infer<typeof CrmOverviewSchema>;
 
-export const ComputerModeSchema = z.enum(["team", "dedicated"]);
+export const ComputerModeSchema = z.enum(["team", "dedicated", "local"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 
 export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
@@ -1062,6 +1062,25 @@ export const ServerUpdateRequestSchema = z.object({
 });
 export type ServerUpdateRequest = z.infer<typeof ServerUpdateRequestSchema>;
 
+export const LocalComputerLiveSessionSchema = z.object({
+  connected: z.boolean(),
+  folderName: z.string().nullable(),
+  lastCommand: z.string().nullable(),
+});
+export type LocalComputerLiveSession = z.infer<typeof LocalComputerLiveSessionSchema>;
+
+export const LocalDeviceSchema = z.object({
+  id: Id,
+  name: z.string(),
+  tokenPrefix: z.string(),
+  connected: z.boolean(),
+  folderName: z.string().nullable(),
+  lastSeenAt: z.string().nullable(),
+  createdAt: z.string(),
+  revokedAt: z.string().nullable(),
+});
+export type LocalDevice = z.infer<typeof LocalDeviceSchema>;
+
 export const MeSchema = z.object({
   userId: Id,
   email: z.string().email(),
@@ -1075,6 +1094,7 @@ export const MeSchema = z.object({
   canChooseHostComputer: z.boolean(),
   sandboxProvider: z.string(),
   avatarStyle: AvatarStyleSchema,
+  localComputer: LocalComputerLiveSessionSchema,
 });
 export type Me = z.infer<typeof MeSchema>;
 

@@ -416,6 +416,15 @@ export function createRepos(prisma: PrismaClient) {
           });
           await tx.bot.update({ where: { id: created.id }, data: { computerId: dedicated.id } });
         }
+        if (input.computerMode === "local") {
+          const local = await ensureComputerRecord(tx, {
+            mode: "local",
+            spaceId: actor.spaceId,
+            userId: actor.userId,
+            kind: "local",
+          });
+          await tx.bot.update({ where: { id: created.id }, data: { computerId: local.id } });
+        }
         await tx.browserProfile.create({
           data: {
             spaceId: actor.spaceId,
@@ -468,12 +477,13 @@ export function createRepos(prisma: PrismaClient) {
         include: { computer: true },
       });
       if (!bot?.computer) throw new IsolationError();
+      const kind = mode === "local" ? "local" : (process.env.SANDBOX_PROVIDER ?? "docker");
       const computer = await ensureComputerRecord(prisma, {
         mode,
         spaceId: actor.spaceId,
         userId: actor.userId,
         botId,
-        kind: bot.computer.kind,
+        kind,
       });
       const updated = await prisma.bot.update({
         where: { id: botId },

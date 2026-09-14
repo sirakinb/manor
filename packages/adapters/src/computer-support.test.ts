@@ -43,7 +43,7 @@ describe("Team Computer bot folders", () => {
     ).toBe("bots/bot-1/notes/result.txt");
   });
 
-  it("leaves Private Computer paths unchanged", () => {
+  it("leaves Private and This Mac paths at the shared root", () => {
     expect(resolveBotWorkspacePath("dedicated", "bot-1", "notes/result.txt")).toBe(
       "notes/result.txt",
     );
@@ -51,5 +51,7 @@ describe("Team Computer bot folders", () => {
     expect(displayBotWorkspacePath("dedicated", "bot-1", "notes", "notes/result.txt")).toBe(
       "notes/result.txt",
     );
+    expect(resolveBotWorkspacePath("local", "bot-1", "notes/result.txt")).toBe("notes/result.txt");
+    expect(resolveBotWorkspaceCwd("local", "bot-1", undefined)).toBeUndefined();
   });
 });

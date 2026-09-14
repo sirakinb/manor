@@ -18,6 +18,7 @@ describe("account preferences", () => {
       },
       spaceModelPreference: { findFirst: vi.fn().mockResolvedValue(null) },
       deploymentSettings: { findUnique: vi.fn().mockResolvedValue(null) },
+      localComputerSession: { findFirst: vi.fn().mockResolvedValue(null) },
     } as unknown as PrismaClient;
     const deps = {
       prisma,
@@ -301,6 +302,7 @@ describe("updater owner gate", () => {
       },
       spaceModelPreference: { findFirst: vi.fn().mockResolvedValue(null) },
       deploymentSettings: { findUnique: vi.fn().mockResolvedValue(null) },
+      localComputerSession: { findFirst: vi.fn().mockResolvedValue(null) },
     } as unknown as PrismaClient;
     const deps = {
       prisma,

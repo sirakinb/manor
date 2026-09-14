@@ -70,4 +70,24 @@ describe("buildApprovalAskBlock", () => {
     if (block.kind !== "ask") throw new Error("expected ask block");
     expect(block.detail).toContain("stay separate from other spaces");
   });
+
+  it("omits always-allow for attended laptop writes and shell", () => {
+    const block = buildApprovalAskBlock(
+      "effect-1",
+      "write_file",
+      { path: "notes/scratch.txt", content: "hello", command: "unused" },
+      [],
+      { allowOnceOnly: true },
+    );
+    expect(block).toMatchObject({
+      kind: "ask",
+      actions: [
+        { id: "allow", label: "Allow once" },
+        { id: "deny", label: "Deny" },
+      ],
+    });
+    if (block.kind !== "ask") throw new Error("expected ask block");
+    expect(block.detail).toContain("path: notes/scratch.txt");
+    expect(block.actions?.some((action) => action.id === "always")).toBe(false);
+  });
 });

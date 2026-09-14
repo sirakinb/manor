@@ -11,6 +11,7 @@ import type {
   Connection,
   ConnectionCatalogItem,
   Group,
+  LocalComputerLiveSession,
   Me,
   MessageBlock,
   ModelCatalogEntry,
@@ -140,6 +141,7 @@ import {
 import { ManorOrb } from "../components/beautiful-ui/ManorOrb";
 import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
 import { ComputerMaintenanceActions } from "../components/ComputerMaintenanceActions";
+import { ComputerModePicker } from "../components/ComputerModePicker";
 import {
   ComputersUnavailableHint,
   computersAreUnavailable,
@@ -3618,6 +3620,12 @@ export function ShellPage() {
                     <div className="grid h-full place-items-center text-sm text-[#6C6C70]">
                       <Trans>Open in full window</Trans>
                     </div>
+                  ) : computer?.kind === "local" || computer?.mode === "local" ? (
+                    <div className="grid h-full place-items-center px-6 text-center text-sm text-[#6C6C70]">
+                      <Trans>
+                        This bot is using a shared folder on this laptop. Files and shell only.
+                      </Trans>
+                    </div>
                   ) : computer?.kind === "desktop" ? (
                     <div className="grid h-full place-items-center px-6 text-center text-sm text-[#6C6C70]">
                       <Trans>
@@ -3735,6 +3743,7 @@ export function ShellPage() {
             ) : null}
             {panel === "create" ? (
               <CreateBotForm
+                localComputer={bootstrapMe?.localComputer}
                 onCancel={() => setPanel(null)}
                 onCreate={(input) => createBot(input)}
               />
@@ -3744,6 +3753,7 @@ export function ShellPage() {
                 key={active.id}
                 bot={active}
                 computer={computer}
+                localComputer={bootstrapMe?.localComputer}
                 memoryProviderConfigured={memoryProviderConfig != null}
                 onSave={async ({ computerMode, ...patch }) => {
                   if (computerMode !== active.computerMode) {
@@ -4175,6 +4185,9 @@ export function ShellPage() {
               const nextMe = await rpc.preferences.update({ avatarStyle });
               setBootstrapMe(nextMe);
             }}
+            onLocalComputerChanged={() => {
+              void rpc.me().then(setBootstrapMe);
+            }}
             onClose={() => {
               setAccountSettingsOpen(false);
               setAccountSettingsFocusUsage(false);
@@ -4328,7 +4341,13 @@ export function ShellPage() {
             </div>
           ) : null}
           <div className="relative min-h-0 flex-1 bg-[#0E0E10]">
-            {computer?.kind === "desktop" ? (
+            {computer?.kind === "local" || computer?.mode === "local" ? (
+              <div className="grid h-full place-items-center px-8 text-center text-sm text-[#6C6C70]">
+                <Trans>
+                  This bot is using a shared folder on this laptop. Files and shell only.
+                </Trans>
+              </div>
+            ) : computer?.kind === "desktop" ? (
               <div className="grid h-full place-items-center px-8 text-center text-sm text-[#6C6C70]">
                 <Trans>
                   This bot runs on this computer. There is no separate Linux desktop. Ask it to use
@@ -6082,42 +6101,10 @@ const MessageView = memo(function MessageView({
   );
 });
 
-function ComputerModePicker({
-  value,
-  onChange,
-}: {
-  value: ComputerMode;
-  onChange: (value: ComputerMode) => void;
-}) {
-  return (
-    <div className="mt-4">
-      <div className="text-[14px] text-[#85858A]">
-        <Trans>Computer</Trans>
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {(["team", "dedicated"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={value === mode}
-            onClick={() => onChange(mode)}
-            className={`rounded-[11px] border px-3.5 py-3 text-[14px] capitalize ${
-              value === mode
-                ? "border-[#6C6C70] bg-[#1A1A1D] text-[#ECECEE]"
-                : "border-[#26262A] text-[#85858A]"
-            }`}
-          >
-            {mode === "team" ? <Trans>Team</Trans> : <Trans>Private</Trans>}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function CreateBotForm({
   onCreate,
   onCancel,
+  localComputer,
 }: {
   onCreate: (input: {
     name: string;
@@ -6126,6 +6113,7 @@ function CreateBotForm({
     computerMode: ComputerMode;
   }) => Promise<void>;
   onCancel: () => void;
+  localComputer?: LocalComputerLiveSession | null;
 }) {
   const { t } = useLingui();
   const [name, setName] = useState("");
@@ -6194,7 +6182,7 @@ function CreateBotForm({
           className="mt-2 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-3 text-[#ECECEE]"
         />
       </label>
-      <ComputerModePicker value={computerMode} onChange={setComputerMode} />
+      <ComputerModePicker value={computerMode} onChange={setComputerMode} session={localComputer} />
       <button
         type="button"
         disabled={!name.trim() || submitting}
@@ -6210,6 +6198,7 @@ function CreateBotForm({
 function BotSettings({
   bot,
   computer,
+  localComputer,
   memoryProviderConfigured,
   onSave,
   onExport,
@@ -6218,6 +6207,7 @@ function BotSettings({
 }: {
   bot: Bot;
   computer: ComputerStatus | null;
+  localComputer?: LocalComputerLiveSession | null;
   memoryProviderConfigured: boolean;
   onSave: (patch: {
     name?: string;
@@ -6381,7 +6371,11 @@ function BotSettings({
             ›
           </span>
         </summary>
-        <ComputerModePicker value={computerMode} onChange={setComputerMode} />
+        <ComputerModePicker
+          value={computerMode}
+          onChange={setComputerMode}
+          session={localComputer}
+        />
         <Suspense fallback={null}>
           <ScratchpadSection botId={bot.id} />
         </Suspense>
@@ -7079,6 +7073,7 @@ function computerPlaceholder(
 }
 
 function computerLabel(mode: ComputerStatus["mode"] | undefined, botName: string) {
+  if (mode === "local") return t`Shared folder on this Mac`;
   return mode === "dedicated" ? t`${botName}’s computer` : t`Team Computer`;
 }
 

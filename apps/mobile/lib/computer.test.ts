@@ -82,13 +82,12 @@ describe("computer copy", () => {
       controlLabel(
         computer({
           state: "running",
-          controlHolder: "user",
-          controlBotId: "other-bot",
+          controlHolder: "none",
+          mode: "local",
         }),
         "Chief",
-        "bot-1",
       ),
-    ).toBe("Team Computer");
+    ).toBe("Shared folder on this Mac");
     expect(
       controlLabel(
         computer({

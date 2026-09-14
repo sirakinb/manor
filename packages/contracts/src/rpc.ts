@@ -101,6 +101,8 @@ import {
   ExportManifestSchema,
   GroupDetailSchema,
   GroupSchema,
+  LocalComputerLiveSessionSchema,
+  LocalDeviceSchema,
   McpServerConfigInput,
   McpServerSchema,
   MemoryDocumentSchema,
@@ -1116,6 +1118,23 @@ export const appContract = {
   },
   search: {
     query: oc.input(z.object({ q: z.string().max(200) })).output(SearchQueryOutputSchema),
+  },
+  /**
+   * Attended laptop sessions. The desktop app starts sharing; chat only selects
+   * the live computer. Does not change SANDBOX_PROVIDER or computerHost.
+   */
+  localComputer: {
+    session: oc.output(LocalComputerLiveSessionSchema),
+    devices: oc.output(z.array(LocalDeviceSchema)),
+    register: oc.input(z.object({ name: z.string().trim().min(1).max(80).optional() })).output(
+      z.object({
+        deviceId: Id,
+        token: z.string(),
+        tokenPrefix: z.string(),
+      }),
+    ),
+    revoke: oc.input(z.object({ deviceId: Id })).output(z.object({ ok: z.literal(true) })),
+    stop: oc.output(z.object({ ok: z.literal(true) })),
   },
   runs: {
     list: oc.input(z.object({ filter: z.enum(["active", "recent"]) })).output(RunsListOutputSchema),

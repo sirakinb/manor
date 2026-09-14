@@ -26,6 +26,7 @@ import {
   createRunSecretWriter,
   createWebProvider,
   type DestinationEmulator,
+  DurableLocalComputerGateway,
   destroyBot,
   EmailEmulator,
   EncryptedSecretStore,
@@ -41,6 +42,7 @@ import {
   isPipedreamEnabled,
   LocalAgentHomeStore,
   LocalArtifactStore,
+  LocalSandboxProvider,
   MaintenanceAdmission,
   McpConnector,
   McpOAuthBroker,
@@ -81,6 +83,7 @@ import { mountChannelRoutes } from "./channels.js";
 import { createCrmIntegrationService, mountCrmIntegrationRoutes } from "./crm-integrations.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createGoogleFormsTokenBroker } from "./google-forms-token-broker.js";
+import { attachLocalComputerSocket, type LocalComputerUpgradeServer } from "./local-computer.js";
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
@@ -99,6 +102,7 @@ export interface AppHandles {
   messaging?: MessagingSurface;
   email?: TransactionalEmailProvider;
   executor: ReturnType<typeof createRunExecutor>;
+  attachLocalComputer: (server: LocalComputerUpgradeServer) => () => void;
   stop: () => Promise<void>;
 }
 
@@ -171,6 +175,7 @@ export async function createApp(
   const jobKind = env.wakeupDriver;
   const inMemoryJobs = jobKind === "memory" ? new InMemoryJobQueue() : undefined;
   const jobs = inMemoryJobs ?? new GraphileJobPublisher(env.databaseUrl);
+  const localComputerGateway = new DurableLocalComputerGateway(prisma, realtime);
   const sandbox: SandboxProvider = createRunSandbox(env.sandboxProvider, {
     supervisorUrl: env.sandboxSupervisorUrl,
     supervisorToken: env.sandboxSupervisorToken,
@@ -182,6 +187,7 @@ export async function createApp(
     boxApiUrl: env.boxApiUrl,
     dataDir: env.dataDir,
     prisma,
+    localComputer: new LocalSandboxProvider(prisma, localComputerGateway),
   });
   const crmIntegrationService = createCrmIntegrationService({ prisma, secrets });
   const mcpOAuth = new McpOAuthBroker(prisma, secrets, remoteConnectors);
@@ -539,6 +545,7 @@ export async function createApp(
     messaging,
     email,
     executor,
+    attachLocalComputer: (server) => attachLocalComputerSocket(server, { prisma, realtime }),
     stop: async () => {
       await crmIntegrations.stop();
       oauthLogins.abortAll();

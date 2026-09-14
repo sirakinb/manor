@@ -8,10 +8,11 @@ import { createApp } from "./app.js";
 import { loadEnv } from "./env.js";
 
 const env = loadEnv();
-const { app, stop } = await createApp(env);
+const { app, stop, attachLocalComputer } = await createApp(env);
 const server = serve({ fetch: app.fetch, port: env.port, hostname: env.apiHost }, () => {
   console.log(`rakazo api on http://${env.apiHost}:${env.port}`);
 });
+const detachLocalComputer = attachLocalComputer(server);
 
 // Long-lived connections (threads.subscribe SSE streams) never end on their
 // own, so server.close() alone waits forever for them. Track sockets and
@@ -33,6 +34,7 @@ const shutdown = async () => {
   }, 2_000);
   await closed;
   clearTimeout(grace);
+  detachLocalComputer();
   await stop();
 };
 process.once("SIGTERM", () => void shutdown());

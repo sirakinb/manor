@@ -130,7 +130,7 @@ async function ensureGraphicalComputer(
   actor: Actor,
   bot: Awaited<ReturnType<ReturnType<typeof import("@rakazo/db").createRepos>["getBot"]>>,
 ) {
-  if (bot.computer?.kind === "desktop") {
+  if (bot.computer?.kind === "desktop" || bot.computer?.kind === "local") {
     throw new ORPCError("BAD_REQUEST", {
       message: "Teaching needs a graphical sandbox computer, not a desktop host",
     });
@@ -160,7 +160,7 @@ async function ensureGraphicalComputer(
   if (!bot.computer?.providerRef || bot.computer.state !== "running") {
     throw new ORPCError("BAD_REQUEST", { message: "Computer must be running to teach" });
   }
-  if (bot.computer.kind === "desktop") {
+  if (bot.computer.kind === "desktop" || bot.computer.kind === "local") {
     throw new ORPCError("BAD_REQUEST", {
       message: "Teaching needs a graphical sandbox computer, not a desktop host",
     });

@@ -9,7 +9,7 @@ export function buildApprovalAskBlock(
   toolName: string,
   args: Record<string, unknown>,
   secrets: string[],
-  options?: { reviewReason?: string },
+  options?: { reviewReason?: string; allowOnceOnly?: boolean },
 ): MessageBlock {
   const summary = describeApprovalAction(toolName, args);
   const detail = formatApprovalDetail(toolName, args, options?.reviewReason);
@@ -32,11 +32,16 @@ export function buildApprovalAskBlock(
             { id: "allow", label: "Create space", outcome: "created" },
             { id: "deny", label: "Cancel", outcome: "cancelled" },
           ]
-        : [
-            { id: "allow", label: "Allow once" },
-            { id: "always", label: "Always allow this tool" },
-            { id: "deny", label: "Deny" },
-          ],
+        : options?.allowOnceOnly
+          ? [
+              { id: "allow", label: "Allow once" },
+              { id: "deny", label: "Deny" },
+            ]
+          : [
+              { id: "allow", label: "Allow once" },
+              { id: "always", label: "Always allow this tool" },
+              { id: "deny", label: "Deny" },
+            ],
   };
 }
 
@@ -76,10 +81,25 @@ function formatApprovalDetail(
         "Everyone in the organization can use this space, including its connected accounts.",
       );
   }
-  for (const key of ["collection", "title", "to", "subject", "amount", "body"]) {
+  for (const key of [
+    "collection",
+    "title",
+    "to",
+    "subject",
+    "amount",
+    "body",
+    "command",
+    "cwd",
+    "path",
+  ]) {
     const value = args[key];
     if (value == null || value === "") continue;
+    if (key === "body" || key === "content") continue;
     lines.push(`${key}: ${String(value)}`);
+  }
+  if (typeof args.content === "string" && args.content) {
+    const preview = args.content.length > 400 ? `${args.content.slice(0, 400)}…` : args.content;
+    lines.push(`content:\n${preview}`);
   }
   if (lines.length === 0) return undefined;
   return lines.join("\n");

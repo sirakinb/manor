@@ -71,19 +71,21 @@ export function toComputerStatus(
         : "stopped";
   const screen = computerScreenSize(computer?.kind);
   const kind = (computer?.kind ?? "fake") as ComputerStatus["kind"];
+  const mode =
+    computer?.scope === "dedicated" ? "dedicated" : computer?.scope === "local" ? "local" : "team";
   return {
     botId,
-    mode: computer?.scope === "dedicated" ? "dedicated" : "team",
+    mode,
     kind,
     state,
     controlHolder: (computer?.controlHolder ?? "none") as ComputerStatus["controlHolder"],
     controlBotId: computer?.controlBotId ?? null,
     takeoverRequested: Boolean(computer?.controlRunId),
-    screenAvailable: state === "running" || state === "booting",
+    screenAvailable: kind !== "local" && (state === "running" || state === "booting"),
     screenWidth: screen.width,
     screenHeight: screen.height,
     homeRevision: computer?.homeRevision ?? null,
     busyBotName,
-    updateAvailable: kind !== "desktop",
+    updateAvailable: kind !== "desktop" && kind !== "local",
   };
 }
