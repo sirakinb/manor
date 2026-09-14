@@ -67,3 +67,14 @@ COMPUTER_E2E_MODEL=<vision-capable-openrouter-model-id> pnpm test:computer
 ```
 
 It starts the full API, provisions a real E2B desktop, serves a deterministic page inside the sandbox, and asks a real model to observe and click a button. The button creates a server-side marker; the test then requires the model to use terminal and file tools and verifies both the marker and recorded tool calls. Finally, it destroys the provider machine, boots a replacement through the stale provider reference, and verifies that the external checkpoint restored the model-created file. The command is opt-in and is not run by `pnpm test` or CI unless invoked explicitly.
+
+## Shared folder on this Mac (v0)
+
+This is a second, attended computer — not the VPS Team Computer and not `SANDBOX_PROVIDER=desktop` / `computerHost=this-mac`. Overnight work, routines, and webhooks stay on the cloud computer.
+
+Two surfaces only:
+
+1. **Share this Mac** — Manor desktop app Settings (`ShareThisMacSettings`). Native folder picker for one folder; tray “Manor is using this Mac” plus Stop. The website cannot start a share.
+2. **Pick computer** — existing `ComputerModePicker` in bot create/settings (web and desktop) and the mobile computer picker. When a live share exists, **This Mac** appears next to Team/Private. If none, it stays disabled with “Open Manor desktop to share this Mac.” Default remains the VPS Team computer.
+
+Files and shell only, inside the picked folder. Writes and shell require Allow once (chat Ask card and a native desktop prompt). Do not reuse `HostComputerPrompt`.

@@ -27,6 +27,8 @@ import {
   isPipedreamEnabled,
   LocalAgentHomeStore,
   LocalArtifactStore,
+  LocalSandboxProvider,
+  DurableLocalComputerGateway,
   MaintenanceAdmission,
   McpConnector,
   McpOAuthBroker,
@@ -73,6 +75,7 @@ async function main() {
   // Same resolver the API uses, so both processes agree on provider, model and key.
   const { key: deploymentModelKey } = resolveDeploymentModel();
   const sandboxProvider = resolveSandboxProvider(process.env);
+  const localComputerGateway = new DurableLocalComputerGateway(prisma, realtime);
   const sandbox = createRunSandbox(sandboxProvider, {
     supervisorUrl: process.env.SANDBOX_SUPERVISOR_URL ?? "http://127.0.0.1:7091",
     supervisorToken: sandboxProvider === "docker" ? resolveSupervisorToken(process.env) : undefined,
@@ -84,6 +87,7 @@ async function main() {
     boxApiUrl: process.env.BOX_API_URL ?? process.env.BOX_BASE_URL,
     dataDir,
     prisma,
+    localComputer: new LocalSandboxProvider(prisma, localComputerGateway),
   });
   const mcpOAuth = new McpOAuthBroker(prisma, secrets);
   const mcp = new McpConnector(

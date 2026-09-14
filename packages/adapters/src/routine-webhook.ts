@@ -47,7 +47,7 @@ export async function prepareRoutineWebhook(
   registerSecret: (secret: string) => void,
 ) {
   if (input.groupId) return { error: "Prepare webhooks in the bot's direct conversation." };
-  if (computer.kind === "desktop") {
+  if (computer.kind === "desktop" || computer.kind === "local") {
     return {
       error:
         "Webhook setup handoff requires a virtual computer. Use the routine editor to configure it manually.",

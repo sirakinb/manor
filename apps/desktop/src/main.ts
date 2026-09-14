@@ -8,6 +8,7 @@ import {
   type ElectronAutoUpdater,
   LAUNCH_CHECK_DELAY_MS,
 } from "./auto-update.js";
+import { createLocalComputerSession } from "./local-computer-session.js";
 import { oauthCallbackFrom } from "./oauth-callback.js";
 import {
   bundledRendererCandidates,
@@ -60,6 +61,7 @@ const desktopUpdater = new DesktopUpdateController(updaterEnvironment, async () 
   return (module.default ?? module).autoUpdater as unknown as ElectronAutoUpdater;
 });
 let launchUpdateCheckScheduled = false;
+let stopLocalComputerShare: () => Promise<unknown> = async () => undefined;
 
 markOnce("rk:main:module-evaluated");
 if (PERFORMANCE_USER_DATA) {
@@ -907,6 +909,34 @@ app.whenReady().then(async () => {
     if (state.phase !== "ready") quitting = false;
     return state;
   });
+
+  const localComputer = createLocalComputerSession({
+    getMainWindow: () => mainWindow,
+    notifyRenderer: (status) => {
+      if (mainWindow !== null && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("desktop.localComputer.change", status);
+      }
+    },
+  });
+  stopLocalComputerShare = () => localComputer.stop();
+  ipcMain.handle("desktop.localComputer.pickFolder", (event) => {
+    if (!fromMainWindow(event)) return null;
+    return localComputer.pickFolder();
+  });
+  ipcMain.handle("desktop.localComputer.connect", (event, input: unknown) => {
+    if (!fromMainWindow(event) || input === null || typeof input !== "object") {
+      return localComputer.status();
+    }
+    return localComputer.connect(input as { origin: string; token: string; folderPath: string });
+  });
+  ipcMain.handle("desktop.localComputer.stop", (event) => {
+    if (!fromMainWindow(event)) return localComputer.status();
+    return localComputer.stop();
+  });
+  ipcMain.handle("desktop.localComputer.status", (event) => {
+    if (!fromMainWindow(event)) return { sharing: false, folderName: null, lastCommand: null };
+    return localComputer.status();
+  });
   ipcMain.handle("desktop.setup.state", (event) => {
     if (!fromSetupWindow(event)) return null;
     return {
@@ -1068,4 +1098,5 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   quitting = true;
   clearTimeout(warmWindowTimer);
+  void stopLocalComputerShare();
 });

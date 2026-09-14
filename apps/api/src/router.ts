@@ -154,6 +154,14 @@ import {
   resolveBusyBotName,
   toComputerStatus,
 } from "./computer-status.js";
+import {
+  listLocalDevices,
+  localComputerLiveSession,
+  registerLocalDevice,
+  requireLiveLocalSession,
+  revokeLocalDevice,
+  stopLocalComputerSessions,
+} from "./local-computer.js";
 import { buildMcpUpdateMaterial } from "./mcp-material.js";
 import { chooseFocus, markAppConnected, startOnboarding } from "./onboarding.js";
 import { getRunDiagnostics, listBotRunHistory, listSpaceRuns } from "./runs.js";
@@ -542,6 +550,25 @@ export function createRouter(deps: RouterDeps) {
         return meDto(deps, context.actor);
       }),
     },
+    localComputer: {
+      session: spaceAuthed.localComputer.session.handler(async ({ context }) =>
+        localComputerLiveSession(deps.prisma, context.actor),
+      ),
+      devices: spaceAuthed.localComputer.devices.handler(async ({ context }) =>
+        listLocalDevices(deps.prisma, context.actor),
+      ),
+      register: spaceAuthed.localComputer.register.handler(async ({ context, input }) =>
+        registerLocalDevice(deps.prisma, context.actor, input.name),
+      ),
+      revoke: spaceAuthed.localComputer.revoke.handler(async ({ context, input }) => {
+        await revokeLocalDevice(deps.prisma, context.actor, input.deviceId);
+        return { ok: true as const };
+      }),
+      stop: spaceAuthed.localComputer.stop.handler(async ({ context }) => {
+        await stopLocalComputerSessions(deps.prisma, context.actor);
+        return { ok: true as const };
+      }),
+    },
     spaces: {
       list: authed.spaces.list.handler(async ({ context }) =>
         spaceNavigationDto(deps, context.actor, repos, groupRepos),
@@ -815,9 +842,19 @@ export function createRouter(deps: RouterDeps) {
         if (!found) throw new IsolationError();
         return found;
       }),
-      create: spaceAuthed.bots.create.handler(async ({ context, input }) =>
-        repos.createBot(context.actor, input),
-      ),
+      create: spaceAuthed.bots.create.handler(async ({ context, input }) => {
+        if (input.computerMode === "local") {
+          try {
+            await requireLiveLocalSession(deps.prisma, context.actor);
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                error instanceof Error ? error.message : "Open Manor desktop to share this Mac.",
+            });
+          }
+        }
+        return repos.createBot(context.actor, input);
+      }),
       duplicate: spaceAuthed.bots.duplicate.handler(async ({ context, input }) => {
         const source = await repos.getBot(context.actor, input.botId);
         const duplicate = await repos.createBot(context.actor, {
@@ -938,7 +975,17 @@ export function createRouter(deps: RouterDeps) {
       setComputer: spaceAuthed.bots.setComputer.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
-        const currentMode = bot.computer.scope === "dedicated" ? "dedicated" : "team";
+        if (input.mode === "local") {
+          try {
+            await requireLiveLocalSession(deps.prisma, context.actor);
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                error instanceof Error ? error.message : "Open Manor desktop to share this Mac.",
+            });
+          }
+        }
+        const currentMode = parseComputerMode(bot.computer.scope);
         if (currentMode === input.mode) {
           return repos.setBotComputer(context.actor, bot.id, input.mode);
         }
@@ -4549,6 +4596,7 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
     avatarStyle: user.avatarStyle === "organic" ? "organic" : "robot",
+    localComputer: await localComputerLiveSession(deps.prisma, actor),
   };
 }
 

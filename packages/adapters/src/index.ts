@@ -45,6 +45,8 @@ export * from "./ingestion-runner.js";
 export * from "./installed-connectors.js";
 export * from "./job-reconciler.js";
 export * from "./keyless-http-web.js";
+export * from "./local-computer-gateway.js";
+export * from "./local-sandbox.js";
 export * from "./maintenance.js";
 export * from "./maintenance-control.js";
 export * from "./maintenance-test-adapter.js";

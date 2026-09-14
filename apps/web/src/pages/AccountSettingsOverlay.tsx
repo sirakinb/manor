@@ -15,6 +15,7 @@ import {
   ComputersUnavailableHint,
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
+import { ShareThisMacSettings } from "../components/ShareThisMacSettings";
 import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
 import { TeamMembers } from "../components/TeamMembers";
 import { authClient } from "../lib/auth";
@@ -32,6 +33,7 @@ export function AccountSettingsOverlay({
   sandboxProvider,
   messagingEnabled = false,
   onOpenMessaging,
+  onLocalComputerChanged,
   onClose,
 }: {
   email?: string | null;
@@ -44,6 +46,7 @@ export function AccountSettingsOverlay({
   sandboxProvider?: string | null;
   messagingEnabled?: boolean;
   onOpenMessaging?: () => void;
+  onLocalComputerChanged?: () => void;
   onClose: () => void;
 }) {
   const { t } = useLingui();
@@ -134,6 +137,7 @@ export function AccountSettingsOverlay({
           {email ? <p className="mt-1 text-[13px] text-[#7A7A80]">{email}</p> : null}
         </section>
 
+        <ShareThisMacSettings onSharingChange={onLocalComputerChanged} />
         <TeamMembers />
         <ChangePasswordSection />
 

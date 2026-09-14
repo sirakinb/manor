@@ -36,6 +36,25 @@ export interface RakazoDesktopOAuthCallback {
   state?: string;
 }
 
+export interface RakazoDesktopLocalComputerStatus {
+  sharing: boolean;
+  folderName: string | null;
+  lastCommand: string | null;
+}
+
+export interface RakazoDesktopLocalComputer {
+  /** Native folder picker. Returns null when the person cancels. */
+  pickFolder: () => Promise<string | null>;
+  connect: (input: {
+    origin: string;
+    token: string;
+    folderPath: string;
+  }) => Promise<RakazoDesktopLocalComputerStatus>;
+  stop: () => Promise<RakazoDesktopLocalComputerStatus>;
+  status: () => Promise<RakazoDesktopLocalComputerStatus>;
+  onChange: (listener: (status: RakazoDesktopLocalComputerStatus) => void) => () => void;
+}
+
 export interface RakazoDesktop {
   platform: string;
   window: {
@@ -52,6 +71,7 @@ export interface RakazoDesktop {
      */
     onCallback: (listener: (callback: RakazoDesktopOAuthCallback) => void) => () => void;
   };
+  localComputer: RakazoDesktopLocalComputer;
 }
 
 /** How the desktop app was pointed at a Rakazo server during first-run setup. */

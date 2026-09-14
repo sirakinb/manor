@@ -13,6 +13,7 @@ import type {
 } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
 import { DesktopSandboxProvider } from "./desktop-sandbox.js";
+import { DisconnectedLocalSandboxProvider } from "./local-sandbox.js";
 import { createSandboxProvider, type SandboxProviderOptions } from "./sandbox-factory.js";
 
 export function sandboxKindForBot(envKind: string, computerHost: string | null | undefined) {
@@ -22,29 +23,159 @@ export function sandboxKindForBot(envKind: string, computerHost: string | null |
 
 export function createRunSandbox(
   kind: string,
-  opts: SandboxProviderOptions & { prisma?: PrismaClient },
+  opts: SandboxProviderOptions & { prisma?: PrismaClient; localComputer?: SandboxProvider },
 ): SandboxProvider {
+  const local = opts.localComputer ?? new DisconnectedLocalSandboxProvider();
   if (kind === "desktop") {
-    return new DesktopSandboxProvider({
-      root: opts.dataDir,
-      hostRoots: [homedir()],
-    });
+    return new LocalAwareSandbox(
+      new DesktopSandboxProvider({
+        root: opts.dataDir,
+        hostRoots: [homedir()],
+      }),
+      local,
+    );
   }
   const primary = createSandboxProvider(kind, opts);
-  if (kind !== "docker" || !opts.prisma) return primary;
-  return new HostAwareSandbox(
-    primary,
-    new DesktopSandboxProvider({
-      root: opts.dataDir,
-      hostRoots: [homedir()],
-    }),
-    async () => {
-      const settings = await opts.prisma!.deploymentSettings.findUnique({
-        where: { id: "default" },
-      });
-      return settings?.computerHost === "this-mac";
-    },
+  if (kind !== "docker" || !opts.prisma) return new LocalAwareSandbox(primary, local);
+  return new LocalAwareSandbox(
+    new HostAwareSandbox(
+      primary,
+      new DesktopSandboxProvider({
+        root: opts.dataDir,
+        hostRoots: [homedir()],
+      }),
+      async () => {
+        const settings = await opts.prisma!.deploymentSettings.findUnique({
+          where: { id: "default" },
+        });
+        return settings?.computerHost === "this-mac";
+      },
+    ),
+    local,
   );
+}
+
+/** Routes attended laptop computers without changing SANDBOX_PROVIDER. */
+export class LocalAwareSandbox implements SandboxProvider {
+  constructor(
+    private readonly cloud: SandboxProvider,
+    private readonly local: SandboxProvider,
+  ) {}
+
+  describe() {
+    return this.cloud.describe();
+  }
+
+  private route(computer: ComputerRef) {
+    return computer.kind === "local" ? this.local : this.cloud;
+  }
+
+  async provision(
+    request: {
+      botId: string;
+      homePath: string;
+      providerRef?: string;
+      providerKind?: ComputerRef["kind"];
+    },
+    context: AdapterContext,
+  ) {
+    const provider = request.providerKind === "local" ? this.local : this.cloud;
+    return provider.provision(request, context);
+  }
+
+  prepare(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).prepare(computer, context);
+  }
+
+  async *execute(
+    computer: ComputerRef,
+    request: CommandRequest,
+    context: AdapterContext,
+  ): AsyncIterable<ProcessEvent> {
+    yield* this.route(computer).execute(computer, request, context);
+  }
+
+  connectScreen(computer: ComputerRef, request: ScreenRequest, context: AdapterContext) {
+    return this.route(computer).connectScreen(computer, request, context);
+  }
+
+  sendInput(
+    computer: ComputerRef,
+    input: ComputerInput,
+    lease: ControlLeaseRef,
+    context: AdapterContext,
+  ) {
+    return this.route(computer).sendInput(computer, input, lease, context);
+  }
+
+  observe(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).observe(computer, context);
+  }
+
+  act(computer: ComputerRef, request: ComputerActionRequest, context: AdapterContext) {
+    return this.route(computer).act(computer, request, context);
+  }
+
+  listFiles(computer: ComputerRef, path: string, context: AdapterContext) {
+    return this.route(computer).listFiles(computer, path, context);
+  }
+
+  readFile(
+    computer: ComputerRef,
+    path: string,
+    context: AdapterContext,
+    options?: { maxBytes?: number },
+  ) {
+    return this.route(computer).readFile(computer, path, context, options);
+  }
+
+  writeFile(computer: ComputerRef, file: PortableFile, context: AdapterContext) {
+    return this.route(computer).writeFile(computer, file, context);
+  }
+
+  exportWorkspace(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).exportWorkspace(computer, context);
+  }
+
+  importWorkspace(
+    computer: ComputerRef,
+    files: AsyncIterable<PortableFile>,
+    context: AdapterContext,
+  ) {
+    return this.route(computer).importWorkspace(computer, files, context);
+  }
+
+  snapshot(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).snapshot(computer, context);
+  }
+
+  keepAlive(computer: ComputerRef) {
+    return this.route(computer).keepAlive?.(computer) ?? Promise.resolve();
+  }
+
+  releaseScreen(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).releaseScreen?.(computer, context) ?? Promise.resolve();
+  }
+
+  setScreenControl(
+    computer: ComputerRef,
+    interactive: boolean,
+    context: AdapterContext,
+    controlToken?: string,
+  ) {
+    return (
+      this.route(computer).setScreenControl?.(computer, interactive, context, controlToken) ??
+      Promise.resolve()
+    );
+  }
+
+  stop(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).stop(computer, context);
+  }
+
+  destroy(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).destroy(computer, context);
+  }
 }
 
 export class HostAwareSandbox implements SandboxProvider {

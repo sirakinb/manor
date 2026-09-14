@@ -22,4 +22,15 @@ contextBridge.exposeInMainWorld("rakazoDesktop", {
       return () => ipcRenderer.off("desktop.oauth.callback", handler);
     },
   },
+  localComputer: {
+    pickFolder: () => ipcRenderer.invoke("desktop.localComputer.pickFolder"),
+    connect: (input) => ipcRenderer.invoke("desktop.localComputer.connect", input),
+    stop: () => ipcRenderer.invoke("desktop.localComputer.stop"),
+    status: () => ipcRenderer.invoke("desktop.localComputer.status"),
+    onChange: (listener) => {
+      const handler = (_event, status) => listener(status);
+      ipcRenderer.on("desktop.localComputer.change", handler);
+      return () => ipcRenderer.off("desktop.localComputer.change", handler);
+    },
+  },
 });

@@ -37,6 +37,7 @@ model User {
   createdSpaces               Space[]                      @relation("SpaceCreator")
   integrationCredentials      IntegrationCredential[]
   crmWebhookEndpoints         CrmWebhookEndpoint[]
+  localDevices                LocalDevice[]
 
   @@unique([email])
   @@map("user")
@@ -205,6 +206,8 @@ model Space {
   usageRecords                UsageRecord[]
   notificationPreferences     NotificationPreference[]
   computers                   Computer[]
+  localDevices                LocalDevice[]
+  localComputerSessions       LocalComputerSession[]
   externalEffects             ExternalEffect[]
   mcpServers                  McpServer[]
   botCredentials              BotCredential[]
@@ -880,6 +883,7 @@ model Computer {
   updatedAt               DateTime                 @updatedAt
   bots                    Bot[]
   executionLeases         ComputerExecutionLease[]
+  localSessions           LocalComputerSession[]
 
   @@index([spaceId, scope])
   @@map("computers")
@@ -900,6 +904,65 @@ model ComputerExecutionLease {
   @@index([runId])
   @@index([computerId, expiresAt])
   @@map("computer_execution_leases")
+}
+
+/// Paired Manor desktop app. Token hash only; the plaintext token never stays in the database.
+model LocalDevice {
+  id          String                 @id @default(cuid())
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spaceId     String
+  space       Space                  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  name        String                 @default("Laptop")
+  tokenHash   String                 @unique
+  tokenPrefix String
+  revokedAt   DateTime?
+  lastSeenAt  DateTime?
+  createdAt   DateTime               @default(now())
+  sessions    LocalComputerSession[]
+
+  @@index([userId, spaceId])
+  @@map("local_devices")
+}
+
+/// One attended share: a single folder, live only while the desktop app is connected.
+model LocalComputerSession {
+  id          String                 @id @default(cuid())
+  deviceId    String
+  device      LocalDevice            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  computerId  String
+  computer    Computer               @relation(fields: [computerId], references: [id], onDelete: Cascade)
+  spaceId     String
+  space       Space                  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId      String
+  folderName  String
+  connected   Boolean                @default(false)
+  lastCommand String                 @default("")
+  startedAt   DateTime               @default(now())
+  stoppedAt   DateTime?
+  commands    LocalComputerCommand[]
+
+  @@index([deviceId, connected])
+  @@index([spaceId, userId, connected])
+  @@index([computerId])
+  @@map("local_computer_sessions")
+}
+
+/// Worker-to-desktop RPC payload. NOTIFY only carries this row's id.
+model LocalComputerCommand {
+  id          String               @id @default(cuid())
+  sessionId   String
+  session     LocalComputerSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  method      String
+  params      Json
+  result      Json?
+  error       String?
+  status      String               @default("pending")
+  createdAt   DateTime             @default(now())
+  completedAt DateTime?
+
+  @@index([sessionId, status, createdAt])
+  @@map("local_computer_commands")
 }
 
 model Artifact {

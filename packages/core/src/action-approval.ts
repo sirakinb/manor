@@ -1,4 +1,5 @@
 import type { ActionApprovalRule as StoredActionApprovalRule } from "@rakazo/contracts";
+import { isLocalComputerMutatingTool } from "./local-computer.js";
 
 const APPROVAL_EXEMPT_TOOLS = new Set([
   "computer_observe",
@@ -59,17 +60,26 @@ export function connectorToolRequiresApproval(toolName: string): boolean {
   return !READ_ONLY_CONNECTOR_PATTERN.test(toolName);
 }
 
-export function toolRequiresApproval(toolName: string, viaConnector: boolean): boolean {
+export function toolRequiresApproval(
+  toolName: string,
+  viaConnector: boolean,
+  options?: { computerKind?: string },
+): boolean {
+  if (options?.computerKind === "local" && isLocalComputerMutatingTool(toolName)) return true;
   if (APPROVAL_EXEMPT_TOOLS.has(toolName)) return false;
-  if (toolRequiresExplicitApproval(toolName)) return true;
+  if (toolRequiresExplicitApproval(toolName, options)) return true;
   if (APPROVAL_REQUIRED_BUILTIN_TOOLS.has(toolName)) return true;
   if (viaConnector) return connectorToolRequiresApproval(toolName);
   return false;
 }
 
 /** Security-boundary changes cannot be auto-reviewed or permanently allowed. */
-export function toolRequiresExplicitApproval(toolName: string): boolean {
-  return EXPLICIT_APPROVAL_BUILTIN_TOOLS.has(toolName);
+export function toolRequiresExplicitApproval(
+  toolName: string,
+  options?: { computerKind?: string },
+): boolean {
+  if (EXPLICIT_APPROVAL_BUILTIN_TOOLS.has(toolName)) return true;
+  return options?.computerKind === "local" && isLocalComputerMutatingTool(toolName);
 }
 
 function categoryMatches(category: string, toolName: string, connectorKind: string): boolean {

@@ -16,9 +16,12 @@
   },
   "dependencies": {
     "@rakazo/contracts": "workspace:*",
-    "electron-updater": "^6.8.9"
+    "@rakazo/core": "workspace:*",
+    "electron-updater": "^6.8.9",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@types/ws": "^8.18.1",
     "@playwright/test": "^1.55.0",
     "electron": "^43.4.0",
     "electron-builder": "^26.0.12",

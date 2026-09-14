@@ -97,5 +97,6 @@ export function controlLabel(computer: ComputerStatus | null, name: string, botI
 }
 
 export function computerLabel(mode: ComputerMode | undefined, name: string) {
+  if (mode === "local") return "Shared folder on this Mac";
   return mode === "dedicated" ? `${name}’s computer` : "Team Computer";
 }

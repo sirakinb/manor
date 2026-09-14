@@ -15,6 +15,7 @@ export * from "./duration.js";
 export * from "./events.js";
 export * from "./featured-connectors.js";
 export * from "./group-mentions.js";
+export * from "./local-computer.js";
 export * from "./maintenance.js";
 export * from "./maintenance-controller.js";
 export * from "./mcp.js";

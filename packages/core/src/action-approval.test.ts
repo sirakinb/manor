@@ -22,6 +22,13 @@ describe("toolRequiresApproval", () => {
     expect(toolRequiresApproval("create_space", false)).toBe(true);
     expect(toolRequiresExplicitApproval("create_space")).toBe(true);
     expect(toolRequiresExplicitApproval("archive_bot")).toBe(false);
+    expect(toolRequiresApproval("write_file", false, { computerKind: "local" })).toBe(true);
+    expect(toolRequiresApproval("shell", false, { computerKind: "local" })).toBe(true);
+    expect(toolRequiresExplicitApproval("write_file", { computerKind: "local" })).toBe(true);
+    expect(toolRequiresExplicitApproval("shell", { computerKind: "local" })).toBe(true);
+    expect(toolRequiresExplicitApproval("read_file", { computerKind: "local" })).toBe(false);
+    expect(toolRequiresApproval("write_file", false)).toBe(false);
+    expect(toolRequiresApproval("shell", false)).toBe(false);
   });
 
   it("does not gate read-only or local work", () => {
