@@ -1,7 +1,13 @@
 import base64
 from datetime import date
 
-from ingestion.pipelines.water import billing_month, is_two_days_before_month_end, should_poll_today
+from ingestion.pipelines.water import (
+    _apply_pdf_statements,
+    billing_month,
+    is_two_days_before_month_end,
+    merge_preserved_city_amount,
+    should_poll_today,
+)
 from ingestion.pipelines.water_parser import (
     WRD_SENDER,
     apply_city_statement,
@@ -98,6 +104,39 @@ def test_pdf_for_a_different_address_does_not_invent_an_amount():
     filled = apply_city_statement(bill, other)
     assert filled["current_charges"] is None
     assert filled["parse_status"] == "needs_review"
+
+
+def test_pdf_address_must_match_exactly_and_due_dates_must_agree():
+    [bill] = parse_bills(WRD_SENDER, SINGLE, "m-exact")
+    neighbor = parse_city_statement("Service address: 110 EXAMPLE AVE\nTotal current charges: $12.00")
+    assert apply_city_statement(dict(bill), neighbor)["current_charges"] is None
+    conflict = parse_city_statement(
+        "Service address: 10 EXAMPLE AVE\nTotal current charges: $70.12\nDue date: Oct. 1, 2026"
+    )
+    assert apply_city_statement(dict(bill), conflict)["current_charges"] is None
+
+
+def test_multi_bill_pdf_match_consumes_the_statement_and_skips_addressless_copies():
+    bills = parse_bills(WRD_SENDER, MULTI, "m-multi-pdf")
+    first = parse_city_statement("Service address: 20 N EXAMPLE ST\nTotal current charges: $40.00")
+    second = parse_city_statement("Service address: 30 N SAMPLE ST\nTotal current charges: $55.00")
+    addressless = parse_city_statement("Total current charges: $99.00")
+    _apply_pdf_statements(bills, [addressless, first, second])
+    assert bills[0]["current_charges"] == 40.0
+    assert bills[1]["current_charges"] == 55.0
+
+
+def test_preserved_city_amount_still_needs_review_when_other_fields_are_missing():
+    record = {
+        "service_address": None,
+        "current_charges": None,
+        "due_date": None,
+        "source_sender": "owner@example.test",
+    }
+    merged = merge_preserved_city_amount(record, 70.12)
+    assert merged["current_charges"] == 70.12
+    assert merged["parse_status"] == "needs_review"
+    assert merged["parse_notes"] == "missing: service_address, due_date, wrd_sender"
 
 
 def test_multiple_bills_get_stable_indexes_and_their_own_segments():

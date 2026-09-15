@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   allocateLeasesForBillingMonth,
   leaseCoversBillingMonth,
+  splitChargeAmounts,
   type UtilityLeaseTerm,
 } from "./utility-leases.js";
 
@@ -97,5 +98,13 @@ describe("allocateLeasesForBillingMonth", () => {
       [1, 0.5],
       [2, 0.5],
     ]);
+  });
+});
+
+describe("splitChargeAmounts", () => {
+  it("keeps odd cents instead of rounding each share independently", () => {
+    expect(splitChargeAmounts(70.13, [0.5, 0.5])).toEqual([35.06, 35.07]);
+    expect(splitChargeAmounts(84.5, [0.5, 0.5])).toEqual([42.25, 42.25]);
+    expect(splitChargeAmounts(70.12, [1])).toEqual([70.12]);
   });
 });

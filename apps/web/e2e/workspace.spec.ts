@@ -428,7 +428,8 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByRole("button", { name: /Post all pending/ })).toBeHidden();
   const bill = page.getByTestId("workspace-bill").filter({ hasText: "$84.50" });
   await expect(bill).toBeVisible();
-  await expect(bill).not.toContainText("$2,433.11");
+  await expect(bill.getByTestId("workspace-bill-amount")).toHaveText("$84.50");
+  await expect(bill.locator("summary")).not.toContainText("$2,433.11");
   await expect(bill.getByRole("button", { name: "Post to Buildium" })).toBeHidden();
   await captureScreenshot(page, testInfo, "workspace-utilities-queue");
   await page.getByRole("textbox", { name: "Search properties or bills" }).fill("no-such-address");

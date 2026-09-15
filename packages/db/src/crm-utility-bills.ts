@@ -1,5 +1,5 @@
 import type { PrismaClient } from "./client.js";
-import { normStreetAddr, upsertCityUtilityBill } from "./utility-city-bills.js";
+import { normStreetAddr, toMoneyCents, upsertCityUtilityBill } from "./utility-city-bills.js";
 
 export type CrmUtilityField = { id: string; label: string };
 
@@ -116,13 +116,13 @@ function firstOfMonthIso(date: Date): string {
 
 export function parseCrmMoney(value: unknown): number | null {
   if (typeof value === "number") {
-    return Number.isFinite(value) && value >= 0 ? value : null;
+    return Number.isFinite(value) && value >= 0 ? toMoneyCents(value) : null;
   }
   if (typeof value !== "string") return null;
   const trimmed = value.trim().replace(/[$,]/g, "");
   if (!trimmed) return null;
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  return Number.isFinite(parsed) && parsed >= 0 ? toMoneyCents(parsed) : null;
 }
 
 export function parseCrmServiceAddress(value: unknown): string | null {
@@ -155,6 +155,18 @@ export function resolveCrmBillingMonth(value: unknown, now: Date, dueDate?: stri
   return null;
 }
 
+function utcCalendarDate(year: number, monthIndex: number, day: number): string | undefined {
+  const date = new Date(Date.UTC(year, monthIndex, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== monthIndex ||
+    date.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+  return date.toISOString().slice(0, 10);
+}
+
 export function resolveCrmDueDate(value: unknown): string | undefined {
   if (value instanceof Date && Number.isFinite(value.getTime())) {
     return value.toISOString().slice(0, 10);
@@ -162,13 +174,12 @@ export function resolveCrmDueDate(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const text = value.trim();
   const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  if (iso) return utcCalendarDate(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
   const named = text.match(/^([A-Za-z]+)\.?\s+(\d{1,2}),?\s+(\d{4})$/);
   if (!named) return undefined;
   const month = MONTH_NAMES[named[1]!.toLowerCase()];
-  const day = Number(named[2]);
-  if (month === undefined || day < 1 || day > 31) return undefined;
-  return `${named[3]}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  if (month === undefined) return undefined;
+  return utcCalendarDate(Number(named[3]), month, Number(named[2]));
 }
 
 function readValue(values: Record<string, unknown>, field: CrmUtilityField | null): unknown {

@@ -21,7 +21,9 @@ from ..errors import PipelineError, SkippedRun
 from ..http import get_json, post_form_json
 from ..normalize import norm_street_addr
 from .water_parser import (
+    _with_parse_status,
     apply_city_statement,
+    city_statement_applies,
     decode_gmail_attachment,
     extract_body_text,
     extract_pdf_text,
@@ -86,38 +88,52 @@ def _apply_pdf_statements(bills: list[dict], statements: list[dict]) -> None:
     if len(unmatched) == 1 and len(bills) == 1:
         apply_city_statement(bills[0], unmatched[0])
         return
+    remaining = list(unmatched)
     for bill in bills:
-        for statement in unmatched:
-            before = bill.get("current_charges")
+        for index, statement in enumerate(remaining):
+            if not statement.get("service_address"):
+                continue
+            if not city_statement_applies(bill, statement):
+                continue
             apply_city_statement(bill, statement)
-            if bill.get("current_charges") != before:
-                break
+            remaining.pop(index)
+            break
+
+
+def merge_preserved_city_amount(record: dict, existing_charges: float | None) -> dict:
+    """Keep a stored city amount, then recompute parse completeness from every required field."""
+    charges = record.get("current_charges")
+    if charges is None:
+        charges = existing_charges
+    return _with_parse_status({**record, "current_charges": charges})
 
 
 def _preserve_city_amount(cur, workspace_id: str, record: dict, current_charges: float | None) -> None:
     """Keep an already-recorded city amount when this notice still lacks one."""
+    existing = None
+    if current_charges is None:
+        cur.execute(
+            """
+            select "currentCharges"
+            from workspace_water_bills
+            where "workspaceId" = %s and "gmailMessageId" = %s and "billIndex" = %s
+            """,
+            (workspace_id, record["gmail_message_id"], record["bill_index"]),
+        )
+        row = cur.fetchone()
+        if row and row[0] is not None:
+            existing = float(row[0])
+    merged = merge_preserved_city_amount({**record, "current_charges": current_charges}, existing)
     cur.execute(
         """
         update workspace_water_bills
-        set "currentCharges" = coalesce(%s, "currentCharges"),
-            "parseStatus" = case
-                when coalesce(%s, "currentCharges") is not null then 'parsed'
-                else %s
-            end,
-            "parseNotes" = case
-                when %s is not null then %s
-                when "currentCharges" is not null then "parseNotes"
-                else %s
-            end
+        set "currentCharges" = %s, "parseStatus" = %s, "parseNotes" = %s
         where "workspaceId" = %s and "gmailMessageId" = %s and "billIndex" = %s
         """,
         (
-            current_charges,
-            current_charges,
-            record["parse_status"],
-            current_charges,
-            record["parse_notes"],
-            record["parse_notes"],
+            merged["current_charges"],
+            merged["parse_status"],
+            merged["parse_notes"],
             workspace_id,
             record["gmail_message_id"],
             record["bill_index"],

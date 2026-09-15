@@ -15,6 +15,8 @@ import io
 import re
 from datetime import date, datetime
 
+from ..normalize import norm_street_addr
+
 WRD_SENDER = "do-not-reply-waterrevbureau@phila.gov"
 
 RE_SERVICE = re.compile(
@@ -116,7 +118,7 @@ def decode_gmail_attachment(body: dict | None) -> bytes:
 
 
 def _money(value: str) -> float:
-    return float(value.replace(",", ""))
+    return round(float(value.replace(",", "")), 2)
 
 
 def _parse_due(value: str) -> date | None:
@@ -129,9 +131,19 @@ def _parse_due(value: str) -> date | None:
     return None
 
 
-def _norm_addr(value: str | None) -> str:
-    # Join a PDF to an email row only; warehouse writes use norm_street_addr.
-    return re.sub(r"[.,]", "", (value or "")).lower()
+def city_statement_applies(bill: dict, statement: dict) -> bool:
+    """True when this city statement is the monthly bill for this notice row."""
+    if statement.get("current_charges") is None:
+        return False
+    bill_addr = norm_street_addr(bill.get("service_address"))
+    stmt_addr = norm_street_addr(statement.get("service_address"))
+    if bill_addr and stmt_addr and bill_addr != stmt_addr:
+        return False
+    bill_due = bill.get("due_date")
+    stmt_due = statement.get("due_date")
+    if bill_due and stmt_due and bill_due != stmt_due:
+        return False
+    return True
 
 
 def parse_city_statement(text: str) -> dict:
@@ -156,11 +168,7 @@ def parse_city_statement(text: str) -> dict:
 
 def apply_city_statement(bill: dict, statement: dict) -> dict:
     """Fill current_charges from a city statement matched to this notice row."""
-    if statement.get("current_charges") is None:
-        return _with_parse_status(bill)
-    bill_addr = _norm_addr(bill.get("service_address"))
-    stmt_addr = _norm_addr(statement.get("service_address"))
-    if stmt_addr and bill_addr and stmt_addr not in bill_addr and bill_addr not in stmt_addr:
+    if not city_statement_applies(bill, statement):
         return _with_parse_status(bill)
     bill["current_charges"] = statement["current_charges"]
     if bill.get("due_date") is None and statement.get("due_date"):

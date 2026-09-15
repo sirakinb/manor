@@ -312,6 +312,18 @@ export function UtilitiesSection({
                   currentBillingMonth={data.currentBillingMonth}
                 />
               ) : null}
+              {selectedProperty &&
+              selectedProperty.targetStatus === "resolved" &&
+              !visibleBills.some(
+                (bill) =>
+                  (bill.billingMonth ?? data.currentBillingMonth) === data.currentBillingMonth,
+              ) ? (
+                <CityBillForm
+                  serviceAddress={selectedProperty.address}
+                  billingMonth={data.currentBillingMonth}
+                  onChanged={setData}
+                />
+              ) : null}
               <div className="mb-3 overflow-x-auto">
                 <Segmented
                   label={t`Bill status`}
@@ -497,6 +509,7 @@ export function UtilitiesSection({
                         (bill) => bill.billingMonth === data.currentBillingMonth,
                       );
                       const needsCityBill = thisMonth?.billAmount == null;
+                      const canRecordCityBill = target.targetStatus === "resolved" && needsCityBill;
                       return (
                         <div className="space-y-1.5">
                           <p className="text-[12px] leading-relaxed text-[var(--ws-muted)]">
@@ -512,7 +525,7 @@ export function UtilitiesSection({
                                       ? t`No matched bill. Check the unmatched bills.`
                                       : t`Await the next water bill.`}
                           </p>
-                          {propertyBills.length > 0 ? (
+                          {propertyBills.length > 0 || canRecordCityBill ? (
                             <button
                               type="button"
                               className={`text-[12px] font-medium text-[var(--ws-accent)] ${CLICKABLE_TEXT}`}
@@ -681,7 +694,10 @@ function BillCard({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[14px] font-semibold text-[#ECECEE] tabular-nums">
+          <span
+            className="text-[14px] font-semibold text-[#ECECEE] tabular-nums"
+            data-testid="workspace-bill-amount"
+          >
             {cityAmount === null ? t`City bill needed` : formatMoneyCents(cityAmount)}
           </span>
           <StatusPill tone={TARGET_TONE[bill.resolutionStatus]}>{statusLabel}</StatusPill>
@@ -698,7 +714,12 @@ function BillCard({
         </p>
       ) : null}
       {cityAmount === null && bill.serviceAddress ? (
-        <CityBillForm bill={bill} currentBillingMonth={currentBillingMonth} onChanged={onChanged} />
+        <CityBillForm
+          serviceAddress={bill.serviceAddress}
+          billingMonth={bill.billingMonth ?? currentBillingMonth}
+          dueDate={bill.dueDate}
+          onChanged={onChanged}
+        />
       ) : null}
       {bill.charges.length ? (
         <ul className="mt-3 divide-y divide-[#1C1C1F] border-t border-[#1C1C1F]">
@@ -718,32 +739,33 @@ function BillCard({
 }
 
 function CityBillForm({
-  bill,
-  currentBillingMonth,
+  serviceAddress,
+  billingMonth,
+  dueDate,
   onChanged,
 }: {
-  bill: WaterBillGroup;
-  currentBillingMonth: string;
+  serviceAddress: string;
+  billingMonth: string;
+  dueDate?: string | null;
   onChanged: (next: UtilitiesOverview) => void;
 }) {
   const { t } = useLingui();
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const month = bill.billingMonth ?? currentBillingMonth;
 
   async function save() {
     const parsed = Number(amount);
-    if (!Number.isFinite(parsed) || parsed < 0 || !bill.serviceAddress) return;
+    if (amount.trim() === "" || !Number.isFinite(parsed) || parsed < 0 || !serviceAddress) return;
     setBusy(true);
     setError(null);
     try {
       onChanged(
         await rpc.workspace.utilities.recordCityBill({
-          serviceAddress: bill.serviceAddress,
-          billingMonth: month,
-          currentCharges: parsed,
-          dueDate: bill.dueDate ?? undefined,
+          serviceAddress,
+          billingMonth,
+          currentCharges: Math.round(parsed * 100) / 100,
+          dueDate: dueDate ?? undefined,
         }),
       );
     } catch (cause) {
@@ -769,7 +791,7 @@ function CityBillForm({
           }}
         />
       </label>
-      <BuiButton tone="accent" disabled={busy || amount === ""} onClick={() => void save()}>
+      <BuiButton tone="accent" disabled={busy || amount.trim() === ""} onClick={() => void save()}>
         {t`Save city bill`}
       </BuiButton>
       {error ? <p className="w-full text-[11.5px] text-[#E8A33C]">{error}</p> : null}

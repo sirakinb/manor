@@ -208,6 +208,38 @@ function sameCrons(left: readonly string[], right: readonly string[]): boolean {
 }
 
 /**
+ * Move leftover Monday/month-end water crons to daily so CRM due dates retry
+ * without waiting for a workspace to open System settings. Custom schedules
+ * stay put. The job reconciler calls this before it scans due automations.
+ */
+export async function migrateLegacyWaterSchedules(
+  prisma: PrismaClient,
+  now = new Date(),
+  workspaceId?: string,
+): Promise<void> {
+  const waterSpec = automationSpec("water");
+  if (!waterSpec) return;
+  const rows = await prisma.workspaceAutomation.findMany({
+    where: { key: "water", ...(workspaceId ? { workspaceId } : {}) },
+  });
+  const legacy = rows.filter((row) => sameCrons(row.crons, LEGACY_WATER_CRONS));
+  if (legacy.length === 0) return;
+  await Promise.all(
+    legacy.map((row) =>
+      prisma.workspaceAutomation.update({
+        where: { id: row.id },
+        data: {
+          crons: [...waterSpec.crons],
+          nextRunAt: row.enabled
+            ? automationNextRunAt(waterSpec.crons, row.timezone, now)
+            : row.nextRunAt,
+        },
+      }),
+    ),
+  );
+}
+
+/**
  * Seed the registry's automations for a workspace's channels. Idempotent:
  * existing rows keep their schedule and enabled flag; only missing keys are
  * created, armed with their first wakeup. Water's old Monday/month-end crons
@@ -219,21 +251,7 @@ export async function ensureDefaultAutomations(
   workspace: { id: string; channels: string[] },
   now = new Date(),
 ): Promise<void> {
-  const water = await prisma.workspaceAutomation.findUnique({
-    where: { workspaceId_key: { workspaceId: workspace.id, key: "water" } },
-  });
-  const waterSpec = automationSpec("water");
-  if (water && waterSpec && sameCrons(water.crons, LEGACY_WATER_CRONS)) {
-    await prisma.workspaceAutomation.update({
-      where: { id: water.id },
-      data: {
-        crons: [...waterSpec.crons],
-        nextRunAt: water.enabled
-          ? automationNextRunAt(waterSpec.crons, water.timezone, now)
-          : water.nextRunAt,
-      },
-    });
-  }
+  await migrateLegacyWaterSchedules(prisma, now, workspace.id);
   const existing = await prisma.workspaceAutomation.findMany({
     where: { workspaceId: workspace.id },
     select: { key: true },

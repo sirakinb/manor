@@ -407,6 +407,31 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     });
   });
 
+  it("keeps unparsed notices that share an address instead of hiding one", async () => {
+    await prisma.workspaceWaterBill.createMany({
+      data: [
+        {
+          workspaceId,
+          gmailMessageId: "m-unparsed-a",
+          serviceAddress: "77 UNPARSED CT",
+          serviceAddressNorm: "77 unparsed court",
+          parseStatus: "needs_review",
+        },
+        {
+          workspaceId,
+          gmailMessageId: "m-unparsed-b",
+          serviceAddress: "77 UNPARSED CT",
+          serviceAddressNorm: "77 unparsed court",
+          parseStatus: "needs_review",
+        },
+      ],
+    });
+    const overview = await repos.utilitiesOverview(actor);
+    const unparsed = overview.bills.filter((bill) => bill.serviceAddress === "77 UNPARSED CT");
+    expect(unparsed).toHaveLength(2);
+    expect(unparsed.every((bill) => bill.billingMonth === null)).toBe(true);
+  });
+
   it("records city current charges onto the matching month without using the running total", async () => {
     await prisma.workspaceWaterBill.create({
       data: {

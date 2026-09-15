@@ -35,6 +35,7 @@ describe("parseCrmMoney", () => {
   it("reads the city amount and ignores junk", () => {
     expect(parseCrmMoney(70.12)).toBe(70.12);
     expect(parseCrmMoney("$1,234.50")).toBe(1234.5);
+    expect(parseCrmMoney("84.50")).toBe(84.5);
     expect(parseCrmMoney("")).toBeNull();
     expect(parseCrmMoney(-4)).toBeNull();
   });
@@ -165,6 +166,12 @@ describe("resolveCrmDueDate", () => {
     expect(resolveCrmDueDate("2026-09-29")).toBe("2026-09-29");
     expect(resolveCrmDueDate("Sep. 29, 2026")).toBe("2026-09-29");
     expect(resolveCrmDueDate("September 29, 2026")).toBe("2026-09-29");
+  });
+
+  it("rejects calendar dates that do not exist", () => {
+    expect(resolveCrmDueDate("2026-02-31")).toBeUndefined();
+    expect(resolveCrmDueDate("Feb. 31, 2026")).toBeUndefined();
+    expect(resolveCrmDueDate("February 31, 2026")).toBeUndefined();
   });
 });
 

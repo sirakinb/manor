@@ -26,6 +26,21 @@ export type UtilityMonthLease = {
 
 const round4 = (value: number): number => Math.round(value * 10_000) / 10_000;
 
+/** Split a city bill into whole cents that still add up to the original amount. */
+export function splitChargeAmounts(total: number, shares: readonly number[]): number[] {
+  const totalCents = Math.round(total * 100);
+  const floors = shares.map((share) => Math.floor(totalCents * share + 1e-9));
+  let leftover = totalCents - floors.reduce((sum, cents) => sum + cents, 0);
+  const amounts = [...floors];
+  for (let i = amounts.length - 1; i >= 0 && leftover !== 0; i--) {
+    if ((shares[i] ?? 0) <= 0) continue;
+    const step = leftover > 0 ? 1 : -1;
+    amounts[i]! += step;
+    leftover -= step;
+  }
+  return amounts.map((cents) => cents / 100);
+}
+
 function parseDay(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }

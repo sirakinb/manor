@@ -1,5 +1,10 @@
 import type { PrismaClient } from "./client.js";
 
+/** Persist and display city bills as whole cents, never whole dollars. */
+export function toMoneyCents(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 /** Byte-identical enough to the Python/SQL street normalizer for matching bills. */
 export function normStreetAddr(address: string): string {
   let text = address.replace(/[.,]/g, "").toLowerCase();
@@ -62,6 +67,7 @@ export async function upsertCityUtilityBill(
   if (!Number.isFinite(input.currentCharges) || input.currentCharges < 0) {
     throw new RangeError("currentCharges must be the city's monthly current charges");
   }
+  const currentCharges = toMoneyCents(input.currentCharges);
   const addressNorm = normStreetAddr(input.serviceAddress);
   const billingMonth = firstOfMonthUtc(input.billingMonth);
   const due = parseDueDateUtc(input.dueDate);
@@ -93,7 +99,7 @@ export async function upsertCityUtilityBill(
     await prisma.workspaceWaterBill.update({
       where: { id: existing.id },
       data: {
-        currentCharges: input.currentCharges,
+        currentCharges,
         dueDate: due === undefined ? existing.dueDate : due,
         billingMonth: existing.billingMonth ?? billingMonth,
         parseStatus: "parsed",
@@ -115,7 +121,7 @@ export async function upsertCityUtilityBill(
       billIndex: 0,
       serviceAddress: input.serviceAddress,
       serviceAddressNorm: addressNorm,
-      currentCharges: input.currentCharges,
+      currentCharges,
       dueDate: due ?? null,
       billingMonth,
       parseStatus: "parsed",

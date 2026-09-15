@@ -30,7 +30,11 @@ import { Prisma, type PrismaClient } from "./client.js";
 import { syncWaterBillsFromCrm } from "./crm-utility-bills.js";
 import { IsolationError, type OrganizationScope } from "./scope.js";
 import { upsertCityUtilityBill } from "./utility-city-bills.js";
-import { allocateLeasesForBillingMonth, type UtilityLeaseTerm } from "./utility-leases.js";
+import {
+  allocateLeasesForBillingMonth,
+  splitChargeAmounts,
+  type UtilityLeaseTerm,
+} from "./utility-leases.js";
 import {
   matchSource,
   type PipeSpec,
@@ -467,9 +471,15 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       };
     });
 
+    const billKey = (bill: (typeof bills)[number]): string => {
+      const month = day(bill.billingMonth);
+      const address = bill.serviceAddressNorm;
+      if (!month || !address) return bill.id;
+      return `${bill.utility}|${address}|${month}`;
+    };
     const preferred = new Map<string, (typeof bills)[number]>();
     for (const bill of bills) {
-      const key = `${bill.utility}|${bill.serviceAddressNorm ?? ""}|${day(bill.billingMonth) ?? ""}`;
+      const key = billKey(bill);
       const previous = preferred.get(key);
       if (!previous || (previous.currentCharges === null && bill.currentCharges !== null)) {
         preferred.set(key, bill);
@@ -477,10 +487,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
     }
     const monthStart = new Date(Date.UTC(now().getUTCFullYear(), now().getUTCMonth(), 1));
     const groups: WaterBillGroup[] = bills
-      .filter((bill) => {
-        const key = `${bill.utility}|${bill.serviceAddressNorm ?? ""}|${day(bill.billingMonth) ?? ""}`;
-        return preferred.get(key) === bill;
-      })
+      .filter((bill) => preferred.get(billKey(bill)) === bill)
       .map((bill) => {
         const target =
           bill.serviceAddressNorm === null
@@ -529,6 +536,13 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
             };
           }),
         ];
+        const split =
+          cityAmount === null
+            ? null
+            : splitChargeAmounts(
+                cityAmount,
+                chargeLeases.map((lease) => lease.chargeShare),
+              );
         return {
           waterBillId: bill.id,
           utilityPropertyId: target?.utilityPropertyId ?? null,
@@ -544,14 +558,14 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
               : bill.parseStatus,
           resolutionStatus,
           billingMode: target?.billingMode ?? null,
-          charges: chargeLeases.map((lease) => {
+          charges: chargeLeases.map((lease, index) => {
             const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
             const status = post?.status;
             return {
               leaseId: lease.leaseId,
               unitNumber: lease.unitNumber,
               chargeShare: lease.chargeShare,
-              chargeAmount: cityAmount === null ? null : round(cityAmount * lease.chargeShare, 2),
+              chargeAmount: split?.[index] ?? null,
               postStatus:
                 status === "posted" || status === "skipped" || status === "error"
                   ? status
