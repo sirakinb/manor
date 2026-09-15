@@ -17,6 +17,13 @@ describe("local computer UI surfaces", () => {
     const picker = read("ComputerModePicker.tsx");
     const shell = read("../pages/Shell.tsx");
 
+    const enCatalog = read("../locales/en/messages.po");
+    expect(enCatalog).toContain('msgid "Share this Mac"');
+    expect(enCatalog).toContain(
+      'msgid "Pick one folder on this laptop. Writes and shell need Allow once. Overnight work stays on the cloud computer."',
+    );
+    expect(enCatalog).toContain('msgid "Open Manor desktop to share this Mac."');
+
     expect(share).toContain("desktopBridge()");
     expect(share).toContain("Share this Mac");
     expect(share).toContain("Pick one folder on this laptop");
