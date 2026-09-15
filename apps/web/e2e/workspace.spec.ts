@@ -150,6 +150,20 @@ test("workspace appears once the organization has one and its map opens sections
         parseStatus: "parsed",
       },
     });
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId: workspace.id,
+        utility: "water",
+        gmailMessageId: `bill-prior-${stamp}`,
+        serviceAddress: "12 Harbor Way",
+        serviceAddressNorm: addressNorm,
+        accountBalance: 2348.61,
+        currentCharges: 70.12,
+        dueDate: new Date("2026-08-20"),
+        billingMonth: new Date("2026-07-01"),
+        parseStatus: "parsed",
+      },
+    });
     await prisma.workspaceUtilityProperty.create({
       data: {
         workspaceId: workspace.id,
@@ -368,6 +382,10 @@ test("workspace appears once the organization has one and its map opens sections
     manualProperty.getByText("Handle manually using the billing instructions."),
   ).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-utilities-properties");
+  const harborRow = page.getByRole("row").filter({ hasText: "12 Harbor Way" });
+  await expect(harborRow).toContainText("$84.50");
+  await expect(harborRow).toContainText("$70.12");
+  await expect(harborRow).not.toContainText("$2,433.11");
   const utilityViewport = page.viewportSize()!;
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("columnheader", { name: "Next step", exact: true })).toBeVisible();
@@ -383,13 +401,16 @@ test("workspace appears once the organization has one and its map opens sections
   await page
     .getByRole("row")
     .filter({ hasText: "12 Harbor Way" })
-    .getByRole("button", { name: "Review bill", exact: true })
+    .getByRole("button", { name: "Review 2 bills", exact: true })
     .click();
-  await expect(page.getByTestId("workspace-bill")).toHaveCount(1);
+  await expect(page.getByTestId("workspace-monthly-amounts")).toBeVisible();
+  await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("$84.50");
+  await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("$70.12");
+  await expect(page.getByTestId("workspace-monthly-amounts")).not.toContainText("$2,433.11");
+  await expect(page.getByTestId("workspace-bill")).toHaveCount(2);
   await expect(page.getByRole("button", { name: /Post all pending/ })).toBeHidden();
-  const bill = page.getByTestId("workspace-bill").filter({ hasText: "12 Harbor Way" });
+  const bill = page.getByTestId("workspace-bill").filter({ hasText: "$84.50" });
   await expect(bill).toBeVisible();
-  await expect(bill).toContainText("$84.50");
   await expect(bill).not.toContainText("$2,433.11");
   await expect(bill.getByRole("button", { name: "Post to Buildium" })).toBeHidden();
   await captureScreenshot(page, testInfo, "workspace-utilities-queue");

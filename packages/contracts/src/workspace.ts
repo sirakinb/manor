@@ -461,6 +461,15 @@ export const UtilityBillingTargetSchema = z.object({
       chargeShare: z.number(),
     }),
   ),
+  /// City current charges by billing month, newest first. Null amount means that month is not recorded yet.
+  months: z.array(
+    z.object({
+      waterBillId: Id,
+      billingMonth: DayString,
+      billAmount: z.number().nullable(),
+      dueDate: DayString.nullable(),
+    }),
+  ),
 });
 export type UtilityBillingTarget = z.infer<typeof UtilityBillingTargetSchema>;
 

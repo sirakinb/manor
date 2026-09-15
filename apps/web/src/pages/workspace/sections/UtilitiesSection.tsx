@@ -55,6 +55,13 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatBillingMonth(dayValue: string | null | undefined): string {
+  if (!dayValue) return "—";
+  const date = new Date(dayValue);
+  if (Number.isNaN(date.getTime())) return dayValue;
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
 /** Refusals about missing configuration point at the settings screen. */
 function needsSettings(message: string): boolean {
   return /credential|account/i.test(message);
@@ -266,6 +273,12 @@ export function UtilitiesSection({
                   </BuiButton>
                 </div>
               ) : null}
+              {selectedProperty ? (
+                <MonthlyAmountsTable
+                  months={selectedProperty.months}
+                  currentBillingMonth={data.currentBillingMonth}
+                />
+              ) : null}
               <div className="mb-3 overflow-x-auto">
                 <Segmented
                   label={t`Bill status`}
@@ -357,28 +370,44 @@ export function UtilitiesSection({
                     key: "property",
                     label: t`Property`,
                     width: "26%",
-                    render: (target) => {
-                      const thisMonth = bills.find(
-                        (bill) =>
-                          bill.utilityPropertyId === target.utilityPropertyId &&
-                          bill.billingMonth === data.currentBillingMonth,
-                      );
-                      return (
-                        <div>
-                          <p className="font-medium text-[#ECECEE]">{target.address}</p>
-                          <p className="mt-1 text-[12px] tabular-nums text-[#ECECEE]">
-                            {thisMonth?.billAmount == null
-                              ? t`City bill needed`
-                              : formatMoney(thisMonth.billAmount)}
+                    render: (target) => (
+                      <div>
+                        <p className="font-medium text-[#ECECEE]">{target.address}</p>
+                        {target.months.length === 0 ? (
+                          <p className="mt-1 text-[12px] text-[var(--ws-muted)]">
+                            {t`City bill needed`}
                           </p>
-                          {target.notes ? (
-                            <p className="mt-1 max-w-64 text-[12px] leading-relaxed text-[var(--ws-muted)]">
-                              {target.notes}
-                            </p>
-                          ) : null}
-                        </div>
-                      );
-                    },
+                        ) : (
+                          <ul className="mt-1 space-y-0.5 text-[12px] tabular-nums">
+                            {target.months.map((row) => (
+                              <li key={row.waterBillId}>
+                                <span className="text-[var(--ws-muted)]">
+                                  {formatBillingMonth(row.billingMonth)}
+                                  {row.billingMonth === data.currentBillingMonth
+                                    ? ` · ${t`This month`}`
+                                    : ""}
+                                </span>
+                                {" · "}
+                                {row.billAmount === null ? (
+                                  <span className="text-[var(--ws-muted)]">
+                                    {t`City bill needed`}
+                                  </span>
+                                ) : (
+                                  <span className="text-[#ECECEE]">
+                                    {formatMoney(row.billAmount)}
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {target.notes ? (
+                          <p className="mt-1 max-w-64 text-[12px] leading-relaxed text-[var(--ws-muted)]">
+                            {target.notes}
+                          </p>
+                        ) : null}
+                      </div>
+                    ),
                   },
                   {
                     key: "billing",
@@ -457,7 +486,7 @@ export function UtilitiesSection({
                                   ? t`Review ${formatNumber(pending.length)} bills`
                                   : needsCityBill
                                     ? t`Record city bill`
-                                    : t`View bills`}
+                                    : t`View monthly bills`}
                             </button>
                           ) : target.targetStatus === "resolved" && unmatchedBills > 0 ? (
                             <button
@@ -478,6 +507,53 @@ export function UtilitiesSection({
           )}
         </>
       ) : null}
+    </div>
+  );
+}
+
+function MonthlyAmountsTable({
+  months,
+  currentBillingMonth,
+}: {
+  months: UtilityBillingTarget["months"];
+  currentBillingMonth: string;
+}) {
+  const { t } = useLingui();
+  return (
+    <div className="mb-4" data-testid="workspace-monthly-amounts">
+      <p className="mb-2 text-[12.5px] font-medium text-[#ECECEE]">{t`Monthly city bills`}</p>
+      <Table<UtilityBillingTarget["months"][number]>
+        rows={months}
+        rowKey={(row) => row.waterBillId}
+        emptyLabel={t`No months recorded yet`}
+        columns={[
+          {
+            key: "month",
+            label: t`Month`,
+            render: (row) => (
+              <span className="font-medium text-[#ECECEE]">
+                {formatBillingMonth(row.billingMonth)}
+                {row.billingMonth === currentBillingMonth ? ` · ${t`This month`}` : ""}
+              </span>
+            ),
+          },
+          {
+            key: "amount",
+            label: t`City bill`,
+            render: (row) =>
+              row.billAmount === null ? (
+                <span className="text-[var(--ws-muted)]">{t`City bill needed`}</span>
+              ) : (
+                <span className="tabular-nums">{formatMoney(row.billAmount)}</span>
+              ),
+          },
+          {
+            key: "due",
+            label: t`Due`,
+            render: (row) => formatDate(row.dueDate),
+          },
+        ]}
+      />
     </div>
   );
 }

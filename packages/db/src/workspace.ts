@@ -418,51 +418,53 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
     }
 
     // One target per active utility property, resolved to the lease(s) that carry its charge.
-    const targets: (UtilityBillingTarget & { utility: string; addressNorm: string })[] =
-      properties.map((property) => {
-        const own =
-          property.propertyId === null ? [] : (leasesByProperty.get(property.propertyId) ?? []);
-        const resolved = own.length === 1 || (own.length > 1 && property.splitEvenly);
-        const targetStatus: UtilityBillingTarget["targetStatus"] =
-          property.billingMode !== "pass_through"
-            ? property.billingMode === "tenant_direct"
-              ? "tenant_direct"
-              : property.billingMode === "owner_sends_bill"
-                ? "owner_sends_bill"
-                : "blocked"
-            : property.propertyId === null
-              ? "unmatched"
-              : own.length === 0
-                ? "no_active_lease"
-                : resolved
-                  ? "resolved"
-                  : "ambiguous";
-        const chargeShare = own.length === 1 ? 1 : round(1 / own.length, 4);
-        return {
-          utility: property.utility,
-          addressNorm: property.addressNorm,
-          utilityPropertyId: property.id,
-          address: property.address,
-          billingMode: property.billingMode,
-          notes: property.notes,
-          propertyId: property.propertyId,
-          buildiumAddress:
-            property.propertyId === null
-              ? null
-              : (addressByProperty.get(property.propertyId) ?? null),
-          activeLeaseCount: own.length,
-          targetStatus,
-          leases: resolved
-            ? own.map((lease) => ({
-                leaseId: lease.leaseId,
-                unitNumber: lease.unitNumber,
-                leaseTo: day(lease.leaseTo),
-                rent: lease.rent,
-                chargeShare,
-              }))
-            : [],
-        };
-      });
+    const targets: (Omit<UtilityBillingTarget, "months"> & {
+      utility: string;
+      addressNorm: string;
+    })[] = properties.map((property) => {
+      const own =
+        property.propertyId === null ? [] : (leasesByProperty.get(property.propertyId) ?? []);
+      const resolved = own.length === 1 || (own.length > 1 && property.splitEvenly);
+      const targetStatus: UtilityBillingTarget["targetStatus"] =
+        property.billingMode !== "pass_through"
+          ? property.billingMode === "tenant_direct"
+            ? "tenant_direct"
+            : property.billingMode === "owner_sends_bill"
+              ? "owner_sends_bill"
+              : "blocked"
+          : property.propertyId === null
+            ? "unmatched"
+            : own.length === 0
+              ? "no_active_lease"
+              : resolved
+                ? "resolved"
+                : "ambiguous";
+      const chargeShare = own.length === 1 ? 1 : round(1 / own.length, 4);
+      return {
+        utility: property.utility,
+        addressNorm: property.addressNorm,
+        utilityPropertyId: property.id,
+        address: property.address,
+        billingMode: property.billingMode,
+        notes: property.notes,
+        propertyId: property.propertyId,
+        buildiumAddress:
+          property.propertyId === null
+            ? null
+            : (addressByProperty.get(property.propertyId) ?? null),
+        activeLeaseCount: own.length,
+        targetStatus,
+        leases: resolved
+          ? own.map((lease) => ({
+              leaseId: lease.leaseId,
+              unitNumber: lease.unitNumber,
+              leaseTo: day(lease.leaseTo),
+              rent: lease.rent,
+              chargeShare,
+            }))
+          : [],
+      };
+    });
 
     const preferred = new Map<string, (typeof bills)[number]>();
     for (const bill of bills) {
@@ -536,7 +538,21 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
 
     return {
       currentBillingMonth: day(monthStart)!,
-      targets: targets.map(({ utility: _utility, addressNorm: _norm, ...target }) => target),
+      targets: targets.map(({ utility: _utility, addressNorm: _norm, ...target }) => ({
+        ...target,
+        months: groups
+          .filter(
+            (bill) =>
+              bill.utilityPropertyId === target.utilityPropertyId && bill.billingMonth !== null,
+          )
+          .map((bill) => ({
+            waterBillId: bill.waterBillId,
+            billingMonth: bill.billingMonth as string,
+            billAmount: bill.billAmount,
+            dueDate: bill.dueDate,
+          }))
+          .sort((left, right) => right.billingMonth.localeCompare(left.billingMonth)),
+      })),
       bills: groups,
     };
   }

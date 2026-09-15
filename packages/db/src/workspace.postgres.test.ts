@@ -360,6 +360,12 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
         [2, 0.5],
       ],
     );
+    expect(utilities.targets[0]!.months).toEqual([
+      expect.objectContaining({
+        billingMonth: dayOf(MONTH_START),
+        billAmount: 100.5,
+      }),
+    ]);
 
     expect(utilities.bills.map((bill) => bill.serviceAddress)).toEqual([
       "12 TEST ST",
@@ -426,6 +432,12 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       accountBalance: 2363,
     });
     expect(prior!.billAmount).not.toBe(2363);
+    expect(
+      recorded.targets[0]!.months.map((month) => [month.billingMonth, month.billAmount]),
+    ).toEqual([
+      [dayOf(MONTH_START), 100.5],
+      [dayOf(new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1))), 70.12],
+    ]);
   });
 
   it("summarizes leasing", async () => {

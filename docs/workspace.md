@@ -108,7 +108,10 @@ is never the pass-through amount. Rows without city current charges stay
 `needs_review` until a city statement (PDF/email line) or
 `recordCityBill` / `workspace_record_city_utility_bill` records them.
 Posting to Buildium uses that city amount and the bill's billing month so
-the ledger month matches.
+the ledger month matches. Each target includes `months`: every recorded
+billing month for that property with the city current charges (newest
+first), so the Utilities properties roster and the per-property monthly
+table can list the city bill history instead of a running account total.
 
 ## Pipe registry
 
