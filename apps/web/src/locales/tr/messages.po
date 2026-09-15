@@ -47,7 +47,7 @@ msgid "{0} · applications, rent roll & renewals"
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/UtilitiesSection.tsx:179
+#: src/pages/workspace/sections/UtilitiesSection.tsx:180
 msgid "{0} · Water billing"
 msgstr ""
 
@@ -108,7 +108,7 @@ msgid "{0} campaigns"
 msgstr ""
 
 #. placeholder {0}: bill.charges.length
-#: src/pages/workspace/sections/UtilitiesSection.tsx:529
+#: src/pages/workspace/sections/UtilitiesSection.tsx:554
 msgid "{0} charges"
 msgstr ""
 
@@ -134,7 +134,7 @@ msgid "{0} connection"
 msgstr "{0} bağlantısı"
 
 #. placeholder {0}: formatNumber(batch.failed)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:486
+#: src/pages/workspace/sections/UtilitiesSection.tsx:508
 msgid "{0} failed"
 msgstr ""
 
@@ -195,7 +195,7 @@ msgstr ""
 
 #. placeholder {0}: formatNumber(visibleBills.length)
 #. placeholder {1}: formatNumber(bills.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:282
+#: src/pages/workspace/sections/UtilitiesSection.tsx:283
 msgid "{0} of {1} bills"
 msgstr ""
 
@@ -206,7 +206,7 @@ msgid "{0} of {1} sent"
 msgstr ""
 
 #. placeholder {0}: formatPct(lease.chargeShare * 100)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:393
+#: src/pages/workspace/sections/UtilitiesSection.tsx:407
 msgid "{0} of bill"
 msgstr ""
 
@@ -230,17 +230,17 @@ msgstr ""
 #. placeholder {0}: formatNumber(pendingCharges.length)
 #. placeholder {1}: formatNumber(pendingBillCount)
 #. placeholder {2}: formatMoney(pendingTotal)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:243
+#: src/pages/workspace/sections/UtilitiesSection.tsx:244
 msgid "{0} pending charges across {1} bills · {2}"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:204
+#: src/pages/workspace/sections/UtilitiesSection.tsx:205
 msgid "{0} pending tenant charges"
 msgstr ""
 
 #. placeholder {0}: formatNumber(batch.posted)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:483
+#: src/pages/workspace/sections/UtilitiesSection.tsx:505
 msgid "{0} posted"
 msgstr ""
 
@@ -464,6 +464,11 @@ msgstr "Erişim token'ı (isteğe bağlı)"
 #: src/pages/AccountSettingsOverlay.tsx:134
 msgid "Account"
 msgstr "Hesap"
+
+#. placeholder {0}: formatMoney(bill.accountBalance)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:571
+msgid "Account balance {0}"
+msgstr ""
 
 #: src/pages/Shell.tsx:6477
 msgid "Account default"
@@ -707,7 +712,7 @@ msgid "AI tool"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:183
-#: src/pages/workspace/sections/UtilitiesSection.tsx:274
+#: src/pages/workspace/sections/UtilitiesSection.tsx:275
 msgid "All"
 msgstr ""
 
@@ -779,8 +784,8 @@ msgstr "Bu araca her zaman izin ver"
 msgid "Always allowed"
 msgstr "Her zaman izinli"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:646
-#: src/pages/workspace/sections/UtilitiesSection.tsx:741
+#: src/pages/workspace/sections/UtilitiesSection.tsx:743
+#: src/pages/workspace/sections/UtilitiesSection.tsx:838
 msgid "Amount"
 msgstr ""
 
@@ -1043,7 +1048,7 @@ msgstr ""
 msgid "Avg deal size"
 msgstr "Ort. fırsat büyüklüğü"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:426
+#: src/pages/workspace/sections/UtilitiesSection.tsx:446
 msgid "Await the next water bill."
 msgstr ""
 
@@ -1073,29 +1078,29 @@ msgstr ""
 msgid "Bearer token"
 msgstr "Bearer token"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:270
+#: src/pages/workspace/sections/UtilitiesSection.tsx:271
 msgid "Bill status"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:90
-#: src/pages/workspace/sections/UtilitiesSection.tsx:192
+#: src/pages/workspace/sections/UtilitiesSection.tsx:193
 msgid "Bill through Buildium"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:371
+#: src/pages/workspace/sections/UtilitiesSection.tsx:385
 msgid "Billing"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:333
-msgid "Billing instructions, tenant leases, and the next step for each property"
+#: src/pages/workspace/sections/UtilitiesSection.tsx:335
+msgid "Billing instructions, this month's city bill, tenant leases, and the next step"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:219
+#: src/pages/workspace/sections/UtilitiesSection.tsx:220
 msgid "Bills"
 msgstr ""
 
 #: src/pages/workspace/Overview.tsx:114
-#: src/pages/workspace/sections/UtilitiesSection.tsx:202
+#: src/pages/workspace/sections/UtilitiesSection.tsx:203
 msgid "Bills to review"
 msgstr ""
 
@@ -1118,14 +1123,14 @@ msgstr "{0} adlı botun bilgisayarı başlatılıyor"
 msgid "bot"
 msgstr "bot"
 
+#: src/pages/Shell.tsx:1808
+msgid "Bot"
+msgstr "Bot"
+
 #. js-lingui-explicit-id
 #: src/lib/browser-notifications.ts:71
 msgid "Bot"
 msgstr ""
-
-#: src/pages/Shell.tsx:1808
-msgid "Bot"
-msgstr "Bot"
 
 #: src/components/FilesPanel.tsx:211
 #: src/components/FilesPanel.tsx:249
@@ -1299,8 +1304,8 @@ msgstr "Sunucuya ulaşılamıyor."
 #: src/pages/workspace/sections/ReportsSection.tsx:793
 #: src/pages/workspace/sections/SettingsSection.tsx:528
 #: src/pages/workspace/sections/SettingsSection.tsx:587
-#: src/pages/workspace/sections/UtilitiesSection.tsx:293
-#: src/pages/workspace/sections/UtilitiesSection.tsx:746
+#: src/pages/workspace/sections/UtilitiesSection.tsx:294
+#: src/pages/workspace/sections/UtilitiesSection.tsx:843
 msgid "Cancel"
 msgstr "İptal"
 
@@ -1346,7 +1351,7 @@ msgstr "Kanallar"
 msgid "Charge description"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:288
+#: src/pages/workspace/sections/UtilitiesSection.tsx:289
 msgid "Charges"
 msgstr ""
 
@@ -1399,7 +1404,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:446
+#: src/pages/workspace/sections/UtilitiesSection.tsx:468
 msgid "Check unmatched bills"
 msgstr ""
 
@@ -1445,6 +1450,16 @@ msgstr "{brandName}'un hangi bağlı modeli kullanacağını seçin."
 
 #: src/pages/AgentConnectionSetup.tsx:40
 msgid "Choose your app to see its setup instructions."
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:371
+#: src/pages/workspace/sections/UtilitiesSection.tsx:559
+msgid "City bill needed"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:637
+#: src/pages/workspace/sections/UtilitiesSection.tsx:639
+msgid "City current charges"
 msgstr ""
 
 #: src/pages/Shell.tsx:6831
@@ -1677,7 +1692,7 @@ msgstr "Parolayı doğrulayın"
 msgid "Confirm the active lease in Buildium before charging."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:320
+#: src/pages/workspace/sections/UtilitiesSection.tsx:321
 msgid "Confirm this bill belongs on the property roster, then check the service address mapping."
 msgstr ""
 
@@ -2106,9 +2121,9 @@ msgstr ""
 msgid "Could not play a test clip"
 msgstr "Deneme sesi çalınamadı"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:168
-#: src/pages/workspace/sections/UtilitiesSection.tsx:628
-#: src/pages/workspace/sections/UtilitiesSection.tsx:632
+#: src/pages/workspace/sections/UtilitiesSection.tsx:169
+#: src/pages/workspace/sections/UtilitiesSection.tsx:725
+#: src/pages/workspace/sections/UtilitiesSection.tsx:729
 msgid "Could not post"
 msgstr ""
 
@@ -2184,13 +2199,17 @@ msgstr "Rutin çalıştırılamadı"
 #: src/pages/Shell.tsx:6518
 #: src/pages/workspace/sections/SettingsSection.tsx:139
 #: src/pages/workspace/sections/SettingsSection.tsx:478
-#: src/pages/workspace/sections/UtilitiesSection.tsx:596
+#: src/pages/workspace/sections/UtilitiesSection.tsx:693
 msgid "Could not save"
 msgstr "Kaydedilemedi"
 
 #: src/components/ApprovalRulesSettings.tsx:101
 msgid "Could not save Auto Review"
 msgstr "Otomatik İnceleme kaydedilemedi"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:628
+msgid "Could not save city bill"
+msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:104
 msgid "Could not save credential"
@@ -2454,8 +2473,8 @@ msgid "DATA VAULT"
 msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
-#: src/pages/workspace/sections/UtilitiesSection.tsx:290
-#: src/pages/workspace/sections/UtilitiesSection.tsx:743
+#: src/pages/workspace/sections/UtilitiesSection.tsx:291
+#: src/pages/workspace/sections/UtilitiesSection.tsx:840
 msgid "Date"
 msgstr "Tarih"
 
@@ -2650,7 +2669,7 @@ msgstr "Bağlantı kesiliyor…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:251
 #: src/pages/workspace/sections/ReportsSection.tsx:357
-#: src/pages/workspace/sections/UtilitiesSection.tsx:489
+#: src/pages/workspace/sections/UtilitiesSection.tsx:511
 msgid "Dismiss"
 msgstr ""
 
@@ -2758,13 +2777,17 @@ msgid "Drop to attach to {name}"
 msgstr "{name} için eklemek üzere bırakın"
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:528
+#: src/pages/workspace/sections/UtilitiesSection.tsx:553
 msgid "Due {0}"
 msgstr ""
 
 #: src/pages/BotContextMenu.tsx:101
 msgid "Duplicate"
 msgstr "Çoğalt"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:291
+msgid "Each bill's month"
+msgstr ""
 
 #: src/pages/Shell.tsx:5690
 msgid "Earlier message"
@@ -2864,7 +2887,7 @@ msgid "Enter this code at <0>{0}</0>"
 msgstr "Bu kodu <0>{0}</0> adresinde gir"
 
 #: src/pages/workspace/sections/ReportsSection.tsx:59
-#: src/pages/workspace/sections/UtilitiesSection.tsx:577
+#: src/pages/workspace/sections/UtilitiesSection.tsx:674
 msgid "Error"
 msgstr ""
 
@@ -2960,7 +2983,7 @@ msgstr ""
 msgid "Extra high"
 msgstr "Çok yüksek"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:496
+#: src/pages/workspace/sections/UtilitiesSection.tsx:518
 msgid "failed"
 msgstr ""
 
@@ -3562,18 +3585,18 @@ msgstr ""
 #. placeholder {0}: charge.leaseId
 #. placeholder {0}: row.leaseId
 #: src/pages/workspace/sections/LeasingSection.tsx:127
-#: src/pages/workspace/sections/UtilitiesSection.tsx:586
+#: src/pages/workspace/sections/UtilitiesSection.tsx:683
 msgid "Lease {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:380
+#: src/pages/workspace/sections/UtilitiesSection.tsx:394
 msgid "Lease / split"
 msgstr ""
 
 #. placeholder {0}: lease.leaseId
 #. placeholder {0}: result.leaseId
-#: src/pages/workspace/sections/UtilitiesSection.tsx:388
-#: src/pages/workspace/sections/UtilitiesSection.tsx:496
+#: src/pages/workspace/sections/UtilitiesSection.tsx:402
+#: src/pages/workspace/sections/UtilitiesSection.tsx:518
 msgid "Lease #{0}"
 msgstr ""
 
@@ -3732,7 +3755,7 @@ msgstr ""
 msgid "Manual handling"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:199
+#: src/pages/workspace/sections/UtilitiesSection.tsx:200
 msgid "manual handling or setup needed"
 msgstr ""
 
@@ -3772,7 +3795,7 @@ msgstr ""
 msgid "Match this address to a Buildium property before charging."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:194
+#: src/pages/workspace/sections/UtilitiesSection.tsx:195
 msgid "matched to an active lease"
 msgstr ""
 
@@ -3808,8 +3831,8 @@ msgstr "Üyeler ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "Üyeler ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} seç)"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:658
-#: src/pages/workspace/sections/UtilitiesSection.tsx:742
+#: src/pages/workspace/sections/UtilitiesSection.tsx:755
+#: src/pages/workspace/sections/UtilitiesSection.tsx:839
 msgid "Memo"
 msgstr ""
 
@@ -3827,13 +3850,13 @@ msgstr "Hafıza kapsamı"
 msgid "Mentions"
 msgstr "Bahsetmeler"
 
-#. js-lingui-explicit-id
-#: src/lib/browser-notifications.ts:83
+#: src/pages/Shell.tsx:5350
+#: src/pages/Shell.tsx:5501
 msgid "Message"
 msgstr "Mesaj"
 
-#: src/pages/Shell.tsx:5350
-#: src/pages/Shell.tsx:5501
+#. js-lingui-explicit-id
+#: src/lib/browser-notifications.ts:83
 msgid "Message"
 msgstr "Mesaj"
 
@@ -4029,7 +4052,7 @@ msgstr "Bu rutine bir ad verin"
 msgid "Needed a person"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:276
+#: src/pages/workspace/sections/UtilitiesSection.tsx:277
 msgid "Needs attention"
 msgstr ""
 
@@ -4133,7 +4156,7 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:403
+#: src/pages/workspace/sections/UtilitiesSection.tsx:417
 msgid "Next step"
 msgstr ""
 
@@ -4176,11 +4199,11 @@ msgstr "Kimlik doğrulaması yok"
 msgid "No automations yet"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:305
+#: src/pages/workspace/sections/UtilitiesSection.tsx:306
 msgid "No bills match these filters"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:305
+#: src/pages/workspace/sections/UtilitiesSection.tsx:306
 msgid "No bills yet"
 msgstr ""
 
@@ -4263,7 +4286,7 @@ msgstr "Artık etkin değil"
 msgid "No managed app catalog is configured on this deployment."
 msgstr "Bu dağıtımda yönetilen uygulama kataloğu yapılandırılmamış."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:425
+#: src/pages/workspace/sections/UtilitiesSection.tsx:445
 msgid "No matched bill. Check the unmatched bills."
 msgstr ""
 
@@ -4296,7 +4319,7 @@ msgstr "Kullanılabilir model kataloğu yok."
 msgid "no new data for {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:423
+#: src/pages/workspace/sections/UtilitiesSection.tsx:443
 msgid "No pending tenant charges. Review bill history if needed."
 msgstr ""
 
@@ -4308,7 +4331,7 @@ msgstr ""
 msgid "No posts in this range"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:352
+#: src/pages/workspace/sections/UtilitiesSection.tsx:354
 msgid "No properties mapped yet"
 msgstr ""
 
@@ -4463,7 +4486,7 @@ msgstr "Zamanlamaya göre"
 msgid "on the 1st at {0}"
 msgstr "her ayın 1'inde saat {0}"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:189
+#: src/pages/workspace/sections/UtilitiesSection.tsx:190
 msgid "on the utility account"
 msgstr ""
 
@@ -4538,7 +4561,7 @@ msgstr ""
 msgid "Open row"
 msgstr "Satırı aç"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:469
+#: src/pages/workspace/sections/UtilitiesSection.tsx:491
 msgid "Open settings"
 msgstr ""
 
@@ -4719,8 +4742,8 @@ msgstr ""
 msgid "PDF preview"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:275
-#: src/pages/workspace/sections/UtilitiesSection.tsx:574
+#: src/pages/workspace/sections/UtilitiesSection.tsx:276
+#: src/pages/workspace/sections/UtilitiesSection.tsx:671
 msgid "Pending"
 msgstr ""
 
@@ -4817,25 +4840,25 @@ msgstr ""
 msgid "Port {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:745
+#: src/pages/workspace/sections/UtilitiesSection.tsx:842
 msgid "Post"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:286
+#: src/pages/workspace/sections/UtilitiesSection.tsx:287
 msgid "Post {0} charges to Buildium?"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:292
+#: src/pages/workspace/sections/UtilitiesSection.tsx:293
 msgid "Post all"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:253
+#: src/pages/workspace/sections/UtilitiesSection.tsx:254
 msgid "Post all pending ({0})"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:738
+#: src/pages/workspace/sections/UtilitiesSection.tsx:835
 msgid "Post this charge to Buildium?"
 msgstr ""
 
@@ -4843,12 +4866,12 @@ msgstr ""
 msgid "POST to"
 msgstr "POST adresi"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:715
+#: src/pages/workspace/sections/UtilitiesSection.tsx:812
 msgid "Post to Buildium"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:278
-#: src/pages/workspace/sections/UtilitiesSection.tsx:575
+#: src/pages/workspace/sections/UtilitiesSection.tsx:279
+#: src/pages/workspace/sections/UtilitiesSection.tsx:672
 msgid "Posted"
 msgstr ""
 
@@ -4907,17 +4930,17 @@ msgstr ""
 msgid "Prompt copied"
 msgstr "Prompt kopyalandı"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:218
+#: src/pages/workspace/sections/UtilitiesSection.tsx:219
 msgid "Properties"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:122
 #: src/pages/workspace/sections/LeasingSection.tsx:200
-#: src/pages/workspace/sections/UtilitiesSection.tsx:356
+#: src/pages/workspace/sections/UtilitiesSection.tsx:358
 msgid "Property"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:197
+#: src/pages/workspace/sections/UtilitiesSection.tsx:198
 msgid "Property issues"
 msgstr ""
 
@@ -5031,8 +5054,16 @@ msgstr "OAuth'u yeniden bağla"
 msgid "Reconnecting"
 msgstr "Yeniden bağlanıyor"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:459
+msgid "Record city bill"
+msgstr ""
+
 #: src/pages/workspace/sections/TeamSection.tsx:185
 msgid "Record review"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:439
+msgid "Record this month's city bill, then post to the tenant ledger."
 msgstr ""
 
 #: src/components/teach/TeachComputerOverlay.tsx:74
@@ -5233,10 +5264,6 @@ msgstr "{replyName} yanıtlanıyor"
 msgid "Report"
 msgstr ""
 
-#: src/components/RunLogsPanel.tsx:52
-#~ msgid "Report issue"
-#~ msgstr ""
-
 #: src/pages/workspace/sections/ReportsSection.tsx:97
 #: src/pages/workspace/sections/SettingsSection.tsx:105
 #: src/pages/workspace/sections/TeamSection.tsx:114
@@ -5294,7 +5321,7 @@ msgstr ""
 #: src/pages/crm/CrmContacts.tsx:467
 #: src/pages/Shell.tsx:2946
 #: src/pages/Shell.tsx:2976
-#: src/pages/workspace/sections/UtilitiesSection.tsx:698
+#: src/pages/workspace/sections/UtilitiesSection.tsx:795
 msgid "Restore"
 msgstr "Geri yükle"
 
@@ -5309,7 +5336,7 @@ msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:156
 #: src/pages/DocsView.tsx:82
-#: src/pages/workspace/sections/UtilitiesSection.tsx:715
+#: src/pages/workspace/sections/UtilitiesSection.tsx:812
 #: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
 msgstr ""
@@ -5328,7 +5355,7 @@ msgid "rev {0}"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pending.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:437
+#: src/pages/workspace/sections/UtilitiesSection.tsx:457
 msgid "Review {0} bills"
 msgstr ""
 
@@ -5336,16 +5363,12 @@ msgstr ""
 msgid "Review {subject} in our workspace. Check current data and highlight what needs attention."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:435
+#: src/pages/workspace/sections/UtilitiesSection.tsx:455
 msgid "Review bill"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:110
-msgid "Review the bill amount, then post to the tenant ledger."
-msgstr ""
-
-#: src/pages/workspace/sections/UtilitiesSection.tsx:242
-msgid "Review the bill and its tenant charges"
+msgid "Review the city bill amount, then post to the tenant ledger."
 msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:310
@@ -5460,6 +5483,10 @@ msgstr ""
 msgid "Save"
 msgstr "Kaydet"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:651
+msgid "Save city bill"
+msgstr ""
+
 #: src/pages/DocsView.tsx:235
 msgid "Save durable findings with workspace_set_context and reusable work with workspace_save_skill. Log the outcome and artifact links with workspace_log_activity so the next agent can pick up where you stopped."
 msgstr ""
@@ -5524,7 +5551,7 @@ msgstr "Kapsam"
 msgid "Search"
 msgstr "Ara"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:230
+#: src/pages/workspace/sections/UtilitiesSection.tsx:231
 msgid "Search address…"
 msgstr ""
 
@@ -5557,7 +5584,7 @@ msgstr "Model ara"
 msgid "Search people, companies, tags"
 msgstr "Kişi, şirket, etiket ara"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:229
+#: src/pages/workspace/sections/UtilitiesSection.tsx:230
 msgid "Search properties or bills"
 msgstr ""
 
@@ -5769,7 +5796,7 @@ msgstr "Tablo"
 msgid "Show all {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:264
+#: src/pages/workspace/sections/UtilitiesSection.tsx:265
 msgid "Show all bills"
 msgstr ""
 
@@ -5843,7 +5870,7 @@ msgid "Skills"
 msgstr "Beceriler"
 
 #: src/pages/Shell.tsx:5606
-#: src/pages/workspace/sections/UtilitiesSection.tsx:712
+#: src/pages/workspace/sections/UtilitiesSection.tsx:809
 msgid "Skip"
 msgstr "Atla"
 
@@ -5855,7 +5882,7 @@ msgstr "Şimdilik atla"
 msgid "Skip or deploy key"
 msgstr "Atla veya dağıtım anahtarı kullan"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:576
+#: src/pages/workspace/sections/UtilitiesSection.tsx:673
 msgid "Skipped"
 msgstr ""
 
@@ -6298,6 +6325,10 @@ msgstr "Bu Mac kabuk komutlarını senin hesabınla çalıştırır; kullanıcı
 msgid "This month"
 msgstr ""
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:243
+msgid "This month's city bill and prior months"
+msgstr ""
+
 #: src/components/WorkspacePdfPreview.tsx:93
 msgid "This page could not be previewed. Download the PDF to open it."
 msgstr ""
@@ -6400,7 +6431,7 @@ msgstr ""
 msgid "Topic"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:289
+#: src/pages/workspace/sections/UtilitiesSection.tsx:290
 msgid "Total"
 msgstr ""
 
@@ -6478,7 +6509,7 @@ msgstr "Kullanılamıyor"
 msgid "Unexpected result: provide the missing source or a concrete correction. Check whether an action already happened before asking the agent to repeat it."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:740
+#: src/pages/workspace/sections/UtilitiesSection.tsx:837
 msgid "Unit"
 msgstr ""
 
@@ -6487,12 +6518,12 @@ msgstr ""
 #. placeholder {0}: row.unitNumber
 #: src/pages/workspace/sections/LeasingSection.tsx:130
 #: src/pages/workspace/sections/LeasingSection.tsx:207
-#: src/pages/workspace/sections/UtilitiesSection.tsx:390
-#: src/pages/workspace/sections/UtilitiesSection.tsx:586
+#: src/pages/workspace/sections/UtilitiesSection.tsx:404
+#: src/pages/workspace/sections/UtilitiesSection.tsx:683
 msgid "Unit {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:524
+#: src/pages/workspace/sections/UtilitiesSection.tsx:549
 msgid "Unknown address"
 msgstr ""
 
@@ -6505,16 +6536,16 @@ msgstr ""
 msgid "Unlink"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:277
+#: src/pages/workspace/sections/UtilitiesSection.tsx:278
 msgid "Unmatched"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:315
+#: src/pages/workspace/sections/UtilitiesSection.tsx:316
 msgid "Unmatched bill"
 msgstr ""
 
 #. placeholder {0}: formatNumber(unmatchedBills)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:337
+#: src/pages/workspace/sections/UtilitiesSection.tsx:339
 msgid "Unmatched bills ({0})"
 msgstr ""
 
@@ -6657,12 +6688,12 @@ msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:118
 #: src/pages/workspace/sections/SettingsSection.tsx:365
-#: src/pages/workspace/sections/UtilitiesSection.tsx:178
+#: src/pages/workspace/sections/UtilitiesSection.tsx:179
 #: src/pages/workspace/WorkspaceView.tsx:147
 msgid "Utilities"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:210
+#: src/pages/workspace/sections/UtilitiesSection.tsx:211
 msgid "Utilities view"
 msgstr ""
 
@@ -6695,7 +6726,7 @@ msgstr "İmzayı doğrulayın"
 msgid "Verifying…"
 msgstr "Doğrulanıyor…"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:438
+#: src/pages/workspace/sections/UtilitiesSection.tsx:460
 msgid "View bills"
 msgstr ""
 
@@ -6749,7 +6780,7 @@ msgstr ""
 msgid "Watch it work"
 msgstr "Çalışmasını izleyin"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:239
+#: src/pages/workspace/sections/UtilitiesSection.tsx:240
 msgid "Water bills"
 msgstr ""
 
@@ -6757,8 +6788,8 @@ msgstr ""
 msgid "Water GL account"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:187
-#: src/pages/workspace/sections/UtilitiesSection.tsx:332
+#: src/pages/workspace/sections/UtilitiesSection.tsx:188
+#: src/pages/workspace/sections/UtilitiesSection.tsx:334
 msgid "Water-billed properties"
 msgstr ""
 

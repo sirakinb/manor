@@ -202,7 +202,7 @@ export const WORKSPACE_WORKERS: readonly WorkerSpec[] = [
   {
     key: "water-clerk",
     name: "Water-bill clerk",
-    role: "Reads WRD bills from email and prepares Buildium charges for approval",
+    role: "Records the city's monthly water bill, then prepares Buildium charges for approval",
     channel: "utilities",
     pipeKeys: ["water"],
   },

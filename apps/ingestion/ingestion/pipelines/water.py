@@ -1,10 +1,10 @@
 """Utilities: poll the client's Gmail for WRD water-bill notifications →
 workspace_water_bills (upsert on gmailMessageId + billIndex).
 
-Two crons wake this pipeline (weekly on Monday and daily on the 26th-29th);
-it decides for itself whether today is a polling day: a manual run always
-polls, a scheduled one polls on Mondays and on the day two days before month
-end (the guaranteed final sweep).
+The notice is not the city bill. Current charges come from a city-statement
+line or PDF attachment when present; the running Total account balance is
+stored only as account metadata. A scheduled run polls on Mondays and two
+days before month end; a manual run always polls.
 """
 
 from __future__ import annotations
@@ -18,7 +18,15 @@ from ..db import connection, new_id, upsert_rows
 from ..errors import PipelineError, SkippedRun
 from ..http import get_json, post_form_json
 from ..normalize import norm_street_addr
-from .water_parser import extract_body_text, parse_bills
+from .water_parser import (
+    apply_city_statement,
+    decode_gmail_attachment,
+    extract_body_text,
+    extract_pdf_text,
+    iter_pdf_attachments,
+    parse_bills,
+    parse_city_statement,
+)
 
 GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me/"
 DEFAULT_QUERY = 'subject:"water bill is available"'
@@ -58,9 +66,61 @@ def gmail_get(token: str, path: str, params: dict | None = None) -> dict:
 
 COLUMNS = [
     "id", "workspaceId", "utility", "gmailMessageId", "billIndex", "receivedAt", "sourceSender",
-    "serviceAddress", "serviceAddressNorm", "accountBalance", "amountDue", "dueDate", "billingMonth",
-    "parseStatus", "parseNotes", "rawSnippet",
+    "serviceAddress", "serviceAddressNorm", "accountBalance", "amountDue", "currentCharges", "dueDate",
+    "billingMonth", "parseStatus", "parseNotes", "rawSnippet", "sourceKind",
 ]
+
+# Re-ingest must not wipe a city amount recorded by an agent or an earlier PDF.
+UPDATE_COLUMNS = [
+    "receivedAt", "sourceSender", "serviceAddress", "serviceAddressNorm", "accountBalance", "amountDue",
+    "dueDate", "billingMonth", "rawSnippet",
+]
+
+
+def _apply_pdf_statements(bills: list[dict], statements: list[dict]) -> None:
+    if not statements:
+        return
+    unmatched = [statement for statement in statements if statement.get("current_charges") is not None]
+    if len(unmatched) == 1 and len(bills) == 1:
+        apply_city_statement(bills[0], unmatched[0])
+        return
+    for bill in bills:
+        for statement in unmatched:
+            before = bill.get("current_charges")
+            apply_city_statement(bill, statement)
+            if bill.get("current_charges") != before:
+                break
+
+
+def _preserve_city_amount(cur, workspace_id: str, record: dict, current_charges: float | None) -> None:
+    """Keep an already-recorded city amount when this notice still lacks one."""
+    cur.execute(
+        """
+        update workspace_water_bills
+        set "currentCharges" = coalesce(%s, "currentCharges"),
+            "parseStatus" = case
+                when coalesce(%s, "currentCharges") is not null then 'parsed'
+                else %s
+            end,
+            "parseNotes" = case
+                when %s is not null then %s
+                when "currentCharges" is not null then "parseNotes"
+                else %s
+            end
+        where "workspaceId" = %s and "gmailMessageId" = %s and "billIndex" = %s
+        """,
+        (
+            current_charges,
+            current_charges,
+            record["parse_status"],
+            current_charges,
+            record["parse_notes"],
+            record["parse_notes"],
+            workspace_id,
+            record["gmail_message_id"],
+            record["bill_index"],
+        ),
+    )
 
 
 def run(context: RunContext) -> RunResult:
@@ -79,6 +139,7 @@ def run(context: RunContext) -> RunResult:
     ids = [m["id"] for m in listing.get("messages", [])]
 
     rows = []
+    records = []
     parsed = needs_review = 0
     for message_id in ids:
         message = gmail_get(token, f"messages/{message_id}", {"format": "full"})
@@ -87,23 +148,43 @@ def run(context: RunContext) -> RunResult:
         received = None
         if message.get("internalDate"):
             received = datetime.fromtimestamp(int(message["internalDate"]) / 1000, tz=timezone.utc).replace(tzinfo=None)
-        for record in parse_bills(headers.get("From", ""), body, message_id, None):
+        bills = parse_bills(headers.get("From", ""), body, message_id, None)
+        statements = []
+        for attachment_id in iter_pdf_attachments(message["payload"]):
+            attachment = gmail_get(token, f"messages/{message_id}/attachments/{attachment_id}")
+            text = extract_pdf_text(decode_gmail_attachment(attachment))
+            if text.strip():
+                statements.append(parse_city_statement(text))
+        _apply_pdf_statements(bills, statements)
+        for record in bills:
             if record["parse_status"] == "parsed":
                 parsed += 1
             else:
                 needs_review += 1
             due = date.fromisoformat(record["due_date"]) if record["due_date"] else None
+            records.append(record)
             rows.append([
                 new_id(), context.workspace_id, "water", record["gmail_message_id"], record["bill_index"],
                 received, record["source_sender"], record["service_address"],
                 norm_street_addr(record["service_address"]) if record["service_address"] else None,
-                record["account_balance"], record["amount_due"], due, billing_month(due),
-                record["parse_status"], record["parse_notes"], record["raw_snippet"],
+                record["account_balance"], record["amount_due"], record["current_charges"], due,
+                billing_month(due), record["parse_status"], record["parse_notes"], record["raw_snippet"],
+                "wrd_email",
             ])
 
     with connection() as conn:
         cur = conn.cursor()
-        upsert_rows(cur, "workspace_water_bills", COLUMNS, rows, ["workspaceId", "gmailMessageId", "billIndex"], touch_updated_at=False)
+        upsert_rows(
+            cur,
+            "workspace_water_bills",
+            COLUMNS,
+            rows,
+            ["workspaceId", "gmailMessageId", "billIndex"],
+            update=UPDATE_COLUMNS,
+            touch_updated_at=False,
+        )
+        for record in records:
+            _preserve_city_amount(cur, context.workspace_id, record, record["current_charges"])
         cur.close()
     return RunResult(
         records_loaded=len(rows),

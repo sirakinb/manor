@@ -142,8 +142,9 @@ test("workspace appears once the organization has one and its map opens sections
         gmailMessageId: `bill-${stamp}`,
         serviceAddress: "12 Harbor Way",
         serviceAddressNorm: addressNorm,
-        accountBalance: 84.5,
-        amountDue: 84.5,
+        accountBalance: 2433.11,
+        amountDue: 2433.11,
+        currentCharges: 84.5,
         dueDate: new Date("2026-09-20"),
         billingMonth: new Date("2026-08-01"),
         parseStatus: "parsed",
@@ -388,6 +389,8 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByRole("button", { name: /Post all pending/ })).toBeHidden();
   const bill = page.getByTestId("workspace-bill").filter({ hasText: "12 Harbor Way" });
   await expect(bill).toBeVisible();
+  await expect(bill).toContainText("$84.50");
+  await expect(bill).not.toContainText("$2,433.11");
   await expect(bill.getByRole("button", { name: "Post to Buildium" })).toBeHidden();
   await captureScreenshot(page, testInfo, "workspace-utilities-queue");
   await page.getByRole("textbox", { name: "Search properties or bills" }).fill("no-such-address");

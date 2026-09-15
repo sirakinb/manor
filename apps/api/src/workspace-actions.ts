@@ -16,6 +16,7 @@ import type {
   Actor,
   ChargePostBatch,
   ChargePostResult,
+  RecordCityUtilityBill,
   ReportGenerateInput,
   ReportSendResult,
   ReportUpdateInput,
@@ -265,11 +266,13 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
     }
     const amount = input.amount ?? charge.postedAmount ?? charge.chargeAmount;
     if (amount === null || amount === undefined) {
-      throw new WorkspaceActionError("This bill has no amount to charge");
+      throw new WorkspaceActionError(
+        "Record the city's current charges for this month before posting",
+      );
     }
     const memo = (input.memo ?? charge.postedMemo ?? bill.memo ?? "Water bill").trim();
     const ledgerCharge = {
-      date: input.chargeDate ?? day(now()),
+      date: input.chargeDate ?? bill.billingMonth ?? bill.dueDate ?? day(now()),
       memo,
       amount,
       accountId: workspace.waterGlAccountId,
@@ -490,6 +493,34 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
 
     // ── Charges ──────────────────────────────────────────────────────────
 
+    async recordCityBill(
+      actor: ChargeActor,
+      input: RecordCityUtilityBill,
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      try {
+        const overview = await reads.recordCityUtilityBill(actor, input);
+        await logActivity({
+          workspaceId: workspace.id,
+          channel: "utilities",
+          kind: "city_bill_recorded",
+          title: `Recorded city water bill for ${input.serviceAddress}`,
+          summary: `${input.billingMonth} current charges $${input.currentCharges.toFixed(2)}`,
+          actor: actor.email,
+          payload: {
+            serviceAddress: input.serviceAddress,
+            billingMonth: input.billingMonth,
+            currentCharges: input.currentCharges,
+            dueDate: input.dueDate ?? null,
+          },
+        });
+        return overview;
+      } catch (error) {
+        if (error instanceof RangeError) throw new WorkspaceActionError(error.message);
+        throw error;
+      }
+    },
+
     /** Edit the amount or memo ahead of posting. A skipped charge comes back to pending. */
     async saveCharge(
       actor: ChargeActor,
@@ -592,10 +623,12 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
             a.waterBillId.localeCompare(b.waterBillId),
         )
         .flatMap((bill) =>
-          bill.charges
-            .filter((charge) => charge.postStatus === "pending")
-            .sort((a, b) => a.leaseId - b.leaseId)
-            .map((charge) => ({ waterBillId: bill.waterBillId, leaseId: charge.leaseId })),
+          bill.billAmount === null
+            ? []
+            : bill.charges
+                .filter((charge) => charge.postStatus === "pending")
+                .sort((a, b) => a.leaseId - b.leaseId)
+                .map((charge) => ({ waterBillId: bill.waterBillId, leaseId: charge.leaseId })),
         );
       const ledger = input.dryRun ? null : await ledgerForWorkspace(workspace.id);
       const results: ChargePostResult[] = [];

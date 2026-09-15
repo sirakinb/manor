@@ -4,6 +4,7 @@ import type {
   EmailCampaignRow,
   EmailPerformance,
   LeasingSnapshot,
+  RecordCityUtilityBill,
   SocialSnapshot,
   UtilitiesOverview,
   UtilityBillingTarget,
@@ -75,6 +76,28 @@ const deltaPct = (current: number, previous: number): number | null =>
 /** "September 2026", the memo month of a bill. */
 const monthLabel = (value: Date): string =>
   `${value.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${value.getUTCFullYear()}`;
+
+/** Byte-identical enough to the Python/SQL street normalizer for matching bills. */
+function normStreetAddr(address: string): string {
+  let text = address.replace(/[.,]/g, "").toLowerCase();
+  const expansions: [RegExp, string][] = [
+    [/\bst\b/g, "street"],
+    [/\bave\b/g, "avenue"],
+    [/\brd\b/g, "road"],
+    [/\bdr\b/g, "drive"],
+    [/\bn\b/g, "north"],
+    [/\bs\b/g, "south"],
+    [/\be\b/g, "east"],
+    [/\bw\b/g, "west"],
+  ];
+  for (const [pattern, replacement] of expansions) text = text.replace(pattern, replacement);
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function firstOfMonthUtc(dayValue: string): Date {
+  const [year, month] = dayValue.split("-").map(Number);
+  return new Date(Date.UTC(year!, (month ?? 1) - 1, 1));
+}
 
 // ── Row mappers ──────────────────────────────────────────────────────────────
 
@@ -441,61 +464,78 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
         };
       });
 
-    const groups: WaterBillGroup[] = bills.map((bill) => {
-      const target =
-        bill.serviceAddressNorm === null
-          ? undefined
-          : targets.find(
-              (candidate) =>
-                candidate.utility === bill.utility &&
-                candidate.addressNorm === bill.serviceAddressNorm,
-            );
-      const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
-      return {
-        waterBillId: bill.id,
-        utilityPropertyId: target?.utilityPropertyId ?? null,
-        serviceAddress: bill.serviceAddress,
-        billingMonth: day(bill.billingMonth),
-        memo,
-        dueDate: day(bill.dueDate),
-        billAmount: bill.accountBalance,
-        parseStatus: bill.parseStatus,
-        resolutionStatus: target?.targetStatus ?? "unmatched",
-        billingMode: target?.billingMode ?? null,
-        charges: (target?.leases ?? [])
-          .filter(
-            (lease) =>
-              target?.targetStatus === "resolved" ||
-              bill.chargePosts.some(
-                (post) => post.leaseId === lease.leaseId && post.status === "posted",
-              ),
-          )
-          .map((lease) => {
-            const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
-            const status = post?.status;
-            return {
-              leaseId: lease.leaseId,
-              unitNumber: lease.unitNumber,
-              chargeShare: lease.chargeShare,
-              chargeAmount:
-                bill.accountBalance === null
-                  ? null
-                  : round(bill.accountBalance * lease.chargeShare, 2),
-              postStatus:
-                status === "posted" || status === "skipped" || status === "error"
-                  ? status
-                  : "pending",
-              postedAmount: post?.amount ?? null,
-              postedMemo: post?.memo ?? null,
-              buildiumChargeId: post?.buildiumChargeId ?? null,
-              postedAt: iso(post?.postedAt),
-              postError: post?.error ?? null,
-            };
-          }),
-      };
-    });
+    const preferred = new Map<string, (typeof bills)[number]>();
+    for (const bill of bills) {
+      const key = `${bill.utility}|${bill.serviceAddressNorm ?? ""}|${day(bill.billingMonth) ?? ""}`;
+      const previous = preferred.get(key);
+      if (!previous || (previous.currentCharges === null && bill.currentCharges !== null)) {
+        preferred.set(key, bill);
+      }
+    }
+    const monthStart = new Date(Date.UTC(now().getUTCFullYear(), now().getUTCMonth(), 1));
+    const groups: WaterBillGroup[] = bills
+      .filter((bill) => {
+        const key = `${bill.utility}|${bill.serviceAddressNorm ?? ""}|${day(bill.billingMonth) ?? ""}`;
+        return preferred.get(key) === bill;
+      })
+      .map((bill) => {
+        const target =
+          bill.serviceAddressNorm === null
+            ? undefined
+            : targets.find(
+                (candidate) =>
+                  candidate.utility === bill.utility &&
+                  candidate.addressNorm === bill.serviceAddressNorm,
+              );
+        const cityAmount = bill.currentCharges;
+        const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
+        return {
+          waterBillId: bill.id,
+          utilityPropertyId: target?.utilityPropertyId ?? null,
+          serviceAddress: bill.serviceAddress,
+          billingMonth: day(bill.billingMonth),
+          memo,
+          dueDate: day(bill.dueDate),
+          billAmount: cityAmount,
+          accountBalance: bill.accountBalance,
+          parseStatus:
+            cityAmount === null && bill.parseStatus === "parsed"
+              ? "needs_review"
+              : bill.parseStatus,
+          resolutionStatus: target?.targetStatus ?? "unmatched",
+          billingMode: target?.billingMode ?? null,
+          charges: (target?.leases ?? [])
+            .filter(
+              (lease) =>
+                target?.targetStatus === "resolved" ||
+                bill.chargePosts.some(
+                  (post) => post.leaseId === lease.leaseId && post.status === "posted",
+                ),
+            )
+            .map((lease) => {
+              const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
+              const status = post?.status;
+              return {
+                leaseId: lease.leaseId,
+                unitNumber: lease.unitNumber,
+                chargeShare: lease.chargeShare,
+                chargeAmount: cityAmount === null ? null : round(cityAmount * lease.chargeShare, 2),
+                postStatus:
+                  status === "posted" || status === "skipped" || status === "error"
+                    ? status
+                    : "pending",
+                postedAmount: post?.amount ?? null,
+                postedMemo: post?.memo ?? null,
+                buildiumChargeId: post?.buildiumChargeId ?? null,
+                postedAt: iso(post?.postedAt),
+                postError: post?.error ?? null,
+              };
+            }),
+        };
+      });
 
     return {
+      currentBillingMonth: day(monthStart)!,
       targets: targets.map(({ utility: _utility, addressNorm: _norm, ...target }) => target),
       bills: groups,
     };
@@ -598,6 +638,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       billsThisMonth,
       billsNeedingReview: overview.bills.filter(
         (bill) =>
+          bill.billAmount === null ||
           bill.parseStatus === "needs_review" ||
           bill.resolutionStatus === "unmatched" ||
           bill.resolutionStatus === "ambiguous",
@@ -1153,6 +1194,73 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
 
     async utilitiesOverview(actor: WorkspaceActorScope): Promise<UtilitiesOverview> {
       const workspace = await requireWorkspace(actor);
+      return utilitiesOverview(workspace.id);
+    },
+
+    async recordCityUtilityBill(
+      actor: WorkspaceActorScope,
+      input: RecordCityUtilityBill,
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      if (!Number.isFinite(input.currentCharges) || input.currentCharges < 0) {
+        throw new RangeError("currentCharges must be the city's monthly current charges");
+      }
+      const addressNorm = normStreetAddr(input.serviceAddress);
+      const billingMonth = firstOfMonthUtc(input.billingMonth);
+      const due =
+        input.dueDate === undefined
+          ? undefined
+          : new Date(
+              Date.UTC(
+                Number(input.dueDate.slice(0, 4)),
+                Number(input.dueDate.slice(5, 7)) - 1,
+                Number(input.dueDate.slice(8, 10)),
+              ),
+            );
+      const matches = await prisma.workspaceWaterBill.findMany({
+        where: {
+          workspaceId: workspace.id,
+          utility: "water",
+          serviceAddressNorm: addressNorm,
+          billingMonth,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      const existing =
+        matches.find((row) => !row.gmailMessageId.startsWith("city-bill:")) ?? matches[0];
+      const note = input.sourceNote?.trim() || "city bill current charges";
+      if (existing) {
+        await prisma.workspaceWaterBill.update({
+          where: { id: existing.id },
+          data: {
+            currentCharges: input.currentCharges,
+            dueDate: due === undefined ? existing.dueDate : due,
+            billingMonth,
+            parseStatus: "parsed",
+            parseNotes: note,
+            serviceAddress: existing.serviceAddress ?? input.serviceAddress,
+            serviceAddressNorm: addressNorm,
+          },
+        });
+      } else {
+        const monthKey = day(billingMonth);
+        await prisma.workspaceWaterBill.create({
+          data: {
+            workspaceId: workspace.id,
+            utility: "water",
+            gmailMessageId: `city-bill:${addressNorm}:${monthKey?.slice(0, 7)}`,
+            billIndex: 0,
+            serviceAddress: input.serviceAddress,
+            serviceAddressNorm: addressNorm,
+            currentCharges: input.currentCharges,
+            dueDate: due ?? null,
+            billingMonth,
+            parseStatus: "parsed",
+            parseNotes: note,
+            sourceKind: "city_bill",
+          },
+        });
+      }
       return utilitiesOverview(workspace.id);
     },
 

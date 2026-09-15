@@ -178,7 +178,8 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
           gmailMessageId: "m1",
           serviceAddress: "12 TEST ST",
           serviceAddressNorm: "12 test street",
-          accountBalance: 100.5,
+          accountBalance: 2433.11,
+          currentCharges: 100.5,
           dueDate: dayAfter(20),
           billingMonth: MONTH_START,
         },
@@ -365,10 +366,12 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       "99 NOWHERE RD",
     ]);
     const [matched, unmatched] = utilities.bills;
+    expect(utilities.currentBillingMonth).toBe(dayOf(MONTH_START));
     expect(matched).toMatchObject({
       utilityPropertyId: utilities.targets[0]!.utilityPropertyId,
       memo: `${MONTH_START.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${MONTH_START.getUTCFullYear()} water`,
       billAmount: 100.5,
+      accountBalance: 2433.11,
       resolutionStatus: "resolved",
       billingMode: "pass_through",
     });
@@ -392,8 +395,37 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       utilityPropertyId: null,
       resolutionStatus: "unmatched",
       billingMode: null,
+      billAmount: null,
+      accountBalance: 40,
       charges: [],
     });
+  });
+
+  it("records city current charges onto the matching month without using the running total", async () => {
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId,
+        gmailMessageId: "m-running-only",
+        serviceAddress: "12 TEST ST",
+        serviceAddressNorm: "12 test street",
+        accountBalance: 2363,
+        billingMonth: new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1)),
+        parseStatus: "parsed",
+      },
+    });
+    const recorded = await repos.recordCityUtilityBill(actor, {
+      serviceAddress: "12 Test St",
+      billingMonth: dayOf(new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1))),
+      currentCharges: 70.12,
+    });
+    const prior = recorded.bills.find(
+      (bill) => bill.billingMonth !== dayOf(MONTH_START) && bill.serviceAddress === "12 TEST ST",
+    );
+    expect(prior).toMatchObject({
+      billAmount: 70.12,
+      accountBalance: 2363,
+    });
+    expect(prior!.billAmount).not.toBe(2363);
   });
 
   it("summarizes leasing", async () => {

@@ -107,13 +107,13 @@ export function UtilitiesSection({
     blocked: t`Handle manually using the billing instructions.`,
     tenant_direct: t`Tenant pays the utility provider. No ledger charge.`,
     owner_sends_bill: t`Obtain the bill from the owner and handle manually.`,
-    resolved: t`Review the bill amount, then post to the tenant ledger.`,
+    resolved: t`Review the city bill amount, then post to the tenant ledger.`,
     ambiguous: t`Confirm which lease to bill or how to split the charge.`,
     no_active_lease: t`Confirm the active lease in Buildium before charging.`,
     unmatched: t`Match this address to a Buildium property before charging.`,
   };
   const pendingCharges = bills
-    .filter((bill) => bill.resolutionStatus === "resolved")
+    .filter((bill) => bill.resolutionStatus === "resolved" && bill.billAmount !== null)
     .flatMap((bill) => bill.charges.filter((charge) => charge.postStatus === "pending"));
   const pendingTotal = pendingCharges.reduce((sum, charge) => sum + (charge.chargeAmount ?? 0), 0);
   const pendingBillCount = bills.filter((bill) =>
@@ -131,6 +131,7 @@ export function UtilitiesSection({
     if (filter === "unmatched") return bill.resolutionStatus === "unmatched";
     if (filter === "attention")
       return (
+        bill.billAmount === null ||
         bill.resolutionStatus !== "resolved" ||
         bill.parseStatus === "needs_review" ||
         bill.charges.some((charge) => charge.postStatus === "error")
@@ -239,7 +240,7 @@ export function UtilitiesSection({
               title={selectedProperty ? selectedProperty.address : t`Water bills`}
               subtitle={
                 selectedProperty
-                  ? t`Review the bill and its tenant charges`
+                  ? t`This month's city bill and prior months`
                   : t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoney(pendingTotal)}`
               }
               className="mt-4"
@@ -287,7 +288,7 @@ export function UtilitiesSection({
                     lines={[
                       { label: t`Charges`, value: formatNumber(pendingCharges.length) },
                       { label: t`Total`, value: formatMoney(pendingTotal) },
-                      { label: t`Date`, value: formatDate(today()) },
+                      { label: t`Date`, value: t`Each bill's month` },
                     ]}
                     confirmLabel={t`Post all`}
                     cancelLabel={t`Cancel`}
@@ -322,6 +323,7 @@ export function UtilitiesSection({
                       }
                       onChanged={setData}
                       onPosted={reload}
+                      currentBillingMonth={data.currentBillingMonth}
                     />
                   ))}
                 </div>
@@ -330,7 +332,7 @@ export function UtilitiesSection({
           ) : (
             <Card
               title={t`Water-billed properties`}
-              subtitle={t`Billing instructions, tenant leases, and the next step for each property`}
+              subtitle={t`Billing instructions, this month's city bill, tenant leases, and the next step`}
               right={
                 unmatchedBills > 0 ? (
                   <BuiButton onClick={showUnmatchedBills}>
@@ -355,16 +357,28 @@ export function UtilitiesSection({
                     key: "property",
                     label: t`Property`,
                     width: "26%",
-                    render: (target) => (
-                      <div>
-                        <p className="font-medium text-[#ECECEE]">{target.address}</p>
-                        {target.notes ? (
-                          <p className="mt-1 max-w-64 text-[12px] leading-relaxed text-[var(--ws-muted)]">
-                            {target.notes}
+                    render: (target) => {
+                      const thisMonth = bills.find(
+                        (bill) =>
+                          bill.utilityPropertyId === target.utilityPropertyId &&
+                          bill.billingMonth === data.currentBillingMonth,
+                      );
+                      return (
+                        <div>
+                          <p className="font-medium text-[#ECECEE]">{target.address}</p>
+                          <p className="mt-1 text-[12px] tabular-nums text-[#ECECEE]">
+                            {thisMonth?.billAmount == null
+                              ? t`City bill needed`
+                              : formatMoney(thisMonth.billAmount)}
                           </p>
-                        ) : null}
-                      </div>
-                    ),
+                          {target.notes ? (
+                            <p className="mt-1 max-w-64 text-[12px] leading-relaxed text-[var(--ws-muted)]">
+                              {target.notes}
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    },
                   },
                   {
                     key: "billing",
@@ -412,18 +426,24 @@ export function UtilitiesSection({
                             charge.postStatus === "pending" || charge.postStatus === "error",
                         ),
                       );
+                      const thisMonth = propertyBills.find(
+                        (bill) => bill.billingMonth === data.currentBillingMonth,
+                      );
+                      const needsCityBill = thisMonth?.billAmount == null;
                       return (
                         <div className="space-y-1.5">
                           <p className="text-[12px] leading-relaxed text-[var(--ws-muted)]">
                             {target.targetStatus !== "resolved"
                               ? nextStep[target.targetStatus]
-                              : pending.length
-                                ? nextStep.resolved
-                                : propertyBills.length
-                                  ? t`No pending tenant charges. Review bill history if needed.`
-                                  : unmatchedBills > 0
-                                    ? t`No matched bill. Check the unmatched bills.`
-                                    : t`Await the next water bill.`}
+                              : needsCityBill
+                                ? t`Record this month's city bill, then post to the tenant ledger.`
+                                : pending.length
+                                  ? nextStep.resolved
+                                  : propertyBills.length
+                                    ? t`No pending tenant charges. Review bill history if needed.`
+                                    : unmatchedBills > 0
+                                      ? t`No matched bill. Check the unmatched bills.`
+                                      : t`Await the next water bill.`}
                           </p>
                           {propertyBills.length > 0 ? (
                             <button
@@ -435,7 +455,9 @@ export function UtilitiesSection({
                                 ? t`Review bill`
                                 : pending.length
                                   ? t`Review ${formatNumber(pending.length)} bills`
-                                  : t`View bills`}
+                                  : needsCityBill
+                                    ? t`Record city bill`
+                                    : t`View bills`}
                             </button>
                           ) : target.targetStatus === "resolved" && unmatchedBills > 0 ? (
                             <button
@@ -508,14 +530,17 @@ function BillCard({
   guidance,
   onChanged,
   onPosted,
+  currentBillingMonth,
 }: {
   bill: WaterBillGroup;
   statusLabel: string;
   guidance: string;
   onChanged: (next: UtilitiesOverview) => void;
   onPosted: () => void;
+  currentBillingMonth: string;
 }) {
   const { t } = useLingui();
+  const cityAmount = bill.billAmount;
   return (
     <details className="group py-1" data-testid="workspace-bill">
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg px-1 py-3 outline-none transition-colors hover:bg-[#1B2022] focus-visible:ring-2 focus-visible:ring-[#83BFB1]">
@@ -531,7 +556,7 @@ function BillCard({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[14px] font-semibold text-[#ECECEE] tabular-nums">
-            {bill.billAmount === null ? "—" : formatMoney(bill.billAmount)}
+            {cityAmount === null ? t`City bill needed` : formatMoney(cityAmount)}
           </span>
           <StatusPill tone={TARGET_TONE[bill.resolutionStatus]}>{statusLabel}</StatusPill>
           <ChevronDown size={15} className="ws-expand text-[#A6A6AD] transition-transform" />
@@ -541,6 +566,14 @@ function BillCard({
         <p className="mt-2 text-[12px] text-[var(--ws-muted)]">{guidance}</p>
       ) : null}
       {bill.memo ? <p className="mt-2 text-[12px] text-[#85858A]">{bill.memo}</p> : null}
+      {bill.accountBalance !== null && bill.accountBalance !== undefined ? (
+        <p className="mt-2 text-[12px] text-[var(--ws-muted)]">
+          {t`Account balance ${formatMoney(bill.accountBalance)}`}
+        </p>
+      ) : null}
+      {cityAmount === null && bill.serviceAddress ? (
+        <CityBillForm bill={bill} currentBillingMonth={currentBillingMonth} onChanged={onChanged} />
+      ) : null}
       {bill.charges.length ? (
         <ul className="mt-3 divide-y divide-[#1C1C1F] border-t border-[#1C1C1F]">
           {bill.charges.map((charge) => (
@@ -555,6 +588,66 @@ function BillCard({
         </ul>
       ) : null}
     </details>
+  );
+}
+
+function CityBillForm({
+  bill,
+  currentBillingMonth,
+  onChanged,
+}: {
+  bill: WaterBillGroup;
+  currentBillingMonth: string;
+  onChanged: (next: UtilitiesOverview) => void;
+}) {
+  const { t } = useLingui();
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const month = bill.billingMonth ?? currentBillingMonth;
+
+  async function save() {
+    const parsed = Number(amount);
+    if (!Number.isFinite(parsed) || parsed < 0 || !bill.serviceAddress) return;
+    setBusy(true);
+    setError(null);
+    try {
+      onChanged(
+        await rpc.workspace.utilities.recordCityBill({
+          serviceAddress: bill.serviceAddress,
+          billingMonth: month,
+          currentCharges: parsed,
+          dueDate: bill.dueDate ?? undefined,
+        }),
+      );
+    } catch (cause) {
+      setError(errorMessage(cause, t`Could not save city bill`));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-2" data-testid="city-bill-form">
+      <label className="text-[12px] text-[var(--ws-muted)]">
+        {t`City current charges`}
+        <input
+          aria-label={t`City current charges`}
+          className={`${INPUT} mt-1 w-[110px]`}
+          inputMode="decimal"
+          value={amount}
+          disabled={busy}
+          onChange={(event) => setAmount(event.target.value.replace(/[^\d.]/g, ""))}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") void save();
+          }}
+        />
+      </label>
+      <BuiButton tone="accent" disabled={busy || amount === ""} onClick={() => void save()}>
+        {t`Save city bill`}
+      </BuiButton>
+      {error ? <p className="w-full text-[11.5px] text-[#E8A33C]">{error}</p> : null}
+    </div>
   );
 }
 
@@ -623,7 +716,7 @@ function ChargeRow({
         ...key,
         ...(parsed !== undefined && Number.isFinite(parsed) ? { amount: parsed } : {}),
         memo: memo.trim() || undefined,
-        chargeDate: today(),
+        chargeDate: bill.billingMonth ?? today(),
       });
       if (result.status === "error") setError(result.error ?? t`Could not post`);
       setConfirming(false);
@@ -740,7 +833,7 @@ function ChargeRow({
               { label: t`Unit`, value: unitLabel },
               { label: t`Amount`, value: amount === "" ? "—" : formatMoney(Number(amount)) },
               { label: t`Memo`, value: memo.trim() || "—" },
-              { label: t`Date`, value: formatDate(today()) },
+              { label: t`Date`, value: formatDate(bill.billingMonth ?? today()) },
             ]}
             confirmLabel={t`Post`}
             cancelLabel={t`Cancel`}

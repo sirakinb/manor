@@ -18,6 +18,7 @@ import {
   EmailWindowSchema,
   LeasingSnapshotSchema,
   ListingFilterSchema,
+  RecordCityUtilityBillSchema,
   ReportGenerateInputSchema,
   ReportSendResultSchema,
   ReportUpdateInputSchema,
@@ -450,6 +451,8 @@ export const appContract = {
     },
     utilities: {
       overview: oc.output(UtilitiesOverviewSchema),
+      /// Record the city's current charges for one property and month. Does not post to Buildium.
+      recordCityBill: oc.input(RecordCityUtilityBillSchema).output(UtilitiesOverviewSchema),
       charge: {
         /// Edit the amount or memo before posting; a skipped charge comes back to pending.
         save: oc

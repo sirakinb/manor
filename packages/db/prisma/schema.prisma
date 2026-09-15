@@ -2103,11 +2103,13 @@ model WorkspaceWaterBill {
   serviceAddressNorm String?
   accountBalance     Float?
   amountDue          Float?
+  currentCharges     Float? // city's monthly current charges; never the running account balance
   dueDate            DateTime? @db.Date
   billingMonth       DateTime? @db.Date
   parseStatus        String    @default("parsed") // parsed | needs_review | ignored
   parseNotes         String?
   rawSnippet         String?
+  sourceKind         String    @default("wrd_email") // wrd_email | city_bill
   createdAt          DateTime  @default(now())
 
   chargePosts WorkspaceWaterBillChargePost[]
@@ -2115,6 +2117,7 @@ model WorkspaceWaterBill {
   @@unique([workspaceId, gmailMessageId, billIndex])
   @@index([workspaceId, serviceAddressNorm])
   @@index([workspaceId, billingMonth])
+  @@index([workspaceId, serviceAddressNorm, billingMonth], map: "workspace_water_bills_addr_month_idx")
   @@map("workspace_water_bills")
 }
 

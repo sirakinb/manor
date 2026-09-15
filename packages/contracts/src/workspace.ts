@@ -484,7 +484,10 @@ export const WaterBillGroupSchema = z.object({
   billingMonth: DayString.nullable(),
   memo: z.string().nullable(),
   dueDate: DayString.nullable(),
+  /// City statement current charges for this month. Null until that bill is recorded.
   billAmount: z.number().nullable(),
+  /// Running WRD account balance from the notice; not the monthly city bill.
+  accountBalance: z.number().nullable().optional(),
   parseStatus: z.string(),
   resolutionStatus: UtilityTargetStatusSchema,
   billingMode: z.string().nullable(),
@@ -492,7 +495,17 @@ export const WaterBillGroupSchema = z.object({
 });
 export type WaterBillGroup = z.infer<typeof WaterBillGroupSchema>;
 
+export const RecordCityUtilityBillSchema = z.object({
+  serviceAddress: z.string().trim().min(1).max(200),
+  billingMonth: DayString,
+  currentCharges: z.number().nonnegative(),
+  dueDate: DayString.optional(),
+  sourceNote: z.string().trim().max(400).optional(),
+});
+export type RecordCityUtilityBill = z.infer<typeof RecordCityUtilityBillSchema>;
+
 export const UtilitiesOverviewSchema = z.object({
+  currentBillingMonth: DayString,
   targets: z.array(UtilityBillingTargetSchema),
   bills: z.array(WaterBillGroupSchema),
 });

@@ -35,6 +35,7 @@ export const WORKSPACE_READ_ONLY_TOOL_NAMES = workspaceAgentTools
         "workspace_log_activity",
         "workspace_set_context",
         "workspace_save_skill",
+        "workspace_record_city_utility_bill",
       ].includes(name),
   );
 
@@ -167,6 +168,18 @@ export async function executeWorkspaceTool(
         return await repos.availableRentals(actor, schemas.workspace_rentals.parse(args));
       case "workspace_utilities":
         return await repos.utilitiesOverview(actor);
+      case "workspace_record_city_utility_bill":
+        if ("integrationId" in owner)
+          return { error: "External city-bill recording is not enabled.", code: "forbidden" };
+        try {
+          return await repos.recordCityUtilityBill(
+            actor,
+            schemas.workspace_record_city_utility_bill.parse(args),
+          );
+        } catch (error) {
+          if (error instanceof RangeError) return { error: error.message };
+          throw error;
+        }
       case "workspace_system":
         return await repos.system(actor);
       case "workspace_activities":

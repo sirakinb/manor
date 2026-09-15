@@ -73,6 +73,18 @@ export const workspaceToolSchemas = {
     .object({ filter: z.enum(["all", "section8", "market"]).default("all") })
     .strict(),
   workspace_utilities: empty,
+  workspace_record_city_utility_bill: z
+    .object({
+      serviceAddress: z.string().trim().min(1).max(200),
+      billingMonth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      currentCharges: z.number().nonnegative(),
+      dueDate: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      sourceNote: z.string().trim().max(400).optional(),
+    })
+    .strict(),
   workspace_system: empty,
   workspace_activities: z
     .object({
@@ -119,7 +131,9 @@ export const workspaceToolDescriptions: Record<keyof typeof workspaceToolSchemas
   workspace_leasing: "Read the leasing snapshot, applications and lease statistics.",
   workspace_rentals: "Read available rentals, optionally filtered by market or Section 8.",
   workspace_utilities:
-    "Read water bills and charge review status. This tool does not post charges.",
+    "Read water bills and charge review status. This tool does not post charges. Bill amounts are the city's current charges for that month, not the running account balance.",
+  workspace_record_city_utility_bill:
+    "Record the city's current charges for one property and billing month after reading the city bill (PDF, portal, or Gmail attachment). Use the statement's Current charges, never the running Total account balance and never a subtracted estimate. Does not email anyone and does not post to Buildium.",
   workspace_system: "Read pipeline health and synchronization status.",
   workspace_activities: "Read recent workspace activity.",
   workspace_automations:
@@ -139,7 +153,9 @@ export const externalWorkspaceToolSchemas = {
 
 export const WORKSPACE_EXTERNAL_TOOL_NAMES = (
   Object.keys(workspaceToolSchemas) as (keyof typeof workspaceToolSchemas)[]
-).filter((name) => name !== "workspace_run_automation");
+).filter(
+  (name) => name !== "workspace_run_automation" && name !== "workspace_record_city_utility_bill",
+);
 
 const TOOL_CHANNELS: Partial<Record<keyof typeof workspaceToolSchemas, string>> = {
   workspace_voice_stats: "voice",
@@ -151,6 +167,7 @@ const TOOL_CHANNELS: Partial<Record<keyof typeof workspaceToolSchemas, string>> 
   workspace_leasing: "leasing",
   workspace_rentals: "leasing",
   workspace_utilities: "utilities",
+  workspace_record_city_utility_bill: "utilities",
 };
 
 /** Shared by organization documentation, external discovery and execution. */

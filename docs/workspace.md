@@ -101,7 +101,14 @@ leases on that property: `unmatched` (no property id), `no_active_lease`,
 `chargeShare` 1 or `round(1/n, 4)`. A **bill** matches a target by
 normalized address, takes the target's status (or `unmatched`), and emits
 one charge per target lease at `round(billAmount × share, 2)`, with the
-charge-post row for that lease folded in when one exists.
+charge-post row for that lease folded in when one exists. `billAmount` is
+the city's **current charges** for that billing month (`currentCharges`).
+The WRD notice's Total account balance is stored as `accountBalance` and
+is never the pass-through amount. Rows without city current charges stay
+`needs_review` until a city statement (PDF/email line) or
+`recordCityBill` / `workspace_record_city_utility_bill` records them.
+Posting to Buildium uses that city amount and the bill's billing month so
+the ledger month matches.
 
 ## Pipe registry
 
@@ -443,10 +450,12 @@ the health of an original external voice workflow.
 Utility summaries distinguish bills, properties and per-lease charges. A split
 bill can produce multiple charges. Only `pass_through` properties create pending
 charges; blocked, tenant-direct and owner-sent billing modes retain their labels
-and cannot be posted through single or bulk charge actions.
+and cannot be posted through single or bulk charge actions. The amount shown for
+each bill is that month's city current charges, not the running utility-account
+total. Past months stay listed so charges can be tracked month after month.
 
 Utilities opens on the property roster. Each row shows the imported billing notes,
-current lease allocation, and the next step. Manual handling stays distinct from
+current lease allocation, this month's city bill when recorded, and the next step. Manual handling stays distinct from
 bills whose service address is unmatched. Property bill links use the resolved
 utility-property ID, including when the bill address uses different formatting.
 The Bills view keeps charge review, skip/restore, and posting behind the existing
