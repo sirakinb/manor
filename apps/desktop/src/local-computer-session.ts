@@ -6,8 +6,8 @@ import {
   LOCAL_COMPUTER_DENIED_MESSAGE,
   LOCAL_COMPUTER_HOME_ROOT_MESSAGE,
   localComputerFolderName,
-} from "@rakazo/core/local-computer";
-import { executeLocalFolderRpc } from "@rakazo/core/node/local-folder-runtime";
+} from "./local-computer-share.js";
+import { executeLocalFolderRpc } from "./local-folder-runtime.js";
 import {
   type BrowserWindow,
   dialog,
