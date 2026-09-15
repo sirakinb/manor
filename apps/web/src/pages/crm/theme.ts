@@ -49,6 +49,16 @@ export function formatMoney(value: number): string {
   }).format(value);
 }
 
+/** Utility charges keep cents so posted amounts match the city statement. */
+export function formatMoneyCents(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 /** Compact form for chart labels: $1.2M, $45k. */
 export function formatMoneyShort(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;

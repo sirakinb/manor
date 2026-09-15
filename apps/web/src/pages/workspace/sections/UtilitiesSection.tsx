@@ -18,7 +18,7 @@ import {
   ErrorLine,
   errorMessage,
   formatDate,
-  formatMoney,
+  formatMoneyCents,
   formatNumber,
   formatPct,
   INPUT,
@@ -281,7 +281,7 @@ export function UtilitiesSection({
               subtitle={
                 selectedProperty
                   ? t`This month's city bill and prior months`
-                  : t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoney(pendingTotal)}`
+                  : t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoneyCents(pendingTotal)}`
               }
               className="mt-4"
               right={
@@ -333,7 +333,7 @@ export function UtilitiesSection({
                     title={t`Post ${formatNumber(pendingCharges.length)} charges to Buildium?`}
                     lines={[
                       { label: t`Charges`, value: formatNumber(pendingCharges.length) },
-                      { label: t`Total`, value: formatMoney(pendingTotal) },
+                      { label: t`Total`, value: formatMoneyCents(pendingTotal) },
                       { label: t`Date`, value: t`Each bill's month` },
                     ]}
                     confirmLabel={t`Post all`}
@@ -427,7 +427,7 @@ export function UtilitiesSection({
                                   </span>
                                 ) : (
                                   <span className="text-[#ECECEE]">
-                                    {formatMoney(row.billAmount)}
+                                    {formatMoneyCents(row.billAmount)}
                                   </span>
                                 )}
                                 {row.leases.length > 0 ? (
@@ -582,7 +582,7 @@ function MonthlyAmountsTable({
               row.billAmount === null ? (
                 <span className="text-[var(--ws-muted)]">{t`City bill needed`}</span>
               ) : (
-                <span className="tabular-nums">{formatMoney(row.billAmount)}</span>
+                <span className="tabular-nums">{formatMoneyCents(row.billAmount)}</span>
               ),
           },
           {
@@ -682,7 +682,7 @@ function BillCard({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[14px] font-semibold text-[#ECECEE] tabular-nums">
-            {cityAmount === null ? t`City bill needed` : formatMoney(cityAmount)}
+            {cityAmount === null ? t`City bill needed` : formatMoneyCents(cityAmount)}
           </span>
           <StatusPill tone={TARGET_TONE[bill.resolutionStatus]}>{statusLabel}</StatusPill>
           <ChevronDown size={15} className="ws-expand text-[#A6A6AD] transition-transform" />
@@ -694,7 +694,7 @@ function BillCard({
       {bill.memo ? <p className="mt-2 text-[12px] text-[#85858A]">{bill.memo}</p> : null}
       {bill.accountBalance !== null && bill.accountBalance !== undefined ? (
         <p className="mt-2 text-[12px] text-[var(--ws-muted)]">
-          {t`Account balance ${formatMoney(bill.accountBalance)}`}
+          {t`Account balance ${formatMoneyCents(bill.accountBalance)}`}
         </p>
       ) : null}
       {cityAmount === null && bill.serviceAddress ? (
@@ -891,7 +891,7 @@ function ChargeRow({
         ) : (
           <>
             <span className="text-[#C9C9CE] tabular-nums">
-              {startingAmount === null ? "—" : formatMoney(startingAmount)}
+              {startingAmount === null ? "—" : formatMoneyCents(startingAmount)}
             </span>
             {charge.postedMemo ? (
               <span className="truncate text-[#85858A]">{charge.postedMemo}</span>
@@ -959,7 +959,7 @@ function ChargeRow({
             title={t`Post this charge to Buildium?`}
             lines={[
               { label: t`Unit`, value: unitLabel },
-              { label: t`Amount`, value: amount === "" ? "—" : formatMoney(Number(amount)) },
+              { label: t`Amount`, value: amount === "" ? "—" : formatMoneyCents(Number(amount)) },
               { label: t`Memo`, value: memo.trim() || "—" },
               { label: t`Date`, value: formatDate(bill.billingMonth ?? today()) },
             ]}
