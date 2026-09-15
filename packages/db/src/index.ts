@@ -4,6 +4,7 @@ export * from "./computers.js";
 export * from "./credential-secrets.js";
 export * from "./crm.js";
 export * from "./crm-modules.js";
+export * from "./crm-utility-bills.js";
 export * from "./events.js";
 export * from "./groups.js";
 export * from "./memory-config.js";

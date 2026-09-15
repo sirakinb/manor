@@ -147,6 +147,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
           serviceAddress: "10 SPLIT ST",
           serviceAddressNorm: "10 split street",
           accountBalance: 100.5,
+          currentCharges: 100.5,
           dueDate: dayAfter(10),
           billingMonth: MONTH_START,
         },
@@ -157,6 +158,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
           serviceAddress: "20 SINGLE RD",
           serviceAddressNorm: "20 single road",
           accountBalance: 80,
+          currentCharges: 80,
           dueDate: dayAfter(20),
           billingMonth: MONTH_START,
         },
@@ -167,6 +169,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
           serviceAddress: "99 NOWHERE",
           serviceAddressNorm: "99 nowhere",
           accountBalance: 40,
+          currentCharges: 40,
           dueDate: dayAfter(5),
           billingMonth: MONTH_START,
         },
@@ -455,7 +458,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
       {
         leaseId: 1,
         charge: {
-          date: "2026-09-05",
+          date: "2026-09-01",
           memo: "Sept water (A)",
           amount: 45,
           accountId: 52199,

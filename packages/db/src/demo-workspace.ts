@@ -364,6 +364,7 @@ export async function createDemoWorkspace(prisma: PrismaClient, now = new Date()
             sourceSender: "water@utility.example",
             amountDue: 145 + p * 7,
             accountBalance: 145 + p * 7,
+            currentCharges: 145 + p * 7,
             dueDate: ago(-14),
             billingMonth: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
             parseStatus: p % 7 === 0 ? "needs_review" : "parsed",

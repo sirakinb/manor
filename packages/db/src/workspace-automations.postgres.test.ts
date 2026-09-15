@@ -3,7 +3,9 @@ import { createDb, type PrismaClient } from "./client.js";
 import { IsolationError } from "./scope.js";
 import {
   ensureDefaultAutomations,
+  LEGACY_WATER_CRONS,
   listWorkspaceAutomations,
+  migrateLegacyWaterSchedules,
   updateWorkspaceAutomation,
 } from "./workspace-automations.js";
 
@@ -57,7 +59,7 @@ describePostgres("workspace automations (PostgreSQL)", () => {
       ["recap", "recap", true, "idle"],
     ]);
     expect(first[0]!.nextRunAt).toBe("2026-09-04T12:40:00.000Z");
-    expect(first[1]!.nextRunAt).toBe("2026-09-07T12:00:00.000Z");
+    expect(first[1]!.nextRunAt).toBe("2026-09-05T12:00:00.000Z");
     expect(first[0]!.timezone).toBe("America/New_York");
     expect(first[0]!.lastRun).toBeNull();
 
@@ -73,6 +75,35 @@ describePostgres("workspace automations (PostgreSQL)", () => {
       enabled: false,
       crons: ["0 7 * * 1"],
     });
+  });
+
+  it("moves leftover Monday water crons to daily and leaves a custom schedule", async () => {
+    await prisma.workspaceAutomation.update({
+      where: { workspaceId_key: { workspaceId, key: "water" } },
+      data: {
+        enabled: true,
+        crons: [...LEGACY_WATER_CRONS],
+        nextRunAt: new Date("2026-09-07T12:00:00Z"),
+      },
+    });
+    await migrateLegacyWaterSchedules(prisma, NOW);
+    const water = (await listWorkspaceAutomations(prisma, workspaceId, NOW)).find(
+      (row) => row.key === "water",
+    );
+    expect(water).toMatchObject({
+      enabled: true,
+      crons: ["0 8 * * *"],
+      nextRunAt: "2026-09-05T12:00:00.000Z",
+    });
+
+    await prisma.workspaceAutomation.update({
+      where: { workspaceId_key: { workspaceId, key: "water" } },
+      data: { crons: ["0 7 * * 1"], enabled: false },
+    });
+    await migrateLegacyWaterSchedules(prisma, NOW);
+    expect(
+      (await listWorkspaceAutomations(prisma, workspaceId, NOW)).find((row) => row.key === "water"),
+    ).toMatchObject({ enabled: false, crons: ["0 7 * * 1"] });
   });
 
   it("lists the newest run and judges status from it", async () => {

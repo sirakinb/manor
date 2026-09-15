@@ -25,6 +25,8 @@ const APPROVAL_REQUIRED_BUILTIN_TOOLS = new Set([
   "delete_bot",
   "archive_bot",
   "workspace_run_automation",
+  "workspace_record_city_utility_bill",
+  "workspace_sync_city_bills_from_crm",
   "workspace_set_context",
   "workspace_save_skill",
 ]);

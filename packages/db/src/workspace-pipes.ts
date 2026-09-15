@@ -136,7 +136,7 @@ export const WORKSPACE_PIPES: readonly PipeSpec[] = [
     label: "Water bills",
     source: "PHL Water/Gmail",
     channel: "utilities",
-    cadence: "weekly + month-end",
+    cadence: "daily",
     maxAgeHours: 24 * 16,
     mechanism: { kind: "freshness", table: "workspaceWaterBill", column: "createdAt" },
     sourceNames: ["gmail", "wrd"],
@@ -202,7 +202,7 @@ export const WORKSPACE_WORKERS: readonly WorkerSpec[] = [
   {
     key: "water-clerk",
     name: "Water-bill clerk",
-    role: "Reads WRD bills from email and prepares Buildium charges for approval",
+    role: "Matches Gmail WRD notices to CRM current charges by due date, then prepares Buildium charges",
     channel: "utilities",
     pipeKeys: ["water"],
   },

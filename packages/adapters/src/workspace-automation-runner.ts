@@ -1,6 +1,11 @@
 import type { IngestionRunner, JobPublisher } from "@rakazo/adapter-kit";
 import { workspaceAutomationWakeupJob } from "@rakazo/adapter-kit";
-import { automationNextRunAt, automationSpec, type PrismaClient } from "@rakazo/db";
+import {
+  automationNextRunAt,
+  automationSpec,
+  fillWaterBillsFromCrmByDueDate,
+  type PrismaClient,
+} from "@rakazo/db";
 import type { EncryptedSecretStore } from "./secrets.js";
 import { loadWorkspaceCredential } from "./workspace-credentials.js";
 
@@ -220,11 +225,25 @@ export async function runWorkspaceAutomation(
       credentials,
       options,
     });
+    let notes = result.notes;
+    let recordsLoaded = result.recordsLoaded;
+    if (spec.key === "water" && result.ok) {
+      try {
+        const fill = await fillWaterBillsFromCrmByDueDate(deps.prisma, {
+          organizationId: workspace.organizationId,
+          workspaceId: automation.workspaceId,
+        });
+        recordsLoaded += fill.matched;
+        notes = [notes, fill.notice].filter(Boolean).join(" ");
+      } catch {
+        notes = [notes, "CRM due-date match could not run."].filter(Boolean).join(" ");
+      }
+    }
     await finish({
       status: result.ok ? "success" : "error",
-      recordsLoaded: result.recordsLoaded,
+      recordsLoaded,
       errorMessage: result.ok ? null : truncate(result.error ?? "pipeline failed"),
-      notes: result.notes,
+      notes,
     });
   } catch (error) {
     await finish({

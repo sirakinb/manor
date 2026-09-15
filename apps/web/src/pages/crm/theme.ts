@@ -41,20 +41,7 @@ export const STATUS_COLORS: { open: string; won: string; lost: string } = {
   lost: "#F87171",
 };
 
-export function formatMoney(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-/** Compact form for chart labels: $1.2M, $45k. */
-export function formatMoneyShort(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1000) return `$${Math.round(value / 1000)}k`;
-  return `$${value}`;
-}
+export { formatMoney, formatMoneyCents, formatMoneyShort } from "./money";
 
 export function withAlpha(hex: string, alpha: number): string {
   const r = Number.parseInt(hex.slice(1, 3), 16);

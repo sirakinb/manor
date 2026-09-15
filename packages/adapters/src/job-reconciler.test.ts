@@ -1,5 +1,5 @@
 import type { BackgroundJob, JobPublisher } from "@rakazo/adapter-kit";
-import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
+import { LEGACY_WATER_CRONS, type Pool, type PrismaClient, type ThreadEvents } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import {
@@ -35,7 +35,7 @@ function fakePrisma(
     maintenanceJob: { findMany: vi.fn(async () => []) },
     run: { findMany: vi.fn(async () => runs) },
     routine: { findMany: vi.fn(async () => routines) },
-    workspaceAutomation: { findMany: vi.fn(async () => []) },
+    workspaceAutomation: { findMany: vi.fn(async () => []), update: vi.fn(async () => ({})) },
     computer: { findMany: vi.fn(async () => controls) },
     messagingOutbound: { findFirst: vi.fn(async () => null) },
   } as unknown as PrismaClient;
@@ -191,7 +191,7 @@ describe("createJobReconciler", () => {
       maintenanceJob: { findMany: vi.fn(async () => []) },
       run: { findMany: vi.fn(async () => []) },
       routine: { findMany: vi.fn(async () => []) },
-      workspaceAutomation: { findMany: vi.fn(async () => []) },
+      workspaceAutomation: { findMany: vi.fn(async () => []), update: vi.fn(async () => ({})) },
       computer: { findMany: computerFindMany },
       messagingOutbound: { findFirst: vi.fn(async () => null) },
     } as unknown as PrismaClient;
@@ -256,7 +256,7 @@ describe("createJobReconciler", () => {
       maintenanceJob: { findMany: vi.fn(async () => []) },
       run: { findMany: runFindMany },
       routine: { findMany: routineFindMany },
-      workspaceAutomation: { findMany: vi.fn(async () => []) },
+      workspaceAutomation: { findMany: vi.fn(async () => []), update: vi.fn(async () => ({})) },
       computer: { findMany: vi.fn(async () => []) },
       messagingOutbound: { findFirst: vi.fn(async () => null) },
     } as unknown as PrismaClient;
@@ -330,6 +330,58 @@ describe("createJobReconciler", () => {
     expect(leadership.release).toHaveBeenCalledOnce();
   });
 
+  it("migrates leftover Monday water crons before scanning due automations", async () => {
+    const dueAt = new Date("2026-09-05T12:00:00.000Z");
+    const order: string[] = [];
+    const findMany = vi.fn(async (args: { where?: Record<string, unknown> } = {}) => {
+      if (args.where?.key === "water") {
+        order.push("legacy");
+        return [
+          {
+            id: "water-1",
+            key: "water",
+            crons: [...LEGACY_WATER_CRONS],
+            timezone: "America/New_York",
+            enabled: true,
+            nextRunAt: new Date("2026-09-07T12:00:00.000Z"),
+          },
+        ];
+      }
+      order.push("due");
+      return [{ id: "water-1", nextRunAt: dueAt }];
+    });
+    const update = vi.fn(async () => {
+      order.push("update");
+      return {};
+    });
+    const prisma = {
+      maintenanceJob: { findMany: vi.fn(async () => []) },
+      run: { findMany: vi.fn(async () => []) },
+      routine: { findMany: vi.fn(async () => []) },
+      workspaceAutomation: { findMany, update },
+      computer: { findMany: vi.fn(async () => []) },
+      messagingOutbound: { findFirst: vi.fn(async () => null) },
+    } as unknown as PrismaClient;
+    const { jobs, enqueue } = publisher();
+
+    await createJobReconciler({ prisma, jobs }).reconcileOnce();
+
+    expect(order).toEqual(["legacy", "update", "due"]);
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "water-1" },
+      data: {
+        crons: ["0 8 * * *"],
+        nextRunAt: expect.any(Date),
+      },
+    });
+    expect(enqueue).toHaveBeenCalledWith({
+      name: "workspace.automation.run",
+      payload: { automationId: "water-1", scheduledFor: dueAt.toISOString() },
+      availableAt: dueAt,
+      replaceKey: "workspace-automation:water-1",
+    });
+  });
+
   it("retries terminal bot outcomes that were not returned", async () => {
     const terminalRun = {
       id: "run-terminal",
@@ -355,7 +407,7 @@ describe("createJobReconciler", () => {
       maintenanceJob: { findMany: vi.fn(async () => []) },
       run: { findMany: runFindMany, updateMany: vi.fn(async () => ({ count: 1 })) },
       routine: { findMany: vi.fn(async () => []) },
-      workspaceAutomation: { findMany: vi.fn(async () => []) },
+      workspaceAutomation: { findMany: vi.fn(async () => []), update: vi.fn(async () => ({})) },
       computer: { findMany: vi.fn(async () => []) },
       messagingOutbound: { findFirst: vi.fn(async () => null) },
       message: {

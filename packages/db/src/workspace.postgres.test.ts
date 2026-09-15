@@ -178,7 +178,8 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
           gmailMessageId: "m1",
           serviceAddress: "12 TEST ST",
           serviceAddressNorm: "12 test street",
-          accountBalance: 100.5,
+          accountBalance: 2433.11,
+          currentCharges: 100.5,
           dueDate: dayAfter(20),
           billingMonth: MONTH_START,
         },
@@ -359,16 +360,24 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
         [2, 0.5],
       ],
     );
+    expect(utilities.targets[0]!.months).toEqual([
+      expect.objectContaining({
+        billingMonth: dayOf(MONTH_START),
+        billAmount: 100.5,
+      }),
+    ]);
 
     expect(utilities.bills.map((bill) => bill.serviceAddress)).toEqual([
       "12 TEST ST",
       "99 NOWHERE RD",
     ]);
     const [matched, unmatched] = utilities.bills;
+    expect(utilities.currentBillingMonth).toBe(dayOf(MONTH_START));
     expect(matched).toMatchObject({
       utilityPropertyId: utilities.targets[0]!.utilityPropertyId,
       memo: `${MONTH_START.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${MONTH_START.getUTCFullYear()} water`,
       billAmount: 100.5,
+      accountBalance: 2433.11,
       resolutionStatus: "resolved",
       billingMode: "pass_through",
     });
@@ -392,8 +401,152 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       utilityPropertyId: null,
       resolutionStatus: "unmatched",
       billingMode: null,
+      billAmount: null,
+      accountBalance: 40,
       charges: [],
     });
+  });
+
+  it("keeps unparsed notices that share an address instead of hiding one", async () => {
+    await prisma.workspaceWaterBill.createMany({
+      data: [
+        {
+          workspaceId,
+          gmailMessageId: "m-unparsed-a",
+          serviceAddress: "77 UNPARSED CT",
+          serviceAddressNorm: "77 unparsed court",
+          parseStatus: "needs_review",
+        },
+        {
+          workspaceId,
+          gmailMessageId: "m-unparsed-b",
+          serviceAddress: "77 UNPARSED CT",
+          serviceAddressNorm: "77 unparsed court",
+          parseStatus: "needs_review",
+        },
+      ],
+    });
+    const overview = await repos.utilitiesOverview(actor);
+    const unparsed = overview.bills.filter((bill) => bill.serviceAddress === "77 UNPARSED CT");
+    expect(unparsed).toHaveLength(2);
+    expect(unparsed.every((bill) => bill.billingMonth === null)).toBe(true);
+  });
+
+  it("records city current charges onto the matching month without using the running total", async () => {
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId,
+        gmailMessageId: "m-running-only",
+        serviceAddress: "12 TEST ST",
+        serviceAddressNorm: "12 test street",
+        accountBalance: 2363,
+        billingMonth: new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1)),
+        parseStatus: "parsed",
+      },
+    });
+    const recorded = await repos.recordCityUtilityBill(actor, {
+      serviceAddress: "12 Test St",
+      billingMonth: dayOf(new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1))),
+      currentCharges: 70.12,
+    });
+    const prior = recorded.bills.find(
+      (bill) => bill.billingMonth !== dayOf(MONTH_START) && bill.serviceAddress === "12 TEST ST",
+    );
+    expect(prior).toMatchObject({
+      billAmount: 70.12,
+      accountBalance: 2363,
+    });
+    expect(prior!.billAmount).not.toBe(2363);
+    expect(
+      recorded.targets[0]!.months.map((month) => [month.billingMonth, month.billAmount]),
+    ).toEqual([
+      [dayOf(MONTH_START), 100.5],
+      [dayOf(new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1))), 70.12],
+    ]);
+  });
+
+  it("charges a past month to the previous Buildium lease after a turnover", async () => {
+    const priorStart = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1));
+    const priorEnd = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), 0));
+    await prisma.workspaceBuildiumProperty.create({
+      data: { workspaceId, propertyId: 1004, addressLine: "5 Turnover Alley" },
+    });
+    await prisma.workspaceBuildiumLease.createMany({
+      data: [
+        {
+          workspaceId,
+          leaseId: 40,
+          propertyId: 1004,
+          unitNumber: "A",
+          status: "Past",
+          rent: 1100,
+          leaseFrom: new Date(Date.UTC(NOW.getUTCFullYear(), 0, 1)),
+          leaseTo: priorEnd,
+        },
+        {
+          workspaceId,
+          leaseId: 41,
+          propertyId: 1004,
+          unitNumber: "A",
+          status: "Active",
+          rent: 1250,
+          leaseFrom: MONTH_START,
+          leaseTo: dayAfter(200),
+        },
+      ],
+    });
+    await prisma.workspaceUtilityProperty.create({
+      data: {
+        workspaceId,
+        address: "5 Turnover Alley",
+        addressNorm: "5 turnover alley",
+        propertyId: 1004,
+      },
+    });
+    await prisma.workspaceWaterBill.createMany({
+      data: [
+        {
+          workspaceId,
+          gmailMessageId: "m-turnover-prior",
+          serviceAddress: "5 TURNOVER ALLEY",
+          serviceAddressNorm: "5 turnover alley",
+          currentCharges: 70.12,
+          billingMonth: priorStart,
+          parseStatus: "parsed",
+        },
+        {
+          workspaceId,
+          gmailMessageId: "m-turnover-current",
+          serviceAddress: "5 TURNOVER ALLEY",
+          serviceAddressNorm: "5 turnover alley",
+          currentCharges: 84.5,
+          billingMonth: MONTH_START,
+          parseStatus: "parsed",
+        },
+      ],
+    });
+    const overview = await repos.utilitiesOverview(actor);
+    const target = overview.targets.find((row) => row.address === "5 Turnover Alley");
+    expect(target?.leases.map((lease) => lease.leaseId)).toEqual([41]);
+    expect(
+      target?.months.map((month) => [
+        month.billingMonth,
+        month.leases.map((lease) => lease.leaseId),
+      ]),
+    ).toEqual([
+      [dayOf(MONTH_START), [41]],
+      [dayOf(priorStart), [40]],
+    ]);
+    const priorBill = overview.bills.find(
+      (bill) =>
+        bill.billingMonth === dayOf(priorStart) && bill.serviceAddress === "5 TURNOVER ALLEY",
+    );
+    const currentBill = overview.bills.find(
+      (bill) =>
+        bill.billingMonth === dayOf(MONTH_START) && bill.serviceAddress === "5 TURNOVER ALLEY",
+    );
+    expect(priorBill?.charges.map((charge) => charge.leaseId)).toEqual([40]);
+    expect(currentBill?.charges.map((charge) => charge.leaseId)).toEqual([41]);
   });
 
   it("summarizes leasing", async () => {

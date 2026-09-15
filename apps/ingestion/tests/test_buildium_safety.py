@@ -21,7 +21,31 @@ def test_pagination_cap_does_not_commit_a_partial_snapshot(monkeypatch):
 
 
 def test_missing_listing_unit_id_aborts_before_database_writes(monkeypatch):
-    monkeypatch.setattr(buildium, "paginate", lambda credential, path: [{}] if path.endswith("listings") else [])
+    monkeypatch.setattr(
+        buildium,
+        "paginate",
+        lambda credential, path, params=None: [{}] if path.endswith("listings") else [],
+    )
     monkeypatch.setattr(buildium, "connection", lambda: pytest.fail("must not write an incomplete snapshot"))
     with pytest.raises(PipelineError, match="unit id"):
         buildium.run(RunContext("run", "workspace", {"buildium": {"clientId": "fake", "clientSecret": "fake"}}))
+
+
+def test_lease_sync_requests_active_and_past_statuses(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_paginate(credential, path, params=None):
+        seen[path] = params
+        return []
+
+    monkeypatch.setattr(buildium, "paginate", fake_paginate)
+    monkeypatch.setattr(
+        buildium,
+        "connection",
+        lambda: (_ for _ in ()).throw(PipelineError("stop after fetch")),
+    )
+    with pytest.raises(PipelineError, match="stop after fetch"):
+        buildium.run(
+            RunContext("run", "workspace", {"buildium": {"clientId": "fake", "clientSecret": "fake"}}),
+        )
+    assert seen["leases"] == {"leasestatuses": ["Active", "Past"]}

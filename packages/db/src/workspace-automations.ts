@@ -16,7 +16,7 @@ import { computePipeStatus, WORKSPACE_PIPES } from "./workspace-pipes.js";
  * show real runs next to the pipe.
  *
  * Cadences follow the old schedules. The service self-gates the ones that
- * fire more often than they act (water's month-end sweep, the hourly recap
+ * fire more often than they act (water's Gmail poll, the hourly recap
  * tick), so Manor only has to wake them.
  */
 
@@ -104,8 +104,9 @@ export const WORKSPACE_AUTOMATIONS: readonly AutomationSpec[] = [
     channel: "utilities",
     label: "Water bills",
     pipeline: "water",
-    // Weekly on Monday, plus a daily month-end sweep the service gates itself.
-    crons: ["0 8 * * 1", "0 8 26-29 * *"],
+    // Daily at 08:00. Gmail polling still self-gates to Mondays and two days
+    // before month end; other days only retry CRM current charges by due date.
+    crons: ["0 8 * * *"],
     credentials: ["gmail"],
     sourceName: "Gmail",
     sourceType: "utilities",
@@ -200,16 +201,57 @@ function mapAutomation(
   };
 }
 
+export const LEGACY_WATER_CRONS = ["0 8 * * 1", "0 8 26-29 * *"];
+
+function sameCrons(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+/**
+ * Move leftover Monday/month-end water crons to daily so CRM due dates retry
+ * without waiting for a workspace to open System settings. Custom schedules
+ * stay put. The job reconciler calls this before it scans due automations.
+ */
+export async function migrateLegacyWaterSchedules(
+  prisma: PrismaClient,
+  now = new Date(),
+  workspaceId?: string,
+): Promise<void> {
+  const waterSpec = automationSpec("water");
+  if (!waterSpec) return;
+  const rows = await prisma.workspaceAutomation.findMany({
+    where: { key: "water", ...(workspaceId ? { workspaceId } : {}) },
+  });
+  const legacy = rows.filter((row) => sameCrons(row.crons, LEGACY_WATER_CRONS));
+  if (legacy.length === 0) return;
+  await Promise.all(
+    legacy.map((row) =>
+      prisma.workspaceAutomation.update({
+        where: { id: row.id },
+        data: {
+          crons: [...waterSpec.crons],
+          nextRunAt: row.enabled
+            ? automationNextRunAt(waterSpec.crons, row.timezone, now)
+            : row.nextRunAt,
+        },
+      }),
+    ),
+  );
+}
+
 /**
  * Seed the registry's automations for a workspace's channels. Idempotent:
  * existing rows keep their schedule and enabled flag; only missing keys are
- * created, armed with their first wakeup.
+ * created, armed with their first wakeup. Water's old Monday/month-end crons
+ * move to daily so CRM due dates can be retried without changing a custom
+ * schedule.
  */
 export async function ensureDefaultAutomations(
   prisma: PrismaClient,
   workspace: { id: string; channels: string[] },
   now = new Date(),
 ): Promise<void> {
+  await migrateLegacyWaterSchedules(prisma, now, workspace.id);
   const existing = await prisma.workspaceAutomation.findMany({
     where: { workspaceId: workspace.id },
     select: { key: true },

@@ -4,7 +4,9 @@ import type {
   EmailCampaignRow,
   EmailPerformance,
   LeasingSnapshot,
+  RecordCityUtilityBill,
   SocialSnapshot,
+  SyncCityBillsFromCrmResult,
   UtilitiesOverview,
   UtilityBillingTarget,
   VoiceCallDetail,
@@ -25,7 +27,14 @@ import type {
 } from "@rakazo/contracts";
 import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
 import { Prisma, type PrismaClient } from "./client.js";
+import { syncWaterBillsFromCrm } from "./crm-utility-bills.js";
 import { IsolationError, type OrganizationScope } from "./scope.js";
+import { upsertCityUtilityBill } from "./utility-city-bills.js";
+import {
+  allocateLeasesForBillingMonth,
+  splitChargeAmounts,
+  type UtilityLeaseTerm,
+} from "./utility-leases.js";
 import {
   matchSource,
   type PipeSpec,
@@ -373,7 +382,11 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
         : [],
       propertyIds.length
         ? prisma.workspaceBuildiumLease.findMany({
-            where: { workspaceId, status: "Active", propertyId: { in: propertyIds } },
+            where: {
+              workspaceId,
+              status: { in: ["Active", "Past"] },
+              propertyId: { in: propertyIds },
+            },
             orderBy: { leaseId: "asc" },
           })
         : [],
@@ -387,100 +400,172 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       buildiumProperties.map((row) => [row.propertyId, row.addressLine]),
     );
     const leasesByProperty = new Map<number, typeof leases>();
+    const activeByProperty = new Map<number, typeof leases>();
     for (const lease of leases) {
       if (lease.propertyId === null) continue;
       const list = leasesByProperty.get(lease.propertyId) ?? [];
       list.push(lease);
       leasesByProperty.set(lease.propertyId, list);
+      if (lease.status === "Active") {
+        const active = activeByProperty.get(lease.propertyId) ?? [];
+        active.push(lease);
+        activeByProperty.set(lease.propertyId, active);
+      }
     }
+    const asTerms = (rows: typeof leases): UtilityLeaseTerm[] =>
+      rows.map((lease) => ({
+        leaseId: lease.leaseId,
+        unitNumber: lease.unitNumber,
+        status: lease.status,
+        leaseFrom: day(lease.leaseFrom),
+        leaseTo: day(lease.leaseTo),
+        rent: lease.rent,
+      }));
 
     // One target per active utility property, resolved to the lease(s) that carry its charge.
-    const targets: (UtilityBillingTarget & { utility: string; addressNorm: string })[] =
-      properties.map((property) => {
-        const own =
-          property.propertyId === null ? [] : (leasesByProperty.get(property.propertyId) ?? []);
-        const resolved = own.length === 1 || (own.length > 1 && property.splitEvenly);
-        const targetStatus: UtilityBillingTarget["targetStatus"] =
-          property.billingMode !== "pass_through"
-            ? property.billingMode === "tenant_direct"
-              ? "tenant_direct"
-              : property.billingMode === "owner_sends_bill"
-                ? "owner_sends_bill"
-                : "blocked"
-            : property.propertyId === null
-              ? "unmatched"
-              : own.length === 0
-                ? "no_active_lease"
-                : resolved
-                  ? "resolved"
-                  : "ambiguous";
-        const chargeShare = own.length === 1 ? 1 : round(1 / own.length, 4);
-        return {
-          utility: property.utility,
-          addressNorm: property.addressNorm,
-          utilityPropertyId: property.id,
-          address: property.address,
-          billingMode: property.billingMode,
-          notes: property.notes,
-          propertyId: property.propertyId,
-          buildiumAddress:
-            property.propertyId === null
-              ? null
-              : (addressByProperty.get(property.propertyId) ?? null),
-          activeLeaseCount: own.length,
-          targetStatus,
-          leases: resolved
-            ? own.map((lease) => ({
-                leaseId: lease.leaseId,
-                unitNumber: lease.unitNumber,
-                leaseTo: day(lease.leaseTo),
-                rent: lease.rent,
-                chargeShare,
-              }))
-            : [],
-        };
-      });
-
-    const groups: WaterBillGroup[] = bills.map((bill) => {
-      const target =
-        bill.serviceAddressNorm === null
-          ? undefined
-          : targets.find(
-              (candidate) =>
-                candidate.utility === bill.utility &&
-                candidate.addressNorm === bill.serviceAddressNorm,
-            );
-      const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
+    const targets: (Omit<UtilityBillingTarget, "months"> & {
+      utility: string;
+      addressNorm: string;
+    })[] = properties.map((property) => {
+      const own =
+        property.propertyId === null ? [] : (activeByProperty.get(property.propertyId) ?? []);
+      const resolved = own.length === 1 || (own.length > 1 && property.splitEvenly);
+      const targetStatus: UtilityBillingTarget["targetStatus"] =
+        property.billingMode !== "pass_through"
+          ? property.billingMode === "tenant_direct"
+            ? "tenant_direct"
+            : property.billingMode === "owner_sends_bill"
+              ? "owner_sends_bill"
+              : "blocked"
+          : property.propertyId === null
+            ? "unmatched"
+            : own.length === 0
+              ? "no_active_lease"
+              : resolved
+                ? "resolved"
+                : "ambiguous";
+      const chargeShare = own.length === 1 ? 1 : round(1 / own.length, 4);
       return {
-        waterBillId: bill.id,
-        utilityPropertyId: target?.utilityPropertyId ?? null,
-        serviceAddress: bill.serviceAddress,
-        billingMonth: day(bill.billingMonth),
-        memo,
-        dueDate: day(bill.dueDate),
-        billAmount: bill.accountBalance,
-        parseStatus: bill.parseStatus,
-        resolutionStatus: target?.targetStatus ?? "unmatched",
-        billingMode: target?.billingMode ?? null,
-        charges: (target?.leases ?? [])
-          .filter(
-            (lease) =>
-              target?.targetStatus === "resolved" ||
-              bill.chargePosts.some(
-                (post) => post.leaseId === lease.leaseId && post.status === "posted",
-              ),
-          )
-          .map((lease) => {
+        utility: property.utility,
+        addressNorm: property.addressNorm,
+        utilityPropertyId: property.id,
+        address: property.address,
+        billingMode: property.billingMode,
+        notes: property.notes,
+        propertyId: property.propertyId,
+        buildiumAddress:
+          property.propertyId === null
+            ? null
+            : (addressByProperty.get(property.propertyId) ?? null),
+        activeLeaseCount: own.length,
+        targetStatus,
+        leases: resolved
+          ? own.map((lease) => ({
+              leaseId: lease.leaseId,
+              unitNumber: lease.unitNumber,
+              leaseTo: day(lease.leaseTo),
+              rent: lease.rent,
+              chargeShare,
+            }))
+          : [],
+      };
+    });
+
+    const billKey = (bill: (typeof bills)[number]): string => {
+      const month = day(bill.billingMonth);
+      const address = bill.serviceAddressNorm;
+      if (!month || !address) return bill.id;
+      return `${bill.utility}|${address}|${month}`;
+    };
+    const preferred = new Map<string, (typeof bills)[number]>();
+    for (const bill of bills) {
+      const key = billKey(bill);
+      const previous = preferred.get(key);
+      if (!previous || (previous.currentCharges === null && bill.currentCharges !== null)) {
+        preferred.set(key, bill);
+      }
+    }
+    const monthStart = new Date(Date.UTC(now().getUTCFullYear(), now().getUTCMonth(), 1));
+    const groups: WaterBillGroup[] = bills
+      .filter((bill) => preferred.get(billKey(bill)) === bill)
+      .map((bill) => {
+        const target =
+          bill.serviceAddressNorm === null
+            ? undefined
+            : targets.find(
+                (candidate) =>
+                  candidate.utility === bill.utility &&
+                  candidate.addressNorm === bill.serviceAddressNorm,
+              );
+        const cityAmount = bill.currentCharges;
+        const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
+        const utilityProperty = properties.find((row) => row.id === target?.utilityPropertyId);
+        const propertyLeases =
+          target?.propertyId === null || target?.propertyId === undefined
+            ? []
+            : asTerms(leasesByProperty.get(target.propertyId) ?? []);
+        const monthAllocation =
+          target && target.billingMode === "pass_through" && target.propertyId !== null
+            ? allocateLeasesForBillingMonth(
+                propertyLeases,
+                day(bill.billingMonth),
+                day(monthStart)!,
+                utilityProperty?.splitEvenly ?? false,
+              )
+            : { status: "no_active_lease" as const, leases: [] };
+        const resolutionStatus = !target
+          ? "unmatched"
+          : target.billingMode !== "pass_through" || target.propertyId === null
+            ? target.targetStatus
+            : monthAllocation.status;
+        const monthLeases = resolutionStatus === "resolved" ? monthAllocation.leases : [];
+        const monthLeaseIds = new Set(monthLeases.map((lease) => lease.leaseId));
+        const extraPosted = bill.chargePosts.filter(
+          (post) => post.status === "posted" && !monthLeaseIds.has(post.leaseId),
+        );
+        const chargeLeases = [
+          ...monthLeases,
+          ...extraPosted.map((post) => {
+            const found = propertyLeases.find((lease) => lease.leaseId === post.leaseId);
+            return {
+              leaseId: post.leaseId,
+              unitNumber: found?.unitNumber ?? null,
+              leaseTo: found?.leaseTo ?? null,
+              rent: found?.rent ?? null,
+              chargeShare: 0,
+            };
+          }),
+        ];
+        const split =
+          cityAmount === null
+            ? null
+            : splitChargeAmounts(
+                cityAmount,
+                chargeLeases.map((lease) => lease.chargeShare),
+              );
+        return {
+          waterBillId: bill.id,
+          utilityPropertyId: target?.utilityPropertyId ?? null,
+          serviceAddress: bill.serviceAddress,
+          billingMonth: day(bill.billingMonth),
+          memo,
+          dueDate: day(bill.dueDate),
+          billAmount: cityAmount,
+          accountBalance: bill.accountBalance,
+          parseStatus:
+            cityAmount === null && bill.parseStatus === "parsed"
+              ? "needs_review"
+              : bill.parseStatus,
+          resolutionStatus,
+          billingMode: target?.billingMode ?? null,
+          charges: chargeLeases.map((lease, index) => {
             const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
             const status = post?.status;
             return {
               leaseId: lease.leaseId,
               unitNumber: lease.unitNumber,
               chargeShare: lease.chargeShare,
-              chargeAmount:
-                bill.accountBalance === null
-                  ? null
-                  : round(bill.accountBalance * lease.chargeShare, 2),
+              chargeAmount: split?.[index] ?? null,
               postStatus:
                 status === "posted" || status === "skipped" || status === "error"
                   ? status
@@ -492,11 +577,30 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
               postError: post?.error ?? null,
             };
           }),
-      };
-    });
+        };
+      });
 
     return {
-      targets: targets.map(({ utility: _utility, addressNorm: _norm, ...target }) => target),
+      currentBillingMonth: day(monthStart)!,
+      targets: targets.map(({ utility: _utility, addressNorm: _norm, ...target }) => ({
+        ...target,
+        months: groups
+          .filter(
+            (bill) =>
+              bill.utilityPropertyId === target.utilityPropertyId && bill.billingMonth !== null,
+          )
+          .map((bill) => ({
+            waterBillId: bill.waterBillId,
+            billingMonth: bill.billingMonth as string,
+            billAmount: bill.billAmount,
+            dueDate: bill.dueDate,
+            leases: bill.charges.map((charge) => ({
+              leaseId: charge.leaseId,
+              unitNumber: charge.unitNumber,
+            })),
+          }))
+          .sort((left, right) => right.billingMonth.localeCompare(left.billingMonth)),
+      })),
       bills: groups,
     };
   }
@@ -598,6 +702,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       billsThisMonth,
       billsNeedingReview: overview.bills.filter(
         (bill) =>
+          bill.billAmount === null ||
           bill.parseStatus === "needs_review" ||
           bill.resolutionStatus === "unmatched" ||
           bill.resolutionStatus === "ambiguous",
@@ -1154,6 +1259,33 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
     async utilitiesOverview(actor: WorkspaceActorScope): Promise<UtilitiesOverview> {
       const workspace = await requireWorkspace(actor);
       return utilitiesOverview(workspace.id);
+    },
+
+    async recordCityUtilityBill(
+      actor: WorkspaceActorScope,
+      input: RecordCityUtilityBill,
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      await upsertCityUtilityBill(prisma, {
+        workspaceId: workspace.id,
+        serviceAddress: input.serviceAddress,
+        billingMonth: input.billingMonth,
+        currentCharges: input.currentCharges,
+        dueDate: input.dueDate,
+        sourceNote: input.sourceNote,
+        sourceKind: "city_bill",
+      });
+      return utilitiesOverview(workspace.id);
+    },
+
+    async syncCityBillsFromCrm(actor: WorkspaceActorScope): Promise<SyncCityBillsFromCrmResult> {
+      const workspace = await requireWorkspace(actor);
+      const sync = await syncWaterBillsFromCrm(prisma, {
+        organizationId: actor.organizationId,
+        workspaceId: workspace.id,
+        now: now(),
+      });
+      return { ...sync, overview: await utilitiesOverview(workspace.id) };
     },
 
     async listActivities(

@@ -32,6 +32,7 @@ describe("automation registry", () => {
   it("names the credentials each pipeline needs", () => {
     expect(automationSpec("voice")?.credentials).toEqual(["zoho-crm"]);
     expect(automationSpec("listings")?.credentials).toEqual([]);
+    expect(automationSpec("water")?.crons).toEqual(["0 8 * * *"]);
     expect(automationSpec("recap")?.sourceName).toBeNull();
   });
 });

@@ -97,11 +97,27 @@ row reads stay in Prisma. All day math is UTC.
 active utility property joined to its Buildium property and to the Active
 leases on that property: `unmatched` (no property id), `no_active_lease`,
 `resolved` (exactly one lease, or several with `splitEvenly`), or
-`ambiguous`. A resolved target carries one charge per lease with
-`chargeShare` 1 or `round(1/n, 4)`. A **bill** matches a target by
-normalized address, takes the target's status (or `unmatched`), and emits
-one charge per target lease at `round(billAmount × share, 2)`, with the
-charge-post row for that lease folded in when one exists.
+`ambiguous`. The roster lists those current Active leases. A **bill** matches a target by
+normalized address, then allocates charges to the Buildium lease(s) whose
+term covered **that billing month** (Past and Active). After a turnover,
+July posts to the old lease id and August to the new one. Two leases on
+the same unit in one month stay `ambiguous`. An undated Active lease only
+fills months no dated peer already covers. `billAmount` is
+the city's **current charges** for that billing month (`currentCharges`).
+The WRD notice's Total account balance is stored as `accountBalance` and
+is never the pass-through amount. Rows without city current charges stay
+`needs_review` until a city statement (PDF/email line), the CRM utility sheet
+(`syncFromCrm` / `workspace_sync_city_bills_from_crm`), or
+`recordCityBill` / `workspace_record_city_utility_bill` records them.
+Gmail still identifies which mapped properties have a bill; CRM current charges
+are the dollar amount when a Water bills row has the **same due date**. If the
+CRM sheet does not have that due date yet, the water automation retries each
+morning. Account balance is never used.
+Posting to Buildium uses that city amount and the bill's billing month so
+the ledger month matches. Each target includes `months`: every recorded
+billing month for that property with the city current charges (newest
+first), so the Utilities properties roster and the per-property monthly
+table can list the city bill history instead of a running account total.
 
 ## Pipe registry
 
@@ -443,11 +459,14 @@ the health of an original external voice workflow.
 Utility summaries distinguish bills, properties and per-lease charges. A split
 bill can produce multiple charges. Only `pass_through` properties create pending
 charges; blocked, tenant-direct and owner-sent billing modes retain their labels
-and cannot be posted through single or bulk charge actions.
+and cannot be posted through single or bulk charge actions. The amount shown for
+each bill is that month's city current charges, not the running utility-account
+total. Past months stay listed so charges can be tracked month after month.
 
 Utilities opens on the property roster. Each row shows the imported billing notes,
-current lease allocation, and the next step. Manual handling stays distinct from
+current lease allocation, this month's city bill when recorded, and the next step. Manual handling stays distinct from
 bills whose service address is unmatched. Property bill links use the resolved
 utility-property ID, including when the bill address uses different formatting.
 The Bills view keeps charge review, skip/restore, and posting behind the existing
-confirmation flow. Bulk posting is only offered in the unfiltered, all-bills view.
+confirmation flow. Each month shows the Buildium lease number that covered it, so a
+turnover does not post last month's city bill onto the new tenant. Bulk posting is only offered in the unfiltered, all-bills view.

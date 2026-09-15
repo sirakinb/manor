@@ -29,6 +29,10 @@ describe("workspace agent tools", () => {
     expect(toolRequiresApproval("workspace_run_automation", false)).toBe(true);
     expect(WORKSPACE_READ_ONLY_TOOL_NAMES).not.toContain("workspace_run_automation");
     expect(WORKSPACE_READ_ONLY_TOOL_NAMES).not.toContain("workspace_log_activity");
+    expect(WORKSPACE_READ_ONLY_TOOL_NAMES).not.toContain("workspace_record_city_utility_bill");
+    expect(toolRequiresApproval("workspace_record_city_utility_bill", false)).toBe(true);
+    expect(WORKSPACE_READ_ONLY_TOOL_NAMES).not.toContain("workspace_sync_city_bills_from_crm");
+    expect(toolRequiresApproval("workspace_sync_city_bills_from_crm", false)).toBe(true);
     for (const name of ["workspace_set_context", "workspace_save_skill"]) {
       expect(WORKSPACE_READ_ONLY_TOOL_NAMES).not.toContain(name);
       expect(toolRequiresApproval(name, false)).toBe(true);

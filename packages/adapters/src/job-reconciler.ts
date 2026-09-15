@@ -7,7 +7,12 @@ import {
   workspaceAutomationWakeupJob,
 } from "@rakazo/adapter-kit";
 import type { MessageBlock } from "@rakazo/contracts";
-import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
+import {
+  migrateLegacyWaterSchedules,
+  type Pool,
+  type PrismaClient,
+  type ThreadEvents,
+} from "@rakazo/db";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
@@ -167,6 +172,7 @@ export function createJobReconciler(
             }
           : { controlLeaseExpiresAt: null, id: { gt: controlCursor.id } }
         : undefined;
+      await migrateLegacyWaterSchedules(deps.prisma, now);
       const [runs, routines, controls, dueOutbound, unmirroredMessagingRuns, automations] =
         await Promise.all([
           deps.prisma.run.findMany({

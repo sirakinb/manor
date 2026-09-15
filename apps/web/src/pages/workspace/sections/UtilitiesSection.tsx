@@ -18,7 +18,7 @@ import {
   ErrorLine,
   errorMessage,
   formatDate,
-  formatMoney,
+  formatMoneyCents,
   formatNumber,
   formatPct,
   INPUT,
@@ -55,6 +55,13 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatBillingMonth(dayValue: string | null | undefined): string {
+  if (!dayValue) return "—";
+  const date = new Date(dayValue);
+  if (Number.isNaN(date.getTime())) return dayValue;
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
 /** Refusals about missing configuration point at the settings screen. */
 function needsSettings(message: string): boolean {
   return /credential|account/i.test(message);
@@ -82,6 +89,9 @@ export function UtilitiesSection({
   );
   const [search, setSearch] = useState("");
   const [propertyFilter, setPropertyFilter] = useState<string | null>(null);
+  const [crmSyncBusy, setCrmSyncBusy] = useState(false);
+  const [crmSyncNotice, setCrmSyncNotice] = useState<string | null>(null);
+  const [crmSyncError, setCrmSyncError] = useState<string | null>(null);
 
   const targetLabel: Record<UtilityBillingTarget["targetStatus"], string> = {
     blocked: t`Manual handling`,
@@ -107,13 +117,13 @@ export function UtilitiesSection({
     blocked: t`Handle manually using the billing instructions.`,
     tenant_direct: t`Tenant pays the utility provider. No ledger charge.`,
     owner_sends_bill: t`Obtain the bill from the owner and handle manually.`,
-    resolved: t`Review the bill amount, then post to the tenant ledger.`,
+    resolved: t`Review the city bill amount, then post to the tenant ledger.`,
     ambiguous: t`Confirm which lease to bill or how to split the charge.`,
     no_active_lease: t`Confirm the active lease in Buildium before charging.`,
     unmatched: t`Match this address to a Buildium property before charging.`,
   };
   const pendingCharges = bills
-    .filter((bill) => bill.resolutionStatus === "resolved")
+    .filter((bill) => bill.resolutionStatus === "resolved" && bill.billAmount !== null)
     .flatMap((bill) => bill.charges.filter((charge) => charge.postStatus === "pending"));
   const pendingTotal = pendingCharges.reduce((sum, charge) => sum + (charge.chargeAmount ?? 0), 0);
   const pendingBillCount = bills.filter((bill) =>
@@ -131,6 +141,7 @@ export function UtilitiesSection({
     if (filter === "unmatched") return bill.resolutionStatus === "unmatched";
     if (filter === "attention")
       return (
+        bill.billAmount === null ||
         bill.resolutionStatus !== "resolved" ||
         bill.parseStatus === "needs_review" ||
         bill.charges.some((charge) => charge.postStatus === "error")
@@ -154,6 +165,21 @@ export function UtilitiesSection({
     setFilter("unmatched");
     setSearch("");
     setPropertyFilter(null);
+  }
+
+  async function syncFromCrm() {
+    setCrmSyncBusy(true);
+    setCrmSyncError(null);
+    try {
+      const result = await rpc.workspace.utilities.syncFromCrm({});
+      setData(result.overview);
+      setCrmSyncNotice(result.notice);
+    } catch (cause) {
+      setCrmSyncNotice(null);
+      setCrmSyncError(errorMessage(cause, t`Could not sync from CRM`));
+    } finally {
+      setCrmSyncBusy(false);
+    }
   }
 
   async function postAll() {
@@ -219,28 +245,43 @@ export function UtilitiesSection({
                 { key: "bills", label: t`Bills` },
               ]}
             />
-            <label className="relative w-full sm:w-64">
-              <Search
-                size={14}
-                className="pointer-events-none absolute top-2.5 left-3 text-[#A6A6AD]"
-              />
-              <input
-                className={`${INPUT} pl-9`}
-                aria-label={t`Search properties or bills`}
-                placeholder={t`Search address…`}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <span data-testid="workspace-sync-from-crm">
+                <BuiButton onClick={() => void syncFromCrm()} disabled={crmSyncBusy}>
+                  {t`Sync from CRM`}
+                </BuiButton>
+              </span>
+              <label className="relative w-full sm:w-64">
+                <Search
+                  size={14}
+                  className="pointer-events-none absolute top-2.5 left-3 text-[#A6A6AD]"
+                />
+                <input
+                  className={`${INPUT} pl-9`}
+                  aria-label={t`Search properties or bills`}
+                  placeholder={t`Search address…`}
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+            </div>
           </div>
+          {crmSyncNotice ? (
+            <p className="mt-2 text-[12px] text-[var(--ws-muted)]">{crmSyncNotice}</p>
+          ) : (
+            <p className="mt-2 text-[12px] text-[var(--ws-muted)]">
+              {t`Gmail notices match the CRM water bills sheet by address and due date. If that due date is not in CRM yet, the water job checks again each morning.`}
+            </p>
+          )}
+          {crmSyncError ? <ErrorLine message={crmSyncError} /> : null}
 
           {view === "bills" ? (
             <Card
               title={selectedProperty ? selectedProperty.address : t`Water bills`}
               subtitle={
                 selectedProperty
-                  ? t`Review the bill and its tenant charges`
-                  : t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoney(pendingTotal)}`
+                  ? t`This month's city bill and prior months`
+                  : t`${formatNumber(pendingCharges.length)} pending charges across ${formatNumber(pendingBillCount)} bills · ${formatMoneyCents(pendingTotal)}`
               }
               className="mt-4"
               right={
@@ -265,6 +306,24 @@ export function UtilitiesSection({
                   </BuiButton>
                 </div>
               ) : null}
+              {selectedProperty ? (
+                <MonthlyAmountsTable
+                  months={selectedProperty.months}
+                  currentBillingMonth={data.currentBillingMonth}
+                />
+              ) : null}
+              {selectedProperty &&
+              selectedProperty.targetStatus === "resolved" &&
+              !visibleBills.some(
+                (bill) =>
+                  (bill.billingMonth ?? data.currentBillingMonth) === data.currentBillingMonth,
+              ) ? (
+                <CityBillForm
+                  serviceAddress={selectedProperty.address}
+                  billingMonth={data.currentBillingMonth}
+                  onChanged={setData}
+                />
+              ) : null}
               <div className="mb-3 overflow-x-auto">
                 <Segmented
                   label={t`Bill status`}
@@ -286,8 +345,8 @@ export function UtilitiesSection({
                     title={t`Post ${formatNumber(pendingCharges.length)} charges to Buildium?`}
                     lines={[
                       { label: t`Charges`, value: formatNumber(pendingCharges.length) },
-                      { label: t`Total`, value: formatMoney(pendingTotal) },
-                      { label: t`Date`, value: formatDate(today()) },
+                      { label: t`Total`, value: formatMoneyCents(pendingTotal) },
+                      { label: t`Date`, value: t`Each bill's month` },
                     ]}
                     confirmLabel={t`Post all`}
                     cancelLabel={t`Cancel`}
@@ -322,6 +381,7 @@ export function UtilitiesSection({
                       }
                       onChanged={setData}
                       onPosted={reload}
+                      currentBillingMonth={data.currentBillingMonth}
                     />
                   ))}
                 </div>
@@ -330,7 +390,7 @@ export function UtilitiesSection({
           ) : (
             <Card
               title={t`Water-billed properties`}
-              subtitle={t`Billing instructions, tenant leases, and the next step for each property`}
+              subtitle={t`Billing instructions, this month's city bill, tenant leases, and the next step`}
               right={
                 unmatchedBills > 0 ? (
                   <BuiButton onClick={showUnmatchedBills}>
@@ -358,6 +418,39 @@ export function UtilitiesSection({
                     render: (target) => (
                       <div>
                         <p className="font-medium text-[#ECECEE]">{target.address}</p>
+                        {target.months.length === 0 ? (
+                          <p className="mt-1 text-[12px] text-[var(--ws-muted)]">
+                            {t`City bill needed`}
+                          </p>
+                        ) : (
+                          <ul className="mt-1 space-y-0.5 text-[12px] tabular-nums">
+                            {target.months.map((row) => (
+                              <li key={row.waterBillId}>
+                                <span className="text-[var(--ws-muted)]">
+                                  {formatBillingMonth(row.billingMonth)}
+                                  {row.billingMonth === data.currentBillingMonth
+                                    ? ` · ${t`This month`}`
+                                    : ""}
+                                </span>
+                                {" · "}
+                                {row.billAmount === null ? (
+                                  <span className="text-[var(--ws-muted)]">
+                                    {t`City bill needed`}
+                                  </span>
+                                ) : (
+                                  <span className="text-[#ECECEE]">
+                                    {formatMoneyCents(row.billAmount)}
+                                  </span>
+                                )}
+                                {row.leases.length > 0 ? (
+                                  <span className="text-[var(--ws-muted)]">
+                                    {` · ${row.leases.map((lease) => t`Lease #${lease.leaseId}`).join(", ")}`}
+                                  </span>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         {target.notes ? (
                           <p className="mt-1 max-w-64 text-[12px] leading-relaxed text-[var(--ws-muted)]">
                             {target.notes}
@@ -412,20 +505,27 @@ export function UtilitiesSection({
                             charge.postStatus === "pending" || charge.postStatus === "error",
                         ),
                       );
+                      const thisMonth = propertyBills.find(
+                        (bill) => bill.billingMonth === data.currentBillingMonth,
+                      );
+                      const needsCityBill = thisMonth?.billAmount == null;
+                      const canRecordCityBill = target.targetStatus === "resolved" && needsCityBill;
                       return (
                         <div className="space-y-1.5">
                           <p className="text-[12px] leading-relaxed text-[var(--ws-muted)]">
                             {target.targetStatus !== "resolved"
                               ? nextStep[target.targetStatus]
-                              : pending.length
-                                ? nextStep.resolved
-                                : propertyBills.length
-                                  ? t`No pending tenant charges. Review bill history if needed.`
-                                  : unmatchedBills > 0
-                                    ? t`No matched bill. Check the unmatched bills.`
-                                    : t`Await the next water bill.`}
+                              : needsCityBill
+                                ? t`Record this month's city bill, then post to the tenant ledger.`
+                                : pending.length
+                                  ? nextStep.resolved
+                                  : propertyBills.length
+                                    ? t`No pending tenant charges. Review bill history if needed.`
+                                    : unmatchedBills > 0
+                                      ? t`No matched bill. Check the unmatched bills.`
+                                      : t`Await the next water bill.`}
                           </p>
-                          {propertyBills.length > 0 ? (
+                          {propertyBills.length > 0 || canRecordCityBill ? (
                             <button
                               type="button"
                               className={`text-[12px] font-medium text-[var(--ws-accent)] ${CLICKABLE_TEXT}`}
@@ -435,7 +535,9 @@ export function UtilitiesSection({
                                 ? t`Review bill`
                                 : pending.length
                                   ? t`Review ${formatNumber(pending.length)} bills`
-                                  : t`View bills`}
+                                  : needsCityBill
+                                    ? t`Record city bill`
+                                    : t`View monthly bills`}
                             </button>
                           ) : target.targetStatus === "resolved" && unmatchedBills > 0 ? (
                             <button
@@ -456,6 +558,65 @@ export function UtilitiesSection({
           )}
         </>
       ) : null}
+    </div>
+  );
+}
+
+function MonthlyAmountsTable({
+  months,
+  currentBillingMonth,
+}: {
+  months: UtilityBillingTarget["months"];
+  currentBillingMonth: string;
+}) {
+  const { t } = useLingui();
+  return (
+    <div className="mb-4" data-testid="workspace-monthly-amounts">
+      <p className="mb-2 text-[12.5px] font-medium text-[#ECECEE]">{t`Monthly city bills`}</p>
+      <Table<UtilityBillingTarget["months"][number]>
+        rows={months}
+        rowKey={(row) => row.waterBillId}
+        emptyLabel={t`No months recorded yet`}
+        columns={[
+          {
+            key: "month",
+            label: t`Month`,
+            render: (row) => (
+              <span className="font-medium text-[#ECECEE]">
+                {formatBillingMonth(row.billingMonth)}
+                {row.billingMonth === currentBillingMonth ? ` · ${t`This month`}` : ""}
+              </span>
+            ),
+          },
+          {
+            key: "amount",
+            label: t`City bill`,
+            render: (row) =>
+              row.billAmount === null ? (
+                <span className="text-[var(--ws-muted)]">{t`City bill needed`}</span>
+              ) : (
+                <span className="tabular-nums">{formatMoneyCents(row.billAmount)}</span>
+              ),
+          },
+          {
+            key: "due",
+            label: t`Due`,
+            render: (row) => formatDate(row.dueDate),
+          },
+          {
+            key: "lease",
+            label: t`Lease`,
+            render: (row) =>
+              row.leases.length === 0 ? (
+                "—"
+              ) : (
+                <span className="whitespace-nowrap">
+                  {row.leases.map((lease) => t`Lease #${lease.leaseId}`).join(", ")}
+                </span>
+              ),
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -508,14 +669,17 @@ function BillCard({
   guidance,
   onChanged,
   onPosted,
+  currentBillingMonth,
 }: {
   bill: WaterBillGroup;
   statusLabel: string;
   guidance: string;
   onChanged: (next: UtilitiesOverview) => void;
   onPosted: () => void;
+  currentBillingMonth: string;
 }) {
   const { t } = useLingui();
+  const cityAmount = bill.billAmount;
   return (
     <details className="group py-1" data-testid="workspace-bill">
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg px-1 py-3 outline-none transition-colors hover:bg-[#1B2022] focus-visible:ring-2 focus-visible:ring-[#83BFB1]">
@@ -530,8 +694,11 @@ function BillCard({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[14px] font-semibold text-[#ECECEE] tabular-nums">
-            {bill.billAmount === null ? "—" : formatMoney(bill.billAmount)}
+          <span
+            className="text-[14px] font-semibold text-[#ECECEE] tabular-nums"
+            data-testid="workspace-bill-amount"
+          >
+            {cityAmount === null ? t`City bill needed` : formatMoneyCents(cityAmount)}
           </span>
           <StatusPill tone={TARGET_TONE[bill.resolutionStatus]}>{statusLabel}</StatusPill>
           <ChevronDown size={15} className="ws-expand text-[#A6A6AD] transition-transform" />
@@ -541,6 +708,19 @@ function BillCard({
         <p className="mt-2 text-[12px] text-[var(--ws-muted)]">{guidance}</p>
       ) : null}
       {bill.memo ? <p className="mt-2 text-[12px] text-[#85858A]">{bill.memo}</p> : null}
+      {bill.accountBalance !== null && bill.accountBalance !== undefined ? (
+        <p className="mt-2 text-[12px] text-[var(--ws-muted)]">
+          {t`Account balance ${formatMoneyCents(bill.accountBalance)}`}
+        </p>
+      ) : null}
+      {cityAmount === null && bill.serviceAddress ? (
+        <CityBillForm
+          serviceAddress={bill.serviceAddress}
+          billingMonth={bill.billingMonth ?? currentBillingMonth}
+          dueDate={bill.dueDate}
+          onChanged={onChanged}
+        />
+      ) : null}
       {bill.charges.length ? (
         <ul className="mt-3 divide-y divide-[#1C1C1F] border-t border-[#1C1C1F]">
           {bill.charges.map((charge) => (
@@ -555,6 +735,67 @@ function BillCard({
         </ul>
       ) : null}
     </details>
+  );
+}
+
+function CityBillForm({
+  serviceAddress,
+  billingMonth,
+  dueDate,
+  onChanged,
+}: {
+  serviceAddress: string;
+  billingMonth: string;
+  dueDate?: string | null;
+  onChanged: (next: UtilitiesOverview) => void;
+}) {
+  const { t } = useLingui();
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    const parsed = Number(amount);
+    if (amount.trim() === "" || !Number.isFinite(parsed) || parsed < 0 || !serviceAddress) return;
+    setBusy(true);
+    setError(null);
+    try {
+      onChanged(
+        await rpc.workspace.utilities.recordCityBill({
+          serviceAddress,
+          billingMonth,
+          currentCharges: Math.round(parsed * 100) / 100,
+          dueDate: dueDate ?? undefined,
+        }),
+      );
+    } catch (cause) {
+      setError(errorMessage(cause, t`Could not save city bill`));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-2" data-testid="city-bill-form">
+      <label className="text-[12px] text-[var(--ws-muted)]">
+        {t`City current charges`}
+        <input
+          aria-label={t`City current charges`}
+          className={`${INPUT} mt-1 w-[110px]`}
+          inputMode="decimal"
+          value={amount}
+          disabled={busy}
+          onChange={(event) => setAmount(event.target.value.replace(/[^\d.]/g, ""))}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") void save();
+          }}
+        />
+      </label>
+      <BuiButton tone="accent" disabled={busy || amount.trim() === ""} onClick={() => void save()}>
+        {t`Save city bill`}
+      </BuiButton>
+      {error ? <p className="w-full text-[11.5px] text-[#E8A33C]">{error}</p> : null}
+    </div>
   );
 }
 
@@ -583,7 +824,9 @@ function ChargeRow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const unitLabel = charge.unitNumber ? t`Unit ${charge.unitNumber}` : t`Lease ${charge.leaseId}`;
+  const unitLabel = charge.unitNumber
+    ? `${t`Unit ${charge.unitNumber}`} · ${t`Lease #${charge.leaseId}`}`
+    : t`Lease #${charge.leaseId}`;
   const key = { waterBillId: bill.waterBillId, leaseId: charge.leaseId };
   const editable = charge.postStatus === "pending" || charge.postStatus === "error";
 
@@ -623,7 +866,7 @@ function ChargeRow({
         ...key,
         ...(parsed !== undefined && Number.isFinite(parsed) ? { amount: parsed } : {}),
         memo: memo.trim() || undefined,
-        chargeDate: today(),
+        chargeDate: bill.billingMonth ?? today(),
       });
       if (result.status === "error") setError(result.error ?? t`Could not post`);
       setConfirming(false);
@@ -670,7 +913,7 @@ function ChargeRow({
         ) : (
           <>
             <span className="text-[#C9C9CE] tabular-nums">
-              {startingAmount === null ? "—" : formatMoney(startingAmount)}
+              {startingAmount === null ? "—" : formatMoneyCents(startingAmount)}
             </span>
             {charge.postedMemo ? (
               <span className="truncate text-[#85858A]">{charge.postedMemo}</span>
@@ -738,9 +981,9 @@ function ChargeRow({
             title={t`Post this charge to Buildium?`}
             lines={[
               { label: t`Unit`, value: unitLabel },
-              { label: t`Amount`, value: amount === "" ? "—" : formatMoney(Number(amount)) },
+              { label: t`Amount`, value: amount === "" ? "—" : formatMoneyCents(Number(amount)) },
               { label: t`Memo`, value: memo.trim() || "—" },
-              { label: t`Date`, value: formatDate(today()) },
+              { label: t`Date`, value: formatDate(bill.billingMonth ?? today()) },
             ]}
             confirmLabel={t`Post`}
             cancelLabel={t`Cancel`}

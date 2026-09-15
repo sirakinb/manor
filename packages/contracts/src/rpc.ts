@@ -18,10 +18,12 @@ import {
   EmailWindowSchema,
   LeasingSnapshotSchema,
   ListingFilterSchema,
+  RecordCityUtilityBillSchema,
   ReportGenerateInputSchema,
   ReportSendResultSchema,
   ReportUpdateInputSchema,
   SocialSnapshotSchema,
+  SyncCityBillsFromCrmResultSchema,
   UtilitiesOverviewSchema,
   VoiceAgentTypeSchema,
   VoiceCallDetailSchema,
@@ -450,6 +452,10 @@ export const appContract = {
     },
     utilities: {
       overview: oc.output(UtilitiesOverviewSchema),
+      /// Record the city's current charges for one property and month. Does not post to Buildium.
+      recordCityBill: oc.input(RecordCityUtilityBillSchema).output(UtilitiesOverviewSchema),
+      /// Copy city current charges from CRM onto Gmail notices with the same due date.
+      syncFromCrm: oc.input(z.object({})).output(SyncCityBillsFromCrmResultSchema),
       charge: {
         /// Edit the amount or memo before posting; a skipped charge comes back to pending.
         save: oc

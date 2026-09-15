@@ -8,6 +8,7 @@ import type {
 import { normalizeModuleRecordValues } from "@rakazo/contracts";
 import type { PrismaClient } from "./client.js";
 import type { CrmActorScope } from "./crm.js";
+import { applyCrmUtilityBillRecord } from "./crm-utility-bills.js";
 import { IsolationError } from "./scope.js";
 
 /** Record values that don't fit the module's fields. Callers map this to a 400/tool error. */
@@ -79,6 +80,24 @@ function mapRecord(row: {
 }
 
 const MODULE_INCLUDE = { fields: true, _count: { select: { records: true } } } as const;
+
+async function syncUtilityBillFromCrmRecord(
+  prisma: PrismaClient,
+  organizationId: string,
+  module: { name: string; fields: FieldRow[] },
+  values: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await applyCrmUtilityBillRecord(prisma, {
+      organizationId,
+      moduleName: module.name,
+      fields: module.fields.map((field) => ({ id: field.id, label: field.label })),
+      values,
+    });
+  } catch {
+    // A CRM cell save must not fail because Utilities could not take the amount.
+  }
+}
 
 function encodeCursor(createdAt: Date, id: string): string {
   return Buffer.from(`${createdAt.toISOString()}\n${id}`).toString("base64url");
@@ -261,6 +280,7 @@ export function createCrmModuleRepos(prisma: PrismaClient) {
       const row = await prisma.crmModuleRecord.create({
         data: { organizationId: actor.organizationId, moduleId: input.moduleId, values },
       });
+      await syncUtilityBillFromCrmRecord(prisma, actor.organizationId, module, values);
       return mapRecord(row);
     },
 
@@ -281,6 +301,7 @@ export function createCrmModuleRepos(prisma: PrismaClient) {
         where: { id: input.recordId },
         data: { values: merged },
       });
+      await syncUtilityBillFromCrmRecord(prisma, actor.organizationId, module, merged);
       return mapRecord(row);
     },
 

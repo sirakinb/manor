@@ -3,7 +3,7 @@ import type { WorkspacePipeStatus } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { BuiButton, BuiCard, LoadingState } from "../../components/beautiful-ui/primitives";
 import { accentColor } from "../../lib/brand";
-import { formatMoney, formatMoneyShort, withAlpha } from "../crm/theme";
+import { formatMoney, formatMoneyCents, formatMoneyShort, withAlpha } from "../crm/theme";
 
 /* Small shared pieces for the Workspace place: section keys, number and time
    formatting, KPI tiles, status pills, a hand-rolled line chart, a plain
@@ -40,7 +40,7 @@ export const PIPE_COLORS: Record<WorkspacePipeStatus, string> = {
   idle: "#3A3A40",
 };
 
-export { formatMoney, withAlpha };
+export { formatMoney, formatMoneyCents, withAlpha };
 
 export function formatNumber(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
