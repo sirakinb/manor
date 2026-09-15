@@ -6,7 +6,7 @@ import {
   LOCAL_COMPUTER_DENIED_MESSAGE,
   LOCAL_COMPUTER_HOME_ROOT_MESSAGE,
   localComputerFolderName,
-} from "@rakazo/core";
+} from "@rakazo/core/local-computer";
 import { executeLocalFolderRpc } from "@rakazo/core/node/local-folder-runtime";
 import {
   type BrowserWindow,
