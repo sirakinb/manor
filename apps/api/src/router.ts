@@ -1352,6 +1352,9 @@ export function createRouter(deps: RouterDeps) {
           async ({ context, input }) =>
             workspaceAction(() => workspaceActions.recordCityBill(context.actor, input)),
         ),
+        syncFromCrm: authed.workspace.utilities.syncFromCrm.handler(async ({ context }) =>
+          workspaceAction(() => workspaceActions.syncFromCrm(context.actor)),
+        ),
         charge: {
           save: authed.workspace.utilities.charge.save.handler(async ({ context, input }) =>
             workspaceAction(() => workspaceActions.saveCharge(context.actor, input)),

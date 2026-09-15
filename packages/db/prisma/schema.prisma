@@ -2109,7 +2109,7 @@ model WorkspaceWaterBill {
   parseStatus        String    @default("parsed") // parsed | needs_review | ignored
   parseNotes         String?
   rawSnippet         String?
-  sourceKind         String    @default("wrd_email") // wrd_email | city_bill
+  sourceKind         String    @default("wrd_email") // wrd_email | city_bill | crm
   createdAt          DateTime  @default(now())
 
   chargePosts WorkspaceWaterBillChargePost[]

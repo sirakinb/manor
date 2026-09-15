@@ -1,0 +1,298 @@
+import type { PrismaClient } from "./client.js";
+import { upsertCityUtilityBill } from "./utility-city-bills.js";
+
+export type CrmUtilityField = { id: string; label: string };
+
+export type CrmUtilityBillExtract =
+  | {
+      ok: true;
+      serviceAddress: string;
+      billingMonth: string;
+      currentCharges: number;
+      dueDate?: string;
+    }
+  | { ok: false; reason: CrmUtilitySkipReason };
+
+export type CrmUtilitySkipReason =
+  | "not_utility_module"
+  | "no_address_field"
+  | "no_amount_field"
+  | "missing_address"
+  | "missing_amount"
+  | "bad_month";
+
+export type CrmUtilitySyncResult = {
+  modules: number;
+  scanned: number;
+  applied: number;
+  skipped: number;
+  notice: string;
+};
+
+const MONTH_NAMES: Record<string, number> = {
+  january: 0,
+  jan: 0,
+  february: 1,
+  feb: 1,
+  march: 2,
+  mar: 2,
+  april: 3,
+  apr: 3,
+  may: 4,
+  june: 5,
+  jun: 5,
+  july: 6,
+  jul: 6,
+  august: 7,
+  aug: 7,
+  september: 8,
+  sep: 8,
+  sept: 8,
+  october: 9,
+  oct: 9,
+  november: 10,
+  nov: 10,
+  december: 11,
+  dec: 11,
+};
+
+const BALANCE_LABEL = /balance|account\s*total|running|past\s*due|amount\s*due|total\s*due/i;
+const STRICT_AMOUNT_LABEL =
+  /current\s*charges|city\s*(bill|charges)|monthly\s*(bill|charge|amount)|this\s*month|water\s*bill/i;
+const LOOSE_AMOUNT_LABEL = /^(amount|charges|bill)$/i;
+const ADDRESS_LABEL = /service\s*address|\baddress\b|\bstreet\b|property\s*address|^property$/i;
+const MONTH_LABEL = /billing\s*month|service\s*month|bill\s*month|\bperiod\b|^month$/i;
+const DUE_LABEL = /due\s*date|^due$/i;
+
+export function crmModuleLooksLikeUtilities(name: string): boolean {
+  return /\b(utilit(?:y|ies)|water\s*bills?|city\s*bills?|philly\s*water|\bwrd\b)/i.test(name);
+}
+
+function amountScore(label: string, loose: boolean): number {
+  const text = label.trim();
+  if (!text || BALANCE_LABEL.test(text)) return -1;
+  if (STRICT_AMOUNT_LABEL.test(text)) return 3;
+  if (loose && LOOSE_AMOUNT_LABEL.test(text)) return 1;
+  return 0;
+}
+
+function pickField(
+  fields: readonly CrmUtilityField[],
+  score: (label: string) => number,
+): CrmUtilityField | null {
+  let best: CrmUtilityField | null = null;
+  let bestScore = 0;
+  for (const field of fields) {
+    const value = score(field.label);
+    if (value > bestScore) {
+      best = field;
+      bestScore = value;
+    }
+  }
+  return best;
+}
+
+export function crmModuleHasUtilityAmount(
+  fields: readonly CrmUtilityField[],
+  loose: boolean,
+): boolean {
+  return fields.some((field) => amountScore(field.label, loose) > 0);
+}
+
+function firstOfMonthIso(date: Date): string {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
+    .toISOString()
+    .slice(0, 10);
+}
+
+export function parseCrmMoney(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().replace(/[$,]/g, "");
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export function parseCrmServiceAddress(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!text || !/\d/.test(text)) return null;
+  return text;
+}
+
+export function resolveCrmBillingMonth(value: unknown, now: Date): string | null {
+  if (value === null || value === undefined || value === "") return firstOfMonthIso(now);
+  if (typeof value === "number" && Number.isFinite(value)) return null;
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!text) return firstOfMonthIso(now);
+  const iso = text.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/);
+  if (iso) {
+    const month = Number(iso[2]);
+    if (month < 1 || month > 12) return null;
+    return `${iso[1]}-${iso[2]}-01`;
+  }
+  const named = text.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (named) {
+    const month = MONTH_NAMES[named[1]!.toLowerCase()];
+    if (month === undefined) return null;
+    return firstOfMonthIso(new Date(Date.UTC(Number(named[2]), month, 1)));
+  }
+  return null;
+}
+
+function resolveCrmDueDate(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value.trim();
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  return undefined;
+}
+
+function readValue(values: Record<string, unknown>, field: CrmUtilityField | null): unknown {
+  if (!field) return undefined;
+  return values[field.id] ?? values[field.label];
+}
+
+export function extractCrmUtilityBill(input: {
+  moduleName: string;
+  fields: readonly CrmUtilityField[];
+  values: Record<string, unknown>;
+  now: Date;
+}): CrmUtilityBillExtract {
+  const loose = crmModuleLooksLikeUtilities(input.moduleName);
+  const hasAmount = crmModuleHasUtilityAmount(input.fields, loose);
+  if (!loose && !hasAmount) return { ok: false, reason: "not_utility_module" };
+
+  const addressField = pickField(input.fields, (label) => (ADDRESS_LABEL.test(label) ? 1 : 0));
+  const amountField = pickField(input.fields, (label) => amountScore(label, loose));
+  const monthField = pickField(input.fields, (label) => (MONTH_LABEL.test(label) ? 1 : 0));
+  const dueField = pickField(input.fields, (label) =>
+    DUE_LABEL.test(label) && !BALANCE_LABEL.test(label) ? 1 : 0,
+  );
+
+  if (!addressField) return { ok: false, reason: "no_address_field" };
+  if (!amountField) return { ok: false, reason: "no_amount_field" };
+
+  const serviceAddress = parseCrmServiceAddress(readValue(input.values, addressField));
+  if (!serviceAddress) return { ok: false, reason: "missing_address" };
+  const currentCharges = parseCrmMoney(readValue(input.values, amountField));
+  if (currentCharges === null) return { ok: false, reason: "missing_amount" };
+  const billingMonth = resolveCrmBillingMonth(readValue(input.values, monthField), input.now);
+  if (!billingMonth) return { ok: false, reason: "bad_month" };
+  const dueDate = resolveCrmDueDate(readValue(input.values, dueField));
+  return {
+    ok: true,
+    serviceAddress,
+    billingMonth,
+    currentCharges,
+    ...(dueDate ? { dueDate } : {}),
+  };
+}
+
+export function crmUtilitySyncNotice(result: Omit<CrmUtilitySyncResult, "notice">): string {
+  if (result.modules === 0) {
+    return "No CRM utility sheet found. Add a module named Utilities (or Water bills) with Address and Current charges. Do not use Account balance.";
+  }
+  if (result.scanned === 0) {
+    return "The CRM utility sheet has no rows yet.";
+  }
+  if (result.applied === 0) {
+    return `Read ${result.scanned} CRM row(s); none had a street address and Current charges.`;
+  }
+  const copied = `Copied ${result.applied} city bill amount(s) from CRM.`;
+  if (result.skipped === 0) return copied;
+  return `${copied} Skipped ${result.skipped} row(s) that were missing a street address or Current charges.`;
+}
+
+async function workspaceIdForOrg(
+  prisma: PrismaClient,
+  organizationId: string,
+  knownWorkspaceId?: string,
+): Promise<string | null> {
+  if (knownWorkspaceId) return knownWorkspaceId;
+  const workspace = await prisma.workspace.findUnique({
+    where: { organizationId },
+    select: { id: true },
+  });
+  return workspace?.id ?? null;
+}
+
+export async function applyCrmUtilityBillRecord(
+  prisma: PrismaClient,
+  input: {
+    organizationId: string;
+    workspaceId?: string;
+    moduleName: string;
+    fields: readonly CrmUtilityField[];
+    values: Record<string, unknown>;
+    now?: Date;
+  },
+): Promise<"applied" | "skipped"> {
+  const extracted = extractCrmUtilityBill({
+    moduleName: input.moduleName,
+    fields: input.fields,
+    values: input.values,
+    now: input.now ?? new Date(),
+  });
+  if (!extracted.ok) return "skipped";
+  const workspaceId = await workspaceIdForOrg(prisma, input.organizationId, input.workspaceId);
+  if (!workspaceId) return "skipped";
+  await upsertCityUtilityBill(prisma, {
+    workspaceId,
+    serviceAddress: extracted.serviceAddress,
+    billingMonth: extracted.billingMonth,
+    currentCharges: extracted.currentCharges,
+    dueDate: extracted.dueDate,
+    sourceNote: `CRM ${input.moduleName}`,
+    sourceKind: "crm",
+  });
+  return "applied";
+}
+
+export async function syncWaterBillsFromCrm(
+  prisma: PrismaClient,
+  input: { organizationId: string; workspaceId: string; now?: Date },
+): Promise<CrmUtilitySyncResult> {
+  const now = input.now ?? new Date();
+  const modules = await prisma.crmModule.findMany({
+    where: { organizationId: input.organizationId },
+    include: { fields: true },
+    orderBy: { position: "asc" },
+  });
+  const eligible = modules.filter((module) => {
+    const fields = module.fields.map((field) => ({ id: field.id, label: field.label }));
+    return crmModuleLooksLikeUtilities(module.name) || crmModuleHasUtilityAmount(fields, false);
+  });
+  let scanned = 0;
+  let applied = 0;
+  let skipped = 0;
+  for (const module of eligible) {
+    const fields = module.fields.map((field) => ({ id: field.id, label: field.label }));
+    const records = await prisma.crmModuleRecord.findMany({
+      where: { organizationId: input.organizationId, moduleId: module.id },
+    });
+    for (const record of records) {
+      scanned += 1;
+      const values =
+        record.values && typeof record.values === "object" && !Array.isArray(record.values)
+          ? (record.values as Record<string, unknown>)
+          : {};
+      const result = await applyCrmUtilityBillRecord(prisma, {
+        organizationId: input.organizationId,
+        workspaceId: input.workspaceId,
+        moduleName: module.name,
+        fields,
+        values,
+        now,
+      });
+      if (result === "applied") applied += 1;
+      else skipped += 1;
+    }
+  }
+  const summary = { modules: eligible.length, scanned, applied, skipped };
+  return { ...summary, notice: crmUtilitySyncNotice(summary) };
+}

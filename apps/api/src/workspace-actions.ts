@@ -20,6 +20,7 @@ import type {
   ReportGenerateInput,
   ReportSendResult,
   ReportUpdateInput,
+  SyncCityBillsFromCrmResult,
   UtilitiesOverview,
   WorkspaceAutomation,
   WorkspaceCredentialRow,
@@ -521,6 +522,26 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
         if (error instanceof RangeError) throw new WorkspaceActionError(error.message);
         throw error;
       }
+    },
+
+    async syncFromCrm(actor: ChargeActor): Promise<SyncCityBillsFromCrmResult> {
+      const workspace = await requireWorkspace(actor);
+      const result = await reads.syncCityBillsFromCrm(actor);
+      await logActivity({
+        workspaceId: workspace.id,
+        channel: "utilities",
+        kind: "crm_city_bills_synced",
+        title: "Synced city water bills from CRM",
+        summary: result.notice,
+        actor: actor.email,
+        payload: {
+          modules: result.modules,
+          scanned: result.scanned,
+          applied: result.applied,
+          skipped: result.skipped,
+        },
+      });
+      return result;
     },
 
     /** Edit the amount or memo ahead of posting. A skipped charge comes back to pending. */

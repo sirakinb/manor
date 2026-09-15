@@ -6,6 +6,7 @@ import type {
   LeasingSnapshot,
   RecordCityUtilityBill,
   SocialSnapshot,
+  SyncCityBillsFromCrmResult,
   UtilitiesOverview,
   UtilityBillingTarget,
   VoiceCallDetail,
@@ -26,7 +27,9 @@ import type {
 } from "@rakazo/contracts";
 import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
 import { Prisma, type PrismaClient } from "./client.js";
+import { syncWaterBillsFromCrm } from "./crm-utility-bills.js";
 import { IsolationError, type OrganizationScope } from "./scope.js";
+import { upsertCityUtilityBill } from "./utility-city-bills.js";
 import { allocateLeasesForBillingMonth, type UtilityLeaseTerm } from "./utility-leases.js";
 import {
   matchSource,
@@ -77,28 +80,6 @@ const deltaPct = (current: number, previous: number): number | null =>
 /** "September 2026", the memo month of a bill. */
 const monthLabel = (value: Date): string =>
   `${value.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${value.getUTCFullYear()}`;
-
-/** Byte-identical enough to the Python/SQL street normalizer for matching bills. */
-function normStreetAddr(address: string): string {
-  let text = address.replace(/[.,]/g, "").toLowerCase();
-  const expansions: [RegExp, string][] = [
-    [/\bst\b/g, "street"],
-    [/\bave\b/g, "avenue"],
-    [/\brd\b/g, "road"],
-    [/\bdr\b/g, "drive"],
-    [/\bn\b/g, "north"],
-    [/\bs\b/g, "south"],
-    [/\be\b/g, "east"],
-    [/\bw\b/g, "west"],
-  ];
-  for (const [pattern, replacement] of expansions) text = text.replace(pattern, replacement);
-  return text.replace(/\s+/g, " ").trim();
-}
-
-function firstOfMonthUtc(dayValue: string): Date {
-  const [year, month] = dayValue.split("-").map(Number);
-  return new Date(Date.UTC(year!, (month ?? 1) - 1, 1));
-}
 
 // ── Row mappers ──────────────────────────────────────────────────────────────
 
@@ -1271,66 +1252,26 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       input: RecordCityUtilityBill,
     ): Promise<UtilitiesOverview> {
       const workspace = await requireWorkspace(actor);
-      if (!Number.isFinite(input.currentCharges) || input.currentCharges < 0) {
-        throw new RangeError("currentCharges must be the city's monthly current charges");
-      }
-      const addressNorm = normStreetAddr(input.serviceAddress);
-      const billingMonth = firstOfMonthUtc(input.billingMonth);
-      const due =
-        input.dueDate === undefined
-          ? undefined
-          : new Date(
-              Date.UTC(
-                Number(input.dueDate.slice(0, 4)),
-                Number(input.dueDate.slice(5, 7)) - 1,
-                Number(input.dueDate.slice(8, 10)),
-              ),
-            );
-      const matches = await prisma.workspaceWaterBill.findMany({
-        where: {
-          workspaceId: workspace.id,
-          utility: "water",
-          serviceAddressNorm: addressNorm,
-          billingMonth,
-        },
-        orderBy: { createdAt: "desc" },
+      await upsertCityUtilityBill(prisma, {
+        workspaceId: workspace.id,
+        serviceAddress: input.serviceAddress,
+        billingMonth: input.billingMonth,
+        currentCharges: input.currentCharges,
+        dueDate: input.dueDate,
+        sourceNote: input.sourceNote,
+        sourceKind: "city_bill",
       });
-      const existing =
-        matches.find((row) => !row.gmailMessageId.startsWith("city-bill:")) ?? matches[0];
-      const note = input.sourceNote?.trim() || "city bill current charges";
-      if (existing) {
-        await prisma.workspaceWaterBill.update({
-          where: { id: existing.id },
-          data: {
-            currentCharges: input.currentCharges,
-            dueDate: due === undefined ? existing.dueDate : due,
-            billingMonth,
-            parseStatus: "parsed",
-            parseNotes: note,
-            serviceAddress: existing.serviceAddress ?? input.serviceAddress,
-            serviceAddressNorm: addressNorm,
-          },
-        });
-      } else {
-        const monthKey = day(billingMonth);
-        await prisma.workspaceWaterBill.create({
-          data: {
-            workspaceId: workspace.id,
-            utility: "water",
-            gmailMessageId: `city-bill:${addressNorm}:${monthKey?.slice(0, 7)}`,
-            billIndex: 0,
-            serviceAddress: input.serviceAddress,
-            serviceAddressNorm: addressNorm,
-            currentCharges: input.currentCharges,
-            dueDate: due ?? null,
-            billingMonth,
-            parseStatus: "parsed",
-            parseNotes: note,
-            sourceKind: "city_bill",
-          },
-        });
-      }
       return utilitiesOverview(workspace.id);
+    },
+
+    async syncCityBillsFromCrm(actor: WorkspaceActorScope): Promise<SyncCityBillsFromCrmResult> {
+      const workspace = await requireWorkspace(actor);
+      const sync = await syncWaterBillsFromCrm(prisma, {
+        organizationId: actor.organizationId,
+        workspaceId: workspace.id,
+        now: now(),
+      });
+      return { ...sync, overview: await utilitiesOverview(workspace.id) };
     },
 
     async listActivities(

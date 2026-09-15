@@ -89,6 +89,9 @@ export function UtilitiesSection({
   );
   const [search, setSearch] = useState("");
   const [propertyFilter, setPropertyFilter] = useState<string | null>(null);
+  const [crmSyncBusy, setCrmSyncBusy] = useState(false);
+  const [crmSyncNotice, setCrmSyncNotice] = useState<string | null>(null);
+  const [crmSyncError, setCrmSyncError] = useState<string | null>(null);
 
   const targetLabel: Record<UtilityBillingTarget["targetStatus"], string> = {
     blocked: t`Manual handling`,
@@ -164,6 +167,21 @@ export function UtilitiesSection({
     setPropertyFilter(null);
   }
 
+  async function syncFromCrm() {
+    setCrmSyncBusy(true);
+    setCrmSyncError(null);
+    try {
+      const result = await rpc.workspace.utilities.syncFromCrm({});
+      setData(result.overview);
+      setCrmSyncNotice(result.notice);
+    } catch (cause) {
+      setCrmSyncNotice(null);
+      setCrmSyncError(errorMessage(cause, t`Could not sync from CRM`));
+    } finally {
+      setCrmSyncBusy(false);
+    }
+  }
+
   async function postAll() {
     setPostAllBusy(true);
     setPostAllError(null);
@@ -227,20 +245,31 @@ export function UtilitiesSection({
                 { key: "bills", label: t`Bills` },
               ]}
             />
-            <label className="relative w-full sm:w-64">
-              <Search
-                size={14}
-                className="pointer-events-none absolute top-2.5 left-3 text-[#A6A6AD]"
-              />
-              <input
-                className={`${INPUT} pl-9`}
-                aria-label={t`Search properties or bills`}
-                placeholder={t`Search address…`}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <span data-testid="workspace-sync-from-crm">
+                <BuiButton onClick={() => void syncFromCrm()} disabled={crmSyncBusy}>
+                  {t`Sync from CRM`}
+                </BuiButton>
+              </span>
+              <label className="relative w-full sm:w-64">
+                <Search
+                  size={14}
+                  className="pointer-events-none absolute top-2.5 left-3 text-[#A6A6AD]"
+                />
+                <input
+                  className={`${INPUT} pl-9`}
+                  aria-label={t`Search properties or bills`}
+                  placeholder={t`Search address…`}
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+            </div>
           </div>
+          {crmSyncNotice ? (
+            <p className="mt-2 text-[12px] text-[var(--ws-muted)]">{crmSyncNotice}</p>
+          ) : null}
+          {crmSyncError ? <ErrorLine message={crmSyncError} /> : null}
 
           {view === "bills" ? (
             <Card

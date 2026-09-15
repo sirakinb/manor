@@ -527,6 +527,16 @@ export const UtilitiesOverviewSchema = z.object({
 });
 export type UtilitiesOverview = z.infer<typeof UtilitiesOverviewSchema>;
 
+export const SyncCityBillsFromCrmResultSchema = z.object({
+  modules: z.number().int().nonnegative(),
+  scanned: z.number().int().nonnegative(),
+  applied: z.number().int().nonnegative(),
+  skipped: z.number().int().nonnegative(),
+  notice: z.string(),
+  overview: UtilitiesOverviewSchema,
+});
+export type SyncCityBillsFromCrmResult = z.infer<typeof SyncCityBillsFromCrmResultSchema>;
+
 // ── Skills and context ───────────────────────────────────────────────────────
 
 export const WorkspaceSkillRowSchema = z.object({

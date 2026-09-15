@@ -106,8 +106,11 @@ fills months no dated peer already covers. `billAmount` is
 the city's **current charges** for that billing month (`currentCharges`).
 The WRD notice's Total account balance is stored as `accountBalance` and
 is never the pass-through amount. Rows without city current charges stay
-`needs_review` until a city statement (PDF/email line) or
+`needs_review` until a city statement (PDF/email line), the CRM utility sheet
+(`syncFromCrm` / `workspace_sync_city_bills_from_crm`), or
 `recordCityBill` / `workspace_record_city_utility_bill` records them.
+Gmail still identifies which mapped properties have a bill; CRM current charges
+are the dollar amount when that sheet exists. Account balance is never used.
 Posting to Buildium uses that city amount and the bill's billing month so
 the ledger month matches. Each target includes `months`: every recorded
 billing month for that property with the city current charges (newest

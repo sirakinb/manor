@@ -85,6 +85,7 @@ export const workspaceToolSchemas = {
       sourceNote: z.string().trim().max(400).optional(),
     })
     .strict(),
+  workspace_sync_city_bills_from_crm: empty,
   workspace_system: empty,
   workspace_activities: z
     .object({
@@ -134,6 +135,8 @@ export const workspaceToolDescriptions: Record<keyof typeof workspaceToolSchemas
     "Read water bills and charge review status. This tool does not post charges. Bill amounts are the city's current charges for that month, not the running account balance.",
   workspace_record_city_utility_bill:
     "Record the city's current charges for one property and billing month after reading the city bill (PDF, portal, or Gmail attachment). Use the statement's Current charges, never the running Total account balance and never a subtracted estimate. Does not email anyone and does not post to Buildium.",
+  workspace_sync_city_bills_from_crm:
+    "Copy city current charges from the organization's CRM utility sheet into Utilities. Gmail still identifies which properties have a bill; CRM is the source of the dollar amount. Uses Address and Current charges columns (not Account balance). Does not email anyone and does not post to Buildium.",
   workspace_system: "Read pipeline health and synchronization status.",
   workspace_activities: "Read recent workspace activity.",
   workspace_automations:
@@ -154,7 +157,10 @@ export const externalWorkspaceToolSchemas = {
 export const WORKSPACE_EXTERNAL_TOOL_NAMES = (
   Object.keys(workspaceToolSchemas) as (keyof typeof workspaceToolSchemas)[]
 ).filter(
-  (name) => name !== "workspace_run_automation" && name !== "workspace_record_city_utility_bill",
+  (name) =>
+    name !== "workspace_run_automation" &&
+    name !== "workspace_record_city_utility_bill" &&
+    name !== "workspace_sync_city_bills_from_crm",
 );
 
 const TOOL_CHANNELS: Partial<Record<keyof typeof workspaceToolSchemas, string>> = {
@@ -168,6 +174,7 @@ const TOOL_CHANNELS: Partial<Record<keyof typeof workspaceToolSchemas, string>> 
   workspace_rentals: "leasing",
   workspace_utilities: "utilities",
   workspace_record_city_utility_bill: "utilities",
+  workspace_sync_city_bills_from_crm: "utilities",
 };
 
 /** Shared by organization documentation, external discovery and execution. */
