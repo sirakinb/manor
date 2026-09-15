@@ -136,7 +136,7 @@ export const workspaceToolDescriptions: Record<keyof typeof workspaceToolSchemas
   workspace_record_city_utility_bill:
     "Record the city's current charges for one property and billing month after reading the city bill (PDF, portal, or Gmail attachment). Use the statement's Current charges, never the running Total account balance and never a subtracted estimate. Does not email anyone and does not post to Buildium.",
   workspace_sync_city_bills_from_crm:
-    "Copy city current charges from the organization's CRM utility sheet into Utilities. Gmail still identifies which properties have a bill; CRM is the source of the dollar amount. Uses Address and Current charges columns (not Account balance). Does not email anyone and does not post to Buildium.",
+    "Copy city current charges from the organization's CRM water bills sheet onto Gmail notices that share the same address and due date. If CRM does not have that due date yet, the daily water automation retries. Uses Address, Due date, and Current charges (not Account balance). Does not email anyone and does not post to Buildium.",
   workspace_system: "Read pipeline health and synchronization status.",
   workspace_activities: "Read recent workspace activity.",
   workspace_automations:

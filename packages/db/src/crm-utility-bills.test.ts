@@ -3,9 +3,12 @@ import {
   crmModuleLooksLikeUtilities,
   crmUtilitySyncNotice,
   extractCrmUtilityBill,
+  indexCrmBillsByDueDate,
+  matchCrmBillForNotice,
   parseCrmMoney,
   parseCrmServiceAddress,
   resolveCrmBillingMonth,
+  resolveCrmDueDate,
 } from "./crm-utility-bills.js";
 
 const now = new Date(Date.UTC(2026, 8, 15));
@@ -84,11 +87,17 @@ describe("extractCrmUtilityBill", () => {
         fields: [
           { id: "addr", label: "Address" },
           { id: "amt", label: "Amount" },
+          { id: "due", label: "Due date" },
         ],
-        values: { addr: "12 Test St", amt: 84.5 },
+        values: { addr: "12 Test St", amt: 84.5, due: "2026-09-29" },
         now,
       }),
-    ).toMatchObject({ ok: true, currentCharges: 84.5, billingMonth: "2026-09-01" });
+    ).toMatchObject({
+      ok: true,
+      currentCharges: 84.5,
+      billingMonth: "2026-09-01",
+      dueDate: "2026-09-29",
+    });
     expect(
       extractCrmUtilityBill({
         moduleName: "Water bills",
@@ -123,21 +132,75 @@ describe("extractCrmUtilityBill", () => {
         fields: [
           { id: "addr", label: "Property" },
           { id: "charges", label: "Current charges" },
+          { id: "due", label: "Due date" },
         ],
-        values: { addr: "12 Test St", charges: 70 },
+        values: { addr: "12 Test St", charges: 70, due: "2026-09-29" },
         now,
       }),
-    ).toMatchObject({ ok: true, currentCharges: 70, serviceAddress: "12 Test St" });
+    ).toMatchObject({
+      ok: true,
+      currentCharges: 70,
+      serviceAddress: "12 Test St",
+      dueDate: "2026-09-29",
+    });
+  });
+
+  it("waits when the CRM row has no due date to line up with Gmail", () => {
+    expect(
+      extractCrmUtilityBill({
+        moduleName: "Water bills",
+        fields: [
+          { id: "addr", label: "Address" },
+          { id: "charges", label: "Current charges" },
+        ],
+        values: { addr: "12 Test St", charges: 70.12 },
+        now,
+      }),
+    ).toEqual({ ok: false, reason: "missing_due_date" });
+  });
+});
+
+describe("resolveCrmDueDate", () => {
+  it("parses CRM date cells and WRD-style due dates", () => {
+    expect(resolveCrmDueDate("2026-09-29")).toBe("2026-09-29");
+    expect(resolveCrmDueDate("Sep. 29, 2026")).toBe("2026-09-29");
+    expect(resolveCrmDueDate("September 29, 2026")).toBe("2026-09-29");
+  });
+});
+
+describe("indexCrmBillsByDueDate", () => {
+  const july = {
+    ok: true as const,
+    serviceAddress: "12 Test St",
+    billingMonth: "2026-07-01",
+    currentCharges: 70.12,
+    dueDate: "2026-07-21",
+  };
+
+  it("lines a Gmail notice up with the CRM row that shares its due date", () => {
+    const index = indexCrmBillsByDueDate([july]);
+    expect(matchCrmBillForNotice(index, "12 TEST STREET", "2026-07-21")).toMatchObject({
+      currentCharges: 70.12,
+    });
+    expect(matchCrmBillForNotice(index, "12 Test St", "2026-08-21")).toBeNull();
+  });
+
+  it("does not pick an amount when two CRM rows disagree for the same due date", () => {
+    const index = indexCrmBillsByDueDate([july, { ...july, currentCharges: 80 }]);
+    expect(matchCrmBillForNotice(index, "12 Test St", "2026-07-21")).toBe("ambiguous");
   });
 });
 
 describe("crmUtilitySyncNotice", () => {
   it("explains an empty CRM sheet without inventing amounts", () => {
-    expect(crmUtilitySyncNotice({ modules: 0, scanned: 0, applied: 0, skipped: 0 })).toContain(
-      "Current charges",
-    );
-    expect(crmUtilitySyncNotice({ modules: 1, scanned: 4, applied: 3, skipped: 1 })).toContain(
-      "Copied 3",
-    );
+    expect(
+      crmUtilitySyncNotice({ modules: 0, scanned: 0, applied: 0, skipped: 0, waiting: 0 }),
+    ).toContain("Current charges");
+    expect(
+      crmUtilitySyncNotice({ modules: 1, scanned: 4, applied: 3, skipped: 0, waiting: 1 }),
+    ).toContain("Matched 3");
+    expect(
+      crmUtilitySyncNotice({ modules: 1, scanned: 4, applied: 0, skipped: 2, waiting: 2 }),
+    ).toContain("waiting on a matching CRM due date");
   });
 });

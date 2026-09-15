@@ -2,9 +2,11 @@
 workspace_water_bills (upsert on gmailMessageId + billIndex).
 
 The notice is not the city bill. Current charges come from a city-statement
-line or PDF attachment when present; the running Total account balance is
-stored only as account metadata. A scheduled run polls on Mondays and two
-days before month end; a manual run always polls.
+line, a PDF attachment, or the CRM water bills sheet matched by service
+address and due date. The running Total account balance is stored only as
+account metadata. A scheduled run polls Gmail on Mondays and two days
+before month end; other daily ticks skip Gmail so the workspace can retry
+CRM due dates. A manual run always polls Gmail.
 """
 
 from __future__ import annotations
@@ -126,7 +128,7 @@ def _preserve_city_amount(cur, workspace_id: str, record: dict, current_charges:
 def run(context: RunContext) -> RunResult:
     today = datetime.now(ZoneInfo(context.timezone)).date()
     if not should_poll_today(today, context.manual):
-        raise SkippedRun("not a polling day (Mondays and two days before month end)")
+        raise SkippedRun("not a Gmail polling day (Mondays and two days before month end)")
     credential = context.credential("gmail")
     for key in ("clientId", "clientSecret", "refreshToken"):
         if not credential.get(key):

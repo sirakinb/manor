@@ -214,7 +214,7 @@ describe("teamFromPipes", () => {
       channel: "utilities",
       status: "setting_up",
       lastAt: null,
-      cadence: "weekly + month-end",
+      cadence: "daily",
     });
   });
 

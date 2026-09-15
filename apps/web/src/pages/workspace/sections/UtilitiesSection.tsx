@@ -268,7 +268,11 @@ export function UtilitiesSection({
           </div>
           {crmSyncNotice ? (
             <p className="mt-2 text-[12px] text-[var(--ws-muted)]">{crmSyncNotice}</p>
-          ) : null}
+          ) : (
+            <p className="mt-2 text-[12px] text-[var(--ws-muted)]">
+              {t`Gmail notices match the CRM water bills sheet by address and due date. If that due date is not in CRM yet, the water job checks again each morning.`}
+            </p>
+          )}
           {crmSyncError ? <ErrorLine message={crmSyncError} /> : null}
 
           {view === "bills" ? (

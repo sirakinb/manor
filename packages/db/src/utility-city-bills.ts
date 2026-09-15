@@ -65,7 +65,19 @@ export async function upsertCityUtilityBill(
   const addressNorm = normStreetAddr(input.serviceAddress);
   const billingMonth = firstOfMonthUtc(input.billingMonth);
   const due = parseDueDateUtc(input.dueDate);
-  const matches = await prisma.workspaceWaterBill.findMany({
+  const byDue =
+    due === undefined
+      ? []
+      : await prisma.workspaceWaterBill.findMany({
+          where: {
+            workspaceId: input.workspaceId,
+            utility: "water",
+            serviceAddressNorm: addressNorm,
+            dueDate: due,
+          },
+          orderBy: { createdAt: "desc" },
+        });
+  const byMonth = await prisma.workspaceWaterBill.findMany({
     where: {
       workspaceId: input.workspaceId,
       utility: "water",
@@ -74,6 +86,7 @@ export async function upsertCityUtilityBill(
     },
     orderBy: { createdAt: "desc" },
   });
+  const matches = byDue.length > 0 ? byDue : byMonth;
   const existing = matches.find((row) => !isSyntheticBillId(row.gmailMessageId)) ?? matches[0];
   const note = input.sourceNote?.trim() || "city bill current charges";
   if (existing) {
@@ -82,7 +95,7 @@ export async function upsertCityUtilityBill(
       data: {
         currentCharges: input.currentCharges,
         dueDate: due === undefined ? existing.dueDate : due,
-        billingMonth,
+        billingMonth: existing.billingMonth ?? billingMonth,
         parseStatus: "parsed",
         parseNotes: note,
         serviceAddress: existing.serviceAddress ?? input.serviceAddress,

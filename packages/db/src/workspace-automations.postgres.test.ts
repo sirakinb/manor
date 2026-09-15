@@ -57,7 +57,7 @@ describePostgres("workspace automations (PostgreSQL)", () => {
       ["recap", "recap", true, "idle"],
     ]);
     expect(first[0]!.nextRunAt).toBe("2026-09-04T12:40:00.000Z");
-    expect(first[1]!.nextRunAt).toBe("2026-09-07T12:00:00.000Z");
+    expect(first[1]!.nextRunAt).toBe("2026-09-05T12:00:00.000Z");
     expect(first[0]!.timezone).toBe("America/New_York");
     expect(first[0]!.lastRun).toBeNull();
 

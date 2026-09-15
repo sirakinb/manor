@@ -191,6 +191,7 @@ export async function executeWorkspaceTool(
             scanned: synced.scanned,
             applied: synced.applied,
             skipped: synced.skipped,
+            waiting: synced.waiting,
             notice: synced.notice,
           };
         }

@@ -532,6 +532,7 @@ export const SyncCityBillsFromCrmResultSchema = z.object({
   scanned: z.number().int().nonnegative(),
   applied: z.number().int().nonnegative(),
   skipped: z.number().int().nonnegative(),
+  waiting: z.number().int().nonnegative(),
   notice: z.string(),
   overview: UtilitiesOverviewSchema,
 });

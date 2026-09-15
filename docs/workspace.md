@@ -110,7 +110,9 @@ is never the pass-through amount. Rows without city current charges stay
 (`syncFromCrm` / `workspace_sync_city_bills_from_crm`), or
 `recordCityBill` / `workspace_record_city_utility_bill` records them.
 Gmail still identifies which mapped properties have a bill; CRM current charges
-are the dollar amount when that sheet exists. Account balance is never used.
+are the dollar amount when a Water bills row has the **same due date**. If the
+CRM sheet does not have that due date yet, the water automation retries each
+morning. Account balance is never used.
 Posting to Buildium uses that city amount and the bill's billing month so
 the ledger month matches. Each target includes `months`: every recorded
 billing month for that property with the city current charges (newest

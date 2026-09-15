@@ -539,6 +539,7 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
           scanned: result.scanned,
           applied: result.applied,
           skipped: result.skipped,
+          waiting: result.waiting,
         },
       });
       return result;
