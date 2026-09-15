@@ -2,13 +2,6 @@ import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import type { RakazoDesktopLocalComputerStatus } from "@rakazo/contracts";
 import {
-  isHomeDirectoryShare,
-  LOCAL_COMPUTER_DENIED_MESSAGE,
-  LOCAL_COMPUTER_HOME_ROOT_MESSAGE,
-  localComputerFolderName,
-} from "./local-computer-share.js";
-import { executeLocalFolderRpc } from "./local-folder-runtime.js";
-import {
   type BrowserWindow,
   dialog,
   Menu,
@@ -18,6 +11,13 @@ import {
   Tray,
 } from "electron";
 import { WebSocket } from "ws";
+import {
+  isHomeDirectoryShare,
+  LOCAL_COMPUTER_DENIED_MESSAGE,
+  LOCAL_COMPUTER_HOME_ROOT_MESSAGE,
+  localComputerFolderName,
+} from "./local-computer-share.js";
+import { executeLocalFolderRpc } from "./local-folder-runtime.js";
 
 const LOCAL_COMPUTER_PATH = "/local-computer";
 const TRAY_SHARING_TITLE = "Manor is using this Mac";
