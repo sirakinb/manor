@@ -9,6 +9,11 @@
       "development": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./local-computer": {
+      "types": "./src/local-computer.ts",
+      "development": "./src/local-computer.ts",
+      "default": "./src/local-computer.ts"
+    },
     "./node/load-root-env": {
       "types": "./src/node/load-root-env.ts",
       "development": "./src/node/load-root-env.ts",
