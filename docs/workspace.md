@@ -97,11 +97,12 @@ row reads stay in Prisma. All day math is UTC.
 active utility property joined to its Buildium property and to the Active
 leases on that property: `unmatched` (no property id), `no_active_lease`,
 `resolved` (exactly one lease, or several with `splitEvenly`), or
-`ambiguous`. A resolved target carries one charge per lease with
-`chargeShare` 1 or `round(1/n, 4)`. A **bill** matches a target by
-normalized address, takes the target's status (or `unmatched`), and emits
-one charge per target lease at `round(billAmount × share, 2)`, with the
-charge-post row for that lease folded in when one exists. `billAmount` is
+`ambiguous`. The roster lists those current Active leases. A **bill** matches a target by
+normalized address, then allocates charges to the Buildium lease(s) whose
+term covered **that billing month** (Past and Active). After a turnover,
+July posts to the old lease id and August to the new one. Two leases on
+the same unit in one month stay `ambiguous`. An undated Active lease only
+fills months no dated peer already covers. `billAmount` is
 the city's **current charges** for that billing month (`currentCharges`).
 The WRD notice's Total account balance is stored as `accountBalance` and
 is never the pass-through amount. Rows without city current charges stay
@@ -462,4 +463,5 @@ current lease allocation, this month's city bill when recorded, and the next ste
 bills whose service address is unmatched. Property bill links use the resolved
 utility-property ID, including when the bill address uses different formatting.
 The Bills view keeps charge review, skip/restore, and posting behind the existing
-confirmation flow. Bulk posting is only offered in the unfiltered, all-bills view.
+confirmation flow. Each month shows the Buildium lease number that covered it, so a
+turnover does not post last month's city bill onto the new tenant. Bulk posting is only offered in the unfiltered, all-bills view.

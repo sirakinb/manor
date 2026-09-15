@@ -468,6 +468,13 @@ export const UtilityBillingTargetSchema = z.object({
       billingMonth: DayString,
       billAmount: z.number().nullable(),
       dueDate: DayString.nullable(),
+      /// Buildium lease(s) that covered this billing month after a turnover.
+      leases: z.array(
+        z.object({
+          leaseId: z.number().int(),
+          unitNumber: z.string().nullable(),
+        }),
+      ),
     }),
   ),
 });

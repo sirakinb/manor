@@ -27,6 +27,7 @@ import type {
 import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
 import { Prisma, type PrismaClient } from "./client.js";
 import { IsolationError, type OrganizationScope } from "./scope.js";
+import { allocateLeasesForBillingMonth, type UtilityLeaseTerm } from "./utility-leases.js";
 import {
   matchSource,
   type PipeSpec,
@@ -396,7 +397,11 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
         : [],
       propertyIds.length
         ? prisma.workspaceBuildiumLease.findMany({
-            where: { workspaceId, status: "Active", propertyId: { in: propertyIds } },
+            where: {
+              workspaceId,
+              status: { in: ["Active", "Past"] },
+              propertyId: { in: propertyIds },
+            },
             orderBy: { leaseId: "asc" },
           })
         : [],
@@ -410,12 +415,27 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       buildiumProperties.map((row) => [row.propertyId, row.addressLine]),
     );
     const leasesByProperty = new Map<number, typeof leases>();
+    const activeByProperty = new Map<number, typeof leases>();
     for (const lease of leases) {
       if (lease.propertyId === null) continue;
       const list = leasesByProperty.get(lease.propertyId) ?? [];
       list.push(lease);
       leasesByProperty.set(lease.propertyId, list);
+      if (lease.status === "Active") {
+        const active = activeByProperty.get(lease.propertyId) ?? [];
+        active.push(lease);
+        activeByProperty.set(lease.propertyId, active);
+      }
     }
+    const asTerms = (rows: typeof leases): UtilityLeaseTerm[] =>
+      rows.map((lease) => ({
+        leaseId: lease.leaseId,
+        unitNumber: lease.unitNumber,
+        status: lease.status,
+        leaseFrom: day(lease.leaseFrom),
+        leaseTo: day(lease.leaseTo),
+        rent: lease.rent,
+      }));
 
     // One target per active utility property, resolved to the lease(s) that carry its charge.
     const targets: (Omit<UtilityBillingTarget, "months"> & {
@@ -423,7 +443,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       addressNorm: string;
     })[] = properties.map((property) => {
       const own =
-        property.propertyId === null ? [] : (leasesByProperty.get(property.propertyId) ?? []);
+        property.propertyId === null ? [] : (activeByProperty.get(property.propertyId) ?? []);
       const resolved = own.length === 1 || (own.length > 1 && property.splitEvenly);
       const targetStatus: UtilityBillingTarget["targetStatus"] =
         property.billingMode !== "pass_through"
@@ -491,6 +511,43 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
               );
         const cityAmount = bill.currentCharges;
         const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
+        const utilityProperty = properties.find((row) => row.id === target?.utilityPropertyId);
+        const propertyLeases =
+          target?.propertyId === null || target?.propertyId === undefined
+            ? []
+            : asTerms(leasesByProperty.get(target.propertyId) ?? []);
+        const monthAllocation =
+          target && target.billingMode === "pass_through" && target.propertyId !== null
+            ? allocateLeasesForBillingMonth(
+                propertyLeases,
+                day(bill.billingMonth),
+                day(monthStart)!,
+                utilityProperty?.splitEvenly ?? false,
+              )
+            : { status: "no_active_lease" as const, leases: [] };
+        const resolutionStatus = !target
+          ? "unmatched"
+          : target.billingMode !== "pass_through" || target.propertyId === null
+            ? target.targetStatus
+            : monthAllocation.status;
+        const monthLeases = resolutionStatus === "resolved" ? monthAllocation.leases : [];
+        const monthLeaseIds = new Set(monthLeases.map((lease) => lease.leaseId));
+        const extraPosted = bill.chargePosts.filter(
+          (post) => post.status === "posted" && !monthLeaseIds.has(post.leaseId),
+        );
+        const chargeLeases = [
+          ...monthLeases,
+          ...extraPosted.map((post) => {
+            const found = propertyLeases.find((lease) => lease.leaseId === post.leaseId);
+            return {
+              leaseId: post.leaseId,
+              unitNumber: found?.unitNumber ?? null,
+              leaseTo: found?.leaseTo ?? null,
+              rent: found?.rent ?? null,
+              chargeShare: 0,
+            };
+          }),
+        ];
         return {
           waterBillId: bill.id,
           utilityPropertyId: target?.utilityPropertyId ?? null,
@@ -504,35 +561,27 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
             cityAmount === null && bill.parseStatus === "parsed"
               ? "needs_review"
               : bill.parseStatus,
-          resolutionStatus: target?.targetStatus ?? "unmatched",
+          resolutionStatus,
           billingMode: target?.billingMode ?? null,
-          charges: (target?.leases ?? [])
-            .filter(
-              (lease) =>
-                target?.targetStatus === "resolved" ||
-                bill.chargePosts.some(
-                  (post) => post.leaseId === lease.leaseId && post.status === "posted",
-                ),
-            )
-            .map((lease) => {
-              const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
-              const status = post?.status;
-              return {
-                leaseId: lease.leaseId,
-                unitNumber: lease.unitNumber,
-                chargeShare: lease.chargeShare,
-                chargeAmount: cityAmount === null ? null : round(cityAmount * lease.chargeShare, 2),
-                postStatus:
-                  status === "posted" || status === "skipped" || status === "error"
-                    ? status
-                    : "pending",
-                postedAmount: post?.amount ?? null,
-                postedMemo: post?.memo ?? null,
-                buildiumChargeId: post?.buildiumChargeId ?? null,
-                postedAt: iso(post?.postedAt),
-                postError: post?.error ?? null,
-              };
-            }),
+          charges: chargeLeases.map((lease) => {
+            const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
+            const status = post?.status;
+            return {
+              leaseId: lease.leaseId,
+              unitNumber: lease.unitNumber,
+              chargeShare: lease.chargeShare,
+              chargeAmount: cityAmount === null ? null : round(cityAmount * lease.chargeShare, 2),
+              postStatus:
+                status === "posted" || status === "skipped" || status === "error"
+                  ? status
+                  : "pending",
+              postedAmount: post?.amount ?? null,
+              postedMemo: post?.memo ?? null,
+              buildiumChargeId: post?.buildiumChargeId ?? null,
+              postedAt: iso(post?.postedAt),
+              postError: post?.error ?? null,
+            };
+          }),
         };
       });
 
@@ -550,6 +599,10 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
             billingMonth: bill.billingMonth as string,
             billAmount: bill.billAmount,
             dueDate: bill.dueDate,
+            leases: bill.charges.map((charge) => ({
+              leaseId: charge.leaseId,
+              unitNumber: charge.unitNumber,
+            })),
           }))
           .sort((left, right) => right.billingMonth.localeCompare(left.billingMonth)),
       })),

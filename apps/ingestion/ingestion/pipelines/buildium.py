@@ -164,7 +164,7 @@ def run(context: RunContext) -> RunResult:
     now = utc_now()
 
     applicants = paginate(credential, "applicants")
-    leases = paginate(credential, "leases")
+    leases = paginate(credential, "leases", {"leasestatuses": ["Active", "Past"]})
     properties = paginate(credential, "rentals")
     listings = paginate(credential, "rentals/units/listings")
     units = paginate(credential, "rentals/units")

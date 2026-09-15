@@ -440,6 +440,90 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     ]);
   });
 
+  it("charges a past month to the previous Buildium lease after a turnover", async () => {
+    const priorStart = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 1, 1));
+    const priorEnd = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), 0));
+    await prisma.workspaceBuildiumProperty.create({
+      data: { workspaceId, propertyId: 1004, addressLine: "5 Turnover Alley" },
+    });
+    await prisma.workspaceBuildiumLease.createMany({
+      data: [
+        {
+          workspaceId,
+          leaseId: 40,
+          propertyId: 1004,
+          unitNumber: "A",
+          status: "Past",
+          rent: 1100,
+          leaseFrom: new Date(Date.UTC(NOW.getUTCFullYear(), 0, 1)),
+          leaseTo: priorEnd,
+        },
+        {
+          workspaceId,
+          leaseId: 41,
+          propertyId: 1004,
+          unitNumber: "A",
+          status: "Active",
+          rent: 1250,
+          leaseFrom: MONTH_START,
+          leaseTo: dayAfter(200),
+        },
+      ],
+    });
+    await prisma.workspaceUtilityProperty.create({
+      data: {
+        workspaceId,
+        address: "5 Turnover Alley",
+        addressNorm: "5 turnover alley",
+        propertyId: 1004,
+      },
+    });
+    await prisma.workspaceWaterBill.createMany({
+      data: [
+        {
+          workspaceId,
+          gmailMessageId: "m-turnover-prior",
+          serviceAddress: "5 TURNOVER ALLEY",
+          serviceAddressNorm: "5 turnover alley",
+          currentCharges: 70.12,
+          billingMonth: priorStart,
+          parseStatus: "parsed",
+        },
+        {
+          workspaceId,
+          gmailMessageId: "m-turnover-current",
+          serviceAddress: "5 TURNOVER ALLEY",
+          serviceAddressNorm: "5 turnover alley",
+          currentCharges: 84.5,
+          billingMonth: MONTH_START,
+          parseStatus: "parsed",
+        },
+      ],
+    });
+    const overview = await repos.utilitiesOverview(actor);
+    const target = overview.targets.find((row) => row.address === "5 Turnover Alley");
+    expect(target?.leases.map((lease) => lease.leaseId)).toEqual([41]);
+    expect(
+      target?.months.map((month) => [
+        month.billingMonth,
+        month.leases.map((lease) => lease.leaseId),
+      ]),
+    ).toEqual([
+      [dayOf(MONTH_START), [41]],
+      [dayOf(priorStart), [40]],
+    ]);
+    const priorBill = overview.bills.find(
+      (bill) =>
+        bill.billingMonth === dayOf(priorStart) && bill.serviceAddress === "5 TURNOVER ALLEY",
+    );
+    const currentBill = overview.bills.find(
+      (bill) =>
+        bill.billingMonth === dayOf(MONTH_START) && bill.serviceAddress === "5 TURNOVER ALLEY",
+    );
+    expect(priorBill?.charges.map((charge) => charge.leaseId)).toEqual([40]);
+    expect(currentBill?.charges.map((charge) => charge.leaseId)).toEqual([41]);
+  });
+
   it("summarizes leasing", async () => {
     const snapshot = await repos.leasingSnapshot(actor);
     expect(snapshot.leases).toMatchObject({

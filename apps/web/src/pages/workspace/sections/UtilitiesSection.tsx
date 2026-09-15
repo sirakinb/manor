@@ -397,6 +397,11 @@ export function UtilitiesSection({
                                     {formatMoney(row.billAmount)}
                                   </span>
                                 )}
+                                {row.leases.length > 0 ? (
+                                  <span className="text-[var(--ws-muted)]">
+                                    {` · ${row.leases.map((lease) => t`Lease #${lease.leaseId}`).join(", ")}`}
+                                  </span>
+                                ) : null}
                               </li>
                             ))}
                           </ul>
@@ -551,6 +556,18 @@ function MonthlyAmountsTable({
             key: "due",
             label: t`Due`,
             render: (row) => formatDate(row.dueDate),
+          },
+          {
+            key: "lease",
+            label: t`Lease`,
+            render: (row) =>
+              row.leases.length === 0 ? (
+                "—"
+              ) : (
+                <span className="whitespace-nowrap">
+                  {row.leases.map((lease) => t`Lease #${lease.leaseId}`).join(", ")}
+                </span>
+              ),
           },
         ]}
       />
@@ -752,7 +769,9 @@ function ChargeRow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const unitLabel = charge.unitNumber ? t`Unit ${charge.unitNumber}` : t`Lease ${charge.leaseId}`;
+  const unitLabel = charge.unitNumber
+    ? `${t`Unit ${charge.unitNumber}`} · ${t`Lease #${charge.leaseId}`}`
+    : t`Lease #${charge.leaseId}`;
   const key = { waterBillId: bill.waterBillId, leaseId: charge.leaseId };
   const editable = charge.postStatus === "pending" || charge.postStatus === "error";
 

@@ -116,11 +116,24 @@ test("workspace appears once the organization has one and its map opens sections
     await prisma.workspaceBuildiumLease.create({
       data: {
         workspaceId: workspace.id,
+        leaseId: 4999,
+        propertyId: 7101,
+        unitNumber: "A",
+        status: "Past",
+        rent: 1200,
+        leaseFrom: new Date("2026-01-01"),
+        leaseTo: new Date("2026-07-31"),
+      },
+    });
+    await prisma.workspaceBuildiumLease.create({
+      data: {
+        workspaceId: workspace.id,
         leaseId: 5101,
         propertyId: 7101,
         unitNumber: "A",
         status: "Active",
         rent: 1250,
+        leaseFrom: new Date("2026-08-01"),
         leaseTo: new Date("2027-06-30"),
       },
     });
@@ -385,6 +398,8 @@ test("workspace appears once the organization has one and its map opens sections
   const harborRow = page.getByRole("row").filter({ hasText: "12 Harbor Way" });
   await expect(harborRow).toContainText("$84.50");
   await expect(harborRow).toContainText("$70.12");
+  await expect(harborRow).toContainText("Lease #5101");
+  await expect(harborRow).toContainText("Lease #4999");
   await expect(harborRow).not.toContainText("$2,433.11");
   const utilityViewport = page.viewportSize()!;
   await page.setViewportSize({ width: 390, height: 844 });
@@ -406,6 +421,8 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByTestId("workspace-monthly-amounts")).toBeVisible();
   await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("$84.50");
   await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("$70.12");
+  await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("Lease #5101");
+  await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("Lease #4999");
   await expect(page.getByTestId("workspace-monthly-amounts")).not.toContainText("$2,433.11");
   await expect(page.getByTestId("workspace-bill")).toHaveCount(2);
   await expect(page.getByRole("button", { name: /Post all pending/ })).toBeHidden();

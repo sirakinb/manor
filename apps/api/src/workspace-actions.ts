@@ -234,7 +234,9 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
       );
     if (bill.resolutionStatus !== "resolved") {
       throw new WorkspaceActionError(
-        `This bill is ${bill.resolutionStatus.replace("_", " ")}; match it to a property with an active lease first`,
+        bill.resolutionStatus === "no_active_lease"
+          ? "No Buildium lease covered that billing month"
+          : `This bill is ${bill.resolutionStatus.replace("_", " ")}; match it to a property with an active lease first`,
       );
     }
     const charge = bill.charges.find((candidate) => candidate.leaseId === leaseId);
