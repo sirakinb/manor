@@ -7,14 +7,6 @@ import { BuiButton } from "./beautiful-ui/primitives";
 
 const DEVICE_TOKEN_KEY = "manor.local-computer.device-token";
 
-function readStoredToken(): string | null {
-  try {
-    return window.localStorage.getItem(DEVICE_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
 function writeStoredToken(token: string) {
   try {
     window.localStorage.setItem(DEVICE_TOKEN_KEY, token);
@@ -53,14 +45,6 @@ export function ShareThisMacSettings({ onSharingChange }: { onSharingChange?: ()
 
   if (!desktop) return null;
 
-  async function ensureToken(): Promise<string> {
-    const stored = readStoredToken();
-    if (stored) return stored;
-    const created = await rpc.localComputer.register({ name: "This Mac" });
-    writeStoredToken(created.token);
-    return created.token;
-  }
-
   async function share() {
     if (!desktop || pending) return;
     setPending(true);
@@ -68,15 +52,13 @@ export function ShareThisMacSettings({ onSharingChange }: { onSharingChange?: ()
     try {
       const folderPath = await desktop.pickFolder();
       if (!folderPath) return;
-      let token = await ensureToken();
-      try {
-        await desktop.connect({ origin: window.location.origin, token, folderPath });
-      } catch {
-        const created = await rpc.localComputer.register({ name: "This Mac" });
-        writeStoredToken(created.token);
-        token = created.token;
-        await desktop.connect({ origin: window.location.origin, token, folderPath });
-      }
+      const created = await rpc.localComputer.register({ name: "This Mac" });
+      writeStoredToken(created.token);
+      await desktop.connect({
+        origin: window.location.origin,
+        token: created.token,
+        folderPath,
+      });
       onSharingChange?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not share this Mac`);

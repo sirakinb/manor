@@ -148,7 +148,29 @@ async function handleLocalComputerSocket(
   token: string,
   deps: { prisma: PrismaClient; realtime: RealtimeFanout },
 ): Promise<void> {
-  const device = await deps.prisma.localDevice.findFirst({
+  let sessionId: string | null = null;
+  let unsubscribe: (() => Promise<void>) | undefined;
+  const pending = new Map<string, (outcome: { result?: unknown; error?: string }) => void>();
+  let inbound: WebSocket.RawData[] | null = [];
+  let device: { id: string; userId: string; spaceId: string } | null = null;
+
+  const send = (payload: unknown) => {
+    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
+  };
+
+  ws.on("message", (raw) => {
+    if (inbound) {
+      inbound.push(raw);
+      return;
+    }
+    handleMessage(raw);
+  });
+
+  ws.on("close", () => {
+    void disconnect();
+  });
+
+  device = await deps.prisma.localDevice.findFirst({
     where: { tokenHash: hashLocalDeviceToken(token), revokedAt: null },
   });
   if (!device) {
@@ -156,26 +178,15 @@ async function handleLocalComputerSocket(
     return;
   }
 
-  let sessionId: string | null = null;
-  let unsubscribe: (() => Promise<void>) | undefined;
-  const pending = new Map<string, (outcome: { result?: unknown; error?: string }) => void>();
+  const buffered = inbound;
+  inbound = null;
+  for (const raw of buffered ?? []) {
+    handleMessage(raw);
+  }
 
-  const send = (payload: unknown) => {
-    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
-  };
-
-  const disconnect = async () => {
-    await unsubscribe?.();
-    unsubscribe = undefined;
-    if (sessionId) {
-      await deps.prisma.localComputerSession.updateMany({
-        where: { id: sessionId, connected: true },
-        data: { connected: false, stoppedAt: new Date() },
-      });
-    }
-  };
-
-  ws.on("message", (raw) => {
+  function handleMessage(raw: WebSocket.RawData) {
+    const currentDevice = device;
+    if (!currentDevice) return;
     let message: Record<string, unknown>;
     try {
       message = JSON.parse(String(raw)) as Record<string, unknown>;
@@ -186,21 +197,21 @@ async function handleLocalComputerSocket(
       if (message.type === "hello") {
         const folderName = String(message.folderName ?? "folder").slice(0, 120);
         await deps.prisma.localComputerSession.updateMany({
-          where: { userId: device.userId, spaceId: device.spaceId, connected: true },
+          where: { userId: currentDevice.userId, spaceId: currentDevice.spaceId, connected: true },
           data: { connected: false, stoppedAt: new Date() },
         });
         const computer = await ensureComputerRecord(deps.prisma, {
           mode: "local",
-          spaceId: device.spaceId,
-          userId: device.userId,
+          spaceId: currentDevice.spaceId,
+          userId: currentDevice.userId,
           kind: "local",
         });
         const session = await deps.prisma.localComputerSession.create({
           data: {
-            deviceId: device.id,
+            deviceId: currentDevice.id,
             computerId: computer.id,
-            spaceId: device.spaceId,
-            userId: device.userId,
+            spaceId: currentDevice.spaceId,
+            userId: currentDevice.userId,
             folderName,
             connected: true,
           },
@@ -211,7 +222,7 @@ async function handleLocalComputerSocket(
           data: { kind: "local", state: "running", providerRef: session.id },
         });
         await deps.prisma.localDevice.update({
-          where: { id: device.id },
+          where: { id: currentDevice.id },
           data: { lastSeenAt: new Date() },
         });
         unsubscribe = await deps.realtime.subscribe(
@@ -239,11 +250,18 @@ async function handleLocalComputerSocket(
         ws.close(1000, "stopped");
       }
     })();
-  });
+  }
 
-  ws.on("close", () => {
-    void disconnect();
-  });
+  async function disconnect() {
+    await unsubscribe?.();
+    unsubscribe = undefined;
+    if (sessionId) {
+      await deps.prisma.localComputerSession.updateMany({
+        where: { id: sessionId, connected: true },
+        data: { connected: false, stoppedAt: new Date() },
+      });
+    }
+  }
 
   async function dispatchCommand(commandId: string) {
     if (!sessionId) return;
