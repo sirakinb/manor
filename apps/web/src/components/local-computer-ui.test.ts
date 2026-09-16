@@ -50,4 +50,14 @@ describe("local computer UI surfaces", () => {
       "This bot is using a shared folder on this laptop. Files and shell only.",
     );
   });
+
+  it("registers a new device token on each share", () => {
+    const share = read("ShareThisMacSettings.tsx");
+    expect(share).toContain("rpc.localComputer.register");
+    expect(share).toContain("writeStoredToken(created.token)");
+    expect(share).toContain("token: created.token");
+    expect(share).not.toContain("readStoredToken");
+    expect(share).not.toContain("if (stored) return stored");
+    expect(share).not.toContain("ensureToken");
+  });
 });
