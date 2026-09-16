@@ -17,9 +17,9 @@ import {
   LOCAL_COMPUTER_HOME_ROOT_MESSAGE,
   localComputerFolderName,
 } from "./local-computer-share.js";
+import { closeLocalComputerSocket, localComputerWebsocketUrl } from "./local-computer-socket.js";
 import { executeLocalFolderRpc } from "./local-folder-runtime.js";
 
-const LOCAL_COMPUTER_PATH = "/local-computer";
 const TRAY_SHARING_TITLE = "Manor is using this Mac";
 
 type RpcIncoming = {
@@ -41,16 +41,6 @@ export type LocalComputerSessionHandle = {
   stop: () => Promise<RakazoDesktopLocalComputerStatus>;
   status: () => RakazoDesktopLocalComputerStatus;
 };
-
-function websocketUrl(origin: string, token: string): string {
-  const parsed = new URL(origin);
-  parsed.protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
-  parsed.pathname = LOCAL_COMPUTER_PATH;
-  parsed.search = "";
-  parsed.hash = "";
-  parsed.searchParams.set("token", token);
-  return parsed.toString();
-}
 
 function summarizeParams(method: string, params: unknown): string {
   if (method === "shell") {
@@ -120,16 +110,7 @@ export function createLocalComputerSession(opts: {
     folderName = null;
     lastCommand = null;
     destroyTray();
-    if (current) {
-      try {
-        if (current.readyState === WebSocket.OPEN) {
-          current.send(JSON.stringify({ type: "stop" }));
-        }
-        current.close();
-      } catch {
-        /* already closed */
-      }
-    }
+    closeLocalComputerSocket(current);
     emit();
   };
 
@@ -174,7 +155,7 @@ export function createLocalComputerSession(opts: {
       disconnectSocket();
       folderRoot = root;
       folderName = localComputerFolderName(root);
-      const url = websocketUrl(input.origin, input.token);
+      const url = localComputerWebsocketUrl(input.origin, input.token);
       const next = new WebSocket(url);
       socket = next;
 
