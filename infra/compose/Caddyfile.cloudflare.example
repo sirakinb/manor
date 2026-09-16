@@ -41,6 +41,10 @@ http://{$RAKAZO_HOST:app.example.com} {
 		reverse_proxy api:3100
 	}
 
+	handle /local-computer {
+		reverse_proxy api:3100
+	}
+
 	handle {
 		reverse_proxy web:5173
 	}

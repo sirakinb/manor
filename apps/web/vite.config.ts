@@ -282,8 +282,8 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use((req, _res, next) => {
             const pathname = req.url?.split("?", 1)[0] ?? "/";
             if (
-              ["/api", "/rpc", "/v1", "/mcp", "/novnc", "/preview"].some((prefix) =>
-                pathname.startsWith(prefix),
+              ["/api", "/rpc", "/v1", "/mcp", "/local-computer", "/novnc", "/preview"].some(
+                (prefix) => pathname.startsWith(prefix),
               )
             ) {
               next();
@@ -314,6 +314,7 @@ export default defineConfig(({ mode }) => {
         "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },
         "/rpc": { target: api, changeOrigin: false },
         "/v1": { target: api, changeOrigin: false },
+        "/local-computer": { target: api, changeOrigin: false, ws: true },
       },
     },
     preview: {
@@ -325,6 +326,7 @@ export default defineConfig(({ mode }) => {
         "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },
         "/rpc": { target: api, changeOrigin: false },
         "/v1": { target: api, changeOrigin: false },
+        "/local-computer": { target: api, changeOrigin: false, ws: true },
       },
     },
   };
