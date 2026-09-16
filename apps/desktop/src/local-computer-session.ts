@@ -17,10 +17,7 @@ import {
   LOCAL_COMPUTER_HOME_ROOT_MESSAGE,
   localComputerFolderName,
 } from "./local-computer-share.js";
-import {
-  closeLocalComputerSocket,
-  localComputerWebsocketUrl,
-} from "./local-computer-socket.js";
+import { closeLocalComputerSocket, localComputerWebsocketUrl } from "./local-computer-socket.js";
 import { executeLocalFolderRpc } from "./local-folder-runtime.js";
 
 const TRAY_SHARING_TITLE = "Manor is using this Mac";
