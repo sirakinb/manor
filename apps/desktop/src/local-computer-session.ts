@@ -11,6 +11,7 @@ import {
   Tray,
 } from "electron";
 import { WebSocket } from "ws";
+import { waitForLocalComputerHello } from "./local-computer-handshake.js";
 import {
   isHomeDirectoryShare,
   LOCAL_COMPUTER_DENIED_MESSAGE,
@@ -154,59 +155,28 @@ export function createLocalComputerSession(opts: {
       const root = realpathSync(input.folderPath);
       disconnectSocket();
       folderRoot = root;
-      folderName = localComputerFolderName(root);
+      const sharedFolderName = localComputerFolderName(root);
+      folderName = sharedFolderName;
       const url = localComputerWebsocketUrl(input.origin, input.token);
       const next = new WebSocket(url);
       socket = next;
 
-      await new Promise<void>((resolve, reject) => {
-        const fail = (error: Error) => {
-          clearTimeout(timer);
-          next.off("open", onOpen);
-          next.off("error", onError);
-          next.off("message", onHello);
-          if (socket === next) disconnectSocket();
-          reject(error);
-        };
-        const timer = setTimeout(
-          () => fail(new Error("This Mac did not connect in time.")),
-          15_000,
-        );
-        const onOpen = () => {
-          next.send(JSON.stringify({ type: "hello", folderName }));
-        };
-        const onError = () => fail(new Error("Could not reach Manor to share this Mac."));
-        const onHello = (raw: WebSocket.RawData) => {
-          let message: RpcIncoming;
-          try {
-            message = JSON.parse(String(raw)) as RpcIncoming;
-          } catch {
-            fail(new Error("Could not start sharing this Mac."));
-            return;
-          }
-          if (message.type !== "hello_ok") {
-            fail(new Error("Could not start sharing this Mac."));
-            return;
-          }
-          clearTimeout(timer);
-          next.off("open", onOpen);
-          next.off("error", onError);
-          next.off("message", onHello);
-          sharing = true;
-          showSharingTray();
-          if (Notification.isSupported()) {
-            new Notification({
-              title: TRAY_SHARING_TITLE,
-              body: `Shared folder: ${folderName}. Stop sharing in Settings.`,
-            }).show();
-          }
-          emit();
-          resolve();
-        };
-        next.once("open", onOpen);
-        next.once("error", onError);
-        next.once("message", onHello);
-      });
+      try {
+        await waitForLocalComputerHello(next, sharedFolderName);
+      } catch (error) {
+        if (socket === next) disconnectSocket();
+        throw error;
+      }
+
+      sharing = true;
+      showSharingTray();
+      if (Notification.isSupported()) {
+        new Notification({
+          title: TRAY_SHARING_TITLE,
+          body: `Shared folder: ${folderName}. Stop sharing in Settings.`,
+        }).show();
+      }
+      emit();
 
       next.on("message", (raw) => {
         void (async () => {
