@@ -225,13 +225,13 @@ async function handleLocalComputerSocket(
           where: { id: currentDevice.id },
           data: { lastSeenAt: new Date() },
         });
+        send({ v: 1, type: "hello_ok", sessionId: session.id });
         unsubscribe = await deps.realtime.subscribe(
           localComputerSessionTopic(session.id),
           (commandId) => {
             void dispatchCommand(commandId);
           },
         );
-        send({ v: 1, type: "hello_ok", sessionId: session.id });
         return;
       }
       if (message.type === "rpc_ok" || message.type === "rpc_err") {

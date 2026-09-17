@@ -22,4 +22,13 @@ describe("handleLocalComputerSocket", () => {
     expect(messageListener).toBeGreaterThan(0);
     expect(firstAwait).toBeGreaterThan(messageListener);
   });
+
+  it("sends hello_ok before realtime.subscribe", () => {
+    const fn = handleLocalComputerSocketSource();
+    const helloOk = fn.indexOf('type: "hello_ok"');
+    const subscribe = fn.indexOf("realtime.subscribe");
+    expect(helloOk).toBeGreaterThan(0);
+    expect(subscribe).toBeGreaterThan(0);
+    expect(helloOk).toBeLessThan(subscribe);
+  });
 });
