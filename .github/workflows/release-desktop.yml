@@ -269,7 +269,7 @@ jobs:
     name: Attest and publish complete release
     needs: [validate, build]
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 45
     permissions:
       actions: read
       attestations: write
