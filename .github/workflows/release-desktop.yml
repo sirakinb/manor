@@ -343,10 +343,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DESKTOP_RELEASE_TOKEN }}
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
-        # The release repository carries no source, so the tag is created there on publish.
-        run: >-
-          gh release create "$RELEASE_TAG" release-artifacts/*
-          --repo "$RELEASE_REPO" --draft --generate-notes --title "Manor $RELEASE_TAG"
+        shell: bash
+        # Create the draft first, then upload each asset separately so logs show progress
+        # and one slow file cannot stall the whole step without output.
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" \
+            --repo "$RELEASE_REPO" --draft --generate-notes --title "Manor $RELEASE_TAG"
+          shopt -s nullglob
+          mapfile -t files < <(find release-artifacts -maxdepth 1 -type f ! -name SHA256SUMS | sort)
+          for file in "${files[@]}"; do
+            size="$(wc -c < "$file" | tr -d ' ')"
+            echo "Uploading $(basename "$file") (${size} bytes)..."
+            gh release upload "$RELEASE_TAG" "$file" --repo "$RELEASE_REPO" --clobber
+          done
       - name: Publish the completed release
         env:
           GH_TOKEN: ${{ secrets.DESKTOP_RELEASE_TOKEN }}
