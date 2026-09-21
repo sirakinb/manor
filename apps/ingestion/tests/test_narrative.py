@@ -38,6 +38,21 @@ def test_incomplete_or_invalid_openai_output_cannot_become_a_report(monkeypatch,
         narrative.generate("openai", {"apiKey": "fake"}, "system", "user")
 
 
+@pytest.mark.parametrize("user, expected", [
+    ("raw aggregates without the magic word", "Respond with a JSON object.\n\nraw aggregates without the magic word"),
+    ('{"already": "mentions JSON"}', '{"already": "mentions JSON"}'),
+])
+def test_openai_input_always_satisfies_the_json_format_requirement(monkeypatch, user, expected):
+    seen = {}
+    def post(url, **kwargs):
+        seen.update(url=url, **kwargs)
+        body = {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": json.dumps(PROSE)}]}]}
+        return SimpleNamespace(status_code=200, json=lambda: body)
+    monkeypatch.setattr(narrative.requests, "post", post)
+    narrative.generate("openai", {"apiKey": "fake"}, "system", user)
+    assert seen["json"]["input"] == expected
+
+
 def test_provider_failure_does_not_expose_response_or_fall_back(monkeypatch):
     calls = []
     def post(*a, **k):

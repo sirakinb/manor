@@ -14,6 +14,10 @@ def generate_json(provider: str, credential: dict[str, str], system: str, user: 
         raise PipelineError(f"{provider} credential needs apiKey")
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     if provider == "openai":
+        # OpenAI rejects json_object formatting unless the word "json" appears in
+        # the input itself; instructions do not satisfy the check.
+        if "json" not in user.lower():
+            user = "Respond with a JSON object.\n\n" + user
         response = requests.post(
             "https://api.openai.com/v1/responses", headers=headers,
             json={
