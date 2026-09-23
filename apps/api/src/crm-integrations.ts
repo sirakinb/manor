@@ -856,7 +856,7 @@ function publicRecord(record: CrmModuleRecord) {
   };
 }
 
-type CrmIntegrationService = ReturnType<typeof createCrmIntegrationService>;
+export type CrmIntegrationService = ReturnType<typeof createCrmIntegrationService>;
 
 function hasScope(principal: IntegrationPrincipal, scope: IntegrationScope) {
   return principal.scopes.includes(scope);

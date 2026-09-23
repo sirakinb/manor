@@ -102,6 +102,7 @@ async function main() {
           "packages/testkit/src/shared-spaces.test.ts",
           "packages/db/src/space-membership.postgres.test.ts",
           "packages/testkit/src/crm-integrations.test.ts",
+          "packages/testkit/src/public-forms.test.ts",
           "packages/testkit/src/brand-signup.test.ts",
           "packages/auth/src/provision-team.postgres.test.ts",
           "packages/testkit/src/workspace-integrations.test.ts",

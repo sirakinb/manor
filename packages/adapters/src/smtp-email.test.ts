@@ -1,6 +1,6 @@
 import { createServer } from "node:net";
 import { describe, expect, it, vi } from "vitest";
-import { SmtpEmailProvider } from "./smtp-email.js";
+import { SmtpEmailProvider, senderFor } from "./smtp-email.js";
 
 describe("SmtpEmailProvider", () => {
   it("identifies Resend without exposing SMTP credentials or arbitrary hosts", () => {
@@ -216,5 +216,19 @@ describe("SmtpEmailProvider", () => {
         server.close((error) => (error ? reject(error) : resolve())),
       );
     }
+  });
+});
+
+describe("senderFor", () => {
+  it("swaps only the display name and keeps the configured address", () => {
+    expect(senderFor("Manor <no-reply@example.test>")).toBe("Manor <no-reply@example.test>");
+    expect(senderFor("Manor <no-reply@example.test>", "Demo Host")).toEqual({
+      name: "Demo Host",
+      address: "no-reply@example.test",
+    });
+    expect(senderFor("no-reply@example.test", 'Evil"\r\nBcc: x')).toEqual({
+      name: "EvilBcc: x",
+      address: "no-reply@example.test",
+    });
   });
 });

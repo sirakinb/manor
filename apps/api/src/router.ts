@@ -4174,6 +4174,54 @@ export function createRouter(deps: RouterDeps) {
         return loadAutoReviewSettings(deps, context.actor);
       }),
     },
+    publicForms: {
+      list: authed.publicForms.list.handler(async ({ context }) => {
+        if (!(await isOrganizationOwner(deps.prisma, context.actor))) {
+          return { canManage: false, forms: [] };
+        }
+        const rows = await deps.prisma.publicForm.findMany({
+          where: { organizationId: context.actor.organizationId },
+          orderBy: { createdAt: "asc" },
+        });
+        return { canManage: true, forms: rows.map(publicFormDto) };
+      }),
+      save: authed.publicForms.save.handler(async ({ context, input }) => {
+        await requireOrganizationOwner(deps.prisma, context.actor);
+        const { id, ...fields } = input;
+        const data = {
+          ...fields,
+          eventStartsAt: fields.eventStartsAt ? new Date(fields.eventStartsAt) : null,
+        };
+        const taken = await deps.prisma.publicForm.findUnique({
+          where: { slug: fields.slug },
+          select: { id: true },
+        });
+        if (taken && taken.id !== id) {
+          throw new ORPCError("CONFLICT", { message: "That form address is already in use." });
+        }
+        if (id) {
+          const owned = await deps.prisma.publicForm.updateMany({
+            where: { id, organizationId: context.actor.organizationId },
+            data,
+          });
+          if (owned.count === 0) throw new ORPCError("NOT_FOUND");
+          return publicFormDto(await deps.prisma.publicForm.findUniqueOrThrow({ where: { id } }));
+        }
+        return publicFormDto(
+          await deps.prisma.publicForm.create({
+            data: { ...data, organizationId: context.actor.organizationId },
+          }),
+        );
+      }),
+      remove: authed.publicForms.remove.handler(async ({ context, input }) => {
+        await requireOrganizationOwner(deps.prisma, context.actor);
+        const removed = await deps.prisma.publicForm.deleteMany({
+          where: { id: input.id, organizationId: context.actor.organizationId },
+        });
+        if (removed.count === 0) throw new ORPCError("NOT_FOUND");
+        return { ok: true as const };
+      }),
+    },
     verification: {
       summary: spaceAuthed.verification.summary.handler(async ({ context, input }) => {
         const { rows, truncated } = await loadVerificationRows(deps, context.actor, input);
@@ -4608,6 +4656,47 @@ function partitionBySpace<T extends { spaceId: string }>(rows: T[]): Map<string,
     partitioned.set(row.spaceId, spaceRows);
   }
   return partitioned;
+}
+
+async function isOrganizationOwner(prisma: RouterDeps["prisma"], actor: Actor) {
+  const member = await prisma.member.findFirst({
+    where: { organizationId: actor.organizationId, userId: actor.userId },
+    select: { role: true },
+  });
+  return Boolean(member?.role.split(",").includes("owner"));
+}
+
+async function requireOrganizationOwner(prisma: RouterDeps["prisma"], actor: Actor) {
+  if (!(await isOrganizationOwner(prisma, actor))) {
+    throw new ORPCError("FORBIDDEN", { message: "Only organization owners can manage forms." });
+  }
+}
+
+function publicFormDto(row: {
+  id: string;
+  slug: string;
+  kind: string;
+  title: string;
+  enabled: boolean;
+  crmTag: string;
+  allowedOrigins: string[];
+  message: string | null;
+  notifyEmail: string | null;
+  senderName: string | null;
+  signature: string | null;
+  eventStartsAt: Date | null;
+  eventMinutes: number | null;
+  eventTimeZone: string | null;
+  joinUrl: string | null;
+  bookingUrl: string | null;
+  updatedAt: Date;
+}) {
+  return {
+    ...row,
+    kind: row.kind === "scorecard" ? ("scorecard" as const) : ("event" as const),
+    eventStartsAt: row.eventStartsAt?.toISOString() ?? null,
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 const MAX_VERIFICATION_ROWS = 5_000;

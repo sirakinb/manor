@@ -118,6 +118,8 @@ import {
   ModelConnectInputSchema,
   ModelCredentialSchema,
   ModelOAuthBeginSchema,
+  PublicFormInputSchema,
+  PublicFormSchema,
   ReorderBotsInput,
   RoutineSchema,
   ScratchpadItemSchema,
@@ -1101,6 +1103,12 @@ export const appContract = {
         }),
       )
       .output(ActionAutoReviewSettingsSchema),
+  },
+  publicForms: {
+    /** Owners see and edit their organization's forms; everyone else gets canManage: false. */
+    list: oc.output(z.object({ canManage: z.boolean(), forms: z.array(PublicFormSchema) })),
+    save: oc.input(PublicFormInputSchema.extend({ id: Id.optional() })).output(PublicFormSchema),
+    remove: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
   },
   verification: {
     summary: oc.input(verificationRange).output(VerificationSummarySchema),
