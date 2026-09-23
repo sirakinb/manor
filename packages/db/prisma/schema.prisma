@@ -186,8 +186,8 @@ model VerificationCheck {
   costUsd      Float?
   createdAt    DateTime        @default(now())
 
+  @@unique([effectId, engine])
   @@index([spaceId, userId, createdAt])
-  @@index([effectId])
   @@map("verification_checks")
 }
 

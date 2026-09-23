@@ -33,7 +33,7 @@ CREATE TABLE "verification_checks" (
 CREATE INDEX "verification_checks_spaceId_userId_createdAt_idx" ON "verification_checks"("spaceId", "userId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "verification_checks_effectId_idx" ON "verification_checks"("effectId");
+CREATE UNIQUE INDEX "verification_checks_effectId_engine_key" ON "verification_checks"("effectId", "engine");
 
 -- AddForeignKey
 ALTER TABLE "verification_checks" ADD CONSTRAINT "verification_checks_spaceId_fkey" FOREIGN KEY ("spaceId") REFERENCES "spaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;

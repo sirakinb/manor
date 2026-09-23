@@ -897,6 +897,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
       let lastLeaseCheckAt = 0;
       let retainComputerLease = false;
       let screenRelease: { computer: ComputerRef; context: AdapterContext } | undefined;
+      /** Compare-mode verdict writes still in flight; flushed before the attempt ends. */
+      const pendingVerificationLogs = new Set<Promise<void>>();
       let runAbortController: AbortController | null = null;
       // Fires even while a long tool call is in flight, when the event-loop status check cannot run.
       const cancelWatch = setInterval(() => {
@@ -1871,15 +1873,37 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 data: verificationRow(effectId, primaryEngine, "primary", primary),
               }),
             ]);
-            if (shadowEngine && shadowReview) {
-              void shadowReview
-                .then((shadow) =>
-                  deps.prisma.verificationCheck.create({
-                    data: verificationRow(effectId, shadowEngine, "shadow", shadow),
-                  }),
-                )
-                .catch((error) => console.error("verification shadow log failed", error));
-            }
+            if (shadowEngine && shadowReview) logShadow(effectId, shadowEngine, () => shadowReview);
+          };
+
+          /**
+           * Log a compare-mode verdict without holding up the action. The attempt waits for it
+           * before ending, a failed insert retries once, and replays backfill a missing row.
+           */
+          const logShadow = (
+            effectId: string,
+            engine: VerificationEngineId,
+            review: () => Promise<VerificationResult>,
+          ) => {
+            const write = async () => {
+              const data = verificationRow(effectId, engine, "shadow", await review());
+              const insert = () =>
+                deps.prisma.verificationCheck.createMany({ data: [data], skipDuplicates: true });
+              await insert().catch(insert);
+            };
+            const pending: Promise<void> = write()
+              .catch((error) => console.error("verification shadow log failed", error))
+              .finally(() => pendingVerificationLogs.delete(pending));
+            pendingVerificationLogs.add(pending);
+          };
+
+          const backfillShadow = async () => {
+            const shadowEngine = engines.shadow;
+            if (!applied || !shadowEngine) return;
+            const logged = await deps.prisma.verificationCheck.count({
+              where: { effectId: applied.effect.id, engine: shadowEngine },
+            });
+            if (!logged) logShadow(applied.effect.id, shadowEngine, () => reviewWith(shadowEngine));
           };
 
           if (applied && plan === "judge" && engines.primary) {
@@ -1887,6 +1911,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               await runAutoReview();
             } else {
               const priorDecision = applied.effect.reviewDecision;
+              if (priorDecision) await backfillShadow();
               if (priorDecision === "ask" || priorDecision === "error") {
                 reviewReason =
                   typeof applied.effect.reviewReason === "string"
@@ -3861,6 +3886,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           throw new Error("Run setup failed; retrying");
         }
       } finally {
+        await Promise.allSettled(pendingVerificationLogs);
         clearInterval(cancelWatch);
         clearInterval(heartbeat);
         if (!retainComputerLease) {
