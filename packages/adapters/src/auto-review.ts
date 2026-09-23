@@ -199,6 +199,9 @@ export function buildAutoReviewPrompt(input: ActionReviewRequest): string {
   ].join("\n");
 }
 
+export const CHECKER_INSTRUCTIONS =
+  "You are a fast safety checker. Output strict JSON only. No tools. No markdown.";
+
 type CheckerCallInput = {
   runtime: AgentRuntime;
   checker: AutoReviewChecker;
@@ -249,8 +252,7 @@ async function runCheckerCall(input: CheckerCallInput): Promise<CheckerCallResul
         threadId: input.threadId,
         runId: `${input.runId}:auto-review`,
         prompt: input.prompt,
-        instructions:
-          "You are a fast safety checker. Output strict JSON only. No tools. No markdown.",
+        instructions: CHECKER_INSTRUCTIONS,
         history: [],
         tools: [],
         model: {

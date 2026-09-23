@@ -2356,9 +2356,8 @@ describeJourneys("required product journeys", () => {
         }),
       ]);
 
-      // Compare mode also runs the deployment's LLM checker. The scripted model returns no
-      // decision, so its logged "error" must not change the outcome Jev chose.
-      // The shadow verdict is logged in the background, after the selected one.
+      // Compare mode also runs the LLM checker, whose scripted stand-in passes the action.
+      // Its verdict is logged in the background and must not change the outcome Jev chose.
       await expect
         .poll(() => prisma.verificationCheck.count({ where: { runId: sent.runId } }))
         .toBe(2);
@@ -2381,9 +2380,10 @@ describeJourneys("required product journeys", () => {
         expect.objectContaining({
           engine: "llm",
           role: "shadow",
-          decision: "error",
-          reason: expect.any(String),
+          decision: "pass",
+          reason: "Fits the task.",
           effectId: expect.any(String),
+          inputTokens: 200,
         }),
       ]);
 
@@ -2399,6 +2399,86 @@ describeJourneys("required product journeys", () => {
       });
       expect(effect).toMatchObject({ status: "denied", reviewDecision: "ask" });
       expect(connector.records).toHaveLength(recordsBefore);
+
+      // The denial is ground truth: Jev asked (right), the LLM checker passed (wrong).
+      const summary = await rpc<{
+        checkpoints: Array<{
+          checkpoint: string;
+          compared: number;
+          agreed: number;
+          engines: Array<{ engine: string; answered: { correct: number; total: number } }>;
+        }>;
+        disagreements: Array<{ botName: string; task: string; userAnswer: string | null }>;
+      }>(app, cookie, "verification/summary", { days: 30 });
+      expect(summary.checkpoints).toEqual([
+        expect.objectContaining({
+          checkpoint: "action",
+          compared: 1,
+          agreed: 0,
+          engines: [
+            expect.objectContaining({ engine: "jev", answered: { correct: 1, total: 1 } }),
+            expect.objectContaining({ engine: "llm", answered: { correct: 0, total: 1 } }),
+          ],
+        }),
+      ]);
+      expect(summary.disagreements).toEqual([
+        expect.objectContaining({
+          botName: "Chief",
+          task: "write this to the destination crm as a note",
+          userAnswer: "denied",
+        }),
+      ]);
+      const report = await rpc<{ filename: string; content: string }>(
+        app,
+        cookie,
+        "verification/report",
+        { days: 30, format: "markdown" },
+      );
+      expect(report.filename).toMatch(/^checker-comparison-\d{4}-\d{2}-\d{2}\.md$/);
+      expect(report.content).toContain("| Right when you answered | 1 of 1 | 0 of 1 |");
+      expect(report.content).toContain('- **Auto-check** (compared): pass, "Fits the task."');
+      const csv = await rpc<{ content: string }>(app, cookie, "verification/report", {
+        days: 30,
+        format: "csv",
+      });
+      expect(csv.content.split("\n")).toHaveLength(3);
+      expect(csv.content).toContain('"denied"');
+
+      // A pair straddling the window start is dated by its first verdict: left out of the
+      // 30-day view whole, and counted whole in a longer one.
+      const straddling = {
+        spaceId: effect.spaceId,
+        userId: checks[0]!.userId,
+        runId: sent.runId,
+        checkpoint: "answer",
+        subject: "reply",
+        decision: "pass",
+        model: "m",
+        latencyMs: 5,
+      };
+      await prisma.verificationCheck.createMany({
+        data: [
+          {
+            ...straddling,
+            engine: "jev",
+            role: "primary",
+            createdAt: new Date(Date.now() - 31 * 86_400_000),
+          },
+          { ...straddling, engine: "llm", role: "shadow" },
+        ],
+      });
+      const withEdge = await rpc<{
+        truncated: boolean;
+        checkpoints: Array<{ checkpoint: string; compared: number; agreed: number }>;
+      }>(app, cookie, "verification/summary", { days: 30 });
+      expect(withEdge.truncated).toBe(false);
+      expect(withEdge.checkpoints.map((entry) => entry.checkpoint)).toEqual(["action"]);
+      const longer = await rpc<typeof withEdge>(app, cookie, "verification/summary", {
+        days: 90,
+      });
+      expect(longer.checkpoints).toContainEqual(
+        expect.objectContaining({ checkpoint: "answer", compared: 1, agreed: 1 }),
+      );
     } finally {
       await jev.stop();
     }
@@ -2466,7 +2546,12 @@ describeJourneys("required product journeys", () => {
           decision: "ask",
           effectId: null,
         }),
-        expect.objectContaining({ checkpoint: "answer", engine: "llm", role: "shadow" }),
+        expect.objectContaining({
+          checkpoint: "answer",
+          engine: "llm",
+          role: "shadow",
+          decision: "pass",
+        }),
       ]);
     } finally {
       await jev.stop();

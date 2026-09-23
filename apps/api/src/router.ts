@@ -102,11 +102,16 @@ import {
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
+  checksStartingSince,
   containsSecret,
   expandSkillReferencesInPrompt,
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
   nextCronDateAcrossStrict,
+  summarizeVerification,
+  type VerificationCheckInput,
+  verificationReportCsv,
+  verificationReportMarkdown,
 } from "@rakazo/core";
 import {
   appendEventInTransaction,
@@ -4169,6 +4174,42 @@ export function createRouter(deps: RouterDeps) {
         return loadAutoReviewSettings(deps, context.actor);
       }),
     },
+    verification: {
+      summary: spaceAuthed.verification.summary.handler(async ({ context, input }) => {
+        const { rows, truncated } = await loadVerificationRows(deps, context.actor, input);
+        return {
+          engines: Object.entries(VERIFICATION_ENGINE_LABELS).map(([id, label]) => ({ id, label })),
+          truncated,
+          ...summarizeVerification(rows),
+        };
+      }),
+      report: spaceAuthed.verification.report.handler(async ({ context, input }) => {
+        const { rows, truncated } = await loadVerificationRows(deps, context.actor, input);
+        const now = new Date().toISOString();
+        const filename = `checker-comparison-${now.slice(0, 10)}`;
+        if (input.format === "csv") {
+          return {
+            filename: `${filename}.csv`,
+            mimeType: "text/csv",
+            content: verificationReportCsv(rows),
+          };
+        }
+        const botName = input.botId
+          ? (await repos.getBot(context.actor, input.botId)).name
+          : undefined;
+        return {
+          filename: `${filename}.md`,
+          mimeType: "text/markdown",
+          content: verificationReportMarkdown(summarizeVerification(rows), {
+            generatedAt: `${now.slice(0, 16).replace("T", " ")} UTC`,
+            days: input.days,
+            botName,
+            labels: VERIFICATION_ENGINE_LABELS,
+            truncated,
+          }),
+        };
+      }),
+    },
     artifacts: {
       list: spaceAuthed.artifacts.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
@@ -4567,6 +4608,81 @@ function partitionBySpace<T extends { spaceId: string }>(rows: T[]): Map<string,
     partitioned.set(row.spaceId, spaceRows);
   }
   return partitioned;
+}
+
+const MAX_VERIFICATION_ROWS = 5_000;
+
+const verificationRowInclude = {
+  run: {
+    select: {
+      botId: true,
+      threadId: true,
+      bot: { select: { name: true } },
+      task: { select: { prompt: true } },
+    },
+  },
+  effect: { select: { status: true } },
+} as const;
+
+/**
+ * This person's most recent checks in the window, joined with the bot, request, and action
+ * outcome. Engines log separately, so a cap can cut a pair in half; missing partners are
+ * loaded, and checks that started before the window are left out whole.
+ */
+async function loadVerificationRows(
+  deps: RouterDeps,
+  actor: Actor,
+  input: { days: number; botId?: string },
+): Promise<{ rows: VerificationCheckInput[]; truncated: boolean }> {
+  const owner = { spaceId: actor.spaceId, userId: actor.userId };
+  const since = new Date(Date.now() - input.days * 86_400_000);
+  const recent = await deps.prisma.verificationCheck.findMany({
+    where: {
+      ...owner,
+      createdAt: { gte: since },
+      ...(input.botId ? { run: { botId: input.botId } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: MAX_VERIFICATION_ROWS + 1,
+    include: verificationRowInclude,
+  });
+  const truncated = recent.length > MAX_VERIFICATION_ROWS;
+  const kept = recent.slice(0, MAX_VERIFICATION_ROWS);
+  const effectIds = [...new Set(kept.flatMap((row) => (row.effectId ? [row.effectId] : [])))];
+  const answerRunIds = [
+    ...new Set(kept.filter((row) => row.checkpoint === "answer").map((row) => row.runId)),
+  ];
+  const partners = await deps.prisma.verificationCheck.findMany({
+    where: {
+      ...owner,
+      OR: [{ effectId: { in: effectIds } }, { checkpoint: "answer", runId: { in: answerRunIds } }],
+    },
+    include: verificationRowInclude,
+  });
+  const byId = new Map([...kept, ...partners].map((row) => [row.id, row]));
+  const loaded = [...byId.values()].map((row) => ({
+    createdAt: row.createdAt.toISOString(),
+    checkpoint: row.checkpoint,
+    subject: row.subject,
+    engine: row.engine,
+    role: row.role,
+    decision: row.decision,
+    reason: row.reason,
+    probability: row.probability,
+    confidence: row.confidence,
+    details: row.details,
+    model: row.model,
+    latencyMs: row.latencyMs,
+    costUsd: row.costUsd,
+    runId: row.runId,
+    effectId: row.effectId,
+    effectStatus: row.effect?.status ?? null,
+    botId: row.run.botId,
+    botName: row.run.bot.name,
+    threadId: row.run.threadId,
+    task: row.run.task.prompt,
+  }));
+  return { rows: checksStartingSince(loaded, since.toISOString()), truncated };
 }
 
 async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {

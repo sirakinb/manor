@@ -5,6 +5,7 @@ import type {
   AgentRuntimeEvent,
 } from "@rakazo/adapter-kit";
 import { abortableDelay, inferHandoffTargetName } from "@rakazo/core";
+import { CHECKER_INSTRUCTIONS } from "./auto-review.js";
 
 const running = new Map<string, AbortController>();
 
@@ -30,6 +31,23 @@ export class ScriptedAgentRuntime implements AgentRuntime {
     running.set(request.runId, controller);
     const signal = context?.signal ?? controller.signal;
     try {
+      if (request.instructions === CHECKER_INSTRUCTIONS) {
+        // Deterministic LLM checker: fits every action and supports every reply statement.
+        yield {
+          type: "usage",
+          inputTokens: 200,
+          outputTokens: 12,
+          provider: request.model.provider,
+          model: request.model.id,
+        };
+        yield {
+          type: "done",
+          text: request.prompt.includes("<claims>")
+            ? '{"unsupported":[],"reason":"Supported by tool results."}'
+            : '{"decision":"pass","reason":"Fits the task."}',
+        };
+        return;
+      }
       if (shouldFail(request.prompt)) {
         throw new Error("Scripted run failure");
       }

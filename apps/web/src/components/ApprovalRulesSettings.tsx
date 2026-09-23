@@ -1,8 +1,14 @@
 import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ActionApprovalRule, ActionAutoReviewSettings } from "@rakazo/contracts";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { rpc } from "../lib/rpc";
+
+const VerificationComparisonOverlay = lazy(() =>
+  import("./VerificationComparison").then((module) => ({
+    default: module.VerificationComparisonOverlay,
+  })),
+);
 
 function describeRule(rule: ActionApprovalRule): string {
   if (rule.effect === "require_approval") {
@@ -31,6 +37,7 @@ export function ApprovalRulesSettings() {
   const [savingPreset, setSavingPreset] = useState<"email" | "purchase" | null>(null);
   const [savingAutoReview, setSavingAutoReview] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
 
   async function refresh() {
     setLoading(true);
@@ -207,7 +214,20 @@ export function ApprovalRulesSettings() {
               <Trans>Compare checkers</Trans>
             </label>
           ) : null}
+          <button
+            type="button"
+            data-testid="open-checker-comparison"
+            onClick={() => setComparisonOpen(true)}
+            className="w-fit text-[14px] text-[#9CA3F5] hover:underline"
+          >
+            <Trans>View comparison</Trans>
+          </button>
         </div>
+      ) : null}
+      {comparisonOpen ? (
+        <Suspense fallback={null}>
+          <VerificationComparisonOverlay onClose={() => setComparisonOpen(false)} />
+        </Suspense>
       ) : null}
       {error ? <p className="mt-3 text-[13px] text-[#EF4444]">{error}</p> : null}
       {loading ? (
