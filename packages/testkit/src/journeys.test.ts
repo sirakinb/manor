@@ -2444,7 +2444,8 @@ describeJourneys("required product journeys", () => {
       expect(csv.content.split("\n")).toHaveLength(3);
       expect(csv.content).toContain('"denied"');
 
-      // A pair straddling the window start stays whole: the older half is loaded as a partner.
+      // A pair straddling the window start is dated by its first verdict: left out of the
+      // 30-day view whole, and counted whole in a longer one.
       const straddling = {
         spaceId: effect.spaceId,
         userId: checks[0]!.userId,
@@ -2471,7 +2472,11 @@ describeJourneys("required product journeys", () => {
         checkpoints: Array<{ checkpoint: string; compared: number; agreed: number }>;
       }>(app, cookie, "verification/summary", { days: 30 });
       expect(withEdge.truncated).toBe(false);
-      expect(withEdge.checkpoints).toContainEqual(
+      expect(withEdge.checkpoints.map((entry) => entry.checkpoint)).toEqual(["action"]);
+      const longer = await rpc<typeof withEdge>(app, cookie, "verification/summary", {
+        days: 90,
+      });
+      expect(longer.checkpoints).toContainEqual(
         expect.objectContaining({ checkpoint: "answer", compared: 1, agreed: 1 }),
       );
     } finally {

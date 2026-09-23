@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  checksStartingSince,
   summarizeVerification,
   userAnswerFor,
   type VerificationCheckInput,
@@ -65,6 +66,18 @@ describe("userAnswerFor", () => {
     expect(userAnswerFor(pair("e", "ask", "pass", "intended"))).toBeNull();
     // Ran without asking: completing is not an answer.
     expect(userAnswerFor(pair("e", "pass", "ask", "completed"))).toBeNull();
+  });
+});
+
+describe("checksStartingSince", () => {
+  it("keeps or drops a pair whole, dated by its earliest verdict", () => {
+    const straddling = pair("e1", "ask", "pass", "denied").map((row, index) => ({
+      ...row,
+      createdAt: index === 0 ? "2026-09-01T23:59:59.000Z" : "2026-09-02T00:00:01.000Z",
+    }));
+    const inside = pair("e2", "pass", "pass", "completed");
+    const kept = checksStartingSince([...straddling, ...inside], "2026-09-02T00:00:00.000Z");
+    expect(kept.map((row) => row.effectId)).toEqual(["e2", "e2"]);
   });
 });
 

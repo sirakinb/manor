@@ -144,6 +144,25 @@ export function summarizeVerification(rows: VerificationCheckInput[]): Verificat
   };
 }
 
+/**
+ * Keep whole checks that started inside the period. A check is dated by its earliest verdict,
+ * so a pair straddling the boundary is either fully counted or fully left out.
+ */
+export function checksStartingSince(
+  rows: VerificationCheckInput[],
+  since: string,
+): VerificationCheckInput[] {
+  return groupChecks(rows)
+    .filter(
+      (group) =>
+        group.reduce(
+          (min, row) => (row.createdAt < min ? row.createdAt : min),
+          group[0]!.createdAt,
+        ) >= since,
+    )
+    .flat();
+}
+
 function groupChecks(rows: VerificationCheckInput[]): VerificationCheckInput[][] {
   const groups = new Map<string, VerificationCheckInput[]>();
   for (const row of rows) {

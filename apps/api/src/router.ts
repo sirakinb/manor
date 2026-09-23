@@ -102,6 +102,7 @@ import {
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
+  checksStartingSince,
   containsSecret,
   expandSkillReferencesInPrompt,
   hasMixedOneShotSchedule,
@@ -4624,9 +4625,9 @@ const verificationRowInclude = {
 } as const;
 
 /**
- * This person's most recent verdicts in the window, joined with the bot, request, and action
- * outcome. Engines log separately, so a cap or the window edge can cut a pair in half; the
- * missing partners are loaded so every compared check stays whole.
+ * This person's most recent checks in the window, joined with the bot, request, and action
+ * outcome. Engines log separately, so a cap can cut a pair in half; missing partners are
+ * loaded, and checks that started before the window are left out whole.
  */
 async function loadVerificationRows(
   deps: RouterDeps,
@@ -4634,10 +4635,11 @@ async function loadVerificationRows(
   input: { days: number; botId?: string },
 ): Promise<{ rows: VerificationCheckInput[]; truncated: boolean }> {
   const owner = { spaceId: actor.spaceId, userId: actor.userId };
+  const since = new Date(Date.now() - input.days * 86_400_000);
   const recent = await deps.prisma.verificationCheck.findMany({
     where: {
       ...owner,
-      createdAt: { gte: new Date(Date.now() - input.days * 86_400_000) },
+      createdAt: { gte: since },
       ...(input.botId ? { run: { botId: input.botId } } : {}),
     },
     orderBy: { createdAt: "desc" },
@@ -4658,7 +4660,7 @@ async function loadVerificationRows(
     include: verificationRowInclude,
   });
   const byId = new Map([...kept, ...partners].map((row) => [row.id, row]));
-  const rows = [...byId.values()].map((row) => ({
+  const loaded = [...byId.values()].map((row) => ({
     createdAt: row.createdAt.toISOString(),
     checkpoint: row.checkpoint,
     subject: row.subject,
@@ -4680,7 +4682,7 @@ async function loadVerificationRows(
     threadId: row.run.threadId,
     task: row.run.task.prompt,
   }));
-  return { rows, truncated };
+  return { rows: checksStartingSince(loaded, since.toISOString()), truncated };
 }
 
 async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
