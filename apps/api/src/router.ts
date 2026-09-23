@@ -107,6 +107,10 @@ import {
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
   nextCronDateAcrossStrict,
+  summarizeVerification,
+  type VerificationCheckInput,
+  verificationReportCsv,
+  verificationReportMarkdown,
 } from "@rakazo/core";
 import {
   appendEventInTransaction,
@@ -4169,6 +4173,37 @@ export function createRouter(deps: RouterDeps) {
         return loadAutoReviewSettings(deps, context.actor);
       }),
     },
+    verification: {
+      summary: spaceAuthed.verification.summary.handler(async ({ context, input }) => ({
+        engines: Object.entries(VERIFICATION_ENGINE_LABELS).map(([id, label]) => ({ id, label })),
+        ...summarizeVerification(await loadVerificationRows(deps, context.actor, input)),
+      })),
+      report: spaceAuthed.verification.report.handler(async ({ context, input }) => {
+        const rows = await loadVerificationRows(deps, context.actor, input);
+        const now = new Date().toISOString();
+        const filename = `checker-comparison-${now.slice(0, 10)}`;
+        if (input.format === "csv") {
+          return {
+            filename: `${filename}.csv`,
+            mimeType: "text/csv",
+            content: verificationReportCsv(rows),
+          };
+        }
+        const botName = input.botId
+          ? (await repos.getBot(context.actor, input.botId)).name
+          : undefined;
+        return {
+          filename: `${filename}.md`,
+          mimeType: "text/markdown",
+          content: verificationReportMarkdown(summarizeVerification(rows), {
+            generatedAt: `${now.slice(0, 16).replace("T", " ")} UTC`,
+            days: input.days,
+            botName,
+            labels: VERIFICATION_ENGINE_LABELS,
+          }),
+        };
+      }),
+    },
     artifacts: {
       list: spaceAuthed.artifacts.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
@@ -4567,6 +4602,59 @@ function partitionBySpace<T extends { spaceId: string }>(rows: T[]): Map<string,
     partitioned.set(row.spaceId, spaceRows);
   }
   return partitioned;
+}
+
+const MAX_VERIFICATION_ROWS = 5_000;
+
+/** This person's logged verdicts in the window, joined with the bot, request, and action outcome. */
+async function loadVerificationRows(
+  deps: RouterDeps,
+  actor: Actor,
+  input: { days: number; botId?: string },
+): Promise<VerificationCheckInput[]> {
+  const rows = await deps.prisma.verificationCheck.findMany({
+    where: {
+      spaceId: actor.spaceId,
+      userId: actor.userId,
+      createdAt: { gte: new Date(Date.now() - input.days * 86_400_000) },
+      ...(input.botId ? { run: { botId: input.botId } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: MAX_VERIFICATION_ROWS,
+    include: {
+      run: {
+        select: {
+          botId: true,
+          threadId: true,
+          bot: { select: { name: true } },
+          task: { select: { prompt: true } },
+        },
+      },
+      effect: { select: { status: true } },
+    },
+  });
+  return rows.map((row) => ({
+    createdAt: row.createdAt.toISOString(),
+    checkpoint: row.checkpoint,
+    subject: row.subject,
+    engine: row.engine,
+    role: row.role,
+    decision: row.decision,
+    reason: row.reason,
+    probability: row.probability,
+    confidence: row.confidence,
+    details: row.details,
+    model: row.model,
+    latencyMs: row.latencyMs,
+    costUsd: row.costUsd,
+    runId: row.runId,
+    effectId: row.effectId,
+    effectStatus: row.effect?.status ?? null,
+    botId: row.run.botId,
+    botName: row.run.bot.name,
+    threadId: row.run.threadId,
+    task: row.run.task.prompt,
+  }));
 }
 
 async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {

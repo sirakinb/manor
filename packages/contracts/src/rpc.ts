@@ -139,6 +139,7 @@ import {
   UpdateBotInput,
   UpdateGroupInput,
   UsageRecordSchema,
+  VerificationSummarySchema,
   VoiceCatalogEntrySchema,
   VoiceCredentialSchema,
   VoiceInfoSchema,
@@ -150,6 +151,10 @@ import { BotRunHistorySchema, RunDiagnosticsSchema, RunsListOutputSchema } from 
 import { SearchQueryOutputSchema } from "./search.js";
 
 const botId = z.object({ botId: Id });
+const verificationRange = z.object({
+  days: z.number().int().min(1).max(90),
+  botId: Id.optional(),
+});
 const groupId = z.object({ groupId: Id });
 
 const threadTarget = z
@@ -1096,6 +1101,12 @@ export const appContract = {
         }),
       )
       .output(ActionAutoReviewSettingsSchema),
+  },
+  verification: {
+    summary: oc.input(verificationRange).output(VerificationSummarySchema),
+    report: oc
+      .input(verificationRange.extend({ format: z.enum(["markdown", "csv"]) }))
+      .output(z.object({ filename: z.string(), mimeType: z.string(), content: z.string() })),
   },
   artifacts: {
     list: oc.input(botId).output(z.array(ArtifactSchema)),
