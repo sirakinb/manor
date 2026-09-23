@@ -460,7 +460,7 @@ msgstr ""
 msgid "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:337
+#: src/pages/crm/CrmForms.tsx:333
 msgid "Accept submissions"
 msgstr ""
 
@@ -671,7 +671,7 @@ msgstr ""
 msgid "Adding…"
 msgstr "正在添加…"
 
-#: src/pages/crm/CrmForms.tsx:196
+#: src/pages/crm/CrmForms.tsx:200
 msgid "Address"
 msgstr ""
 
@@ -806,7 +806,7 @@ msgstr ""
 msgid "Allowed once"
 msgstr "已允许一次"
 
-#: src/pages/crm/CrmForms.tsx:316
+#: src/pages/crm/CrmForms.tsx:312
 msgid "Allowed websites"
 msgstr ""
 
@@ -1154,7 +1154,7 @@ msgstr ""
 msgid "Book demo"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:275
+#: src/pages/crm/CrmForms.tsx:271
 msgid "Booking link"
 msgstr ""
 
@@ -1335,7 +1335,7 @@ msgstr "无法连接服务器。"
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/FilesPanel.tsx:363
 #: src/components/teach/TeachComputerOverlay.tsx:218
-#: src/pages/crm/CrmForms.tsx:356
+#: src/pages/crm/CrmForms.tsx:343
 #: src/pages/crm/CrmModuleSheet.tsx:157
 #: src/pages/crm/CrmModuleSheet.tsx:367
 #: src/pages/crm/CrmModuleSheet.tsx:385
@@ -2111,7 +2111,7 @@ msgstr "无法删除例行任务"
 msgid "Could not delete skill"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:87
+#: src/pages/crm/CrmForms.tsx:88
 msgid "Could not delete the form"
 msgstr ""
 
@@ -2164,7 +2164,7 @@ msgstr "无法加载审批规则"
 msgid "Could not load credentials"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:57
+#: src/pages/crm/CrmForms.tsx:58
 msgid "Could not load forms"
 msgstr ""
 
@@ -2359,7 +2359,7 @@ msgstr "无法保存该选择"
 msgid "Could not save that voice"
 msgstr "无法保存该语音"
 
-#: src/pages/crm/CrmForms.tsx:74
+#: src/pages/crm/CrmForms.tsx:75
 msgid "Could not save the form"
 msgstr ""
 
@@ -2540,7 +2540,7 @@ msgstr ""
 msgid "CRM connection"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:286
+#: src/pages/crm/CrmForms.tsx:282
 msgid "CRM tag"
 msgstr ""
 
@@ -2656,7 +2656,7 @@ msgstr "默认范围"
 #: src/components/FilesPanel.tsx:458
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
-#: src/pages/crm/CrmForms.tsx:364
+#: src/pages/crm/CrmForms.tsx:348
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
@@ -2986,7 +2986,7 @@ msgstr ""
 msgid "Email delivery"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:266
+#: src/pages/crm/CrmForms.tsx:262
 msgid "Email message"
 msgstr ""
 
@@ -3051,7 +3051,7 @@ msgstr ""
 msgid "Escalated"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:152
+#: src/pages/crm/CrmForms.tsx:145
 msgid "Event"
 msgstr ""
 
@@ -3646,7 +3646,7 @@ msgstr "隔离"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "它的对话、文件和例行任务将被永久删除。它创建的 Bot 仍留在列表中。"
 
-#: src/pages/crm/CrmForms.tsx:258
+#: src/pages/crm/CrmForms.tsx:254
 msgid "Join link"
 msgstr ""
 
@@ -3825,7 +3825,7 @@ msgstr "正在听…"
 msgid "Listing type"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:151
+#: src/pages/crm/CrmForms.tsx:144
 msgid "Live"
 msgstr ""
 
@@ -3892,7 +3892,7 @@ msgstr "正在加载语音提供方…"
 
 #: src/App.tsx:54
 #: src/components/BotCredentialsSettings.tsx:165
-#: src/pages/crm/CrmForms.tsx:129
+#: src/pages/crm/CrmForms.tsx:122
 #: src/pages/crm/CrmView.tsx:190
 #: src/pages/crm/CrmView.tsx:210
 #: src/pages/Onboarding.tsx:238
@@ -4110,7 +4110,7 @@ msgstr "分钟"
 msgid "minutes"
 msgstr "分钟"
 
-#: src/pages/crm/CrmForms.tsx:246
+#: src/pages/crm/CrmForms.tsx:241
 msgid "Minutes"
 msgstr ""
 
@@ -4299,7 +4299,7 @@ msgstr ""
 msgid "New deal"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:116
+#: src/pages/crm/CrmForms.tsx:113
 msgid "New event signup"
 msgstr ""
 
@@ -4343,7 +4343,7 @@ msgstr "新密码"
 msgid "New pipeline"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:123
+#: src/pages/crm/CrmForms.tsx:116
 msgid "New scorecard"
 msgstr ""
 
@@ -4486,7 +4486,7 @@ msgstr ""
 msgid "No exceptions. Actions run automatically."
 msgstr "没有例外。操作会自动执行。"
 
-#: src/pages/crm/CrmForms.tsx:133
+#: src/pages/crm/CrmForms.tsx:126
 msgid "No forms yet."
 msgstr ""
 
@@ -4676,7 +4676,7 @@ msgstr ""
 msgid "Nothing to chart yet"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:293
+#: src/pages/crm/CrmForms.tsx:289
 msgid "Notify"
 msgstr ""
 
@@ -4717,7 +4717,7 @@ msgstr ""
 msgid "of decided applications"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:151
+#: src/pages/crm/CrmForms.tsx:144
 msgid "Off"
 msgstr ""
 
@@ -4738,7 +4738,7 @@ msgstr ""
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:316
+#: src/pages/crm/CrmForms.tsx:312
 msgid "One per line"
 msgstr ""
 
@@ -5750,7 +5750,7 @@ msgstr ""
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/pages/crm/CrmContacts.tsx:486
-#: src/pages/crm/CrmForms.tsx:349
+#: src/pages/crm/CrmForms.tsx:340
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
@@ -5797,7 +5797,7 @@ msgstr "已保存。轮换后可查看。"
 
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
-#: src/pages/crm/CrmForms.tsx:349
+#: src/pages/crm/CrmForms.tsx:340
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:674
 #: src/pages/RoutineEditor.tsx:451
@@ -5829,7 +5829,7 @@ msgstr ""
 msgid "Scope"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:152
+#: src/pages/crm/CrmForms.tsx:145
 msgid "Scorecard"
 msgstr ""
 
@@ -5953,7 +5953,7 @@ msgstr ""
 msgid "Send this report"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:301
+#: src/pages/crm/CrmForms.tsx:297
 msgid "Sender name"
 msgstr ""
 
@@ -6151,7 +6151,7 @@ msgstr "注册"
 msgid "Sign-in credentials"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:308
+#: src/pages/crm/CrmForms.tsx:304
 msgid "Sign-off"
 msgstr ""
 
@@ -6306,7 +6306,7 @@ msgstr "正在开始"
 msgid "Starting…"
 msgstr "正在开始…"
 
-#: src/pages/crm/CrmForms.tsx:210
+#: src/pages/crm/CrmForms.tsx:214
 msgid "Starts"
 msgstr ""
 
@@ -6521,6 +6521,10 @@ msgstr "测试运行"
 msgid "Text"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:183
+msgid "That time is skipped when the clocks change in {timeZone}. Pick another."
+msgstr ""
+
 #: src/components/SoftwareUpdateSection.tsx:206
 msgid "The API did not come back. Refresh this page."
 msgstr "API 未恢复。请刷新此页面。"
@@ -6702,11 +6706,11 @@ msgstr "时间"
 msgid "Time range"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:224
+#: src/pages/crm/CrmForms.tsx:222
 msgid "Time zone"
 msgstr ""
 
-#: src/pages/crm/CrmForms.tsx:189
+#: src/pages/crm/CrmForms.tsx:193
 #: src/pages/Onboarding.tsx:548
 #: src/pages/Shell.tsx:6190
 #: src/pages/Shell.tsx:6372

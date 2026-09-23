@@ -116,6 +116,14 @@ export function describeEventTime(
     }).format(date);
   if (!minutes) return `${day}, ${time(startsAt, true)}`;
   const endsAt = new Date(startsAt.getTime() + minutes * 60_000);
+  const endDay = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(endsAt);
+  // Across midnight both ends need their dates; otherwise share the day and AM/PM.
+  if (endDay !== day) return `${day}, ${time(startsAt, false)} to ${endDay}, ${time(endsAt, true)}`;
   const start = time(startsAt, false).replace(/\s?[AP]M$/, "");
   return `${day}, ${start} to ${time(endsAt, true)}`;
 }
@@ -252,9 +260,11 @@ export function mountPublicFormRoutes(
   },
 ) {
   const allow = createRateLimiter(RATE_LIMIT, RATE_WINDOW_MS);
-  const send = async (form: PublicFormRow, to: string, message: Message, label: string) => {
+  /** Email is best effort: the contact is already saved, so building or sending never fails the submission. */
+  const send = async (form: PublicFormRow, to: string, build: () => Message, label: string) => {
     try {
-      await deps.email?.send({ to, fromName: form.senderName ?? undefined, ...message });
+      if (!deps.email) return;
+      await deps.email.send({ to, fromName: form.senderName ?? undefined, ...build() });
     } catch (error) {
       console.error(`Public form ${label} email failed`, error);
     }
@@ -292,12 +302,12 @@ export function mountPublicFormRoutes(
     const email = parsed.data.email.toLowerCase();
     const firstName = parsed.data.first_name;
     await saveContact(form, { email, firstName });
-    await send(form, email, eventConfirmation(form, firstName), "confirmation");
+    await send(form, email, () => eventConfirmation(form, firstName), "confirmation");
     if (form.notifyEmail) {
       await send(
         form,
         form.notifyEmail,
-        {
+        () => ({
           subject: `${form.title} signup: ${firstName}`,
           text: `${firstName} signed up for ${form.title}.\n${email}`,
           html: card([
@@ -305,7 +315,7 @@ export function mountPublicFormRoutes(
             `<p>${escapeHtml(email)}</p>`,
             `<p>Saved in the CRM, tagged ${escapeHtml(form.crmTag)}.</p>`,
           ]),
-        },
+        }),
         "signup notice",
       );
     }
@@ -337,17 +347,16 @@ export function mountPublicFormRoutes(
       lastName: rest.join(" ") || undefined,
       company,
     });
-    const previous = contact.notes?.trim();
-    await deps.prisma.crmContact.update({
-      where: { id: contact.id },
-      data: { notes: (previous ? `${notes}\n\n${previous}` : notes).slice(0, MAX_NOTES_CHARS) },
-    });
-    await send(form, email, scorecardResults(form, firstName, score, band, focus), "results");
+    const combined = prependNotes(notes, contact.notes);
+    if (combined !== null) {
+      await deps.prisma.crmContact.update({ where: { id: contact.id }, data: { notes: combined } });
+    }
+    await send(form, email, () => scorecardResults(form, firstName, score, band, focus), "results");
     if (form.notifyEmail) {
       await send(
         form,
         form.notifyEmail,
-        {
+        () => ({
           subject: `${form.title}: ${firstName} scored ${score}/${SCORECARD_MAX}`,
           text: `${parsed.data.name} completed ${form.title}.\n${email}\n\n${notes}`,
           html: card([
@@ -355,7 +364,7 @@ export function mountPublicFormRoutes(
             `<p>${escapeHtml(email)}</p>`,
             `<pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(notes)}</pre>`,
           ]),
-        },
+        }),
         "results notice",
       );
     }
@@ -385,6 +394,18 @@ export function mountPublicFormRoutes(
 
   app.post(`${PUBLIC_FORM_PREFIX}forms/:slug`, submit);
   app.post(`${PUBLIC_FORM_PREFIX}:slug`, submit);
+}
+
+/**
+ * Put the newest result first without ever cutting existing CRM notes: only the new section is
+ * trimmed to fit. Returns null when existing notes leave no room (the owner email still has it).
+ */
+export function prependNotes(section: string, existing: string | null | undefined): string | null {
+  const previous = existing?.trim();
+  if (!previous) return section.slice(0, MAX_NOTES_CHARS);
+  const room = MAX_NOTES_CHARS - previous.length - 2;
+  if (room < 1) return null;
+  return `${section.slice(0, room)}\n\n${previous}`;
 }
 
 function error(message: string) {

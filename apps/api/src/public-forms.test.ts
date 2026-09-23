@@ -5,6 +5,7 @@ import {
   describeEventTime,
   eventConfirmation,
   joinLabel,
+  prependNotes,
   scoreScorecard,
   slugFromPath,
 } from "./public-forms.js";
@@ -65,6 +66,12 @@ describe("event details", () => {
     expect(url.searchParams.get("location")).toBe(form.joinUrl);
   });
 
+  it("dates both ends of an event that crosses midnight", () => {
+    expect(describeEventTime(new Date("2026-09-25T03:00:00.000Z"), 120, "America/New_York")).toBe(
+      "Thursday, September 24, 11:00 PM to Friday, September 25, 1:00 AM EDT",
+    );
+  });
+
   it("labels the join button by service", () => {
     expect(joinLabel("https://us06web.zoom.us/j/1")).toBe("Join on Zoom");
     expect(joinLabel("https://meet.google.com/abc")).toBe("Join on Google Meet");
@@ -114,5 +121,14 @@ describe("scoreScorecard", () => {
     expect(scoreScorecard({ name: "Ada", email: "ada@example.com", score: 20 }).band).toBe(
       "Ready to automate one workflow",
     );
+  });
+});
+
+describe("prependNotes", () => {
+  it("never trims existing notes, only the new section", () => {
+    const existing = "x".repeat(3_990);
+    expect(prependNotes("new result section", existing)).toBe(`new resu\n\n${existing}`);
+    expect(prependNotes("new", "y".repeat(3_999))).toBeNull();
+    expect(prependNotes("new", null)).toBe("new");
   });
 });

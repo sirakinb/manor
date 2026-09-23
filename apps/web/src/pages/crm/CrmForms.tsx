@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PublicForm, PublicFormInput } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
+import { BuiButton, BuiCard } from "../../components/beautiful-ui/primitives";
 import { rpc } from "../../lib/rpc";
 import { isoToZonedLocal, zonedLocalToIso } from "../../lib/zoned-time";
 
@@ -108,20 +109,12 @@ export function CrmForms() {
   return (
     <div className="px-[22px] py-5" data-testid="crm-forms">
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setDraft(blankDraft("event"))}
-          className="rounded-full border border-[#26262A] px-3.5 py-1.5 text-[13px] text-[#C9C9CE]"
-        >
+        <BuiButton onClick={() => setDraft(blankDraft("event"))}>
           <Trans>New event signup</Trans>
-        </button>
-        <button
-          type="button"
-          onClick={() => setDraft(blankDraft("scorecard"))}
-          className="rounded-full border border-[#26262A] px-3.5 py-1.5 text-[13px] text-[#C9C9CE]"
-        >
+        </BuiButton>
+        <BuiButton onClick={() => setDraft(blankDraft("scorecard"))}>
           <Trans>New scorecard</Trans>
-        </button>
+        </BuiButton>
       </div>
       {error ? <p className="mt-3 text-[13px] text-[#E8A33C]">{error}</p> : null}
       {forms === null ? (
@@ -133,13 +126,13 @@ export function CrmForms() {
           <Trans>No forms yet.</Trans>
         </p>
       ) : (
-        <ul className="mt-5 flex flex-col gap-2">
+        <div className="mt-5 flex flex-col gap-2">
           {forms.map((form) => (
-            <li key={form.id}>
+            <BuiCard key={form.id} className="overflow-hidden">
               <button
                 type="button"
                 onClick={() => setDraft(form)}
-                className="flex w-full items-center justify-between gap-4 rounded-[14px] border border-[#202023] bg-[#131315] px-4 py-3 text-left hover:border-[#2E2E33]"
+                className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
               >
                 <span className="min-w-0">
                   <span className="block text-[14.5px] text-[#ECECEE]">{form.title}</span>
@@ -152,9 +145,9 @@ export function CrmForms() {
                   {form.kind === "event" ? t`Event` : t`Scorecard`}
                 </span>
               </button>
-            </li>
+            </BuiCard>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
@@ -182,6 +175,17 @@ function FormEditor({
   const text = (value: string) => value.trim() || null;
   const zone = draft.eventTimeZone || "America/New_York";
   const zones = TIME_ZONES.includes(zone) ? TIME_ZONES : [zone, ...TIME_ZONES];
+  const [timeError, setTimeError] = useState<string | null>(null);
+  /** Apply a wall-clock time in a zone, refusing times skipped by a clock change. */
+  const setStart = (local: string | null, timeZone: string) => {
+    const iso = local ? zonedLocalToIso(local, timeZone) : null;
+    if (local && !iso) {
+      setTimeError(t`That time is skipped when the clocks change in ${timeZone}. Pick another.`);
+      return;
+    }
+    setTimeError(null);
+    set({ eventTimeZone: timeZone, eventStartsAt: iso });
+  };
 
   return (
     <div className="max-w-[640px] px-[22px] py-5" data-testid="crm-form-editor">
@@ -212,29 +216,20 @@ function FormEditor({
                   type="datetime-local"
                   className={inputClass}
                   value={draft.eventStartsAt ? isoToZonedLocal(draft.eventStartsAt, zone) : ""}
-                  onChange={(event) =>
-                    set({
-                      eventStartsAt: event.target.value
-                        ? zonedLocalToIso(event.target.value, zone)
-                        : null,
-                    })
-                  }
+                  onChange={(event) => setStart(event.target.value || null, zone)}
                 />
               </Field>
               <Field label={t`Time zone`}>
                 <select
                   className={inputClass}
                   value={zone}
-                  onChange={(event) => {
+                  onChange={(event) =>
                     // Keep the same wall-clock time when switching zones.
-                    const local = draft.eventStartsAt
-                      ? isoToZonedLocal(draft.eventStartsAt, zone)
-                      : null;
-                    set({
-                      eventTimeZone: event.target.value,
-                      eventStartsAt: local ? zonedLocalToIso(local, event.target.value) : null,
-                    });
-                  }}
+                    setStart(
+                      draft.eventStartsAt ? isoToZonedLocal(draft.eventStartsAt, zone) : null,
+                      event.target.value,
+                    )
+                  }
                 >
                   {zones.map((value) => (
                     <option key={value} value={value}>
@@ -255,6 +250,7 @@ function FormEditor({
                 />
               </Field>
             </div>
+            {timeError ? <p className="text-[13px] text-[#E8A33C]">{timeError}</p> : null}
             <Field label={t`Join link`}>
               <input
                 className={inputClass}
@@ -340,29 +336,18 @@ function FormEditor({
 
       {error ? <p className="mt-4 text-[13px] text-[#E8A33C]">{error}</p> : null}
       <div className="mt-5 flex items-center gap-2">
-        <button
-          type="button"
-          disabled={saving}
-          onClick={onSave}
-          className="rounded-full bg-[#ECECEE] px-4 py-1.5 text-[13.5px] font-medium text-[#0D0D0E] disabled:opacity-60"
-        >
+        <BuiButton tone="accent" disabled={saving} onClick={onSave}>
           {saving ? t`Saving…` : t`Save`}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-full px-3.5 py-1.5 text-[13.5px] text-[#85858A]"
-        >
+        </BuiButton>
+        <BuiButton onClick={onCancel}>
           <Trans>Cancel</Trans>
-        </button>
+        </BuiButton>
         {onDelete ? (
-          <button
-            type="button"
-            onClick={onDelete}
-            className="ml-auto rounded-full px-3.5 py-1.5 text-[13.5px] text-[#E8A33C]"
-          >
-            <Trans>Delete</Trans>
-          </button>
+          <span className="ml-auto">
+            <BuiButton onClick={onDelete}>
+              <Trans>Delete</Trans>
+            </BuiButton>
+          </span>
         ) : null}
       </div>
     </div>

@@ -187,6 +187,15 @@ describeWithDatabase("organization public forms", () => {
       crmTag: "Copy",
     });
     expect(taken.status).toBe(409);
+    const badZone = await raw(app, owner, "publicForms/save", {
+      ...baseForm,
+      slug: `bad-zone-${eventSlug}`,
+      kind: "event",
+      title: "Bad zone",
+      crmTag: "Bad zone",
+      eventTimeZone: "Mars/Olympus_Mons",
+    });
+    expect(badZone.status).toBe(400);
 
     await rpc(app, owner, "publicForms/save", {
       ...baseForm,

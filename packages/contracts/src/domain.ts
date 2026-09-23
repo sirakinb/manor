@@ -612,6 +612,15 @@ const VerdictSchema = z.object({
 
 const HttpsUrl = z.url({ protocol: /^https$/ });
 
+function isTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Public URL key: lowercase letters, numbers, and single dashes. Doubles as the CRM source. */
 export const PublicFormSlug = z
   .string()
@@ -642,7 +651,7 @@ export const PublicFormInputSchema = z.object({
     .min(5)
     .max(24 * 60)
     .nullable(),
-  eventTimeZone: z.string().max(64).nullable(),
+  eventTimeZone: z.string().max(64).refine(isTimeZone, "Unknown time zone").nullable(),
   joinUrl: HttpsUrl.nullable(),
   bookingUrl: HttpsUrl.nullable(),
 });

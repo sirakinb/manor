@@ -461,7 +461,7 @@ msgstr "90D"
 msgid "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 msgstr "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 
-#: src/pages/crm/CrmForms.tsx:337
+#: src/pages/crm/CrmForms.tsx:333
 msgid "Accept submissions"
 msgstr "Accept submissions"
 
@@ -672,7 +672,7 @@ msgstr "Add webhook"
 msgid "Adding…"
 msgstr "Adding…"
 
-#: src/pages/crm/CrmForms.tsx:196
+#: src/pages/crm/CrmForms.tsx:200
 msgid "Address"
 msgstr "Address"
 
@@ -807,7 +807,7 @@ msgstr "Allowed"
 msgid "Allowed once"
 msgstr "Allowed once"
 
-#: src/pages/crm/CrmForms.tsx:316
+#: src/pages/crm/CrmForms.tsx:312
 msgid "Allowed websites"
 msgstr "Allowed websites"
 
@@ -1155,7 +1155,7 @@ msgstr "Bills to review"
 msgid "Book demo"
 msgstr "Book demo"
 
-#: src/pages/crm/CrmForms.tsx:275
+#: src/pages/crm/CrmForms.tsx:271
 msgid "Booking link"
 msgstr "Booking link"
 
@@ -1336,7 +1336,7 @@ msgstr "Can't reach the server."
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/FilesPanel.tsx:363
 #: src/components/teach/TeachComputerOverlay.tsx:218
-#: src/pages/crm/CrmForms.tsx:356
+#: src/pages/crm/CrmForms.tsx:343
 #: src/pages/crm/CrmModuleSheet.tsx:157
 #: src/pages/crm/CrmModuleSheet.tsx:367
 #: src/pages/crm/CrmModuleSheet.tsx:385
@@ -2112,7 +2112,7 @@ msgstr "Could not delete routine"
 msgid "Could not delete skill"
 msgstr "Could not delete skill"
 
-#: src/pages/crm/CrmForms.tsx:87
+#: src/pages/crm/CrmForms.tsx:88
 msgid "Could not delete the form"
 msgstr "Could not delete the form"
 
@@ -2165,7 +2165,7 @@ msgstr "Could not load approval rules"
 msgid "Could not load credentials"
 msgstr "Could not load credentials"
 
-#: src/pages/crm/CrmForms.tsx:57
+#: src/pages/crm/CrmForms.tsx:58
 msgid "Could not load forms"
 msgstr "Could not load forms"
 
@@ -2360,7 +2360,7 @@ msgstr "Could not save that choice"
 msgid "Could not save that voice"
 msgstr "Could not save that voice"
 
-#: src/pages/crm/CrmForms.tsx:74
+#: src/pages/crm/CrmForms.tsx:75
 msgid "Could not save the form"
 msgstr "Could not save the form"
 
@@ -2541,7 +2541,7 @@ msgstr "CRM API access"
 msgid "CRM connection"
 msgstr "CRM connection"
 
-#: src/pages/crm/CrmForms.tsx:286
+#: src/pages/crm/CrmForms.tsx:282
 msgid "CRM tag"
 msgstr "CRM tag"
 
@@ -2657,7 +2657,7 @@ msgstr "Default scope"
 #: src/components/FilesPanel.tsx:458
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
-#: src/pages/crm/CrmForms.tsx:364
+#: src/pages/crm/CrmForms.tsx:348
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
@@ -2987,7 +2987,7 @@ msgstr "Email campaign report"
 msgid "Email delivery"
 msgstr "Email delivery"
 
-#: src/pages/crm/CrmForms.tsx:266
+#: src/pages/crm/CrmForms.tsx:262
 msgid "Email message"
 msgstr "Email message"
 
@@ -3052,7 +3052,7 @@ msgstr "Errors"
 msgid "Escalated"
 msgstr "Escalated"
 
-#: src/pages/crm/CrmForms.tsx:152
+#: src/pages/crm/CrmForms.tsx:145
 msgid "Event"
 msgstr "Event"
 
@@ -3647,7 +3647,7 @@ msgstr "Isolated"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 
-#: src/pages/crm/CrmForms.tsx:258
+#: src/pages/crm/CrmForms.tsx:254
 msgid "Join link"
 msgstr "Join link"
 
@@ -3826,7 +3826,7 @@ msgstr "Listening…"
 msgid "Listing type"
 msgstr "Listing type"
 
-#: src/pages/crm/CrmForms.tsx:151
+#: src/pages/crm/CrmForms.tsx:144
 msgid "Live"
 msgstr "Live"
 
@@ -3893,7 +3893,7 @@ msgstr "Loading voice providers…"
 
 #: src/App.tsx:54
 #: src/components/BotCredentialsSettings.tsx:165
-#: src/pages/crm/CrmForms.tsx:129
+#: src/pages/crm/CrmForms.tsx:122
 #: src/pages/crm/CrmView.tsx:190
 #: src/pages/crm/CrmView.tsx:210
 #: src/pages/Onboarding.tsx:238
@@ -4111,7 +4111,7 @@ msgstr "minute"
 msgid "minutes"
 msgstr "minutes"
 
-#: src/pages/crm/CrmForms.tsx:246
+#: src/pages/crm/CrmForms.tsx:241
 msgid "Minutes"
 msgstr "Minutes"
 
@@ -4300,7 +4300,7 @@ msgstr "New contact"
 msgid "New deal"
 msgstr "New deal"
 
-#: src/pages/crm/CrmForms.tsx:116
+#: src/pages/crm/CrmForms.tsx:113
 msgid "New event signup"
 msgstr "New event signup"
 
@@ -4344,7 +4344,7 @@ msgstr "New password"
 msgid "New pipeline"
 msgstr "New pipeline"
 
-#: src/pages/crm/CrmForms.tsx:123
+#: src/pages/crm/CrmForms.tsx:116
 msgid "New scorecard"
 msgstr "New scorecard"
 
@@ -4487,7 +4487,7 @@ msgstr "No deals yet"
 msgid "No exceptions. Actions run automatically."
 msgstr "No exceptions. Actions run automatically."
 
-#: src/pages/crm/CrmForms.tsx:133
+#: src/pages/crm/CrmForms.tsx:126
 msgid "No forms yet."
 msgstr "No forms yet."
 
@@ -4677,7 +4677,7 @@ msgstr "Nothing remembered yet"
 msgid "Nothing to chart yet"
 msgstr "Nothing to chart yet"
 
-#: src/pages/crm/CrmForms.tsx:293
+#: src/pages/crm/CrmForms.tsx:289
 msgid "Notify"
 msgstr "Notify"
 
@@ -4718,7 +4718,7 @@ msgstr "Obtain the bill from the owner and handle manually."
 msgid "of decided applications"
 msgstr "of decided applications"
 
-#: src/pages/crm/CrmForms.tsx:151
+#: src/pages/crm/CrmForms.tsx:144
 msgid "Off"
 msgstr "Off"
 
@@ -4739,7 +4739,7 @@ msgstr "on the utility account"
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 
-#: src/pages/crm/CrmForms.tsx:316
+#: src/pages/crm/CrmForms.tsx:312
 msgid "One per line"
 msgstr "One per line"
 
@@ -5751,7 +5751,7 @@ msgstr "Saturday"
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/pages/crm/CrmContacts.tsx:486
-#: src/pages/crm/CrmForms.tsx:349
+#: src/pages/crm/CrmForms.tsx:340
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
@@ -5798,7 +5798,7 @@ msgstr "Saved. Rotate to reveal."
 
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
-#: src/pages/crm/CrmForms.tsx:349
+#: src/pages/crm/CrmForms.tsx:340
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:674
 #: src/pages/RoutineEditor.tsx:451
@@ -5830,7 +5830,7 @@ msgstr "Scheduled reports"
 msgid "Scope"
 msgstr "Scope"
 
-#: src/pages/crm/CrmForms.tsx:152
+#: src/pages/crm/CrmForms.tsx:145
 msgid "Scorecard"
 msgstr "Scorecard"
 
@@ -5954,7 +5954,7 @@ msgstr "Send test email"
 msgid "Send this report"
 msgstr "Send this report"
 
-#: src/pages/crm/CrmForms.tsx:301
+#: src/pages/crm/CrmForms.tsx:297
 msgid "Sender name"
 msgstr "Sender name"
 
@@ -6152,7 +6152,7 @@ msgstr "Sign up"
 msgid "Sign-in credentials"
 msgstr "Sign-in credentials"
 
-#: src/pages/crm/CrmForms.tsx:308
+#: src/pages/crm/CrmForms.tsx:304
 msgid "Sign-off"
 msgstr "Sign-off"
 
@@ -6307,7 +6307,7 @@ msgstr "Starting"
 msgid "Starting…"
 msgstr "Starting…"
 
-#: src/pages/crm/CrmForms.tsx:210
+#: src/pages/crm/CrmForms.tsx:214
 msgid "Starts"
 msgstr "Starts"
 
@@ -6522,6 +6522,10 @@ msgstr "Test run"
 msgid "Text"
 msgstr "Text"
 
+#: src/pages/crm/CrmForms.tsx:183
+msgid "That time is skipped when the clocks change in {timeZone}. Pick another."
+msgstr "That time is skipped when the clocks change in {timeZone}. Pick another."
+
 #: src/components/SoftwareUpdateSection.tsx:206
 msgid "The API did not come back. Refresh this page."
 msgstr "The API did not come back. Refresh this page."
@@ -6703,11 +6707,11 @@ msgstr "Time of day"
 msgid "Time range"
 msgstr "Time range"
 
-#: src/pages/crm/CrmForms.tsx:224
+#: src/pages/crm/CrmForms.tsx:222
 msgid "Time zone"
 msgstr "Time zone"
 
-#: src/pages/crm/CrmForms.tsx:189
+#: src/pages/crm/CrmForms.tsx:193
 #: src/pages/Onboarding.tsx:548
 #: src/pages/Shell.tsx:6190
 #: src/pages/Shell.tsx:6372
