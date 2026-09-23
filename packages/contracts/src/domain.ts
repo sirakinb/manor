@@ -612,6 +612,8 @@ const VerdictSchema = z.object({
 
 export const VerificationSummarySchema = z.object({
   engines: z.array(z.object({ id: z.string(), label: z.string() })),
+  /** True when the window held more checks than one summary covers; the oldest were left out. */
+  truncated: z.boolean(),
   checkpoints: z.array(
     z.object({
       checkpoint: z.string(),

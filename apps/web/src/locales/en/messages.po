@@ -376,7 +376,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/components/VerificationComparison.tsx:440
+#: src/components/VerificationComparison.tsx:476
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 
@@ -482,7 +482,7 @@ msgstr "Account balance {0}"
 msgid "Account default"
 msgstr "Account default"
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Action"
 msgstr "Action"
 
@@ -495,7 +495,7 @@ msgstr "Action confirmations"
 msgid "Action type"
 msgstr "Action type"
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Actions"
 msgstr "Actions"
 
@@ -710,7 +710,7 @@ msgstr "Agents:"
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
 #. placeholder {2}: percent(current.agreed / current.compared)
-#: src/components/VerificationComparison.tsx:237
+#: src/components/VerificationComparison.tsx:273
 msgid "Agreed on {0} of {1} checks ({2})"
 msgstr "Agreed on {0} of {1} checks ({2})"
 
@@ -743,7 +743,7 @@ msgstr "All"
 msgid "All applications on record"
 msgstr "All applications on record"
 
-#: src/components/VerificationComparison.tsx:170
+#: src/components/VerificationComparison.tsx:198
 msgid "All bots"
 msgstr "All bots"
 
@@ -791,7 +791,7 @@ msgstr "Allow once"
 msgid "Allow purchase actions without asking"
 msgstr "Allow purchase actions without asking"
 
-#: src/components/VerificationComparison.tsx:334
+#: src/components/VerificationComparison.tsx:370
 msgid "Allowed"
 msgstr "Allowed"
 
@@ -939,7 +939,7 @@ msgstr "Arguments"
 msgid "Arguments:"
 msgstr "Arguments:"
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Ask"
 msgstr "Ask"
 
@@ -1163,8 +1163,8 @@ msgstr "bot"
 msgid "Bot"
 msgstr "Bot"
 
-#: src/components/VerificationComparison.tsx:165
-#: src/components/VerificationComparison.tsx:286
+#: src/components/VerificationComparison.tsx:193
+#: src/components/VerificationComparison.tsx:322
 #: src/pages/Shell.tsx:1809
 msgid "Bot"
 msgstr "Bot"
@@ -1445,7 +1445,7 @@ msgstr "Check that your app shows the connection as available, then start a new 
 msgid "Check the connection"
 msgstr "Check the connection"
 
-#: src/components/VerificationComparison.tsx:135
+#: src/components/VerificationComparison.tsx:163
 msgid "Check type"
 msgstr "Check type"
 
@@ -1469,7 +1469,7 @@ msgstr "Checkbox"
 msgid "Checker"
 msgstr "Checker"
 
-#: src/components/VerificationComparison.tsx:122
+#: src/components/VerificationComparison.tsx:150
 msgid "Checker comparison"
 msgstr "Checker comparison"
 
@@ -1481,7 +1481,7 @@ msgstr "Checking…"
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "Checkout has local changes. Clean it before updating."
 
-#: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:246
 msgid "Checks"
 msgstr "Checks"
 
@@ -1574,9 +1574,9 @@ msgstr "Client recipients"
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
 #: src/pages/KnowledgeSection.tsx:374
-#: src/pages/PeerMessagesOverlay.tsx:150
-#: src/pages/PeerMessagesOverlay.tsx:154
-#: src/pages/PeerMessagesOverlay.tsx:209
+#: src/pages/PeerMessagesOverlay.tsx:148
+#: src/pages/PeerMessagesOverlay.tsx:152
+#: src/pages/PeerMessagesOverlay.tsx:207
 #: src/pages/RoutineEditor.tsx:242
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
@@ -1586,7 +1586,7 @@ msgstr "Close"
 msgid "Close chart"
 msgstr "Close chart"
 
-#: src/components/VerificationComparison.tsx:126
+#: src/components/VerificationComparison.tsx:154
 msgid "Close checker comparison"
 msgstr "Close checker comparison"
 
@@ -1685,7 +1685,7 @@ msgstr "Company"
 msgid "Compare checkers"
 msgstr "Compare checkers"
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "compared"
 msgstr "compared"
 
@@ -1741,7 +1741,7 @@ msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TO
 msgstr "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TOKEN, or set SANDBOX_PROVIDER to e2b, daytona, or box with its API key. Recreate the stack after changing .env."
 
 #. placeholder {0}: verdict.confidence.toFixed(2)
-#: src/components/VerificationComparison.tsx:421
+#: src/components/VerificationComparison.tsx:457
 msgid "confidence {0}"
 msgstr "confidence {0}"
 
@@ -1978,7 +1978,7 @@ msgstr "Copy token command"
 msgid "Copy webhook signing secret"
 msgstr "Copy webhook signing secret"
 
-#: src/components/VerificationComparison.tsx:230
+#: src/components/VerificationComparison.tsx:266
 msgid "Cost"
 msgstr "Cost"
 
@@ -2112,7 +2112,7 @@ msgstr "Could not download {0}. Try again."
 msgid "Could not download {name}. Try again."
 msgstr "Could not download {name}. Try again."
 
-#: src/components/VerificationComparison.tsx:83
+#: src/components/VerificationComparison.tsx:111
 msgid "Could not download the report"
 msgstr "Could not download the report"
 
@@ -2165,7 +2165,7 @@ msgstr "Could not load model settings"
 msgid "Could not load organization access."
 msgstr "Could not load organization access."
 
-#: src/components/VerificationComparison.tsx:64
+#: src/components/VerificationComparison.tsx:92
 msgid "Could not load results"
 msgstr "Could not load results"
 
@@ -2189,7 +2189,7 @@ msgstr "Could not load the team"
 msgid "Could not load the workspace"
 msgstr "Could not load the workspace"
 
-#: src/pages/PeerMessagesOverlay.tsx:164
+#: src/pages/PeerMessagesOverlay.tsx:162
 msgid "Could not load this chat."
 msgstr "Could not load this chat."
 
@@ -2560,7 +2560,7 @@ msgstr "daily {time}"
 msgid "Daily reach"
 msgstr "Daily reach"
 
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:210
 msgid "Data (.csv)"
 msgstr "Data (.csv)"
 
@@ -2603,7 +2603,7 @@ msgstr "Deal title"
 msgid "Deals"
 msgstr "Deals"
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "decided"
 msgstr "decided"
 
@@ -2698,7 +2698,7 @@ msgid "Delivery"
 msgstr "Delivery"
 
 #: src/components/AskCard.tsx:24
-#: src/components/VerificationComparison.tsx:336
+#: src/components/VerificationComparison.tsx:372
 msgid "Denied"
 msgstr "Denied"
 
@@ -2751,7 +2751,7 @@ msgstr "Diagnostics exclude prompts, credentials, tool inputs and outputs."
 msgid "Dictate"
 msgstr "Dictate"
 
-#: src/components/VerificationComparison.tsx:271
+#: src/components/VerificationComparison.tsx:307
 msgid "Disagreements"
 msgstr "Disagreements"
 
@@ -2999,13 +2999,13 @@ msgstr "Engagement rate"
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Enter this code at <0>{0}</0>"
 
-#: src/components/VerificationComparison.tsx:386
+#: src/components/VerificationComparison.tsx:422
 #: src/pages/workspace/sections/ReportsSection.tsx:59
 #: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr "Error"
 
-#: src/components/VerificationComparison.tsx:225
+#: src/components/VerificationComparison.tsx:261
 #: src/pages/DocsView.tsx:467
 msgid "Errors"
 msgstr "Errors"
@@ -3228,7 +3228,7 @@ msgstr "Finishing MCP connection…"
 msgid "First name"
 msgstr "First name"
 
-#: src/components/VerificationComparison.tsx:250
+#: src/components/VerificationComparison.tsx:286
 msgid "Flag rate by day"
 msgstr "Flag rate by day"
 
@@ -3236,7 +3236,7 @@ msgstr "Flag rate by day"
 msgid "Flag unexpected actions"
 msgstr "Flag unexpected actions"
 
-#: src/components/VerificationComparison.tsx:212
+#: src/components/VerificationComparison.tsx:248
 msgid "Flagged"
 msgstr "Flagged"
 
@@ -3653,7 +3653,7 @@ msgstr "Landlords"
 msgid "Language"
 msgstr "Language"
 
-#: src/components/VerificationComparison.tsx:160
+#: src/components/VerificationComparison.tsx:188
 msgid "Last {range} days"
 msgstr "Last {range} days"
 
@@ -3821,7 +3821,7 @@ msgstr "Loading model catalog…"
 msgid "Loading preview…"
 msgstr "Loading preview…"
 
-#: src/components/VerificationComparison.tsx:191
+#: src/components/VerificationComparison.tsx:219
 msgid "Loading results"
 msgstr "Loading results"
 
@@ -3842,7 +3842,7 @@ msgstr "Loading voice providers…"
 #: src/pages/crm/CrmView.tsx:179
 #: src/pages/crm/CrmView.tsx:197
 #: src/pages/Onboarding.tsx:238
-#: src/pages/PeerMessagesOverlay.tsx:160
+#: src/pages/PeerMessagesOverlay.tsx:158
 #: src/pages/Shell.tsx:4586
 msgid "Loading…"
 msgstr "Loading…"
@@ -3959,7 +3959,7 @@ msgstr "MCP servers"
 msgid "Meaning"
 msgstr "Meaning"
 
-#: src/components/VerificationComparison.tsx:227
+#: src/components/VerificationComparison.tsx:263
 msgid "Median time"
 msgstr "Median time"
 
@@ -4377,7 +4377,7 @@ msgstr "No campaigns in this range"
 msgid "No chat apps linked yet."
 msgstr "No chat apps linked yet."
 
-#: src/components/VerificationComparison.tsx:197
+#: src/components/VerificationComparison.tsx:233
 msgid "No checks in this period."
 msgstr "No checks in this period."
 
@@ -4464,7 +4464,7 @@ msgstr "No MCP or API tool sources installed yet."
 msgid "No MCP servers yet."
 msgstr "No MCP servers yet."
 
-#: src/pages/PeerMessagesOverlay.tsx:168
+#: src/pages/PeerMessagesOverlay.tsx:166
 msgid "No messages with {peerBotName} yet."
 msgstr "No messages with {peerBotName} yet."
 
@@ -4542,7 +4542,7 @@ msgstr "No workspace is connected to this account."
 msgid "Nobody matches that search"
 msgstr "Nobody matches that search"
 
-#: src/components/VerificationComparison.tsx:275
+#: src/components/VerificationComparison.tsx:311
 msgid "None in this period."
 msgstr "None in this period."
 
@@ -4690,7 +4690,7 @@ msgstr "Open a terminal. Replace REPLACE_WITH_MANOR_TOKEN with your token, then 
 msgid "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 msgstr "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 
-#: src/components/VerificationComparison.tsx:403
+#: src/components/VerificationComparison.tsx:439
 msgid "Open chat"
 msgstr "Open chat"
 
@@ -4848,7 +4848,7 @@ msgstr "Pagination"
 msgid "Park"
 msgstr "Park"
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Pass"
 msgstr "Pass"
 
@@ -5057,8 +5057,8 @@ msgstr "Prefer to let your agent handle setup?"
 msgid "Preheader"
 msgstr "Preheader"
 
-#: src/components/VerificationComparison.tsx:179
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:207
+#: src/components/VerificationComparison.tsx:210
 msgid "Preparing…"
 msgstr "Preparing…"
 
@@ -5429,7 +5429,7 @@ msgstr "Replace API key"
 msgid "Replace key"
 msgstr "Replace key"
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Replies"
 msgstr "Replies"
 
@@ -5447,7 +5447,7 @@ msgstr "Replying to {replyName}"
 msgid "Report"
 msgstr "Report"
 
-#: src/components/VerificationComparison.tsx:179
+#: src/components/VerificationComparison.tsx:207
 msgid "Report (.md)"
 msgstr "Report (.md)"
 
@@ -5462,11 +5462,11 @@ msgstr "Reports"
 msgid "Repository"
 msgstr "Repository"
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Request"
 msgstr "Request"
 
-#: src/components/VerificationComparison.tsx:400
+#: src/components/VerificationComparison.tsx:436
 msgid "Request:"
 msgstr "Request:"
 
@@ -5575,7 +5575,7 @@ msgstr "Revoke"
 msgid "Revoking…"
 msgstr "Revoking…"
 
-#: src/components/VerificationComparison.tsx:217
+#: src/components/VerificationComparison.tsx:253
 msgid "Right when you answered"
 msgstr "Right when you answered"
 
@@ -6034,6 +6034,10 @@ msgstr "Show preview"
 msgid "Show settings"
 msgstr "Show settings"
 
+#: src/components/VerificationComparison.tsx:225
+msgid "Showing the most recent checks only. Pick a shorter range for complete data."
+msgstr "Showing the most recent checks only. Pick a shorter range for complete data."
+
 #: src/lib/localized-provider-hint.ts:7
 #: src/pages/Auth.tsx:267
 #: src/pages/Auth.tsx:333
@@ -6303,7 +6307,7 @@ msgstr "Sun"
 msgid "Sunday"
 msgstr "Sunday"
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Supported"
 msgstr "Supported"
 
@@ -6487,7 +6491,7 @@ msgstr "This bot runs on this computer. There is no separate Linux desktop. Ask 
 msgid "This cannot be undone."
 msgstr "This cannot be undone."
 
-#: src/pages/PeerMessagesOverlay.tsx:202
+#: src/pages/PeerMessagesOverlay.tsx:200
 msgid "This chat is view-only"
 msgstr "This chat is view-only"
 
@@ -6594,7 +6598,7 @@ msgstr "Thursday"
 msgid "Time of day"
 msgstr "Time of day"
 
-#: src/components/VerificationComparison.tsx:153
+#: src/components/VerificationComparison.tsx:181
 msgid "Time range"
 msgstr "Time range"
 
@@ -6688,7 +6692,7 @@ msgstr "Tuesday"
 msgid "Turn a proven task into a routine"
 msgstr "Turn a proven task into a routine"
 
-#: src/components/VerificationComparison.tsx:242
+#: src/components/VerificationComparison.tsx:278
 msgid "Turn on Compare checkers to see both engines on the same checks."
 msgstr "Turn on Compare checkers to see both engines on the same checks."
 
@@ -6782,7 +6786,7 @@ msgstr "Unsubscribe rate"
 msgid "Unsubscribes"
 msgstr "Unsubscribes"
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Unsupported"
 msgstr "Unsupported"
 
@@ -7090,7 +7094,7 @@ msgstr "What this bot is for"
 msgid "What to return"
 msgstr "What to return"
 
-#: src/components/VerificationComparison.tsx:283
+#: src/components/VerificationComparison.tsx:319
 #: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr "When"
@@ -7170,7 +7174,7 @@ msgstr "Write a useful brief"
 msgid "Yes"
 msgstr "Yes"
 
-#: src/components/VerificationComparison.tsx:298
+#: src/components/VerificationComparison.tsx:334
 #: src/pages/Shell.tsx:1808
 #: src/pages/Shell.tsx:2544
 msgid "You"

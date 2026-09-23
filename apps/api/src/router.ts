@@ -4174,12 +4174,16 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     verification: {
-      summary: spaceAuthed.verification.summary.handler(async ({ context, input }) => ({
-        engines: Object.entries(VERIFICATION_ENGINE_LABELS).map(([id, label]) => ({ id, label })),
-        ...summarizeVerification(await loadVerificationRows(deps, context.actor, input)),
-      })),
+      summary: spaceAuthed.verification.summary.handler(async ({ context, input }) => {
+        const { rows, truncated } = await loadVerificationRows(deps, context.actor, input);
+        return {
+          engines: Object.entries(VERIFICATION_ENGINE_LABELS).map(([id, label]) => ({ id, label })),
+          truncated,
+          ...summarizeVerification(rows),
+        };
+      }),
       report: spaceAuthed.verification.report.handler(async ({ context, input }) => {
-        const rows = await loadVerificationRows(deps, context.actor, input);
+        const { rows, truncated } = await loadVerificationRows(deps, context.actor, input);
         const now = new Date().toISOString();
         const filename = `checker-comparison-${now.slice(0, 10)}`;
         if (input.format === "csv") {
@@ -4200,6 +4204,7 @@ export function createRouter(deps: RouterDeps) {
             days: input.days,
             botName,
             labels: VERIFICATION_ENGINE_LABELS,
+            truncated,
           }),
         };
       }),
@@ -4606,34 +4611,54 @@ function partitionBySpace<T extends { spaceId: string }>(rows: T[]): Map<string,
 
 const MAX_VERIFICATION_ROWS = 5_000;
 
-/** This person's logged verdicts in the window, joined with the bot, request, and action outcome. */
+const verificationRowInclude = {
+  run: {
+    select: {
+      botId: true,
+      threadId: true,
+      bot: { select: { name: true } },
+      task: { select: { prompt: true } },
+    },
+  },
+  effect: { select: { status: true } },
+} as const;
+
+/**
+ * This person's most recent verdicts in the window, joined with the bot, request, and action
+ * outcome. Engines log separately, so a cap or the window edge can cut a pair in half; the
+ * missing partners are loaded so every compared check stays whole.
+ */
 async function loadVerificationRows(
   deps: RouterDeps,
   actor: Actor,
   input: { days: number; botId?: string },
-): Promise<VerificationCheckInput[]> {
-  const rows = await deps.prisma.verificationCheck.findMany({
+): Promise<{ rows: VerificationCheckInput[]; truncated: boolean }> {
+  const owner = { spaceId: actor.spaceId, userId: actor.userId };
+  const recent = await deps.prisma.verificationCheck.findMany({
     where: {
-      spaceId: actor.spaceId,
-      userId: actor.userId,
+      ...owner,
       createdAt: { gte: new Date(Date.now() - input.days * 86_400_000) },
       ...(input.botId ? { run: { botId: input.botId } } : {}),
     },
     orderBy: { createdAt: "desc" },
-    take: MAX_VERIFICATION_ROWS,
-    include: {
-      run: {
-        select: {
-          botId: true,
-          threadId: true,
-          bot: { select: { name: true } },
-          task: { select: { prompt: true } },
-        },
-      },
-      effect: { select: { status: true } },
-    },
+    take: MAX_VERIFICATION_ROWS + 1,
+    include: verificationRowInclude,
   });
-  return rows.map((row) => ({
+  const truncated = recent.length > MAX_VERIFICATION_ROWS;
+  const kept = recent.slice(0, MAX_VERIFICATION_ROWS);
+  const effectIds = [...new Set(kept.flatMap((row) => (row.effectId ? [row.effectId] : [])))];
+  const answerRunIds = [
+    ...new Set(kept.filter((row) => row.checkpoint === "answer").map((row) => row.runId)),
+  ];
+  const partners = await deps.prisma.verificationCheck.findMany({
+    where: {
+      ...owner,
+      OR: [{ effectId: { in: effectIds } }, { checkpoint: "answer", runId: { in: answerRunIds } }],
+    },
+    include: verificationRowInclude,
+  });
+  const byId = new Map([...kept, ...partners].map((row) => [row.id, row]));
+  const rows = [...byId.values()].map((row) => ({
     createdAt: row.createdAt.toISOString(),
     checkpoint: row.checkpoint,
     subject: row.subject,
@@ -4655,6 +4680,7 @@ async function loadVerificationRows(
     threadId: row.run.threadId,
     task: row.run.task.prompt,
   }));
+  return { rows, truncated };
 }
 
 async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {

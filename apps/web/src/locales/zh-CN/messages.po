@@ -375,7 +375,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}，{label}"
 
-#: src/components/VerificationComparison.tsx:440
+#: src/components/VerificationComparison.tsx:476
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr ""
 
@@ -481,7 +481,7 @@ msgstr ""
 msgid "Account default"
 msgstr "账户默认"
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Action"
 msgstr ""
 
@@ -494,7 +494,7 @@ msgstr "操作确认"
 msgid "Action type"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Actions"
 msgstr ""
 
@@ -709,7 +709,7 @@ msgstr "Agent："
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
 #. placeholder {2}: percent(current.agreed / current.compared)
-#: src/components/VerificationComparison.tsx:237
+#: src/components/VerificationComparison.tsx:273
 msgid "Agreed on {0} of {1} checks ({2})"
 msgstr ""
 
@@ -742,7 +742,7 @@ msgstr ""
 msgid "All applications on record"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:170
+#: src/components/VerificationComparison.tsx:198
 msgid "All bots"
 msgstr ""
 
@@ -790,7 +790,7 @@ msgstr "允许一次"
 msgid "Allow purchase actions without asking"
 msgstr "允许购买操作，无需询问"
 
-#: src/components/VerificationComparison.tsx:334
+#: src/components/VerificationComparison.tsx:370
 msgid "Allowed"
 msgstr ""
 
@@ -938,7 +938,7 @@ msgstr "参数"
 msgid "Arguments:"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Ask"
 msgstr ""
 
@@ -1162,8 +1162,8 @@ msgstr "Bot"
 msgid "Bot"
 msgstr "Bot"
 
-#: src/components/VerificationComparison.tsx:165
-#: src/components/VerificationComparison.tsx:286
+#: src/components/VerificationComparison.tsx:193
+#: src/components/VerificationComparison.tsx:322
 #: src/pages/Shell.tsx:1809
 msgid "Bot"
 msgstr "Bot"
@@ -1444,7 +1444,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:135
+#: src/components/VerificationComparison.tsx:163
 msgid "Check type"
 msgstr ""
 
@@ -1468,7 +1468,7 @@ msgstr ""
 msgid "Checker"
 msgstr "检查器"
 
-#: src/components/VerificationComparison.tsx:122
+#: src/components/VerificationComparison.tsx:150
 msgid "Checker comparison"
 msgstr ""
 
@@ -1480,7 +1480,7 @@ msgstr "正在检查…"
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "工作副本有本地更改。请先清理再更新。"
 
-#: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:246
 msgid "Checks"
 msgstr ""
 
@@ -1573,9 +1573,9 @@ msgstr ""
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
 #: src/pages/KnowledgeSection.tsx:374
-#: src/pages/PeerMessagesOverlay.tsx:150
-#: src/pages/PeerMessagesOverlay.tsx:154
-#: src/pages/PeerMessagesOverlay.tsx:209
+#: src/pages/PeerMessagesOverlay.tsx:148
+#: src/pages/PeerMessagesOverlay.tsx:152
+#: src/pages/PeerMessagesOverlay.tsx:207
 #: src/pages/RoutineEditor.tsx:242
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
@@ -1585,7 +1585,7 @@ msgstr "关闭"
 msgid "Close chart"
 msgstr "关闭图表"
 
-#: src/components/VerificationComparison.tsx:126
+#: src/components/VerificationComparison.tsx:154
 msgid "Close checker comparison"
 msgstr ""
 
@@ -1684,7 +1684,7 @@ msgstr ""
 msgid "Compare checkers"
 msgstr "比较检查器"
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "compared"
 msgstr ""
 
@@ -1740,7 +1740,7 @@ msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TO
 msgstr "电脑未开启。请设置 SANDBOX_PROVIDER=docker 并提供 SANDBOX_SUPERVISOR_TOKEN，或将 SANDBOX_PROVIDER 设为 e2b、daytona 或 box 并提供对应 API 密钥。更改 .env 后请重建环境。"
 
 #. placeholder {0}: verdict.confidence.toFixed(2)
-#: src/components/VerificationComparison.tsx:421
+#: src/components/VerificationComparison.tsx:457
 msgid "confidence {0}"
 msgstr ""
 
@@ -1977,7 +1977,7 @@ msgstr ""
 msgid "Copy webhook signing secret"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:230
+#: src/components/VerificationComparison.tsx:266
 msgid "Cost"
 msgstr ""
 
@@ -2111,7 +2111,7 @@ msgstr "无法下载 {0}。请重试。"
 msgid "Could not download {name}. Try again."
 msgstr "无法下载 {name}。请重试。"
 
-#: src/components/VerificationComparison.tsx:83
+#: src/components/VerificationComparison.tsx:111
 msgid "Could not download the report"
 msgstr ""
 
@@ -2164,7 +2164,7 @@ msgstr "无法加载模型设置"
 msgid "Could not load organization access."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:64
+#: src/components/VerificationComparison.tsx:92
 msgid "Could not load results"
 msgstr ""
 
@@ -2188,7 +2188,7 @@ msgstr ""
 msgid "Could not load the workspace"
 msgstr ""
 
-#: src/pages/PeerMessagesOverlay.tsx:164
+#: src/pages/PeerMessagesOverlay.tsx:162
 msgid "Could not load this chat."
 msgstr "无法加载此对话。"
 
@@ -2559,7 +2559,7 @@ msgstr ""
 msgid "Daily reach"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:210
 msgid "Data (.csv)"
 msgstr ""
 
@@ -2602,7 +2602,7 @@ msgstr ""
 msgid "Deals"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "decided"
 msgstr ""
 
@@ -2697,7 +2697,7 @@ msgid "Delivery"
 msgstr ""
 
 #: src/components/AskCard.tsx:24
-#: src/components/VerificationComparison.tsx:336
+#: src/components/VerificationComparison.tsx:372
 msgid "Denied"
 msgstr "已拒绝"
 
@@ -2750,7 +2750,7 @@ msgstr ""
 msgid "Dictate"
 msgstr "口述"
 
-#: src/components/VerificationComparison.tsx:271
+#: src/components/VerificationComparison.tsx:307
 msgid "Disagreements"
 msgstr ""
 
@@ -2998,13 +2998,13 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "在 <0>{0}</0> 输入此代码"
 
-#: src/components/VerificationComparison.tsx:386
+#: src/components/VerificationComparison.tsx:422
 #: src/pages/workspace/sections/ReportsSection.tsx:59
 #: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:225
+#: src/components/VerificationComparison.tsx:261
 #: src/pages/DocsView.tsx:467
 msgid "Errors"
 msgstr ""
@@ -3227,7 +3227,7 @@ msgstr "正在完成 MCP 连接…"
 msgid "First name"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:250
+#: src/components/VerificationComparison.tsx:286
 msgid "Flag rate by day"
 msgstr ""
 
@@ -3235,7 +3235,7 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "标记异常操作"
 
-#: src/components/VerificationComparison.tsx:212
+#: src/components/VerificationComparison.tsx:248
 msgid "Flagged"
 msgstr ""
 
@@ -3652,7 +3652,7 @@ msgstr ""
 msgid "Language"
 msgstr "语言"
 
-#: src/components/VerificationComparison.tsx:160
+#: src/components/VerificationComparison.tsx:188
 msgid "Last {range} days"
 msgstr ""
 
@@ -3820,7 +3820,7 @@ msgstr "正在加载模型目录…"
 msgid "Loading preview…"
 msgstr "正在加载预览…"
 
-#: src/components/VerificationComparison.tsx:191
+#: src/components/VerificationComparison.tsx:219
 msgid "Loading results"
 msgstr ""
 
@@ -3841,7 +3841,7 @@ msgstr "正在加载语音提供方…"
 #: src/pages/crm/CrmView.tsx:179
 #: src/pages/crm/CrmView.tsx:197
 #: src/pages/Onboarding.tsx:238
-#: src/pages/PeerMessagesOverlay.tsx:160
+#: src/pages/PeerMessagesOverlay.tsx:158
 #: src/pages/Shell.tsx:4586
 msgid "Loading…"
 msgstr "加载中…"
@@ -3958,7 +3958,7 @@ msgstr "MCP 服务器"
 msgid "Meaning"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:227
+#: src/components/VerificationComparison.tsx:263
 msgid "Median time"
 msgstr ""
 
@@ -4376,7 +4376,7 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr "还没有关联聊天应用。"
 
-#: src/components/VerificationComparison.tsx:197
+#: src/components/VerificationComparison.tsx:233
 msgid "No checks in this period."
 msgstr ""
 
@@ -4463,7 +4463,7 @@ msgstr "还没有安装 MCP 或 API 工具源。"
 msgid "No MCP servers yet."
 msgstr "还没有 MCP 服务器。"
 
-#: src/pages/PeerMessagesOverlay.tsx:168
+#: src/pages/PeerMessagesOverlay.tsx:166
 msgid "No messages with {peerBotName} yet."
 msgstr "还没有与 {peerBotName} 的消息。"
 
@@ -4541,7 +4541,7 @@ msgstr ""
 msgid "Nobody matches that search"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:275
+#: src/components/VerificationComparison.tsx:311
 msgid "None in this period."
 msgstr ""
 
@@ -4689,7 +4689,7 @@ msgstr ""
 msgid "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:403
+#: src/components/VerificationComparison.tsx:439
 msgid "Open chat"
 msgstr ""
 
@@ -4847,7 +4847,7 @@ msgstr ""
 msgid "Park"
 msgstr "搁置"
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Pass"
 msgstr ""
 
@@ -5056,8 +5056,8 @@ msgstr ""
 msgid "Preheader"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:179
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:207
+#: src/components/VerificationComparison.tsx:210
 msgid "Preparing…"
 msgstr ""
 
@@ -5428,7 +5428,7 @@ msgstr "替换 API 密钥"
 msgid "Replace key"
 msgstr "替换密钥"
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Replies"
 msgstr ""
 
@@ -5446,7 +5446,7 @@ msgstr "正在回复 {replyName}"
 msgid "Report"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:179
+#: src/components/VerificationComparison.tsx:207
 msgid "Report (.md)"
 msgstr ""
 
@@ -5461,11 +5461,11 @@ msgstr ""
 msgid "Repository"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Request"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:400
+#: src/components/VerificationComparison.tsx:436
 msgid "Request:"
 msgstr ""
 
@@ -5574,7 +5574,7 @@ msgstr "撤销"
 msgid "Revoking…"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:217
+#: src/components/VerificationComparison.tsx:253
 msgid "Right when you answered"
 msgstr ""
 
@@ -6033,6 +6033,10 @@ msgstr ""
 msgid "Show settings"
 msgstr "显示设置"
 
+#: src/components/VerificationComparison.tsx:225
+msgid "Showing the most recent checks only. Pick a shorter range for complete data."
+msgstr ""
+
 #: src/lib/localized-provider-hint.ts:7
 #: src/pages/Auth.tsx:267
 #: src/pages/Auth.tsx:333
@@ -6302,7 +6306,7 @@ msgstr ""
 msgid "Sunday"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Supported"
 msgstr ""
 
@@ -6486,7 +6490,7 @@ msgstr "此 Bot 运行在这台电脑上，没有单独的 Linux 桌面。让它
 msgid "This cannot be undone."
 msgstr "此操作无法撤销。"
 
-#: src/pages/PeerMessagesOverlay.tsx:202
+#: src/pages/PeerMessagesOverlay.tsx:200
 msgid "This chat is view-only"
 msgstr "此对话为只读"
 
@@ -6593,7 +6597,7 @@ msgstr ""
 msgid "Time of day"
 msgstr "时间"
 
-#: src/components/VerificationComparison.tsx:153
+#: src/components/VerificationComparison.tsx:181
 msgid "Time range"
 msgstr ""
 
@@ -6687,7 +6691,7 @@ msgstr ""
 msgid "Turn a proven task into a routine"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:242
+#: src/components/VerificationComparison.tsx:278
 msgid "Turn on Compare checkers to see both engines on the same checks."
 msgstr ""
 
@@ -6781,7 +6785,7 @@ msgstr ""
 msgid "Unsubscribes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Unsupported"
 msgstr ""
 
@@ -7089,7 +7093,7 @@ msgstr "这个 Bot 是做什么的"
 msgid "What to return"
 msgstr "返回什么"
 
-#: src/components/VerificationComparison.tsx:283
+#: src/components/VerificationComparison.tsx:319
 #: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr ""
@@ -7169,7 +7173,7 @@ msgstr ""
 msgid "Yes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:298
+#: src/components/VerificationComparison.tsx:334
 #: src/pages/Shell.tsx:1808
 #: src/pages/Shell.tsx:2544
 msgid "You"

@@ -177,6 +177,15 @@ describe("reports", () => {
     expect(report).toContain("- You denied it");
   });
 
+  it("says when the period held more checks than the report covers", () => {
+    const context = { generatedAt: "2026-09-23", days: 90, labels };
+    const summary = summarizeVerification(rows);
+    expect(verificationReportMarkdown(summary, context)).not.toContain("most recent checks");
+    expect(verificationReportMarkdown(summary, { ...context, truncated: true })).toContain(
+      "Covers only the most recent checks in this period.",
+    );
+  });
+
   it("writes one quoted CSV row per verdict and neutralizes formulas", () => {
     const csv = verificationReportCsv([
       ...rows,

@@ -2443,6 +2443,37 @@ describeJourneys("required product journeys", () => {
       });
       expect(csv.content.split("\n")).toHaveLength(3);
       expect(csv.content).toContain('"denied"');
+
+      // A pair straddling the window start stays whole: the older half is loaded as a partner.
+      const straddling = {
+        spaceId: effect.spaceId,
+        userId: checks[0]!.userId,
+        runId: sent.runId,
+        checkpoint: "answer",
+        subject: "reply",
+        decision: "pass",
+        model: "m",
+        latencyMs: 5,
+      };
+      await prisma.verificationCheck.createMany({
+        data: [
+          {
+            ...straddling,
+            engine: "jev",
+            role: "primary",
+            createdAt: new Date(Date.now() - 31 * 86_400_000),
+          },
+          { ...straddling, engine: "llm", role: "shadow" },
+        ],
+      });
+      const withEdge = await rpc<{
+        truncated: boolean;
+        checkpoints: Array<{ checkpoint: string; compared: number; agreed: number }>;
+      }>(app, cookie, "verification/summary", { days: 30 });
+      expect(withEdge.truncated).toBe(false);
+      expect(withEdge.checkpoints).toContainEqual(
+        expect.objectContaining({ checkpoint: "answer", compared: 1, agreed: 1 }),
+      );
     } finally {
       await jev.stop();
     }

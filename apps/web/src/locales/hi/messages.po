@@ -376,7 +376,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/components/VerificationComparison.tsx:440
+#: src/components/VerificationComparison.tsx:476
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr ""
 
@@ -482,7 +482,7 @@ msgstr ""
 msgid "Account default"
 msgstr "खाता डिफ़ॉल्ट"
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Action"
 msgstr ""
 
@@ -495,7 +495,7 @@ msgstr "कार्रवाई की पुष्टि"
 msgid "Action type"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Actions"
 msgstr ""
 
@@ -710,7 +710,7 @@ msgstr "एजेंट:"
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
 #. placeholder {2}: percent(current.agreed / current.compared)
-#: src/components/VerificationComparison.tsx:237
+#: src/components/VerificationComparison.tsx:273
 msgid "Agreed on {0} of {1} checks ({2})"
 msgstr ""
 
@@ -743,7 +743,7 @@ msgstr ""
 msgid "All applications on record"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:170
+#: src/components/VerificationComparison.tsx:198
 msgid "All bots"
 msgstr ""
 
@@ -791,7 +791,7 @@ msgstr "एक बार अनुमति दें"
 msgid "Allow purchase actions without asking"
 msgstr "खरीद कार्रवाइयों को बिना पूछे अनुमति दें"
 
-#: src/components/VerificationComparison.tsx:334
+#: src/components/VerificationComparison.tsx:370
 msgid "Allowed"
 msgstr ""
 
@@ -939,7 +939,7 @@ msgstr "आर्ग्युमेंट"
 msgid "Arguments:"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Ask"
 msgstr ""
 
@@ -1163,8 +1163,8 @@ msgstr "बॉट"
 msgid "Bot"
 msgstr "बॉट"
 
-#: src/components/VerificationComparison.tsx:165
-#: src/components/VerificationComparison.tsx:286
+#: src/components/VerificationComparison.tsx:193
+#: src/components/VerificationComparison.tsx:322
 #: src/pages/Shell.tsx:1809
 msgid "Bot"
 msgstr "बॉट"
@@ -1445,7 +1445,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:135
+#: src/components/VerificationComparison.tsx:163
 msgid "Check type"
 msgstr ""
 
@@ -1469,7 +1469,7 @@ msgstr "चेकबॉक्स"
 msgid "Checker"
 msgstr "जाँचकर्ता"
 
-#: src/components/VerificationComparison.tsx:122
+#: src/components/VerificationComparison.tsx:150
 msgid "Checker comparison"
 msgstr ""
 
@@ -1481,7 +1481,7 @@ msgstr "जांच हो रही है…"
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "चेकआउट में स्थानीय बदलाव हैं। अपडेट से पहले इसे साफ़ करें।"
 
-#: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:246
 msgid "Checks"
 msgstr ""
 
@@ -1574,9 +1574,9 @@ msgstr ""
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
 #: src/pages/KnowledgeSection.tsx:374
-#: src/pages/PeerMessagesOverlay.tsx:150
-#: src/pages/PeerMessagesOverlay.tsx:154
-#: src/pages/PeerMessagesOverlay.tsx:209
+#: src/pages/PeerMessagesOverlay.tsx:148
+#: src/pages/PeerMessagesOverlay.tsx:152
+#: src/pages/PeerMessagesOverlay.tsx:207
 #: src/pages/RoutineEditor.tsx:242
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
@@ -1586,7 +1586,7 @@ msgstr "बंद करें"
 msgid "Close chart"
 msgstr "चार्ट बंद करें"
 
-#: src/components/VerificationComparison.tsx:126
+#: src/components/VerificationComparison.tsx:154
 msgid "Close checker comparison"
 msgstr ""
 
@@ -1685,7 +1685,7 @@ msgstr "कंपनी"
 msgid "Compare checkers"
 msgstr "जाँचकर्ताओं की तुलना करें"
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "compared"
 msgstr ""
 
@@ -1741,7 +1741,7 @@ msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TO
 msgstr "कंप्यूटर बंद हैं। SANDBOX_PROVIDER=docker और SANDBOX_SUPERVISOR_TOKEN सेट करें, या SANDBOX_PROVIDER को e2b, daytona, या box पर सेट कर उसका API key दें। .env बदलने के बाद स्टैक फिर बनाएँ।"
 
 #. placeholder {0}: verdict.confidence.toFixed(2)
-#: src/components/VerificationComparison.tsx:421
+#: src/components/VerificationComparison.tsx:457
 msgid "confidence {0}"
 msgstr ""
 
@@ -1978,7 +1978,7 @@ msgstr ""
 msgid "Copy webhook signing secret"
 msgstr "वेबहुक साइनिंग सीक्रेट कॉपी करें"
 
-#: src/components/VerificationComparison.tsx:230
+#: src/components/VerificationComparison.tsx:266
 msgid "Cost"
 msgstr ""
 
@@ -2112,7 +2112,7 @@ msgstr "{0} डाउनलोड नहीं हो सका। पुनः 
 msgid "Could not download {name}. Try again."
 msgstr "{name} डाउनलोड नहीं हो सका। पुनः प्रयास करें।"
 
-#: src/components/VerificationComparison.tsx:83
+#: src/components/VerificationComparison.tsx:111
 msgid "Could not download the report"
 msgstr ""
 
@@ -2165,7 +2165,7 @@ msgstr "मॉडल सेटिंग्स लोड नहीं हो स�
 msgid "Could not load organization access."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:64
+#: src/components/VerificationComparison.tsx:92
 msgid "Could not load results"
 msgstr ""
 
@@ -2189,7 +2189,7 @@ msgstr ""
 msgid "Could not load the workspace"
 msgstr ""
 
-#: src/pages/PeerMessagesOverlay.tsx:164
+#: src/pages/PeerMessagesOverlay.tsx:162
 msgid "Could not load this chat."
 msgstr "यह चैट लोड नहीं हो सकी."
 
@@ -2560,7 +2560,7 @@ msgstr ""
 msgid "Daily reach"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:210
 msgid "Data (.csv)"
 msgstr ""
 
@@ -2603,7 +2603,7 @@ msgstr "डील शीर्षक"
 msgid "Deals"
 msgstr "डील"
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "decided"
 msgstr ""
 
@@ -2698,7 +2698,7 @@ msgid "Delivery"
 msgstr "डिलीवरी"
 
 #: src/components/AskCard.tsx:24
-#: src/components/VerificationComparison.tsx:336
+#: src/components/VerificationComparison.tsx:372
 msgid "Denied"
 msgstr "अस्वीकृत"
 
@@ -2751,7 +2751,7 @@ msgstr ""
 msgid "Dictate"
 msgstr "बोलकर लिखें"
 
-#: src/components/VerificationComparison.tsx:271
+#: src/components/VerificationComparison.tsx:307
 msgid "Disagreements"
 msgstr ""
 
@@ -2999,13 +2999,13 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "यह कोड <0>{0}</0> पर दर्ज करें"
 
-#: src/components/VerificationComparison.tsx:386
+#: src/components/VerificationComparison.tsx:422
 #: src/pages/workspace/sections/ReportsSection.tsx:59
 #: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:225
+#: src/components/VerificationComparison.tsx:261
 #: src/pages/DocsView.tsx:467
 msgid "Errors"
 msgstr "त्रुटियाँ"
@@ -3228,7 +3228,7 @@ msgstr "MCP कनेक्शन पूरा हो रहा है…"
 msgid "First name"
 msgstr "पहला नाम"
 
-#: src/components/VerificationComparison.tsx:250
+#: src/components/VerificationComparison.tsx:286
 msgid "Flag rate by day"
 msgstr ""
 
@@ -3236,7 +3236,7 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "अप्रत्याशित कार्रवाइयों को चिह्नित करें"
 
-#: src/components/VerificationComparison.tsx:212
+#: src/components/VerificationComparison.tsx:248
 msgid "Flagged"
 msgstr ""
 
@@ -3653,7 +3653,7 @@ msgstr ""
 msgid "Language"
 msgstr "भाषा"
 
-#: src/components/VerificationComparison.tsx:160
+#: src/components/VerificationComparison.tsx:188
 msgid "Last {range} days"
 msgstr ""
 
@@ -3821,7 +3821,7 @@ msgstr "मॉडल कैटलॉग लोड हो रहा है…"
 msgid "Loading preview…"
 msgstr "प्रीव्यू लोड हो रहा है…"
 
-#: src/components/VerificationComparison.tsx:191
+#: src/components/VerificationComparison.tsx:219
 msgid "Loading results"
 msgstr ""
 
@@ -3842,7 +3842,7 @@ msgstr "आवाज़ प्रोवाइडर्स लोड हो र�
 #: src/pages/crm/CrmView.tsx:179
 #: src/pages/crm/CrmView.tsx:197
 #: src/pages/Onboarding.tsx:238
-#: src/pages/PeerMessagesOverlay.tsx:160
+#: src/pages/PeerMessagesOverlay.tsx:158
 #: src/pages/Shell.tsx:4586
 msgid "Loading…"
 msgstr "लोड हो रहा है…"
@@ -3959,7 +3959,7 @@ msgstr "MCP सर्वर"
 msgid "Meaning"
 msgstr "अर्थ"
 
-#: src/components/VerificationComparison.tsx:227
+#: src/components/VerificationComparison.tsx:263
 msgid "Median time"
 msgstr ""
 
@@ -4377,7 +4377,7 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:197
+#: src/components/VerificationComparison.tsx:233
 msgid "No checks in this period."
 msgstr ""
 
@@ -4464,7 +4464,7 @@ msgstr "अभी तक कोई MCP या API टूल स्रोत इ�
 msgid "No MCP servers yet."
 msgstr "अभी तक कोई MCP सर्वर नहीं।"
 
-#: src/pages/PeerMessagesOverlay.tsx:168
+#: src/pages/PeerMessagesOverlay.tsx:166
 msgid "No messages with {peerBotName} yet."
 msgstr "{peerBotName} के साथ अभी कोई संदेश नहीं."
 
@@ -4542,7 +4542,7 @@ msgstr ""
 msgid "Nobody matches that search"
 msgstr "इस खोज से कोई मेल नहीं खाता"
 
-#: src/components/VerificationComparison.tsx:275
+#: src/components/VerificationComparison.tsx:311
 msgid "None in this period."
 msgstr ""
 
@@ -4690,7 +4690,7 @@ msgstr ""
 msgid "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:403
+#: src/components/VerificationComparison.tsx:439
 msgid "Open chat"
 msgstr ""
 
@@ -4848,7 +4848,7 @@ msgstr "पेजिनेशन"
 msgid "Park"
 msgstr "पार्क करें"
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Pass"
 msgstr ""
 
@@ -5057,8 +5057,8 @@ msgstr ""
 msgid "Preheader"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:179
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:207
+#: src/components/VerificationComparison.tsx:210
 msgid "Preparing…"
 msgstr ""
 
@@ -5429,7 +5429,7 @@ msgstr "API कुंजी बदलें"
 msgid "Replace key"
 msgstr "कुंजी बदलें"
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Replies"
 msgstr ""
 
@@ -5447,7 +5447,7 @@ msgstr "{replyName} को उत्तर दे रहे हैं"
 msgid "Report"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:179
+#: src/components/VerificationComparison.tsx:207
 msgid "Report (.md)"
 msgstr ""
 
@@ -5462,11 +5462,11 @@ msgstr ""
 msgid "Repository"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Request"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:400
+#: src/components/VerificationComparison.tsx:436
 msgid "Request:"
 msgstr ""
 
@@ -5575,7 +5575,7 @@ msgstr "रद्द करें"
 msgid "Revoking…"
 msgstr "रद्द हो रहा है…"
 
-#: src/components/VerificationComparison.tsx:217
+#: src/components/VerificationComparison.tsx:253
 msgid "Right when you answered"
 msgstr ""
 
@@ -6034,6 +6034,10 @@ msgstr ""
 msgid "Show settings"
 msgstr "सेटिंग्स दिखाएं"
 
+#: src/components/VerificationComparison.tsx:225
+msgid "Showing the most recent checks only. Pick a shorter range for complete data."
+msgstr ""
+
 #: src/lib/localized-provider-hint.ts:7
 #: src/pages/Auth.tsx:267
 #: src/pages/Auth.tsx:333
@@ -6303,7 +6307,7 @@ msgstr ""
 msgid "Sunday"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Supported"
 msgstr ""
 
@@ -6487,7 +6491,7 @@ msgstr "यह बॉट इसी कंप्यूटर पर चलता 
 msgid "This cannot be undone."
 msgstr "इसे पूर्ववत नहीं किया जा सकता।"
 
-#: src/pages/PeerMessagesOverlay.tsx:202
+#: src/pages/PeerMessagesOverlay.tsx:200
 msgid "This chat is view-only"
 msgstr "यह चैट केवल देखने के लिए है"
 
@@ -6594,7 +6598,7 @@ msgstr ""
 msgid "Time of day"
 msgstr "दिन का समय"
 
-#: src/components/VerificationComparison.tsx:153
+#: src/components/VerificationComparison.tsx:181
 msgid "Time range"
 msgstr ""
 
@@ -6688,7 +6692,7 @@ msgstr ""
 msgid "Turn a proven task into a routine"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:242
+#: src/components/VerificationComparison.tsx:278
 msgid "Turn on Compare checkers to see both engines on the same checks."
 msgstr ""
 
@@ -6782,7 +6786,7 @@ msgstr ""
 msgid "Unsubscribes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Unsupported"
 msgstr ""
 
@@ -7090,7 +7094,7 @@ msgstr "यह बॉट किस लिए है"
 msgid "What to return"
 msgstr "क्या लौटाना है"
 
-#: src/components/VerificationComparison.tsx:283
+#: src/components/VerificationComparison.tsx:319
 #: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr ""
@@ -7170,7 +7174,7 @@ msgstr ""
 msgid "Yes"
 msgstr "हाँ"
 
-#: src/components/VerificationComparison.tsx:298
+#: src/components/VerificationComparison.tsx:334
 #: src/pages/Shell.tsx:1808
 #: src/pages/Shell.tsx:2544
 msgid "You"

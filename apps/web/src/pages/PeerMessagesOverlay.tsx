@@ -3,11 +3,9 @@ import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { ThreadMessage } from "@rakazo/contracts";
 import { BotAvatar } from "@rakazo/ui-web";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FOCUSABLE } from "../lib/focusable";
 import { peerConversations } from "../lib/peer-messages";
 import { rpc } from "../lib/rpc";
-
-const FOCUSABLE =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Full-screen view-only transcript of a bot-to-bot exchange.

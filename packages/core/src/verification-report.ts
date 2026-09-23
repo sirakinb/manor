@@ -281,6 +281,8 @@ export type ReportContext = {
   days: number;
   botName?: string;
   labels: Record<string, string>;
+  /** The window held more checks than were loaded; only the most recent are covered. */
+  truncated?: boolean;
 };
 
 const CHECKPOINT_TITLES: Record<string, string> = {
@@ -298,6 +300,9 @@ export function verificationReportMarkdown(
     "",
     `Generated ${context.generatedAt} · last ${context.days} days · ${context.botName ?? "all bots"}`,
     "",
+    ...(context.truncated
+      ? ["Covers only the most recent checks in this period. Narrow the range for full data.", ""]
+      : []),
   ];
   if (!summary.checkpoints.length) {
     lines.push("No checks were logged in this period.", "");

@@ -48,6 +48,11 @@ test("checker comparison shows both engines side by side and downloads a report"
 
   const comparison = page.getByTestId("checker-comparison");
   await expect(comparison).toBeFocused();
+  // Modal: keyboard focus cycles inside the panel, never into the settings behind it.
+  for (const key of ["Shift+Tab", "Tab", "Tab"]) {
+    await page.keyboard.press(key);
+    await expect(comparison.locator(":focus")).toHaveCount(1);
+  }
   await expect(comparison.getByTestId("checker-card")).toHaveCount(2);
   await expect(comparison.getByTestId("checker-agreement")).toContainText(
     "Agreed on 1 of 1 checks",

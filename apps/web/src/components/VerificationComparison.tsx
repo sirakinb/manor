@@ -5,6 +5,7 @@ import { formatUsd } from "@rakazo/core";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { FOCUSABLE } from "../lib/focusable";
 import { rpc } from "../lib/rpc";
 import { BuiButton, BuiCard, LoadingState } from "./beautiful-ui/primitives";
 import { ChartCanvas } from "./ChartCanvas";
@@ -35,16 +36,46 @@ export function VerificationComparisonOverlay({ onClose }: { onClose: () => void
   useEffect(() => {
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // The panel is portaled to <body>, so everything else there (the app and settings) goes inert.
+    const inerted: HTMLElement[] = [];
+    for (const child of Array.from(document.body.children)) {
+      if (!(child instanceof HTMLElement) || child.inert) continue;
+      if (panelRef.current && child.contains(panelRef.current)) continue;
+      child.inert = true;
+      inerted.push(child);
+    }
     // Capture first so Escape closes this panel without also closing the settings under it.
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.stopPropagation();
-      onCloseRef.current();
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(
+        panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
+      );
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      const active = document.activeElement as HTMLElement | null;
+      const index = active ? focusable.indexOf(active) : -1;
+      if (!first || !last) {
+        event.preventDefault();
+        panelRef.current?.focus();
+      } else if (event.shiftKey && index <= 0) {
+        // Also covers focus on the panel itself, which is not in the focusable list.
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (index === -1 || active === last)) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     window.addEventListener("keydown", handleKeyDown, true);
     panelRef.current?.focus();
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
+      for (const element of inerted) element.inert = false;
       previousFocus?.focus();
     };
   }, []);
@@ -190,6 +221,14 @@ export function VerificationComparisonOverlay({ onClose }: { onClose: () => void
           <div className="mt-8">
             <LoadingState label={t`Loading results`} />
           </div>
+        ) : null}
+
+        {summary?.truncated ? (
+          <p className="mt-4 text-[13px] text-[#85858A]">
+            <Trans>
+              Showing the most recent checks only. Pick a shorter range for complete data.
+            </Trans>
+          </p>
         ) : null}
 
         {summary && !current ? (

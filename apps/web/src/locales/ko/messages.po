@@ -376,7 +376,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/components/VerificationComparison.tsx:440
+#: src/components/VerificationComparison.tsx:476
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr ""
 
@@ -482,7 +482,7 @@ msgstr ""
 msgid "Account default"
 msgstr "계정 기본값"
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Action"
 msgstr ""
 
@@ -495,7 +495,7 @@ msgstr "작업 실행 전 확인"
 msgid "Action type"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Actions"
 msgstr ""
 
@@ -710,7 +710,7 @@ msgstr "사용 Bot:"
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
 #. placeholder {2}: percent(current.agreed / current.compared)
-#: src/components/VerificationComparison.tsx:237
+#: src/components/VerificationComparison.tsx:273
 msgid "Agreed on {0} of {1} checks ({2})"
 msgstr ""
 
@@ -743,7 +743,7 @@ msgstr ""
 msgid "All applications on record"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:170
+#: src/components/VerificationComparison.tsx:198
 msgid "All bots"
 msgstr ""
 
@@ -791,7 +791,7 @@ msgstr "한 번 허용"
 msgid "Allow purchase actions without asking"
 msgstr "확인 없이 결제 동작 허용"
 
-#: src/components/VerificationComparison.tsx:334
+#: src/components/VerificationComparison.tsx:370
 msgid "Allowed"
 msgstr ""
 
@@ -939,7 +939,7 @@ msgstr "인자"
 msgid "Arguments:"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Ask"
 msgstr ""
 
@@ -1163,8 +1163,8 @@ msgstr "Bot"
 msgid "Bot"
 msgstr "봇"
 
-#: src/components/VerificationComparison.tsx:165
-#: src/components/VerificationComparison.tsx:286
+#: src/components/VerificationComparison.tsx:193
+#: src/components/VerificationComparison.tsx:322
 #: src/pages/Shell.tsx:1809
 msgid "Bot"
 msgstr "봇"
@@ -1445,7 +1445,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:135
+#: src/components/VerificationComparison.tsx:163
 msgid "Check type"
 msgstr ""
 
@@ -1469,7 +1469,7 @@ msgstr "체크박스"
 msgid "Checker"
 msgstr "검사기"
 
-#: src/components/VerificationComparison.tsx:122
+#: src/components/VerificationComparison.tsx:150
 msgid "Checker comparison"
 msgstr ""
 
@@ -1481,7 +1481,7 @@ msgstr "확인 중…"
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "체크아웃에 로컬 변경 사항이 있습니다. 업데이트 전에 정리하세요."
 
-#: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:246
 msgid "Checks"
 msgstr ""
 
@@ -1574,9 +1574,9 @@ msgstr ""
 #: src/pages/BotContextMenu.tsx:67
 #: src/pages/crm/CrmContacts.tsx:340
 #: src/pages/KnowledgeSection.tsx:374
-#: src/pages/PeerMessagesOverlay.tsx:150
-#: src/pages/PeerMessagesOverlay.tsx:154
-#: src/pages/PeerMessagesOverlay.tsx:209
+#: src/pages/PeerMessagesOverlay.tsx:148
+#: src/pages/PeerMessagesOverlay.tsx:152
+#: src/pages/PeerMessagesOverlay.tsx:207
 #: src/pages/RoutineEditor.tsx:242
 #: src/pages/WindowChrome.tsx:19
 msgid "Close"
@@ -1586,7 +1586,7 @@ msgstr "닫기"
 msgid "Close chart"
 msgstr "차트 닫기"
 
-#: src/components/VerificationComparison.tsx:126
+#: src/components/VerificationComparison.tsx:154
 msgid "Close checker comparison"
 msgstr ""
 
@@ -1685,7 +1685,7 @@ msgstr "회사"
 msgid "Compare checkers"
 msgstr "검사기 비교"
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "compared"
 msgstr ""
 
@@ -1741,7 +1741,7 @@ msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TO
 msgstr "컴퓨터가 꺼져 있습니다. SANDBOX_PROVIDER=docker와 SANDBOX_SUPERVISOR_TOKEN을 설정하거나, SANDBOX_PROVIDER를 e2b, daytona, box 중 하나로 두고 해당 API 키를 넣으세요. .env 변경 후 스택을 다시 만드세요."
 
 #. placeholder {0}: verdict.confidence.toFixed(2)
-#: src/components/VerificationComparison.tsx:421
+#: src/components/VerificationComparison.tsx:457
 msgid "confidence {0}"
 msgstr ""
 
@@ -1978,7 +1978,7 @@ msgstr ""
 msgid "Copy webhook signing secret"
 msgstr "웹훅 서명 시크릿 복사"
 
-#: src/components/VerificationComparison.tsx:230
+#: src/components/VerificationComparison.tsx:266
 msgid "Cost"
 msgstr ""
 
@@ -2112,7 +2112,7 @@ msgstr "{0}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 msgid "Could not download {name}. Try again."
 msgstr "{name}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 
-#: src/components/VerificationComparison.tsx:83
+#: src/components/VerificationComparison.tsx:111
 msgid "Could not download the report"
 msgstr ""
 
@@ -2165,7 +2165,7 @@ msgstr "AI 모델 설정을 불러오지 못했습니다."
 msgid "Could not load organization access."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:64
+#: src/components/VerificationComparison.tsx:92
 msgid "Could not load results"
 msgstr ""
 
@@ -2189,7 +2189,7 @@ msgstr ""
 msgid "Could not load the workspace"
 msgstr ""
 
-#: src/pages/PeerMessagesOverlay.tsx:164
+#: src/pages/PeerMessagesOverlay.tsx:162
 msgid "Could not load this chat."
 msgstr "이 채팅을 불러오지 못했습니다."
 
@@ -2560,7 +2560,7 @@ msgstr ""
 msgid "Daily reach"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:210
 msgid "Data (.csv)"
 msgstr ""
 
@@ -2603,7 +2603,7 @@ msgstr "딜 제목"
 msgid "Deals"
 msgstr "딜"
 
-#: src/components/VerificationComparison.tsx:412
+#: src/components/VerificationComparison.tsx:448
 msgid "decided"
 msgstr ""
 
@@ -2698,7 +2698,7 @@ msgid "Delivery"
 msgstr "전송"
 
 #: src/components/AskCard.tsx:24
-#: src/components/VerificationComparison.tsx:336
+#: src/components/VerificationComparison.tsx:372
 msgid "Denied"
 msgstr "거부됨"
 
@@ -2751,7 +2751,7 @@ msgstr ""
 msgid "Dictate"
 msgstr "음성 입력"
 
-#: src/components/VerificationComparison.tsx:271
+#: src/components/VerificationComparison.tsx:307
 msgid "Disagreements"
 msgstr ""
 
@@ -2999,13 +2999,13 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "<0>{0}</0>에서 이 코드를 입력하세요"
 
-#: src/components/VerificationComparison.tsx:386
+#: src/components/VerificationComparison.tsx:422
 #: src/pages/workspace/sections/ReportsSection.tsx:59
 #: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:225
+#: src/components/VerificationComparison.tsx:261
 #: src/pages/DocsView.tsx:467
 msgid "Errors"
 msgstr "오류"
@@ -3228,7 +3228,7 @@ msgstr "MCP 연결을 마무리하는 중…"
 msgid "First name"
 msgstr "이름"
 
-#: src/components/VerificationComparison.tsx:250
+#: src/components/VerificationComparison.tsx:286
 msgid "Flag rate by day"
 msgstr ""
 
@@ -3236,7 +3236,7 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "예상치 못한 작업 표시"
 
-#: src/components/VerificationComparison.tsx:212
+#: src/components/VerificationComparison.tsx:248
 msgid "Flagged"
 msgstr ""
 
@@ -3653,7 +3653,7 @@ msgstr ""
 msgid "Language"
 msgstr "언어"
 
-#: src/components/VerificationComparison.tsx:160
+#: src/components/VerificationComparison.tsx:188
 msgid "Last {range} days"
 msgstr ""
 
@@ -3821,7 +3821,7 @@ msgstr "모델 목록을 불러오는 중…"
 msgid "Loading preview…"
 msgstr "미리보기를 불러오는 중…"
 
-#: src/components/VerificationComparison.tsx:191
+#: src/components/VerificationComparison.tsx:219
 msgid "Loading results"
 msgstr ""
 
@@ -3842,7 +3842,7 @@ msgstr "음성 서비스를 불러오는 중…"
 #: src/pages/crm/CrmView.tsx:179
 #: src/pages/crm/CrmView.tsx:197
 #: src/pages/Onboarding.tsx:238
-#: src/pages/PeerMessagesOverlay.tsx:160
+#: src/pages/PeerMessagesOverlay.tsx:158
 #: src/pages/Shell.tsx:4586
 msgid "Loading…"
 msgstr "불러오는 중…"
@@ -3959,7 +3959,7 @@ msgstr "MCP 서버"
 msgid "Meaning"
 msgstr "의미"
 
-#: src/components/VerificationComparison.tsx:227
+#: src/components/VerificationComparison.tsx:263
 msgid "Median time"
 msgstr ""
 
@@ -4377,7 +4377,7 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:197
+#: src/components/VerificationComparison.tsx:233
 msgid "No checks in this period."
 msgstr ""
 
@@ -4464,7 +4464,7 @@ msgstr "아직 추가된 MCP 또는 API 도구가 없습니다."
 msgid "No MCP servers yet."
 msgstr "아직 연결된 MCP 서버가 없습니다."
 
-#: src/pages/PeerMessagesOverlay.tsx:168
+#: src/pages/PeerMessagesOverlay.tsx:166
 msgid "No messages with {peerBotName} yet."
 msgstr "{peerBotName}와의 메시지가 아직 없습니다."
 
@@ -4542,7 +4542,7 @@ msgstr ""
 msgid "Nobody matches that search"
 msgstr "검색과 일치하는 사람이 없습니다"
 
-#: src/components/VerificationComparison.tsx:275
+#: src/components/VerificationComparison.tsx:311
 msgid "None in this period."
 msgstr ""
 
@@ -4690,7 +4690,7 @@ msgstr ""
 msgid "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:403
+#: src/components/VerificationComparison.tsx:439
 msgid "Open chat"
 msgstr ""
 
@@ -4848,7 +4848,7 @@ msgstr "페이지네이션"
 msgid "Park"
 msgstr "보류"
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Pass"
 msgstr ""
 
@@ -5057,8 +5057,8 @@ msgstr ""
 msgid "Preheader"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:179
-#: src/components/VerificationComparison.tsx:182
+#: src/components/VerificationComparison.tsx:207
+#: src/components/VerificationComparison.tsx:210
 msgid "Preparing…"
 msgstr ""
 
@@ -5429,7 +5429,7 @@ msgstr "API 키 교체"
 msgid "Replace key"
 msgstr "키 교체"
 
-#: src/components/VerificationComparison.tsx:148
+#: src/components/VerificationComparison.tsx:176
 msgid "Replies"
 msgstr ""
 
@@ -5447,7 +5447,7 @@ msgstr "{replyName}에게 답장"
 msgid "Report"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:179
+#: src/components/VerificationComparison.tsx:207
 msgid "Report (.md)"
 msgstr ""
 
@@ -5462,11 +5462,11 @@ msgstr ""
 msgid "Repository"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:289
+#: src/components/VerificationComparison.tsx:325
 msgid "Request"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:400
+#: src/components/VerificationComparison.tsx:436
 msgid "Request:"
 msgstr ""
 
@@ -5575,7 +5575,7 @@ msgstr "취소"
 msgid "Revoking…"
 msgstr "취소 중…"
 
-#: src/components/VerificationComparison.tsx:217
+#: src/components/VerificationComparison.tsx:253
 msgid "Right when you answered"
 msgstr ""
 
@@ -6034,6 +6034,10 @@ msgstr ""
 msgid "Show settings"
 msgstr "설정 보기"
 
+#: src/components/VerificationComparison.tsx:225
+msgid "Showing the most recent checks only. Pick a shorter range for complete data."
+msgstr ""
+
 #: src/lib/localized-provider-hint.ts:7
 #: src/pages/Auth.tsx:267
 #: src/pages/Auth.tsx:333
@@ -6303,7 +6307,7 @@ msgstr ""
 msgid "Sunday"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:380
+#: src/components/VerificationComparison.tsx:416
 msgid "Supported"
 msgstr ""
 
@@ -6487,7 +6491,7 @@ msgstr "이 Bot은 현재 컴퓨터에서 실행되며 별도 Linux 화면은 �
 msgid "This cannot be undone."
 msgstr "이 작업은 되돌릴 수 없습니다."
 
-#: src/pages/PeerMessagesOverlay.tsx:202
+#: src/pages/PeerMessagesOverlay.tsx:200
 msgid "This chat is view-only"
 msgstr "이 채팅은 읽기 전용입니다"
 
@@ -6594,7 +6598,7 @@ msgstr ""
 msgid "Time of day"
 msgstr "실행 시각"
 
-#: src/components/VerificationComparison.tsx:153
+#: src/components/VerificationComparison.tsx:181
 msgid "Time range"
 msgstr ""
 
@@ -6688,7 +6692,7 @@ msgstr ""
 msgid "Turn a proven task into a routine"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:242
+#: src/components/VerificationComparison.tsx:278
 msgid "Turn on Compare checkers to see both engines on the same checks."
 msgstr ""
 
@@ -6782,7 +6786,7 @@ msgstr ""
 msgid "Unsubscribes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:383
+#: src/components/VerificationComparison.tsx:419
 msgid "Unsupported"
 msgstr ""
 
@@ -7090,7 +7094,7 @@ msgstr "이 Bot을 언제, 어떤 일에 사용할지 적어주세요"
 msgid "What to return"
 msgstr "완료 후 전달할 결과"
 
-#: src/components/VerificationComparison.tsx:283
+#: src/components/VerificationComparison.tsx:319
 #: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr ""
@@ -7170,7 +7174,7 @@ msgstr ""
 msgid "Yes"
 msgstr "예"
 
-#: src/components/VerificationComparison.tsx:298
+#: src/components/VerificationComparison.tsx:334
 #: src/pages/Shell.tsx:1808
 #: src/pages/Shell.tsx:2544
 msgid "You"
