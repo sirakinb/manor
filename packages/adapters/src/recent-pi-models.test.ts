@@ -119,6 +119,17 @@ describe("recent model availability", () => {
     },
   );
 
+  it("identifies Opus 5.5 subscription requests as a Claude Code version Anthropic accepts", () => {
+    const models = modelsForRequest(
+      { model: { provider: "anthropic", id: "claude-opus-5-5" } },
+      "anthropic",
+    );
+    expect(models.getModel("anthropic", "claude-opus-5-5")?.headers).toEqual({
+      "user-agent": "claude-cli/2.1.280",
+    });
+    expect(models.getModel("openrouter", "anthropic/claude-opus-5.5")?.headers).toBeUndefined();
+  });
+
   it("keeps subscription Astra's smaller context limit", () => {
     const models = modelsForRequest(
       { model: { provider: "openrouter", id: "openai/gpt-6-astra" } },

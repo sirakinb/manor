@@ -23,6 +23,13 @@ const fable: Model<"anthropic-messages"> = {
   compat: { forceAdaptiveThinking: true, supportsStrictTools: true },
 };
 
+/**
+ * Anthropic serves Opus 5.5 to subscription sign-ins only for Claude Code 2.1.280 or newer.
+ * The pinned Pi identifies subscription requests as 2.1.75, so this model reports the version
+ * Pi 0.87.1 sends. Model headers are merged after Pi's defaults, so this one wins.
+ */
+const SUBSCRIPTION_CLIENT_HEADERS = { "user-agent": "claude-cli/2.1.280" };
+
 const opus55: Model<"anthropic-messages"> = {
   ...fable,
   id: "claude-opus-5-5",
@@ -30,6 +37,7 @@ const opus55: Model<"anthropic-messages"> = {
   cost: { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
   thinkingLevelMap: { off: null, minimal: null, xhigh: "xhigh", max: "max" },
   compat: { forceAdaptiveThinking: true, supportsTemperature: false, supportsStrictTools: true },
+  headers: SUBSCRIPTION_CLIENT_HEADERS,
 };
 
 const astra: Model<"openai-codex-responses"> = {
@@ -100,6 +108,7 @@ const openrouterModels: Model<"openai-completions">[] = [
   },
   {
     ...opus55,
+    headers: undefined,
     id: "anthropic/claude-opus-5.5",
     name: "Anthropic: Claude Opus 5.5",
     api: "openai-completions",
