@@ -87,6 +87,11 @@ import { attachLocalComputerSocket, type LocalComputerUpgradeServer } from "./lo
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
+import {
+  mountPublicFormRoutes,
+  PUBLIC_FORM_PREFIX,
+  publicFormAllowsOrigin,
+} from "./public-forms.js";
 import { createRouter } from "./router.js";
 import { mountVoiceHttpRoutes } from "./voice.js";
 import { mountWebhookHttpRoutes } from "./webhook.js";
@@ -400,15 +405,23 @@ export async function createApp(
     clientInterceptors: [onError((error, { path }) => logUnexpectedRpcError(error, path))],
   });
   const app = new Hono();
-  app.use(
-    "*",
-    cors({
-      origin: (origin) => {
-        if (!origin) return env.webOrigin;
-        return isTrustedOrigin(origin, env) ? origin : "";
-      },
-      credentials: true,
-    }),
+  const appCors = cors({
+    origin: (origin) => {
+      if (!origin) return env.webOrigin;
+      return isTrustedOrigin(origin, env) ? origin : "";
+    },
+    credentials: true,
+  });
+  // Public forms are embedded on owners' own sites: each form lists the origins it accepts,
+  // and those origins never get credentialed access to the rest of the API.
+  const publicFormCors = cors({
+    origin: async (origin, c) =>
+      (await publicFormAllowsOrigin(prisma, c.req.path, origin)) ? origin : "",
+    allowMethods: ["POST", "OPTIONS"],
+    allowHeaders: ["Content-Type"],
+  });
+  app.use("*", (c, next) =>
+    c.req.path.startsWith(PUBLIC_FORM_PREFIX) ? publicFormCors(c, next) : appCors(c, next),
   );
   mountMaintenanceAdmission(app, admission);
   app.get("/api/auth/capabilities", (c) =>
@@ -448,6 +461,7 @@ export async function createApp(
     }
     return auth.handler(c.req.raw);
   });
+  mountPublicFormRoutes(app, { prisma, service: crmIntegrationService, email });
   const crmIntegrations = mountCrmIntegrationRoutes(app, {
     prisma,
     secrets,

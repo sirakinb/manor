@@ -376,7 +376,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/components/VerificationComparison.tsx:476
+#: src/components/VerificationComparison.tsx:479
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr ""
 
@@ -461,6 +461,10 @@ msgstr ""
 msgid "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:337
+msgid "Accept submissions"
+msgstr ""
+
 #: src/pages/Shell.tsx:6667
 msgid "Access"
 msgstr "접근 권한"
@@ -482,7 +486,7 @@ msgstr ""
 msgid "Account default"
 msgstr "계정 기본값"
 
-#: src/components/VerificationComparison.tsx:325
+#: src/components/VerificationComparison.tsx:328
 msgid "Action"
 msgstr ""
 
@@ -495,7 +499,7 @@ msgstr "작업 실행 전 확인"
 msgid "Action type"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:176
+#: src/components/VerificationComparison.tsx:179
 msgid "Actions"
 msgstr ""
 
@@ -668,6 +672,10 @@ msgstr "웹훅 추가"
 msgid "Adding…"
 msgstr "추가 중…"
 
+#: src/pages/crm/CrmForms.tsx:196
+msgid "Address"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx:249
 #: src/pages/RoutineSchedule.tsx:42
 #: src/pages/Shell.tsx:6393
@@ -710,7 +718,7 @@ msgstr "사용 Bot:"
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
 #. placeholder {2}: percent(current.agreed / current.compared)
-#: src/components/VerificationComparison.tsx:273
+#: src/components/VerificationComparison.tsx:276
 msgid "Agreed on {0} of {1} checks ({2})"
 msgstr ""
 
@@ -743,7 +751,7 @@ msgstr ""
 msgid "All applications on record"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:198
+#: src/components/VerificationComparison.tsx:201
 msgid "All bots"
 msgstr ""
 
@@ -791,13 +799,17 @@ msgstr "한 번 허용"
 msgid "Allow purchase actions without asking"
 msgstr "확인 없이 결제 동작 허용"
 
-#: src/components/VerificationComparison.tsx:370
+#: src/components/VerificationComparison.tsx:373
 msgid "Allowed"
 msgstr ""
 
 #: src/components/AskCard.tsx:22
 msgid "Allowed once"
 msgstr "한 번 허용됨"
+
+#: src/pages/crm/CrmForms.tsx:316
+msgid "Allowed websites"
+msgstr ""
 
 #: src/pages/DocsView.tsx:136
 msgid "Allows"
@@ -939,7 +951,7 @@ msgstr "인자"
 msgid "Arguments:"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:419
+#: src/components/VerificationComparison.tsx:422
 msgid "Ask"
 msgstr ""
 
@@ -1143,6 +1155,10 @@ msgstr ""
 msgid "Book demo"
 msgstr "데모 예약"
 
+#: src/pages/crm/CrmForms.tsx:275
+msgid "Booking link"
+msgstr ""
+
 #: src/pages/Shell.tsx:7093
 msgid "Booting live desktop…"
 msgstr "라이브 데스크톱 시작 중…"
@@ -1163,8 +1179,8 @@ msgstr "Bot"
 msgid "Bot"
 msgstr "봇"
 
-#: src/components/VerificationComparison.tsx:193
-#: src/components/VerificationComparison.tsx:322
+#: src/components/VerificationComparison.tsx:196
+#: src/components/VerificationComparison.tsx:325
 #: src/pages/Shell.tsx:1809
 msgid "Bot"
 msgstr "봇"
@@ -1320,6 +1336,7 @@ msgstr "서버에 연결할 수 없습니다."
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/FilesPanel.tsx:363
 #: src/components/teach/TeachComputerOverlay.tsx:218
+#: src/pages/crm/CrmForms.tsx:356
 #: src/pages/crm/CrmModuleSheet.tsx:157
 #: src/pages/crm/CrmModuleSheet.tsx:367
 #: src/pages/crm/CrmModuleSheet.tsx:385
@@ -1445,7 +1462,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:163
+#: src/components/VerificationComparison.tsx:166
 msgid "Check type"
 msgstr ""
 
@@ -1469,7 +1486,7 @@ msgstr "체크박스"
 msgid "Checker"
 msgstr "검사기"
 
-#: src/components/VerificationComparison.tsx:150
+#: src/components/VerificationComparison.tsx:153
 msgid "Checker comparison"
 msgstr ""
 
@@ -1481,7 +1498,7 @@ msgstr "확인 중…"
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "체크아웃에 로컬 변경 사항이 있습니다. 업데이트 전에 정리하세요."
 
-#: src/components/VerificationComparison.tsx:246
+#: src/components/VerificationComparison.tsx:249
 msgid "Checks"
 msgstr ""
 
@@ -1586,7 +1603,7 @@ msgstr "닫기"
 msgid "Close chart"
 msgstr "차트 닫기"
 
-#: src/components/VerificationComparison.tsx:154
+#: src/components/VerificationComparison.tsx:157
 msgid "Close checker comparison"
 msgstr ""
 
@@ -1685,7 +1702,7 @@ msgstr "회사"
 msgid "Compare checkers"
 msgstr "검사기 비교"
 
-#: src/components/VerificationComparison.tsx:448
+#: src/components/VerificationComparison.tsx:451
 msgid "compared"
 msgstr ""
 
@@ -1741,7 +1758,7 @@ msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TO
 msgstr "컴퓨터가 꺼져 있습니다. SANDBOX_PROVIDER=docker와 SANDBOX_SUPERVISOR_TOKEN을 설정하거나, SANDBOX_PROVIDER를 e2b, daytona, box 중 하나로 두고 해당 API 키를 넣으세요. .env 변경 후 스택을 다시 만드세요."
 
 #. placeholder {0}: verdict.confidence.toFixed(2)
-#: src/components/VerificationComparison.tsx:457
+#: src/components/VerificationComparison.tsx:460
 msgid "confidence {0}"
 msgstr ""
 
@@ -1897,7 +1914,7 @@ msgstr ""
 msgid "Contact"
 msgstr "연락처"
 
-#: src/pages/crm/CrmView.tsx:30
+#: src/pages/crm/CrmView.tsx:32
 #: src/pages/DocsView.tsx:498
 msgid "Contacts"
 msgstr "연락처"
@@ -1978,7 +1995,7 @@ msgstr ""
 msgid "Copy webhook signing secret"
 msgstr "웹훅 서명 시크릿 복사"
 
-#: src/components/VerificationComparison.tsx:266
+#: src/components/VerificationComparison.tsx:269
 msgid "Cost"
 msgstr ""
 
@@ -2095,6 +2112,10 @@ msgstr "자동 실행을 삭제하지 못했습니다."
 msgid "Could not delete skill"
 msgstr "스킬을 삭제하지 못했습니다"
 
+#: src/pages/crm/CrmForms.tsx:87
+msgid "Could not delete the form"
+msgstr ""
+
 #: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "기억 서비스 연결을 해제하지 못했습니다."
@@ -2112,7 +2133,7 @@ msgstr "{0}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 msgid "Could not download {name}. Try again."
 msgstr "{name}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 
-#: src/components/VerificationComparison.tsx:111
+#: src/components/VerificationComparison.tsx:114
 msgid "Could not download the report"
 msgstr ""
 
@@ -2144,6 +2165,10 @@ msgstr "확인 규칙을 불러오지 못했습니다."
 msgid "Could not load credentials"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:57
+msgid "Could not load forms"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:76
 msgid "Could not load integrations"
 msgstr "연동 목록을 불러오지 못했습니다."
@@ -2165,7 +2190,7 @@ msgstr "AI 모델 설정을 불러오지 못했습니다."
 msgid "Could not load organization access."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:92
+#: src/components/VerificationComparison.tsx:95
 msgid "Could not load results"
 msgstr ""
 
@@ -2177,7 +2202,7 @@ msgstr ""
 msgid "Could not load skill"
 msgstr "스킬을 불러오지 못했습니다"
 
-#: src/pages/crm/CrmView.tsx:41
+#: src/pages/crm/CrmView.tsx:52
 msgid "Could not load the CRM"
 msgstr "CRM을 불러오지 못했습니다"
 
@@ -2334,6 +2359,10 @@ msgstr "선택 내용을 저장하지 못했습니다."
 #: src/pages/VoiceSettingsOverlay.tsx:90
 msgid "Could not save that voice"
 msgstr "목소리를 저장하지 못했습니다."
+
+#: src/pages/crm/CrmForms.tsx:74
+msgid "Could not save the form"
+msgstr ""
 
 #: src/pages/Shell.tsx:7125
 msgid "Could not save this choice"
@@ -2512,6 +2541,10 @@ msgstr "CRM API 접근"
 msgid "CRM connection"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:286
+msgid "CRM tag"
+msgstr ""
+
 #: src/pages/DocsView.tsx:571
 msgid "CRM tools"
 msgstr ""
@@ -2560,7 +2593,7 @@ msgstr ""
 msgid "Daily reach"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:213
 msgid "Data (.csv)"
 msgstr ""
 
@@ -2603,7 +2636,7 @@ msgstr "딜 제목"
 msgid "Deals"
 msgstr "딜"
 
-#: src/components/VerificationComparison.tsx:448
+#: src/components/VerificationComparison.tsx:451
 msgid "decided"
 msgstr ""
 
@@ -2624,6 +2657,7 @@ msgstr "기본 기억 범위"
 #: src/components/FilesPanel.tsx:458
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
+#: src/pages/crm/CrmForms.tsx:364
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
@@ -2698,7 +2732,7 @@ msgid "Delivery"
 msgstr "전송"
 
 #: src/components/AskCard.tsx:24
-#: src/components/VerificationComparison.tsx:372
+#: src/components/VerificationComparison.tsx:375
 msgid "Denied"
 msgstr "거부됨"
 
@@ -2751,7 +2785,7 @@ msgstr ""
 msgid "Dictate"
 msgstr "음성 입력"
 
-#: src/components/VerificationComparison.tsx:307
+#: src/components/VerificationComparison.tsx:310
 msgid "Disagreements"
 msgstr ""
 
@@ -2832,7 +2866,7 @@ msgstr "계정이 없나요?"
 msgid "Done"
 msgstr "완료"
 
-#: src/pages/crm/CrmView.tsx:129
+#: src/pages/crm/CrmView.tsx:140
 msgid "Double-click to rename"
 msgstr "이름을 바꾸려면 더블 클릭"
 
@@ -2953,6 +2987,10 @@ msgstr ""
 msgid "Email delivery"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:266
+msgid "Email message"
+msgstr ""
+
 #: src/pages/workspace/sections/EmailSection.tsx:86
 msgid "Email performance"
 msgstr ""
@@ -2999,19 +3037,23 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "<0>{0}</0>에서 이 코드를 입력하세요"
 
-#: src/components/VerificationComparison.tsx:422
+#: src/components/VerificationComparison.tsx:425
 #: src/pages/workspace/sections/ReportsSection.tsx:59
 #: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:261
+#: src/components/VerificationComparison.tsx:264
 #: src/pages/DocsView.tsx:467
 msgid "Errors"
 msgstr "오류"
 
 #: src/pages/workspace/sections/VoiceSection.tsx:224
 msgid "Escalated"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:152
+msgid "Event"
 msgstr ""
 
 #: src/pages/DocsView.tsx:627
@@ -3228,7 +3270,7 @@ msgstr "MCP 연결을 마무리하는 중…"
 msgid "First name"
 msgstr "이름"
 
-#: src/components/VerificationComparison.tsx:286
+#: src/components/VerificationComparison.tsx:289
 msgid "Flag rate by day"
 msgstr ""
 
@@ -3236,7 +3278,7 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "예상치 못한 작업 표시"
 
-#: src/components/VerificationComparison.tsx:248
+#: src/components/VerificationComparison.tsx:251
 msgid "Flagged"
 msgstr ""
 
@@ -3278,6 +3320,10 @@ msgstr ""
 #: src/pages/Auth.tsx:229
 msgid "Forgot password?"
 msgstr "비밀번호를 잊으셨나요?"
+
+#: src/pages/crm/CrmView.tsx:34
+msgid "Forms"
+msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx:338
 msgid "Forwards"
@@ -3448,7 +3494,7 @@ msgstr "누르고 말하기"
 msgid "Hold to talk (on-device dictation)"
 msgstr "누르고 말하기(기기 내 음성 인식)"
 
-#: src/pages/crm/CrmView.tsx:28
+#: src/pages/crm/CrmView.tsx:30
 msgid "Home"
 msgstr "홈"
 
@@ -3601,6 +3647,10 @@ msgstr "이 Bot만 사용"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "대화, 파일, 자동 실행이 영구 삭제됩니다. 이 Bot이 만든 다른 Bot은 목록에 남습니다."
 
+#: src/pages/crm/CrmForms.tsx:258
+msgid "Join link"
+msgstr ""
+
 #: src/pages/Shell.tsx:4668
 msgid "Jump to latest"
 msgstr "최신 메시지로 이동"
@@ -3653,7 +3703,7 @@ msgstr ""
 msgid "Language"
 msgstr "언어"
 
-#: src/components/VerificationComparison.tsx:188
+#: src/components/VerificationComparison.tsx:191
 msgid "Last {range} days"
 msgstr ""
 
@@ -3776,6 +3826,10 @@ msgstr "듣는 중…"
 msgid "Listing type"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:151
+msgid "Live"
+msgstr ""
+
 #: src/components/RunLogsPanel.tsx:118
 msgid "Load earlier events"
 msgstr ""
@@ -3821,7 +3875,7 @@ msgstr "모델 목록을 불러오는 중…"
 msgid "Loading preview…"
 msgstr "미리보기를 불러오는 중…"
 
-#: src/components/VerificationComparison.tsx:219
+#: src/components/VerificationComparison.tsx:222
 msgid "Loading results"
 msgstr ""
 
@@ -3839,8 +3893,9 @@ msgstr "음성 서비스를 불러오는 중…"
 
 #: src/App.tsx:54
 #: src/components/BotCredentialsSettings.tsx:165
-#: src/pages/crm/CrmView.tsx:179
-#: src/pages/crm/CrmView.tsx:197
+#: src/pages/crm/CrmForms.tsx:129
+#: src/pages/crm/CrmView.tsx:190
+#: src/pages/crm/CrmView.tsx:210
 #: src/pages/Onboarding.tsx:238
 #: src/pages/PeerMessagesOverlay.tsx:158
 #: src/pages/Shell.tsx:4586
@@ -3959,7 +4014,7 @@ msgstr "MCP 서버"
 msgid "Meaning"
 msgstr "의미"
 
-#: src/components/VerificationComparison.tsx:263
+#: src/components/VerificationComparison.tsx:266
 msgid "Median time"
 msgstr ""
 
@@ -4056,6 +4111,10 @@ msgstr "분"
 msgid "minutes"
 msgstr "분"
 
+#: src/pages/crm/CrmForms.tsx:246
+msgid "Minutes"
+msgstr ""
+
 #: src/pages/UserGuide.tsx:175
 msgid "Missing access: check Integrations or complete the requested sign-in on the agent’s computer."
 msgstr ""
@@ -4105,8 +4164,8 @@ msgstr "서버에서 찾은 모델"
 msgid "Models run on your own accounts and keys. Sign in with ChatGPT, Claude, Copilot, or SuperGrok, paste an API key, or skip if this deployment already has one."
 msgstr "모델은 사용자의 계정과 키로 실행됩니다. ChatGPT, Claude, Copilot 또는 SuperGrok으로 로그인하거나 API 키를 붙여넣으세요. 이 배포에 이미 키가 있다면 건너뛰세요."
 
-#: src/pages/crm/CrmView.tsx:118
-#: src/pages/crm/CrmView.tsx:155
+#: src/pages/crm/CrmView.tsx:129
+#: src/pages/crm/CrmView.tsx:166
 msgid "Module name"
 msgstr "모듈 이름"
 
@@ -4173,7 +4232,7 @@ msgstr "섹션으로 이동"
 #: src/components/teach/SkillDraftCard.tsx:82
 #: src/pages/Auth.tsx:140
 #: src/pages/crm/CrmContacts.tsx:129
-#: src/pages/crm/CrmView.tsx:65
+#: src/pages/crm/CrmView.tsx:76
 #: src/pages/GroupPanel.tsx:110
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:539
@@ -4241,6 +4300,10 @@ msgstr "새 연락처"
 msgid "New deal"
 msgstr "새 딜"
 
+#: src/pages/crm/CrmForms.tsx:116
+msgid "New event signup"
+msgstr ""
+
 #: src/components/FilesPanel.tsx:276
 #: src/components/FilesPanel.tsx:316
 msgid "New file"
@@ -4264,7 +4327,7 @@ msgstr ""
 msgid "New group"
 msgstr "새 그룹 만들기"
 
-#: src/pages/crm/CrmView.tsx:164
+#: src/pages/crm/CrmView.tsx:175
 msgid "New module"
 msgstr "새 모듈"
 
@@ -4280,6 +4343,10 @@ msgstr "새 비밀번호"
 #: src/pages/crm/CrmPipelineBoard.tsx:707
 msgid "New pipeline"
 msgstr "새 파이프라인"
+
+#: src/pages/crm/CrmForms.tsx:123
+msgid "New scorecard"
+msgstr ""
 
 #: src/pages/BotContextMenu.tsx:130
 #: src/pages/Shell.tsx:6747
@@ -4377,7 +4444,7 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:233
+#: src/components/VerificationComparison.tsx:236
 msgid "No checks in this period."
 msgstr ""
 
@@ -4419,6 +4486,10 @@ msgstr "아직 딜이 없습니다"
 #: src/components/ApprovalRulesSettings.tsx:239
 msgid "No exceptions. Actions run automatically."
 msgstr "별도 확인 규칙이 없습니다. 작업이 자동으로 실행됩니다."
+
+#: src/pages/crm/CrmForms.tsx:133
+msgid "No forms yet."
+msgstr ""
 
 #: src/components/FilesPanel.tsx:621
 msgid "No Git repositories in this location."
@@ -4542,7 +4613,7 @@ msgstr ""
 msgid "Nobody matches that search"
 msgstr "검색과 일치하는 사람이 없습니다"
 
-#: src/components/VerificationComparison.tsx:311
+#: src/components/VerificationComparison.tsx:314
 msgid "None in this period."
 msgstr ""
 
@@ -4606,6 +4677,10 @@ msgstr "아직 기억한 내용이 없습니다"
 msgid "Nothing to chart yet"
 msgstr "아직 표시할 데이터가 없습니다"
 
+#: src/pages/crm/CrmForms.tsx:293
+msgid "Notify"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:72
 msgid "Now"
 msgstr "지금"
@@ -4643,6 +4718,10 @@ msgstr ""
 msgid "of decided applications"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:151
+msgid "Off"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:399
 msgid "On a schedule"
 msgstr "일정에 따라"
@@ -4659,6 +4738,10 @@ msgstr ""
 #: src/pages/CrmApiAccessPanel.tsx:279
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr "Claude, Cursor 또는 어떤 코딩 에이전트에든 한 번만 붙여넣으세요 — 토큰 포함, MCP로 연결하고 스스로 확인합니다."
+
+#: src/pages/crm/CrmForms.tsx:316
+msgid "One per line"
+msgstr ""
 
 #: src/pages/Shell.tsx:5434
 msgid "Only use connected plugins, never the computer"
@@ -4690,7 +4773,7 @@ msgstr ""
 msgid "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:439
+#: src/components/VerificationComparison.tsx:442
 msgid "Open chat"
 msgstr ""
 
@@ -4848,7 +4931,7 @@ msgstr "페이지네이션"
 msgid "Park"
 msgstr "보류"
 
-#: src/components/VerificationComparison.tsx:416
+#: src/components/VerificationComparison.tsx:419
 msgid "Pass"
 msgstr ""
 
@@ -4966,7 +5049,7 @@ msgstr ""
 msgid "Pin"
 msgstr "고정"
 
-#: src/pages/crm/CrmView.tsx:29
+#: src/pages/crm/CrmView.tsx:31
 msgid "Pipeline"
 msgstr "파이프라인"
 
@@ -5057,8 +5140,8 @@ msgstr ""
 msgid "Preheader"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:207
 #: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:213
 msgid "Preparing…"
 msgstr ""
 
@@ -5429,7 +5512,7 @@ msgstr "API 키 교체"
 msgid "Replace key"
 msgstr "키 교체"
 
-#: src/components/VerificationComparison.tsx:176
+#: src/components/VerificationComparison.tsx:179
 msgid "Replies"
 msgstr ""
 
@@ -5447,7 +5530,7 @@ msgstr "{replyName}에게 답장"
 msgid "Report"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:207
+#: src/components/VerificationComparison.tsx:210
 msgid "Report (.md)"
 msgstr ""
 
@@ -5462,11 +5545,11 @@ msgstr ""
 msgid "Repository"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:325
+#: src/components/VerificationComparison.tsx:328
 msgid "Request"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:436
+#: src/components/VerificationComparison.tsx:439
 msgid "Request:"
 msgstr ""
 
@@ -5575,7 +5658,7 @@ msgstr "취소"
 msgid "Revoking…"
 msgstr "취소 중…"
 
-#: src/components/VerificationComparison.tsx:253
+#: src/components/VerificationComparison.tsx:256
 msgid "Right when you answered"
 msgstr ""
 
@@ -5668,6 +5751,7 @@ msgstr ""
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/pages/crm/CrmContacts.tsx:486
+#: src/pages/crm/CrmForms.tsx:349
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
@@ -5714,6 +5798,7 @@ msgstr "저장됨. 확인하려면 키를 교체하세요."
 
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
+#: src/pages/crm/CrmForms.tsx:349
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:674
 #: src/pages/RoutineEditor.tsx:451
@@ -5744,6 +5829,10 @@ msgstr ""
 #: src/pages/DocsView.tsx:136
 msgid "Scope"
 msgstr "범위"
+
+#: src/pages/crm/CrmForms.tsx:152
+msgid "Scorecard"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:940
 #: src/pages/Shell.tsx:2662
@@ -5863,6 +5952,10 @@ msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx:548
 msgid "Send this report"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:301
+msgid "Sender name"
 msgstr ""
 
 #: src/pages/DocsView.tsx:686
@@ -6034,7 +6127,7 @@ msgstr ""
 msgid "Show settings"
 msgstr "설정 보기"
 
-#: src/components/VerificationComparison.tsx:225
+#: src/components/VerificationComparison.tsx:228
 msgid "Showing the most recent checks only. Pick a shorter range for complete data."
 msgstr ""
 
@@ -6057,6 +6150,10 @@ msgstr "가입하기"
 #: src/components/BotCredentialsSettings.tsx:139
 #: src/components/BotCredentialsSettings.tsx:143
 msgid "Sign-in credentials"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:308
+msgid "Sign-off"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:240
@@ -6210,6 +6307,10 @@ msgstr "시작 중"
 msgid "Starting…"
 msgstr "시작하는 중…"
 
+#: src/pages/crm/CrmForms.tsx:210
+msgid "Starts"
+msgstr ""
+
 #: src/pages/workspace/sections/ReportsSection.tsx:878
 msgid "Stats"
 msgstr ""
@@ -6307,7 +6408,7 @@ msgstr ""
 msgid "Sunday"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:416
+#: src/components/VerificationComparison.tsx:419
 msgid "Supported"
 msgstr ""
 
@@ -6598,10 +6699,15 @@ msgstr ""
 msgid "Time of day"
 msgstr "실행 시각"
 
-#: src/components/VerificationComparison.tsx:181
+#: src/components/VerificationComparison.tsx:184
 msgid "Time range"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:224
+msgid "Time zone"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:189
 #: src/pages/Onboarding.tsx:548
 #: src/pages/Shell.tsx:6190
 #: src/pages/Shell.tsx:6372
@@ -6692,7 +6798,7 @@ msgstr ""
 msgid "Turn a proven task into a routine"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:278
+#: src/components/VerificationComparison.tsx:281
 msgid "Turn on Compare checkers to see both engines on the same checks."
 msgstr ""
 
@@ -6786,7 +6892,7 @@ msgstr ""
 msgid "Unsubscribes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:419
+#: src/components/VerificationComparison.tsx:422
 msgid "Unsupported"
 msgstr ""
 
@@ -7094,7 +7200,7 @@ msgstr "이 Bot을 언제, 어떤 일에 사용할지 적어주세요"
 msgid "What to return"
 msgstr "완료 후 전달할 결과"
 
-#: src/components/VerificationComparison.tsx:319
+#: src/components/VerificationComparison.tsx:322
 #: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr ""
@@ -7174,7 +7280,7 @@ msgstr ""
 msgid "Yes"
 msgstr "예"
 
-#: src/components/VerificationComparison.tsx:334
+#: src/components/VerificationComparison.tsx:337
 #: src/pages/Shell.tsx:1808
 #: src/pages/Shell.tsx:2544
 msgid "You"

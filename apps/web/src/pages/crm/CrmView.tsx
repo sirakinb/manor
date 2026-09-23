@@ -3,11 +3,12 @@ import type { CrmModule, CrmOverview } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
 import { rpc } from "../../lib/rpc";
 import { CrmContacts } from "./CrmContacts";
+import { CrmForms } from "./CrmForms";
 import { CrmHome } from "./CrmHome";
 import { CrmModuleSheet } from "./CrmModuleSheet";
 import { CrmPipelineBoard } from "./CrmPipelineBoard";
 
-type CrmTab = "home" | "pipeline" | "contacts" | { moduleId: string };
+type CrmTab = "home" | "pipeline" | "contacts" | "forms" | { moduleId: string };
 
 /**
  * The CRM pane. One dataset feeds all three tabs, so it is loaded here once
@@ -23,12 +24,22 @@ export function CrmView() {
   const [creatingModule, setCreatingModule] = useState(false);
   const [newModuleName, setNewModuleName] = useState("");
   const [renamingModule, setRenamingModule] = useState<{ id: string; name: string } | null>(null);
+  const [canManageForms, setCanManageForms] = useState(false);
 
-  const tabs: Array<{ key: "home" | "pipeline" | "contacts"; label: string }> = [
+  const tabs: Array<{ key: "home" | "pipeline" | "contacts" | "forms"; label: string }> = [
     { key: "home", label: t`Home` },
     { key: "pipeline", label: t`Pipeline` },
     { key: "contacts", label: t`Contacts` },
+    // Public forms hold owner settings, so the tab only appears for organization owners.
+    ...(canManageForms ? [{ key: "forms" as const, label: t`Forms` }] : []),
   ];
+
+  useEffect(() => {
+    rpc.publicForms
+      .list()
+      .then((result) => setCanManageForms(result.canManage))
+      .catch(() => setCanManageForms(false));
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -184,6 +195,8 @@ export function CrmView() {
           <CrmPipelineBoard overview={overview} onChanged={refresh} />
         ) : tab === "contacts" ? (
           <CrmContacts overview={overview} onChanged={refresh} />
+        ) : tab === "forms" ? (
+          <CrmForms />
         ) : activeModule ? (
           <div className="px-[22px] py-4">
             <CrmModuleSheet

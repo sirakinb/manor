@@ -88,7 +88,7 @@ export class SmtpEmailProvider implements TransactionalEmailProvider {
       }
       try {
         await this.transport.sendMail({
-          from: this.config.from,
+          from: senderFor(this.config.from, message.fromName),
           to: message.to,
           subject: message.subject,
           text: message.text,
@@ -168,4 +168,15 @@ function safeProtocol(value: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** Keep the configured address and swap only its display name, so senders cannot be spoofed. */
+export function senderFor(
+  configured: string,
+  fromName?: string,
+): string | { name: string; address: string } {
+  const name = fromName?.replace(/[\r\n"<>]/g, "").trim();
+  if (!name) return configured;
+  const address = /<([^>]+)>\s*$/.exec(configured)?.[1] ?? configured.trim();
+  return { name, address };
 }

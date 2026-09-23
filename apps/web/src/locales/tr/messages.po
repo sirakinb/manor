@@ -376,7 +376,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/components/VerificationComparison.tsx:476
+#: src/components/VerificationComparison.tsx:479
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr ""
 
@@ -461,6 +461,10 @@ msgstr ""
 msgid "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:337
+msgid "Accept submissions"
+msgstr ""
+
 #: src/pages/Shell.tsx:6667
 msgid "Access"
 msgstr "Erişim"
@@ -482,7 +486,7 @@ msgstr ""
 msgid "Account default"
 msgstr "Hesap varsayılanı"
 
-#: src/components/VerificationComparison.tsx:325
+#: src/components/VerificationComparison.tsx:328
 msgid "Action"
 msgstr ""
 
@@ -495,7 +499,7 @@ msgstr "İşlem onayları"
 msgid "Action type"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:176
+#: src/components/VerificationComparison.tsx:179
 msgid "Actions"
 msgstr ""
 
@@ -668,6 +672,10 @@ msgstr "Webhook ekle"
 msgid "Adding…"
 msgstr "Ekleniyor…"
 
+#: src/pages/crm/CrmForms.tsx:196
+msgid "Address"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx:249
 #: src/pages/RoutineSchedule.tsx:42
 #: src/pages/Shell.tsx:6393
@@ -710,7 +718,7 @@ msgstr "Agent'lar:"
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
 #. placeholder {2}: percent(current.agreed / current.compared)
-#: src/components/VerificationComparison.tsx:273
+#: src/components/VerificationComparison.tsx:276
 msgid "Agreed on {0} of {1} checks ({2})"
 msgstr ""
 
@@ -743,7 +751,7 @@ msgstr ""
 msgid "All applications on record"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:198
+#: src/components/VerificationComparison.tsx:201
 msgid "All bots"
 msgstr ""
 
@@ -791,13 +799,17 @@ msgstr "Bir kez izin ver"
 msgid "Allow purchase actions without asking"
 msgstr "Satın alma işlemlerine sormadan izin ver"
 
-#: src/components/VerificationComparison.tsx:370
+#: src/components/VerificationComparison.tsx:373
 msgid "Allowed"
 msgstr ""
 
 #: src/components/AskCard.tsx:22
 msgid "Allowed once"
 msgstr "Bir kez izin verildi"
+
+#: src/pages/crm/CrmForms.tsx:316
+msgid "Allowed websites"
+msgstr ""
 
 #: src/pages/DocsView.tsx:136
 msgid "Allows"
@@ -939,7 +951,7 @@ msgstr "Argümanlar"
 msgid "Arguments:"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:419
+#: src/components/VerificationComparison.tsx:422
 msgid "Ask"
 msgstr ""
 
@@ -1143,6 +1155,10 @@ msgstr ""
 msgid "Book demo"
 msgstr "Demo planla"
 
+#: src/pages/crm/CrmForms.tsx:275
+msgid "Booking link"
+msgstr ""
+
 #: src/pages/Shell.tsx:7093
 msgid "Booting live desktop…"
 msgstr "Canlı masaüstü başlatılıyor…"
@@ -1163,8 +1179,8 @@ msgstr "bot"
 msgid "Bot"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:193
-#: src/components/VerificationComparison.tsx:322
+#: src/components/VerificationComparison.tsx:196
+#: src/components/VerificationComparison.tsx:325
 #: src/pages/Shell.tsx:1809
 msgid "Bot"
 msgstr "Bot"
@@ -1320,6 +1336,7 @@ msgstr "Sunucuya ulaşılamıyor."
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/FilesPanel.tsx:363
 #: src/components/teach/TeachComputerOverlay.tsx:218
+#: src/pages/crm/CrmForms.tsx:356
 #: src/pages/crm/CrmModuleSheet.tsx:157
 #: src/pages/crm/CrmModuleSheet.tsx:367
 #: src/pages/crm/CrmModuleSheet.tsx:385
@@ -1445,7 +1462,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:163
+#: src/components/VerificationComparison.tsx:166
 msgid "Check type"
 msgstr ""
 
@@ -1469,7 +1486,7 @@ msgstr "Onay kutusu"
 msgid "Checker"
 msgstr "Denetleyici"
 
-#: src/components/VerificationComparison.tsx:150
+#: src/components/VerificationComparison.tsx:153
 msgid "Checker comparison"
 msgstr ""
 
@@ -1481,7 +1498,7 @@ msgstr "Kontrol ediliyor…"
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "Çalışma kopyasında yerel değişiklikler var. Güncellemeden önce temizleyin."
 
-#: src/components/VerificationComparison.tsx:246
+#: src/components/VerificationComparison.tsx:249
 msgid "Checks"
 msgstr ""
 
@@ -1586,7 +1603,7 @@ msgstr "Kapat"
 msgid "Close chart"
 msgstr "Grafiği kapat"
 
-#: src/components/VerificationComparison.tsx:154
+#: src/components/VerificationComparison.tsx:157
 msgid "Close checker comparison"
 msgstr ""
 
@@ -1685,7 +1702,7 @@ msgstr "Şirket"
 msgid "Compare checkers"
 msgstr "Denetleyicileri karşılaştır"
 
-#: src/components/VerificationComparison.tsx:448
+#: src/components/VerificationComparison.tsx:451
 msgid "compared"
 msgstr ""
 
@@ -1741,7 +1758,7 @@ msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TO
 msgstr "Bilgisayarlar kapalı. SANDBOX_PROVIDER=docker ve SANDBOX_SUPERVISOR_TOKEN ayarlayın; ya da SANDBOX_PROVIDER değerini e2b, daytona veya box yapıp API anahtarını ekleyin. .env değişince stacki yeniden oluşturun."
 
 #. placeholder {0}: verdict.confidence.toFixed(2)
-#: src/components/VerificationComparison.tsx:457
+#: src/components/VerificationComparison.tsx:460
 msgid "confidence {0}"
 msgstr ""
 
@@ -1897,7 +1914,7 @@ msgstr ""
 msgid "Contact"
 msgstr "Kişi"
 
-#: src/pages/crm/CrmView.tsx:30
+#: src/pages/crm/CrmView.tsx:32
 #: src/pages/DocsView.tsx:498
 msgid "Contacts"
 msgstr "Kişiler"
@@ -1978,7 +1995,7 @@ msgstr ""
 msgid "Copy webhook signing secret"
 msgstr "Webhook imzalama sırrını kopyala"
 
-#: src/components/VerificationComparison.tsx:266
+#: src/components/VerificationComparison.tsx:269
 msgid "Cost"
 msgstr ""
 
@@ -2095,6 +2112,10 @@ msgstr "Rutin silinemedi"
 msgid "Could not delete skill"
 msgstr "Beceri silinemedi"
 
+#: src/pages/crm/CrmForms.tsx:87
+msgid "Could not delete the form"
+msgstr ""
+
 #: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "Hafıza sağlayıcısının bağlantısı kesilemedi"
@@ -2112,7 +2133,7 @@ msgstr "{0} indirilemedi. Tekrar dene."
 msgid "Could not download {name}. Try again."
 msgstr "{name} indirilemedi. Tekrar dene."
 
-#: src/components/VerificationComparison.tsx:111
+#: src/components/VerificationComparison.tsx:114
 msgid "Could not download the report"
 msgstr ""
 
@@ -2144,6 +2165,10 @@ msgstr "Onay kuralları yüklenemedi"
 msgid "Could not load credentials"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:57
+msgid "Could not load forms"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:76
 msgid "Could not load integrations"
 msgstr "Entegrasyonlar yüklenemedi"
@@ -2165,7 +2190,7 @@ msgstr "Model ayarları yüklenemedi"
 msgid "Could not load organization access."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:92
+#: src/components/VerificationComparison.tsx:95
 msgid "Could not load results"
 msgstr ""
 
@@ -2177,7 +2202,7 @@ msgstr ""
 msgid "Could not load skill"
 msgstr "Beceri yüklenemedi"
 
-#: src/pages/crm/CrmView.tsx:41
+#: src/pages/crm/CrmView.tsx:52
 msgid "Could not load the CRM"
 msgstr "CRM yüklenemedi"
 
@@ -2334,6 +2359,10 @@ msgstr "Bu seçim kaydedilemedi"
 #: src/pages/VoiceSettingsOverlay.tsx:90
 msgid "Could not save that voice"
 msgstr "Bu ses kaydedilemedi"
+
+#: src/pages/crm/CrmForms.tsx:74
+msgid "Could not save the form"
+msgstr ""
 
 #: src/pages/Shell.tsx:7125
 msgid "Could not save this choice"
@@ -2512,6 +2541,10 @@ msgstr "CRM API erişimi"
 msgid "CRM connection"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:286
+msgid "CRM tag"
+msgstr ""
+
 #: src/pages/DocsView.tsx:571
 msgid "CRM tools"
 msgstr ""
@@ -2560,7 +2593,7 @@ msgstr ""
 msgid "Daily reach"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:213
 msgid "Data (.csv)"
 msgstr ""
 
@@ -2603,7 +2636,7 @@ msgstr "Fırsat başlığı"
 msgid "Deals"
 msgstr "Fırsatlar"
 
-#: src/components/VerificationComparison.tsx:448
+#: src/components/VerificationComparison.tsx:451
 msgid "decided"
 msgstr ""
 
@@ -2624,6 +2657,7 @@ msgstr "Varsayılan kapsam"
 #: src/components/FilesPanel.tsx:458
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
+#: src/pages/crm/CrmForms.tsx:364
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
@@ -2698,7 +2732,7 @@ msgid "Delivery"
 msgstr "Teslimat"
 
 #: src/components/AskCard.tsx:24
-#: src/components/VerificationComparison.tsx:372
+#: src/components/VerificationComparison.tsx:375
 msgid "Denied"
 msgstr "Reddedildi"
 
@@ -2751,7 +2785,7 @@ msgstr ""
 msgid "Dictate"
 msgstr "Dikte et"
 
-#: src/components/VerificationComparison.tsx:307
+#: src/components/VerificationComparison.tsx:310
 msgid "Disagreements"
 msgstr ""
 
@@ -2832,7 +2866,7 @@ msgstr "Hesabın yok mu?"
 msgid "Done"
 msgstr "Bitti"
 
-#: src/pages/crm/CrmView.tsx:129
+#: src/pages/crm/CrmView.tsx:140
 msgid "Double-click to rename"
 msgstr "Yeniden adlandırmak için çift tıkla"
 
@@ -2953,6 +2987,10 @@ msgstr ""
 msgid "Email delivery"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:266
+msgid "Email message"
+msgstr ""
+
 #: src/pages/workspace/sections/EmailSection.tsx:86
 msgid "Email performance"
 msgstr ""
@@ -2999,19 +3037,23 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Bu kodu <0>{0}</0> adresinde gir"
 
-#: src/components/VerificationComparison.tsx:422
+#: src/components/VerificationComparison.tsx:425
 #: src/pages/workspace/sections/ReportsSection.tsx:59
 #: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:261
+#: src/components/VerificationComparison.tsx:264
 #: src/pages/DocsView.tsx:467
 msgid "Errors"
 msgstr "Hatalar"
 
 #: src/pages/workspace/sections/VoiceSection.tsx:224
 msgid "Escalated"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:152
+msgid "Event"
 msgstr ""
 
 #: src/pages/DocsView.tsx:627
@@ -3228,7 +3270,7 @@ msgstr "MCP bağlantısı tamamlanıyor…"
 msgid "First name"
 msgstr "Ad"
 
-#: src/components/VerificationComparison.tsx:286
+#: src/components/VerificationComparison.tsx:289
 msgid "Flag rate by day"
 msgstr ""
 
@@ -3236,7 +3278,7 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "Beklenmeyen eylemleri işaretle"
 
-#: src/components/VerificationComparison.tsx:248
+#: src/components/VerificationComparison.tsx:251
 msgid "Flagged"
 msgstr ""
 
@@ -3278,6 +3320,10 @@ msgstr ""
 #: src/pages/Auth.tsx:229
 msgid "Forgot password?"
 msgstr "Parolanızı mı unuttunuz?"
+
+#: src/pages/crm/CrmView.tsx:34
+msgid "Forms"
+msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx:338
 msgid "Forwards"
@@ -3448,7 +3494,7 @@ msgstr "Konuşmak için basılı tut"
 msgid "Hold to talk (on-device dictation)"
 msgstr "Konuşmak için basılı tut (cihaz üzerinde dikte)"
 
-#: src/pages/crm/CrmView.tsx:28
+#: src/pages/crm/CrmView.tsx:30
 msgid "Home"
 msgstr "Ana sayfa"
 
@@ -3601,6 +3647,10 @@ msgstr "Yalıtılmış"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "Sohbeti, dosyaları ve rutinleri kalıcı olarak silinecek. Oluşturduğu botlar listende kalır."
 
+#: src/pages/crm/CrmForms.tsx:258
+msgid "Join link"
+msgstr ""
+
 #: src/pages/Shell.tsx:4668
 msgid "Jump to latest"
 msgstr "En son mesaja git"
@@ -3653,7 +3703,7 @@ msgstr ""
 msgid "Language"
 msgstr "Dil"
 
-#: src/components/VerificationComparison.tsx:188
+#: src/components/VerificationComparison.tsx:191
 msgid "Last {range} days"
 msgstr ""
 
@@ -3776,6 +3826,10 @@ msgstr "Dinliyor…"
 msgid "Listing type"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:151
+msgid "Live"
+msgstr ""
+
 #: src/components/RunLogsPanel.tsx:118
 msgid "Load earlier events"
 msgstr ""
@@ -3821,7 +3875,7 @@ msgstr "Model kataloğu yükleniyor…"
 msgid "Loading preview…"
 msgstr "Önizleme yükleniyor…"
 
-#: src/components/VerificationComparison.tsx:219
+#: src/components/VerificationComparison.tsx:222
 msgid "Loading results"
 msgstr ""
 
@@ -3839,8 +3893,9 @@ msgstr "Ses sağlayıcıları yükleniyor…"
 
 #: src/App.tsx:54
 #: src/components/BotCredentialsSettings.tsx:165
-#: src/pages/crm/CrmView.tsx:179
-#: src/pages/crm/CrmView.tsx:197
+#: src/pages/crm/CrmForms.tsx:129
+#: src/pages/crm/CrmView.tsx:190
+#: src/pages/crm/CrmView.tsx:210
 #: src/pages/Onboarding.tsx:238
 #: src/pages/PeerMessagesOverlay.tsx:158
 #: src/pages/Shell.tsx:4586
@@ -3959,7 +4014,7 @@ msgstr "MCP sunucuları"
 msgid "Meaning"
 msgstr "Anlam"
 
-#: src/components/VerificationComparison.tsx:263
+#: src/components/VerificationComparison.tsx:266
 msgid "Median time"
 msgstr ""
 
@@ -4056,6 +4111,10 @@ msgstr "dakika"
 msgid "minutes"
 msgstr "dakika"
 
+#: src/pages/crm/CrmForms.tsx:246
+msgid "Minutes"
+msgstr ""
+
 #: src/pages/UserGuide.tsx:175
 msgid "Missing access: check Integrations or complete the requested sign-in on the agent’s computer."
 msgstr ""
@@ -4105,8 +4164,8 @@ msgstr "Sunucudan gelen modeller"
 msgid "Models run on your own accounts and keys. Sign in with ChatGPT, Claude, Copilot, or SuperGrok, paste an API key, or skip if this deployment already has one."
 msgstr "Modeller kendi hesaplarınız ve anahtarlarınızla çalışır. ChatGPT, Claude, Copilot veya SuperGrok ile oturum açın, bir API anahtarı yapıştırın veya bu dağıtımda zaten bir anahtar varsa atlayın."
 
-#: src/pages/crm/CrmView.tsx:118
-#: src/pages/crm/CrmView.tsx:155
+#: src/pages/crm/CrmView.tsx:129
+#: src/pages/crm/CrmView.tsx:166
 msgid "Module name"
 msgstr "Modül adı"
 
@@ -4173,7 +4232,7 @@ msgstr "Taşı"
 #: src/components/teach/SkillDraftCard.tsx:82
 #: src/pages/Auth.tsx:140
 #: src/pages/crm/CrmContacts.tsx:129
-#: src/pages/crm/CrmView.tsx:65
+#: src/pages/crm/CrmView.tsx:76
 #: src/pages/GroupPanel.tsx:110
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:539
@@ -4241,6 +4300,10 @@ msgstr "Yeni kişi"
 msgid "New deal"
 msgstr "Yeni fırsat"
 
+#: src/pages/crm/CrmForms.tsx:116
+msgid "New event signup"
+msgstr ""
+
 #: src/components/FilesPanel.tsx:276
 #: src/components/FilesPanel.tsx:316
 msgid "New file"
@@ -4264,7 +4327,7 @@ msgstr ""
 msgid "New group"
 msgstr "Yeni grup"
 
-#: src/pages/crm/CrmView.tsx:164
+#: src/pages/crm/CrmView.tsx:175
 msgid "New module"
 msgstr "Yeni modül"
 
@@ -4280,6 +4343,10 @@ msgstr "Yeni parola"
 #: src/pages/crm/CrmPipelineBoard.tsx:707
 msgid "New pipeline"
 msgstr "Yeni pipeline"
+
+#: src/pages/crm/CrmForms.tsx:123
+msgid "New scorecard"
+msgstr ""
 
 #: src/pages/BotContextMenu.tsx:130
 #: src/pages/Shell.tsx:6747
@@ -4377,7 +4444,7 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:233
+#: src/components/VerificationComparison.tsx:236
 msgid "No checks in this period."
 msgstr ""
 
@@ -4419,6 +4486,10 @@ msgstr "Henüz fırsat yok"
 #: src/components/ApprovalRulesSettings.tsx:239
 msgid "No exceptions. Actions run automatically."
 msgstr "İstisna yok. İşlemler otomatik çalışır."
+
+#: src/pages/crm/CrmForms.tsx:133
+msgid "No forms yet."
+msgstr ""
 
 #: src/components/FilesPanel.tsx:621
 msgid "No Git repositories in this location."
@@ -4542,7 +4613,7 @@ msgstr ""
 msgid "Nobody matches that search"
 msgstr "Bu aramayla eşleşen kimse yok"
 
-#: src/components/VerificationComparison.tsx:311
+#: src/components/VerificationComparison.tsx:314
 msgid "None in this period."
 msgstr ""
 
@@ -4606,6 +4677,10 @@ msgstr "Henüz hatırlanan bir şey yok"
 msgid "Nothing to chart yet"
 msgstr "Henüz grafiğe dökülecek bir şey yok"
 
+#: src/pages/crm/CrmForms.tsx:293
+msgid "Notify"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:72
 msgid "Now"
 msgstr "Şimdi"
@@ -4643,6 +4718,10 @@ msgstr ""
 msgid "of decided applications"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:151
+msgid "Off"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:399
 msgid "On a schedule"
 msgstr "Zamanlamaya göre"
@@ -4659,6 +4738,10 @@ msgstr ""
 #: src/pages/CrmApiAccessPanel.tsx:279
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
 msgstr "Claude, Cursor veya herhangi bir kodlama ajanına tek yapıştırma — token dahil, MCP üzerinden bağlanır ve kendini doğrular."
+
+#: src/pages/crm/CrmForms.tsx:316
+msgid "One per line"
+msgstr ""
 
 #: src/pages/Shell.tsx:5434
 msgid "Only use connected plugins, never the computer"
@@ -4690,7 +4773,7 @@ msgstr ""
 msgid "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:439
+#: src/components/VerificationComparison.tsx:442
 msgid "Open chat"
 msgstr ""
 
@@ -4848,7 +4931,7 @@ msgstr "Sayfalama"
 msgid "Park"
 msgstr "Beklet"
 
-#: src/components/VerificationComparison.tsx:416
+#: src/components/VerificationComparison.tsx:419
 msgid "Pass"
 msgstr ""
 
@@ -4966,7 +5049,7 @@ msgstr ""
 msgid "Pin"
 msgstr "Sabitle"
 
-#: src/pages/crm/CrmView.tsx:29
+#: src/pages/crm/CrmView.tsx:31
 msgid "Pipeline"
 msgstr ""
 
@@ -5057,8 +5140,8 @@ msgstr ""
 msgid "Preheader"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:207
 #: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:213
 msgid "Preparing…"
 msgstr ""
 
@@ -5429,7 +5512,7 @@ msgstr "API anahtarını değiştir"
 msgid "Replace key"
 msgstr "Anahtarı değiştir"
 
-#: src/components/VerificationComparison.tsx:176
+#: src/components/VerificationComparison.tsx:179
 msgid "Replies"
 msgstr ""
 
@@ -5447,7 +5530,7 @@ msgstr "{replyName} yanıtlanıyor"
 msgid "Report"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:207
+#: src/components/VerificationComparison.tsx:210
 msgid "Report (.md)"
 msgstr ""
 
@@ -5462,11 +5545,11 @@ msgstr ""
 msgid "Repository"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:325
+#: src/components/VerificationComparison.tsx:328
 msgid "Request"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:436
+#: src/components/VerificationComparison.tsx:439
 msgid "Request:"
 msgstr ""
 
@@ -5575,7 +5658,7 @@ msgstr "İptal et"
 msgid "Revoking…"
 msgstr "İptal ediliyor…"
 
-#: src/components/VerificationComparison.tsx:253
+#: src/components/VerificationComparison.tsx:256
 msgid "Right when you answered"
 msgstr ""
 
@@ -5668,6 +5751,7 @@ msgstr ""
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/pages/crm/CrmContacts.tsx:486
+#: src/pages/crm/CrmForms.tsx:349
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
@@ -5714,6 +5798,7 @@ msgstr "Kaydedildi. Görmek için anahtarı yenileyin."
 
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
+#: src/pages/crm/CrmForms.tsx:349
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:674
 #: src/pages/RoutineEditor.tsx:451
@@ -5744,6 +5829,10 @@ msgstr ""
 #: src/pages/DocsView.tsx:136
 msgid "Scope"
 msgstr "Kapsam"
+
+#: src/pages/crm/CrmForms.tsx:152
+msgid "Scorecard"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:940
 #: src/pages/Shell.tsx:2662
@@ -5863,6 +5952,10 @@ msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx:548
 msgid "Send this report"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:301
+msgid "Sender name"
 msgstr ""
 
 #: src/pages/DocsView.tsx:686
@@ -6034,7 +6127,7 @@ msgstr ""
 msgid "Show settings"
 msgstr "Ayarları göster"
 
-#: src/components/VerificationComparison.tsx:225
+#: src/components/VerificationComparison.tsx:228
 msgid "Showing the most recent checks only. Pick a shorter range for complete data."
 msgstr ""
 
@@ -6057,6 +6150,10 @@ msgstr "Kaydol"
 #: src/components/BotCredentialsSettings.tsx:139
 #: src/components/BotCredentialsSettings.tsx:143
 msgid "Sign-in credentials"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:308
+msgid "Sign-off"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:240
@@ -6210,6 +6307,10 @@ msgstr "Başlıyor"
 msgid "Starting…"
 msgstr "Başlatılıyor…"
 
+#: src/pages/crm/CrmForms.tsx:210
+msgid "Starts"
+msgstr ""
+
 #: src/pages/workspace/sections/ReportsSection.tsx:878
 msgid "Stats"
 msgstr ""
@@ -6307,7 +6408,7 @@ msgstr ""
 msgid "Sunday"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:416
+#: src/components/VerificationComparison.tsx:419
 msgid "Supported"
 msgstr ""
 
@@ -6598,10 +6699,15 @@ msgstr ""
 msgid "Time of day"
 msgstr "Günün saati"
 
-#: src/components/VerificationComparison.tsx:181
+#: src/components/VerificationComparison.tsx:184
 msgid "Time range"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:224
+msgid "Time zone"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:189
 #: src/pages/Onboarding.tsx:548
 #: src/pages/Shell.tsx:6190
 #: src/pages/Shell.tsx:6372
@@ -6692,7 +6798,7 @@ msgstr ""
 msgid "Turn a proven task into a routine"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:278
+#: src/components/VerificationComparison.tsx:281
 msgid "Turn on Compare checkers to see both engines on the same checks."
 msgstr ""
 
@@ -6786,7 +6892,7 @@ msgstr ""
 msgid "Unsubscribes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:419
+#: src/components/VerificationComparison.tsx:422
 msgid "Unsupported"
 msgstr ""
 
@@ -7094,7 +7200,7 @@ msgstr "Bu botun amacı"
 msgid "What to return"
 msgstr "Ne döndürülecek"
 
-#: src/components/VerificationComparison.tsx:319
+#: src/components/VerificationComparison.tsx:322
 #: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr ""
@@ -7174,7 +7280,7 @@ msgstr ""
 msgid "Yes"
 msgstr "Evet"
 
-#: src/components/VerificationComparison.tsx:334
+#: src/components/VerificationComparison.tsx:337
 #: src/pages/Shell.tsx:1808
 #: src/pages/Shell.tsx:2544
 msgid "You"

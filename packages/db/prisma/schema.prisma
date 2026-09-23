@@ -121,7 +121,8 @@ model Organization {
 
   // A client's operations warehouse. One per organization; every workspace_*
   // row hangs off it, so the organization is the tenant key by construction.
-  workspace Workspace?
+  workspace   Workspace?
+  publicForms PublicForm[]
 
   @@unique([slug])
   @@map("organization")
@@ -1360,6 +1361,38 @@ model CrmContactExternalId {
   @@unique([organizationId, source, externalId])
   @@index([contactId])
   @@map("crm_contact_external_ids")
+}
+
+/// A public signup or scorecard form an organization embeds on its own website. Submissions
+/// become CRM contacts; the settings live here so owners can change them without a deploy.
+model PublicForm {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Public URL key and CRM contact source: POST /v1/public/forms/<slug>.
+  slug           String       @unique
+  /// "event" or "scorecard"
+  kind           String
+  title          String
+  enabled        Boolean      @default(true)
+  crmTag         String
+  /// Websites allowed to submit from a browser, e.g. https://example.com
+  allowedOrigins String[]
+  /// Optional paragraph added to the confirmation email.
+  message        String?
+  notifyEmail    String?
+  senderName     String?
+  signature      String?
+  eventStartsAt  DateTime?
+  eventMinutes   Int?
+  eventTimeZone  String?
+  joinUrl        String?
+  bookingUrl     String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@map("public_forms")
 }
 
 model CrmTag {

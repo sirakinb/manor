@@ -490,6 +490,8 @@ export interface TransactionalEmail {
   subject: string;
   text: string;
   html?: string;
+  /** Display name for the deployment's sender address. The address itself never changes. */
+  fromName?: string;
 }
 
 export interface MessagingCapabilities {

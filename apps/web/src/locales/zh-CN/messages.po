@@ -375,7 +375,7 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}，{label}"
 
-#: src/components/VerificationComparison.tsx:476
+#: src/components/VerificationComparison.tsx:479
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr ""
 
@@ -460,6 +460,10 @@ msgstr ""
 msgid "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:337
+msgid "Accept submissions"
+msgstr ""
+
 #: src/pages/Shell.tsx:6667
 msgid "Access"
 msgstr "访问权限"
@@ -481,7 +485,7 @@ msgstr ""
 msgid "Account default"
 msgstr "账户默认"
 
-#: src/components/VerificationComparison.tsx:325
+#: src/components/VerificationComparison.tsx:328
 msgid "Action"
 msgstr ""
 
@@ -494,7 +498,7 @@ msgstr "操作确认"
 msgid "Action type"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:176
+#: src/components/VerificationComparison.tsx:179
 msgid "Actions"
 msgstr ""
 
@@ -667,6 +671,10 @@ msgstr ""
 msgid "Adding…"
 msgstr "正在添加…"
 
+#: src/pages/crm/CrmForms.tsx:196
+msgid "Address"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx:249
 #: src/pages/RoutineSchedule.tsx:42
 #: src/pages/Shell.tsx:6393
@@ -709,7 +717,7 @@ msgstr "Agent："
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
 #. placeholder {2}: percent(current.agreed / current.compared)
-#: src/components/VerificationComparison.tsx:273
+#: src/components/VerificationComparison.tsx:276
 msgid "Agreed on {0} of {1} checks ({2})"
 msgstr ""
 
@@ -742,7 +750,7 @@ msgstr ""
 msgid "All applications on record"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:198
+#: src/components/VerificationComparison.tsx:201
 msgid "All bots"
 msgstr ""
 
@@ -790,13 +798,17 @@ msgstr "允许一次"
 msgid "Allow purchase actions without asking"
 msgstr "允许购买操作，无需询问"
 
-#: src/components/VerificationComparison.tsx:370
+#: src/components/VerificationComparison.tsx:373
 msgid "Allowed"
 msgstr ""
 
 #: src/components/AskCard.tsx:22
 msgid "Allowed once"
 msgstr "已允许一次"
+
+#: src/pages/crm/CrmForms.tsx:316
+msgid "Allowed websites"
+msgstr ""
 
 #: src/pages/DocsView.tsx:136
 msgid "Allows"
@@ -938,7 +950,7 @@ msgstr "参数"
 msgid "Arguments:"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:419
+#: src/components/VerificationComparison.tsx:422
 msgid "Ask"
 msgstr ""
 
@@ -1142,6 +1154,10 @@ msgstr ""
 msgid "Book demo"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:275
+msgid "Booking link"
+msgstr ""
+
 #: src/pages/Shell.tsx:7093
 msgid "Booting live desktop…"
 msgstr "正在启动实时桌面…"
@@ -1162,8 +1178,8 @@ msgstr "Bot"
 msgid "Bot"
 msgstr "Bot"
 
-#: src/components/VerificationComparison.tsx:193
-#: src/components/VerificationComparison.tsx:322
+#: src/components/VerificationComparison.tsx:196
+#: src/components/VerificationComparison.tsx:325
 #: src/pages/Shell.tsx:1809
 msgid "Bot"
 msgstr "Bot"
@@ -1319,6 +1335,7 @@ msgstr "无法连接服务器。"
 #: src/components/ComputerMaintenanceActions.tsx:108
 #: src/components/FilesPanel.tsx:363
 #: src/components/teach/TeachComputerOverlay.tsx:218
+#: src/pages/crm/CrmForms.tsx:356
 #: src/pages/crm/CrmModuleSheet.tsx:157
 #: src/pages/crm/CrmModuleSheet.tsx:367
 #: src/pages/crm/CrmModuleSheet.tsx:385
@@ -1444,7 +1461,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:163
+#: src/components/VerificationComparison.tsx:166
 msgid "Check type"
 msgstr ""
 
@@ -1468,7 +1485,7 @@ msgstr ""
 msgid "Checker"
 msgstr "检查器"
 
-#: src/components/VerificationComparison.tsx:150
+#: src/components/VerificationComparison.tsx:153
 msgid "Checker comparison"
 msgstr ""
 
@@ -1480,7 +1497,7 @@ msgstr "正在检查…"
 msgid "Checkout has local changes. Clean it before updating."
 msgstr "工作副本有本地更改。请先清理再更新。"
 
-#: src/components/VerificationComparison.tsx:246
+#: src/components/VerificationComparison.tsx:249
 msgid "Checks"
 msgstr ""
 
@@ -1585,7 +1602,7 @@ msgstr "关闭"
 msgid "Close chart"
 msgstr "关闭图表"
 
-#: src/components/VerificationComparison.tsx:154
+#: src/components/VerificationComparison.tsx:157
 msgid "Close checker comparison"
 msgstr ""
 
@@ -1684,7 +1701,7 @@ msgstr ""
 msgid "Compare checkers"
 msgstr "比较检查器"
 
-#: src/components/VerificationComparison.tsx:448
+#: src/components/VerificationComparison.tsx:451
 msgid "compared"
 msgstr ""
 
@@ -1740,7 +1757,7 @@ msgid "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_TO
 msgstr "电脑未开启。请设置 SANDBOX_PROVIDER=docker 并提供 SANDBOX_SUPERVISOR_TOKEN，或将 SANDBOX_PROVIDER 设为 e2b、daytona 或 box 并提供对应 API 密钥。更改 .env 后请重建环境。"
 
 #. placeholder {0}: verdict.confidence.toFixed(2)
-#: src/components/VerificationComparison.tsx:457
+#: src/components/VerificationComparison.tsx:460
 msgid "confidence {0}"
 msgstr ""
 
@@ -1896,7 +1913,7 @@ msgstr ""
 msgid "Contact"
 msgstr ""
 
-#: src/pages/crm/CrmView.tsx:30
+#: src/pages/crm/CrmView.tsx:32
 #: src/pages/DocsView.tsx:498
 msgid "Contacts"
 msgstr ""
@@ -1977,7 +1994,7 @@ msgstr ""
 msgid "Copy webhook signing secret"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:266
+#: src/components/VerificationComparison.tsx:269
 msgid "Cost"
 msgstr ""
 
@@ -2094,6 +2111,10 @@ msgstr "无法删除例行任务"
 msgid "Could not delete skill"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:87
+msgid "Could not delete the form"
+msgstr ""
+
 #: src/pages/MemorySettingsOverlay.tsx:109
 msgid "Could not disconnect memory provider"
 msgstr "无法断开记忆提供方"
@@ -2111,7 +2132,7 @@ msgstr "无法下载 {0}。请重试。"
 msgid "Could not download {name}. Try again."
 msgstr "无法下载 {name}。请重试。"
 
-#: src/components/VerificationComparison.tsx:111
+#: src/components/VerificationComparison.tsx:114
 msgid "Could not download the report"
 msgstr ""
 
@@ -2143,6 +2164,10 @@ msgstr "无法加载审批规则"
 msgid "Could not load credentials"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:57
+msgid "Could not load forms"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:76
 msgid "Could not load integrations"
 msgstr "无法加载集成"
@@ -2164,7 +2189,7 @@ msgstr "无法加载模型设置"
 msgid "Could not load organization access."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:92
+#: src/components/VerificationComparison.tsx:95
 msgid "Could not load results"
 msgstr ""
 
@@ -2176,7 +2201,7 @@ msgstr ""
 msgid "Could not load skill"
 msgstr ""
 
-#: src/pages/crm/CrmView.tsx:41
+#: src/pages/crm/CrmView.tsx:52
 msgid "Could not load the CRM"
 msgstr ""
 
@@ -2333,6 +2358,10 @@ msgstr "无法保存该选择"
 #: src/pages/VoiceSettingsOverlay.tsx:90
 msgid "Could not save that voice"
 msgstr "无法保存该语音"
+
+#: src/pages/crm/CrmForms.tsx:74
+msgid "Could not save the form"
+msgstr ""
 
 #: src/pages/Shell.tsx:7125
 msgid "Could not save this choice"
@@ -2511,6 +2540,10 @@ msgstr ""
 msgid "CRM connection"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:286
+msgid "CRM tag"
+msgstr ""
+
 #: src/pages/DocsView.tsx:571
 msgid "CRM tools"
 msgstr ""
@@ -2559,7 +2592,7 @@ msgstr ""
 msgid "Daily reach"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:213
 msgid "Data (.csv)"
 msgstr ""
 
@@ -2602,7 +2635,7 @@ msgstr ""
 msgid "Deals"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:448
+#: src/components/VerificationComparison.tsx:451
 msgid "decided"
 msgstr ""
 
@@ -2623,6 +2656,7 @@ msgstr "默认范围"
 #: src/components/FilesPanel.tsx:458
 #: src/pages/BotContextMenu.tsx:105
 #: src/pages/crm/CrmContacts.tsx:474
+#: src/pages/crm/CrmForms.tsx:364
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
 #: src/pages/McpServersOverlay.tsx:481
@@ -2697,7 +2731,7 @@ msgid "Delivery"
 msgstr ""
 
 #: src/components/AskCard.tsx:24
-#: src/components/VerificationComparison.tsx:372
+#: src/components/VerificationComparison.tsx:375
 msgid "Denied"
 msgstr "已拒绝"
 
@@ -2750,7 +2784,7 @@ msgstr ""
 msgid "Dictate"
 msgstr "口述"
 
-#: src/components/VerificationComparison.tsx:307
+#: src/components/VerificationComparison.tsx:310
 msgid "Disagreements"
 msgstr ""
 
@@ -2831,7 +2865,7 @@ msgstr "还没有账户？"
 msgid "Done"
 msgstr "完成"
 
-#: src/pages/crm/CrmView.tsx:129
+#: src/pages/crm/CrmView.tsx:140
 msgid "Double-click to rename"
 msgstr ""
 
@@ -2952,6 +2986,10 @@ msgstr ""
 msgid "Email delivery"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:266
+msgid "Email message"
+msgstr ""
+
 #: src/pages/workspace/sections/EmailSection.tsx:86
 msgid "Email performance"
 msgstr ""
@@ -2998,19 +3036,23 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "在 <0>{0}</0> 输入此代码"
 
-#: src/components/VerificationComparison.tsx:422
+#: src/components/VerificationComparison.tsx:425
 #: src/pages/workspace/sections/ReportsSection.tsx:59
 #: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:261
+#: src/components/VerificationComparison.tsx:264
 #: src/pages/DocsView.tsx:467
 msgid "Errors"
 msgstr ""
 
 #: src/pages/workspace/sections/VoiceSection.tsx:224
 msgid "Escalated"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:152
+msgid "Event"
 msgstr ""
 
 #: src/pages/DocsView.tsx:627
@@ -3227,7 +3269,7 @@ msgstr "正在完成 MCP 连接…"
 msgid "First name"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:286
+#: src/components/VerificationComparison.tsx:289
 msgid "Flag rate by day"
 msgstr ""
 
@@ -3235,7 +3277,7 @@ msgstr ""
 msgid "Flag unexpected actions"
 msgstr "标记异常操作"
 
-#: src/components/VerificationComparison.tsx:248
+#: src/components/VerificationComparison.tsx:251
 msgid "Flagged"
 msgstr ""
 
@@ -3277,6 +3319,10 @@ msgstr ""
 #: src/pages/Auth.tsx:229
 msgid "Forgot password?"
 msgstr "忘记密码？"
+
+#: src/pages/crm/CrmView.tsx:34
+msgid "Forms"
+msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx:338
 msgid "Forwards"
@@ -3447,7 +3493,7 @@ msgstr "按住说话"
 msgid "Hold to talk (on-device dictation)"
 msgstr "按住说话（设备端口述）"
 
-#: src/pages/crm/CrmView.tsx:28
+#: src/pages/crm/CrmView.tsx:30
 msgid "Home"
 msgstr ""
 
@@ -3600,6 +3646,10 @@ msgstr "隔离"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "它的对话、文件和例行任务将被永久删除。它创建的 Bot 仍留在列表中。"
 
+#: src/pages/crm/CrmForms.tsx:258
+msgid "Join link"
+msgstr ""
+
 #: src/pages/Shell.tsx:4668
 msgid "Jump to latest"
 msgstr "跳到最新"
@@ -3652,7 +3702,7 @@ msgstr ""
 msgid "Language"
 msgstr "语言"
 
-#: src/components/VerificationComparison.tsx:188
+#: src/components/VerificationComparison.tsx:191
 msgid "Last {range} days"
 msgstr ""
 
@@ -3775,6 +3825,10 @@ msgstr "正在听…"
 msgid "Listing type"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:151
+msgid "Live"
+msgstr ""
+
 #: src/components/RunLogsPanel.tsx:118
 msgid "Load earlier events"
 msgstr ""
@@ -3820,7 +3874,7 @@ msgstr "正在加载模型目录…"
 msgid "Loading preview…"
 msgstr "正在加载预览…"
 
-#: src/components/VerificationComparison.tsx:219
+#: src/components/VerificationComparison.tsx:222
 msgid "Loading results"
 msgstr ""
 
@@ -3838,8 +3892,9 @@ msgstr "正在加载语音提供方…"
 
 #: src/App.tsx:54
 #: src/components/BotCredentialsSettings.tsx:165
-#: src/pages/crm/CrmView.tsx:179
-#: src/pages/crm/CrmView.tsx:197
+#: src/pages/crm/CrmForms.tsx:129
+#: src/pages/crm/CrmView.tsx:190
+#: src/pages/crm/CrmView.tsx:210
 #: src/pages/Onboarding.tsx:238
 #: src/pages/PeerMessagesOverlay.tsx:158
 #: src/pages/Shell.tsx:4586
@@ -3958,7 +4013,7 @@ msgstr "MCP 服务器"
 msgid "Meaning"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:263
+#: src/components/VerificationComparison.tsx:266
 msgid "Median time"
 msgstr ""
 
@@ -4055,6 +4110,10 @@ msgstr "分钟"
 msgid "minutes"
 msgstr "分钟"
 
+#: src/pages/crm/CrmForms.tsx:246
+msgid "Minutes"
+msgstr ""
+
 #: src/pages/UserGuide.tsx:175
 msgid "Missing access: check Integrations or complete the requested sign-in on the agent’s computer."
 msgstr ""
@@ -4104,8 +4163,8 @@ msgstr "来自服务器的模型"
 msgid "Models run on your own accounts and keys. Sign in with ChatGPT, Claude, Copilot, or SuperGrok, paste an API key, or skip if this deployment already has one."
 msgstr ""
 
-#: src/pages/crm/CrmView.tsx:118
-#: src/pages/crm/CrmView.tsx:155
+#: src/pages/crm/CrmView.tsx:129
+#: src/pages/crm/CrmView.tsx:166
 msgid "Module name"
 msgstr ""
 
@@ -4172,7 +4231,7 @@ msgstr "移动到"
 #: src/components/teach/SkillDraftCard.tsx:82
 #: src/pages/Auth.tsx:140
 #: src/pages/crm/CrmContacts.tsx:129
-#: src/pages/crm/CrmView.tsx:65
+#: src/pages/crm/CrmView.tsx:76
 #: src/pages/GroupPanel.tsx:110
 #: src/pages/GroupPanel.tsx:201
 #: src/pages/Onboarding.tsx:539
@@ -4240,6 +4299,10 @@ msgstr ""
 msgid "New deal"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:116
+msgid "New event signup"
+msgstr ""
+
 #: src/components/FilesPanel.tsx:276
 #: src/components/FilesPanel.tsx:316
 msgid "New file"
@@ -4263,7 +4326,7 @@ msgstr ""
 msgid "New group"
 msgstr "新建群组"
 
-#: src/pages/crm/CrmView.tsx:164
+#: src/pages/crm/CrmView.tsx:175
 msgid "New module"
 msgstr ""
 
@@ -4278,6 +4341,10 @@ msgstr "新密码"
 
 #: src/pages/crm/CrmPipelineBoard.tsx:707
 msgid "New pipeline"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:123
+msgid "New scorecard"
 msgstr ""
 
 #: src/pages/BotContextMenu.tsx:130
@@ -4376,7 +4443,7 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr "还没有关联聊天应用。"
 
-#: src/components/VerificationComparison.tsx:233
+#: src/components/VerificationComparison.tsx:236
 msgid "No checks in this period."
 msgstr ""
 
@@ -4418,6 +4485,10 @@ msgstr ""
 #: src/components/ApprovalRulesSettings.tsx:239
 msgid "No exceptions. Actions run automatically."
 msgstr "没有例外。操作会自动执行。"
+
+#: src/pages/crm/CrmForms.tsx:133
+msgid "No forms yet."
+msgstr ""
 
 #: src/components/FilesPanel.tsx:621
 msgid "No Git repositories in this location."
@@ -4541,7 +4612,7 @@ msgstr ""
 msgid "Nobody matches that search"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:311
+#: src/components/VerificationComparison.tsx:314
 msgid "None in this period."
 msgstr ""
 
@@ -4605,6 +4676,10 @@ msgstr ""
 msgid "Nothing to chart yet"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:293
+msgid "Notify"
+msgstr ""
+
 #: src/pages/ActivityList.tsx:72
 msgid "Now"
 msgstr "现在"
@@ -4642,6 +4717,10 @@ msgstr ""
 msgid "of decided applications"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:151
+msgid "Off"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:399
 msgid "On a schedule"
 msgstr "按计划"
@@ -4657,6 +4736,10 @@ msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:279
 msgid "One paste into Claude, Cursor, or any coding agent — token included, it connects over MCP and verifies itself."
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:316
+msgid "One per line"
 msgstr ""
 
 #: src/pages/Shell.tsx:5434
@@ -4689,7 +4772,7 @@ msgstr ""
 msgid "Open an existing bot from the sidebar, or choose New bot. Bots are your agents: give each one a clear job, such as preparing customer follow-ups or organizing inquiries. If you skipped model setup, open Models from the account menu and connect a provider before sending your first message."
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:439
+#: src/components/VerificationComparison.tsx:442
 msgid "Open chat"
 msgstr ""
 
@@ -4847,7 +4930,7 @@ msgstr ""
 msgid "Park"
 msgstr "搁置"
 
-#: src/components/VerificationComparison.tsx:416
+#: src/components/VerificationComparison.tsx:419
 msgid "Pass"
 msgstr ""
 
@@ -4965,7 +5048,7 @@ msgstr ""
 msgid "Pin"
 msgstr "置顶"
 
-#: src/pages/crm/CrmView.tsx:29
+#: src/pages/crm/CrmView.tsx:31
 msgid "Pipeline"
 msgstr ""
 
@@ -5056,8 +5139,8 @@ msgstr ""
 msgid "Preheader"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:207
 #: src/components/VerificationComparison.tsx:210
+#: src/components/VerificationComparison.tsx:213
 msgid "Preparing…"
 msgstr ""
 
@@ -5428,7 +5511,7 @@ msgstr "替换 API 密钥"
 msgid "Replace key"
 msgstr "替换密钥"
 
-#: src/components/VerificationComparison.tsx:176
+#: src/components/VerificationComparison.tsx:179
 msgid "Replies"
 msgstr ""
 
@@ -5446,7 +5529,7 @@ msgstr "正在回复 {replyName}"
 msgid "Report"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:207
+#: src/components/VerificationComparison.tsx:210
 msgid "Report (.md)"
 msgstr ""
 
@@ -5461,11 +5544,11 @@ msgstr ""
 msgid "Repository"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:325
+#: src/components/VerificationComparison.tsx:328
 msgid "Request"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:436
+#: src/components/VerificationComparison.tsx:439
 msgid "Request:"
 msgstr ""
 
@@ -5574,7 +5657,7 @@ msgstr "撤销"
 msgid "Revoking…"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:253
+#: src/components/VerificationComparison.tsx:256
 msgid "Right when you answered"
 msgstr ""
 
@@ -5667,6 +5750,7 @@ msgstr ""
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
 #: src/pages/crm/CrmContacts.tsx:486
+#: src/pages/crm/CrmForms.tsx:349
 #: src/pages/crm/CrmModuleSheet.tsx:350
 #: src/pages/crm/CrmPipelineBoard.tsx:671
 #: src/pages/GroupPanel.tsx:224
@@ -5713,6 +5797,7 @@ msgstr "已保存。轮换后可查看。"
 
 #: src/components/FilesPanel.tsx:513
 #: src/components/teach/SkillDraftCard.tsx:162
+#: src/pages/crm/CrmForms.tsx:349
 #: src/pages/GroupPanel.tsx:224
 #: src/pages/ModelSettingsOverlay.tsx:674
 #: src/pages/RoutineEditor.tsx:451
@@ -5742,6 +5827,10 @@ msgstr ""
 
 #: src/pages/DocsView.tsx:136
 msgid "Scope"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:152
+msgid "Scorecard"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:940
@@ -5862,6 +5951,10 @@ msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx:548
 msgid "Send this report"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:301
+msgid "Sender name"
 msgstr ""
 
 #: src/pages/DocsView.tsx:686
@@ -6033,7 +6126,7 @@ msgstr ""
 msgid "Show settings"
 msgstr "显示设置"
 
-#: src/components/VerificationComparison.tsx:225
+#: src/components/VerificationComparison.tsx:228
 msgid "Showing the most recent checks only. Pick a shorter range for complete data."
 msgstr ""
 
@@ -6056,6 +6149,10 @@ msgstr "注册"
 #: src/components/BotCredentialsSettings.tsx:139
 #: src/components/BotCredentialsSettings.tsx:143
 msgid "Sign-in credentials"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:308
+msgid "Sign-off"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:240
@@ -6209,6 +6306,10 @@ msgstr "正在开始"
 msgid "Starting…"
 msgstr "正在开始…"
 
+#: src/pages/crm/CrmForms.tsx:210
+msgid "Starts"
+msgstr ""
+
 #: src/pages/workspace/sections/ReportsSection.tsx:878
 msgid "Stats"
 msgstr ""
@@ -6306,7 +6407,7 @@ msgstr ""
 msgid "Sunday"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:416
+#: src/components/VerificationComparison.tsx:419
 msgid "Supported"
 msgstr ""
 
@@ -6597,10 +6698,15 @@ msgstr ""
 msgid "Time of day"
 msgstr "时间"
 
-#: src/components/VerificationComparison.tsx:181
+#: src/components/VerificationComparison.tsx:184
 msgid "Time range"
 msgstr ""
 
+#: src/pages/crm/CrmForms.tsx:224
+msgid "Time zone"
+msgstr ""
+
+#: src/pages/crm/CrmForms.tsx:189
 #: src/pages/Onboarding.tsx:548
 #: src/pages/Shell.tsx:6190
 #: src/pages/Shell.tsx:6372
@@ -6691,7 +6797,7 @@ msgstr ""
 msgid "Turn a proven task into a routine"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:278
+#: src/components/VerificationComparison.tsx:281
 msgid "Turn on Compare checkers to see both engines on the same checks."
 msgstr ""
 
@@ -6785,7 +6891,7 @@ msgstr ""
 msgid "Unsubscribes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:419
+#: src/components/VerificationComparison.tsx:422
 msgid "Unsupported"
 msgstr ""
 
@@ -7093,7 +7199,7 @@ msgstr "这个 Bot 是做什么的"
 msgid "What to return"
 msgstr "返回什么"
 
-#: src/components/VerificationComparison.tsx:319
+#: src/components/VerificationComparison.tsx:322
 #: src/pages/workspace/sections/VoiceSection.tsx:211
 msgid "When"
 msgstr ""
@@ -7173,7 +7279,7 @@ msgstr ""
 msgid "Yes"
 msgstr ""
 
-#: src/components/VerificationComparison.tsx:334
+#: src/components/VerificationComparison.tsx:337
 #: src/pages/Shell.tsx:1808
 #: src/pages/Shell.tsx:2544
 msgid "You"
