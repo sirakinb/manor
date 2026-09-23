@@ -105,10 +105,9 @@ async function assertVerifierConformance(engines: {
 
   const answer = await engines.answers.checkAnswer(answerRequest, ctx);
   expect(answer.decision).toBe("ask");
-  expect((answer.details?.claims as ClaimVerdict[]).map((claim) => claim.supported)).toEqual([
-    true,
-    false,
-  ]);
+  expect(
+    ((answer.details?.claims ?? []) as ClaimVerdict[]).map((claim) => claim.supported),
+  ).toEqual([true, false]);
   expect(answer.latencyMs).toBeGreaterThanOrEqual(0);
 
   for (const failed of [

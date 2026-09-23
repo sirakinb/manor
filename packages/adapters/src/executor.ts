@@ -1439,16 +1439,17 @@ export function createRunExecutor(deps: ExecutorDeps) {
           costUsd: result.costUsd,
         });
         /**
-         * Log a compare-mode verdict without holding up the run. The attempt waits for it
-         * before ending, a failed insert retries once, and action replays backfill a missing row.
+         * Log a verdict without holding up the run. The attempt waits for it before ending,
+         * a failed insert retries once, and action replays backfill a missing shadow row.
          */
         const logShadow = (
           check: Parameters<typeof verificationRow>[0],
           engine: VerificationEngineId,
           review: () => Promise<VerificationResult>,
+          role: "primary" | "shadow" = "shadow",
         ) => {
           const write = async () => {
-            const data = verificationRow(check, engine, "shadow", await review());
+            const data = verificationRow(check, engine, role, await review());
             const insert = () =>
               deps.prisma.verificationCheck.createMany({ data: [data], skipDuplicates: true });
             await insert().catch(insert);
@@ -1465,7 +1466,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
          */
         const checkReply = async (
           blocks: MessageBlock[],
-        ): Promise<Extract<MessageBlock, { kind: "verification" }> | undefined> => {
+        ): Promise<
+          | { note?: Extract<MessageBlock, { kind: "verification" }>; logVerdicts: () => void }
+          | undefined
+        > => {
           if (!answerSources.items.length) return undefined;
           const reply = blocks
             .flatMap((block) => (block.kind === "text" ? [block.text] : []))
@@ -1482,16 +1486,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
             );
           const shadowCheck = engines.shadow ? checkWith(engines.shadow) : undefined;
           const primary = await checkWith(primaryEngine);
+          const unsupported = ((primary.details?.claims ?? []) as ClaimVerdict[]).filter(
+            (claim) => !claim.supported,
+          );
           const check = { checkpoint: "answer", subject: "reply", effectId: null } as const;
-          await deps.prisma.verificationCheck
-            .create({ data: verificationRow(check, primaryEngine, "primary", primary) })
-            .catch((error) => console.error("verification answer log failed", error));
-          if (engines.shadow && shadowCheck) logShadow(check, engines.shadow, () => shadowCheck);
-          const claimVerdicts = (primary.details?.claims ?? []) as ClaimVerdict[];
-          const unsupported = claimVerdicts.filter((claim) => !claim.supported);
-          return primary.decision === "ask" && unsupported.length
-            ? { kind: "verification", unsupported: unsupported.map((claim) => claim.text) }
-            : undefined;
+          return {
+            note:
+              primary.decision === "ask" && unsupported.length
+                ? { kind: "verification", unsupported: unsupported.map((claim) => claim.text) }
+                : undefined,
+            // Called only once the reply is saved, so a lost lease or retry never leaves
+            // verdicts for a reply that does not exist.
+            logVerdicts: () => {
+              logShadow(check, primaryEngine, () => Promise.resolve(primary), "primary");
+              if (engines.shadow && shadowCheck) {
+                logShadow(check, engines.shadow, () => shadowCheck);
+              }
+            },
+          };
         };
         const tools = selectToolsForRoutingMode(
           { computerToolsAvailable, pluginToolsAvailable },
@@ -3793,8 +3805,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (containsSecret(text, runSecrets)) {
             throw new Error("refusing to persist a secret in the thread");
           }
-          const replyNote = handedOff ? undefined : await checkReply(blocks);
-          if (replyNote) blocks.push(replyNote);
+          const replyCheck = handedOff ? undefined : await checkReply(blocks);
+          if (replyCheck?.note) blocks.push(replyCheck.note);
           if (!(await renewRunLease(deps, runId, workerId, fence))) return;
           const completed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -3810,6 +3822,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             markUnread: completionMarksUnread(run.trigger, text),
           });
           if (!completed) return;
+          replyCheck?.logVerdicts();
           if (completed.continuationRunId) {
             await deps.jobs
               .enqueue(runContinueJob(completed.continuationRunId))

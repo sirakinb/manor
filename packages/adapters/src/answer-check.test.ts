@@ -45,6 +45,16 @@ describe("AnswerSources", () => {
     expect(sources.items[1]!.content).toHaveLength(4_000);
   });
 
+  it("redacts sensitive keys in structured and JSON-text results", () => {
+    const sources = new AnswerSources();
+    sources.add("create_key", { key: { apiKey: "new-key", id: "k1" } }, []);
+    sources.add("mcp_call", '{"access_token":"abc","user":"sam"}', []);
+    expect(sources.items.map((item) => item.content)).toEqual([
+      '{"key":{"apiKey":"[redacted]","id":"k1"}}',
+      '{"access_token":"[redacted]","user":"sam"}',
+    ]);
+  });
+
   it("stops collecting after the source limit", () => {
     const sources = new AnswerSources();
     for (let i = 0; i < 40; i++) sources.add("web_fetch", `page ${i}`, []);

@@ -128,12 +128,16 @@ function redactReviewValue(value: unknown, secrets: string[], depth: number): un
   );
 }
 
-/** Redacts sensitive keys and known secret values at every depth before args leave the run. */
+/** Redacts sensitive keys and known secret values at every depth before data leaves the run. */
+export function redactForReview(value: unknown, secrets: string[]): unknown {
+  return redactReviewValue(value, secrets, 0);
+}
+
 export function redactToolArgsForReview(
   args: Record<string, unknown>,
   secrets: string[],
 ): Record<string, unknown> {
-  return redactReviewValue(args, secrets, 0) as Record<string, unknown>;
+  return redactForReview(args, secrets) as Record<string, unknown>;
 }
 
 function truncate(value: string, max: number): string {

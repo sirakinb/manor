@@ -1,5 +1,6 @@
 import type { AnswerCheckRequest } from "@rakazo/adapter-kit";
 import { redactSecrets } from "@rakazo/core";
+import { redactForReview } from "./auto-review.js";
 
 const MIN_CLAIM_WORDS = 4;
 const MAX_CLAIMS = 20;
@@ -39,7 +40,8 @@ export class AnswerSources {
     if (this.items.length >= MAX_SOURCES || result == null) return;
     let content: string;
     try {
-      content = typeof result === "string" ? result : JSON.stringify(result);
+      const redacted = redactForReview(parseJsonText(result), secrets);
+      content = typeof redacted === "string" ? redacted : JSON.stringify(redacted);
     } catch {
       return;
     }
@@ -48,5 +50,15 @@ export class AnswerSources {
       .slice(0, MAX_SOURCE_CHARS)
       .trim();
     if (content) this.items.push({ tool, content });
+  }
+}
+
+/** Tools often return JSON as text; parse it so sensitive keys inside are redacted too. */
+function parseJsonText(result: unknown): unknown {
+  if (typeof result !== "string" || !/^\s*[[{]/.test(result)) return result;
+  try {
+    return JSON.parse(result);
+  } catch {
+    return result;
   }
 }
