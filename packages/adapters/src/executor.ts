@@ -7,6 +7,7 @@ import type {
   AgentRunRequest,
   AgentRuntime,
   ArtifactStore,
+  ClaimVerdict,
   ComputerRef,
   ConnectorCall,
   ConnectorProvider,
@@ -18,6 +19,7 @@ import type {
   SandboxProvider,
   SemanticMemoryProvider,
   VerificationResult,
+  Verifier,
   WebProvider,
 } from "@rakazo/adapter-kit";
 import {
@@ -93,6 +95,7 @@ import {
   messageConnectedAgent,
   respondAgentConnection,
 } from "./agent-connections.js";
+import { AnswerSources, extractClaims } from "./answer-check.js";
 import { buildApprovalAskBlock } from "./approval-ask.js";
 import {
   approvalPausedToolResult,
@@ -122,6 +125,7 @@ import {
   uncertainEffectResult,
 } from "./approval-effect.js";
 import {
+  answerCheckTimeoutMs,
   autoReviewTimeoutMs,
   createLlmVerifier,
   deploymentAutoReviewDefault,
@@ -1293,7 +1297,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return approvalRulesPromise;
         };
         let autoReviewPreferencePromise:
-          | Promise<{ enabled: boolean; engine: VerificationEngineId; compare: boolean }>
+          | Promise<{
+              enabled: boolean;
+              checkAnswers: boolean;
+              engine: VerificationEngineId;
+              compare: boolean;
+            }>
           | undefined;
         const loadAutoReviewPreference = () => {
           autoReviewPreferencePromise ??= deps.prisma.actionAutoReviewPreference
@@ -1304,14 +1313,185 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   userId: run.userId,
                 },
               },
-              select: { enabled: true, engine: true, compare: true },
+              select: { enabled: true, checkAnswers: true, engine: true, compare: true },
             })
             .then((row) => ({
               enabled: row?.enabled ?? deploymentAutoReviewDefault(),
+              checkAnswers: row?.checkAnswers ?? false,
               engine: isVerificationEngineId(row?.engine) ? row.engine : LLM_ENGINE,
               compare: row?.compare ?? false,
             }));
           return autoReviewPreferencePromise;
+        };
+        let verificationSetupPromise:
+          | Promise<{
+              preference: Awaited<ReturnType<typeof loadAutoReviewPreference>>;
+              checker: ReturnType<typeof resolveAutoReviewChecker>;
+              jev: ReturnType<typeof jevVerifierFromEnv>;
+              engines: ReturnType<typeof planVerificationEngines>;
+            }>
+          | undefined;
+        /** Which engines decide and shadow this run's checks; resolved once per attempt. */
+        const loadVerificationSetup = () => {
+          verificationSetupPromise ??= (async () => {
+            const preference = await loadAutoReviewPreference();
+            const active = preference.enabled || preference.checkAnswers;
+            const checker = active ? resolveAutoReviewChecker() : null;
+            const jev = active ? jevVerifierFromEnv() : null;
+            const llmConfigured = checker
+              ? isAutoReviewCheckerConfigured({}) ||
+                Boolean(
+                  await findModelCredential(
+                    deps.prisma,
+                    { userId: run.userId, spaceId: run.spaceId },
+                    checker.provider,
+                  ),
+                )
+              : false;
+            const engines = planVerificationEngines({
+              selected: preference.engine,
+              compare: preference.compare,
+              available: { [LLM_ENGINE]: llmConfigured, [JEV_ENGINE]: Boolean(jev) },
+            });
+            return { preference, checker, jev, engines };
+          })();
+          return verificationSetupPromise;
+        };
+        /** Runs one engine. LLM credential failures fail closed as an "error" verdict. */
+        const verifyWith = async (
+          engine: VerificationEngineId,
+          timeoutMs: number,
+          check: (verifier: Verifier, context: AdapterContext) => Promise<VerificationResult>,
+        ): Promise<VerificationResult> => {
+          const { checker, jev } = await loadVerificationSetup();
+          const context: AdapterContext = {
+            operationId: `auto-review:${runId}`,
+            traceId: `auto-review:${runId}`,
+            spaceId: run.spaceId,
+            userId: run.userId,
+            botId: bot.id,
+            runId,
+            signal: AbortSignal.timeout(timeoutMs),
+          };
+          if (engine === JEV_ENGINE) return check(jev!, context);
+          try {
+            const reviewCredential =
+              checker!.provider === credential?.provider
+                ? credential
+                : await findModelCredential(
+                    deps.prisma,
+                    { userId: run.userId, spaceId: run.spaceId },
+                    checker!.provider,
+                  );
+            const judgeKey = await resolveModelKey(
+              deps,
+              run.userId,
+              run.spaceId,
+              reviewCredential,
+              checker!.provider,
+              (values) => runSecrets.push(...values),
+            );
+            const verifier = createLlmVerifier({
+              runtime: deps.runtime,
+              checker: checker!,
+              apiKey: judgeKey.oauth ? undefined : judgeKey.apiKey,
+              baseUrl: judgeKey.baseUrl,
+              oauth: judgeKey.oauth
+                ? { credential: judgeKey.oauth, persist: judgeKey.persistOAuth }
+                : undefined,
+              runId,
+              botId: bot.id,
+              threadId: thread.id,
+              timeoutMs: autoReviewTimeoutMs(),
+            });
+            return await check(verifier, context);
+          } catch {
+            // Auth/refresh failures must fail closed like a checker error, not fail the run.
+            return {
+              decision: "error",
+              reason: "Checker could not authenticate.",
+              model: `${checker!.provider}/${checker!.model}`,
+              latencyMs: 0,
+            };
+          }
+        };
+        const verificationRow = (
+          check: { checkpoint: "action" | "answer"; subject: string; effectId: string | null },
+          engine: VerificationEngineId,
+          role: "primary" | "shadow",
+          result: VerificationResult,
+        ) => ({
+          spaceId: run.spaceId,
+          userId: run.userId,
+          runId,
+          ...check,
+          engine,
+          role,
+          decision: result.decision,
+          reason: result.reason,
+          probability: result.probability,
+          confidence: result.confidence,
+          details: result.details as Prisma.InputJsonValue | undefined,
+          model: result.model,
+          latencyMs: result.latencyMs,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          costUsd: result.costUsd,
+        });
+        /**
+         * Log a compare-mode verdict without holding up the run. The attempt waits for it
+         * before ending, a failed insert retries once, and action replays backfill a missing row.
+         */
+        const logShadow = (
+          check: Parameters<typeof verificationRow>[0],
+          engine: VerificationEngineId,
+          review: () => Promise<VerificationResult>,
+        ) => {
+          const write = async () => {
+            const data = verificationRow(check, engine, "shadow", await review());
+            const insert = () =>
+              deps.prisma.verificationCheck.createMany({ data: [data], skipDuplicates: true });
+            await insert().catch(insert);
+          };
+          const pending: Promise<void> = write()
+            .catch((error) => console.error("verification shadow log failed", error))
+            .finally(() => pendingVerificationLogs.delete(pending));
+          pendingVerificationLogs.add(pending);
+        };
+        const answerSources = new AnswerSources();
+        /**
+         * Check the finished reply against this attempt's tool results. Never blocks the reply:
+         * it returns a note listing unsupported statements, or nothing.
+         */
+        const checkReply = async (
+          blocks: MessageBlock[],
+        ): Promise<Extract<MessageBlock, { kind: "verification" }> | undefined> => {
+          if (!answerSources.items.length) return undefined;
+          const reply = blocks
+            .flatMap((block) => (block.kind === "text" ? [block.text] : []))
+            .join("\n");
+          const claims = extractClaims(reply);
+          if (!claims.length) return undefined;
+          const { preference, engines } = await loadVerificationSetup();
+          const primaryEngine = engines.primary;
+          if (!preference.checkAnswers || !primaryEngine) return undefined;
+          const request = { userTask: task.prompt, claims, sources: answerSources.items };
+          const checkWith = (engine: VerificationEngineId) =>
+            verifyWith(engine, answerCheckTimeoutMs(), (verifier, context) =>
+              verifier.checkAnswer(request, context),
+            );
+          const shadowCheck = engines.shadow ? checkWith(engines.shadow) : undefined;
+          const primary = await checkWith(primaryEngine);
+          const check = { checkpoint: "answer", subject: "reply", effectId: null } as const;
+          await deps.prisma.verificationCheck
+            .create({ data: verificationRow(check, primaryEngine, "primary", primary) })
+            .catch((error) => console.error("verification answer log failed", error));
+          if (engines.shadow && shadowCheck) logShadow(check, engines.shadow, () => shadowCheck);
+          const claimVerdicts = (primary.details?.claims ?? []) as ClaimVerdict[];
+          const unsupported = claimVerdicts.filter((claim) => !claim.supported);
+          return primary.decision === "ask" && unsupported.length
+            ? { kind: "verification", unsupported: unsupported.map((claim) => claim.text) }
+            : undefined;
         };
         const tools = selectToolsForRoutingMode(
           { computerToolsAvailable, pluginToolsAvailable },
@@ -1475,6 +1655,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               : result && typeof result === "object" && "error" in result && result.error
                 ? "failed"
                 : "completed";
+            if (status !== "paused") answerSources.add(name, result, runSecrets);
             return result;
           } catch (error) {
             throw new RunExecutionError(
@@ -1713,37 +1894,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 connectorKind,
                 rules: await loadApprovalRules(),
               });
-          const autoReviewPref = requiresExplicitApproval
-            ? undefined
-            : await loadAutoReviewPreference();
-          const checker = autoReviewPref?.enabled ? resolveAutoReviewChecker() : null;
-          const jev = autoReviewPref?.enabled ? jevVerifierFromEnv() : null;
-          const llmNeeded =
-            autoReviewPref?.engine === LLM_ENGINE || autoReviewPref?.compare || !jev;
-          const llmConfigured =
-            checker && llmNeeded
-              ? isAutoReviewCheckerConfigured({}) ||
-                Boolean(
-                  await findModelCredential(
-                    deps.prisma,
-                    { userId: run.userId, spaceId: run.spaceId },
-                    checker.provider,
-                  ),
-                )
-              : false;
-          const engines = autoReviewPref
-            ? planVerificationEngines({
-                selected: autoReviewPref.engine,
-                compare: autoReviewPref.compare,
-                available: { [LLM_ENGINE]: llmConfigured, [JEV_ENGINE]: Boolean(jev) },
-              })
-            : {};
+          const verification = requiresExplicitApproval ? undefined : await loadVerificationSetup();
+          const engines = verification?.preference.enabled ? verification.engines : {};
           const plan = requiresExplicitApproval
             ? "ask"
             : planActionGate({
                 resolved: approvalResolved,
                 consequential: requiresApprovalByDefault,
-                autoReviewEnabled: Boolean(autoReviewPref?.enabled),
+                autoReviewEnabled: Boolean(verification?.preference.enabled),
                 checkerConfigured: Boolean(engines.primary),
               });
           let reviewReason: string | undefined;
@@ -1768,83 +1926,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
               (rule) => `${rule.effect}:${rule.matchKind}:${rule.matchValue}`,
             ),
           };
-          const reviewWith = async (engine: VerificationEngineId): Promise<VerificationResult> => {
-            const context = {
-              operationId: `auto-review:${runId}`,
-              traceId: `auto-review:${runId}`,
-              spaceId: run.spaceId,
-              userId: run.userId,
-              botId: bot.id,
-              runId,
-              signal: AbortSignal.timeout(autoReviewTimeoutMs()),
-            };
-            if (engine === JEV_ENGINE) return jev!.reviewAction(reviewRequest, context);
-            try {
-              const reviewCredential =
-                checker!.provider === credential?.provider
-                  ? credential
-                  : await findModelCredential(
-                      deps.prisma,
-                      { userId: run.userId, spaceId: run.spaceId },
-                      checker!.provider,
-                    );
-              const judgeKey = await resolveModelKey(
-                deps,
-                run.userId,
-                run.spaceId,
-                reviewCredential,
-                checker!.provider,
-                (values) => runSecrets.push(...values),
-              );
-              return await createLlmVerifier({
-                runtime: deps.runtime,
-                checker: checker!,
-                apiKey: judgeKey.oauth ? undefined : judgeKey.apiKey,
-                baseUrl: judgeKey.baseUrl,
-                oauth: judgeKey.oauth
-                  ? { credential: judgeKey.oauth, persist: judgeKey.persistOAuth }
-                  : undefined,
-                runId,
-                botId: bot.id,
-                threadId: thread.id,
-                timeoutMs: autoReviewTimeoutMs(),
-              }).reviewAction(reviewRequest, context);
-            } catch {
-              // Auth/refresh failures must fail closed like a checker error, not fail the run.
-              return {
-                decision: "error",
-                reason: "Checker could not authenticate.",
-                model: `${checker!.provider}/${checker!.model}`,
-                latencyMs: 0,
-              };
-            }
-          };
-
-          const verificationRow = (
-            effectId: string,
-            engine: VerificationEngineId,
-            role: "primary" | "shadow",
-            result: VerificationResult,
-          ) => ({
-            spaceId: run.spaceId,
-            userId: run.userId,
-            runId,
-            effectId,
-            checkpoint: "action",
-            subject: name,
-            engine,
-            role,
-            decision: result.decision,
-            reason: result.reason,
-            probability: result.probability,
-            confidence: result.confidence,
-            details: result.details as Prisma.InputJsonValue | undefined,
-            model: result.model,
-            latencyMs: result.latencyMs,
-            inputTokens: result.inputTokens,
-            outputTokens: result.outputTokens,
-            costUsd: result.costUsd,
-          });
+          const reviewWith = (engine: VerificationEngineId) =>
+            verifyWith(engine, autoReviewTimeoutMs(), (verifier, context) =>
+              verifier.reviewAction(reviewRequest, context),
+            );
+          const actionCheck = (effectId: string) =>
+            ({ checkpoint: "action", subject: name, effectId }) as const;
 
           const runAutoReview = async () => {
             const { primary: primaryEngine, shadow: shadowEngine } = engines;
@@ -1870,31 +1957,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 },
               }),
               deps.prisma.verificationCheck.create({
-                data: verificationRow(effectId, primaryEngine, "primary", primary),
+                data: verificationRow(actionCheck(effectId), primaryEngine, "primary", primary),
               }),
             ]);
-            if (shadowEngine && shadowReview) logShadow(effectId, shadowEngine, () => shadowReview);
-          };
-
-          /**
-           * Log a compare-mode verdict without holding up the action. The attempt waits for it
-           * before ending, a failed insert retries once, and replays backfill a missing row.
-           */
-          const logShadow = (
-            effectId: string,
-            engine: VerificationEngineId,
-            review: () => Promise<VerificationResult>,
-          ) => {
-            const write = async () => {
-              const data = verificationRow(effectId, engine, "shadow", await review());
-              const insert = () =>
-                deps.prisma.verificationCheck.createMany({ data: [data], skipDuplicates: true });
-              await insert().catch(insert);
-            };
-            const pending: Promise<void> = write()
-              .catch((error) => console.error("verification shadow log failed", error))
-              .finally(() => pendingVerificationLogs.delete(pending));
-            pendingVerificationLogs.add(pending);
+            if (shadowEngine && shadowReview) {
+              logShadow(actionCheck(effectId), shadowEngine, () => shadowReview);
+            }
           };
 
           const backfillShadow = async () => {
@@ -1903,7 +1971,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             const logged = await deps.prisma.verificationCheck.count({
               where: { effectId: applied.effect.id, engine: shadowEngine },
             });
-            if (!logged) logShadow(applied.effect.id, shadowEngine, () => reviewWith(shadowEngine));
+            if (!logged) {
+              logShadow(actionCheck(applied.effect.id), shadowEngine, () =>
+                reviewWith(shadowEngine),
+              );
+            }
           };
 
           if (applied && plan === "judge" && engines.primary) {
@@ -3721,6 +3793,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (containsSecret(text, runSecrets)) {
             throw new Error("refusing to persist a secret in the thread");
           }
+          const replyNote = handedOff ? undefined : await checkReply(blocks);
+          if (replyNote) blocks.push(replyNote);
           if (!(await renewRunLease(deps, runId, workerId, fence))) return;
           const completed = await deps.events.finalizeRun({
             spaceId: run.spaceId,

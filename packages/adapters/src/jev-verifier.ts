@@ -1,6 +1,8 @@
 import type {
   ActionReviewRequest,
   AdapterContext,
+  AnswerCheckRequest,
+  ClaimVerdict,
   VerificationResult,
   Verifier,
 } from "@rakazo/adapter-kit";
@@ -10,6 +12,11 @@ const DEFAULT_BASE_URL = "https://api.typesafe.ai";
 const DEFAULT_MODEL = "jev-latest";
 const DEFAULT_MIN_CONFIDENCE = 0.6;
 const DEFAULT_TIMEOUT_MS = 1_500;
+const DEFAULT_ANSWER_TIMEOUT_MS = 6_000;
+/** A claim whose yes-probability falls below this is reported as unsupported. */
+const DEFAULT_MIN_SUPPORT = 0.5;
+/** Keeps state well inside Jev's 32k-token budget for state plus one question. */
+const MAX_SOURCE_STATE_CHARS = 60_000;
 /** Jev bills input tokens only. */
 const INPUT_USD_PER_TOKEN = 0.042 / 1_000_000;
 
@@ -23,6 +30,9 @@ export const ACTION_FIT_QUESTION = {
   },
 } as const;
 
+export const CLAIM_SUPPORT_QUESTION =
+  "Is `claim` directly stated or implied by `sources` (the tool results the bot saw)?";
+
 export type JevVerifierOptions = {
   apiKey: string;
   baseUrl?: string;
@@ -30,6 +40,8 @@ export type JevVerifierOptions = {
   /** Below this confidence the action goes to the user even when Jev says it fits. */
   minConfidence?: number;
   timeoutMs?: number;
+  answerTimeoutMs?: number;
+  minSupport?: number;
   fetch?: typeof fetch;
 };
 
@@ -70,6 +82,8 @@ export class JevVerifier implements Verifier {
   private readonly model: string;
   private readonly minConfidence: number;
   private readonly timeoutMs: number;
+  private readonly answerTimeoutMs: number;
+  private readonly minSupport: number;
   private readonly fetch: typeof fetch;
 
   constructor(private readonly options: JevVerifierOptions) {
@@ -77,6 +91,8 @@ export class JevVerifier implements Verifier {
     this.model = options.model ?? DEFAULT_MODEL;
     this.minConfidence = options.minConfidence ?? DEFAULT_MIN_CONFIDENCE;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.answerTimeoutMs = options.answerTimeoutMs ?? DEFAULT_ANSWER_TIMEOUT_MS;
+    this.minSupport = options.minSupport ?? DEFAULT_MIN_SUPPORT;
     this.fetch = options.fetch ?? fetch;
   }
 
@@ -85,25 +101,19 @@ export class JevVerifier implements Verifier {
       id: "jev",
       contractVersion: "1",
       adapterVersion: "1",
-      capabilities: { actions: true },
+      capabilities: { actions: true, answers: true },
     };
   }
 
-  async reviewAction(
-    request: ActionReviewRequest,
+  /** One System One call; returns the parsed body or a failure reason, both timed. */
+  private async ask(
+    state: unknown,
+    questions: Record<string, unknown>,
+    timeoutMs: number,
     context: AdapterContext,
-  ): Promise<VerificationResult> {
+  ): Promise<{ body?: SystemOneResponse; failure?: string; latencyMs: number }> {
     const started = performance.now();
-    let model = this.model;
-    const failure = (reason: string, usage?: SystemOneResponse["usage"]): VerificationResult => ({
-      decision: "error",
-      reason,
-      model,
-      latencyMs: Math.round(performance.now() - started),
-      ...usageFields(usage),
-    });
-
-    let body: SystemOneResponse;
+    const latencyMs = () => Math.round(performance.now() - started);
     try {
       const response = await this.fetch(`${this.baseUrl}/v1/systemone`, {
         method: "POST",
@@ -111,29 +121,46 @@ export class JevVerifier implements Verifier {
           Authorization: `Bearer ${this.options.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: this.model,
-          state: {
-            tool: request.toolName,
-            connector: request.connectorKind,
-            tool_args: request.args,
-            user_task: request.userTask,
-            bot: request.botDescription,
-            matching_rules: request.matchingRules,
-          },
-          questions: { action_fit: ACTION_FIT_QUESTION },
-        }),
-        signal: AbortSignal.any([context.signal, AbortSignal.timeout(this.timeoutMs)]),
+        body: JSON.stringify({ model: this.model, state, questions }),
+        signal: AbortSignal.any([context.signal, AbortSignal.timeout(timeoutMs)]),
       });
-      if (!response.ok) return failure(`Checker returned HTTP ${response.status}.`);
-      body = (await response.json()) as SystemOneResponse;
+      if (!response.ok) {
+        return { failure: `Checker returned HTTP ${response.status}.`, latencyMs: latencyMs() };
+      }
+      return { body: (await response.json()) as SystemOneResponse, latencyMs: latencyMs() };
     } catch {
-      return failure("Checker timed out or failed.");
+      return { failure: "Checker timed out or failed.", latencyMs: latencyMs() };
     }
+  }
 
-    model = body.model ?? model;
-    const answer = body.answers?.action_fit;
-    if (!isActionFitAnswer(answer)) return failure("Checker returned no decision.", body.usage);
+  async reviewAction(
+    request: ActionReviewRequest,
+    context: AdapterContext,
+  ): Promise<VerificationResult> {
+    const { body, failure, latencyMs } = await this.ask(
+      {
+        tool: request.toolName,
+        connector: request.connectorKind,
+        tool_args: request.args,
+        user_task: request.userTask,
+        bot: request.botDescription,
+        matching_rules: request.matchingRules,
+      },
+      { action_fit: ACTION_FIT_QUESTION },
+      this.timeoutMs,
+      context,
+    );
+    const model = body?.model ?? this.model;
+    const answer = body?.answers?.action_fit;
+    if (!isActionFitAnswer(answer)) {
+      return {
+        decision: "error",
+        reason: failure ?? "Checker returned no decision.",
+        model,
+        latencyMs,
+        ...usageFields(body?.usage),
+      };
+    }
 
     const unexpected = answer.probabilities.unexpected!;
     const lowConfidence = answer.confidence < this.minConfidence;
@@ -155,8 +182,64 @@ export class JevVerifier implements Verifier {
         minConfidence: this.minConfidence,
       },
       model,
-      latencyMs: Math.round(performance.now() - started),
-      ...usageFields(body.usage),
+      latencyMs,
+      ...usageFields(body?.usage),
+    };
+  }
+
+  async checkAnswer(
+    request: AnswerCheckRequest,
+    context: AdapterContext,
+  ): Promise<VerificationResult> {
+    let budget = MAX_SOURCE_STATE_CHARS;
+    const sources = request.sources.flatMap((source) => {
+      const content = source.content.slice(0, Math.max(0, budget));
+      budget -= content.length;
+      return content ? [{ tool: source.tool, content }] : [];
+    });
+    const questions = Object.fromEntries(
+      request.claims.map((claim, index) => [
+        `claim_${index}`,
+        { type: "noul", instructions: { claim, question: CLAIM_SUPPORT_QUESTION } },
+      ]),
+    );
+    const { body, failure, latencyMs } = await this.ask(
+      { user_task: request.userTask, sources },
+      questions,
+      this.answerTimeoutMs,
+      context,
+    );
+    const model = body?.model ?? this.model;
+    const support = request.claims.map((_claim, index) => {
+      const answer = body?.answers?.[`claim_${index}`] as { type?: string; noul?: unknown };
+      return answer?.type === "noul" && isUnitNumber(answer.noul) ? answer.noul : undefined;
+    });
+    if (!support.every((value) => value !== undefined)) {
+      return {
+        decision: "error",
+        reason: failure ?? "Checker returned no decision.",
+        model,
+        latencyMs,
+        ...usageFields(body?.usage),
+      };
+    }
+
+    const claims: ClaimVerdict[] = request.claims.map((text, index) => ({
+      text,
+      probability: support[index],
+      supported: support[index]! >= this.minSupport,
+    }));
+    const unsupported = claims.filter((claim) => !claim.supported).length;
+    return {
+      decision: unsupported ? "ask" : "pass",
+      reason: unsupported
+        ? `${unsupported} of ${claims.length} statements not supported by tool results.`
+        : "Every statement is supported by tool results.",
+      probability: 1 - Math.min(...(support as number[])),
+      details: { question: CLAIM_SUPPORT_QUESTION, claims, minSupport: this.minSupport },
+      model,
+      latencyMs,
+      ...usageFields(body?.usage),
     };
   }
 }

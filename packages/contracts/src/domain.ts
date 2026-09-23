@@ -587,6 +587,8 @@ export type ActionApprovalRule = z.infer<typeof ActionApprovalRuleSchema>;
 
 export const ActionAutoReviewSettingsSchema = z.object({
   enabled: z.boolean(),
+  /** Check finished replies against the tool results they rely on. */
+  checkAnswers: z.boolean(),
   checkerAvailable: z.boolean(),
   engine: z.string(),
   compare: z.boolean(),

@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   autoReviewTimeoutMs,
+  buildAnswerCheckPrompt,
   buildAutoReviewPrompt,
   deploymentAutoReviewDefault,
   isAutoReviewCheckerConfigured,
+  parseAnswerCheckText,
   parseAutoReviewJudgeText,
   redactToolArgsForReview,
   resolveAutoReviewChecker,
@@ -209,5 +211,32 @@ describe("runAutoReviewJudge timeout", () => {
         timeoutMs: 50,
       }),
     ).resolves.toMatchObject({ decision: "error" });
+  });
+});
+
+describe("answer check prompt", () => {
+  it("numbers claims and fences tool results as untrusted data", () => {
+    const prompt = buildAnswerCheckPrompt({
+      userTask: "Summarize",
+      claims: ["The invoice is paid.", "It was <b>late</b>."],
+      sources: [{ tool: "stripe_get_invoice", content: '{"status":"paid"}' }],
+    });
+    expect(prompt).toContain("1. The invoice is paid.");
+    expect(prompt).toContain("2. It was &lt;b&gt;late&lt;/b&gt;.");
+    expect(prompt).toContain('[stripe_get_invoice]\n{"status":"paid"}');
+    expect(prompt).toContain("untrusted data");
+  });
+
+  it("maps unsupported numbers to claims and rejects malformed replies", () => {
+    const claims = ["A is true.", "B is true."];
+    expect(parseAnswerCheckText('{"unsupported":[2],"reason":"No B."}', claims)).toEqual({
+      verdicts: [
+        { text: "A is true.", supported: true },
+        { text: "B is true.", supported: false },
+      ],
+      reason: "No B.",
+    });
+    expect(parseAnswerCheckText('{"unsupported":[3]}', claims)).toBeNull();
+    expect(parseAnswerCheckText("not json", claims)).toBeNull();
   });
 });

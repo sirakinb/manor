@@ -91,7 +91,12 @@ export function ApprovalRulesSettings() {
     }
   }
 
-  async function saveAutoReview(patch: { enabled?: boolean; engine?: string; compare?: boolean }) {
+  async function saveAutoReview(patch: {
+    enabled?: boolean;
+    checkAnswers?: boolean;
+    engine?: string;
+    compare?: boolean;
+  }) {
     if (loading || savingAutoReview) return;
     setSavingAutoReview(true);
     setError(null);
@@ -105,6 +110,7 @@ export function ApprovalRulesSettings() {
   }
 
   const engines = autoReview?.engines ?? [];
+  const checking = Boolean(autoReview?.enabled || autoReview?.checkAnswers);
 
   return (
     <div data-testid="action-confirmation-settings" className="pt-5">
@@ -144,18 +150,29 @@ export function ApprovalRulesSettings() {
           disabled={loading || savingAutoReview || !autoReview}
           onChange={(event) => void saveAutoReview({ enabled: event.target.checked })}
         />
-        <span>
-          <span className="block text-[14px] text-[#C9C9CE]">
-            <Trans>Flag unexpected actions</Trans>
-          </span>
-          {autoReview?.enabled && !autoReview.checkerAvailable ? (
-            <span className="mt-1 block text-[13px] text-[#85858A]">
-              <Trans>Add a model in Settings to use this.</Trans>
-            </span>
-          ) : null}
+        <span className="block text-[14px] text-[#C9C9CE]">
+          <Trans>Flag unexpected actions</Trans>
         </span>
       </label>
-      {autoReview?.enabled && engines.length > 1 ? (
+      <label className="mt-3 flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          data-testid="answer-check-toggle"
+          className="mt-1"
+          checked={autoReview?.checkAnswers ?? false}
+          disabled={loading || savingAutoReview || !autoReview}
+          onChange={(event) => void saveAutoReview({ checkAnswers: event.target.checked })}
+        />
+        <span className="block text-[14px] text-[#C9C9CE]">
+          <Trans>Check replies against sources</Trans>
+        </span>
+      </label>
+      {checking && !autoReview?.checkerAvailable ? (
+        <p className="mt-2 ml-7 text-[13px] text-[#85858A]">
+          <Trans>Add a model in Settings to use this.</Trans>
+        </p>
+      ) : null}
+      {autoReview && checking && engines.length > 1 ? (
         <div className="mt-3 ml-7 flex flex-col gap-2">
           <fieldset data-testid="auto-review-engine" className="flex flex-wrap gap-2">
             <legend className="sr-only">

@@ -1,4 +1,4 @@
-import { t } from "@lingui/core/macro";
+import { plural, t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type {
@@ -5799,6 +5799,30 @@ const MessageView = memo(function MessageView({
                 {providerLabel(block.provider)} · {block.fromLabel}: {block.text}
               </span>
             </div>
+          );
+        }
+        if (block.kind === "verification") {
+          const count = block.unsupported.length;
+          return (
+            <details
+              key={i}
+              data-testid="reply-verification"
+              className="max-w-[74%] text-[13.5px] text-[#85858A]"
+            >
+              <summary className="cursor-pointer select-none">
+                {plural(count, {
+                  one: "Couldn't verify # statement",
+                  other: "Couldn't verify # statements",
+                })}
+              </summary>
+              <ul className="mt-1 list-disc pl-5">
+                {block.unsupported.map((statement, j) => (
+                  <li key={j} dir="auto">
+                    {statement}
+                  </li>
+                ))}
+              </ul>
+            </details>
           );
         }
         if (block.kind === "meta") {
