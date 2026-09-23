@@ -91,18 +91,20 @@ export function ApprovalRulesSettings() {
     }
   }
 
-  async function toggleAutoReview(enabled: boolean) {
+  async function saveAutoReview(patch: { enabled?: boolean; engine?: string; compare?: boolean }) {
     if (loading || savingAutoReview) return;
     setSavingAutoReview(true);
     setError(null);
     try {
-      setAutoReview(await rpc.autoReview.set({ enabled }));
+      setAutoReview(await rpc.autoReview.set(patch));
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not save Auto Review`);
     } finally {
       setSavingAutoReview(false);
     }
   }
+
+  const engines = autoReview?.engines ?? [];
 
   return (
     <div data-testid="action-confirmation-settings" className="pt-5">
@@ -140,7 +142,7 @@ export function ApprovalRulesSettings() {
           className="mt-1"
           checked={autoReview?.enabled ?? false}
           disabled={loading || savingAutoReview || !autoReview}
-          onChange={(event) => void toggleAutoReview(event.target.checked)}
+          onChange={(event) => void saveAutoReview({ enabled: event.target.checked })}
         />
         <span>
           <span className="block text-[14px] text-[#C9C9CE]">
@@ -153,6 +155,43 @@ export function ApprovalRulesSettings() {
           ) : null}
         </span>
       </label>
+      {autoReview?.enabled && engines.length > 1 ? (
+        <div className="mt-3 ml-7 flex flex-col gap-2">
+          <fieldset data-testid="auto-review-engine" className="flex flex-wrap gap-2">
+            <legend className="sr-only">
+              <Trans>Checker</Trans>
+            </legend>
+            {engines.map((engine) => (
+              <label
+                key={engine.id}
+                className="flex cursor-pointer items-center gap-2 rounded-[11px] border border-[#26262A] px-3 py-1.5 text-[14px] text-[#C9C9CE] has-[:checked]:border-[#5A5A60] has-[:disabled]:cursor-default has-[:disabled]:opacity-50"
+              >
+                <input
+                  type="radio"
+                  name="auto-review-engine"
+                  value={engine.id}
+                  checked={autoReview.engine === engine.id}
+                  disabled={savingAutoReview || !engine.available}
+                  onChange={() => void saveAutoReview({ engine: engine.id })}
+                />
+                {engine.label}
+              </label>
+            ))}
+          </fieldset>
+          {engines.every((engine) => engine.available) ? (
+            <label className="flex cursor-pointer items-center gap-3 text-[14px] text-[#C9C9CE]">
+              <input
+                type="checkbox"
+                data-testid="auto-review-compare"
+                checked={autoReview.compare}
+                disabled={savingAutoReview}
+                onChange={(event) => void saveAutoReview({ compare: event.target.checked })}
+              />
+              <Trans>Compare checkers</Trans>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
       {error ? <p className="mt-3 text-[13px] text-[#EF4444]">{error}</p> : null}
       {loading ? (
         <p className="mt-4 text-[13px] text-[#85858A]">

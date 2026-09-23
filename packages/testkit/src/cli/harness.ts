@@ -122,6 +122,10 @@ async function main() {
       return;
     }
 
+    // Offer the optional Jev checker so its settings render; the unreachable URL keeps E2E offline.
+    process.env.TYPESAFE_API_KEY = "fake-typesafe-key";
+    process.env.TYPESAFE_BASE_URL = "http://127.0.0.1:9";
+
     const [
       {
         ComposioEmulator,

@@ -588,6 +588,10 @@ export type ActionApprovalRule = z.infer<typeof ActionApprovalRuleSchema>;
 export const ActionAutoReviewSettingsSchema = z.object({
   enabled: z.boolean(),
   checkerAvailable: z.boolean(),
+  engine: z.string(),
+  compare: z.boolean(),
+  /** Checker engines this deployment offers; only available ones can be selected. */
+  engines: z.array(z.object({ id: z.string(), label: z.string(), available: z.boolean() })),
 });
 export type ActionAutoReviewSettings = z.infer<typeof ActionAutoReviewSettingsSchema>;
 

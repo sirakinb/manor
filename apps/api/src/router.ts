@@ -45,6 +45,10 @@ import {
   isAutoReviewCheckerConfigured,
   isSandboxGoneError,
   isScratchpadStatus,
+  isVerificationEngineId,
+  JEV_ENGINE,
+  jevVerifierFromEnv,
+  LLM_ENGINE,
   listPiCatalog,
   listScratchpadItems,
   loadBotCredentialSecret,
@@ -56,6 +60,7 @@ import {
   modelCredentialDto,
   type PiOAuthLogins,
   planLiveConnectionSync,
+  planVerificationEngines,
   prepareApiInstall,
   prepareMemoryProviderConnection,
   probeOpenAiCompatibleModels,
@@ -79,6 +84,7 @@ import {
   toComputerRef,
   toStringRecord,
   touchRunningComputer,
+  VERIFICATION_ENGINE_LABELS,
   verifyMcpInstall,
   WorkspaceFileError,
 } from "@rakazo/adapters";
@@ -4136,6 +4142,14 @@ export function createRouter(deps: RouterDeps) {
         return loadAutoReviewSettings(deps, context.actor);
       }),
       set: spaceAuthed.autoReview.set.handler(async ({ context, input }) => {
+        if (input.engine !== undefined && !isVerificationEngineId(input.engine)) {
+          throw new ORPCError("BAD_REQUEST", { message: "Unknown checker engine." });
+        }
+        const update = {
+          ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+          ...(input.engine === undefined ? {} : { engine: input.engine }),
+          ...(input.compare === undefined ? {} : { compare: input.compare }),
+        };
         await deps.prisma.actionAutoReviewPreference.upsert({
           where: {
             spaceId_userId: {
@@ -4146,9 +4160,10 @@ export function createRouter(deps: RouterDeps) {
           create: {
             spaceId: context.actor.spaceId,
             userId: context.actor.userId,
-            enabled: input.enabled,
+            enabled: deploymentAutoReviewDefault(process.env),
+            ...update,
           },
-          update: { enabled: input.enabled },
+          update,
         });
         return loadAutoReviewSettings(deps, context.actor);
       }),
@@ -4565,7 +4580,7 @@ async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
           userId: actor.userId,
         },
       },
-      select: { enabled: true },
+      select: { enabled: true, engine: true, compare: true },
     }),
     requiredUserProvider
       ? deps.prisma.userModelCredential.findFirst({
@@ -4575,8 +4590,23 @@ async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
       : Promise.resolve(null),
   ]);
   const enabled = preference?.enabled ?? deploymentAutoReviewDefault(process.env);
-  const checkerAvailable = environmentAvailable || Boolean(credential);
-  return { enabled, checkerAvailable };
+  const available = {
+    [LLM_ENGINE]: environmentAvailable || Boolean(credential),
+    [JEV_ENGINE]: Boolean(jevVerifierFromEnv(process.env)),
+  };
+  const engine = isVerificationEngineId(preference?.engine) ? preference.engine : LLM_ENGINE;
+  return {
+    enabled,
+    checkerAvailable: Boolean(
+      planVerificationEngines({ selected: engine, compare: false, available }).primary,
+    ),
+    engine,
+    compare: preference?.compare ?? false,
+    // The LLM checker is always offered; other engines only when the deployment configures them.
+    engines: ([LLM_ENGINE, JEV_ENGINE] as const)
+      .filter((id) => id === LLM_ENGINE || available[id])
+      .map((id) => ({ id, label: VERIFICATION_ENGINE_LABELS[id], available: available[id] })),
+  };
 }
 
 async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {

@@ -340,6 +340,42 @@ export interface ExecutionRunner {
   dispatch(runId: string, target: "cloud" | "self-hosted" | "desktop"): Promise<void>;
 }
 
+/** "ask" escalates to the user; "error" means the engine produced no decision. */
+export type VerificationDecision = "pass" | "ask" | "error";
+
+export interface ActionReviewRequest {
+  toolName: string;
+  connectorKind: string;
+  /** Tool arguments with secrets already redacted. */
+  args: Record<string, unknown>;
+  userTask: string;
+  botDescription: string;
+  /** Approval rules that matched, as `effect:matchKind:matchValue`. */
+  matchingRules: string[];
+}
+
+export interface VerificationResult {
+  decision: VerificationDecision;
+  reason?: string;
+  /** Engine-reported probability that the item should be escalated. */
+  probability?: number;
+  /** Engine-reported certainty in its own answer, 0-1. */
+  confidence?: number;
+  /** Engine-specific evidence kept for comparison reports. */
+  details?: Record<string, unknown>;
+  model: string;
+  latencyMs: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUsd?: number;
+}
+
+/** Checks agent work before it takes effect. Engines never throw; failures return "error". */
+export interface Verifier {
+  describe(): AdapterDescriptor<{ actions: boolean }>;
+  reviewAction(request: ActionReviewRequest, context: AdapterContext): Promise<VerificationResult>;
+}
+
 export interface VoiceProvider {
   describe(): AdapterDescriptor<VoiceCapabilities>;
   verify(apiKey: string, context: AdapterContext): Promise<VoiceVerifyResult>;

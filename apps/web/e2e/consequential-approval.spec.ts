@@ -77,6 +77,33 @@ test("actions run by default while optional confirmations live in advanced user 
   await expect(page.getByRole("button", { name: "Allow once", exact: true })).toHaveCount(0);
 });
 
+test("flagging unexpected actions offers a choice of checker", async ({ page }, testInfo) => {
+  const stamp = Date.now();
+  await signup(page, `checker-choice-${stamp}@rakazo.test`, "password12", "Checker UI");
+  await completeOnboarding(page, testInfo);
+
+  await openUserSettings(page);
+  const settings = page.getByTestId("user-settings");
+  await settings.getByText("Advanced", { exact: true }).click();
+  await expect(settings.getByTestId("auto-review-engine")).toHaveCount(0);
+  // Controls reflect the saved setting, so click and wait for the server round trip.
+  await settings.getByTestId("auto-review-toggle").click();
+  await expect(settings.getByTestId("auto-review-toggle")).toBeChecked();
+
+  const engines = settings.getByTestId("auto-review-engine");
+  await expect(engines.getByRole("radio", { name: "Auto-check" })).toBeChecked();
+  await engines.getByRole("radio", { name: "Jev" }).click();
+  await expect(engines.getByRole("radio", { name: "Jev" })).toBeChecked();
+  await captureScreenshot(page, testInfo, "57-auto-review-checker-choice");
+
+  await settings.getByRole("button", { name: "Close user settings" }).click();
+  await openUserSettings(page);
+  await page.getByTestId("user-settings").getByText("Advanced", { exact: true }).click();
+  await expect(
+    page.getByTestId("auto-review-engine").getByRole("radio", { name: "Jev" }),
+  ).toBeChecked();
+});
+
 async function openUserSettings(page: Page) {
   await page.getByTestId("user-menu-trigger").click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();

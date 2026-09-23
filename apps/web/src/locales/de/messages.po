@@ -108,7 +108,7 @@ msgid "{0} campaigns"
 msgstr ""
 
 #. placeholder {0}: bill.charges.length
-#: src/pages/workspace/sections/UtilitiesSection.tsx:680
+#: src/pages/workspace/sections/UtilitiesSection.tsx:693
 msgid "{0} charges"
 msgstr ""
 
@@ -134,7 +134,7 @@ msgid "{0} connection"
 msgstr "{0}-Verbindung"
 
 #. placeholder {0}: formatNumber(batch.failed)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:634
+#: src/pages/workspace/sections/UtilitiesSection.tsx:647
 msgid "{0} failed"
 msgstr ""
 
@@ -195,7 +195,7 @@ msgstr ""
 
 #. placeholder {0}: formatNumber(visibleBills.length)
 #. placeholder {1}: formatNumber(bills.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:329
+#: src/pages/workspace/sections/UtilitiesSection.tsx:341
 msgid "{0} of {1} bills"
 msgstr ""
 
@@ -206,7 +206,7 @@ msgid "{0} of {1} sent"
 msgstr ""
 
 #. placeholder {0}: formatPct(lease.chargeShare * 100)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:474
+#: src/pages/workspace/sections/UtilitiesSection.tsx:486
 msgid "{0} of bill"
 msgstr ""
 
@@ -229,7 +229,7 @@ msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
 #. placeholder {1}: formatNumber(pendingBillCount)
-#. placeholder {2}: formatMoney(pendingTotal)
+#. placeholder {2}: formatMoneyCents(pendingTotal)
 #: src/pages/workspace/sections/UtilitiesSection.tsx:284
 msgid "{0} pending charges across {1} bills · {2}"
 msgstr ""
@@ -240,7 +240,7 @@ msgid "{0} pending tenant charges"
 msgstr ""
 
 #. placeholder {0}: formatNumber(batch.posted)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:631
+#: src/pages/workspace/sections/UtilitiesSection.tsx:644
 msgid "{0} posted"
 msgstr ""
 
@@ -465,8 +465,8 @@ msgstr "Zugriffstoken (optional)"
 msgid "Account"
 msgstr "Konto"
 
-#. placeholder {0}: formatMoney(bill.accountBalance)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:697
+#. placeholder {0}: formatMoneyCents(bill.accountBalance)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:713
 msgid "Account balance {0}"
 msgstr ""
 
@@ -474,7 +474,7 @@ msgstr ""
 msgid "Account default"
 msgstr "Kontostandard"
 
-#: src/components/ApprovalRulesSettings.tsx:110
+#: src/components/ApprovalRulesSettings.tsx:112
 msgid "Action confirmations"
 msgstr "Aktionsbestätigungen"
 
@@ -547,7 +547,7 @@ msgstr "Hinzufügen"
 msgid "Add a field to start this sheet"
 msgstr "Füge ein Feld hinzu, um diese Tabelle zu starten"
 
-#: src/components/ApprovalRulesSettings.tsx:151
+#: src/components/ApprovalRulesSettings.tsx:153
 msgid "Add a model in Settings to use this."
 msgstr "Füge in den Einstellungen ein Modell hinzu, um dies zu nutzen."
 
@@ -712,7 +712,7 @@ msgid "AI tool"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:183
-#: src/pages/workspace/sections/UtilitiesSection.tsx:321
+#: src/pages/workspace/sections/UtilitiesSection.tsx:333
 msgid "All"
 msgstr ""
 
@@ -784,8 +784,8 @@ msgstr "Dieses Tool immer erlauben"
 msgid "Always allowed"
 msgstr "Immer erlaubt"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:867
-#: src/pages/workspace/sections/UtilitiesSection.tsx:962
+#: src/pages/workspace/sections/UtilitiesSection.tsx:889
+#: src/pages/workspace/sections/UtilitiesSection.tsx:984
 msgid "Amount"
 msgstr ""
 
@@ -935,11 +935,11 @@ msgstr "Vor E-Mail-Aktionen nachfragen"
 msgid "Ask before purchase actions"
 msgstr "Vor Kaufaktionen nachfragen"
 
-#: src/components/ApprovalRulesSettings.tsx:133
+#: src/components/ApprovalRulesSettings.tsx:135
 msgid "Ask before purchases"
 msgstr "Vor Käufen nachfragen"
 
-#: src/components/ApprovalRulesSettings.tsx:125
+#: src/components/ApprovalRulesSettings.tsx:127
 msgid "Ask before sending external email"
 msgstr "Vor dem Senden externer E-Mails nachfragen"
 
@@ -1048,7 +1048,7 @@ msgstr ""
 msgid "Avg deal size"
 msgstr "Ø Dealgröße"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:513
+#: src/pages/workspace/sections/UtilitiesSection.tsx:526
 msgid "Await the next water bill."
 msgstr ""
 
@@ -1078,7 +1078,7 @@ msgstr ""
 msgid "Bearer token"
 msgstr "Bearer-Token"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:317
+#: src/pages/workspace/sections/UtilitiesSection.tsx:329
 msgid "Bill status"
 msgstr ""
 
@@ -1087,11 +1087,11 @@ msgstr ""
 msgid "Bill through Buildium"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:452
+#: src/pages/workspace/sections/UtilitiesSection.tsx:464
 msgid "Billing"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:381
+#: src/pages/workspace/sections/UtilitiesSection.tsx:393
 msgid "Billing instructions, this month's city bill, tenant leases, and the next step"
 msgstr ""
 
@@ -1123,14 +1123,14 @@ msgstr "Computer von {0} wird gestartet"
 msgid "bot"
 msgstr "Bot"
 
-#: src/pages/Shell.tsx:1808
-msgid "Bot"
-msgstr "Bot"
-
 #. js-lingui-explicit-id
 #: src/lib/browser-notifications.ts:71
 msgid "Bot"
 msgstr ""
+
+#: src/pages/Shell.tsx:1808
+msgid "Bot"
+msgstr "Bot"
 
 #: src/components/FilesPanel.tsx:211
 #: src/components/FilesPanel.tsx:249
@@ -1159,7 +1159,7 @@ msgstr ""
 msgid "Bots"
 msgstr ""
 
-#: src/components/ApprovalRulesSettings.tsx:113
+#: src/components/ApprovalRulesSettings.tsx:115
 msgid "Bots act without asking by default. Add an exception only when you want to review a type of action first. These preferences apply across all your bots."
 msgstr "Bots handeln standardmäßig ohne Nachfrage. Füge nur dann eine Ausnahme hinzu, wenn du eine Aktionsart zuerst prüfen möchtest. Diese Einstellungen gelten für alle deine Bots."
 
@@ -1304,8 +1304,8 @@ msgstr "Server nicht erreichbar."
 #: src/pages/workspace/sections/ReportsSection.tsx:793
 #: src/pages/workspace/sections/SettingsSection.tsx:528
 #: src/pages/workspace/sections/SettingsSection.tsx:587
-#: src/pages/workspace/sections/UtilitiesSection.tsx:340
-#: src/pages/workspace/sections/UtilitiesSection.tsx:967
+#: src/pages/workspace/sections/UtilitiesSection.tsx:352
+#: src/pages/workspace/sections/UtilitiesSection.tsx:989
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -1351,7 +1351,7 @@ msgstr "Kanäle"
 msgid "Charge description"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:335
+#: src/pages/workspace/sections/UtilitiesSection.tsx:347
 msgid "Charges"
 msgstr ""
 
@@ -1404,7 +1404,7 @@ msgstr ""
 msgid "Check the connection"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:535
+#: src/pages/workspace/sections/UtilitiesSection.tsx:548
 msgid "Check unmatched bills"
 msgstr ""
 
@@ -1419,6 +1419,10 @@ msgstr "Prüfe deine E-Mails"
 #: src/pages/crm/CrmModuleSheet.tsx:256
 msgid "Checkbox"
 msgstr ""
+
+#: src/components/ApprovalRulesSettings.tsx:162
+msgid "Checker"
+msgstr "Prüfer"
 
 #: src/components/SoftwareUpdateSection.tsx:71
 msgid "Checking…"
@@ -1452,19 +1456,19 @@ msgstr "Wähle, welches verbundene Modell {brandName} verwendet."
 msgid "Choose your app to see its setup instructions."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:580
+#: src/pages/workspace/sections/UtilitiesSection.tsx:593
 msgid "City bill"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:411
-#: src/pages/workspace/sections/UtilitiesSection.tsx:426
-#: src/pages/workspace/sections/UtilitiesSection.tsx:583
-#: src/pages/workspace/sections/UtilitiesSection.tsx:685
+#: src/pages/workspace/sections/UtilitiesSection.tsx:423
+#: src/pages/workspace/sections/UtilitiesSection.tsx:438
+#: src/pages/workspace/sections/UtilitiesSection.tsx:596
+#: src/pages/workspace/sections/UtilitiesSection.tsx:701
 msgid "City bill needed"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:759
-#: src/pages/workspace/sections/UtilitiesSection.tsx:761
+#: src/pages/workspace/sections/UtilitiesSection.tsx:781
+#: src/pages/workspace/sections/UtilitiesSection.tsx:783
 msgid "City current charges"
 msgstr ""
 
@@ -1620,6 +1624,10 @@ msgstr ""
 msgid "Company"
 msgstr "Unternehmen"
 
+#: src/components/ApprovalRulesSettings.tsx:189
+msgid "Compare checkers"
+msgstr "Prüfer vergleichen"
+
 #: src/pages/ScratchpadSection.tsx:118
 msgid "Complete"
 msgstr "Abschließen"
@@ -1698,7 +1706,7 @@ msgstr "Passwort bestätigen"
 msgid "Confirm the active lease in Buildium before charging."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:367
+#: src/pages/workspace/sections/UtilitiesSection.tsx:379
 msgid "Confirm this bill belongs on the property roster, then check the service address mapping."
 msgstr ""
 
@@ -2128,8 +2136,8 @@ msgid "Could not play a test clip"
 msgstr "Testclip konnte nicht abgespielt werden"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:194
-#: src/pages/workspace/sections/UtilitiesSection.tsx:849
-#: src/pages/workspace/sections/UtilitiesSection.tsx:853
+#: src/pages/workspace/sections/UtilitiesSection.tsx:871
+#: src/pages/workspace/sections/UtilitiesSection.tsx:875
 msgid "Could not post"
 msgstr ""
 
@@ -2205,7 +2213,7 @@ msgstr "Routine konnte nicht ausgeführt werden"
 #: src/pages/Shell.tsx:6518
 #: src/pages/workspace/sections/SettingsSection.tsx:139
 #: src/pages/workspace/sections/SettingsSection.tsx:478
-#: src/pages/workspace/sections/UtilitiesSection.tsx:817
+#: src/pages/workspace/sections/UtilitiesSection.tsx:839
 msgid "Could not save"
 msgstr "Speichern fehlgeschlagen"
 
@@ -2213,7 +2221,7 @@ msgstr "Speichern fehlgeschlagen"
 msgid "Could not save Auto Review"
 msgstr "Auto-Review konnte nicht gespeichert werden"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:750
+#: src/pages/workspace/sections/UtilitiesSection.tsx:772
 msgid "Could not save city bill"
 msgstr ""
 
@@ -2261,7 +2269,7 @@ msgstr "E-Mail zum Zurücksetzen konnte nicht gesendet werden"
 msgid "Could not send that"
 msgstr "Senden fehlgeschlagen"
 
-#: src/components/ShareThisMacSettings.tsx:82
+#: src/components/ShareThisMacSettings.tsx:64
 msgid "Could not share this Mac"
 msgstr ""
 
@@ -2273,7 +2281,7 @@ msgstr "OAuth konnte nicht gestartet werden"
 msgid "Could not start teaching"
 msgstr ""
 
-#: src/components/ShareThisMacSettings.tsx:97
+#: src/components/ShareThisMacSettings.tsx:79
 msgid "Could not stop sharing"
 msgstr ""
 
@@ -2483,8 +2491,8 @@ msgid "DATA VAULT"
 msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
-#: src/pages/workspace/sections/UtilitiesSection.tsx:337
-#: src/pages/workspace/sections/UtilitiesSection.tsx:964
+#: src/pages/workspace/sections/UtilitiesSection.tsx:349
+#: src/pages/workspace/sections/UtilitiesSection.tsx:986
 msgid "Date"
 msgstr "Datum"
 
@@ -2679,7 +2687,7 @@ msgstr "Verbindung wird getrennt…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:251
 #: src/pages/workspace/sections/ReportsSection.tsx:357
-#: src/pages/workspace/sections/UtilitiesSection.tsx:637
+#: src/pages/workspace/sections/UtilitiesSection.tsx:650
 msgid "Dismiss"
 msgstr ""
 
@@ -2786,12 +2794,12 @@ msgstr "Deals hier ablegen"
 msgid "Drop to attach to {name}"
 msgstr "Loslassen, um an {name} anzuhängen"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:590
+#: src/pages/workspace/sections/UtilitiesSection.tsx:603
 msgid "Due"
 msgstr ""
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:679
+#: src/pages/workspace/sections/UtilitiesSection.tsx:692
 msgid "Due {0}"
 msgstr ""
 
@@ -2799,7 +2807,7 @@ msgstr ""
 msgid "Duplicate"
 msgstr "Duplizieren"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:337
+#: src/pages/workspace/sections/UtilitiesSection.tsx:349
 msgid "Each bill's month"
 msgstr ""
 
@@ -2901,7 +2909,7 @@ msgid "Enter this code at <0>{0}</0>"
 msgstr "Gib diesen Code unter <0>{0}</0> ein"
 
 #: src/pages/workspace/sections/ReportsSection.tsx:59
-#: src/pages/workspace/sections/UtilitiesSection.tsx:796
+#: src/pages/workspace/sections/UtilitiesSection.tsx:818
 msgid "Error"
 msgstr ""
 
@@ -2997,7 +3005,7 @@ msgstr ""
 msgid "Extra high"
 msgstr "Sehr hoch"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:644
+#: src/pages/workspace/sections/UtilitiesSection.tsx:657
 msgid "failed"
 msgstr ""
 
@@ -3127,7 +3135,7 @@ msgstr "MCP-Verbindung wird abgeschlossen…"
 msgid "First name"
 msgstr "Vorname"
 
-#: src/components/ApprovalRulesSettings.tsx:147
+#: src/components/ApprovalRulesSettings.tsx:149
 msgid "Flag unexpected actions"
 msgstr "Unerwartete Aktionen markieren"
 
@@ -3600,7 +3608,7 @@ msgstr "Letzte Anmeldung"
 msgid "Launch Codex from this terminal so it can read the token. Future sessions also need MANOR_API_TOKEN set in their environment."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:595
+#: src/pages/workspace/sections/UtilitiesSection.tsx:608
 msgid "Lease"
 msgstr ""
 
@@ -3609,19 +3617,19 @@ msgstr ""
 msgid "Lease {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:461
+#: src/pages/workspace/sections/UtilitiesSection.tsx:473
 msgid "Lease / split"
 msgstr ""
 
 #. placeholder {0}: charge.leaseId
 #. placeholder {0}: lease.leaseId
 #. placeholder {0}: result.leaseId
-#: src/pages/workspace/sections/UtilitiesSection.tsx:435
-#: src/pages/workspace/sections/UtilitiesSection.tsx:469
-#: src/pages/workspace/sections/UtilitiesSection.tsx:601
-#: src/pages/workspace/sections/UtilitiesSection.tsx:644
-#: src/pages/workspace/sections/UtilitiesSection.tsx:806
-#: src/pages/workspace/sections/UtilitiesSection.tsx:807
+#: src/pages/workspace/sections/UtilitiesSection.tsx:447
+#: src/pages/workspace/sections/UtilitiesSection.tsx:481
+#: src/pages/workspace/sections/UtilitiesSection.tsx:614
+#: src/pages/workspace/sections/UtilitiesSection.tsx:657
+#: src/pages/workspace/sections/UtilitiesSection.tsx:828
+#: src/pages/workspace/sections/UtilitiesSection.tsx:829
 msgid "Lease #{0}"
 msgstr ""
 
@@ -3708,7 +3716,7 @@ msgstr "Modellkatalog wird geladen…"
 msgid "Loading preview…"
 msgstr "Vorschau wird geladen…"
 
-#: src/components/ApprovalRulesSettings.tsx:159
+#: src/components/ApprovalRulesSettings.tsx:196
 msgid "Loading rules…"
 msgstr "Regeln werden geladen…"
 
@@ -3772,7 +3780,7 @@ msgstr ""
 msgid "Manor demo"
 msgstr "Manor-Demo"
 
-#: src/components/ShareThisMacSettings.tsx:119
+#: src/components/ShareThisMacSettings.tsx:101
 msgid "Manor is using this Mac"
 msgstr ""
 
@@ -3856,8 +3864,8 @@ msgstr "Mitglieder ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "Mitglieder ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} auswählen)"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:879
-#: src/pages/workspace/sections/UtilitiesSection.tsx:963
+#: src/pages/workspace/sections/UtilitiesSection.tsx:901
+#: src/pages/workspace/sections/UtilitiesSection.tsx:985
 msgid "Memo"
 msgstr ""
 
@@ -3875,13 +3883,13 @@ msgstr "Erinnerungsbereich"
 msgid "Mentions"
 msgstr "Erwähnungen"
 
-#: src/pages/Shell.tsx:5350
-#: src/pages/Shell.tsx:5501
+#. js-lingui-explicit-id
+#: src/lib/browser-notifications.ts:83
 msgid "Message"
 msgstr "Nachricht"
 
-#. js-lingui-explicit-id
-#: src/lib/browser-notifications.ts:83
+#: src/pages/Shell.tsx:5350
+#: src/pages/Shell.tsx:5501
 msgid "Message"
 msgstr "Nachricht"
 
@@ -4001,7 +4009,7 @@ msgstr ""
 msgid "Monday"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:570
+#: src/pages/workspace/sections/UtilitiesSection.tsx:583
 msgid "Month"
 msgstr ""
 
@@ -4013,7 +4021,7 @@ msgstr ""
 msgid "Monthly"
 msgstr "Monatlich"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:562
+#: src/pages/workspace/sections/UtilitiesSection.tsx:575
 msgid "Monthly city bills"
 msgstr ""
 
@@ -4085,7 +4093,7 @@ msgstr "Benenne diese Routine"
 msgid "Needed a person"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:323
+#: src/pages/workspace/sections/UtilitiesSection.tsx:335
 msgid "Needs attention"
 msgstr ""
 
@@ -4189,7 +4197,7 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:484
+#: src/pages/workspace/sections/UtilitiesSection.tsx:496
 msgid "Next step"
 msgstr ""
 
@@ -4232,11 +4240,11 @@ msgstr "Keine Authentifizierung"
 msgid "No automations yet"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:352
+#: src/pages/workspace/sections/UtilitiesSection.tsx:364
 msgid "No bills match these filters"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:352
+#: src/pages/workspace/sections/UtilitiesSection.tsx:364
 msgid "No bills yet"
 msgstr ""
 
@@ -4291,7 +4299,7 @@ msgstr ""
 msgid "No deals yet"
 msgstr "Noch keine Deals"
 
-#: src/components/ApprovalRulesSettings.tsx:163
+#: src/components/ApprovalRulesSettings.tsx:200
 msgid "No exceptions. Actions run automatically."
 msgstr "Keine Ausnahmen. Aktionen werden automatisch ausgeführt."
 
@@ -4319,7 +4327,7 @@ msgstr "Nicht mehr aktiv"
 msgid "No managed app catalog is configured on this deployment."
 msgstr "Für diese Bereitstellung ist kein verwalteter App-Katalog konfiguriert."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:512
+#: src/pages/workspace/sections/UtilitiesSection.tsx:525
 msgid "No matched bill. Check the unmatched bills."
 msgstr ""
 
@@ -4347,7 +4355,7 @@ msgstr "Noch keine Nachrichten mit {peerBotName}."
 msgid "No model catalog is available."
 msgstr "Kein Modellkatalog verfügbar."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:566
+#: src/pages/workspace/sections/UtilitiesSection.tsx:579
 msgid "No months recorded yet"
 msgstr ""
 
@@ -4356,7 +4364,7 @@ msgstr ""
 msgid "no new data for {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:510
+#: src/pages/workspace/sections/UtilitiesSection.tsx:523
 msgid "No pending tenant charges. Review bill history if needed."
 msgstr ""
 
@@ -4368,7 +4376,7 @@ msgstr ""
 msgid "No posts in this range"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:400
+#: src/pages/workspace/sections/UtilitiesSection.tsx:412
 msgid "No properties mapped yet"
 msgstr ""
 
@@ -4598,7 +4606,7 @@ msgstr ""
 msgid "Open row"
 msgstr "Zeile öffnen"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:617
+#: src/pages/workspace/sections/UtilitiesSection.tsx:630
 msgid "Open settings"
 msgstr ""
 
@@ -4779,8 +4787,8 @@ msgstr ""
 msgid "PDF preview"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:322
-#: src/pages/workspace/sections/UtilitiesSection.tsx:793
+#: src/pages/workspace/sections/UtilitiesSection.tsx:334
+#: src/pages/workspace/sections/UtilitiesSection.tsx:815
 msgid "Pending"
 msgstr ""
 
@@ -4817,7 +4825,7 @@ msgstr "Telefon"
 msgid "Pick a voice"
 msgstr "Stimme auswählen"
 
-#: src/components/ShareThisMacSettings.tsx:112
+#: src/components/ShareThisMacSettings.tsx:94
 msgid "Pick one folder on this laptop. Writes and shell need Allow once. Overnight work stays on the cloud computer."
 msgstr ""
 
@@ -4877,16 +4885,16 @@ msgstr ""
 msgid "Port {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:966
+#: src/pages/workspace/sections/UtilitiesSection.tsx:988
 msgid "Post"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:333
+#: src/pages/workspace/sections/UtilitiesSection.tsx:345
 msgid "Post {0} charges to Buildium?"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:339
+#: src/pages/workspace/sections/UtilitiesSection.tsx:351
 msgid "Post all"
 msgstr ""
 
@@ -4895,7 +4903,7 @@ msgstr ""
 msgid "Post all pending ({0})"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:959
+#: src/pages/workspace/sections/UtilitiesSection.tsx:981
 msgid "Post this charge to Buildium?"
 msgstr ""
 
@@ -4903,12 +4911,12 @@ msgstr ""
 msgid "POST to"
 msgstr "POST an"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:936
+#: src/pages/workspace/sections/UtilitiesSection.tsx:958
 msgid "Post to Buildium"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:325
-#: src/pages/workspace/sections/UtilitiesSection.tsx:794
+#: src/pages/workspace/sections/UtilitiesSection.tsx:337
+#: src/pages/workspace/sections/UtilitiesSection.tsx:816
 msgid "Posted"
 msgstr ""
 
@@ -4973,7 +4981,7 @@ msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:122
 #: src/pages/workspace/sections/LeasingSection.tsx:200
-#: src/pages/workspace/sections/UtilitiesSection.tsx:404
+#: src/pages/workspace/sections/UtilitiesSection.tsx:416
 msgid "Property"
 msgstr ""
 
@@ -5091,7 +5099,7 @@ msgstr "OAuth erneut verbinden"
 msgid "Reconnecting"
 msgstr "Verbindung wird wiederhergestellt"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:526
+#: src/pages/workspace/sections/UtilitiesSection.tsx:539
 msgid "Record city bill"
 msgstr ""
 
@@ -5099,7 +5107,7 @@ msgstr ""
 msgid "Record review"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:506
+#: src/pages/workspace/sections/UtilitiesSection.tsx:519
 msgid "Record this month's city bill, then post to the tenant ledger."
 msgstr ""
 
@@ -5174,7 +5182,7 @@ msgstr "Freigeben"
 msgid "Reload file"
 msgstr ""
 
-#: src/components/ApprovalRulesSettings.tsx:178
+#: src/components/ApprovalRulesSettings.tsx:215
 #: src/components/BotCredentialsSettings.tsx:211
 #: src/pages/CrmApiAccessPanel.tsx:387
 #: src/pages/PluginsOverlay.tsx:289
@@ -5358,7 +5366,7 @@ msgstr ""
 #: src/pages/crm/CrmContacts.tsx:467
 #: src/pages/Shell.tsx:2946
 #: src/pages/Shell.tsx:2976
-#: src/pages/workspace/sections/UtilitiesSection.tsx:919
+#: src/pages/workspace/sections/UtilitiesSection.tsx:941
 msgid "Restore"
 msgstr "Wiederherstellen"
 
@@ -5373,7 +5381,7 @@ msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:156
 #: src/pages/DocsView.tsx:82
-#: src/pages/workspace/sections/UtilitiesSection.tsx:936
+#: src/pages/workspace/sections/UtilitiesSection.tsx:958
 #: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
 msgstr ""
@@ -5392,7 +5400,7 @@ msgid "rev {0}"
 msgstr "Rev. {0}"
 
 #. placeholder {0}: formatNumber(pending.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:524
+#: src/pages/workspace/sections/UtilitiesSection.tsx:537
 msgid "Review {0} bills"
 msgstr ""
 
@@ -5400,7 +5408,7 @@ msgstr ""
 msgid "Review {subject} in our workspace. Check current data and highlight what needs attention."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:522
+#: src/pages/workspace/sections/UtilitiesSection.tsx:535
 msgid "Review bill"
 msgstr ""
 
@@ -5520,7 +5528,7 @@ msgstr ""
 msgid "Save"
 msgstr "Speichern"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:773
+#: src/pages/workspace/sections/UtilitiesSection.tsx:795
 msgid "Save city bill"
 msgstr ""
 
@@ -5771,8 +5779,8 @@ msgstr "Einrichtungshilfe"
 msgid "Severity"
 msgstr ""
 
-#: src/components/ShareThisMacSettings.tsx:109
-#: src/components/ShareThisMacSettings.tsx:135
+#: src/components/ShareThisMacSettings.tsx:91
+#: src/components/ShareThisMacSettings.tsx:117
 msgid "Share this Mac"
 msgstr ""
 
@@ -5820,7 +5828,7 @@ msgstr "Mit Ihrem Team geteilt"
 msgid "Shared workspace context and skills are live and available to both internal and external agents through these tools. Personal memory and bot skills created by the earlier conversion are independent copies; updating shared knowledge does not overwrite those edits or deletions."
 msgstr ""
 
-#: src/components/ShareThisMacSettings.tsx:135
+#: src/components/ShareThisMacSettings.tsx:117
 msgid "Sharing…"
 msgstr ""
 
@@ -5907,7 +5915,7 @@ msgid "Skills"
 msgstr ""
 
 #: src/pages/Shell.tsx:5606
-#: src/pages/workspace/sections/UtilitiesSection.tsx:933
+#: src/pages/workspace/sections/UtilitiesSection.tsx:955
 msgid "Skip"
 msgstr "Überspringen"
 
@@ -5919,7 +5927,7 @@ msgstr "Vorerst überspringen"
 msgid "Skip or deploy key"
 msgstr "Überspringen oder Deploy-Key"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:795
+#: src/pages/workspace/sections/UtilitiesSection.tsx:817
 msgid "Skipped"
 msgstr ""
 
@@ -6067,7 +6075,7 @@ msgstr "Schritte"
 msgid "Still working — talk anytime to steer it."
 msgstr "Arbeitet noch — sprich jederzeit, um zu steuern."
 
-#: src/components/ShareThisMacSettings.tsx:131
+#: src/components/ShareThisMacSettings.tsx:113
 #: src/pages/Shell.tsx:4293
 #: src/pages/Shell.tsx:4298
 #: src/pages/Shell.tsx:5378
@@ -6099,7 +6107,7 @@ msgstr "Anlernen beenden"
 msgid "Stopped."
 msgstr "Gestoppt."
 
-#: src/components/ShareThisMacSettings.tsx:131
+#: src/components/ShareThisMacSettings.tsx:113
 msgid "Stopping…"
 msgstr ""
 
@@ -6361,8 +6369,8 @@ msgstr ""
 msgid "This Mac runs shell commands with your account, including files in your home folder. Do not turn it on for a shared or public server."
 msgstr "Dieser Mac führt Shell-Befehle mit deinem Konto aus und kann auf Dateien in deinem persönlichen Ordner zugreifen. Aktiviere dies nicht auf einem gemeinsam genutzten oder öffentlichen Server."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:420
-#: src/pages/workspace/sections/UtilitiesSection.tsx:574
+#: src/pages/workspace/sections/UtilitiesSection.tsx:432
+#: src/pages/workspace/sections/UtilitiesSection.tsx:587
 #: src/pages/workspace/sections/VoiceSection.tsx:85
 #: src/pages/workspace/sections/VoiceSection.tsx:122
 msgid "This month"
@@ -6474,7 +6482,7 @@ msgstr ""
 msgid "Topic"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:336
+#: src/pages/workspace/sections/UtilitiesSection.tsx:348
 msgid "Total"
 msgstr ""
 
@@ -6552,7 +6560,7 @@ msgstr "Nicht verfügbar"
 msgid "Unexpected result: provide the missing source or a concrete correction. Check whether an action already happened before asking the agent to repeat it."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:961
+#: src/pages/workspace/sections/UtilitiesSection.tsx:983
 msgid "Unit"
 msgstr ""
 
@@ -6561,12 +6569,12 @@ msgstr ""
 #. placeholder {0}: row.unitNumber
 #: src/pages/workspace/sections/LeasingSection.tsx:130
 #: src/pages/workspace/sections/LeasingSection.tsx:207
-#: src/pages/workspace/sections/UtilitiesSection.tsx:471
-#: src/pages/workspace/sections/UtilitiesSection.tsx:806
+#: src/pages/workspace/sections/UtilitiesSection.tsx:483
+#: src/pages/workspace/sections/UtilitiesSection.tsx:828
 msgid "Unit {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:675
+#: src/pages/workspace/sections/UtilitiesSection.tsx:688
 msgid "Unknown address"
 msgstr ""
 
@@ -6579,16 +6587,16 @@ msgstr ""
 msgid "Unlink"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:324
+#: src/pages/workspace/sections/UtilitiesSection.tsx:336
 msgid "Unmatched"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:362
+#: src/pages/workspace/sections/UtilitiesSection.tsx:374
 msgid "Unmatched bill"
 msgstr ""
 
 #. placeholder {0}: formatNumber(unmatchedBills)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:385
+#: src/pages/workspace/sections/UtilitiesSection.tsx:397
 msgid "Unmatched bills ({0})"
 msgstr ""
 
@@ -6773,7 +6781,7 @@ msgstr "Wird geprüft…"
 msgid "View logs"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:527
+#: src/pages/workspace/sections/UtilitiesSection.tsx:540
 msgid "View monthly bills"
 msgstr ""
 
@@ -6832,7 +6840,7 @@ msgid "Water GL account"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:213
-#: src/pages/workspace/sections/UtilitiesSection.tsx:380
+#: src/pages/workspace/sections/UtilitiesSection.tsx:392
 msgid "Water-billed properties"
 msgstr ""
 

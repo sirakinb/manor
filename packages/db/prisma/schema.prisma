@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  maintenanceJobs MaintenanceJob[]
+  maintenanceJobs             MaintenanceJob[]
   id                          String                       @id
   name                        String
   email                       String
@@ -34,6 +34,7 @@ model User {
   botSections                 BotSection[]
   actionApprovalRules         ActionApprovalRule[]
   actionAutoReviewPreferences ActionAutoReviewPreference[]
+  verificationChecks          VerificationCheck[]
   createdSpaces               Space[]                      @relation("SpaceCreator")
   integrationCredentials      IntegrationCredential[]
   crmWebhookEndpoints         CrmWebhookEndpoint[]
@@ -149,11 +150,45 @@ model ActionAutoReviewPreference {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   enabled   Boolean  @default(false)
+  engine    String   @default("llm")
+  compare   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([spaceId, userId])
   @@map("action_auto_review_preferences")
+}
+
+/// One verifier engine's verdict on one check. Shadow rows never affect the outcome.
+model VerificationCheck {
+  id           String          @id @default(cuid())
+  spaceId      String
+  space        Space           @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  runId        String
+  run          Run             @relation(fields: [runId], references: [id], onDelete: Cascade)
+  effectId     String?
+  effect       ExternalEffect? @relation(fields: [effectId], references: [id], onDelete: SetNull)
+  checkpoint   String
+  subject      String
+  engine       String
+  role         String
+  decision     String
+  reason       String?
+  probability  Float?
+  confidence   Float?
+  details      Json?
+  model        String
+  latencyMs    Int
+  inputTokens  Int?
+  outputTokens Int?
+  costUsd      Float?
+  createdAt    DateTime        @default(now())
+
+  @@unique([effectId, engine])
+  @@index([spaceId, userId, createdAt])
+  @@map("verification_checks")
 }
 
 model Member {
@@ -216,6 +251,7 @@ model Space {
   messagingIdentities         MessagingIdentity[]
   actionApprovalRules         ActionApprovalRule[]
   actionAutoReviewPreferences ActionAutoReviewPreference[]
+  verificationChecks          VerificationCheck[]
   memoryConfig                SpaceMemoryConfig?
   secrets                     Secret[]
   chatGroups                  ChatGroup[]
@@ -562,15 +598,15 @@ model Task {
 }
 
 model Run {
-  id                   String            @id @default(cuid())
+  id                   String              @id @default(cuid())
   spaceId              String
-  space                Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  space                Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   botId                String
-  bot                  Bot               @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot                  Bot                 @relation(fields: [botId], references: [id], onDelete: Cascade)
   threadId             String
-  thread               Thread            @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread               Thread              @relation(fields: [threadId], references: [id], onDelete: Cascade)
   taskId               String
-  task                 Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task                 Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
   userId               String
   initiatedByUserId    String?
   status               String
@@ -581,22 +617,23 @@ model Run {
   toolRoutingMode      String?
   error                String?
   leaseOwner           String?
-  leaseFence           Int               @default(0)
+  leaseFence           Int                 @default(0)
   leaseExpiresAt       DateTime?
   checkpoint           String?
   clientNonce          String?
   sourceMessageId      String?
-  sourceMessage        Message?          @relation("RunSourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)
+  sourceMessage        Message?            @relation("RunSourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)
   routineId            String?
-  routine              Routine?          @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  routine              Routine?            @relation(fields: [routineId], references: [id], onDelete: SetNull)
   startedAt            DateTime?
   completedAt          DateTime?
   botOutcomeReturnedAt DateTime?
   messagingMirroredAt  DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
   attempts             Attempt[]
   effects              ExternalEffect[]
+  verificationChecks   VerificationCheck[]
   usageRecords         UsageRecord[]
   steeringMessages     SteeringMessage[]
 
@@ -645,21 +682,22 @@ model Attempt {
 }
 
 model ExternalEffect {
-  id             String   @id @default(cuid())
-  spaceId        String
-  space          Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  runId          String
-  run            Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
-  kind           String
-  idempotencyKey String
-  status         String
-  request        Json
-  result         Json?
-  reviewDecision String?
-  reviewReason   String?
-  reviewModel    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 String              @id @default(cuid())
+  spaceId            String
+  space              Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  runId              String
+  run                Run                 @relation(fields: [runId], references: [id], onDelete: Cascade)
+  kind               String
+  idempotencyKey     String
+  status             String
+  request            Json
+  result             Json?
+  reviewDecision     String?
+  reviewReason       String?
+  reviewModel        String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  verificationChecks VerificationCheck[]
 
   @@unique([idempotencyKey])
   @@index([runId, status])
@@ -2214,25 +2252,26 @@ model WorkspaceKnowledgeImport {
 }
 
 model MaintenanceJob {
-  id String @id
-  ownerUserId String
-  owner User @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  requestId String
-  issue String
-  runId String?
-  evidence Json
-  status String @default("queued")
-  review Json?
-  reviewKey String?
-  approvedRevision String?
-  execution Json?
+  id                  String    @id
+  ownerUserId         String
+  owner               User      @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  requestId           String
+  issue               String
+  runId               String?
+  evidence            Json
+  status              String    @default("queued")
+  review              Json?
+  reviewKey           String?
+  approvedRevision    String?
+  execution           Json?
   executionLeaseUntil DateTime?
-  message String @default("")
-  simulated Boolean @default(false)
-  version Int @default(0)
-  nextAttemptAt DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  message             String    @default("")
+  simulated           Boolean   @default(false)
+  version             Int       @default(0)
+  nextAttemptAt       DateTime  @default(now())
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
   @@unique([ownerUserId, requestId])
   @@index([status, nextAttemptAt])
   @@index([ownerUserId, createdAt])

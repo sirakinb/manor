@@ -1086,7 +1086,15 @@ export const appContract = {
   },
   autoReview: {
     get: oc.output(ActionAutoReviewSettingsSchema),
-    set: oc.input(z.object({ enabled: z.boolean() })).output(ActionAutoReviewSettingsSchema),
+    set: oc
+      .input(
+        z.object({
+          enabled: z.boolean().optional(),
+          engine: z.string().min(1).optional(),
+          compare: z.boolean().optional(),
+        }),
+      )
+      .output(ActionAutoReviewSettingsSchema),
   },
   artifacts: {
     list: oc.input(botId).output(z.array(ArtifactSchema)),
