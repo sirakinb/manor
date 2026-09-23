@@ -146,6 +146,11 @@ export const MessageBlock = z.discriminatedUnion("kind", [
   }),
   z.object({ kind: z.literal("meta"), text: z.string() }),
   z.object({
+    /** Reply statements the answer checker could not match to this turn's tool results. */
+    kind: z.literal("verification"),
+    unsupported: z.array(z.string()),
+  }),
+  z.object({
     kind: z.literal("progress"),
     text: z.string(),
     pendingToolNames: z.array(z.string()).optional(),

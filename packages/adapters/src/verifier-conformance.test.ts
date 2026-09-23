@@ -3,6 +3,8 @@ import type {
   AdapterContext,
   AgentRuntime,
   AgentRuntimeEvent,
+  AnswerCheckRequest,
+  ClaimVerdict,
   Verifier,
 } from "@rakazo/adapter-kit";
 import { describe, expect, it } from "vitest";
@@ -79,51 +81,90 @@ const jevAnswer = (choice: string, confidence: number) =>
     usage: { input_tokens: 300, output_tokens: 20 },
   });
 
-/** Every engine answers with a known decision, measures itself, and never throws. */
-async function assertVerifierConformance(verifier: Verifier, failing: Verifier) {
-  expect(verifier.describe().contractVersion).toBe("1");
-  expect(verifier.describe().capabilities.actions).toBe(true);
+const answerRequest: AnswerCheckRequest = {
+  userTask: "Run the tests",
+  claims: ["All 12 tests passed.", "The build was deployed to production."],
+  sources: [{ tool: "shell", content: "12 passed, 0 failed" }],
+};
 
-  const result = await verifier.reviewAction(request, ctx);
+/** Every engine answers with a known decision, measures itself, and never throws. */
+async function assertVerifierConformance(engines: {
+  actions: Verifier;
+  answers: Verifier;
+  failing: Verifier;
+}) {
+  for (const verifier of Object.values(engines)) {
+    expect(verifier.describe().contractVersion).toBe("1");
+    expect(verifier.describe().capabilities).toEqual({ actions: true, answers: true });
+  }
+
+  const result = await engines.actions.reviewAction(request, ctx);
   expect(["pass", "ask"]).toContain(result.decision);
   expect(result.model).toBeTruthy();
   expect(result.latencyMs).toBeGreaterThanOrEqual(0);
 
-  const failed = await failing.reviewAction(request, ctx);
-  expect(failed.decision).toBe("error");
-  expect(failed.reason).toBeTruthy();
+  const answer = await engines.answers.checkAnswer(answerRequest, ctx);
+  expect(answer.decision).toBe("ask");
+  expect(
+    ((answer.details?.claims ?? []) as ClaimVerdict[]).map((claim) => claim.supported),
+  ).toEqual([true, false]);
+  expect(answer.latencyMs).toBeGreaterThanOrEqual(0);
+
+  for (const failed of [
+    await engines.failing.reviewAction(request, ctx),
+    await engines.failing.checkAnswer(answerRequest, ctx),
+  ]) {
+    expect(failed.decision).toBe("error");
+    expect(failed.reason).toBeTruthy();
+  }
 }
 
 describe("verifier conformance", () => {
   it("holds for the fake engine", async () => {
+    const answers = new FakeVerifier();
+    answers.result = {
+      decision: "ask",
+      model: "fake",
+      latencyMs: 0,
+      details: {
+        claims: answerRequest.claims.map((text, index) => ({ text, supported: index === 0 })),
+      },
+    };
     const failing = new FakeVerifier();
     failing.result = { decision: "error", reason: "down", model: "fake", latencyMs: 0 };
-    await assertVerifierConformance(new FakeVerifier(), failing);
+    await assertVerifierConformance({ actions: new FakeVerifier(), answers, failing });
   });
 
   it("holds for the LLM engine with a scripted runtime (offline)", async () => {
-    await assertVerifierConformance(
+    const replying = (text: string) =>
       llmVerifier(
         scriptedRuntime([
-          {
-            type: "usage",
-            inputTokens: 200,
-            outputTokens: 10,
-            provider: "openrouter",
-            model: "m",
-          },
-          { type: "done", text: '{"decision":"ask","reason":"Outside the task."}' },
+          { type: "usage", inputTokens: 200, outputTokens: 10, provider: "openrouter", model: "m" },
+          { type: "done", text },
         ]),
-      ),
-      llmVerifier(scriptedRuntime(new Error("network down"))),
-    );
+      );
+    await assertVerifierConformance({
+      actions: replying('{"decision":"ask","reason":"Outside the task."}'),
+      answers: replying('{"unsupported":[2],"reason":"No deploy in the output."}'),
+      failing: llmVerifier(scriptedRuntime(new Error("network down"))),
+    });
   });
 
   it("holds for Jev with an injected backend (offline)", async () => {
-    await assertVerifierConformance(
-      jevVerifier(() => jevAnswer("fits", 0.9)),
-      jevVerifier(() => new Response("overloaded", { status: 529 })),
-    );
+    await assertVerifierConformance({
+      actions: jevVerifier(() => jevAnswer("fits", 0.9)),
+      answers: jevVerifier(() =>
+        Response.json({
+          model: "jev-1.13.0",
+          answers: {
+            claim_0: { type: "noul", noul: 0.94 },
+            claim_1: { type: "noul", noul: 0.08 },
+          },
+          usage: { input_tokens: 500, output_tokens: 8 },
+        }),
+      ),
+      failing: jevVerifier(() => new Response("overloaded", { status: 529 })),
+    });
   });
 });
 

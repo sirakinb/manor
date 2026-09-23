@@ -104,6 +104,34 @@ test("flagging unexpected actions offers a choice of checker", async ({ page }, 
   ).toBeChecked();
 });
 
+test("replies note statements their tool results do not support", async ({ page }, testInfo) => {
+  const stamp = Date.now();
+  await signup(page, `answer-check-${stamp}@rakazo.test`, "password12", "Answer Check UI");
+  await completeOnboarding(page, testInfo);
+
+  await openUserSettings(page);
+  const settings = page.getByTestId("user-settings");
+  await settings.getByText("Advanced", { exact: true }).click();
+  await settings.getByTestId("answer-check-toggle").click();
+  await expect(settings.getByTestId("answer-check-toggle")).toBeChecked();
+  await settings.getByTestId("auto-review-engine").getByRole("radio", { name: "Jev" }).click();
+  await expect(
+    settings.getByTestId("auto-review-engine").getByRole("radio", { name: "Jev" }),
+  ).toBeChecked();
+  await captureScreenshot(page, testInfo, "58-answer-check-setting");
+  await settings.getByRole("button", { name: "Close user settings" }).click();
+
+  await sendDestinationWrite(page, "write this to the destination crm as a note");
+  await waitForRunIdle(page);
+  const note = page.getByTestId("reply-verification");
+  await expect(note).toContainText("Couldn't verify 1 statement");
+  await note.getByText("Couldn't verify 1 statement").click();
+  await expect(
+    note.getByText("writing the record through the connected destination."),
+  ).toBeVisible();
+  await captureScreenshot(page, testInfo, "59-reply-unverified-statements");
+});
+
 async function openUserSettings(page: Page) {
   await page.getByTestId("user-menu-trigger").click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();

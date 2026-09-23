@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { startJevEmulator } from "./jev-emulator.js";
 import { runProcess } from "./process.js";
 
 loadRootEnv();
@@ -122,9 +123,10 @@ async function main() {
       return;
     }
 
-    // Offer the optional Jev checker so its settings render; the unreachable URL keeps E2E offline.
+    // Offer the optional Jev checker, answered by a local emulator so E2E stays offline.
+    const jev = await startJevEmulator();
     process.env.TYPESAFE_API_KEY = "fake-typesafe-key";
-    process.env.TYPESAFE_BASE_URL = "http://127.0.0.1:9";
+    process.env.TYPESAFE_BASE_URL = jev.url;
 
     const [
       {
@@ -231,6 +233,7 @@ async function main() {
         await new Promise<void>((resolve) => requestWaiters.add(resolve));
       }
       await handles.stop().catch(() => undefined);
+      await jev.close().catch(() => undefined);
       for (let index = 0; index < computers.length; index += 4) {
         const results = await Promise.allSettled(
           computers.slice(index, index + 4).map((computer) =>

@@ -370,10 +370,30 @@ export interface VerificationResult {
   costUsd?: number;
 }
 
-/** Checks agent work before it takes effect. Engines never throw; failures return "error". */
+export interface AnswerCheckRequest {
+  userTask: string;
+  /** Statements from the bot's reply, checked one by one. */
+  claims: string[];
+  /** Redacted tool results the bot saw this turn. */
+  sources: Array<{ tool: string; content: string }>;
+}
+
+/** Per-claim evidence in `VerificationResult.details.claims` for answer checks. */
+export interface ClaimVerdict {
+  text: string;
+  supported: boolean;
+  /** Engine-reported probability that the claim is supported. */
+  probability?: number;
+}
+
+/**
+ * Checks agent work before it takes effect. Engines never throw; failures return "error".
+ * For answers, "ask" means at least one claim is unsupported.
+ */
 export interface Verifier {
-  describe(): AdapterDescriptor<{ actions: boolean }>;
+  describe(): AdapterDescriptor<{ actions: boolean; answers: boolean }>;
   reviewAction(request: ActionReviewRequest, context: AdapterContext): Promise<VerificationResult>;
+  checkAnswer(request: AnswerCheckRequest, context: AdapterContext): Promise<VerificationResult>;
 }
 
 export interface VoiceProvider {

@@ -1090,6 +1090,7 @@ export const appContract = {
       .input(
         z.object({
           enabled: z.boolean().optional(),
+          checkAnswers: z.boolean().optional(),
           engine: z.string().min(1).optional(),
           compare: z.boolean().optional(),
         }),

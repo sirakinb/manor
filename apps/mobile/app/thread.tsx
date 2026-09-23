@@ -2466,12 +2466,45 @@ const MessageBubble = memo(function MessageBubble({
           />
         ),
       )}
+      {message.blocks.map((block, index) =>
+        block.kind === "verification" ? (
+          <ReplyVerificationNote key={`${message.id}-verification-${index}`} block={block} />
+        ) : null,
+      )}
       {appConnectBlocks.map((block, index) => (
         <AppConnectCard key={`${block.provider}-${index}`} botId={cardBotId} block={block} />
       ))}
     </View>
   );
 });
+
+function ReplyVerificationNote({
+  block,
+}: {
+  block: Extract<MessageBlock, { kind: "verification" }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const count = block.unsupported.length;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      onPress={() => setOpen((value) => !value)}
+      hitSlop={6}
+    >
+      <Text style={{ color: "#85858A", fontSize: 13.5 }}>
+        {count === 1 ? "Couldn't verify 1 statement" : `Couldn't verify ${count} statements`}
+      </Text>
+      {open
+        ? block.unsupported.map((statement, index) => (
+            <Text key={index} style={{ color: "#85858A", fontSize: 13.5, marginTop: 4 }}>
+              • {statement}
+            </Text>
+          ))
+        : null}
+    </Pressable>
+  );
+}
 
 function MessageTextCard({
   message,

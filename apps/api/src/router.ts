@@ -4147,6 +4147,7 @@ export function createRouter(deps: RouterDeps) {
         }
         const update = {
           ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+          ...(input.checkAnswers === undefined ? {} : { checkAnswers: input.checkAnswers }),
           ...(input.engine === undefined ? {} : { engine: input.engine }),
           ...(input.compare === undefined ? {} : { compare: input.compare }),
         };
@@ -4580,7 +4581,7 @@ async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
           userId: actor.userId,
         },
       },
-      select: { enabled: true, engine: true, compare: true },
+      select: { enabled: true, checkAnswers: true, engine: true, compare: true },
     }),
     requiredUserProvider
       ? deps.prisma.userModelCredential.findFirst({
@@ -4597,6 +4598,7 @@ async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
   const engine = isVerificationEngineId(preference?.engine) ? preference.engine : LLM_ENGINE;
   return {
     enabled,
+    checkAnswers: preference?.checkAnswers ?? false,
     checkerAvailable: Boolean(
       planVerificationEngines({ selected: engine, compare: false, available }).primary,
     ),

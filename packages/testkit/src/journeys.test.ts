@@ -2309,42 +2309,14 @@ describeJourneys("required product journeys", () => {
   });
 
   it("19b: the selected checker flags an unexpected action and logs its verdict", async () => {
-    const jevRequests: unknown[] = [];
-    const jev = createServer((request, response) => {
-      let body = "";
-      request.on("data", (chunk) => {
-        body += chunk;
-      });
-      request.on("end", () => {
-        jevRequests.push(JSON.parse(body));
-        response.setHeader("content-type", "application/json");
-        response.end(
-          JSON.stringify({
-            model: "jev-test",
-            answers: {
-              action_fit: {
-                type: "choice",
-                choice: "unexpected",
-                probabilities: { fits: 0.2, unexpected: 0.8 },
-                confidence: 0.7,
-              },
-            },
-            usage: { input_tokens: 400, output_tokens: 10 },
-          }),
-        );
-      });
-    });
-    await new Promise<void>((resolve) => jev.listen(0, "127.0.0.1", resolve));
-    const env = {
-      TYPESAFE_API_KEY: "fake-typesafe-key",
-      TYPESAFE_BASE_URL: `http://127.0.0.1:${(jev.address() as AddressInfo).port}`,
-      // Pin the LLM checker so compare mode is deterministic; the scripted runtime answers it.
-      RAKAZO_AUTO_REVIEW_PROVIDER: "openrouter",
-      RAKAZO_AUTO_REVIEW_MODEL: "deepseek/deepseek-v4-flash-0731",
-      OPENROUTER_API_KEY: "fake-openrouter-key",
-    };
-    const previous = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
-    Object.assign(process.env, env);
+    const jev = await startJevStub(() => ({
+      action_fit: {
+        type: "choice",
+        choice: "unexpected",
+        probabilities: { fits: 0.2, unexpected: 0.8 },
+        confidence: 0.7,
+      },
+    }));
     try {
       const cookie = await signup(app, `verifier-j-${stamp}@rakazo.test`, "Verifier");
       const bot = await rpc<Bot>(app, cookie, "bots/create", {
@@ -2375,7 +2347,7 @@ describeJourneys("required product journeys", () => {
       );
       expect(JSON.stringify(waiting.messages)).toContain("Rated unexpected for this task.");
       expect(connector.records).toHaveLength(recordsBefore);
-      expect(jevRequests).toEqual([
+      expect(jev.requests).toEqual([
         expect.objectContaining({
           state: expect.objectContaining({
             tool: "destination.write",
@@ -2428,11 +2400,76 @@ describeJourneys("required product journeys", () => {
       expect(effect).toMatchObject({ status: "denied", reviewDecision: "ask" });
       expect(connector.records).toHaveLength(recordsBefore);
     } finally {
-      for (const [name, value] of Object.entries(previous)) {
-        if (value === undefined) delete process.env[name];
-        else process.env[name] = value;
-      }
-      await new Promise((resolve) => jev.close(resolve));
+      await jev.stop();
+    }
+  });
+
+  it("19c: replies are checked against tool results and unsupported statements are noted", async () => {
+    const jev = await startJevStub((questions) =>
+      Object.fromEntries(Object.keys(questions).map((key) => [key, { type: "noul", noul: 0.2 }])),
+    );
+    try {
+      const cookie = await signup(app, `answer-check-j-${stamp}@rakazo.test`, "Answer Check");
+      const bot = await rpc<Bot>(app, cookie, "bots/create", {
+        name: "Chief",
+        title: "",
+        description: "",
+        instructions: "",
+        notifyOnFinish: true,
+      });
+      await rpc(app, cookie, "autoReview/set", {
+        enabled: false,
+        checkAnswers: true,
+        engine: "jev",
+        compare: true,
+      });
+      const sent = await rpc<{ runId: string }>(app, cookie, "threads/send", {
+        botId: bot.id,
+        text: "write this to the destination crm as a note",
+      });
+      const done = await waitFor(
+        app,
+        cookie,
+        bot.id,
+        (snap) =>
+          snap.messages.some((message) => message.runId === sent.runId && message.role === "bot") &&
+          (!snap.run || ["completed", "failed", "cancelled"].includes(snap.run.status)),
+      );
+      const reply = done.messages.find(
+        (message) => message.runId === sent.runId && message.role === "bot",
+      );
+      expect(reply?.blocks).toContainEqual({
+        kind: "verification",
+        unsupported: ["writing the record through the connected destination."],
+      });
+      expect(jev.requests).toEqual([
+        expect.objectContaining({
+          state: expect.objectContaining({
+            sources: [expect.objectContaining({ tool: "destination.write" })],
+          }),
+        }),
+      ]);
+
+      await expect
+        .poll(() => prisma.verificationCheck.count({ where: { runId: sent.runId } }))
+        .toBe(2);
+      const checks = await prisma.verificationCheck.findMany({
+        where: { runId: sent.runId },
+        orderBy: { role: "asc" },
+      });
+      expect(checks).toEqual([
+        expect.objectContaining({
+          checkpoint: "answer",
+          subject: "reply",
+          engine: "jev",
+          role: "primary",
+          decision: "ask",
+          effectId: null,
+        }),
+        expect.objectContaining({ checkpoint: "answer", engine: "llm", role: "shadow" }),
+      ]);
+    } finally {
+      await jev.stop();
     }
   });
 
@@ -2700,6 +2737,52 @@ async function rpc<T>(app: App, cookie: string, proc: string, body: unknown = {}
     throw new Error(`${proc} ${res.status}: ${parsed.error?.message ?? text}`);
   }
   return parsed.json as T;
+}
+
+/**
+ * Local stand-in for TypeSafe's System One API. Also pins the LLM checker to the scripted
+ * runtime so compare mode always has a second engine, independent of developer keys.
+ */
+async function startJevStub(answers: (questions: Record<string, unknown>) => unknown) {
+  const requests: Array<{ state: unknown; questions: Record<string, unknown> }> = [];
+  const server = createServer((request, response) => {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk;
+    });
+    request.on("end", () => {
+      const parsed = JSON.parse(body);
+      requests.push(parsed);
+      response.setHeader("content-type", "application/json");
+      response.end(
+        JSON.stringify({
+          model: "jev-test",
+          answers: answers(parsed.questions),
+          usage: { input_tokens: 400, output_tokens: 10 },
+        }),
+      );
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const env = {
+    TYPESAFE_API_KEY: "fake-typesafe-key",
+    TYPESAFE_BASE_URL: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+    RAKAZO_AUTO_REVIEW_PROVIDER: "openrouter",
+    RAKAZO_AUTO_REVIEW_MODEL: "deepseek/deepseek-v4-flash-0731",
+    OPENROUTER_API_KEY: "fake-openrouter-key",
+  };
+  const previous = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
+  Object.assign(process.env, env);
+  return {
+    requests,
+    async stop() {
+      for (const [name, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+      await new Promise((resolve) => server.close(resolve));
+    },
+  };
 }
 
 async function answerPendingApproval(

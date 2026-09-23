@@ -1,6 +1,6 @@
 import type { ActionReviewRequest, AdapterContext } from "@rakazo/adapter-kit";
 import { describe, expect, it } from "vitest";
-import { ACTION_FIT_QUESTION, JevVerifier } from "./jev-verifier.js";
+import { ACTION_FIT_QUESTION, CLAIM_SUPPORT_QUESTION, JevVerifier } from "./jev-verifier.js";
 
 const ctx: AdapterContext = {
   operationId: "1",
@@ -132,5 +132,61 @@ describe("JevVerifier", () => {
         ),
     });
     expect((await hanging.reviewAction(request, ctx)).decision).toBe("error");
+  });
+
+  it("asks one yes/no question per claim against the redacted sources", async () => {
+    const calls: Array<[string, RequestInit]> = [];
+    const result = await verifierReturning(
+      {
+        model: "jev-1.13.0",
+        answers: {
+          claim_0: { type: "noul", noul: 0.9 },
+          claim_1: { type: "noul", noul: 0.3 },
+        },
+        usage: { input_tokens: 800, output_tokens: 10 },
+      },
+      calls,
+    ).checkAnswer(
+      {
+        userTask: "Run the tests",
+        claims: ["All tests passed.", "Coverage went up to 90%."],
+        sources: [{ tool: "shell", content: "12 passed" }],
+      },
+      ctx,
+    );
+    expect(JSON.parse(String(calls[0]![1].body))).toEqual({
+      model: "jev-latest",
+      state: { user_task: "Run the tests", sources: [{ tool: "shell", content: "12 passed" }] },
+      questions: {
+        claim_0: {
+          type: "noul",
+          instructions: { claim: "All tests passed.", question: CLAIM_SUPPORT_QUESTION },
+        },
+        claim_1: {
+          type: "noul",
+          instructions: { claim: "Coverage went up to 90%.", question: CLAIM_SUPPORT_QUESTION },
+        },
+      },
+    });
+    expect(result).toMatchObject({
+      decision: "ask",
+      probability: 0.7,
+      details: {
+        claims: [
+          { text: "All tests passed.", supported: true, probability: 0.9 },
+          { text: "Coverage went up to 90%.", supported: false, probability: 0.3 },
+        ],
+      },
+    });
+  });
+
+  it("fails closed when any claim is missing an answer", async () => {
+    const result = await verifierReturning({
+      answers: { claim_0: { type: "noul", noul: 0.9 } },
+    }).checkAnswer(
+      { userTask: "t", claims: ["First claim is here.", "Second claim is here."], sources: [] },
+      ctx,
+    );
+    expect(result.decision).toBe("error");
   });
 });
