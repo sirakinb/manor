@@ -1,4 +1,6 @@
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -2304,6 +2306,130 @@ describeJourneys("required product journeys", () => {
       (snap) => !snap.run || ["completed", "failed", "cancelled"].includes(snap.run.status),
     );
     expect(connector.records.length).toBe(recordsAfterDefault + 3);
+  });
+
+  it("19b: the selected checker flags an unexpected action and logs its verdict", async () => {
+    const jevRequests: unknown[] = [];
+    const jev = createServer((request, response) => {
+      let body = "";
+      request.on("data", (chunk) => {
+        body += chunk;
+      });
+      request.on("end", () => {
+        jevRequests.push(JSON.parse(body));
+        response.setHeader("content-type", "application/json");
+        response.end(
+          JSON.stringify({
+            model: "jev-test",
+            answers: {
+              action_fit: {
+                type: "choice",
+                choice: "unexpected",
+                probabilities: { fits: 0.2, unexpected: 0.8 },
+                confidence: 0.7,
+              },
+            },
+            usage: { input_tokens: 400, output_tokens: 10 },
+          }),
+        );
+      });
+    });
+    await new Promise<void>((resolve) => jev.listen(0, "127.0.0.1", resolve));
+    const env = {
+      TYPESAFE_API_KEY: "fake-typesafe-key",
+      TYPESAFE_BASE_URL: `http://127.0.0.1:${(jev.address() as AddressInfo).port}`,
+      // Pin the LLM checker so compare mode is deterministic; the scripted runtime answers it.
+      RAKAZO_AUTO_REVIEW_PROVIDER: "openrouter",
+      RAKAZO_AUTO_REVIEW_MODEL: "deepseek/deepseek-v4-flash-0731",
+      OPENROUTER_API_KEY: "fake-openrouter-key",
+    };
+    const previous = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
+    Object.assign(process.env, env);
+    try {
+      const cookie = await signup(app, `verifier-j-${stamp}@rakazo.test`, "Verifier");
+      const bot = await rpc<Bot>(app, cookie, "bots/create", {
+        name: "Chief",
+        title: "",
+        description: "",
+        instructions: "",
+        notifyOnFinish: true,
+      });
+      const settings = await rpc<{
+        engine: string;
+        compare: boolean;
+        engines: Array<{ id: string; available: boolean }>;
+      }>(app, cookie, "autoReview/set", { enabled: true, engine: "jev", compare: true });
+      expect(settings).toMatchObject({ engine: "jev", compare: true });
+      expect(settings.engines.find((engine) => engine.id === "jev")?.available).toBe(true);
+
+      const recordsBefore = connector.records.length;
+      const sent = await rpc<{ runId: string }>(app, cookie, "threads/send", {
+        botId: bot.id,
+        text: "write this to the destination crm as a note",
+      });
+      const waiting = await waitFor(
+        app,
+        cookie,
+        bot.id,
+        (snap) => snap.run?.status === "waiting_input",
+      );
+      expect(JSON.stringify(waiting.messages)).toContain("Rated unexpected for this task.");
+      expect(connector.records).toHaveLength(recordsBefore);
+      expect(jevRequests).toEqual([
+        expect.objectContaining({
+          state: expect.objectContaining({
+            tool: "destination.write",
+            user_task: "write this to the destination crm as a note",
+          }),
+        }),
+      ]);
+
+      // Compare mode also runs the deployment's LLM checker. The scripted model returns no
+      // decision, so its logged "error" must not change the outcome Jev chose.
+      const checks = await prisma.verificationCheck.findMany({
+        where: { runId: sent.runId },
+        orderBy: { role: "asc" },
+      });
+      expect(checks).toEqual([
+        expect.objectContaining({
+          checkpoint: "action",
+          subject: "destination.write",
+          engine: "jev",
+          role: "primary",
+          decision: "ask",
+          probability: 0.8,
+          confidence: 0.7,
+          model: "jev-test",
+          inputTokens: 400,
+        }),
+        expect.objectContaining({
+          engine: "llm",
+          role: "shadow",
+          decision: "error",
+          reason: expect.any(String),
+          effectId: expect.any(String),
+        }),
+      ]);
+
+      await answerPendingApproval(app, cookie, bot.id, sent.runId, "deny", waiting);
+      await waitFor(
+        app,
+        cookie,
+        bot.id,
+        (snap) => !snap.run || ["completed", "failed", "cancelled"].includes(snap.run.status),
+      );
+      const effect = await prisma.externalEffect.findUniqueOrThrow({
+        where: { id: checks[0]!.effectId! },
+      });
+      expect(effect).toMatchObject({ status: "denied", reviewDecision: "ask" });
+      expect(connector.records).toHaveLength(recordsBefore);
+    } finally {
+      for (const [name, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+      await new Promise((resolve) => jev.close(resolve));
+    }
   });
 
   it("21: routine destination writes pause on the same approval card", async () => {

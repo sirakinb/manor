@@ -21,7 +21,7 @@ const SCRIPTED_DEFAULT_MODEL_ID = "deepseek/deepseek-v4-flash-0731";
 
 let catalogModelsCache: Models | undefined;
 
-function catalogModels(): Models {
+export function catalogModels(): Models {
   catalogModelsCache ??= registerOpenAiCompatibleCatalog(registerLocalProvider(builtinModels()));
   return catalogModelsCache;
 }

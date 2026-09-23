@@ -1,7 +1,13 @@
-import type { AgentModelOAuthCredential, AgentRuntime } from "@rakazo/adapter-kit";
-import type { ActionApprovalRule } from "@rakazo/core";
+import type {
+  ActionReviewRequest,
+  AgentModelOAuthCredential,
+  AgentRuntime,
+  VerificationResult,
+  Verifier,
+} from "@rakazo/adapter-kit";
 import { type AutoReviewJudgeDecision, redactSecrets } from "@rakazo/core";
 import { resolveDeploymentModel } from "./deployment-model.js";
+import { catalogModels } from "./model-vision.js";
 import { LOCAL_PROVIDER_ID } from "./pi-local-provider.js";
 
 const DEFAULT_TIMEOUT_MS = 1_500;
@@ -19,6 +25,9 @@ export type AutoReviewJudgeResult = {
   decision: AutoReviewJudgeDecision;
   reason?: string;
   model: string;
+  latencyMs: number;
+  inputTokens?: number;
+  outputTokens?: number;
 };
 
 function envFlag(env: NodeJS.ProcessEnv, name: string): boolean {
@@ -158,21 +167,9 @@ export function parseAutoReviewJudgeText(text: string): {
   return { decision: "error" };
 }
 
-export function buildAutoReviewPrompt(input: {
-  toolName: string;
-  connectorKind: string;
-  args: Record<string, unknown>;
-  userTask: string;
-  botDescription: string;
-  matchingRules: ActionApprovalRule[];
-}): string {
+export function buildAutoReviewPrompt(input: ActionReviewRequest): string {
   const argsJson = truncate(JSON.stringify(input.args), MAX_ARGS_CHARS);
-  const rules =
-    input.matchingRules.length === 0
-      ? "none"
-      : input.matchingRules
-          .map((rule) => `${rule.effect}:${rule.matchKind}:${rule.matchValue}`)
-          .join(", ");
+  const rules = input.matchingRules.length === 0 ? "none" : input.matchingRules.join(", ");
   return [
     "Decide if this bot action is unexpected or dangerous relative to the user task.",
     'Reply with JSON only: {"decision":"pass"|"ask","reason":"one short sentence"}.',
@@ -207,8 +204,12 @@ export async function runAutoReviewJudge(input: {
 }): Promise<AutoReviewJudgeResult> {
   const modelLabel = `${input.checker.provider}/${input.checker.model}`;
   const timeoutMs = input.timeoutMs ?? autoReviewTimeoutMs();
+  const started = performance.now();
+  const elapsed = () => Math.round(performance.now() - started);
   let text = "";
   let failed = false;
+  let inputTokens: number | undefined;
+  let outputTokens: number | undefined;
   try {
     for await (const event of input.runtime.run(
       {
@@ -236,6 +237,10 @@ export async function runAutoReviewJudge(input: {
         signal: AbortSignal.timeout(timeoutMs),
       },
     )) {
+      if (event.type === "usage") {
+        inputTokens = (inputTokens ?? 0) + event.inputTokens;
+        outputTokens = (outputTokens ?? 0) + event.outputTokens;
+      }
       if (
         event.type === "text" &&
         /^(?:I hit a problem:|Unknown model )/i.test(event.text.trim())
@@ -249,16 +254,63 @@ export async function runAutoReviewJudge(input: {
       }
     }
   } catch {
-    return { decision: "error", model: modelLabel, reason: "Checker timed out or failed." };
+    return {
+      decision: "error",
+      model: modelLabel,
+      reason: "Checker timed out or failed.",
+      latencyMs: elapsed(),
+      inputTokens,
+      outputTokens,
+    };
   }
 
+  const measured = { model: modelLabel, latencyMs: elapsed(), inputTokens, outputTokens };
   if (failed || !text) {
-    return { decision: "error", model: modelLabel, reason: "Checker returned no decision." };
+    return { decision: "error", reason: "Checker returned no decision.", ...measured };
   }
   const parsed = parseAutoReviewJudgeText(text);
   return {
     decision: parsed.decision,
-    reason: parsed.reason,
-    model: modelLabel,
+    reason: parsed.decision === "error" ? "Checker returned no decision." : parsed.reason,
+    ...measured,
+  };
+}
+
+/** Catalog price for a checker call, when the model has one. */
+export function checkerCostUsd(
+  checker: AutoReviewChecker,
+  inputTokens = 0,
+  outputTokens = 0,
+): number | undefined {
+  const cost = catalogModels().getModel(checker.provider, checker.model)?.cost;
+  if (!cost) return undefined;
+  return (inputTokens * cost.input + outputTokens * cost.output) / 1_000_000;
+}
+
+type AutoReviewJudgeInput = Parameters<typeof runAutoReviewJudge>[0];
+
+/** The existing LLM checker as a Verifier engine. */
+export function createLlmVerifier(
+  input: Omit<AutoReviewJudgeInput, "prompt" | "spaceId" | "userId">,
+): Verifier {
+  return {
+    describe: () => ({
+      id: "llm",
+      contractVersion: "1",
+      adapterVersion: "1",
+      capabilities: { actions: true },
+    }),
+    async reviewAction(request, context): Promise<VerificationResult> {
+      const judge = await runAutoReviewJudge({
+        ...input,
+        prompt: buildAutoReviewPrompt(request),
+        spaceId: context.spaceId,
+        userId: context.userId,
+      });
+      return {
+        ...judge,
+        costUsd: checkerCostUsd(input.checker, judge.inputTokens, judge.outputTokens),
+      };
+    },
   };
 }
