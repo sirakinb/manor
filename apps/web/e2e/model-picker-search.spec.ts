@@ -14,10 +14,16 @@ test("recent models are selectable through OpenRouter and subscriptions", async 
 
   for (const [provider, query, label, screenshot] of [
     ["OpenRouter", "Fable 5.1", "Anthropic: Claude Fable 5.1", "openrouter-fable-5-1"],
+    ["OpenRouter", "Opus 5.5", "Anthropic: Claude Opus 5.5", "openrouter-opus-5-5"],
     ["OpenRouter", "GPT-6 Astra", "OpenAI: GPT-6 Astra", "openrouter-gpt-6-astra"],
+    ["OpenRouter", "GPT-6 Sol", "OpenAI: GPT-6 Sol", "openrouter-gpt-6-sol"],
+    ["OpenRouter", "GPT-6 Luna", "OpenAI: GPT-6 Luna", "openrouter-gpt-6-luna"],
     ["OpenRouter", "V4.1 Flash", "DeepSeek: DeepSeek V4.1 Flash", "openrouter-deepseek-v4-1-flash"],
     ["Anthropic", "Fable 5.1", "Claude Fable 5.1", "subscription-fable-5-1"],
+    ["Anthropic", "Opus 5.5", "Claude Opus 5.5", "subscription-opus-5-5"],
     ["OpenAI Codex", "GPT-6 Astra", "GPT-6 Astra", "subscription-gpt-6-astra"],
+    ["OpenAI Codex", "GPT-6 Sol", "GPT-6 Sol", "subscription-gpt-6-sol"],
+    ["OpenAI Codex", "GPT-6 Luna", "GPT-6 Luna", "subscription-gpt-6-luna"],
   ]) {
     await page.getByPlaceholder("Search providers").fill(provider!);
     await page.getByRole("button", { name: new RegExp(provider!) }).click();
