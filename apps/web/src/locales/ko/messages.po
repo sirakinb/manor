@@ -469,7 +469,7 @@ msgstr ""
 msgid "Access"
 msgstr "접근 권한"
 
-#: src/pages/McpServersOverlay.tsx:329
+#: src/pages/McpServersOverlay.tsx:352
 msgid "Access token (optional)"
 msgstr "액세스 토큰(선택 사항)"
 
@@ -583,15 +583,15 @@ msgstr "이 루틴을 실행하려면 일정 또는 웹훅을 추가하세요."
 msgid "Add a schedule or webhook trigger"
 msgstr "일정 또는 웹훅 트리거 추가"
 
-#: src/pages/McpServersOverlay.tsx:254
+#: src/pages/McpServersOverlay.tsx:280
 msgid "Add a server"
 msgstr "서버 추가"
 
-#: src/pages/McpServersOverlay.tsx:86
+#: src/pages/McpServersOverlay.tsx:93
 msgid "Add a server name."
 msgstr "서버 이름을 입력하세요."
 
-#: src/pages/McpServersOverlay.tsx:94
+#: src/pages/McpServersOverlay.tsx:101
 msgid "Add a stdio command."
 msgstr "stdio 명령을 입력하세요."
 
@@ -600,7 +600,7 @@ msgstr "stdio 명령을 입력하세요."
 msgid "Add an address"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:90
+#: src/pages/McpServersOverlay.tsx:97
 msgid "Add an HTTPS server URL."
 msgstr "HTTPS 서버 URL을 입력하세요."
 
@@ -633,7 +633,7 @@ msgstr "OpenAPI 추가"
 msgid "Add remote MCP server"
 msgstr "원격 MCP 서버 추가"
 
-#: src/pages/McpServersOverlay.tsx:363
+#: src/pages/McpServersOverlay.tsx:386
 msgid "Add server"
 msgstr "서버 추가"
 
@@ -666,7 +666,7 @@ msgid "Add webhook"
 msgstr "웹훅 추가"
 
 #: src/pages/CrmApiAccessPanel.tsx:347
-#: src/pages/McpServersOverlay.tsx:363
+#: src/pages/McpServersOverlay.tsx:386
 #: src/pages/PluginsOverlay.tsx:286
 #: src/pages/PluginsOverlay.tsx:594
 msgid "Adding…"
@@ -674,6 +674,10 @@ msgstr "추가 중…"
 
 #: src/pages/crm/CrmForms.tsx:200
 msgid "Address"
+msgstr ""
+
+#: src/pages/McpServersOverlay.tsx:529
+msgid "Address after approving"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:249
@@ -686,7 +690,11 @@ msgstr "고급 설정"
 msgid "Advanced..."
 msgstr "고급..."
 
-#: src/pages/McpServersOverlay.tsx:369
+#: src/pages/McpServersOverlay.tsx:514
+msgid "After you approve, your browser lands on a page that won't load. Copy that page's address and paste it here."
+msgstr ""
+
+#: src/pages/McpServersOverlay.tsx:392
 msgid "Agent access for new servers"
 msgstr "새 서버를 사용할 Bot"
 
@@ -711,7 +719,7 @@ msgstr ""
 msgid "Agents, conversations, files, and connected accounts are shared."
 msgstr "에이전트, 대화, 파일 및 연결된 계정을 공유합니다."
 
-#: src/pages/McpServersOverlay.tsx:431
+#: src/pages/McpServersOverlay.tsx:454
 msgid "Agents:"
 msgstr "사용 Bot:"
 
@@ -884,7 +892,7 @@ msgstr ""
 msgid "Applications"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:372
+#: src/pages/McpServersOverlay.tsx:395
 msgid "Applies when you click Add server. Use the agent chips on each server card to change access at any time — the agent picks it up on its next message."
 msgstr "서버를 추가할 때 적용됩니다. 각 서버 카드의 Bot 버튼으로 언제든 권한을 바꿀 수 있으며 다음 메시지부터 반영됩니다."
 
@@ -942,7 +950,7 @@ msgstr "보관됨"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "보관되었습니다. 대화, 기억, 파일은 유지됩니다."
 
-#: src/pages/McpServersOverlay.tsx:304
+#: src/pages/McpServersOverlay.tsx:327
 msgid "Arguments"
 msgstr "인자"
 
@@ -1345,6 +1353,7 @@ msgstr "서버에 연결할 수 없습니다."
 #: src/pages/crm/CrmPipelineBoard.tsx:764
 #: src/pages/KnowledgeSection.tsx:196
 #: src/pages/KnowledgeSection.tsx:374
+#: src/pages/McpServersOverlay.tsx:549
 #: src/pages/PluginsOverlay.tsx:484
 #: src/pages/Shell.tsx:6687
 #: src/pages/Shell.tsx:6769
@@ -1624,7 +1633,7 @@ msgstr "이미지 미리보기 닫기"
 msgid "Close integrations"
 msgstr "앱·도구 연동 닫기"
 
-#: src/pages/McpServersOverlay.tsx:239
+#: src/pages/McpServersOverlay.tsx:265
 msgid "Close MCP servers"
 msgstr "MCP 서버 설정 닫기"
 
@@ -1675,7 +1684,7 @@ msgstr "코드"
 msgid "Collapse {0}"
 msgstr "{0} 접기"
 
-#: src/pages/McpServersOverlay.tsx:294
+#: src/pages/McpServersOverlay.tsx:317
 msgid "Command"
 msgstr "실행 명령"
 
@@ -1770,13 +1779,13 @@ msgstr ""
 msgid "Configured by deployment"
 msgstr "서버에서 설정됨"
 
-#: src/pages/McpServersOverlay.tsx:402
+#: src/pages/McpServersOverlay.tsx:425
 msgid "Configured servers"
 msgstr "연결된 서버"
 
 #: src/pages/crm/CrmModuleSheet.tsx:150
 #: src/pages/crm/CrmModuleSheet.tsx:360
-#: src/pages/McpServersOverlay.tsx:479
+#: src/pages/McpServersOverlay.tsx:502
 msgid "Confirm delete"
 msgstr "삭제 확인"
 
@@ -1838,7 +1847,7 @@ msgstr "OAuth 연결"
 msgid "Connect other agents"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:232
+#: src/pages/McpServersOverlay.tsx:258
 msgid "Connect remote or local tool servers and choose which agents can use them."
 msgstr "원격 또는 로컬 도구 서버를 연결하고 사용할 Bot을 선택하세요."
 
@@ -1895,6 +1904,7 @@ msgid "Connecting to the preview…"
 msgstr ""
 
 #: src/pages/McpServersOverlay.tsx:16
+#: src/pages/McpServersOverlay.tsx:542
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
 #: src/pages/Shell.tsx:7335
 #: src/pages/VoiceSettingsOverlay.tsx:282
@@ -2003,7 +2013,7 @@ msgstr ""
 msgid "Could not add"
 msgstr "추가하지 못했습니다."
 
-#: src/pages/McpServersOverlay.tsx:148
+#: src/pages/McpServersOverlay.tsx:155
 msgid "Could not add MCP server"
 msgstr "MCP 서버를 추가하지 못했습니다."
 
@@ -2100,7 +2110,7 @@ msgstr "Bot을 삭제하지 못했습니다."
 msgid "Could not delete group"
 msgstr "그룹을 삭제하지 못했습니다"
 
-#: src/pages/McpServersOverlay.tsx:203
+#: src/pages/McpServersOverlay.tsx:229
 msgid "Could not delete MCP server"
 msgstr "MCP 서버를 삭제하지 못했습니다."
 
@@ -2120,7 +2130,7 @@ msgstr ""
 msgid "Could not disconnect memory provider"
 msgstr "기억 서비스 연결을 해제하지 못했습니다."
 
-#: src/pages/McpServersOverlay.tsx:214
+#: src/pages/McpServersOverlay.tsx:240
 msgid "Could not disconnect OAuth"
 msgstr "OAuth 연결을 해제하지 못했습니다."
 
@@ -2140,6 +2150,10 @@ msgstr ""
 #: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "내보내기에 실패했습니다"
+
+#: src/pages/McpServersOverlay.tsx:198
+msgid "Could not finish connecting"
+msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx:87
 msgid "Could not generate the report"
@@ -2173,7 +2187,7 @@ msgstr ""
 msgid "Could not load integrations"
 msgstr "연동 목록을 불러오지 못했습니다."
 
-#: src/pages/McpServersOverlay.tsx:60
+#: src/pages/McpServersOverlay.tsx:67
 msgid "Could not load MCP servers"
 msgstr "MCP 서버 목록을 불러오지 못했습니다."
 
@@ -2380,7 +2394,7 @@ msgstr "메시지를 보내지 못했습니다."
 msgid "Could not share this Mac"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:172
+#: src/pages/McpServersOverlay.tsx:184
 msgid "Could not start OAuth"
 msgstr "OAuth 인증을 시작하지 못했습니다."
 
@@ -2409,7 +2423,7 @@ msgstr "직접 조작으로 전환하지 못했습니다."
 msgid "Could not update"
 msgstr "업데이트하지 못했습니다."
 
-#: src/pages/McpServersOverlay.tsx:188
+#: src/pages/McpServersOverlay.tsx:214
 msgid "Could not update agent access"
 msgstr "Bot의 서버 사용 권한을 변경하지 못했습니다."
 
@@ -2660,7 +2674,7 @@ msgstr "기본 기억 범위"
 #: src/pages/crm/CrmForms.tsx:348
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
-#: src/pages/McpServersOverlay.tsx:481
+#: src/pages/McpServersOverlay.tsx:504
 #: src/pages/RoutineEditor.tsx:273
 #: src/pages/Shell.tsx:2955
 #: src/pages/Shell.tsx:2985
@@ -2801,7 +2815,7 @@ msgstr ""
 msgid "Discard unsaved edits?"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:468
+#: src/pages/McpServersOverlay.tsx:491
 #: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "연결 해제"
@@ -3246,6 +3260,10 @@ msgstr ""
 msgid "Finding…"
 msgstr "찾는 중…"
 
+#: src/pages/McpServersOverlay.tsx:542
+msgid "Finish connecting"
+msgstr ""
+
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx:547
 #: src/pages/Onboarding.tsx:400
@@ -3451,12 +3469,12 @@ msgstr ""
 msgid "header"
 msgstr "헤더"
 
-#: src/pages/McpServersOverlay.tsx:342
+#: src/pages/McpServersOverlay.tsx:365
 #: src/pages/PluginsOverlay.tsx:444
 msgid "Header name"
 msgstr "헤더 이름"
 
-#: src/pages/McpServersOverlay.tsx:348
+#: src/pages/McpServersOverlay.tsx:371
 msgid "Header value"
 msgstr "헤더 값"
 
@@ -4004,8 +4022,8 @@ msgstr "최대"
 msgid "MCP lets an agent discover and use {brandName} tools from a conversation. The API exposes operations directly to software. Both work with your organization’s data and respect the permissions on its token."
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:224
-#: src/pages/McpServersOverlay.tsx:229
+#: src/pages/McpServersOverlay.tsx:250
+#: src/pages/McpServersOverlay.tsx:255
 #: src/pages/PluginsOverlay.tsx:373
 msgid "MCP servers"
 msgstr "MCP 서버"
@@ -4531,7 +4549,7 @@ msgstr "일치하는 모델 없음"
 msgid "No MCP or API tool sources installed yet."
 msgstr "아직 추가된 MCP 또는 API 도구가 없습니다."
 
-#: src/pages/McpServersOverlay.tsx:407
+#: src/pages/McpServersOverlay.tsx:430
 msgid "No MCP servers yet."
 msgstr "아직 연결된 MCP 서버가 없습니다."
 
@@ -4706,10 +4724,6 @@ msgstr "OAuth 연결됨"
 msgid "OAuth connection failed"
 msgstr "OAuth 연결 실패"
 
-#: src/pages/McpServersOverlay.tsx:257
-msgid "OAuth will be available for providers that support browser authorization. Static headers work today."
-msgstr "브라우저 인증을 지원하는 서비스는 OAuth로 연결할 수 있습니다. 고정 헤더 인증도 사용할 수 있습니다."
-
 #: src/pages/workspace/sections/UtilitiesSection.tsx:119
 msgid "Obtain the bill from the owner and handle manually."
 msgstr ""
@@ -4822,6 +4836,10 @@ msgstr ""
 msgid "Open the bot’s Settings to review Memory and Skills. Memory holds context worth keeping; skills hold instructions for repeatable work. Correct outdated information and save the steps that produced a good result. Check what is shared before adding information intended for only one agent."
 msgstr ""
 
+#: src/pages/McpServersOverlay.tsx:525
+msgid "Open the sign-in page again"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx:104
 msgid "Open work"
 msgstr "진행 중인 작업"
@@ -4864,7 +4882,7 @@ msgstr "선택 사항"
 msgid "Optional controls most people never need"
 msgstr "필요할 때만 쓰는 세부 설정"
 
-#: src/pages/McpServersOverlay.tsx:352
+#: src/pages/McpServersOverlay.tsx:375
 msgid "Optional header value"
 msgstr "선택 사항인 헤더 값"
 
@@ -4963,6 +4981,10 @@ msgstr "비밀번호가 일치하지 않습니다"
 #: src/pages/VoiceSettingsOverlay.tsx:271
 msgid "Paste a replacement key"
 msgstr "새 API 키를 붙여넣으세요"
+
+#: src/lib/mcp-connect.ts:77
+msgid "Paste the full address from the page you landed on."
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:417
 #: src/pages/Onboarding.tsx:306
@@ -5982,15 +6004,19 @@ msgstr ""
 msgid "Sent to {0}"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:263
+#: src/pages/McpServersOverlay.tsx:286
 msgid "Server name"
 msgstr "서버 이름"
 
-#: src/pages/McpServersOverlay.tsx:317
+#: src/pages/McpServersOverlay.tsx:340
 #: src/pages/ModelSettingsOverlay.tsx:402
 #: src/pages/Onboarding.tsx:291
 msgid "Server URL"
 msgstr "서버 URL"
+
+#: src/pages/McpServersOverlay.tsx:283
+msgid "Servers that ask you to sign in show Connect OAuth once added."
+msgstr ""
 
 #: src/pages/Shell.tsx:3248
 msgid "Set up voice to call"
@@ -6375,7 +6401,7 @@ msgstr ""
 msgid "Stored — leave blank to keep"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:336
+#: src/pages/McpServersOverlay.tsx:359
 msgid "Stored encrypted"
 msgstr "암호화해 저장"
 
@@ -6521,6 +6547,10 @@ msgstr "테스트 실행"
 #: src/pages/crm/CrmModuleSheet.tsx:253
 msgid "Text"
 msgstr "텍스트"
+
+#: src/lib/mcp-connect.ts:78
+msgid "That address is not from this sign-in. Start again and paste the new one."
+msgstr ""
 
 #: src/pages/crm/CrmForms.tsx:183
 msgid "That time is skipped when the clocks change in {timeZone}. Pick another."
@@ -6675,11 +6705,11 @@ msgstr "이 재설정 링크는 유효하지 않거나 만료되었습니다"
 msgid "This server cannot be assigned without a bot."
 msgstr "연결할 Bot이 없어 이 서버를 배정할 수 없습니다."
 
-#: src/pages/McpServersOverlay.tsx:167
+#: src/pages/McpServersOverlay.tsx:179
 msgid "This server did not request browser authorization."
 msgstr "이 서버는 브라우저 인증을 요청하지 않았습니다."
 
-#: src/pages/McpServersOverlay.tsx:163
+#: src/pages/McpServersOverlay.tsx:175
 msgid "This server is already connected. Disconnect it first to authorize again."
 msgstr "이 서버는 이미 연결되어 있습니다. 다시 인증하려면 먼저 연결을 해제하세요."
 

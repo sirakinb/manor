@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { Bot, BotMcpServer, McpServer, McpTransport } from "@rakazo/contracts";
 import { deriveMcpSlug } from "@rakazo/core";
 import { useEffect, useState } from "react";
-import { connectMcpOauth, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
+import { connectMcpOauth, finishMcpOauthFromPaste, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
 
 function oauthStatusText(server: McpServer): string {
@@ -35,6 +35,13 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [oauthPending, setOauthPending] = useState<string | null>(null);
+  const [paste, setPaste] = useState<{
+    serverId: string;
+    sessionId: string;
+    authorizationUrl: string;
+    value: string;
+    busy: boolean;
+  } | null>(null);
 
   async function refresh() {
     const [nextServers, nextBots, assignments] = await Promise.all([
@@ -156,6 +163,11 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
     setOauthPending(server.id);
     try {
       const result = await connectMcpOauth(server.id);
+      if (typeof result === "object") {
+        setOauthPending(null);
+        setPaste({ serverId: server.id, ...result.paste, value: "", busy: false });
+        return;
+      }
       if (result !== "cancelled") setOauthPending(null);
       await refresh();
       if (result === "connected") return;
@@ -171,6 +183,20 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not start OAuth`);
       setOauthPending(null);
+    }
+  }
+
+  async function finishPaste() {
+    if (!paste || paste.busy) return;
+    setError(null);
+    setPaste({ ...paste, busy: true });
+    try {
+      await finishMcpOauthFromPaste(paste.sessionId, paste.value);
+      setPaste(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t`Could not finish connecting`);
+      setPaste((current) => (current ? { ...current, busy: false } : current));
     }
   }
 
@@ -254,10 +280,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
               <Trans>Add a server</Trans>
             </h2>
             <p className="mb-5 mt-1 text-xs text-[#77777F]">
-              <Trans>
-                OAuth will be available for providers that support browser authorization. Static
-                headers work today.
-              </Trans>
+              <Trans>Servers that ask you to sign in show Connect OAuth once added.</Trans>
             </p>
             <label className="mb-1.5 block text-xs text-[#B9B9C0]" htmlFor="mcp-name">
               <Trans>Server name</Trans>
@@ -482,6 +505,52 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
                           )}
                         </button>
                       </div>
+                      {paste?.serverId === server.id ? (
+                        <div
+                          data-testid="mcp-oauth-paste"
+                          className="mt-3 rounded-lg border border-[#34343B] bg-[#0C0C0E] p-3"
+                        >
+                          <p className="text-xs text-[#B9B9C0]">
+                            <Trans>
+                              After you approve, your browser lands on a page that won't load. Copy
+                              that page's address and paste it here.
+                            </Trans>
+                          </p>
+                          <a
+                            href={paste.authorizationUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-block text-xs text-[#9CA3F5] hover:underline"
+                          >
+                            <Trans>Open the sign-in page again</Trans>
+                          </a>
+                          <input
+                            id={`mcp-oauth-paste-${server.id}`}
+                            aria-label={t`Address after approving`}
+                            value={paste.value}
+                            onChange={(event) => setPaste({ ...paste, value: event.target.value })}
+                            placeholder="http://127.0.0.1:53682/mcp/oauth/callback?code=…"
+                            className="mt-2 w-full rounded-lg border border-[#34343B] bg-[#101012] px-3 py-2 text-xs text-[#ECECEE] outline-none"
+                          />
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              disabled={paste.busy || !paste.value.trim()}
+                              onClick={() => void finishPaste()}
+                              className="rounded-lg bg-[#7785FF] px-3 py-2 text-xs font-semibold text-[#090A12] disabled:opacity-50"
+                            >
+                              {paste.busy ? t`Connecting…` : t`Finish connecting`}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPaste(null)}
+                              className="rounded-lg border border-[#34343B] px-3 py-2 text-xs text-[#B9B9C0]"
+                            >
+                              <Trans>Cancel</Trans>
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   ))
                 )}

@@ -60,6 +60,7 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
           status: "authorization_required",
           sessionId: "mcp-oauth-session",
           authorizationUrl: `${browserOrigin}/mcp/oauth/callback?code=fake-code&state=mcp-oauth-session`,
+          completion: "popup",
         },
       }),
     });
@@ -104,4 +105,95 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
   await expect(page.getByRole("button", { name: "Disconnect", exact: true })).toBeVisible();
   await expect.poll(() => popup.isClosed()).toBe(true);
   await captureScreenshot(page, testInfo, "mcp-oauth-connected");
+});
+
+test("finishes a loopback-only provider by pasting the address it lands on", async ({
+  page,
+}, testInfo) => {
+  const stamp = Date.now();
+  await signup(page, `mcp-oauth-paste-${stamp}@rakazo.test`, "password12", "MCP Paste");
+  await completeOnboarding(page);
+
+  let oauthStatus: McpServer["oauthStatus"] = "none";
+  const server: McpServer = {
+    id: "mcp-paste-server",
+    spaceId: "mcp-paste-workspace",
+    slug: "upwork",
+    name: "Upwork",
+    description: "",
+    transport: "streamable_http",
+    endpoint: "https://mcp.upwork.test/mcp",
+    command: null,
+    args: [],
+    envKeys: [],
+    headerKeys: [],
+    hasSecret: false,
+    oauthStatus,
+    enabled: true,
+    revision: 1,
+    createdAt: "2026-09-23T00:00:00.000Z",
+    updatedAt: "2026-09-23T00:00:00.000Z",
+  };
+  const loopback = "http://127.0.0.1:53682/mcp/oauth/callback";
+  let completed: unknown;
+
+  await page.context().route("**/rpc/mcp/servers/list", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ json: [{ ...server, oauthStatus }] }),
+    });
+  });
+  await page.context().route("**/rpc/mcp/assignments/all", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ json: [] }) });
+  });
+  await page.context().route("**/rpc/mcp/oauth/begin", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        json: {
+          status: "authorization_required",
+          sessionId: "paste-session",
+          authorizationUrl: `https://auth.upwork.test/authorize?redirect_uri=${encodeURIComponent(loopback)}&state=paste-session`,
+          completion: "paste",
+        },
+      }),
+    });
+  });
+  await page.context().route("https://auth.upwork.test/**", async (route) => {
+    await route.fulfill({ contentType: "text/html", body: "<p>Approve Manor</p>" });
+  });
+  await page.context().route("**/rpc/mcp/oauth/complete", async (route: Route) => {
+    completed = route.request().postDataJSON();
+    oauthStatus = "connected";
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ json: { ok: true } }),
+    });
+  });
+
+  await page.getByText("Integrations", { exact: true }).click();
+  await page.getByTestId("integrations-advanced").evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
+  await page.getByRole("button", { name: "MCP servers", exact: true }).click();
+  await expect(
+    page.getByText("Servers that ask you to sign in show Connect OAuth once added."),
+  ).toBeVisible();
+
+  const signIn = page.waitForEvent("popup");
+  await page.getByRole("button", { name: "Connect OAuth", exact: true }).click();
+  await (await signIn).close();
+  const panel = page.getByTestId("mcp-oauth-paste");
+  await expect(panel).toBeVisible();
+  await panel
+    .getByLabel("Address after approving")
+    .fill(`${loopback}?code=pasted-code&state=paste-session`);
+  await captureScreenshot(page, testInfo, "mcp-oauth-paste-back");
+  await panel.getByRole("button", { name: "Finish connecting" }).click();
+
+  await expect(page.getByText("OAuth connected", { exact: true })).toBeVisible();
+  await expect(panel).toHaveCount(0);
+  expect(completed).toEqual({
+    json: { sessionId: "paste-session", code: "pasted-code", state: "paste-session" },
+  });
 });
