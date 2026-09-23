@@ -6,9 +6,15 @@ import { modelsForRequest } from "./pi-runtime.js";
 
 const requestedModels = [
   ["anthropic", "claude-fable-5-1", "Claude Fable 5.1", "anthropic-messages"],
+  ["anthropic", "claude-opus-5-5", "Claude Opus 5.5", "anthropic-messages"],
   ["openai-codex", "gpt-6-astra", "GPT-6 Astra", "openai-codex-responses"],
+  ["openai-codex", "gpt-6-sol", "GPT-6 Sol", "openai-codex-responses"],
+  ["openai-codex", "gpt-6-luna", "GPT-6 Luna", "openai-codex-responses"],
   ["openrouter", "anthropic/claude-fable-5.1", "Anthropic: Claude Fable 5.1", "openai-completions"],
+  ["openrouter", "anthropic/claude-opus-5.5", "Anthropic: Claude Opus 5.5", "openai-completions"],
   ["openrouter", "openai/gpt-6-astra", "OpenAI: GPT-6 Astra", "openai-completions"],
+  ["openrouter", "openai/gpt-6-sol", "OpenAI: GPT-6 Sol", "openai-completions"],
+  ["openrouter", "openai/gpt-6-luna", "OpenAI: GPT-6 Luna", "openai-completions"],
   [
     "openrouter",
     "deepseek/deepseek-v4.1-flash",
@@ -41,7 +47,10 @@ describe("recent model availability", () => {
 
   it.each([
     ["anthropic", "claude-fable-5-1", "auth-url"],
+    ["anthropic", "claude-opus-5-5", "auth-url"],
     ["openai-codex", "gpt-6-astra", "device-code"],
+    ["openai-codex", "gpt-6-sol", "device-code"],
+    ["openai-codex", "gpt-6-luna", "device-code"],
   ] as const)(
     "offers %s / %s through existing subscription credentials",
     async (provider, id, signIn) => {
