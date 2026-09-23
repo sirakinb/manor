@@ -99,6 +99,26 @@ describe("recent model availability", () => {
     });
   });
 
+  const effort = ["low", "medium", "high", "xhigh", "max"];
+  it.each([
+    ["anthropic", "claude-opus-5-5", 1_000_000, 4, effort],
+    ["openrouter", "anthropic/claude-opus-5.5", 1_000_000, 4, effort],
+    ["openai-codex", "gpt-6-sol", 272_000, 2, ["off", "minimal", ...effort]],
+    ["openrouter", "openai/gpt-6-sol", 1_050_000, 2, ["off", ...effort]],
+    ["openai-codex", "gpt-6-luna", 272_000, 0.1, ["off", "minimal", ...effort]],
+    ["openrouter", "openai/gpt-6-luna", 1_050_000, 0.1, ["off", ...effort]],
+  ] as const)(
+    "keeps %s / %s context, pricing, and thinking levels",
+    (provider, id, contextWindow, inputCost, thinkingLevels) => {
+      const model = modelsForRequest({ model: { provider, id } }, provider).getModel(provider, id);
+      expect(model).toMatchObject({ contextWindow, cost: { input: inputCost } });
+      expect(
+        listPiCatalog().find((entry) => entry.provider === provider && entry.id === id)
+          ?.thinkingLevels,
+      ).toEqual(thinkingLevels);
+    },
+  );
+
   it("keeps subscription Astra's smaller context limit", () => {
     const models = modelsForRequest(
       { model: { provider: "openrouter", id: "openai/gpt-6-astra" } },
