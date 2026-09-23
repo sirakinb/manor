@@ -46,13 +46,22 @@ type SystemOneResponse = {
   usage?: { input_tokens?: number; output_tokens?: number };
 };
 
-function isChoiceAnswer(value: unknown): value is ChoiceAnswer {
+const ACTION_FIT_OPTIONS = Object.keys(ACTION_FIT_QUESTION.criteria);
+
+function isUnitNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+/** Anything but a known option with in-range numbers is treated as no decision (fail closed). */
+function isActionFitAnswer(value: unknown): value is ChoiceAnswer {
   const answer = value as ChoiceAnswer | undefined;
   return (
     answer?.type === "choice" &&
-    typeof answer.choice === "string" &&
-    typeof answer.confidence === "number" &&
-    typeof answer.probabilities === "object"
+    ACTION_FIT_OPTIONS.includes(answer.choice) &&
+    isUnitNumber(answer.confidence) &&
+    typeof answer.probabilities === "object" &&
+    answer.probabilities !== null &&
+    ACTION_FIT_OPTIONS.every((option) => isUnitNumber(answer.probabilities[option]))
   );
 }
 
@@ -124,9 +133,9 @@ export class JevVerifier implements Verifier {
 
     model = body.model ?? model;
     const answer = body.answers?.action_fit;
-    if (!isChoiceAnswer(answer)) return failure("Checker returned no decision.", body.usage);
+    if (!isActionFitAnswer(answer)) return failure("Checker returned no decision.", body.usage);
 
-    const unexpected = answer.probabilities.unexpected ?? (answer.choice === "unexpected" ? 1 : 0);
+    const unexpected = answer.probabilities.unexpected!;
     const lowConfidence = answer.confidence < this.minConfidence;
     const decision = answer.choice === "unexpected" || lowConfidence ? "ask" : "pass";
     return {

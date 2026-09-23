@@ -1818,55 +1818,68 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }
           };
 
+          const verificationRow = (
+            effectId: string,
+            engine: VerificationEngineId,
+            role: "primary" | "shadow",
+            result: VerificationResult,
+          ) => ({
+            spaceId: run.spaceId,
+            userId: run.userId,
+            runId,
+            effectId,
+            checkpoint: "action",
+            subject: name,
+            engine,
+            role,
+            decision: result.decision,
+            reason: result.reason,
+            probability: result.probability,
+            confidence: result.confidence,
+            details: result.details as Prisma.InputJsonValue | undefined,
+            model: result.model,
+            latencyMs: result.latencyMs,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+            costUsd: result.costUsd,
+          });
+
           const runAutoReview = async () => {
             const { primary: primaryEngine, shadow: shadowEngine } = engines;
             if (!primaryEngine) return;
-            const [primary, shadow] = await Promise.all([
-              reviewWith(primaryEngine),
-              shadowEngine ? reviewWith(shadowEngine) : undefined,
-            ]);
+            // The shadow only feeds comparison, so it must never delay the selected verdict.
+            const shadowReview = shadowEngine ? reviewWith(shadowEngine) : undefined;
+            const primary = await reviewWith(primaryEngine);
             reviewReason = primary.reason;
             gateDecision = applyJudgeDecision({
               decision: primary.decision,
               consequential: requiresApprovalByDefault,
             });
             if (!applied) return;
-            await deps.prisma.externalEffect.update({
-              where: { id: applied.effect.id },
-              data: {
-                reviewDecision: primary.decision,
-                reviewReason: primary.reason,
-                reviewModel: primary.model,
-              },
-            });
-            const logged = [
-              { engine: primaryEngine, role: "primary", result: primary },
-              ...(shadowEngine && shadow
-                ? [{ engine: shadowEngine, role: "shadow", result: shadow }]
-                : []),
-            ];
-            await deps.prisma.verificationCheck.createMany({
-              data: logged.map(({ engine, role, result }) => ({
-                spaceId: run.spaceId,
-                userId: run.userId,
-                runId,
-                effectId: applied.effect.id,
-                checkpoint: "action",
-                subject: name,
-                engine,
-                role,
-                decision: result.decision,
-                reason: result.reason,
-                probability: result.probability,
-                confidence: result.confidence,
-                details: result.details as Prisma.InputJsonValue | undefined,
-                model: result.model,
-                latencyMs: result.latencyMs,
-                inputTokens: result.inputTokens,
-                outputTokens: result.outputTokens,
-                costUsd: result.costUsd,
-              })),
-            });
+            const effectId = applied.effect.id;
+            // Replays trust the stored decision, so its comparison row must commit with it.
+            await deps.prisma.$transaction([
+              deps.prisma.externalEffect.update({
+                where: { id: effectId },
+                data: {
+                  reviewDecision: primary.decision,
+                  reviewReason: primary.reason,
+                  reviewModel: primary.model,
+                },
+              }),
+              deps.prisma.verificationCheck.create({
+                data: verificationRow(effectId, primaryEngine, "primary", primary),
+              }),
+            ]);
+            if (shadowEngine && shadowReview) {
+              void shadowReview
+                .then((shadow) =>
+                  deps.prisma.verificationCheck.create({
+                    data: verificationRow(effectId, shadowEngine, "shadow", shadow),
+                  }),
+                )
+                .catch((error) => console.error("verification shadow log failed", error));
+            }
           };
 
           if (applied && plan === "judge" && engines.primary) {

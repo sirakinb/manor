@@ -122,6 +122,24 @@ describe("redactToolArgsForReview", () => {
       body: "[redacted] hello",
     });
   });
+
+  it("redacts sensitive keys inside nested objects and arrays", () => {
+    expect(
+      redactToolArgsForReview(
+        {
+          request: { headers: { Authorization: "Bearer abc" }, body: { apiKey: "k", note: "hi" } },
+          items: [{ password: "p", label: "x" }, "token-secret"],
+        },
+        ["token-secret"],
+      ),
+    ).toEqual({
+      request: {
+        headers: { Authorization: "[redacted]" },
+        body: { apiKey: "[redacted]", note: "hi" },
+      },
+      items: [{ password: "[redacted]", label: "x" }, "[redacted]"],
+    });
+  });
 });
 
 describe("buildAutoReviewPrompt", () => {

@@ -104,6 +104,24 @@ describe("JevVerifier", () => {
     });
   });
 
+  it.each([
+    ["an unknown choice", { ...answer("fits", 0.1, 0.9).answers.action_fit, choice: "uncertain" }],
+    [
+      "an out-of-range confidence",
+      { ...answer("fits", 0.1, 0.9).answers.action_fit, confidence: 7 },
+    ],
+    [
+      "a missing probability",
+      { ...answer("fits", 0.1, 0.9).answers.action_fit, probabilities: { fits: 0.9 } },
+    ],
+  ])("fails closed on %s", async (_name, actionFit) => {
+    const result = await verifierReturning({ answers: { action_fit: actionFit } }).reviewAction(
+      request,
+      ctx,
+    );
+    expect(result.decision).toBe("error");
+  });
+
   it("gives up at its timeout", async () => {
     const hanging = new JevVerifier({
       apiKey: "k",

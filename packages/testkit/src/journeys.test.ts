@@ -2386,6 +2386,10 @@ describeJourneys("required product journeys", () => {
 
       // Compare mode also runs the deployment's LLM checker. The scripted model returns no
       // decision, so its logged "error" must not change the outcome Jev chose.
+      // The shadow verdict is logged in the background, after the selected one.
+      await expect
+        .poll(() => prisma.verificationCheck.count({ where: { runId: sent.runId } }))
+        .toBe(2);
       const checks = await prisma.verificationCheck.findMany({
         where: { runId: sent.runId },
         orderBy: { role: "asc" },

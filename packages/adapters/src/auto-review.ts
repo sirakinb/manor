@@ -99,31 +99,30 @@ export function isAutoReviewCheckerConfigured(input: {
   return Boolean(input.hasUserCredentialForProvider?.(checker.provider));
 }
 
+const SENSITIVE_ARG_KEY = /password|secret|token|api[_-]?key|authorization|cookie/i;
+const MAX_REDACT_DEPTH = 8;
+
+function redactReviewValue(value: unknown, secrets: string[], depth: number): unknown {
+  if (typeof value === "string") return redactSecrets(value, secrets);
+  if (value == null || typeof value === "number" || typeof value === "boolean") return value;
+  if (depth >= MAX_REDACT_DEPTH) return "[truncated]";
+  if (Array.isArray(value)) return value.map((item) => redactReviewValue(item, secrets, depth + 1));
+  const prototype = typeof value === "object" ? Object.getPrototypeOf(value) : undefined;
+  if (prototype !== Object.prototype && prototype !== null) return "[unserializable]";
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+      key,
+      SENSITIVE_ARG_KEY.test(key) ? "[redacted]" : redactReviewValue(nested, secrets, depth + 1),
+    ]),
+  );
+}
+
+/** Redacts sensitive keys and known secret values at every depth before args leave the run. */
 export function redactToolArgsForReview(
   args: Record<string, unknown>,
   secrets: string[],
 ): Record<string, unknown> {
-  const redacted: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(args)) {
-    if (/password|secret|token|api[_-]?key|authorization|cookie/i.test(key)) {
-      redacted[key] = "[redacted]";
-      continue;
-    }
-    if (typeof value === "string") {
-      redacted[key] = redactSecrets(value, secrets);
-      continue;
-    }
-    if (value == null || typeof value === "number" || typeof value === "boolean") {
-      redacted[key] = value;
-      continue;
-    }
-    try {
-      redacted[key] = JSON.parse(redactSecrets(JSON.stringify(value), secrets));
-    } catch {
-      redacted[key] = "[unserializable]";
-    }
-  }
-  return redacted;
+  return redactReviewValue(args, secrets, 0) as Record<string, unknown>;
 }
 
 function truncate(value: string, max: number): string {
