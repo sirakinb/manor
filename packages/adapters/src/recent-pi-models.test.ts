@@ -128,10 +128,13 @@ describe("recent model availability", () => {
     expect(models.getModel("anthropic", "claude-opus-5-5")?.headers).toEqual({
       "user-agent": "claude-cli/2.1.280",
     });
+    expect(models.getModel("anthropic", "claude-sonnet-5")?.headers).toMatchObject({
+      "user-agent": "claude-cli/2.1.280",
+    });
     expect(models.getModel("openrouter", "anthropic/claude-opus-5.5")?.headers).toBeUndefined();
   });
 
-  it("sends the accepted Claude Code version on Opus 5.5 subscription requests", async () => {
+  it("sends an accepted Claude Code version on Anthropic subscription requests", async () => {
     const userAgents = new Map<string, string | null>();
     const intercept = vi.fn(async (_input: unknown, init?: RequestInit) => {
       const headers = new Headers(init?.headers);
@@ -157,9 +160,9 @@ describe("recent model availability", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+    // Every Anthropic model reports a Claude Code version its subscription gate accepts.
     expect(userAgents.get("claude-opus-5-5")).toBe("claude-cli/2.1.280");
-    // Other models keep Pi's default subscription identity.
-    expect(userAgents.get("claude-fable-5-1")).toBe("claude-cli/2.1.75");
+    expect(userAgents.get("claude-fable-5-1")).toBe("claude-cli/2.1.280");
   });
 
   it("keeps subscription Astra's smaller context limit", () => {
