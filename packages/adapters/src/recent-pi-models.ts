@@ -24,9 +24,10 @@ const fable: Model<"anthropic-messages"> = {
 };
 
 /**
- * Anthropic serves Opus 5.5 to subscription sign-ins only for Claude Code 2.1.280 or newer.
- * The pinned Pi identifies subscription requests as 2.1.75, so this model reports the version
- * Pi 0.87.1 sends. Model headers are merged after Pi's defaults, so this one wins.
+ * Anthropic serves newer models to subscription sign-ins only for recent Claude Code versions
+ * (Opus 5.5 needs 2.1.280, Fable 5.1 needs 2.1.251). The pinned Pi identifies subscription
+ * requests as 2.1.75, so every Anthropic model reports the version Pi 0.87.1 sends. Model
+ * headers are merged after Pi's defaults, so this one wins.
  */
 const SUBSCRIPTION_CLIENT_HEADERS = { "user-agent": "claude-cli/2.1.280" };
 
@@ -189,4 +190,8 @@ const catalogs: Record<string, Record<string, Model<Api>>> = {
 
 for (const model of [fable, opus55, astra, sol, luna, ...openrouterModels]) {
   catalogs[model.provider]![model.id] ??= model;
+}
+
+for (const model of Object.values(ANTHROPIC_MODELS)) {
+  model.headers = { ...model.headers, ...SUBSCRIPTION_CLIENT_HEADERS };
 }
