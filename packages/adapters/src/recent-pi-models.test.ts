@@ -1,4 +1,5 @@
 import { clampThinkingLevel } from "@earendil-works/pi-ai";
+import { complete } from "@earendil-works/pi-ai/compat";
 import { describe, expect, it, vi } from "vitest";
 import { modelAcceptsImageInput } from "./model-vision.js";
 import { listPiCatalog } from "./pi-models.js";
@@ -118,6 +119,48 @@ describe("recent model availability", () => {
       ).toEqual(thinkingLevels);
     },
   );
+
+  it("identifies Opus 5.5 subscription requests as a Claude Code version Anthropic accepts", () => {
+    const models = modelsForRequest(
+      { model: { provider: "anthropic", id: "claude-opus-5-5" } },
+      "anthropic",
+    );
+    expect(models.getModel("anthropic", "claude-opus-5-5")?.headers).toEqual({
+      "user-agent": "claude-cli/2.1.280",
+    });
+    expect(models.getModel("openrouter", "anthropic/claude-opus-5.5")?.headers).toBeUndefined();
+  });
+
+  it("sends the accepted Claude Code version on Opus 5.5 subscription requests", async () => {
+    const userAgents = new Map<string, string | null>();
+    const intercept = vi.fn(async (_input: unknown, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      userAgents.set(String(JSON.parse(String(init?.body)).model), headers.get("user-agent"));
+      return Response.json(
+        { type: "error", error: { type: "probe", message: "stop" } },
+        { status: 400 },
+      );
+    });
+    vi.stubGlobal("fetch", intercept);
+    try {
+      for (const id of ["claude-opus-5-5", "claude-fable-5-1"]) {
+        const model = modelsForRequest(
+          { model: { provider: "anthropic", id } },
+          "anthropic",
+        ).getModel("anthropic", id)!;
+        await complete(
+          model,
+          { messages: [{ role: "user", content: "hi", timestamp: 0 }] },
+          { apiKey: "sk-ant-oat01-fake-subscription-token" },
+        ).catch(() => undefined);
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(userAgents.get("claude-opus-5-5")).toBe("claude-cli/2.1.280");
+    // Other models keep Pi's default subscription identity.
+    expect(userAgents.get("claude-fable-5-1")).toBe("claude-cli/2.1.75");
+  });
 
   it("keeps subscription Astra's smaller context limit", () => {
     const models = modelsForRequest(
