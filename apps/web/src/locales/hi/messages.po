@@ -469,7 +469,7 @@ msgstr ""
 msgid "Access"
 msgstr "पहुँच"
 
-#: src/pages/McpServersOverlay.tsx:329
+#: src/pages/McpServersOverlay.tsx:352
 msgid "Access token (optional)"
 msgstr "एक्सेस टोकन (वैकल्पिक)"
 
@@ -583,15 +583,15 @@ msgstr "इस रूटीन को चलाने के लिए एक �
 msgid "Add a schedule or webhook trigger"
 msgstr "शेड्यूल या वेबहुक ट्रिगर जोड़ें"
 
-#: src/pages/McpServersOverlay.tsx:254
+#: src/pages/McpServersOverlay.tsx:280
 msgid "Add a server"
 msgstr "एक सर्वर जोड़ें"
 
-#: src/pages/McpServersOverlay.tsx:86
+#: src/pages/McpServersOverlay.tsx:93
 msgid "Add a server name."
 msgstr "सर्वर का नाम दर्ज करें।"
 
-#: src/pages/McpServersOverlay.tsx:94
+#: src/pages/McpServersOverlay.tsx:101
 msgid "Add a stdio command."
 msgstr "एक stdio कमांड दर्ज करें।"
 
@@ -600,7 +600,7 @@ msgstr "एक stdio कमांड दर्ज करें।"
 msgid "Add an address"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:90
+#: src/pages/McpServersOverlay.tsx:97
 msgid "Add an HTTPS server URL."
 msgstr "एक HTTPS सर्वर URL दर्ज करें।"
 
@@ -633,7 +633,7 @@ msgstr "OpenAPI जोड़ें"
 msgid "Add remote MCP server"
 msgstr "रिमोट MCP सर्वर जोड़ें"
 
-#: src/pages/McpServersOverlay.tsx:363
+#: src/pages/McpServersOverlay.tsx:386
 msgid "Add server"
 msgstr "सर्वर जोड़ें"
 
@@ -666,7 +666,7 @@ msgid "Add webhook"
 msgstr "वेबहुक जोड़ें"
 
 #: src/pages/CrmApiAccessPanel.tsx:347
-#: src/pages/McpServersOverlay.tsx:363
+#: src/pages/McpServersOverlay.tsx:386
 #: src/pages/PluginsOverlay.tsx:286
 #: src/pages/PluginsOverlay.tsx:594
 msgid "Adding…"
@@ -674,6 +674,10 @@ msgstr "जोड़ा जा रहा है…"
 
 #: src/pages/crm/CrmForms.tsx:200
 msgid "Address"
+msgstr ""
+
+#: src/pages/McpServersOverlay.tsx:529
+msgid "Address after approving"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:249
@@ -686,7 +690,11 @@ msgstr "उन्नत"
 msgid "Advanced..."
 msgstr "उन्नत..."
 
-#: src/pages/McpServersOverlay.tsx:369
+#: src/pages/McpServersOverlay.tsx:514
+msgid "After you approve, your browser lands on a page that won't load. Copy that page's address and paste it here."
+msgstr ""
+
+#: src/pages/McpServersOverlay.tsx:392
 msgid "Agent access for new servers"
 msgstr "नए सर्वरों के लिए एजेंट एक्सेस"
 
@@ -711,7 +719,7 @@ msgstr ""
 msgid "Agents, conversations, files, and connected accounts are shared."
 msgstr "एजेंट, बातचीत, फ़ाइलें और जुड़े खाते साझा किए जाते हैं।"
 
-#: src/pages/McpServersOverlay.tsx:431
+#: src/pages/McpServersOverlay.tsx:454
 msgid "Agents:"
 msgstr "एजेंट:"
 
@@ -884,7 +892,7 @@ msgstr ""
 msgid "Applications"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:372
+#: src/pages/McpServersOverlay.tsx:395
 msgid "Applies when you click Add server. Use the agent chips on each server card to change access at any time — the agent picks it up on its next message."
 msgstr "यह तब लागू होता है जब आप 'सर्वर जोड़ें' पर क्लिक करते हैं। एक्सेस कभी भी बदलने के लिए हर सर्वर कार्ड पर एजेंट चिप का उपयोग करें — एजेंट इसे अपने अगले संदेश पर अपना लेगा।"
 
@@ -942,7 +950,7 @@ msgstr "आर्काइव किया गया"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "आर्काइव किया गया। चैट, मेमोरी और फ़ाइलें सुरक्षित रखी गईं।"
 
-#: src/pages/McpServersOverlay.tsx:304
+#: src/pages/McpServersOverlay.tsx:327
 msgid "Arguments"
 msgstr "आर्ग्युमेंट"
 
@@ -1345,6 +1353,7 @@ msgstr "सर्वर तक नहीं पहुंचा जा सका�
 #: src/pages/crm/CrmPipelineBoard.tsx:764
 #: src/pages/KnowledgeSection.tsx:196
 #: src/pages/KnowledgeSection.tsx:374
+#: src/pages/McpServersOverlay.tsx:549
 #: src/pages/PluginsOverlay.tsx:484
 #: src/pages/Shell.tsx:6687
 #: src/pages/Shell.tsx:6769
@@ -1624,7 +1633,7 @@ msgstr "छवि प्रीव्यू बंद करें"
 msgid "Close integrations"
 msgstr "इंटीग्रेशन बंद करें"
 
-#: src/pages/McpServersOverlay.tsx:239
+#: src/pages/McpServersOverlay.tsx:265
 msgid "Close MCP servers"
 msgstr "MCP सर्वर बंद करें"
 
@@ -1675,7 +1684,7 @@ msgstr "कोड"
 msgid "Collapse {0}"
 msgstr "{0} समेटें"
 
-#: src/pages/McpServersOverlay.tsx:294
+#: src/pages/McpServersOverlay.tsx:317
 msgid "Command"
 msgstr "कमांड"
 
@@ -1770,13 +1779,13 @@ msgstr ""
 msgid "Configured by deployment"
 msgstr "डिप्लॉयमेंट द्वारा कॉन्फ़िगर"
 
-#: src/pages/McpServersOverlay.tsx:402
+#: src/pages/McpServersOverlay.tsx:425
 msgid "Configured servers"
 msgstr "कॉन्फ़िगर किए गए सर्वर"
 
 #: src/pages/crm/CrmModuleSheet.tsx:150
 #: src/pages/crm/CrmModuleSheet.tsx:360
-#: src/pages/McpServersOverlay.tsx:479
+#: src/pages/McpServersOverlay.tsx:502
 msgid "Confirm delete"
 msgstr "डिलीट की पुष्टि करें"
 
@@ -1838,7 +1847,7 @@ msgstr "OAuth कनेक्ट करें"
 msgid "Connect other agents"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:232
+#: src/pages/McpServersOverlay.tsx:258
 msgid "Connect remote or local tool servers and choose which agents can use them."
 msgstr "रिमोट या लोकल टूल सर्वर कनेक्ट करें और चुनें कि कौन से एजेंट उनका उपयोग कर सकते हैं।"
 
@@ -1895,6 +1904,7 @@ msgid "Connecting to the preview…"
 msgstr ""
 
 #: src/pages/McpServersOverlay.tsx:16
+#: src/pages/McpServersOverlay.tsx:542
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
 #: src/pages/Shell.tsx:7335
 #: src/pages/VoiceSettingsOverlay.tsx:282
@@ -2003,7 +2013,7 @@ msgstr ""
 msgid "Could not add"
 msgstr "जोड़ा नहीं जा सका"
 
-#: src/pages/McpServersOverlay.tsx:148
+#: src/pages/McpServersOverlay.tsx:155
 msgid "Could not add MCP server"
 msgstr "MCP सर्वर जोड़ा नहीं जा सका"
 
@@ -2100,7 +2110,7 @@ msgstr "बॉट डिलीट नहीं किया जा सका"
 msgid "Could not delete group"
 msgstr "समूह हटाया नहीं जा सका"
 
-#: src/pages/McpServersOverlay.tsx:203
+#: src/pages/McpServersOverlay.tsx:229
 msgid "Could not delete MCP server"
 msgstr "MCP सर्वर डिलीट नहीं किया जा सका"
 
@@ -2120,7 +2130,7 @@ msgstr ""
 msgid "Could not disconnect memory provider"
 msgstr "मेमोरी प्रोवाइडर डिस्कनेक्ट नहीं हो सका"
 
-#: src/pages/McpServersOverlay.tsx:214
+#: src/pages/McpServersOverlay.tsx:240
 msgid "Could not disconnect OAuth"
 msgstr "OAuth डिस्कनेक्ट नहीं हो सका"
 
@@ -2140,6 +2150,10 @@ msgstr ""
 #: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "एक्सपोर्ट नहीं हो सका"
+
+#: src/pages/McpServersOverlay.tsx:198
+msgid "Could not finish connecting"
+msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx:87
 msgid "Could not generate the report"
@@ -2173,7 +2187,7 @@ msgstr ""
 msgid "Could not load integrations"
 msgstr "इंटीग्रेशन लोड नहीं हो सके"
 
-#: src/pages/McpServersOverlay.tsx:60
+#: src/pages/McpServersOverlay.tsx:67
 msgid "Could not load MCP servers"
 msgstr "MCP सर्वर लोड नहीं हो सके"
 
@@ -2380,7 +2394,7 @@ msgstr "वह भेजा नहीं जा सका"
 msgid "Could not share this Mac"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:172
+#: src/pages/McpServersOverlay.tsx:184
 msgid "Could not start OAuth"
 msgstr "OAuth शुरू नहीं हो सका"
 
@@ -2409,7 +2423,7 @@ msgstr "नियंत्रण नहीं लिया जा सका"
 msgid "Could not update"
 msgstr "अपडेट नहीं हो सका"
 
-#: src/pages/McpServersOverlay.tsx:188
+#: src/pages/McpServersOverlay.tsx:214
 msgid "Could not update agent access"
 msgstr "एजेंट एक्सेस अपडेट नहीं हो सका"
 
@@ -2660,7 +2674,7 @@ msgstr "डिफ़ॉल्ट स्कोप"
 #: src/pages/crm/CrmForms.tsx:348
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
-#: src/pages/McpServersOverlay.tsx:481
+#: src/pages/McpServersOverlay.tsx:504
 #: src/pages/RoutineEditor.tsx:273
 #: src/pages/Shell.tsx:2955
 #: src/pages/Shell.tsx:2985
@@ -2801,7 +2815,7 @@ msgstr ""
 msgid "Discard unsaved edits?"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:468
+#: src/pages/McpServersOverlay.tsx:491
 #: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "डिस्कनेक्ट करें"
@@ -3246,6 +3260,10 @@ msgstr ""
 msgid "Finding…"
 msgstr "खोजा जा रहा है…"
 
+#: src/pages/McpServersOverlay.tsx:542
+msgid "Finish connecting"
+msgstr ""
+
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx:547
 #: src/pages/Onboarding.tsx:400
@@ -3451,12 +3469,12 @@ msgstr ""
 msgid "header"
 msgstr "हेडर"
 
-#: src/pages/McpServersOverlay.tsx:342
+#: src/pages/McpServersOverlay.tsx:365
 #: src/pages/PluginsOverlay.tsx:444
 msgid "Header name"
 msgstr "हेडर नाम"
 
-#: src/pages/McpServersOverlay.tsx:348
+#: src/pages/McpServersOverlay.tsx:371
 msgid "Header value"
 msgstr "हेडर मान"
 
@@ -4004,8 +4022,8 @@ msgstr "अधिकतम"
 msgid "MCP lets an agent discover and use {brandName} tools from a conversation. The API exposes operations directly to software. Both work with your organization’s data and respect the permissions on its token."
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:224
-#: src/pages/McpServersOverlay.tsx:229
+#: src/pages/McpServersOverlay.tsx:250
+#: src/pages/McpServersOverlay.tsx:255
 #: src/pages/PluginsOverlay.tsx:373
 msgid "MCP servers"
 msgstr "MCP सर्वर"
@@ -4531,7 +4549,7 @@ msgstr "कोई मेल खाता मॉडल नहीं"
 msgid "No MCP or API tool sources installed yet."
 msgstr "अभी तक कोई MCP या API टूल स्रोत इंस्टॉल नहीं है।"
 
-#: src/pages/McpServersOverlay.tsx:407
+#: src/pages/McpServersOverlay.tsx:430
 msgid "No MCP servers yet."
 msgstr "अभी तक कोई MCP सर्वर नहीं।"
 
@@ -4706,10 +4724,6 @@ msgstr "OAuth कनेक्टेड"
 msgid "OAuth connection failed"
 msgstr "OAuth कनेक्शन विफल"
 
-#: src/pages/McpServersOverlay.tsx:257
-msgid "OAuth will be available for providers that support browser authorization. Static headers work today."
-msgstr "OAuth उन प्रोवाइडर्स के लिए उपलब्ध होगा जो ब्राउज़र ऑथराइज़ेशन को सपोर्ट करते हैं। स्टैटिक हेडर अभी भी काम करते हैं।"
-
 #: src/pages/workspace/sections/UtilitiesSection.tsx:119
 msgid "Obtain the bill from the owner and handle manually."
 msgstr ""
@@ -4822,6 +4836,10 @@ msgstr ""
 msgid "Open the bot’s Settings to review Memory and Skills. Memory holds context worth keeping; skills hold instructions for repeatable work. Correct outdated information and save the steps that produced a good result. Check what is shared before adding information intended for only one agent."
 msgstr ""
 
+#: src/pages/McpServersOverlay.tsx:525
+msgid "Open the sign-in page again"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx:104
 msgid "Open work"
 msgstr "खुला कार्य"
@@ -4864,7 +4882,7 @@ msgstr "वैकल्पिक"
 msgid "Optional controls most people never need"
 msgstr "वैकल्पिक नियंत्रण जिनकी अधिकांश लोगों को कभी ज़रूरत नहीं होती"
 
-#: src/pages/McpServersOverlay.tsx:352
+#: src/pages/McpServersOverlay.tsx:375
 msgid "Optional header value"
 msgstr "वैकल्पिक हेडर मान"
 
@@ -4963,6 +4981,10 @@ msgstr "पासवर्ड मेल नहीं खाते"
 #: src/pages/VoiceSettingsOverlay.tsx:271
 msgid "Paste a replacement key"
 msgstr "बदलने के लिए नई कुंजी पेस्ट करें"
+
+#: src/lib/mcp-connect.ts:77
+msgid "Paste the full address from the page you landed on."
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:417
 #: src/pages/Onboarding.tsx:306
@@ -5982,15 +6004,19 @@ msgstr ""
 msgid "Sent to {0}"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:263
+#: src/pages/McpServersOverlay.tsx:286
 msgid "Server name"
 msgstr "सर्वर का नाम"
 
-#: src/pages/McpServersOverlay.tsx:317
+#: src/pages/McpServersOverlay.tsx:340
 #: src/pages/ModelSettingsOverlay.tsx:402
 #: src/pages/Onboarding.tsx:291
 msgid "Server URL"
 msgstr "सर्वर URL"
+
+#: src/pages/McpServersOverlay.tsx:283
+msgid "Servers that ask you to sign in show Connect OAuth once added."
+msgstr ""
 
 #: src/pages/Shell.tsx:3248
 msgid "Set up voice to call"
@@ -6375,7 +6401,7 @@ msgstr ""
 msgid "Stored — leave blank to keep"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:336
+#: src/pages/McpServersOverlay.tsx:359
 msgid "Stored encrypted"
 msgstr "एन्क्रिप्टेड रूप में संग्रहीत"
 
@@ -6521,6 +6547,10 @@ msgstr "टेस्ट रन"
 #: src/pages/crm/CrmModuleSheet.tsx:253
 msgid "Text"
 msgstr "टेक्स्ट"
+
+#: src/lib/mcp-connect.ts:78
+msgid "That address is not from this sign-in. Start again and paste the new one."
+msgstr ""
 
 #: src/pages/crm/CrmForms.tsx:183
 msgid "That time is skipped when the clocks change in {timeZone}. Pick another."
@@ -6675,11 +6705,11 @@ msgstr "यह रीसेट लिंक अमान्य है या इ
 msgid "This server cannot be assigned without a bot."
 msgstr "बॉट के बिना यह सर्वर असाइन नहीं किया जा सकता।"
 
-#: src/pages/McpServersOverlay.tsx:167
+#: src/pages/McpServersOverlay.tsx:179
 msgid "This server did not request browser authorization."
 msgstr "इस सर्वर ने ब्राउज़र ऑथराइज़ेशन नहीं मांगा।"
 
-#: src/pages/McpServersOverlay.tsx:163
+#: src/pages/McpServersOverlay.tsx:175
 msgid "This server is already connected. Disconnect it first to authorize again."
 msgstr "यह सर्वर पहले से कनेक्टेड है। पुनः ऑथराइज़ करने के लिए पहले इसे डिस्कनेक्ट करें।"
 

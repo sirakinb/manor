@@ -469,7 +469,7 @@ msgstr ""
 msgid "Access"
 msgstr "Zugriff"
 
-#: src/pages/McpServersOverlay.tsx:329
+#: src/pages/McpServersOverlay.tsx:352
 msgid "Access token (optional)"
 msgstr "Zugriffstoken (optional)"
 
@@ -583,15 +583,15 @@ msgstr "Füge einen Zeitplan oder Webhook hinzu, um diese Routine auszuführen."
 msgid "Add a schedule or webhook trigger"
 msgstr "Zeitplan- oder Webhook-Auslöser hinzufügen"
 
-#: src/pages/McpServersOverlay.tsx:254
+#: src/pages/McpServersOverlay.tsx:280
 msgid "Add a server"
 msgstr "Server hinzufügen"
 
-#: src/pages/McpServersOverlay.tsx:86
+#: src/pages/McpServersOverlay.tsx:93
 msgid "Add a server name."
 msgstr "Gib einen Servernamen ein."
 
-#: src/pages/McpServersOverlay.tsx:94
+#: src/pages/McpServersOverlay.tsx:101
 msgid "Add a stdio command."
 msgstr "Gib einen stdio-Befehl ein."
 
@@ -600,7 +600,7 @@ msgstr "Gib einen stdio-Befehl ein."
 msgid "Add an address"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:90
+#: src/pages/McpServersOverlay.tsx:97
 msgid "Add an HTTPS server URL."
 msgstr "Gib eine HTTPS-Server-URL ein."
 
@@ -633,7 +633,7 @@ msgstr "OpenAPI hinzufügen"
 msgid "Add remote MCP server"
 msgstr "Remote-MCP-Server hinzufügen"
 
-#: src/pages/McpServersOverlay.tsx:363
+#: src/pages/McpServersOverlay.tsx:386
 msgid "Add server"
 msgstr "Server hinzufügen"
 
@@ -666,7 +666,7 @@ msgid "Add webhook"
 msgstr "Webhook hinzufügen"
 
 #: src/pages/CrmApiAccessPanel.tsx:347
-#: src/pages/McpServersOverlay.tsx:363
+#: src/pages/McpServersOverlay.tsx:386
 #: src/pages/PluginsOverlay.tsx:286
 #: src/pages/PluginsOverlay.tsx:594
 msgid "Adding…"
@@ -674,6 +674,10 @@ msgstr "Wird hinzugefügt…"
 
 #: src/pages/crm/CrmForms.tsx:200
 msgid "Address"
+msgstr ""
+
+#: src/pages/McpServersOverlay.tsx:529
+msgid "Address after approving"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:249
@@ -686,7 +690,11 @@ msgstr "Erweitert"
 msgid "Advanced..."
 msgstr "Erweitert..."
 
-#: src/pages/McpServersOverlay.tsx:369
+#: src/pages/McpServersOverlay.tsx:514
+msgid "After you approve, your browser lands on a page that won't load. Copy that page's address and paste it here."
+msgstr ""
+
+#: src/pages/McpServersOverlay.tsx:392
 msgid "Agent access for new servers"
 msgstr "Agent-Zugriff für neue Server"
 
@@ -711,7 +719,7 @@ msgstr ""
 msgid "Agents, conversations, files, and connected accounts are shared."
 msgstr "Agenten, Unterhaltungen, Dateien und verbundene Konten werden geteilt."
 
-#: src/pages/McpServersOverlay.tsx:431
+#: src/pages/McpServersOverlay.tsx:454
 msgid "Agents:"
 msgstr "Agents:"
 
@@ -884,7 +892,7 @@ msgstr ""
 msgid "Applications"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:372
+#: src/pages/McpServersOverlay.tsx:395
 msgid "Applies when you click Add server. Use the agent chips on each server card to change access at any time — the agent picks it up on its next message."
 msgstr "Gilt beim Hinzufügen des Servers. Mit den Agent-Chips auf jeder Serverkarte kannst du den Zugriff jederzeit ändern. Der Agent übernimmt die Änderung mit seiner nächsten Nachricht."
 
@@ -942,7 +950,7 @@ msgstr "Archiviert"
 msgid "Archived. Chat, memory, and files kept."
 msgstr "Archiviert. Chat, Erinnerungen und Dateien bleiben erhalten."
 
-#: src/pages/McpServersOverlay.tsx:304
+#: src/pages/McpServersOverlay.tsx:327
 msgid "Arguments"
 msgstr "Argumente"
 
@@ -1345,6 +1353,7 @@ msgstr "Server nicht erreichbar."
 #: src/pages/crm/CrmPipelineBoard.tsx:764
 #: src/pages/KnowledgeSection.tsx:196
 #: src/pages/KnowledgeSection.tsx:374
+#: src/pages/McpServersOverlay.tsx:549
 #: src/pages/PluginsOverlay.tsx:484
 #: src/pages/Shell.tsx:6687
 #: src/pages/Shell.tsx:6769
@@ -1624,7 +1633,7 @@ msgstr "Bildvorschau schließen"
 msgid "Close integrations"
 msgstr "Integrationen schließen"
 
-#: src/pages/McpServersOverlay.tsx:239
+#: src/pages/McpServersOverlay.tsx:265
 msgid "Close MCP servers"
 msgstr "MCP-Server schließen"
 
@@ -1675,7 +1684,7 @@ msgstr ""
 msgid "Collapse {0}"
 msgstr "{0} einklappen"
 
-#: src/pages/McpServersOverlay.tsx:294
+#: src/pages/McpServersOverlay.tsx:317
 msgid "Command"
 msgstr "Befehl"
 
@@ -1770,13 +1779,13 @@ msgstr ""
 msgid "Configured by deployment"
 msgstr "Durch die Bereitstellung konfiguriert"
 
-#: src/pages/McpServersOverlay.tsx:402
+#: src/pages/McpServersOverlay.tsx:425
 msgid "Configured servers"
 msgstr "Konfigurierte Server"
 
 #: src/pages/crm/CrmModuleSheet.tsx:150
 #: src/pages/crm/CrmModuleSheet.tsx:360
-#: src/pages/McpServersOverlay.tsx:479
+#: src/pages/McpServersOverlay.tsx:502
 msgid "Confirm delete"
 msgstr "Löschen bestätigen"
 
@@ -1838,7 +1847,7 @@ msgstr "OAuth verbinden"
 msgid "Connect other agents"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:232
+#: src/pages/McpServersOverlay.tsx:258
 msgid "Connect remote or local tool servers and choose which agents can use them."
 msgstr "Verbinde Remote- oder lokale Toolserver und wähle aus, welche Agents sie verwenden dürfen."
 
@@ -1895,6 +1904,7 @@ msgid "Connecting to the preview…"
 msgstr ""
 
 #: src/pages/McpServersOverlay.tsx:16
+#: src/pages/McpServersOverlay.tsx:542
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
 #: src/pages/Shell.tsx:7335
 #: src/pages/VoiceSettingsOverlay.tsx:282
@@ -2003,7 +2013,7 @@ msgstr ""
 msgid "Could not add"
 msgstr "Hinzufügen fehlgeschlagen"
 
-#: src/pages/McpServersOverlay.tsx:148
+#: src/pages/McpServersOverlay.tsx:155
 msgid "Could not add MCP server"
 msgstr "MCP-Server konnte nicht hinzugefügt werden"
 
@@ -2100,7 +2110,7 @@ msgstr "Bot konnte nicht gelöscht werden"
 msgid "Could not delete group"
 msgstr "Gruppe konnte nicht gelöscht werden"
 
-#: src/pages/McpServersOverlay.tsx:203
+#: src/pages/McpServersOverlay.tsx:229
 msgid "Could not delete MCP server"
 msgstr "MCP-Server konnte nicht gelöscht werden"
 
@@ -2120,7 +2130,7 @@ msgstr ""
 msgid "Could not disconnect memory provider"
 msgstr "Erinnerungsanbieter konnte nicht getrennt werden"
 
-#: src/pages/McpServersOverlay.tsx:214
+#: src/pages/McpServersOverlay.tsx:240
 msgid "Could not disconnect OAuth"
 msgstr "OAuth-Verbindung konnte nicht getrennt werden"
 
@@ -2140,6 +2150,10 @@ msgstr ""
 #: src/pages/KnowledgeSection.tsx:145
 msgid "Could not export"
 msgstr "Export fehlgeschlagen"
+
+#: src/pages/McpServersOverlay.tsx:198
+msgid "Could not finish connecting"
+msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx:87
 msgid "Could not generate the report"
@@ -2173,7 +2187,7 @@ msgstr ""
 msgid "Could not load integrations"
 msgstr "Integrationen konnten nicht geladen werden"
 
-#: src/pages/McpServersOverlay.tsx:60
+#: src/pages/McpServersOverlay.tsx:67
 msgid "Could not load MCP servers"
 msgstr "MCP-Server konnten nicht geladen werden"
 
@@ -2380,7 +2394,7 @@ msgstr "Senden fehlgeschlagen"
 msgid "Could not share this Mac"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:172
+#: src/pages/McpServersOverlay.tsx:184
 msgid "Could not start OAuth"
 msgstr "OAuth konnte nicht gestartet werden"
 
@@ -2409,7 +2423,7 @@ msgstr "Kontrolle konnte nicht übernommen werden"
 msgid "Could not update"
 msgstr "Aktualisierung fehlgeschlagen"
 
-#: src/pages/McpServersOverlay.tsx:188
+#: src/pages/McpServersOverlay.tsx:214
 msgid "Could not update agent access"
 msgstr "Agent-Zugriff konnte nicht aktualisiert werden"
 
@@ -2660,7 +2674,7 @@ msgstr "Standardbereich"
 #: src/pages/crm/CrmForms.tsx:348
 #: src/pages/crm/CrmPipelineBoard.tsx:368
 #: src/pages/KnowledgeSection.tsx:383
-#: src/pages/McpServersOverlay.tsx:481
+#: src/pages/McpServersOverlay.tsx:504
 #: src/pages/RoutineEditor.tsx:273
 #: src/pages/Shell.tsx:2955
 #: src/pages/Shell.tsx:2985
@@ -2801,7 +2815,7 @@ msgstr ""
 msgid "Discard unsaved edits?"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:468
+#: src/pages/McpServersOverlay.tsx:491
 #: src/pages/MemorySettingsOverlay.tsx:187
 msgid "Disconnect"
 msgstr "Trennen"
@@ -3246,6 +3260,10 @@ msgstr ""
 msgid "Finding…"
 msgstr "Suche läuft…"
 
+#: src/pages/McpServersOverlay.tsx:542
+msgid "Finish connecting"
+msgstr ""
+
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx:547
 #: src/pages/Onboarding.tsx:400
@@ -3451,12 +3469,12 @@ msgstr ""
 msgid "header"
 msgstr "Header"
 
-#: src/pages/McpServersOverlay.tsx:342
+#: src/pages/McpServersOverlay.tsx:365
 #: src/pages/PluginsOverlay.tsx:444
 msgid "Header name"
 msgstr "Header-Name"
 
-#: src/pages/McpServersOverlay.tsx:348
+#: src/pages/McpServersOverlay.tsx:371
 msgid "Header value"
 msgstr "Header-Wert"
 
@@ -4004,8 +4022,8 @@ msgstr "Max."
 msgid "MCP lets an agent discover and use {brandName} tools from a conversation. The API exposes operations directly to software. Both work with your organization’s data and respect the permissions on its token."
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:224
-#: src/pages/McpServersOverlay.tsx:229
+#: src/pages/McpServersOverlay.tsx:250
+#: src/pages/McpServersOverlay.tsx:255
 #: src/pages/PluginsOverlay.tsx:373
 msgid "MCP servers"
 msgstr "MCP-Server"
@@ -4531,7 +4549,7 @@ msgstr "Keine passenden Modelle"
 msgid "No MCP or API tool sources installed yet."
 msgstr "Noch keine MCP- oder API-Toolquellen installiert."
 
-#: src/pages/McpServersOverlay.tsx:407
+#: src/pages/McpServersOverlay.tsx:430
 msgid "No MCP servers yet."
 msgstr "Noch keine MCP-Server."
 
@@ -4706,10 +4724,6 @@ msgstr "OAuth verbunden"
 msgid "OAuth connection failed"
 msgstr "OAuth-Verbindung fehlgeschlagen"
 
-#: src/pages/McpServersOverlay.tsx:257
-msgid "OAuth will be available for providers that support browser authorization. Static headers work today."
-msgstr "OAuth ist für Anbieter mit Browserautorisierung verfügbar. Statische Header können bereits verwendet werden."
-
 #: src/pages/workspace/sections/UtilitiesSection.tsx:119
 msgid "Obtain the bill from the owner and handle manually."
 msgstr ""
@@ -4822,6 +4836,10 @@ msgstr ""
 msgid "Open the bot’s Settings to review Memory and Skills. Memory holds context worth keeping; skills hold instructions for repeatable work. Correct outdated information and save the steps that produced a good result. Check what is shared before adding information intended for only one agent."
 msgstr ""
 
+#: src/pages/McpServersOverlay.tsx:525
+msgid "Open the sign-in page again"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx:104
 msgid "Open work"
 msgstr "Offene Arbeit"
@@ -4864,7 +4882,7 @@ msgstr "Optional"
 msgid "Optional controls most people never need"
 msgstr "Optionale Einstellungen, die die meisten nie benötigen"
 
-#: src/pages/McpServersOverlay.tsx:352
+#: src/pages/McpServersOverlay.tsx:375
 msgid "Optional header value"
 msgstr "Optionaler Header-Wert"
 
@@ -4963,6 +4981,10 @@ msgstr "Die Passwörter stimmen nicht überein"
 #: src/pages/VoiceSettingsOverlay.tsx:271
 msgid "Paste a replacement key"
 msgstr "Ersatzschlüssel einfügen"
+
+#: src/lib/mcp-connect.ts:77
+msgid "Paste the full address from the page you landed on."
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:417
 #: src/pages/Onboarding.tsx:306
@@ -5982,15 +6004,19 @@ msgstr ""
 msgid "Sent to {0}"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:263
+#: src/pages/McpServersOverlay.tsx:286
 msgid "Server name"
 msgstr "Servername"
 
-#: src/pages/McpServersOverlay.tsx:317
+#: src/pages/McpServersOverlay.tsx:340
 #: src/pages/ModelSettingsOverlay.tsx:402
 #: src/pages/Onboarding.tsx:291
 msgid "Server URL"
 msgstr "Server-URL"
+
+#: src/pages/McpServersOverlay.tsx:283
+msgid "Servers that ask you to sign in show Connect OAuth once added."
+msgstr ""
 
 #: src/pages/Shell.tsx:3248
 msgid "Set up voice to call"
@@ -6375,7 +6401,7 @@ msgstr ""
 msgid "Stored — leave blank to keep"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx:336
+#: src/pages/McpServersOverlay.tsx:359
 msgid "Stored encrypted"
 msgstr "Verschlüsselt gespeichert"
 
@@ -6520,6 +6546,10 @@ msgstr "Testlauf"
 
 #: src/pages/crm/CrmModuleSheet.tsx:253
 msgid "Text"
+msgstr ""
+
+#: src/lib/mcp-connect.ts:78
+msgid "That address is not from this sign-in. Start again and paste the new one."
 msgstr ""
 
 #: src/pages/crm/CrmForms.tsx:183
@@ -6675,11 +6705,11 @@ msgstr "Dieser Link zum Zurücksetzen ist ungültig oder abgelaufen"
 msgid "This server cannot be assigned without a bot."
 msgstr "Dieser Server kann ohne Bot nicht zugewiesen werden."
 
-#: src/pages/McpServersOverlay.tsx:167
+#: src/pages/McpServersOverlay.tsx:179
 msgid "This server did not request browser authorization."
 msgstr "Dieser Server hat keine Browserautorisierung angefordert."
 
-#: src/pages/McpServersOverlay.tsx:163
+#: src/pages/McpServersOverlay.tsx:175
 msgid "This server is already connected. Disconnect it first to authorize again."
 msgstr "Dieser Server ist bereits verbunden. Trenne zuerst die Verbindung, um ihn erneut zu autorisieren."
 

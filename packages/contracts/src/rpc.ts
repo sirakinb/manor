@@ -997,6 +997,8 @@ export const appContract = {
             status: z.literal("authorization_required"),
             sessionId: Id,
             authorizationUrl: z.string().url(),
+            /** "paste": the provider only accepts a loopback callback the user pastes back. */
+            completion: z.enum(["popup", "paste"]),
           }),
           z.object({
             status: z.enum(["already_connected", "authorization_not_requested"]),

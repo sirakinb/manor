@@ -184,6 +184,30 @@ type Pending = {
 };
 
 const PENDING_TTL_MS = 10 * 60_000;
+/** Registered with providers that refuse web callbacks. Nothing listens here: the user copies it. */
+export const LOOPBACK_REDIRECT_URI = "http://127.0.0.1:53682/mcp/oauth/callback";
+
+/** True when an OAuth error response refuses the callback address we registered. */
+async function rejectsRedirect(response: Response): Promise<boolean> {
+  const body = (await response.json().catch(() => null)) as {
+    error?: unknown;
+    error_description?: unknown;
+  } | null;
+  if (body?.error === "invalid_redirect_uri") return true;
+  return (
+    body?.error === "invalid_client_metadata" &&
+    typeof body.error_description === "string" &&
+    /redirect/i.test(body.error_description)
+  );
+}
+
+/** A client registered for another callback cannot be reused; register again. */
+function forgetClientForOtherRedirect(material: OAuthMaterial, redirectUri: string): void {
+  const info = material.oauth?.clientInformation as { redirect_uris?: unknown } | undefined;
+  if (Array.isArray(info?.redirect_uris) && !info.redirect_uris.includes(redirectUri)) {
+    delete material.oauth!.clientInformation;
+  }
+}
 const MAX_PENDING_SESSIONS = 100;
 
 /** OAuth traffic runs through the same URL policy as runtime MCP requests
@@ -244,7 +268,13 @@ export class McpOAuthBroker {
     userId: string;
     redirectUri: string;
   }): Promise<
-    | { status: "authorization_required"; sessionId: string; authorizationUrl: string }
+    | {
+        status: "authorization_required";
+        sessionId: string;
+        authorizationUrl: string;
+        /** "paste": the provider only accepts a loopback callback; the user pastes it back. */
+        completion: "popup" | "paste";
+      }
     | { status: "already_connected" | "authorization_not_requested" }
   > {
     const server = await this.prisma.mcpServer.findFirst({
@@ -274,40 +304,69 @@ export class McpOAuthBroker {
     }
     const sessionId = randomUUID();
     const context = { spaceId: input.spaceId, userId: input.userId };
-    const loaded = await this.loadMaterial(server, context);
-    let authorizationUrl: URL | undefined;
-    const provider = this.createProvider(server, context, loaded, {
-      redirectUri: input.redirectUri,
-      state: sessionId,
-      onAuthorization: (url) => {
-        authorizationUrl = url;
-      },
-    });
-    // Never destroy working tokens here: if this attempt fails (network error,
-    // cancelled popup), the server keeps its valid connection. The SDK itself
-    // invalidates dead tokens when a refresh is rejected with invalid_grant.
     const endpoint = new URL(server.endpoint);
-    const networkFetch = oauthFetch(server.endpoint, this.network);
-    const transport = new StreamableHTTPClientTransport(endpoint, {
-      authProvider: provider,
-      fetch: networkFetch.fetch,
-    });
-    const client = new Client({ name: "rakazo-oauth", version: "0.1.0" });
-    const signal = AbortSignal.timeout(15_000);
-    try {
-      await client.connect(transport, { signal, timeout: 15_000 });
-    } catch (error) {
-      if (!authorizationUrl) throw error;
-    } finally {
-      await client.close().catch(() => undefined);
-      await networkFetch.close().catch(() => undefined);
+
+    /** One authorization attempt against `redirectUri`; notes when registration refuses it. */
+    const attempt = async (redirectUri: string) => {
+      const loaded = await this.loadMaterial(server, context);
+      forgetClientForOtherRedirect(loaded.material, redirectUri);
+      let authorizationUrl: URL | undefined;
+      let redirectRejected = false;
+      const provider = this.createProvider(server, context, loaded, {
+        redirectUri,
+        state: sessionId,
+        onAuthorization: (url) => {
+          authorizationUrl = url;
+        },
+      });
+      // Never destroy working tokens here: if this attempt fails (network error,
+      // cancelled popup), the server keeps its valid connection. The SDK itself
+      // invalidates dead tokens when a refresh is rejected with invalid_grant.
+      const networkFetch = oauthFetch(server.endpoint!, this.network);
+      const observed: typeof fetch = async (request, init) => {
+        const response = await networkFetch.fetch(request, init);
+        if (response.status === 400 && (init?.method ?? "GET").toUpperCase() === "POST") {
+          redirectRejected ||= await rejectsRedirect(response.clone());
+        }
+        return response;
+      };
+      const transport = new StreamableHTTPClientTransport(endpoint, {
+        authProvider: provider,
+        fetch: observed,
+      });
+      const client = new Client({ name: "rakazo-oauth", version: "0.1.0" });
+      let failure: unknown;
+      try {
+        await client.connect(transport, {
+          signal: AbortSignal.timeout(15_000),
+          timeout: 15_000,
+        });
+      } catch (error) {
+        failure = error;
+      } finally {
+        await client.close().catch(() => undefined);
+        await networkFetch.close().catch(() => undefined);
+      }
+      return { loaded, provider, authorizationUrl, failure, redirectRejected };
+    };
+
+    let completion: "popup" | "paste" = "popup";
+    let result = await attempt(input.redirectUri);
+    // Some providers (Upwork) only register loopback callbacks. Retry with one; the user
+    // pastes the address the browser lands on after approving.
+    if (!result.authorizationUrl && result.redirectRejected) {
+      completion = "paste";
+      result = await attempt(LOOPBACK_REDIRECT_URI);
     }
+    const { loaded, provider, authorizationUrl, failure } = result;
     if (!authorizationUrl) {
+      if (failure) throw failure;
       if (provider.tokens()) {
         return { status: "already_connected" };
       }
       return { status: "authorization_not_requested" };
     }
+    const redirectUri = completion === "paste" ? LOOPBACK_REDIRECT_URI : input.redirectUri;
     const sessionMaterial = await this.secrets.put(
       JSON.stringify(loaded.material),
       {
@@ -327,7 +386,7 @@ export class McpOAuthBroker {
         spaceId: input.spaceId,
         userId: input.userId,
         endpoint: server.endpoint,
-        redirectUri: input.redirectUri,
+        redirectUri,
         oauthCiphertext: sessionMaterial.ciphertext,
       },
     });
@@ -351,6 +410,7 @@ export class McpOAuthBroker {
       status: "authorization_required",
       sessionId,
       authorizationUrl: authorizationUrl.toString(),
+      completion,
     };
   }
 

@@ -1,3 +1,5 @@
+import { t } from "@lingui/core/macro";
+import { parsePastedCallback } from "./mcp-paste";
 import { rpc } from "./rpc";
 
 export const MCP_OAUTH_CHANNEL = "rakazo-mcp-oauth";
@@ -7,7 +9,9 @@ export type McpOauthResult =
   | "connected"
   | "cancelled"
   | "already_connected"
-  | "authorization_not_requested";
+  | "authorization_not_requested"
+  /** The provider only accepts a loopback callback: the user pastes the address it lands on. */
+  | { paste: { sessionId: string; authorizationUrl: string } };
 
 /** Run the browser OAuth popup flow for an MCP server: request an
  * authorization URL, open the popup, and wait until the callback page
@@ -21,6 +25,10 @@ export async function connectMcpOauth(serverId: string): Promise<McpOauthResult>
     redirectUri: `${window.location.origin}/mcp/oauth/callback`,
   });
   if (started.status !== "authorization_required") return started.status;
+  if (started.completion === "paste") {
+    window.open(started.authorizationUrl, "_blank");
+    return { paste: { sessionId: started.sessionId, authorizationUrl: started.authorizationUrl } };
+  }
   const popup = window.open(
     started.authorizationUrl,
     MCP_OAUTH_CHANNEL,
@@ -57,4 +65,18 @@ export async function connectMcpOauth(serverId: string): Promise<McpOauthResult>
       finish("connected");
     };
   });
+}
+
+/** Finish a paste-back authorization from the address the browser landed on after approving. */
+export async function finishMcpOauthFromPaste(sessionId: string, pasted: string): Promise<void> {
+  const parsed = parsePastedCallback(sessionId, pasted);
+  if (!parsed.ok) {
+    if (parsed.reason === "denied") throw new Error(parsed.detail);
+    throw new Error(
+      parsed.reason === "not_an_address"
+        ? t`Paste the full address from the page you landed on.`
+        : t`That address is not from this sign-in. Start again and paste the new one.`,
+    );
+  }
+  await rpc.mcp.oauth.complete({ sessionId, code: parsed.code, state: parsed.state });
 }

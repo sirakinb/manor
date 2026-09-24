@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  LOOPBACK_REDIRECT_URI,
   McpOAuthBroker,
   McpReauthorizationRequiredError,
   StoredMcpOAuthProvider,
@@ -189,6 +190,7 @@ describe("MCP OAuth", () => {
     if (started.status !== "authorization_required") throw new Error("OAuth was not requested");
     const authorizationUrl = new URL(started.authorizationUrl);
 
+    expect(started.completion).toBe("popup");
     expect(registration).toMatchObject({ client_name: "Rakazo", application_type: "native" });
     expect(authorizationUrl.origin).toBe("https://auth.example.test");
     expect(authorizationUrl.searchParams.get("client_id")).toBe("registered-client-id");
@@ -223,6 +225,138 @@ describe("MCP OAuth", () => {
       where: { id: "server-1" },
       data: { revision: { increment: 1 } },
     });
+  });
+
+  it("falls back to a pasted loopback callback when registration refuses the web callback", async () => {
+    const registered: string[][] = [];
+    let tokenBody = "";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const request = input instanceof Request ? input : new Request(input, init);
+        const url = new URL(request.url);
+        if (url.href === "https://mcp.example.test/mcp" && request.method === "POST") {
+          return new Response(null, {
+            status: 401,
+            headers: {
+              "WWW-Authenticate":
+                'Bearer resource_metadata="https://mcp.example.test/.well-known/oauth-protected-resource/mcp"',
+            },
+          });
+        }
+        if (url.href === "https://mcp.example.test/.well-known/oauth-protected-resource/mcp") {
+          return Response.json({
+            resource: "https://mcp.example.test/mcp",
+            authorization_servers: ["https://auth.example.test"],
+          });
+        }
+        if (url.href === "https://auth.example.test/.well-known/oauth-authorization-server") {
+          return Response.json({
+            issuer: "https://auth.example.test",
+            authorization_endpoint: "https://auth.example.test/authorize",
+            token_endpoint: "https://auth.example.test/token",
+            registration_endpoint: "https://auth.example.test/register",
+            response_types_supported: ["code"],
+            code_challenge_methods_supported: ["S256"],
+          });
+        }
+        if (url.href === "https://auth.example.test/register" && request.method === "POST") {
+          const body = (await request.json()) as { redirect_uris: string[] };
+          registered.push(body.redirect_uris);
+          // Like Upwork: only loopback callbacks are accepted.
+          if (!body.redirect_uris.every((uri) => uri.startsWith("http://127.0.0.1:"))) {
+            return Response.json(
+              {
+                error: "invalid_redirect_uri",
+                error_description: "One or more redirect URIs are invalid",
+              },
+              { status: 400 },
+            );
+          }
+          return Response.json(
+            {
+              client_id: "loopback-client",
+              redirect_uris: body.redirect_uris,
+              token_endpoint_auth_method: "none",
+            },
+            { status: 201 },
+          );
+        }
+        if (url.href === "https://auth.example.test/token" && request.method === "POST") {
+          tokenBody = await request.text();
+          return Response.json({ access_token: "access-token", token_type: "bearer" });
+        }
+        throw new Error(`Unexpected request: ${request.method} ${url}`);
+      }),
+    );
+    let secretCounter = 0;
+    const put = vi.fn(async () => {
+      secretCounter += 1;
+      return { id: `secret-${secretCounter}`, ciphertext: `encrypted-${secretCounter}` };
+    });
+    const tx = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      mcpServer: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ endpoint: "https://mcp.example.test/mcp", secretId: null }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      secret: {
+        findFirst: vi.fn(),
+        create: vi.fn().mockResolvedValue({}),
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const sessions = oauthSessionStore();
+    const prisma = {
+      mcpServer: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "server-1",
+          endpoint: "https://mcp.example.test/mcp",
+          secretId: null,
+        }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      secret: {
+        findFirst: vi.fn(),
+        create: vi.fn().mockResolvedValue({}),
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      mcpOAuthSession: sessions,
+      $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+    };
+    const broker = new McpOAuthBroker(prisma as never, { put } as never, TEST_NETWORK);
+
+    const started = await broker.begin({
+      serverId: "server-1",
+      spaceId: "workspace-1",
+      userId: "user-1",
+      redirectUri: "https://manor.example.test/mcp/oauth/callback",
+    });
+    if (started.status !== "authorization_required") throw new Error("OAuth was not requested");
+    expect(started.completion).toBe("paste");
+    expect(registered).toEqual([
+      ["https://manor.example.test/mcp/oauth/callback"],
+      [LOOPBACK_REDIRECT_URI],
+    ]);
+    const authorizationUrl = new URL(started.authorizationUrl);
+    expect(authorizationUrl.searchParams.get("redirect_uri")).toBe(LOOPBACK_REDIRECT_URI);
+    expect(authorizationUrl.searchParams.get("client_id")).toBe("loopback-client");
+    expect(sessions.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ redirectUri: LOOPBACK_REDIRECT_URI }),
+    });
+
+    await broker.complete({
+      sessionId: started.sessionId,
+      code: "pasted-code",
+      state: started.sessionId,
+      spaceId: "workspace-1",
+      userId: "user-1",
+    });
+    const exchanged = new URLSearchParams(tokenBody);
+    expect(exchanged.get("code")).toBe("pasted-code");
+    expect(exchanged.get("redirect_uri")).toBe(LOOPBACK_REDIRECT_URI);
   });
 
   it("applies the transport URL policy to OAuth traffic: no plain-HTTP endpoints, no redirects", async () => {
