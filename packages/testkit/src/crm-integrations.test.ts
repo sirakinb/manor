@@ -240,6 +240,40 @@ describeWithDatabase("CRM public integrations", () => {
     expect(await moved.json()).toMatchObject({ deal: { stage_id: pipeline.stages[1]!.id } });
   });
 
+  it("lets non-owner members manage credentials without crossing accounts", async () => {
+    const memberCookie = await signup(app, `crm-member-${stamp}@rakazo.test`);
+    await handles.prisma.member.updateMany({
+      where: { user: { email: `crm-member-${stamp}@rakazo.test` } },
+      data: { role: "member" },
+    });
+    const created = await app.request("/v1/integration-credentials", {
+      method: "POST",
+      headers: { cookie: memberCookie, "content-type": "application/json" },
+      body: JSON.stringify({ name: "Member token", scopes: ["crm:read"] }),
+    });
+    expect(created.status).toBe(201);
+    const { id } = (await created.json()) as { id: string };
+
+    const own = await app.request("/v1/integration-credentials", {
+      headers: { cookie: memberCookie },
+    });
+    const ownIds = ((await own.json()) as { data: { id: string }[] }).data.map((row) => row.id);
+    expect(ownIds).toContain(id);
+
+    // Another account's member sees and revokes only their own credentials.
+    const other = await app.request("/v1/integration-credentials", { headers: { cookie } });
+    const otherIds = ((await other.json()) as { data: { id: string }[] }).data.map((row) => row.id);
+    expect(otherIds).not.toContain(id);
+    const crossRevoke = await app.request(`/v1/integration-credentials/${id}`, {
+      method: "DELETE",
+      headers: { cookie },
+    });
+    expect(crossRevoke.status).toBe(404);
+
+    const signedOut = await app.request("/v1/integration-credentials");
+    expect(signedOut.status).toBe(401);
+  });
+
   it("rejects webhook targets that resolve inside the private network", async () => {
     const response = await app.request("/v1/webhooks", {
       method: "POST",
