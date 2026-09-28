@@ -892,15 +892,6 @@ export function mountCrmIntegrationRoutes(
   },
 ) {
   const service = deps.service ?? createCrmIntegrationService(deps);
-  const resolveOwner = async (request: Request) => {
-    const actor = await deps.resolveActor(request);
-    if (!actor) return null;
-    const member = await deps.prisma.member.findFirst({
-      where: { organizationId: actor.organizationId, userId: actor.userId },
-      select: { role: true },
-    });
-    return member?.role.split(",").some((role) => role.trim() === "owner") ? actor : null;
-  };
 
   mountWorkspaceIntegrationRoutes(app, { prisma: deps.prisma, authenticate: service.authenticate });
   app.get("/v1/openapi.json", (c) => {
@@ -909,7 +900,7 @@ export function mountCrmIntegrationRoutes(
   });
 
   app.get("/v1/integration-credentials", async (c) => {
-    const actor = await resolveOwner(c.req.raw);
+    const actor = await deps.resolveActor(c.req.raw);
     if (!actor) return c.json(jsonError("Authentication required", 401).body, 401);
     const rows = await deps.prisma.integrationCredential.findMany({
       where: { spaceId: actor.spaceId },
@@ -919,7 +910,7 @@ export function mountCrmIntegrationRoutes(
   });
 
   app.post("/v1/integration-credentials", async (c) => {
-    const actor = await resolveOwner(c.req.raw);
+    const actor = await deps.resolveActor(c.req.raw);
     if (!actor) return c.json(jsonError("Authentication required", 401).body, 401);
     const parsed = service.parseCredentialInput(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json(jsonError(z.prettifyError(parsed.error), 400).body, 400);
@@ -927,7 +918,7 @@ export function mountCrmIntegrationRoutes(
   });
 
   app.delete("/v1/integration-credentials/:id", async (c) => {
-    const actor = await resolveOwner(c.req.raw);
+    const actor = await deps.resolveActor(c.req.raw);
     if (!actor) return c.json(jsonError("Authentication required", 401).body, 401);
     const changed = await deps.prisma.integrationCredential.updateMany({
       where: { id: c.req.param("id"), spaceId: actor.spaceId, revokedAt: null },
@@ -1206,7 +1197,7 @@ export function mountCrmIntegrationRoutes(
   });
 
   app.get("/v1/webhooks", async (c) => {
-    const actor = await resolveOwner(c.req.raw);
+    const actor = await deps.resolveActor(c.req.raw);
     const principal = actor ? null : await service.authenticate(c.req.raw);
     const organizationId = actor?.organizationId ?? principal?.organizationId;
     if (!organizationId) return c.json(jsonError("Authentication required", 401).body, 401);
@@ -1221,7 +1212,7 @@ export function mountCrmIntegrationRoutes(
   });
 
   app.post("/v1/webhooks", async (c) => {
-    const actor = await resolveOwner(c.req.raw);
+    const actor = await deps.resolveActor(c.req.raw);
     const principal = actor ? null : await service.authenticate(c.req.raw);
     // The signing secret's associated data is bound to the space the webhook
     // was created from (the platform-wide secret-store contract), even
@@ -1280,7 +1271,7 @@ export function mountCrmIntegrationRoutes(
   });
 
   app.delete("/v1/webhooks/:id", async (c) => {
-    const actor = await resolveOwner(c.req.raw);
+    const actor = await deps.resolveActor(c.req.raw);
     const principal = actor ? null : await service.authenticate(c.req.raw);
     const organizationId = actor?.organizationId ?? principal?.organizationId;
     if (!organizationId) return c.json(jsonError("Authentication required", 401).body, 401);
