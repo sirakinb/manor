@@ -82,6 +82,12 @@ describe("matchBillsToProperties", () => {
     expect(matches.has(coincidence)).toBe(false);
     const unitTwelve = bill("1000 Park Ave Unit 12", { dueDate: "2026-10-20", amountDue: 333.83 });
     expect(matchBillsToProperties([notice, unitTwelve], [main]).has(unitTwelve)).toBe(false);
+    const north = property("north", "12 N Main St");
+    const northNotice = bill("12 N Main St", { dueDate: "2026-10-20", balance: 333.83 });
+    for (const other of ["12 S Main St", "12 N Main Place"]) {
+      const stray = bill(other, { dueDate: "2026-10-20", balance: 333.83 });
+      expect(matchBillsToProperties([northNotice, stray], [north]).has(stray)).toBe(false);
+    }
   });
 
   it("leaves a balance and due date shared by two properties unmatched", () => {

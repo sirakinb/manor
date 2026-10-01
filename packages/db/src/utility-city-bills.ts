@@ -67,14 +67,26 @@ const HOUSE_NUMBER = /^\d+[a-z]?$/;
 /**
  * Whether the bill's address mentions the property's house number and every word of its
  * street name, in any position: "rear unit 12 main" names "12 main street", but
- * "1000 park avenue unit 12" does not.
+ * "1000 park avenue unit 12" and "12 south main street" (for "12 north main street") do not.
  */
 function namesProperty(billNorm: string, propertyNorm: string): boolean {
   const [number, ...words] = propertyNorm.split(" ");
   if (!number || !HOUSE_NUMBER.test(number)) return false;
   const street = words.filter((word) => !DIRECTIONS.has(word) && !STREET_TYPES.has(word));
-  const billWords = new Set(billNorm.split(" "));
-  return street.length > 0 && billWords.has(number) && street.every((word) => billWords.has(word));
+  const billWords = billNorm.split(" ");
+  // A different direction or street type is a different street, as in sameStreetAddr.
+  const conflicts = (kind: Set<string>) => {
+    const own = words.filter((word) => kind.has(word));
+    const theirs = billWords.filter((word) => kind.has(word));
+    return own.length > 0 && theirs.length > 0 && !theirs.some((word) => own.includes(word));
+  };
+  return (
+    street.length > 0 &&
+    billWords.includes(number) &&
+    street.every((word) => billWords.includes(word)) &&
+    !conflicts(DIRECTIONS) &&
+    !conflicts(STREET_TYPES)
+  );
 }
 
 export type UtilityBillMatch = "address" | "variation" | "balance_due_date";

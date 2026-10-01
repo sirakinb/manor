@@ -521,14 +521,14 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       return month ? `${target.utilityPropertyId}|${month}` : bill.id;
     };
     // When several bills land on one property and month, show the one that already has
-    // posted or skipped charges, so a merged duplicate can never be charged twice. Next,
-    // a bill tied by its address beats one tied only by balance and due date.
+    // posted or skipped charges, so a merged duplicate can never be charged twice; then one
+    // with the month's amount; then one tied by its address over one tied by balance.
     const rank = ({ bill, matchedBy }: (typeof tracked)[number]) =>
       (bill.chargePosts.some((post) => post.status === "posted" || post.status === "skipped")
         ? 4
         : 0) +
-      (matchedBy === "balance_due_date" ? 0 : 2) +
-      (bill.currentCharges !== null ? 1 : 0);
+      (bill.currentCharges !== null ? 2 : 0) +
+      (matchedBy === "balance_due_date" ? 0 : 1);
     const preferred = new Map<string, (typeof tracked)[number]>();
     for (const entry of tracked) {
       const key = billKey(entry);
