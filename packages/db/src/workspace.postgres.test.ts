@@ -160,7 +160,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       ],
     });
 
-    // Utilities: the two-lease property is split evenly; one bill matches it, one matches nothing.
+    // Utilities: the two-lease property is split evenly; one bill matches it, one is for an untracked address.
     await prisma.workspaceUtilityProperty.create({
       data: {
         workspaceId,
@@ -242,8 +242,8 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       monthlyRentRoll: 2200,
     });
     expect(overview.utilities).toEqual({
-      billsThisMonth: 2,
-      billsNeedingReview: 1,
+      billsThisMonth: 1,
+      billsNeedingReview: 0,
       chargesPending: 0,
       chargesPosted: 0,
     });
@@ -367,11 +367,9 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       }),
     ]);
 
-    expect(utilities.bills.map((bill) => bill.serviceAddress)).toEqual([
-      "12 TEST ST",
-      "99 NOWHERE RD",
-    ]);
-    const [matched, unmatched] = utilities.bills;
+    // The untracked address stays out of the billing view.
+    expect(utilities.bills.map((bill) => bill.serviceAddress)).toEqual(["12 TEST ST"]);
+    const [matched] = utilities.bills;
     expect(utilities.currentBillingMonth).toBe(dayOf(MONTH_START));
     expect(matched).toMatchObject({
       utilityPropertyId: utilities.targets[0]!.utilityPropertyId,
@@ -380,6 +378,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       accountBalance: 2433.11,
       resolutionStatus: "resolved",
       billingMode: "pass_through",
+      archived: false,
     });
     expect(matched!.charges).toEqual([
       expect.objectContaining({
@@ -397,14 +396,6 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
         postStatus: "pending",
       }),
     ]);
-    expect(unmatched).toMatchObject({
-      utilityPropertyId: null,
-      resolutionStatus: "unmatched",
-      billingMode: null,
-      billAmount: null,
-      accountBalance: 40,
-      charges: [],
-    });
   });
 
   it("keeps unparsed notices that share an address instead of hiding one", async () => {
@@ -413,23 +404,26 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
         {
           workspaceId,
           gmailMessageId: "m-unparsed-a",
-          serviceAddress: "77 UNPARSED CT",
-          serviceAddressNorm: "77 unparsed court",
+          serviceAddress: "12 TEST ST",
+          serviceAddressNorm: "12 test street",
           parseStatus: "needs_review",
         },
         {
           workspaceId,
           gmailMessageId: "m-unparsed-b",
-          serviceAddress: "77 UNPARSED CT",
-          serviceAddressNorm: "77 unparsed court",
+          serviceAddress: "12 TEST ST",
+          serviceAddressNorm: "12 test street",
           parseStatus: "needs_review",
         },
       ],
     });
     const overview = await repos.utilitiesOverview(actor);
-    const unparsed = overview.bills.filter((bill) => bill.serviceAddress === "77 UNPARSED CT");
+    const unparsed = overview.bills.filter((bill) => bill.billingMonth === null);
     expect(unparsed).toHaveLength(2);
-    expect(unparsed.every((bill) => bill.billingMonth === null)).toBe(true);
+    expect(unparsed.every((bill) => bill.serviceAddress === "12 TEST ST")).toBe(true);
+    await prisma.workspaceWaterBill.deleteMany({
+      where: { workspaceId, gmailMessageId: { in: ["m-unparsed-a", "m-unparsed-b"] } },
+    });
   });
 
   it("records city current charges onto the matching month without using the running total", async () => {
@@ -547,6 +541,110 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     );
     expect(priorBill?.charges.map((charge) => charge.leaseId)).toEqual([40]);
     expect(currentBill?.charges.map((charge) => charge.leaseId)).toEqual([41]);
+  });
+
+  it("matches other spellings, edits and archives tracked properties and bills", async () => {
+    const earlier = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - 2, 1));
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId,
+        gmailMessageId: "m-alias",
+        serviceAddress: "12 N TEST ST",
+        serviceAddressNorm: "12 north test street",
+        currentCharges: 55,
+        billingMonth: earlier,
+        parseStatus: "parsed",
+      },
+    });
+    const before = await repos.utilitiesOverview(actor);
+    expect(before.bills.some((bill) => bill.serviceAddress === "12 N TEST ST")).toBe(false);
+    const tracked = before.targets.find((row) => row.address === "12 Test St")!;
+    const turnover = before.targets.find((row) => row.address === "5 Turnover Alley")!;
+    expect(before.buildiumProperties?.map((row) => row.propertyId)).toContain(1001);
+
+    const saved = await repos.saveUtilityProperty(actor, {
+      utilityPropertyId: tracked.utilityPropertyId,
+      address: "12 Test St",
+      aliases: ["12 N Test St", "12 Test Street"],
+      propertyId: 1001,
+      billingMode: "pass_through",
+      splitEvenly: true,
+      notes: "Split the water bill across both units.",
+    });
+    // The spelling that normalizes to the address itself is dropped.
+    expect(saved.targets.find((row) => row.address === "12 Test St")?.aliases).toEqual([
+      "12 N Test St",
+    ]);
+    const aliased = saved.bills.find((bill) => bill.serviceAddress === "12 N TEST ST");
+    expect(aliased).toMatchObject({
+      utilityPropertyId: tracked.utilityPropertyId,
+      billAmount: 55,
+      archived: false,
+    });
+
+    await expect(
+      repos.saveUtilityProperty(actor, {
+        utilityPropertyId: turnover.utilityPropertyId,
+        address: "5 Turnover Alley",
+        aliases: ["12 North Test Street"],
+        propertyId: 1004,
+        billingMode: "pass_through",
+        splitEvenly: false,
+      }),
+    ).rejects.toThrow("12 Test St already uses that address");
+
+    const archived = await repos.archiveWaterBills(actor, {
+      billingMonth: dayOf(earlier)!,
+      archived: true,
+    });
+    expect(archived.bills.find((bill) => bill.serviceAddress === "12 N TEST ST")?.archived).toBe(
+      true,
+    );
+    const restored = await repos.archiveWaterBills(actor, {
+      waterBillId: aliased!.waterBillId,
+      archived: false,
+    });
+    expect(restored.bills.find((bill) => bill.serviceAddress === "12 N TEST ST")?.archived).toBe(
+      false,
+    );
+
+    const withoutTurnover = await repos.archiveUtilityProperty(actor, {
+      utilityPropertyId: turnover.utilityPropertyId,
+      archived: true,
+    });
+    expect(withoutTurnover.targets.some((row) => row.address === "5 Turnover Alley")).toBe(false);
+    expect(withoutTurnover.bills.some((bill) => bill.serviceAddress === "5 TURNOVER ALLEY")).toBe(
+      false,
+    );
+    expect(withoutTurnover.archivedProperties).toEqual([
+      { utilityPropertyId: turnover.utilityPropertyId, address: "5 Turnover Alley" },
+    ]);
+    await repos.archiveUtilityProperty(actor, {
+      utilityPropertyId: turnover.utilityPropertyId,
+      archived: false,
+    });
+
+    const added = await repos.saveUtilityProperty(actor, {
+      address: "99 Nowhere Rd",
+      aliases: [],
+      propertyId: null,
+      billingMode: "blocked",
+      splitEvenly: false,
+    });
+    expect(added.bills.find((bill) => bill.serviceAddress === "99 NOWHERE RD")).toMatchObject({
+      resolutionStatus: "blocked",
+    });
+
+    await prisma.workspaceWaterBill.deleteMany({
+      where: { workspaceId, gmailMessageId: "m-alias" },
+    });
+    await prisma.workspaceUtilityProperty.deleteMany({
+      where: { workspaceId, address: "99 Nowhere Rd" },
+    });
+    await prisma.workspaceUtilityProperty.update({
+      where: { id: tracked.utilityPropertyId },
+      data: { aliases: [] },
+    });
   });
 
   it("summarizes leasing", async () => {

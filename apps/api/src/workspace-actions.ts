@@ -14,12 +14,14 @@ import {
 } from "@rakazo/adapters";
 import type {
   Actor,
+  ArchiveWaterBills,
   ChargePostBatch,
   ChargePostResult,
   RecordCityUtilityBill,
   ReportGenerateInput,
   ReportSendResult,
   ReportUpdateInput,
+  SaveUtilityProperty,
   SyncCityBillsFromCrmResult,
   UtilitiesOverview,
   WorkspaceAutomation,
@@ -522,6 +524,58 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
         if (error instanceof RangeError) throw new WorkspaceActionError(error.message);
         throw error;
       }
+    },
+
+    async saveUtilityProperty(
+      actor: ChargeActor,
+      input: SaveUtilityProperty,
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      await requireManager(actor);
+      try {
+        const overview = await reads.saveUtilityProperty(actor, input);
+        await logActivity({
+          workspaceId: workspace.id,
+          channel: "utilities",
+          kind: input.utilityPropertyId ? "utility_property_updated" : "utility_property_added",
+          title: `${input.utilityPropertyId ? "Updated" : "Added"} water property ${input.address}`,
+          summary: null,
+          actor: actor.email,
+          payload: input,
+        });
+        return overview;
+      } catch (error) {
+        if (error instanceof RangeError) throw new WorkspaceActionError(error.message);
+        throw error;
+      }
+    },
+
+    async archiveUtilityProperty(
+      actor: ChargeActor,
+      input: { utilityPropertyId: string; archived: boolean },
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      await requireManager(actor);
+      const overview = await reads.archiveUtilityProperty(actor, input);
+      await logActivity({
+        workspaceId: workspace.id,
+        channel: "utilities",
+        kind: input.archived ? "utility_property_archived" : "utility_property_restored",
+        title: `${input.archived ? "Archived" : "Restored"} a water property`,
+        summary: null,
+        actor: actor.email,
+        payload: input,
+      });
+      return overview;
+    },
+
+    /** Archiving only hides bills; posted charges and Buildium stay as they are. */
+    async archiveWaterBills(
+      actor: ChargeActor,
+      input: ArchiveWaterBills,
+    ): Promise<UtilitiesOverview> {
+      await requireWorkspace(actor);
+      return reads.archiveWaterBills(actor, input);
     },
 
     async syncFromCrm(actor: ChargeActor): Promise<SyncCityBillsFromCrmResult> {

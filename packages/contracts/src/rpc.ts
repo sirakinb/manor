@@ -9,6 +9,7 @@ import {
 } from "./maintenance.js";
 import { TeamMemberSchema } from "./team.js";
 import {
+  ArchiveWaterBillsSchema,
   AvailableRentalsSchema,
   ChargePostBatchSchema,
   ChargePostResultSchema,
@@ -22,6 +23,7 @@ import {
   ReportGenerateInputSchema,
   ReportSendResultSchema,
   ReportUpdateInputSchema,
+  SaveUtilityPropertySchema,
   SocialSnapshotSchema,
   SyncCityBillsFromCrmResultSchema,
   UtilitiesOverviewSchema,
@@ -461,6 +463,16 @@ export const appContract = {
       overview: oc.output(UtilitiesOverviewSchema),
       /// Record the city's current charges for one property and month. Does not post to Buildium.
       recordCityBill: oc.input(RecordCityUtilityBillSchema).output(UtilitiesOverviewSchema),
+      property: {
+        /// Add a tracked property or edit its address, spellings, Buildium link and billing.
+        save: oc.input(SaveUtilityPropertySchema).output(UtilitiesOverviewSchema),
+        /// Stop or resume tracking a property; its bills leave or return to the billing view.
+        archive: oc
+          .input(z.object({ utilityPropertyId: Id, archived: z.boolean() }))
+          .output(UtilitiesOverviewSchema),
+      },
+      /// Archive or restore a bill or a whole billing month. Posted charges are unaffected.
+      archiveBills: oc.input(ArchiveWaterBillsSchema).output(UtilitiesOverviewSchema),
       /// Copy city current charges from CRM onto Gmail notices with the same due date.
       syncFromCrm: oc.input(z.object({})).output(SyncCityBillsFromCrmResultSchema),
       charge: {
