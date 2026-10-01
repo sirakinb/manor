@@ -31,6 +31,9 @@ describe("sameStreetAddr", () => {
       false,
     );
     expect(sameStreetAddr(normStreetAddr("12 Main St"), normStreetAddr("14 Main St"))).toBe(false);
+    expect(sameStreetAddr(normStreetAddr("12 Main St"), normStreetAddr("12 Main Place"))).toBe(
+      false,
+    );
   });
 });
 
@@ -63,16 +66,22 @@ describe("matchBillsToProperties", () => {
     const crm = bill("12 MAIN STREET UNIT 1 BLDG B", { dueDate: "2026-10-20", amountDue: 333.83 });
     const otherDate = bill("Somewhere Else", { dueDate: "2026-10-21", amountDue: 333.83 });
     const untracked = bill("99 Elsewhere Rd", { dueDate: "2026-10-20", balance: 50 });
-    const matches = matchBillsToProperties([notice, crm, otherDate, untracked], [main]);
+    const coincidence = bill("50 Other St", { dueDate: "2026-10-20", amountDue: 333.83 });
+    const matches = matchBillsToProperties(
+      [notice, crm, otherDate, untracked, coincidence],
+      [main],
+    );
     expect(matches.get(crm)).toEqual({ property: main, matchedBy: "balance_due_date" });
     expect(matches.has(otherDate)).toBe(false);
     expect(matches.has(untracked)).toBe(false);
+    // Another address with the same balance and due date is a coincidence, not a match.
+    expect(matches.has(coincidence)).toBe(false);
   });
 
   it("leaves a balance and due date shared by two properties unmatched", () => {
     const a = property("a", "1 First St");
     const b = property("b", "2 Second St");
-    const unknown = bill("No Such Place", { dueDate: "2026-10-20", balance: 10 });
+    const unknown = bill("1 Second St", { dueDate: "2026-10-20", balance: 10 });
     const matches = matchBillsToProperties(
       [
         bill("1 First St", { dueDate: "2026-10-20", balance: 10 }),

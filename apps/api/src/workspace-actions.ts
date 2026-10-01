@@ -569,12 +569,13 @@ export function createWorkspaceActions(deps: WorkspaceActionDeps) {
       return overview;
     },
 
-    /** Archiving only hides bills; posted charges and Buildium stay as they are. */
+    /** Archiving only hides a month's bills; posted charges and Buildium stay as they are. */
     async archiveWaterBills(
       actor: ChargeActor,
       input: ArchiveWaterBills,
     ): Promise<UtilitiesOverview> {
       await requireWorkspace(actor);
+      await requireManager(actor);
       return reads.archiveWaterBills(actor, input);
     },
 

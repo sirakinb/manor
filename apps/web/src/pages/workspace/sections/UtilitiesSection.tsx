@@ -759,12 +759,15 @@ function PropertyForm({
           onChange={(event) => setNotes(event.target.value)}
         />
       </Field>
-      <Toggle
-        label={t`Split evenly across active leases`}
-        checked={splitEvenly}
-        disabled={busy}
-        onChange={setSplitEvenly}
-      />
+      <div className="flex items-center gap-2 text-[12px] text-[#85858A]">
+        <Toggle
+          label={t`Split evenly across active leases`}
+          checked={splitEvenly}
+          disabled={busy}
+          onChange={setSplitEvenly}
+        />
+        <span aria-hidden="true">{t`Split evenly across active leases`}</span>
+      </div>
       {error ? <p className="text-[11.5px] text-[#E8A33C]">{error}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
         <BuiButton tone="accent" disabled={busy || !address.trim()} onClick={save}>

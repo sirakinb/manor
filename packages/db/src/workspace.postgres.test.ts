@@ -604,13 +604,63 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     expect(archived.bills.find((bill) => bill.serviceAddress === "12 N TEST ST")?.archived).toBe(
       true,
     );
+    // A bill that arrives after its month was archived stays archived.
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId,
+        gmailMessageId: "m-late",
+        serviceAddress: "5 TURNOVER ALLEY",
+        serviceAddressNorm: "5 turnover alley",
+        currentCharges: 12,
+        billingMonth: earlier,
+        parseStatus: "parsed",
+      },
+    });
+    const late = await repos.utilitiesOverview(actor);
+    expect(
+      late.bills.find(
+        (bill) =>
+          bill.serviceAddress === "5 TURNOVER ALLEY" && bill.billingMonth === dayOf(earlier),
+      )?.archived,
+    ).toBe(true);
     const restored = await repos.archiveWaterBills(actor, {
-      waterBillId: aliased!.waterBillId,
+      billingMonth: dayOf(earlier)!,
       archived: false,
     });
-    expect(restored.bills.find((bill) => bill.serviceAddress === "12 N TEST ST")?.archived).toBe(
-      false,
+    expect(
+      restored.bills
+        .filter((bill) => bill.billingMonth === dayOf(earlier))
+        .every((bill) => bill.archived === false),
+    ).toBe(true);
+
+    // When a spelling merges two bills for one month, the one with a posted charge wins.
+    await prisma.workspaceWaterBillChargePost.create({
+      data: {
+        workspaceId,
+        waterBillId: aliased!.waterBillId,
+        leaseId: 1,
+        amount: 27.5,
+        memo: "Water",
+        status: "posted",
+      },
+    });
+    await prisma.workspaceWaterBill.create({
+      data: {
+        workspaceId,
+        gmailMessageId: "m-duplicate",
+        serviceAddress: "12 TEST ST",
+        serviceAddressNorm: "12 test street",
+        currentCharges: 55,
+        billingMonth: earlier,
+        parseStatus: "parsed",
+      },
+    });
+    const merged = (await repos.utilitiesOverview(actor)).bills.filter(
+      (bill) =>
+        bill.utilityPropertyId === tracked.utilityPropertyId &&
+        bill.billingMonth === dayOf(earlier),
     );
+    expect(merged.map((bill) => bill.waterBillId)).toEqual([aliased!.waterBillId]);
 
     const withoutTurnover = await repos.archiveUtilityProperty(actor, {
       utilityPropertyId: turnover.utilityPropertyId,
@@ -640,7 +690,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     });
 
     await prisma.workspaceWaterBill.deleteMany({
-      where: { workspaceId, gmailMessageId: "m-alias" },
+      where: { workspaceId, gmailMessageId: { in: ["m-alias", "m-late", "m-duplicate"] } },
     });
     await prisma.workspaceUtilityProperty.deleteMany({
       where: { workspaceId, address: "99 Nowhere Rd" },

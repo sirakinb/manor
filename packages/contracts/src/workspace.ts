@@ -510,7 +510,7 @@ export const WaterBillGroupSchema = z.object({
   parseStatus: z.string(),
   resolutionStatus: UtilityTargetStatusSchema,
   billingMode: z.string().nullable(),
-  /// Archived bills stay out of the billing view until restored.
+  /// Bills in an archived month stay out of the billing view until it is restored.
   archived: z.boolean().optional(),
   /// How the bill was tied to its property: exact address or saved spelling, an address
   /// variation, or the same total amount due and due date as another bill for it.
@@ -547,16 +547,11 @@ export const SaveUtilityPropertySchema = z.object({
 });
 export type SaveUtilityProperty = z.infer<typeof SaveUtilityPropertySchema>;
 
-/// Archive or restore one bill, or every bill in a billing month.
-export const ArchiveWaterBillsSchema = z
-  .object({
-    waterBillId: Id.optional(),
-    billingMonth: DayString.optional(),
-    archived: z.boolean(),
-  })
-  .refine((input) => Boolean(input.waterBillId) !== Boolean(input.billingMonth), {
-    message: "Choose one bill or one billing month",
-  });
+/// Archive or restore a billing month. Bills that arrive later for that month stay archived.
+export const ArchiveWaterBillsSchema = z.object({
+  billingMonth: DayString,
+  archived: z.boolean(),
+});
 export type ArchiveWaterBills = z.infer<typeof ArchiveWaterBillsSchema>;
 
 export const UtilitiesOverviewSchema = z.object({

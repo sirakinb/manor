@@ -471,7 +471,7 @@ export const appContract = {
           .input(z.object({ utilityPropertyId: Id, archived: z.boolean() }))
           .output(UtilitiesOverviewSchema),
       },
-      /// Archive or restore a bill or a whole billing month. Posted charges are unaffected.
+      /// Archive or restore a billing month. Posted charges are unaffected.
       archiveBills: oc.input(ArchiveWaterBillsSchema).output(UtilitiesOverviewSchema),
       /// Copy city current charges from CRM onto Gmail notices with the same due date.
       syncFromCrm: oc.input(z.object({})).output(SyncCityBillsFromCrmResultSchema),

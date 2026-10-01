@@ -371,11 +371,39 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
 
   // ── Utilities (shared by overview) ─────────────────────────────────────
 
-  async function utilitiesOverview(workspaceId: string): Promise<UtilitiesOverview> {
-    const allProperties = await prisma.workspaceUtilityProperty.findMany({
-      where: { workspaceId },
-      orderBy: { address: "asc" },
+  /** Refuses an address or spelling another active property already matches bills on. */
+  async function assertAddressesFree(
+    workspaceId: string,
+    norms: ReadonlySet<string>,
+    exceptId?: string,
+  ) {
+    const others = await prisma.workspaceUtilityProperty.findMany({
+      where: {
+        workspaceId,
+        utility: "water",
+        active: true,
+        ...(exceptId ? { id: { not: exceptId } } : {}),
+      },
+      select: { address: true, addressNorm: true, aliases: true },
     });
+    const clash = others.find((other) =>
+      [other.addressNorm, ...other.aliases.map(normStreetAddr)].some((norm) => norms.has(norm)),
+    );
+    if (clash) throw new RangeError(`${clash.address} already uses that address`);
+  }
+
+  async function utilitiesOverview(workspaceId: string): Promise<UtilitiesOverview> {
+    const [allProperties, workspaceRow] = await Promise.all([
+      prisma.workspaceUtilityProperty.findMany({
+        where: { workspaceId },
+        orderBy: { address: "asc" },
+      }),
+      prisma.workspace.findUniqueOrThrow({
+        where: { id: workspaceId },
+        select: { archivedUtilityMonths: true },
+      }),
+    ]);
+    const archivedMonths = new Set(workspaceRow.archivedUtilityMonths.map((month) => day(month)));
     const properties = allProperties.filter((row) => row.active);
     const propertyIds = [
       ...new Set(properties.map((row) => row.propertyId).filter((id) => id !== null)),
@@ -492,16 +520,17 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       const month = day(bill.billingMonth);
       return month ? `${target.utilityPropertyId}|${month}` : bill.id;
     };
+    // When several bills land on one property and month, show the one that already has
+    // posted or skipped charges, so a merged duplicate can never be charged twice.
+    const rank = ({ bill }: (typeof tracked)[number]) =>
+      (bill.chargePosts.some((post) => post.status === "posted" || post.status === "skipped")
+        ? 2
+        : 0) + (bill.currentCharges !== null ? 1 : 0);
     const preferred = new Map<string, (typeof tracked)[number]>();
     for (const entry of tracked) {
       const key = billKey(entry);
       const previous = preferred.get(key);
-      if (
-        !previous ||
-        (previous.bill.currentCharges === null && entry.bill.currentCharges !== null)
-      ) {
-        preferred.set(key, entry);
-      }
+      if (!previous || rank(entry) > rank(previous)) preferred.set(key, entry);
     }
     const monthStart = new Date(Date.UTC(now().getUTCFullYear(), now().getUTCMonth(), 1));
     const groups: WaterBillGroup[] = tracked
@@ -567,7 +596,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
               : bill.parseStatus,
           resolutionStatus,
           billingMode: target.billingMode,
-          archived: bill.archivedAt !== null,
+          archived: archivedMonths.has(day(bill.billingMonth)),
           matchedBy,
           charges: chargeLeases.map((lease, index) => {
             const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
@@ -1307,20 +1336,11 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       const aliases = [...new Set(input.aliases)].filter(
         (alias) => normStreetAddr(alias) !== addressNorm,
       );
-      const norms = new Set([addressNorm, ...aliases.map(normStreetAddr)]);
-      const others = await prisma.workspaceUtilityProperty.findMany({
-        where: {
-          workspaceId: workspace.id,
-          utility: "water",
-          active: true,
-          ...(input.utilityPropertyId ? { id: { not: input.utilityPropertyId } } : {}),
-        },
-        select: { address: true, addressNorm: true, aliases: true },
-      });
-      const clash = others.find((other) =>
-        [other.addressNorm, ...other.aliases.map(normStreetAddr)].some((norm) => norms.has(norm)),
+      await assertAddressesFree(
+        workspace.id,
+        new Set([addressNorm, ...aliases.map(normStreetAddr)]),
+        input.utilityPropertyId,
       );
-      if (clash) throw new RangeError(`${clash.address} already uses that address`);
       const data = {
         address: input.address,
         addressNorm,
@@ -1359,11 +1379,22 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       input: { utilityPropertyId: string; archived: boolean },
     ): Promise<UtilitiesOverview> {
       const workspace = await requireWorkspace(actor);
-      const changed = await prisma.workspaceUtilityProperty.updateMany({
+      const property = await prisma.workspaceUtilityProperty.findFirst({
         where: { id: input.utilityPropertyId, workspaceId: workspace.id },
+        select: { id: true, addressNorm: true, aliases: true },
+      });
+      if (!property) throw new IsolationError();
+      if (!input.archived) {
+        await assertAddressesFree(
+          workspace.id,
+          new Set([property.addressNorm, ...property.aliases.map(normStreetAddr)]),
+          property.id,
+        );
+      }
+      await prisma.workspaceUtilityProperty.update({
+        where: { id: property.id },
         data: { active: !input.archived },
       });
-      if (changed.count === 0) throw new IsolationError();
       return utilitiesOverview(workspace.id);
     },
 
@@ -1372,16 +1403,15 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       input: ArchiveWaterBills,
     ): Promise<UtilitiesOverview> {
       const workspace = await requireWorkspace(actor);
-      const changed = await prisma.workspaceWaterBill.updateMany({
-        where: {
-          workspaceId: workspace.id,
-          ...(input.waterBillId
-            ? { id: input.waterBillId }
-            : { billingMonth: new Date(`${input.billingMonth}T00:00:00.000Z`) }),
-        },
-        data: { archivedAt: input.archived ? now() : null },
+      const month = new Date(`${input.billingMonth}T00:00:00.000Z`);
+      // Kept on the workspace, so bills that arrive later for the month stay archived.
+      const months = workspace.archivedUtilityMonths.filter(
+        (archived) => archived.getTime() !== month.getTime(),
+      );
+      await prisma.workspace.update({
+        where: { id: workspace.id },
+        data: { archivedUtilityMonths: input.archived ? [...months, month] : months },
       });
-      if (input.waterBillId && changed.count === 0) throw new IsolationError();
       return utilitiesOverview(workspace.id);
     },
 

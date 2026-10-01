@@ -38,29 +38,39 @@ const STREET_TYPES = new Set([
 
 /**
  * Whether two normalized addresses are the same place written differently: the same house
- * number and street name, ignoring street type and a missing direction. "330 simpson
- * street" matches "330 north simpson street", but north never matches south.
+ * number and street name, where a missing direction or street type is fine but two
+ * different ones never match. "330 simpson street" matches "330 north simpson street";
+ * north never matches south, and street never matches place.
  */
 export function sameStreetAddr(left: string, right: string): boolean {
   const parts = (norm: string) => {
     const words = norm.split(" ");
     return {
       directions: words.filter((word) => DIRECTIONS.has(word)).join(" "),
+      types: words.filter((word) => STREET_TYPES.has(word)).join(" "),
       rest: words.filter((word) => !DIRECTIONS.has(word) && !STREET_TYPES.has(word)).join(" "),
     };
   };
   const a = parts(left);
   const b = parts(right);
-  if (!a.rest || a.rest !== b.rest) return false;
-  return !a.directions || !b.directions || a.directions === b.directions;
+  const compatible = (x: string, y: string) => !x || !y || x === y;
+  return (
+    Boolean(a.rest) &&
+    a.rest === b.rest &&
+    compatible(a.directions, b.directions) &&
+    compatible(a.types, b.types)
+  );
 }
+
+const houseNumber = (norm: string): string | null => /^\d+[a-z]?\b/.exec(norm)?.[0] ?? null;
 
 export type UtilityBillMatch = "address" | "variation" | "balance_due_date";
 
 /**
  * Attach bills to tracked properties: an exact address or saved spelling first, then the
- * same house number and street name when only one property has it, then the same total
- * amount due and due date as a bill already attached to exactly one property.
+ * same house number and street name when only one property has it, then, for a bill with
+ * the same house number, the same total amount due and due date as a bill already
+ * attached to exactly one property.
  */
 export function matchBillsToProperties<
   Bill extends {
@@ -107,11 +117,19 @@ export function matchBillsToProperties<
     propertiesByBalance.set(key, set);
   }
   for (const bill of bills) {
-    if (matches.has(bill)) continue;
+    if (matches.has(bill) || !bill.serviceAddressNorm) continue;
     const key = balanceKey(bill);
     const found = key ? propertiesByBalance.get(key) : undefined;
     const property = found && found.size === 1 ? [...found][0] : undefined;
-    if (property) matches.set(bill, { property, matchedBy: "balance_due_date" });
+    const number = houseNumber(bill.serviceAddressNorm);
+    // A shared house number keeps a coincidental balance at another address from matching.
+    if (
+      property &&
+      number &&
+      property.addressNorms.some((candidate) => houseNumber(candidate) === number)
+    ) {
+      matches.set(bill, { property, matchedBy: "balance_due_date" });
+    }
   }
   return matches;
 }

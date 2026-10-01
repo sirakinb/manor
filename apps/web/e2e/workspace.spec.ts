@@ -419,7 +419,9 @@ test("workspace appears once the organization has one and its map opens sections
   await page.getByRole("button", { name: "Add property", exact: true }).click();
   const propertyForm = page.getByTestId("utility-property-form");
   await propertyForm.getByLabel("Address", { exact: true }).fill("90 Sample Road");
-  await propertyForm.getByLabel("Billing", { exact: true }).selectOption("blocked");
+  await propertyForm
+    .getByRole("combobox", { name: "Billing", exact: true })
+    .selectOption("blocked");
   await captureScreenshot(page, testInfo, "workspace-utilities-property-form");
   await propertyForm.getByRole("button", { name: "Add property", exact: true }).click();
   const sampleRow = page.getByRole("row").filter({ hasText: "90 Sample Road" });

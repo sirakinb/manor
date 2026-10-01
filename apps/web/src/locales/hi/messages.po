@@ -108,7 +108,7 @@ msgid "{0} campaigns"
 msgstr ""
 
 #. placeholder {0}: bill.charges.length
-#: src/pages/workspace/sections/UtilitiesSection.tsx:982
+#: src/pages/workspace/sections/UtilitiesSection.tsx:985
 msgid "{0} charges"
 msgstr ""
 
@@ -134,7 +134,7 @@ msgid "{0} connection"
 msgstr "{0} कनेक्शन"
 
 #. placeholder {0}: formatNumber(batch.failed)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:936
+#: src/pages/workspace/sections/UtilitiesSection.tsx:939
 msgid "{0} failed"
 msgstr ""
 
@@ -240,7 +240,7 @@ msgid "{0} pending tenant charges"
 msgstr ""
 
 #. placeholder {0}: formatNumber(batch.posted)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:933
+#: src/pages/workspace/sections/UtilitiesSection.tsx:936
 msgid "{0} posted"
 msgstr ""
 
@@ -482,7 +482,7 @@ msgid "Account"
 msgstr "खाता"
 
 #. placeholder {0}: formatMoneyCents(bill.accountBalance)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1007
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1010
 msgid "Account balance {0}"
 msgstr ""
 
@@ -634,7 +634,7 @@ msgid "Add OpenAPI"
 msgstr "OpenAPI जोड़ें"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:447
-#: src/pages/workspace/sections/UtilitiesSection.tsx:771
+#: src/pages/workspace/sections/UtilitiesSection.tsx:774
 msgid "Add property"
 msgstr ""
 
@@ -845,8 +845,8 @@ msgstr "इस टूल को हमेशा अनुमति दें"
 msgid "Always allowed"
 msgstr "हमेशा अनुमत"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1183
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1278
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1186
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1281
 msgid "Amount"
 msgstr ""
 
@@ -948,7 +948,7 @@ msgstr "आर्काइव करें"
 msgid "Archive month"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:790
+#: src/pages/workspace/sections/UtilitiesSection.tsx:793
 msgid "Archive property"
 msgstr ""
 
@@ -970,7 +970,7 @@ msgid "Archived months ({0})"
 msgstr ""
 
 #. placeholder {0}: formatNumber(properties.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:828
+#: src/pages/workspace/sections/UtilitiesSection.tsx:831
 msgid "Archived properties ({0})"
 msgstr ""
 
@@ -1402,8 +1402,8 @@ msgstr "सर्वर तक नहीं पहुंचा जा सका�
 #: src/pages/workspace/sections/SettingsSection.tsx:528
 #: src/pages/workspace/sections/SettingsSection.tsx:587
 #: src/pages/workspace/sections/UtilitiesSection.tsx:364
-#: src/pages/workspace/sections/UtilitiesSection.tsx:774
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1283
+#: src/pages/workspace/sections/UtilitiesSection.tsx:777
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1286
 msgid "Cancel"
 msgstr "रद्द करें"
 
@@ -1566,19 +1566,19 @@ msgstr "चुनें कि {brandName} कौन सा जुड़ा ह�
 msgid "Choose your app to see its setup instructions."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:882
+#: src/pages/workspace/sections/UtilitiesSection.tsx:885
 msgid "City bill"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:482
 #: src/pages/workspace/sections/UtilitiesSection.tsx:497
-#: src/pages/workspace/sections/UtilitiesSection.tsx:885
-#: src/pages/workspace/sections/UtilitiesSection.tsx:995
+#: src/pages/workspace/sections/UtilitiesSection.tsx:888
+#: src/pages/workspace/sections/UtilitiesSection.tsx:998
 msgid "City bill needed"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1075
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1077
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1078
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1080
 msgid "City current charges"
 msgstr ""
 
@@ -2284,8 +2284,8 @@ msgid "Could not play a test clip"
 msgstr "टेस्ट क्लिप नहीं चलाई जा सकी"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:207
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1165
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1169
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1168
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1172
 msgid "Could not post"
 msgstr ""
 
@@ -2341,7 +2341,7 @@ msgstr "चार्ट रेंडर नहीं हो सका"
 msgid "Could not reset password"
 msgstr "पासवर्ड रीसेट नहीं किया जा सका"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:816
+#: src/pages/workspace/sections/UtilitiesSection.tsx:819
 msgid "Could not restore"
 msgstr ""
 
@@ -2366,7 +2366,7 @@ msgstr "रूटीन नहीं चलाया जा सका"
 #: src/pages/workspace/sections/SettingsSection.tsx:139
 #: src/pages/workspace/sections/SettingsSection.tsx:478
 #: src/pages/workspace/sections/UtilitiesSection.tsx:666
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1133
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1136
 msgid "Could not save"
 msgstr "सहेजा नहीं जा सका"
 
@@ -2374,7 +2374,7 @@ msgstr "सहेजा नहीं जा सका"
 msgid "Could not save Auto Review"
 msgstr "ऑटो रिव्यू सहेजा नहीं जा सका"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1066
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1069
 msgid "Could not save city bill"
 msgstr ""
 
@@ -2657,7 +2657,7 @@ msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
 #: src/pages/workspace/sections/UtilitiesSection.tsx:361
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1280
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1283
 msgid "Date"
 msgstr "तारीख़"
 
@@ -2862,7 +2862,7 @@ msgstr "डिस्कनेक्ट हो रहा है…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:251
 #: src/pages/workspace/sections/ReportsSection.tsx:357
-#: src/pages/workspace/sections/UtilitiesSection.tsx:939
+#: src/pages/workspace/sections/UtilitiesSection.tsx:942
 msgid "Dismiss"
 msgstr ""
 
@@ -2969,12 +2969,12 @@ msgstr "डील यहां छोड़ें"
 msgid "Drop to attach to {name}"
 msgstr "{name} में संलग्न करने के लिए छोड़ें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:892
+#: src/pages/workspace/sections/UtilitiesSection.tsx:895
 msgid "Due"
 msgstr ""
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:981
+#: src/pages/workspace/sections/UtilitiesSection.tsx:984
 msgid "Due {0}"
 msgstr ""
 
@@ -3090,7 +3090,7 @@ msgstr "यह कोड <0>{0}</0> पर दर्ज करें"
 
 #: src/components/VerificationComparison.tsx:425
 #: src/pages/workspace/sections/ReportsSection.tsx:59
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1112
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1115
 msgid "Error"
 msgstr ""
 
@@ -3191,7 +3191,7 @@ msgstr ""
 msgid "Extra high"
 msgstr "अतिरिक्त उच्च"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:946
+#: src/pages/workspace/sections/UtilitiesSection.tsx:949
 msgid "failed"
 msgstr ""
 
@@ -3818,7 +3818,7 @@ msgstr "पिछला साइन-इन"
 msgid "Launch Codex from this terminal so it can read the token. Future sessions also need MANOR_API_TOKEN set in their environment."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:897
+#: src/pages/workspace/sections/UtilitiesSection.tsx:900
 msgid "Lease"
 msgstr ""
 
@@ -3836,10 +3836,10 @@ msgstr ""
 #. placeholder {0}: result.leaseId
 #: src/pages/workspace/sections/UtilitiesSection.tsx:506
 #: src/pages/workspace/sections/UtilitiesSection.tsx:540
-#: src/pages/workspace/sections/UtilitiesSection.tsx:903
-#: src/pages/workspace/sections/UtilitiesSection.tsx:946
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1122
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1123
+#: src/pages/workspace/sections/UtilitiesSection.tsx:906
+#: src/pages/workspace/sections/UtilitiesSection.tsx:949
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1125
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1126
 msgid "Lease #{0}"
 msgstr ""
 
@@ -4048,11 +4048,11 @@ msgstr ""
 msgid "Match this address to a Buildium property before charging."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:984
+#: src/pages/workspace/sections/UtilitiesSection.tsx:987
 msgid "Matched by address variation"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:986
+#: src/pages/workspace/sections/UtilitiesSection.tsx:989
 msgid "Matched by balance and due date"
 msgstr ""
 
@@ -4096,8 +4096,8 @@ msgstr "सदस्य ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "सदस्य ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} चुनें)"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1195
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1279
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1198
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1282
 msgid "Memo"
 msgstr ""
 
@@ -4245,7 +4245,7 @@ msgstr ""
 msgid "Monday"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:872
+#: src/pages/workspace/sections/UtilitiesSection.tsx:875
 msgid "Month"
 msgstr ""
 
@@ -4257,7 +4257,7 @@ msgstr ""
 msgid "Monthly"
 msgstr "मासिक"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:864
+#: src/pages/workspace/sections/UtilitiesSection.tsx:867
 msgid "Monthly city bills"
 msgstr ""
 
@@ -4607,7 +4607,7 @@ msgstr "{peerBotName} के साथ अभी कोई संदेश न�
 msgid "No model catalog is available."
 msgstr "कोई मॉडल कैटलॉग उपलब्ध नहीं है।"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:868
+#: src/pages/workspace/sections/UtilitiesSection.tsx:871
 msgid "No months recorded yet"
 msgstr ""
 
@@ -4879,7 +4879,7 @@ msgstr ""
 msgid "Open row"
 msgstr "पंक्ति खोलें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:919
+#: src/pages/workspace/sections/UtilitiesSection.tsx:922
 msgid "Open settings"
 msgstr ""
 
@@ -5078,7 +5078,7 @@ msgid "PDF preview"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:347
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1109
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1112
 msgid "Pending"
 msgstr ""
 
@@ -5175,7 +5175,7 @@ msgstr ""
 msgid "Port {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1282
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1285
 msgid "Post"
 msgstr ""
 
@@ -5193,7 +5193,7 @@ msgstr ""
 msgid "Post all pending ({0})"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1275
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1278
 msgid "Post this charge to Buildium?"
 msgstr ""
 
@@ -5201,12 +5201,12 @@ msgstr ""
 msgid "POST to"
 msgstr "POST करें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1252
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1255
 msgid "Post to Buildium"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:349
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1110
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1113
 msgid "Posted"
 msgstr ""
 
@@ -5678,8 +5678,8 @@ msgstr ""
 #: src/pages/Shell.tsx:2947
 #: src/pages/Shell.tsx:2977
 #: src/pages/workspace/sections/UtilitiesSection.tsx:434
-#: src/pages/workspace/sections/UtilitiesSection.tsx:843
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1235
+#: src/pages/workspace/sections/UtilitiesSection.tsx:846
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1238
 msgid "Restore"
 msgstr "बहाल करें"
 
@@ -5694,7 +5694,7 @@ msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:156
 #: src/pages/DocsView.tsx:82
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1252
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1255
 #: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
 msgstr ""
@@ -5843,11 +5843,11 @@ msgstr ""
 #: src/pages/workspace/sections/ReportsSection.tsx:822
 #: src/pages/workspace/sections/SettingsSection.tsx:168
 #: src/pages/workspace/sections/SettingsSection.tsx:577
-#: src/pages/workspace/sections/UtilitiesSection.tsx:771
+#: src/pages/workspace/sections/UtilitiesSection.tsx:774
 msgid "Save"
 msgstr "सहेजें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1089
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1092
 msgid "Save city bill"
 msgstr ""
 
@@ -6255,7 +6255,7 @@ msgid "Skills"
 msgstr "स्किल्स"
 
 #: src/pages/Shell.tsx:5607
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1249
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1252
 msgid "Skip"
 msgstr "छोड़ें"
 
@@ -6267,7 +6267,7 @@ msgstr "अभी के लिए छोड़ें"
 msgid "Skip or deploy key"
 msgstr "छोड़ें या डिप्लॉय कुंजी दें"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1111
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1114
 msgid "Skipped"
 msgstr ""
 
@@ -6345,7 +6345,8 @@ msgstr "यह उत्तर बोलकर सुनाएं"
 msgid "Speaking…"
 msgstr "बोल रहा है…"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:763
+#: src/pages/workspace/sections/UtilitiesSection.tsx:764
+#: src/pages/workspace/sections/UtilitiesSection.tsx:769
 msgid "Split evenly across active leases"
 msgstr ""
 
@@ -6731,7 +6732,7 @@ msgid "This Mac runs shell commands with your account, including files in your h
 msgstr "यह Mac आपके खाते से शेल कमांड चलाता है, जिसमें आपके होम फ़ोल्डर की फ़ाइलें भी शामिल हैं। इसे किसी साझा या सार्वजनिक सर्वर पर चालू न करें।"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:491
-#: src/pages/workspace/sections/UtilitiesSection.tsx:876
+#: src/pages/workspace/sections/UtilitiesSection.tsx:879
 #: src/pages/workspace/sections/VoiceSection.tsx:85
 #: src/pages/workspace/sections/VoiceSection.tsx:122
 msgid "This month"
@@ -6934,7 +6935,7 @@ msgstr "अनुपलब्ध"
 msgid "Unexpected result: provide the missing source or a concrete correction. Check whether an action already happened before asking the agent to repeat it."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1277
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1280
 msgid "Unit"
 msgstr ""
 
@@ -6944,11 +6945,11 @@ msgstr ""
 #: src/pages/workspace/sections/LeasingSection.tsx:130
 #: src/pages/workspace/sections/LeasingSection.tsx:207
 #: src/pages/workspace/sections/UtilitiesSection.tsx:542
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1122
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1125
 msgid "Unit {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:977
+#: src/pages/workspace/sections/UtilitiesSection.tsx:980
 msgid "Unknown address"
 msgstr ""
 

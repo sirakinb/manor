@@ -1603,6 +1603,8 @@ model Workspace {
   // line description Buildium shows. Per organization, no longer an env var.
   waterGlAccountId          Int?
   buildiumChargeDescription String @default("Water bill")
+  /// Water billing months hidden from the billing view, first day of each month.
+  archivedUtilityMonths     DateTime[] @default([]) @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2184,8 +2186,6 @@ model WorkspaceWaterBill {
   parseNotes         String?
   rawSnippet         String?
   sourceKind         String    @default("wrd_email") // wrd_email | city_bill | crm
-  /// Hidden from the billing view once its month is done. Syncs never clear it.
-  archivedAt         DateTime?
   createdAt          DateTime  @default(now())
 
   chargePosts WorkspaceWaterBillChargePost[]
