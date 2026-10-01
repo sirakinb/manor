@@ -379,6 +379,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       resolutionStatus: "resolved",
       billingMode: "pass_through",
       archived: false,
+      matchedBy: "address",
     });
     expect(matched!.charges).toEqual([
       expect.objectContaining({
@@ -557,7 +558,9 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       },
     });
     const before = await repos.utilitiesOverview(actor);
-    expect(before.bills.some((bill) => bill.serviceAddress === "12 N TEST ST")).toBe(false);
+    expect(before.bills.find((bill) => bill.serviceAddress === "12 N TEST ST")?.matchedBy).toBe(
+      "variation",
+    );
     const tracked = before.targets.find((row) => row.address === "12 Test St")!;
     const turnover = before.targets.find((row) => row.address === "5 Turnover Alley")!;
     expect(before.buildiumProperties?.map((row) => row.propertyId)).toContain(1001);
@@ -580,6 +583,7 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
       utilityPropertyId: tracked.utilityPropertyId,
       billAmount: 55,
       archived: false,
+      matchedBy: "address",
     });
 
     await expect(

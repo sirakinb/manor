@@ -481,7 +481,7 @@ msgid "Account"
 msgstr "账户"
 
 #. placeholder {0}: formatMoneyCents(bill.accountBalance)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1002
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1007
 msgid "Account balance {0}"
 msgstr ""
 
@@ -844,8 +844,8 @@ msgstr "始终允许此工具"
 msgid "Always allowed"
 msgstr "始终允许"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1178
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1273
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1183
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1278
 msgid "Amount"
 msgstr ""
 
@@ -1402,7 +1402,7 @@ msgstr "无法连接服务器。"
 #: src/pages/workspace/sections/SettingsSection.tsx:587
 #: src/pages/workspace/sections/UtilitiesSection.tsx:364
 #: src/pages/workspace/sections/UtilitiesSection.tsx:774
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1278
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1283
 msgid "Cancel"
 msgstr "取消"
 
@@ -1572,12 +1572,12 @@ msgstr ""
 #: src/pages/workspace/sections/UtilitiesSection.tsx:482
 #: src/pages/workspace/sections/UtilitiesSection.tsx:497
 #: src/pages/workspace/sections/UtilitiesSection.tsx:885
-#: src/pages/workspace/sections/UtilitiesSection.tsx:990
+#: src/pages/workspace/sections/UtilitiesSection.tsx:995
 msgid "City bill needed"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1070
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1072
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1075
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1077
 msgid "City current charges"
 msgstr ""
 
@@ -2283,8 +2283,8 @@ msgid "Could not play a test clip"
 msgstr "无法播放测试片段"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:207
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1160
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1164
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1165
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1169
 msgid "Could not post"
 msgstr ""
 
@@ -2365,7 +2365,7 @@ msgstr "无法运行例行任务"
 #: src/pages/workspace/sections/SettingsSection.tsx:139
 #: src/pages/workspace/sections/SettingsSection.tsx:478
 #: src/pages/workspace/sections/UtilitiesSection.tsx:666
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1128
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1133
 msgid "Could not save"
 msgstr "无法保存"
 
@@ -2373,7 +2373,7 @@ msgstr "无法保存"
 msgid "Could not save Auto Review"
 msgstr "无法保存自动审核"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1061
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1066
 msgid "Could not save city bill"
 msgstr ""
 
@@ -2656,7 +2656,7 @@ msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
 #: src/pages/workspace/sections/UtilitiesSection.tsx:361
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1275
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1280
 msgid "Date"
 msgstr ""
 
@@ -3089,7 +3089,7 @@ msgstr "在 <0>{0}</0> 输入此代码"
 
 #: src/components/VerificationComparison.tsx:425
 #: src/pages/workspace/sections/ReportsSection.tsx:59
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1107
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1112
 msgid "Error"
 msgstr ""
 
@@ -3837,8 +3837,8 @@ msgstr ""
 #: src/pages/workspace/sections/UtilitiesSection.tsx:540
 #: src/pages/workspace/sections/UtilitiesSection.tsx:903
 #: src/pages/workspace/sections/UtilitiesSection.tsx:946
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1117
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1118
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1122
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1123
 msgid "Lease #{0}"
 msgstr ""
 
@@ -4047,6 +4047,14 @@ msgstr ""
 msgid "Match this address to a Buildium property before charging."
 msgstr ""
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:984
+msgid "Matched by address variation"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:986
+msgid "Matched by balance and due date"
+msgstr ""
+
 #: src/pages/workspace/sections/UtilitiesSection.tsx:233
 msgid "matched to an active lease"
 msgstr ""
@@ -4087,8 +4095,8 @@ msgstr "成员（{GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX}）"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "成员（选择 {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} 个）"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1190
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1274
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1195
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1279
 msgid "Memo"
 msgstr ""
 
@@ -5069,7 +5077,7 @@ msgid "PDF preview"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:347
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1104
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1109
 msgid "Pending"
 msgstr ""
 
@@ -5166,7 +5174,7 @@ msgstr ""
 msgid "Port {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1277
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1282
 msgid "Post"
 msgstr ""
 
@@ -5184,7 +5192,7 @@ msgstr ""
 msgid "Post all pending ({0})"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1270
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1275
 msgid "Post this charge to Buildium?"
 msgstr ""
 
@@ -5192,12 +5200,12 @@ msgstr ""
 msgid "POST to"
 msgstr "POST 到"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1247
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1252
 msgid "Post to Buildium"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx:349
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1105
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1110
 msgid "Posted"
 msgstr ""
 
@@ -5670,7 +5678,7 @@ msgstr ""
 #: src/pages/Shell.tsx:2977
 #: src/pages/workspace/sections/UtilitiesSection.tsx:434
 #: src/pages/workspace/sections/UtilitiesSection.tsx:843
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1230
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1235
 msgid "Restore"
 msgstr "恢复"
 
@@ -5685,7 +5693,7 @@ msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:156
 #: src/pages/DocsView.tsx:82
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1247
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1252
 #: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
 msgstr ""
@@ -5838,7 +5846,7 @@ msgstr ""
 msgid "Save"
 msgstr "保存"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1084
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1089
 msgid "Save city bill"
 msgstr ""
 
@@ -6246,7 +6254,7 @@ msgid "Skills"
 msgstr ""
 
 #: src/pages/Shell.tsx:5607
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1244
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1249
 msgid "Skip"
 msgstr "跳过"
 
@@ -6258,7 +6266,7 @@ msgstr "暂时跳过"
 msgid "Skip or deploy key"
 msgstr "跳过或使用部署密钥"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1106
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1111
 msgid "Skipped"
 msgstr ""
 
@@ -6925,7 +6933,7 @@ msgstr "不可用"
 msgid "Unexpected result: provide the missing source or a concrete correction. Check whether an action already happened before asking the agent to repeat it."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1272
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1277
 msgid "Unit"
 msgstr ""
 
@@ -6935,7 +6943,7 @@ msgstr ""
 #: src/pages/workspace/sections/LeasingSection.tsx:130
 #: src/pages/workspace/sections/LeasingSection.tsx:207
 #: src/pages/workspace/sections/UtilitiesSection.tsx:542
-#: src/pages/workspace/sections/UtilitiesSection.tsx:1117
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1122
 msgid "Unit {0}"
 msgstr ""
 

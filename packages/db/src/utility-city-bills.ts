@@ -22,6 +22,100 @@ export function normStreetAddr(address: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+const DIRECTIONS = new Set(["north", "south", "east", "west"]);
+const STREET_TYPES = new Set([
+  "street",
+  "avenue",
+  "road",
+  "drive",
+  "lane",
+  "court",
+  "place",
+  "boulevard",
+  "terrace",
+  "way",
+]);
+
+/**
+ * Whether two normalized addresses are the same place written differently: the same house
+ * number and street name, ignoring street type and a missing direction. "330 simpson
+ * street" matches "330 north simpson street", but north never matches south.
+ */
+export function sameStreetAddr(left: string, right: string): boolean {
+  const parts = (norm: string) => {
+    const words = norm.split(" ");
+    return {
+      directions: words.filter((word) => DIRECTIONS.has(word)).join(" "),
+      rest: words.filter((word) => !DIRECTIONS.has(word) && !STREET_TYPES.has(word)).join(" "),
+    };
+  };
+  const a = parts(left);
+  const b = parts(right);
+  if (!a.rest || a.rest !== b.rest) return false;
+  return !a.directions || !b.directions || a.directions === b.directions;
+}
+
+export type UtilityBillMatch = "address" | "variation" | "balance_due_date";
+
+/**
+ * Attach bills to tracked properties: an exact address or saved spelling first, then the
+ * same house number and street name when only one property has it, then the same total
+ * amount due and due date as a bill already attached to exactly one property.
+ */
+export function matchBillsToProperties<
+  Bill extends {
+    utility: string;
+    serviceAddressNorm: string | null;
+    dueDate: Date | null;
+    accountBalance: number | null;
+    amountDue: number | null;
+  },
+  Property extends { id: string; utility: string; addressNorms: readonly string[] },
+>(
+  bills: readonly Bill[],
+  properties: readonly Property[],
+): Map<Bill, { property: Property; matchedBy: UtilityBillMatch }> {
+  const matches = new Map<Bill, { property: Property; matchedBy: UtilityBillMatch }>();
+  const only = <T>(rows: T[]): T | undefined => (rows.length === 1 ? rows[0] : undefined);
+  for (const bill of bills) {
+    const norm = bill.serviceAddressNorm;
+    if (!norm) continue;
+    const candidates = properties.filter((property) => property.utility === bill.utility);
+    const exact = candidates.find((property) => property.addressNorms.includes(norm));
+    if (exact) {
+      matches.set(bill, { property: exact, matchedBy: "address" });
+      continue;
+    }
+    const variation = only(
+      candidates.filter((property) =>
+        property.addressNorms.some((candidate) => sameStreetAddr(candidate, norm)),
+      ),
+    );
+    if (variation) matches.set(bill, { property: variation, matchedBy: "variation" });
+  }
+  const balanceKey = (bill: Bill): string | null => {
+    const total = bill.accountBalance ?? bill.amountDue;
+    if (total === null || !bill.dueDate) return null;
+    return `${bill.utility}|${bill.dueDate.toISOString().slice(0, 10)}|${Math.round(total * 100)}`;
+  };
+  const propertiesByBalance = new Map<string, Set<Property>>();
+  for (const [bill, match] of matches) {
+    const key = balanceKey(bill);
+    if (!key) continue;
+    const set = propertiesByBalance.get(key) ?? new Set<Property>();
+    set.add(match.property);
+    propertiesByBalance.set(key, set);
+  }
+  for (const bill of bills) {
+    if (matches.has(bill)) continue;
+    const key = balanceKey(bill);
+    const found = key ? propertiesByBalance.get(key) : undefined;
+    const property = found && found.size === 1 ? [...found][0] : undefined;
+    if (property) matches.set(bill, { property, matchedBy: "balance_due_date" });
+  }
+  return matches;
+}
+
 export function firstOfMonthUtc(dayValue: string): Date {
   const [year, month] = dayValue.split("-").map(Number);
   return new Date(Date.UTC(year!, (month ?? 1) - 1, 1));

@@ -980,6 +980,11 @@ function BillCard({
             {bill.billingMonth ? formatDate(bill.billingMonth) : "—"}
             {bill.dueDate ? ` · ${t`Due ${formatDate(bill.dueDate)}`}` : ""}
             {bill.charges.length > 1 ? ` · ${t`${bill.charges.length} charges`}` : ""}
+            {bill.matchedBy === "variation"
+              ? ` · ${t`Matched by address variation`}`
+              : bill.matchedBy === "balance_due_date"
+                ? ` · ${t`Matched by balance and due date`}`
+                : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">

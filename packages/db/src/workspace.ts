@@ -31,7 +31,11 @@ import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
 import { Prisma, type PrismaClient } from "./client.js";
 import { syncWaterBillsFromCrm } from "./crm-utility-bills.js";
 import { IsolationError, type OrganizationScope } from "./scope.js";
-import { normStreetAddr, upsertCityUtilityBill } from "./utility-city-bills.js";
+import {
+  matchBillsToProperties,
+  normStreetAddr,
+  upsertCityUtilityBill,
+} from "./utility-city-bills.js";
 import {
   allocateLeasesForBillingMonth,
   splitChargeAmounts,
@@ -475,19 +479,14 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       };
     });
 
-    // Tracked properties are the master list: a bill shows only when its address,
-    // or one of the property's other spellings, matches one of them.
-    const targetFor = (bill: (typeof bills)[number]) =>
-      bill.serviceAddressNorm === null
-        ? undefined
-        : targets.find(
-            (candidate) =>
-              candidate.utility === bill.utility &&
-              candidate.addressNorms.includes(bill.serviceAddressNorm as string),
-          );
+    // Tracked properties are the master list: bills for other addresses stay out.
+    const matches = matchBillsToProperties(
+      bills,
+      targets.map((target) => ({ ...target, id: target.utilityPropertyId })),
+    );
     const tracked = bills.flatMap((bill) => {
-      const target = targetFor(bill);
-      return target ? [{ bill, target }] : [];
+      const match = matches.get(bill);
+      return match ? [{ bill, target: match.property, matchedBy: match.matchedBy }] : [];
     });
     const billKey = ({ bill, target }: (typeof tracked)[number]): string => {
       const month = day(bill.billingMonth);
@@ -507,7 +506,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
     const monthStart = new Date(Date.UTC(now().getUTCFullYear(), now().getUTCMonth(), 1));
     const groups: WaterBillGroup[] = tracked
       .filter((entry) => preferred.get(billKey(entry)) === entry)
-      .map(({ bill, target }) => {
+      .map(({ bill, target, matchedBy }) => {
         const cityAmount = bill.currentCharges;
         const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
         const utilityProperty = properties.find((row) => row.id === target?.utilityPropertyId);
@@ -569,6 +568,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           resolutionStatus,
           billingMode: target.billingMode,
           archived: bill.archivedAt !== null,
+          matchedBy,
           charges: chargeLeases.map((lease, index) => {
             const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
             const status = post?.status;

@@ -512,6 +512,9 @@ export const WaterBillGroupSchema = z.object({
   billingMode: z.string().nullable(),
   /// Archived bills stay out of the billing view until restored.
   archived: z.boolean().optional(),
+  /// How the bill was tied to its property: exact address or saved spelling, an address
+  /// variation, or the same total amount due and due date as another bill for it.
+  matchedBy: z.enum(["address", "variation", "balance_due_date"]).optional(),
   charges: z.array(WaterBillChargeSchema),
 });
 export type WaterBillGroup = z.infer<typeof WaterBillGroupSchema>;
