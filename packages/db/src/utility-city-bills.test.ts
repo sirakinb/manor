@@ -72,6 +72,10 @@ describe("matchBillsToProperties", () => {
       [main],
     );
     expect(matches.get(crm)).toEqual({ property: main, matchedBy: "balance_due_date" });
+    const prefixed = bill("Rear Unit, 12 Main", { dueDate: "2026-10-20", amountDue: 333.83 });
+    expect(matchBillsToProperties([notice, prefixed], [main]).get(prefixed)?.matchedBy).toBe(
+      "balance_due_date",
+    );
     expect(matches.has(otherDate)).toBe(false);
     expect(matches.has(untracked)).toBe(false);
     // Another address with the same balance and due date is a coincidence, not a match.

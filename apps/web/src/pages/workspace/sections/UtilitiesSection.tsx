@@ -107,13 +107,8 @@ export function UtilitiesSection({
   };
 
   const resolved = data?.targets.filter((target) => target.targetStatus === "resolved").length ?? 0;
-  const allBills = data?.bills ?? [];
-  const bills = allBills.filter((bill) => !bill.archived);
-  const archivedMonths = [
-    ...new Set(
-      allBills.flatMap((bill) => (bill.archived && bill.billingMonth ? [bill.billingMonth] : [])),
-    ),
-  ].sort((left, right) => right.localeCompare(left));
+  const bills = (data?.bills ?? []).filter((bill) => !bill.archived);
+  const archivedMonths = data?.archivedMonths ?? [];
   const propertyIssues =
     data?.targets.filter((target) =>
       ["blocked", "unmatched", "no_active_lease", "ambiguous"].includes(target.targetStatus),

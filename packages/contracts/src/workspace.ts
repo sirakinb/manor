@@ -559,6 +559,8 @@ export const UtilitiesOverviewSchema = z.object({
   targets: z.array(UtilityBillingTargetSchema),
   /// Bills for tracked properties only; addresses that match no property are left out.
   bills: z.array(WaterBillGroupSchema),
+  /// Archived billing months, newest first, whether or not a bill still shows for them.
+  archivedMonths: z.array(DayString).optional(),
   archivedProperties: z.array(z.object({ utilityPropertyId: Id, address: z.string() })).optional(),
   /// Active Buildium properties a tracked address can be linked to.
   buildiumProperties: z

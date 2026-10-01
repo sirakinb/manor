@@ -642,6 +642,9 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           .sort((left, right) => right.billingMonth.localeCompare(left.billingMonth)),
       })),
       bills: groups,
+      archivedMonths: [...archivedMonths]
+        .filter((month): month is string => month !== null)
+        .sort((left, right) => right.localeCompare(left)),
       archivedProperties: allProperties
         .filter((row) => !row.active)
         .map((row) => ({ utilityPropertyId: row.id, address: row.address })),
@@ -1403,15 +1406,22 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       input: ArchiveWaterBills,
     ): Promise<UtilitiesOverview> {
       const workspace = await requireWorkspace(actor);
-      const month = new Date(`${input.billingMonth}T00:00:00.000Z`);
       // Kept on the workspace, so bills that arrive later for the month stay archived.
-      const months = workspace.archivedUtilityMonths.filter(
-        (archived) => archived.getTime() !== month.getTime(),
-      );
-      await prisma.workspace.update({
-        where: { id: workspace.id },
-        data: { archivedUtilityMonths: input.archived ? [...months, month] : months },
-      });
+      // One atomic statement, so archiving two months at once cannot drop either.
+      if (input.archived) {
+        await prisma.$executeRaw`
+          update workspaces
+          set "archivedUtilityMonths" = array_append(
+            array_remove("archivedUtilityMonths", ${input.billingMonth}::date),
+            ${input.billingMonth}::date
+          )
+          where id = ${workspace.id}`;
+      } else {
+        await prisma.$executeRaw`
+          update workspaces
+          set "archivedUtilityMonths" = array_remove("archivedUtilityMonths", ${input.billingMonth}::date)
+          where id = ${workspace.id}`;
+      }
       return utilitiesOverview(workspace.id);
     },
 

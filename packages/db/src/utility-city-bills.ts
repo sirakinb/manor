@@ -63,6 +63,7 @@ export function sameStreetAddr(left: string, right: string): boolean {
 }
 
 const houseNumber = (norm: string): string | null => /^\d+[a-z]?\b/.exec(norm)?.[0] ?? null;
+const numbersIn = (norm: string): string[] => norm.match(/\b\d+[a-z]?\b/g) ?? [];
 
 export type UtilityBillMatch = "address" | "variation" | "balance_due_date";
 
@@ -121,12 +122,15 @@ export function matchBillsToProperties<
     const key = balanceKey(bill);
     const found = key ? propertiesByBalance.get(key) : undefined;
     const property = found && found.size === 1 ? [...found][0] : undefined;
-    const number = houseNumber(bill.serviceAddressNorm);
-    // A shared house number keeps a coincidental balance at another address from matching.
+    const numbers = numbersIn(bill.serviceAddressNorm);
+    // The property's house number somewhere in the bill's address keeps a coincidental
+    // balance at another address from matching.
     if (
       property &&
-      number &&
-      property.addressNorms.some((candidate) => houseNumber(candidate) === number)
+      property.addressNorms.some((candidate) => {
+        const number = houseNumber(candidate);
+        return number !== null && numbers.includes(number);
+      })
     ) {
       matches.set(bill, { property, matchedBy: "balance_due_date" });
     }
