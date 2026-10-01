@@ -62,16 +62,28 @@ export function sameStreetAddr(left: string, right: string): boolean {
   );
 }
 
-const houseNumber = (norm: string): string | null => /^\d+[a-z]?\b/.exec(norm)?.[0] ?? null;
-const numbersIn = (norm: string): string[] => norm.match(/\b\d+[a-z]?\b/g) ?? [];
+const HOUSE_NUMBER = /^\d+[a-z]?$/;
+
+/**
+ * Whether the bill's address mentions the property's house number and every word of its
+ * street name, in any position: "rear unit 12 main" names "12 main street", but
+ * "1000 park avenue unit 12" does not.
+ */
+function namesProperty(billNorm: string, propertyNorm: string): boolean {
+  const [number, ...words] = propertyNorm.split(" ");
+  if (!number || !HOUSE_NUMBER.test(number)) return false;
+  const street = words.filter((word) => !DIRECTIONS.has(word) && !STREET_TYPES.has(word));
+  const billWords = new Set(billNorm.split(" "));
+  return street.length > 0 && billWords.has(number) && street.every((word) => billWords.has(word));
+}
 
 export type UtilityBillMatch = "address" | "variation" | "balance_due_date";
 
 /**
  * Attach bills to tracked properties: an exact address or saved spelling first, then the
- * same house number and street name when only one property has it, then, for a bill with
- * the same house number, the same total amount due and due date as a bill already
- * attached to exactly one property.
+ * same house number and street name when only one property has it, then, for a bill whose
+ * address still names the property, the same total amount due and due date as a bill
+ * already attached to exactly one property.
  */
 export function matchBillsToProperties<
   Bill extends {
@@ -122,16 +134,9 @@ export function matchBillsToProperties<
     const key = balanceKey(bill);
     const found = key ? propertiesByBalance.get(key) : undefined;
     const property = found && found.size === 1 ? [...found][0] : undefined;
-    const numbers = numbersIn(bill.serviceAddressNorm);
-    // The property's house number somewhere in the bill's address keeps a coincidental
-    // balance at another address from matching.
-    if (
-      property &&
-      property.addressNorms.some((candidate) => {
-        const number = houseNumber(candidate);
-        return number !== null && numbers.includes(number);
-      })
-    ) {
+    const billNorm = bill.serviceAddressNorm;
+    // The bill must still name the property, so a coincidental balance elsewhere stays out.
+    if (property?.addressNorms.some((candidate) => namesProperty(billNorm, candidate))) {
       matches.set(bill, { property, matchedBy: "balance_due_date" });
     }
   }

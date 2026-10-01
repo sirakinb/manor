@@ -80,6 +80,8 @@ describe("matchBillsToProperties", () => {
     expect(matches.has(untracked)).toBe(false);
     // Another address with the same balance and due date is a coincidence, not a match.
     expect(matches.has(coincidence)).toBe(false);
+    const unitTwelve = bill("1000 Park Ave Unit 12", { dueDate: "2026-10-20", amountDue: 333.83 });
+    expect(matchBillsToProperties([notice, unitTwelve], [main]).has(unitTwelve)).toBe(false);
   });
 
   it("leaves a balance and due date shared by two properties unmatched", () => {
