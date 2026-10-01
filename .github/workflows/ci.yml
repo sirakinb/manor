@@ -245,7 +245,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify mobile project
         if: steps.ota.outputs.publish == 'true'
-        run: pnpm --filter @rakazo/mobile check
+        run: pnpm --filter @rakazo/mobile check && pnpm --filter @rakazo/mobile deps:check
       - name: Publish production update
         if: steps.ota.outputs.publish == 'true'
         working-directory: apps/mobile
