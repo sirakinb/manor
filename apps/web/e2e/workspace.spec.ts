@@ -409,10 +409,31 @@ test("workspace appears once the organization has one and its map opens sections
   );
   await captureScreenshot(page, testInfo, "workspace-utilities-properties-narrow");
   await page.setViewportSize(utilityViewport);
-  await page.getByRole("button", { name: "Unmatched bills (1)", exact: true }).click();
-  await expect(page.getByTestId("workspace-bill")).toHaveCount(1);
-  await expect(page.getByTestId("workspace-bill")).toContainText("90 Sample Road");
+  // Bills for addresses outside the property list stay out of the billing view.
+  await page.getByRole("button", { name: "Bills", exact: true }).click();
+  await expect(page.getByTestId("workspace-bill").first()).toBeVisible();
+  await expect(
+    page.getByTestId("workspace-bill").filter({ hasText: "90 Sample Road" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Properties", exact: true }).click();
+  await page.getByRole("button", { name: "Add property", exact: true }).click();
+  const propertyForm = page.getByTestId("utility-property-form");
+  await propertyForm.getByLabel("Address", { exact: true }).fill("90 Sample Road");
+  await propertyForm
+    .getByRole("combobox", { name: "Billing", exact: true })
+    .selectOption("blocked");
+  await captureScreenshot(page, testInfo, "workspace-utilities-property-form");
+  await propertyForm.getByRole("button", { name: "Add property", exact: true }).click();
+  const sampleRow = page.getByRole("row").filter({ hasText: "90 Sample Road" });
+  await expect(sampleRow.getByText("Manual handling", { exact: true })).toBeVisible();
+  await sampleRow.getByRole("button", { name: "Edit", exact: true }).click();
+  await page
+    .getByTestId("utility-property-form")
+    .getByRole("button", { name: "Archive property", exact: true })
+    .click();
+  await expect(page.getByRole("row").filter({ hasText: "90 Sample Road" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Archived properties (1)", exact: true }).click();
+  await captureScreenshot(page, testInfo, "workspace-utilities-archived-properties");
   await page
     .getByRole("row")
     .filter({ hasText: "12 Harbor Way" })
@@ -424,6 +445,16 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("Lease #5101");
   await expect(page.getByTestId("workspace-monthly-amounts")).toContainText("Lease #4999");
   await expect(page.getByTestId("workspace-monthly-amounts")).not.toContainText("$2,433.11");
+  await expect(page.getByTestId("workspace-bill")).toHaveCount(2);
+  await page
+    .getByTestId("workspace-bill-month")
+    .filter({ hasText: "July 2026" })
+    .getByRole("button", { name: "Archive month", exact: true })
+    .click();
+  await expect(page.getByTestId("workspace-bill")).toHaveCount(1);
+  await page.getByRole("button", { name: "Archived months (1)", exact: true }).click();
+  await captureScreenshot(page, testInfo, "workspace-utilities-archived-months");
+  await page.getByRole("button", { name: "Restore", exact: true }).click();
   await expect(page.getByTestId("workspace-bill")).toHaveCount(2);
   await expect(page.getByRole("button", { name: /Post all pending/ })).toBeHidden();
   const bill = page.getByTestId("workspace-bill").filter({ hasText: "$84.50" });

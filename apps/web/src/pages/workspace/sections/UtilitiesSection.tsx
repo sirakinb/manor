@@ -17,6 +17,7 @@ import {
   Empty,
   ErrorLine,
   errorMessage,
+  Field,
   formatDate,
   formatMoneyCents,
   formatNumber,
@@ -29,6 +30,7 @@ import {
   Segmented,
   StatusPill,
   Table,
+  Toggle,
   useSectionData,
 } from "../bits";
 
@@ -84,9 +86,10 @@ export function UtilitiesSection({
   const [postAllError, setPostAllError] = useState<string | null>(null);
   const [batch, setBatch] = useState<ChargePostBatch | null>(null);
   const [view, setView] = useState<"bills" | "properties">("properties");
-  const [filter, setFilter] = useState<"all" | "pending" | "attention" | "unmatched" | "posted">(
-    "all",
-  );
+  const [filter, setFilter] = useState<"all" | "pending" | "attention" | "posted">("all");
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<UtilityBillingTarget | "new" | null>(null);
   const [search, setSearch] = useState("");
   const [propertyFilter, setPropertyFilter] = useState<string | null>(null);
   const [crmSyncBusy, setCrmSyncBusy] = useState(false);
@@ -104,12 +107,12 @@ export function UtilitiesSection({
   };
 
   const resolved = data?.targets.filter((target) => target.targetStatus === "resolved").length ?? 0;
-  const bills = data?.bills ?? [];
+  const bills = (data?.bills ?? []).filter((bill) => !bill.archived);
+  const archivedMonths = data?.archivedMonths ?? [];
   const propertyIssues =
     data?.targets.filter((target) =>
       ["blocked", "unmatched", "no_active_lease", "ambiguous"].includes(target.targetStatus),
     ).length ?? 0;
-  const unmatchedBills = bills.filter((bill) => bill.resolutionStatus === "unmatched").length;
   const selectedProperty = data?.targets.find(
     (target) => target.utilityPropertyId === propertyFilter,
   );
@@ -138,7 +141,6 @@ export function UtilitiesSection({
     )
       return false;
     if (filter === "pending") return bill.charges.some((charge) => charge.postStatus === "pending");
-    if (filter === "unmatched") return bill.resolutionStatus === "unmatched";
     if (filter === "attention")
       return (
         bill.billAmount === null ||
@@ -160,12 +162,18 @@ export function UtilitiesSection({
     setView("bills");
   }
 
-  function showUnmatchedBills() {
-    setView("bills");
-    setFilter("unmatched");
-    setSearch("");
-    setPropertyFilter(null);
+  async function archiveMonth(billingMonth: string, archived: boolean) {
+    setArchiveError(null);
+    try {
+      setData(await rpc.workspace.utilities.archiveBills({ billingMonth, archived }));
+    } catch (cause) {
+      setArchiveError(errorMessage(cause, t`Could not archive`));
+    }
   }
+
+  const monthsShown = [...new Set(visibleBills.map((bill) => bill.billingMonth ?? ""))].sort(
+    (left, right) => right.localeCompare(left),
+  );
 
   async function syncFromCrm() {
     setCrmSyncBusy(true);
@@ -333,7 +341,6 @@ export function UtilitiesSection({
                     { key: "all", label: t`All` },
                     { key: "pending", label: t`Pending` },
                     { key: "attention", label: t`Needs attention` },
-                    { key: "unmatched", label: t`Unmatched` },
                     { key: "posted", label: t`Posted` },
                   ]}
                 />
@@ -359,47 +366,94 @@ export function UtilitiesSection({
                 </div>
               ) : null}
               {batch ? <BatchSummary batch={batch} onDismiss={() => setBatch(null)} /> : null}
+              {archiveError ? <ErrorLine message={archiveError} /> : null}
               {visibleBills.length === 0 ? (
                 <Empty>
                   {bills.length === 0 ? t`No bills yet` : t`No bills match these filters`}
                 </Empty>
               ) : (
-                <div className="divide-y divide-[#282D2F]">
-                  {visibleBills.map((bill) => (
-                    <BillCard
-                      key={bill.waterBillId}
-                      bill={bill}
-                      statusLabel={
-                        bill.resolutionStatus === "unmatched"
-                          ? t`Unmatched bill`
-                          : targetLabel[bill.resolutionStatus]
-                      }
-                      guidance={
-                        bill.resolutionStatus === "unmatched"
-                          ? t`Confirm this bill belongs on the property roster, then check the service address mapping.`
-                          : nextStep[bill.resolutionStatus]
-                      }
-                      onChanged={setData}
-                      onPosted={reload}
-                      currentBillingMonth={data.currentBillingMonth}
-                    />
-                  ))}
-                </div>
+                monthsShown.map((month) => (
+                  <section key={month} className="mb-4" data-testid="workspace-bill-month">
+                    <div className="flex items-center justify-between gap-3 border-b border-[#282D2F] pb-2">
+                      <h3 className="text-[12.5px] font-medium text-[#ECECEE]">
+                        {month ? formatBillingMonth(month) : t`No billing month`}
+                      </h3>
+                      {month && month !== data.currentBillingMonth ? (
+                        <button
+                          type="button"
+                          className={`text-[12px] text-[#85858A] ${CLICKABLE_TEXT}`}
+                          onClick={() => void archiveMonth(month, true)}
+                        >
+                          <Trans>Archive month</Trans>
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="divide-y divide-[#282D2F]">
+                      {visibleBills
+                        .filter((bill) => (bill.billingMonth ?? "") === month)
+                        .map((bill) => (
+                          <BillCard
+                            key={bill.waterBillId}
+                            bill={bill}
+                            statusLabel={targetLabel[bill.resolutionStatus]}
+                            guidance={nextStep[bill.resolutionStatus]}
+                            onChanged={setData}
+                            onPosted={reload}
+                            currentBillingMonth={data.currentBillingMonth}
+                          />
+                        ))}
+                    </div>
+                  </section>
+                ))
               )}
+              {archivedMonths.length > 0 ? (
+                <div className="mt-2 text-[12px]">
+                  <button
+                    type="button"
+                    className={`text-[#85858A] ${CLICKABLE_TEXT}`}
+                    aria-expanded={showArchived}
+                    onClick={() => setShowArchived(!showArchived)}
+                  >
+                    {t`Archived months (${formatNumber(archivedMonths.length)})`}
+                  </button>
+                  {showArchived ? (
+                    <ul className="mt-2 space-y-1.5">
+                      {archivedMonths.map((month) => (
+                        <li key={month} className="flex items-center justify-between gap-3">
+                          <span className="text-[#C9C9CE]">{formatBillingMonth(month)}</span>
+                          <button
+                            type="button"
+                            className={`text-[var(--ws-accent)] ${CLICKABLE_TEXT}`}
+                            onClick={() => void archiveMonth(month, false)}
+                          >
+                            <Trans>Restore</Trans>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
             </Card>
           ) : (
             <Card
               title={t`Water-billed properties`}
               subtitle={t`Billing instructions, this month's city bill, tenant leases, and the next step`}
-              right={
-                unmatchedBills > 0 ? (
-                  <BuiButton onClick={showUnmatchedBills}>
-                    {t`Unmatched bills (${formatNumber(unmatchedBills)})`}
-                  </BuiButton>
-                ) : null
-              }
+              right={<BuiButton onClick={() => setEditing("new")}>{t`Add property`}</BuiButton>}
               className="mt-4"
             >
+              {editing ? (
+                <PropertyForm
+                  key={editing === "new" ? "new" : editing.utilityPropertyId}
+                  target={editing === "new" ? null : editing}
+                  buildiumProperties={data.buildiumProperties ?? []}
+                  onSaved={(next) => {
+                    setData(next);
+                    setEditing(null);
+                  }}
+                  onCancel={() => setEditing(null)}
+                />
+              ) : null}
               <Table<UtilityBillingTarget>
                 rows={data.targets.filter(
                   (target) =>
@@ -521,9 +575,7 @@ export function UtilitiesSection({
                                   ? nextStep.resolved
                                   : propertyBills.length
                                     ? t`No pending tenant charges. Review bill history if needed.`
-                                    : unmatchedBills > 0
-                                      ? t`No matched bill. Check the unmatched bills.`
-                                      : t`Await the next water bill.`}
+                                    : t`Await the next water bill.`}
                           </p>
                           {propertyBills.length > 0 || canRecordCityBill ? (
                             <button
@@ -539,25 +591,260 @@ export function UtilitiesSection({
                                     ? t`Record city bill`
                                     : t`View monthly bills`}
                             </button>
-                          ) : target.targetStatus === "resolved" && unmatchedBills > 0 ? (
-                            <button
-                              type="button"
-                              className={`text-[12px] font-medium text-[var(--ws-accent)] ${CLICKABLE_TEXT}`}
-                              onClick={showUnmatchedBills}
-                            >
-                              <Trans>Check unmatched bills</Trans>
-                            </button>
                           ) : null}
+                          <button
+                            type="button"
+                            className={`block text-[12px] text-[#85858A] ${CLICKABLE_TEXT}`}
+                            onClick={() => setEditing(target)}
+                          >
+                            <Trans>Edit</Trans>
+                          </button>
                         </div>
                       );
                     },
                   },
                 ]}
               />
+              {(data.archivedProperties ?? []).length > 0 ? (
+                <ArchivedProperties
+                  properties={data.archivedProperties ?? []}
+                  onChanged={setData}
+                />
+              ) : null}
             </Card>
           )}
         </>
       ) : null}
+    </div>
+  );
+}
+
+const BILLING_MODES = ["pass_through", "tenant_direct", "owner_sends_bill", "blocked"] as const;
+
+function PropertyForm({
+  target,
+  buildiumProperties,
+  onSaved,
+  onCancel,
+}: {
+  target: UtilityBillingTarget | null;
+  buildiumProperties: NonNullable<UtilitiesOverview["buildiumProperties"]>;
+  onSaved: (next: UtilitiesOverview) => void;
+  onCancel: () => void;
+}) {
+  const { t } = useLingui();
+  const modeLabel: Record<(typeof BILLING_MODES)[number], string> = {
+    pass_through: t`Bill through Buildium`,
+    tenant_direct: t`Tenant pays directly`,
+    owner_sends_bill: t`Owner sends bill`,
+    blocked: t`Manual handling`,
+  };
+  const [address, setAddress] = useState(target?.address ?? "");
+  const [aliases, setAliases] = useState((target?.aliases ?? []).join(", "));
+  const [propertyId, setPropertyId] = useState<number | null>(target?.propertyId ?? null);
+  const [billingMode, setBillingMode] = useState<(typeof BILLING_MODES)[number]>(
+    BILLING_MODES.find((mode) => mode === target?.billingMode) ?? "pass_through",
+  );
+  const [splitEvenly, setSplitEvenly] = useState(target?.splitEvenly ?? false);
+  const [notes, setNotes] = useState(target?.notes ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const linked =
+    propertyId === null || buildiumProperties.some((row) => row.propertyId === propertyId);
+
+  async function run(action: () => Promise<UtilitiesOverview>) {
+    setBusy(true);
+    setError(null);
+    try {
+      onSaved(await action());
+    } catch (cause) {
+      setError(errorMessage(cause, t`Could not save`));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function save() {
+    if (!address.trim()) return;
+    void run(() =>
+      rpc.workspace.utilities.property.save({
+        utilityPropertyId: target?.utilityPropertyId,
+        address: address.trim(),
+        aliases: aliases
+          .split(",")
+          .map((alias) => alias.trim())
+          .filter(Boolean),
+        propertyId,
+        billingMode,
+        splitEvenly,
+        notes: notes.trim() || null,
+      }),
+    );
+  }
+
+  return (
+    <div
+      className="mb-4 space-y-3 rounded-xl border border-[#202023] bg-[#0F0F11] p-3.5"
+      data-testid="utility-property-form"
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={t`Address`}>
+          <input
+            className={INPUT}
+            value={address}
+            disabled={busy}
+            maxLength={200}
+            onChange={(event) => setAddress(event.target.value)}
+          />
+        </Field>
+        <Field label={t`Other spellings`}>
+          <input
+            className={INPUT}
+            value={aliases}
+            disabled={busy}
+            placeholder={t`12 N Main St`}
+            onChange={(event) => setAliases(event.target.value)}
+          />
+        </Field>
+        <Field label={t`Buildium property`}>
+          <select
+            className={INPUT}
+            value={propertyId ?? ""}
+            disabled={busy}
+            onChange={(event) =>
+              setPropertyId(event.target.value === "" ? null : Number(event.target.value))
+            }
+          >
+            <option value="">{t`Not linked`}</option>
+            {!linked && propertyId !== null ? (
+              <option value={propertyId}>{target?.buildiumAddress ?? `#${propertyId}`}</option>
+            ) : null}
+            {buildiumProperties.map((row) => (
+              <option key={row.propertyId} value={row.propertyId}>
+                {row.address}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t`Billing`}>
+          <select
+            className={INPUT}
+            value={billingMode}
+            disabled={busy}
+            onChange={(event) =>
+              setBillingMode(
+                BILLING_MODES.find((mode) => mode === event.target.value) ?? "pass_through",
+              )
+            }
+          >
+            {BILLING_MODES.map((mode) => (
+              <option key={mode} value={mode}>
+                {modeLabel[mode]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <Field label={t`Notes`}>
+        <input
+          className={INPUT}
+          value={notes}
+          disabled={busy}
+          maxLength={1000}
+          onChange={(event) => setNotes(event.target.value)}
+        />
+      </Field>
+      <div className="flex items-center gap-2 text-[12px] text-[#85858A]">
+        <Toggle
+          label={t`Split evenly across active leases`}
+          checked={splitEvenly}
+          disabled={busy}
+          onChange={setSplitEvenly}
+        />
+        <span aria-hidden="true">{t`Split evenly across active leases`}</span>
+      </div>
+      {error ? <p className="text-[11.5px] text-[#E8A33C]">{error}</p> : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <BuiButton tone="accent" disabled={busy || !address.trim()} onClick={save}>
+          {target ? t`Save` : t`Add property`}
+        </BuiButton>
+        <BuiButton disabled={busy} onClick={onCancel}>
+          {t`Cancel`}
+        </BuiButton>
+        {target ? (
+          <button
+            type="button"
+            disabled={busy}
+            className={`ml-auto text-[12px] text-[#85858A] ${CLICKABLE_TEXT}`}
+            onClick={() =>
+              void run(() =>
+                rpc.workspace.utilities.property.archive({
+                  utilityPropertyId: target.utilityPropertyId,
+                  archived: true,
+                }),
+              )
+            }
+          >
+            <Trans>Archive property</Trans>
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ArchivedProperties({
+  properties,
+  onChanged,
+}: {
+  properties: NonNullable<UtilitiesOverview["archivedProperties"]>;
+  onChanged: (next: UtilitiesOverview) => void;
+}) {
+  const { t } = useLingui();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function restore(utilityPropertyId: string) {
+    setError(null);
+    try {
+      onChanged(
+        await rpc.workspace.utilities.property.archive({ utilityPropertyId, archived: false }),
+      );
+    } catch (cause) {
+      setError(errorMessage(cause, t`Could not restore`));
+    }
+  }
+
+  return (
+    <div className="mt-3 text-[12px]">
+      <button
+        type="button"
+        className={`text-[#85858A] ${CLICKABLE_TEXT}`}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        {t`Archived properties (${formatNumber(properties.length)})`}
+      </button>
+      {open ? (
+        <ul className="mt-2 space-y-1.5">
+          {properties.map((property) => (
+            <li
+              key={property.utilityPropertyId}
+              className="flex items-center justify-between gap-3"
+            >
+              <span className="text-[#C9C9CE]">{property.address}</span>
+              <button
+                type="button"
+                className={`text-[var(--ws-accent)] ${CLICKABLE_TEXT}`}
+                onClick={() => void restore(property.utilityPropertyId)}
+              >
+                <Trans>Restore</Trans>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {error ? <p className="mt-1 text-[11.5px] text-[#E8A33C]">{error}</p> : null}
     </div>
   );
 }
@@ -691,6 +978,11 @@ function BillCard({
             {bill.billingMonth ? formatDate(bill.billingMonth) : "—"}
             {bill.dueDate ? ` · ${t`Due ${formatDate(bill.dueDate)}`}` : ""}
             {bill.charges.length > 1 ? ` · ${t`${bill.charges.length} charges`}` : ""}
+            {bill.matchedBy === "variation"
+              ? ` · ${t`Matched by address variation`}`
+              : bill.matchedBy === "balance_due_date"
+                ? ` · ${t`Matched by balance and due date`}`
+                : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">

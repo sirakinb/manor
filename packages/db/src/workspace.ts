@@ -1,10 +1,12 @@
 import type {
+  ArchiveWaterBills,
   AvailableRentals,
   EmailCampaignDetail,
   EmailCampaignRow,
   EmailPerformance,
   LeasingSnapshot,
   RecordCityUtilityBill,
+  SaveUtilityProperty,
   SocialSnapshot,
   SyncCityBillsFromCrmResult,
   UtilitiesOverview,
@@ -29,7 +31,11 @@ import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
 import { Prisma, type PrismaClient } from "./client.js";
 import { syncWaterBillsFromCrm } from "./crm-utility-bills.js";
 import { IsolationError, type OrganizationScope } from "./scope.js";
-import { upsertCityUtilityBill } from "./utility-city-bills.js";
+import {
+  matchBillsToProperties,
+  normStreetAddr,
+  upsertCityUtilityBill,
+} from "./utility-city-bills.js";
 import {
   allocateLeasesForBillingMonth,
   splitChargeAmounts,
@@ -365,21 +371,49 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
 
   // ── Utilities (shared by overview) ─────────────────────────────────────
 
-  async function utilitiesOverview(workspaceId: string): Promise<UtilitiesOverview> {
-    const properties = await prisma.workspaceUtilityProperty.findMany({
-      where: { workspaceId, active: true },
-      orderBy: { address: "asc" },
+  /** Refuses an address or spelling another active property already matches bills on. */
+  async function assertAddressesFree(
+    workspaceId: string,
+    norms: ReadonlySet<string>,
+    exceptId?: string,
+  ) {
+    const others = await prisma.workspaceUtilityProperty.findMany({
+      where: {
+        workspaceId,
+        utility: "water",
+        active: true,
+        ...(exceptId ? { id: { not: exceptId } } : {}),
+      },
+      select: { address: true, addressNorm: true, aliases: true },
     });
+    const clash = others.find((other) =>
+      [other.addressNorm, ...other.aliases.map(normStreetAddr)].some((norm) => norms.has(norm)),
+    );
+    if (clash) throw new RangeError(`${clash.address} already uses that address`);
+  }
+
+  async function utilitiesOverview(workspaceId: string): Promise<UtilitiesOverview> {
+    const [allProperties, workspaceRow] = await Promise.all([
+      prisma.workspaceUtilityProperty.findMany({
+        where: { workspaceId },
+        orderBy: { address: "asc" },
+      }),
+      prisma.workspace.findUniqueOrThrow({
+        where: { id: workspaceId },
+        select: { archivedUtilityMonths: true },
+      }),
+    ]);
+    const archivedMonths = new Set(workspaceRow.archivedUtilityMonths.map((month) => day(month)));
+    const properties = allProperties.filter((row) => row.active);
     const propertyIds = [
       ...new Set(properties.map((row) => row.propertyId).filter((id) => id !== null)),
     ];
     const [buildiumProperties, leases, bills] = await Promise.all([
-      propertyIds.length
-        ? prisma.workspaceBuildiumProperty.findMany({
-            where: { workspaceId, propertyId: { in: propertyIds } },
-            select: { propertyId: true, addressLine: true },
-          })
-        : [],
+      prisma.workspaceBuildiumProperty.findMany({
+        where: { workspaceId, OR: [{ isActive: true }, { propertyId: { in: propertyIds } }] },
+        select: { propertyId: true, addressLine: true, name: true, isActive: true },
+        orderBy: { addressLine: "asc" },
+      }),
       propertyIds.length
         ? prisma.workspaceBuildiumLease.findMany({
             where: {
@@ -425,7 +459,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
     // One target per active utility property, resolved to the lease(s) that carry its charge.
     const targets: (Omit<UtilityBillingTarget, "months"> & {
       utility: string;
-      addressNorm: string;
+      addressNorms: string[];
     })[] = properties.map((property) => {
       const own =
         property.propertyId === null ? [] : (activeByProperty.get(property.propertyId) ?? []);
@@ -447,10 +481,12 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       const chargeShare = own.length === 1 ? 1 : round(1 / own.length, 4);
       return {
         utility: property.utility,
-        addressNorm: property.addressNorm,
+        addressNorms: [property.addressNorm, ...property.aliases.map(normStreetAddr)],
         utilityPropertyId: property.id,
         address: property.address,
+        aliases: property.aliases,
         billingMode: property.billingMode,
+        splitEvenly: property.splitEvenly,
         notes: property.notes,
         propertyId: property.propertyId,
         buildiumAddress:
@@ -471,32 +507,38 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       };
     });
 
-    const billKey = (bill: (typeof bills)[number]): string => {
+    // Tracked properties are the master list: bills for other addresses stay out.
+    const matches = matchBillsToProperties(
+      bills,
+      targets.map((target) => ({ ...target, id: target.utilityPropertyId })),
+    );
+    const tracked = bills.flatMap((bill) => {
+      const match = matches.get(bill);
+      return match ? [{ bill, target: match.property, matchedBy: match.matchedBy }] : [];
+    });
+    const billKey = ({ bill, target }: (typeof tracked)[number]): string => {
       const month = day(bill.billingMonth);
-      const address = bill.serviceAddressNorm;
-      if (!month || !address) return bill.id;
-      return `${bill.utility}|${address}|${month}`;
+      return month ? `${target.utilityPropertyId}|${month}` : bill.id;
     };
-    const preferred = new Map<string, (typeof bills)[number]>();
-    for (const bill of bills) {
-      const key = billKey(bill);
+    // When several bills land on one property and month, show the one that already has
+    // posted or skipped charges, so a merged duplicate can never be charged twice; then one
+    // with the month's amount; then one tied by its address over one tied by balance.
+    const rank = ({ bill, matchedBy }: (typeof tracked)[number]) =>
+      (bill.chargePosts.some((post) => post.status === "posted" || post.status === "skipped")
+        ? 4
+        : 0) +
+      (bill.currentCharges !== null ? 2 : 0) +
+      (matchedBy === "balance_due_date" ? 0 : 1);
+    const preferred = new Map<string, (typeof tracked)[number]>();
+    for (const entry of tracked) {
+      const key = billKey(entry);
       const previous = preferred.get(key);
-      if (!previous || (previous.currentCharges === null && bill.currentCharges !== null)) {
-        preferred.set(key, bill);
-      }
+      if (!previous || rank(entry) > rank(previous)) preferred.set(key, entry);
     }
     const monthStart = new Date(Date.UTC(now().getUTCFullYear(), now().getUTCMonth(), 1));
-    const groups: WaterBillGroup[] = bills
-      .filter((bill) => preferred.get(billKey(bill)) === bill)
-      .map((bill) => {
-        const target =
-          bill.serviceAddressNorm === null
-            ? undefined
-            : targets.find(
-                (candidate) =>
-                  candidate.utility === bill.utility &&
-                  candidate.addressNorm === bill.serviceAddressNorm,
-              );
+    const groups: WaterBillGroup[] = tracked
+      .filter((entry) => preferred.get(billKey(entry)) === entry)
+      .map(({ bill, target, matchedBy }) => {
         const cityAmount = bill.currentCharges;
         const memo = bill.billingMonth ? `${monthLabel(bill.billingMonth)} ${bill.utility}` : null;
         const utilityProperty = properties.find((row) => row.id === target?.utilityPropertyId);
@@ -513,9 +555,8 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
                 utilityProperty?.splitEvenly ?? false,
               )
             : { status: "no_active_lease" as const, leases: [] };
-        const resolutionStatus = !target
-          ? "unmatched"
-          : target.billingMode !== "pass_through" || target.propertyId === null
+        const resolutionStatus =
+          target.billingMode !== "pass_through" || target.propertyId === null
             ? target.targetStatus
             : monthAllocation.status;
         const monthLeases = resolutionStatus === "resolved" ? monthAllocation.leases : [];
@@ -545,7 +586,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
               );
         return {
           waterBillId: bill.id,
-          utilityPropertyId: target?.utilityPropertyId ?? null,
+          utilityPropertyId: target.utilityPropertyId,
           serviceAddress: bill.serviceAddress,
           billingMonth: day(bill.billingMonth),
           memo,
@@ -557,7 +598,9 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
               ? "needs_review"
               : bill.parseStatus,
           resolutionStatus,
-          billingMode: target?.billingMode ?? null,
+          billingMode: target.billingMode,
+          archived: archivedMonths.has(day(bill.billingMonth)),
+          matchedBy,
           charges: chargeLeases.map((lease, index) => {
             const post = bill.chargePosts.find((row) => row.leaseId === lease.leaseId);
             const status = post?.status;
@@ -582,7 +625,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
 
     return {
       currentBillingMonth: day(monthStart)!,
-      targets: targets.map(({ utility: _utility, addressNorm: _norm, ...target }) => ({
+      targets: targets.map(({ utility: _utility, addressNorms: _norms, ...target }) => ({
         ...target,
         months: groups
           .filter(
@@ -602,6 +645,18 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
           .sort((left, right) => right.billingMonth.localeCompare(left.billingMonth)),
       })),
       bills: groups,
+      archivedMonths: [...archivedMonths]
+        .filter((month): month is string => month !== null)
+        .sort((left, right) => right.localeCompare(left)),
+      archivedProperties: allProperties
+        .filter((row) => !row.active)
+        .map((row) => ({ utilityPropertyId: row.id, address: row.address })),
+      buildiumProperties: buildiumProperties
+        .filter((row) => row.isActive)
+        .map((row) => ({
+          propertyId: row.propertyId,
+          address: row.addressLine ?? row.name ?? `#${row.propertyId}`,
+        })),
     };
   }
 
@@ -688,8 +743,7 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
   async function utilitiesBlock(workspaceId: string): Promise<WorkspaceOverview["utilities"]> {
     const at = now();
     const monthStart = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), 1));
-    const [billsThisMonth, posts, overview] = await Promise.all([
-      prisma.workspaceWaterBill.count({ where: { workspaceId, billingMonth: monthStart } }),
+    const [posts, overview] = await Promise.all([
       prisma.workspaceWaterBillChargePost.groupBy({
         by: ["status"],
         where: { workspaceId },
@@ -698,9 +752,10 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
       utilitiesOverview(workspaceId),
     ]);
     const postCount = (status: string) => posts.find((row) => row.status === status)?._count ?? 0;
+    const open = overview.bills.filter((bill) => !bill.archived);
     return {
-      billsThisMonth,
-      billsNeedingReview: overview.bills.filter(
+      billsThisMonth: open.filter((bill) => bill.billingMonth === day(monthStart)).length,
+      billsNeedingReview: open.filter(
         (bill) =>
           bill.billAmount === null ||
           bill.parseStatus === "needs_review" ||
@@ -1275,6 +1330,101 @@ export function createWorkspaceRepos(prisma: PrismaClient, options: WorkspaceRep
         sourceNote: input.sourceNote,
         sourceKind: "city_bill",
       });
+      return utilitiesOverview(workspace.id);
+    },
+
+    async saveUtilityProperty(
+      actor: WorkspaceActorScope,
+      input: SaveUtilityProperty,
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      const addressNorm = normStreetAddr(input.address);
+      const aliases = [...new Set(input.aliases)].filter(
+        (alias) => normStreetAddr(alias) !== addressNorm,
+      );
+      await assertAddressesFree(
+        workspace.id,
+        new Set([addressNorm, ...aliases.map(normStreetAddr)]),
+        input.utilityPropertyId,
+      );
+      const data = {
+        address: input.address,
+        addressNorm,
+        aliases,
+        propertyId: input.propertyId,
+        billingMode: input.billingMode,
+        splitEvenly: input.splitEvenly,
+        notes: input.notes ?? null,
+        active: true,
+      };
+      if (input.utilityPropertyId) {
+        const changed = await prisma.workspaceUtilityProperty.updateMany({
+          where: { id: input.utilityPropertyId, workspaceId: workspace.id },
+          data,
+        });
+        if (changed.count === 0) throw new IsolationError();
+      } else {
+        // Re-adding an archived address brings that property back instead of duplicating it.
+        await prisma.workspaceUtilityProperty.upsert({
+          where: {
+            workspaceId_utility_address: {
+              workspaceId: workspace.id,
+              utility: "water",
+              address: input.address,
+            },
+          },
+          create: { workspaceId: workspace.id, utility: "water", ...data },
+          update: data,
+        });
+      }
+      return utilitiesOverview(workspace.id);
+    },
+
+    async archiveUtilityProperty(
+      actor: WorkspaceActorScope,
+      input: { utilityPropertyId: string; archived: boolean },
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      const property = await prisma.workspaceUtilityProperty.findFirst({
+        where: { id: input.utilityPropertyId, workspaceId: workspace.id },
+        select: { id: true, addressNorm: true, aliases: true },
+      });
+      if (!property) throw new IsolationError();
+      if (!input.archived) {
+        await assertAddressesFree(
+          workspace.id,
+          new Set([property.addressNorm, ...property.aliases.map(normStreetAddr)]),
+          property.id,
+        );
+      }
+      await prisma.workspaceUtilityProperty.update({
+        where: { id: property.id },
+        data: { active: !input.archived },
+      });
+      return utilitiesOverview(workspace.id);
+    },
+
+    async archiveWaterBills(
+      actor: WorkspaceActorScope,
+      input: ArchiveWaterBills,
+    ): Promise<UtilitiesOverview> {
+      const workspace = await requireWorkspace(actor);
+      // Kept on the workspace, so bills that arrive later for the month stay archived.
+      // One atomic statement, so archiving two months at once cannot drop either.
+      if (input.archived) {
+        await prisma.$executeRaw`
+          update workspaces
+          set "archivedUtilityMonths" = array_append(
+            array_remove("archivedUtilityMonths", ${input.billingMonth}::date),
+            ${input.billingMonth}::date
+          )
+          where id = ${workspace.id}`;
+      } else {
+        await prisma.$executeRaw`
+          update workspaces
+          set "archivedUtilityMonths" = array_remove("archivedUtilityMonths", ${input.billingMonth}::date)
+          where id = ${workspace.id}`;
+      }
       return utilitiesOverview(workspace.id);
     },
 

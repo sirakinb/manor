@@ -1363,6 +1363,17 @@ export function createRouter(deps: RouterDeps) {
           async ({ context, input }) =>
             workspaceAction(() => workspaceActions.recordCityBill(context.actor, input)),
         ),
+        property: {
+          save: authed.workspace.utilities.property.save.handler(async ({ context, input }) =>
+            workspaceAction(() => workspaceActions.saveUtilityProperty(context.actor, input)),
+          ),
+          archive: authed.workspace.utilities.property.archive.handler(async ({ context, input }) =>
+            workspaceAction(() => workspaceActions.archiveUtilityProperty(context.actor, input)),
+          ),
+        },
+        archiveBills: authed.workspace.utilities.archiveBills.handler(async ({ context, input }) =>
+          workspaceAction(() => workspaceActions.archiveWaterBills(context.actor, input)),
+        ),
         syncFromCrm: authed.workspace.utilities.syncFromCrm.handler(async ({ context }) =>
           workspaceAction(() => workspaceActions.syncFromCrm(context.actor)),
         ),

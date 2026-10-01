@@ -47,7 +47,7 @@ msgid "{0} · applications, rent roll & renewals"
 msgstr ""
 
 #. placeholder {0}: workspace.name
-#: src/pages/workspace/sections/UtilitiesSection.tsx:205
+#: src/pages/workspace/sections/UtilitiesSection.tsx:218
 msgid "{0} · Water billing"
 msgstr ""
 
@@ -108,7 +108,7 @@ msgid "{0} campaigns"
 msgstr ""
 
 #. placeholder {0}: bill.charges.length
-#: src/pages/workspace/sections/UtilitiesSection.tsx:693
+#: src/pages/workspace/sections/UtilitiesSection.tsx:985
 msgid "{0} charges"
 msgstr ""
 
@@ -134,7 +134,7 @@ msgid "{0} connection"
 msgstr "{0} 연결"
 
 #. placeholder {0}: formatNumber(batch.failed)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:647
+#: src/pages/workspace/sections/UtilitiesSection.tsx:939
 msgid "{0} failed"
 msgstr ""
 
@@ -195,7 +195,7 @@ msgstr ""
 
 #. placeholder {0}: formatNumber(visibleBills.length)
 #. placeholder {1}: formatNumber(bills.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:341
+#: src/pages/workspace/sections/UtilitiesSection.tsx:353
 msgid "{0} of {1} bills"
 msgstr ""
 
@@ -206,7 +206,7 @@ msgid "{0} of {1} sent"
 msgstr ""
 
 #. placeholder {0}: formatPct(lease.chargeShare * 100)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:486
+#: src/pages/workspace/sections/UtilitiesSection.tsx:545
 msgid "{0} of bill"
 msgstr ""
 
@@ -230,17 +230,17 @@ msgstr ""
 #. placeholder {0}: formatNumber(pendingCharges.length)
 #. placeholder {1}: formatNumber(pendingBillCount)
 #. placeholder {2}: formatMoneyCents(pendingTotal)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:284
+#: src/pages/workspace/sections/UtilitiesSection.tsx:297
 msgid "{0} pending charges across {1} bills · {2}"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:230
+#: src/pages/workspace/sections/UtilitiesSection.tsx:243
 msgid "{0} pending tenant charges"
 msgstr ""
 
 #. placeholder {0}: formatNumber(batch.posted)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:644
+#: src/pages/workspace/sections/UtilitiesSection.tsx:936
 msgid "{0} posted"
 msgstr ""
 
@@ -421,6 +421,10 @@ msgstr ""
 msgid "12 months"
 msgstr ""
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:710
+msgid "12 N Main St"
+msgstr ""
+
 #: src/pages/UserGuide.tsx:53
 msgid "2. Give it a small, specific job"
 msgstr ""
@@ -478,7 +482,7 @@ msgid "Account"
 msgstr "계정"
 
 #. placeholder {0}: formatMoneyCents(bill.accountBalance)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:713
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1010
 msgid "Account balance {0}"
 msgstr ""
 
@@ -629,6 +633,11 @@ msgstr "MCP 서버 추가"
 msgid "Add OpenAPI"
 msgstr "OpenAPI 추가"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:447
+#: src/pages/workspace/sections/UtilitiesSection.tsx:774
+msgid "Add property"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:400
 msgid "Add remote MCP server"
 msgstr "원격 MCP 서버 추가"
@@ -673,6 +682,7 @@ msgid "Adding…"
 msgstr "추가 중…"
 
 #: src/pages/crm/CrmForms.tsx:200
+#: src/pages/workspace/sections/UtilitiesSection.tsx:696
 msgid "Address"
 msgstr ""
 
@@ -751,7 +761,7 @@ msgid "AI tool"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:183
-#: src/pages/workspace/sections/UtilitiesSection.tsx:333
+#: src/pages/workspace/sections/UtilitiesSection.tsx:346
 msgid "All"
 msgstr ""
 
@@ -835,8 +845,8 @@ msgstr "이 도구 항상 허용"
 msgid "Always allowed"
 msgstr "항상 허용됨"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:889
-#: src/pages/workspace/sections/UtilitiesSection.tsx:984
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1186
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1281
 msgid "Amount"
 msgstr ""
 
@@ -934,6 +944,14 @@ msgstr ""
 msgid "Archive"
 msgstr "보관"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:392
+msgid "Archive month"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:793
+msgid "Archive property"
+msgstr ""
+
 #: src/pages/Shell.tsx:5919
 msgid "archived"
 msgstr "보관됨"
@@ -945,6 +963,16 @@ msgstr "보관됨"
 #: src/pages/Shell.tsx:2920
 msgid "Archived"
 msgstr "보관됨"
+
+#. placeholder {0}: formatNumber(archivedMonths.length)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:422
+msgid "Archived months ({0})"
+msgstr ""
+
+#. placeholder {0}: formatNumber(properties.length)
+#: src/pages/workspace/sections/UtilitiesSection.tsx:831
+msgid "Archived properties ({0})"
+msgstr ""
 
 #: src/pages/Shell.tsx:5930
 msgid "Archived. Chat, memory, and files kept."
@@ -1103,7 +1131,7 @@ msgstr ""
 msgid "Avg deal size"
 msgstr "평균 딜 규모"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:526
+#: src/pages/workspace/sections/UtilitiesSection.tsx:583
 msgid "Await the next water bill."
 msgstr ""
 
@@ -1133,29 +1161,31 @@ msgstr ""
 msgid "Bearer token"
 msgstr "Bearer 토큰"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:329
+#: src/pages/workspace/sections/UtilitiesSection.tsx:342
 msgid "Bill status"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:100
-#: src/pages/workspace/sections/UtilitiesSection.tsx:218
+#: src/pages/workspace/sections/UtilitiesSection.tsx:103
+#: src/pages/workspace/sections/UtilitiesSection.tsx:231
+#: src/pages/workspace/sections/UtilitiesSection.tsx:642
 msgid "Bill through Buildium"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:464
+#: src/pages/workspace/sections/UtilitiesSection.tsx:523
+#: src/pages/workspace/sections/UtilitiesSection.tsx:734
 msgid "Billing"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:393
+#: src/pages/workspace/sections/UtilitiesSection.tsx:446
 msgid "Billing instructions, this month's city bill, tenant leases, and the next step"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:245
+#: src/pages/workspace/sections/UtilitiesSection.tsx:258
 msgid "Bills"
 msgstr ""
 
 #: src/pages/workspace/Overview.tsx:114
-#: src/pages/workspace/sections/UtilitiesSection.tsx:228
+#: src/pages/workspace/sections/UtilitiesSection.tsx:241
 msgid "Bills to review"
 msgstr ""
 
@@ -1259,6 +1289,10 @@ msgstr "사용 중인 서비스의 API 키를 연결하세요. 서비스를 바�
 #: src/components/FilesPanel.tsx:200
 msgid "Browse"
 msgstr "찾아보기"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:714
+msgid "Buildium property"
+msgstr ""
 
 #: src/pages/workspace/sections/VoiceSection.tsx:151
 msgid "Busiest day"
@@ -1367,8 +1401,9 @@ msgstr "서버에 연결할 수 없습니다."
 #: src/pages/workspace/sections/ReportsSection.tsx:793
 #: src/pages/workspace/sections/SettingsSection.tsx:528
 #: src/pages/workspace/sections/SettingsSection.tsx:587
-#: src/pages/workspace/sections/UtilitiesSection.tsx:352
-#: src/pages/workspace/sections/UtilitiesSection.tsx:989
+#: src/pages/workspace/sections/UtilitiesSection.tsx:364
+#: src/pages/workspace/sections/UtilitiesSection.tsx:777
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1286
 msgid "Cancel"
 msgstr "취소"
 
@@ -1414,7 +1449,7 @@ msgstr "채널"
 msgid "Charge description"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:347
+#: src/pages/workspace/sections/UtilitiesSection.tsx:359
 msgid "Charges"
 msgstr ""
 
@@ -1475,10 +1510,6 @@ msgstr ""
 msgid "Check type"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:548
-msgid "Check unmatched bills"
-msgstr ""
-
 #: src/pages/DocsView.tsx:223
 msgid "Check workspace_activities before repeating work. Use the available tools below to read this organization’s data and check its timestamps."
 msgstr ""
@@ -1523,7 +1554,7 @@ msgstr "새 비밀번호 선택"
 msgid "Choose branch"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:101
+#: src/pages/workspace/sections/UtilitiesSection.tsx:104
 msgid "Choose lease"
 msgstr ""
 
@@ -1535,19 +1566,19 @@ msgstr "{brandName}가 사용할 연결된 모델을 선택하세요."
 msgid "Choose your app to see its setup instructions."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:593
+#: src/pages/workspace/sections/UtilitiesSection.tsx:885
 msgid "City bill"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:423
-#: src/pages/workspace/sections/UtilitiesSection.tsx:438
-#: src/pages/workspace/sections/UtilitiesSection.tsx:596
-#: src/pages/workspace/sections/UtilitiesSection.tsx:701
+#: src/pages/workspace/sections/UtilitiesSection.tsx:482
+#: src/pages/workspace/sections/UtilitiesSection.tsx:497
+#: src/pages/workspace/sections/UtilitiesSection.tsx:888
+#: src/pages/workspace/sections/UtilitiesSection.tsx:998
 msgid "City bill needed"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:781
-#: src/pages/workspace/sections/UtilitiesSection.tsx:783
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1078
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1080
 msgid "City current charges"
 msgstr ""
 
@@ -1794,15 +1825,11 @@ msgstr "삭제 확인"
 msgid "Confirm password"
 msgstr "비밀번호 확인"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:122
+#: src/pages/workspace/sections/UtilitiesSection.tsx:130
 msgid "Confirm the active lease in Buildium before charging."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:379
-msgid "Confirm this bill belongs on the property roster, then check the service address mapping."
-msgstr ""
-
-#: src/pages/workspace/sections/UtilitiesSection.tsx:121
+#: src/pages/workspace/sections/UtilitiesSection.tsx:129
 msgid "Confirm which lease to bill or how to split the charge."
 msgstr ""
 
@@ -2020,6 +2047,10 @@ msgstr "MCP 서버를 추가하지 못했습니다."
 #: src/pages/Shell.tsx:7302
 msgid "Could not approve this server"
 msgstr "서버를 승인하지 못했습니다."
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:175
+msgid "Could not archive"
+msgstr ""
 
 #: src/pages/Shell.tsx:7213
 msgid "Could not authorize this app"
@@ -2252,9 +2283,9 @@ msgstr ""
 msgid "Could not play a test clip"
 msgstr "샘플 음성을 재생하지 못했습니다."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:194
-#: src/pages/workspace/sections/UtilitiesSection.tsx:871
-#: src/pages/workspace/sections/UtilitiesSection.tsx:875
+#: src/pages/workspace/sections/UtilitiesSection.tsx:207
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1168
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1172
 msgid "Could not post"
 msgstr ""
 
@@ -2310,6 +2341,10 @@ msgstr "차트를 만들지 못했습니다."
 msgid "Could not reset password"
 msgstr "비밀번호를 재설정할 수 없습니다"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:819
+msgid "Could not restore"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx:195
 msgid "Could not revoke connection"
 msgstr "연결을 해제하지 못했습니다."
@@ -2330,7 +2365,8 @@ msgstr "루틴을 실행할 수 없습니다"
 #: src/pages/Shell.tsx:6543
 #: src/pages/workspace/sections/SettingsSection.tsx:139
 #: src/pages/workspace/sections/SettingsSection.tsx:478
-#: src/pages/workspace/sections/UtilitiesSection.tsx:839
+#: src/pages/workspace/sections/UtilitiesSection.tsx:666
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1136
 msgid "Could not save"
 msgstr "저장하지 못했습니다."
 
@@ -2338,7 +2374,7 @@ msgstr "저장하지 못했습니다."
 msgid "Could not save Auto Review"
 msgstr "자동 검토를 저장하지 못했습니다"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:772
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1069
 msgid "Could not save city bill"
 msgstr ""
 
@@ -2410,7 +2446,7 @@ msgstr ""
 msgid "Could not submit this answer"
 msgstr "답변을 보내지 못했습니다."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:179
+#: src/pages/workspace/sections/UtilitiesSection.tsx:192
 msgid "Could not sync from CRM"
 msgstr ""
 
@@ -2620,8 +2656,8 @@ msgid "DATA VAULT"
 msgstr ""
 
 #: src/pages/crm/CrmModuleSheet.tsx:255
-#: src/pages/workspace/sections/UtilitiesSection.tsx:349
-#: src/pages/workspace/sections/UtilitiesSection.tsx:986
+#: src/pages/workspace/sections/UtilitiesSection.tsx:361
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1283
 msgid "Date"
 msgstr "날짜"
 
@@ -2826,7 +2862,7 @@ msgstr "연결 해제 중…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:251
 #: src/pages/workspace/sections/ReportsSection.tsx:357
-#: src/pages/workspace/sections/UtilitiesSection.tsx:650
+#: src/pages/workspace/sections/UtilitiesSection.tsx:942
 msgid "Dismiss"
 msgstr ""
 
@@ -2933,12 +2969,12 @@ msgstr "딜을 여기에 놓으세요"
 msgid "Drop to attach to {name}"
 msgstr "{name}에 첨부하려면 놓으세요"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:603
+#: src/pages/workspace/sections/UtilitiesSection.tsx:895
 msgid "Due"
 msgstr ""
 
 #. placeholder {0}: formatDate(bill.dueDate)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:692
+#: src/pages/workspace/sections/UtilitiesSection.tsx:984
 msgid "Due {0}"
 msgstr ""
 
@@ -2946,7 +2982,7 @@ msgstr ""
 msgid "Duplicate"
 msgstr "복제"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:349
+#: src/pages/workspace/sections/UtilitiesSection.tsx:361
 msgid "Each bill's month"
 msgstr ""
 
@@ -2959,6 +2995,7 @@ msgstr "이전 메시지"
 #: src/pages/crm/CrmPipelineBoard.tsx:339
 #: src/pages/workspace/sections/ReportsSection.tsx:296
 #: src/pages/workspace/sections/SettingsSection.tsx:528
+#: src/pages/workspace/sections/UtilitiesSection.tsx:605
 msgid "Edit"
 msgstr "편집"
 
@@ -3053,7 +3090,7 @@ msgstr "<0>{0}</0>에서 이 코드를 입력하세요"
 
 #: src/components/VerificationComparison.tsx:425
 #: src/pages/workspace/sections/ReportsSection.tsx:59
-#: src/pages/workspace/sections/UtilitiesSection.tsx:818
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1115
 msgid "Error"
 msgstr ""
 
@@ -3154,7 +3191,7 @@ msgstr ""
 msgid "Extra high"
 msgstr "매우 높음"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:657
+#: src/pages/workspace/sections/UtilitiesSection.tsx:949
 msgid "failed"
 msgstr ""
 
@@ -3425,7 +3462,7 @@ msgstr "원격 MCP 서버, OpenAPI 사양 또는 Treg에서 봇에 추가 도구
 msgid "Give it access to the right tools"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:273
+#: src/pages/workspace/sections/UtilitiesSection.tsx:286
 msgid "Gmail notices match the CRM water bills sheet by address and due date. If that due date is not in CRM yet, the water job checks again each morning."
 msgstr ""
 
@@ -3439,7 +3476,7 @@ msgstr "그룹"
 msgid "Group settings"
 msgstr "그룹 설정"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:117
+#: src/pages/workspace/sections/UtilitiesSection.tsx:125
 msgid "Handle manually using the billing instructions."
 msgstr ""
 
@@ -3781,7 +3818,7 @@ msgstr "마지막 로그인"
 msgid "Launch Codex from this terminal so it can read the token. Future sessions also need MANOR_API_TOKEN set in their environment."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:608
+#: src/pages/workspace/sections/UtilitiesSection.tsx:900
 msgid "Lease"
 msgstr ""
 
@@ -3790,19 +3827,19 @@ msgstr ""
 msgid "Lease {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:473
+#: src/pages/workspace/sections/UtilitiesSection.tsx:532
 msgid "Lease / split"
 msgstr ""
 
 #. placeholder {0}: charge.leaseId
 #. placeholder {0}: lease.leaseId
 #. placeholder {0}: result.leaseId
-#: src/pages/workspace/sections/UtilitiesSection.tsx:447
-#: src/pages/workspace/sections/UtilitiesSection.tsx:481
-#: src/pages/workspace/sections/UtilitiesSection.tsx:614
-#: src/pages/workspace/sections/UtilitiesSection.tsx:657
-#: src/pages/workspace/sections/UtilitiesSection.tsx:828
-#: src/pages/workspace/sections/UtilitiesSection.tsx:829
+#: src/pages/workspace/sections/UtilitiesSection.tsx:506
+#: src/pages/workspace/sections/UtilitiesSection.tsx:540
+#: src/pages/workspace/sections/UtilitiesSection.tsx:906
+#: src/pages/workspace/sections/UtilitiesSection.tsx:949
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1125
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1126
 msgid "Lease #{0}"
 msgstr ""
 
@@ -3966,11 +4003,12 @@ msgstr "Manor 데모"
 msgid "Manor is using this Mac"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:97
+#: src/pages/workspace/sections/UtilitiesSection.tsx:100
+#: src/pages/workspace/sections/UtilitiesSection.tsx:645
 msgid "Manual handling"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:225
+#: src/pages/workspace/sections/UtilitiesSection.tsx:238
 msgid "manual handling or setup needed"
 msgstr ""
 
@@ -4002,15 +4040,23 @@ msgstr ""
 msgid "Market rent"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:103
+#: src/pages/workspace/sections/UtilitiesSection.tsx:106
 msgid "Match property"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:123
+#: src/pages/workspace/sections/UtilitiesSection.tsx:131
 msgid "Match this address to a Buildium property before charging."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:220
+#: src/pages/workspace/sections/UtilitiesSection.tsx:987
+msgid "Matched by address variation"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:989
+msgid "Matched by balance and due date"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:233
 msgid "matched to an active lease"
 msgstr ""
 
@@ -4050,8 +4096,8 @@ msgstr "참여 Bot ({GROUP_MEMBER_MIN}~{GROUP_MEMBER_MAX}개)"
 msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "참여 Bot ({GROUP_MEMBER_MIN}~{GROUP_MEMBER_MAX}개 선택)"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:901
-#: src/pages/workspace/sections/UtilitiesSection.tsx:985
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1198
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1282
 msgid "Memo"
 msgstr ""
 
@@ -4199,7 +4245,7 @@ msgstr ""
 msgid "Monday"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:583
+#: src/pages/workspace/sections/UtilitiesSection.tsx:875
 msgid "Month"
 msgstr ""
 
@@ -4211,7 +4257,7 @@ msgstr ""
 msgid "Monthly"
 msgstr "매월"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:575
+#: src/pages/workspace/sections/UtilitiesSection.tsx:867
 msgid "Monthly city bills"
 msgstr ""
 
@@ -4283,7 +4329,7 @@ msgstr "이 루틴의 이름 지정"
 msgid "Needed a person"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:335
+#: src/pages/workspace/sections/UtilitiesSection.tsx:348
 msgid "Needs attention"
 msgstr ""
 
@@ -4395,7 +4441,7 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:496
+#: src/pages/workspace/sections/UtilitiesSection.tsx:555
 msgid "Next step"
 msgstr ""
 
@@ -4410,7 +4456,7 @@ msgstr ""
 msgid "No"
 msgstr "아니요"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:102
+#: src/pages/workspace/sections/UtilitiesSection.tsx:105
 msgid "No active lease"
 msgstr ""
 
@@ -4438,11 +4484,15 @@ msgstr "인증 없음"
 msgid "No automations yet"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:364
+#: src/pages/workspace/sections/UtilitiesSection.tsx:384
+msgid "No billing month"
+msgstr ""
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:377
 msgid "No bills match these filters"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:364
+#: src/pages/workspace/sections/UtilitiesSection.tsx:377
 msgid "No bills yet"
 msgstr ""
 
@@ -4533,10 +4583,6 @@ msgstr "이미 종료된 요청입니다"
 msgid "No managed app catalog is configured on this deployment."
 msgstr "이 서버에는 관리형 앱 목록이 설정되지 않았습니다."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:525
-msgid "No matched bill. Check the unmatched bills."
-msgstr ""
-
 #: src/components/FilesPanel.tsx:395
 msgid "No matching files"
 msgstr ""
@@ -4561,7 +4607,7 @@ msgstr "{peerBotName}와의 메시지가 아직 없습니다."
 msgid "No model catalog is available."
 msgstr "사용 가능한 모델 목록이 없습니다."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:579
+#: src/pages/workspace/sections/UtilitiesSection.tsx:871
 msgid "No months recorded yet"
 msgstr ""
 
@@ -4570,7 +4616,7 @@ msgstr ""
 msgid "no new data for {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:523
+#: src/pages/workspace/sections/UtilitiesSection.tsx:582
 msgid "No pending tenant charges. Review bill history if needed."
 msgstr ""
 
@@ -4582,7 +4628,7 @@ msgstr ""
 msgid "No posts in this range"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:412
+#: src/pages/workspace/sections/UtilitiesSection.tsx:471
 msgid "No properties mapped yet"
 msgstr ""
 
@@ -4657,6 +4703,10 @@ msgstr "연결되지 않음"
 msgid "Not in the plugin catalog"
 msgstr "플러그인 카탈로그에 없음"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:723
+msgid "Not linked"
+msgstr ""
+
 #: src/pages/Shell.tsx:7338
 msgid "Not now"
 msgstr "나중에"
@@ -4675,6 +4725,7 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:281
 #: src/pages/crm/CrmContacts.tsx:383
+#: src/pages/workspace/sections/UtilitiesSection.tsx:753
 msgid "Notes"
 msgstr "메모"
 
@@ -4724,7 +4775,7 @@ msgstr "OAuth 연결됨"
 msgid "OAuth connection failed"
 msgstr "OAuth 연결 실패"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:119
+#: src/pages/workspace/sections/UtilitiesSection.tsx:127
 msgid "Obtain the bill from the owner and handle manually."
 msgstr ""
 
@@ -4745,7 +4796,7 @@ msgstr "일정에 따라"
 msgid "on the 1st at {0}"
 msgstr "매월 1일 {0}에"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:215
+#: src/pages/workspace/sections/UtilitiesSection.tsx:228
 msgid "on the utility account"
 msgstr ""
 
@@ -4828,7 +4879,7 @@ msgstr ""
 msgid "Open row"
 msgstr "행 열기"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:630
+#: src/pages/workspace/sections/UtilitiesSection.tsx:922
 msgid "Open settings"
 msgstr ""
 
@@ -4920,6 +4971,10 @@ msgstr ""
 msgid "Other model…"
 msgstr "다른 모델 직접 입력…"
 
+#: src/pages/workspace/sections/UtilitiesSection.tsx:705
+msgid "Other spellings"
+msgstr ""
+
 #: src/pages/CrmApiAccessPanel.tsx:320
 msgid "Outbound webhooks"
 msgstr "아웃바운드 웹훅"
@@ -4936,7 +4991,8 @@ msgstr ""
 msgid "Overview"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:99
+#: src/pages/workspace/sections/UtilitiesSection.tsx:102
+#: src/pages/workspace/sections/UtilitiesSection.tsx:644
 msgid "Owner sends bill"
 msgstr ""
 
@@ -5021,8 +5077,8 @@ msgstr ""
 msgid "PDF preview"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:334
-#: src/pages/workspace/sections/UtilitiesSection.tsx:815
+#: src/pages/workspace/sections/UtilitiesSection.tsx:347
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1112
 msgid "Pending"
 msgstr ""
 
@@ -5119,25 +5175,25 @@ msgstr ""
 msgid "Port {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:988
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1285
 msgid "Post"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:345
+#: src/pages/workspace/sections/UtilitiesSection.tsx:357
 msgid "Post {0} charges to Buildium?"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:351
+#: src/pages/workspace/sections/UtilitiesSection.tsx:363
 msgid "Post all"
 msgstr ""
 
 #. placeholder {0}: formatNumber(pendingCharges.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:294
+#: src/pages/workspace/sections/UtilitiesSection.tsx:307
 msgid "Post all pending ({0})"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:981
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1278
 msgid "Post this charge to Buildium?"
 msgstr ""
 
@@ -5145,12 +5201,12 @@ msgstr ""
 msgid "POST to"
 msgstr "POST 대상"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:958
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1255
 msgid "Post to Buildium"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:337
-#: src/pages/workspace/sections/UtilitiesSection.tsx:816
+#: src/pages/workspace/sections/UtilitiesSection.tsx:349
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1113
 msgid "Posted"
 msgstr ""
 
@@ -5214,17 +5270,17 @@ msgstr ""
 msgid "Prompt copied"
 msgstr "프롬프트 복사됨"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:244
+#: src/pages/workspace/sections/UtilitiesSection.tsx:257
 msgid "Properties"
 msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx:122
 #: src/pages/workspace/sections/LeasingSection.tsx:200
-#: src/pages/workspace/sections/UtilitiesSection.tsx:416
+#: src/pages/workspace/sections/UtilitiesSection.tsx:475
 msgid "Property"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:223
+#: src/pages/workspace/sections/UtilitiesSection.tsx:236
 msgid "Property issues"
 msgstr ""
 
@@ -5338,7 +5394,7 @@ msgstr "OAuth 다시 연결"
 msgid "Reconnecting"
 msgstr "다시 연결 중"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:539
+#: src/pages/workspace/sections/UtilitiesSection.tsx:596
 msgid "Record city bill"
 msgstr ""
 
@@ -5346,7 +5402,7 @@ msgstr ""
 msgid "Record review"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:519
+#: src/pages/workspace/sections/UtilitiesSection.tsx:578
 msgid "Record this month's city bill, then post to the tenant ledger."
 msgstr ""
 
@@ -5621,7 +5677,9 @@ msgstr ""
 #: src/pages/crm/CrmContacts.tsx:467
 #: src/pages/Shell.tsx:2947
 #: src/pages/Shell.tsx:2977
-#: src/pages/workspace/sections/UtilitiesSection.tsx:941
+#: src/pages/workspace/sections/UtilitiesSection.tsx:434
+#: src/pages/workspace/sections/UtilitiesSection.tsx:846
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1238
 msgid "Restore"
 msgstr "복원"
 
@@ -5636,7 +5694,7 @@ msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx:156
 #: src/pages/DocsView.tsx:82
-#: src/pages/workspace/sections/UtilitiesSection.tsx:958
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1255
 #: src/pages/workspace/WorkspaceView.tsx:302
 msgid "Retry"
 msgstr ""
@@ -5655,7 +5713,7 @@ msgid "rev {0}"
 msgstr "리비전 {0}"
 
 #. placeholder {0}: formatNumber(pending.length)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:537
+#: src/pages/workspace/sections/UtilitiesSection.tsx:594
 msgid "Review {0} bills"
 msgstr ""
 
@@ -5663,11 +5721,11 @@ msgstr ""
 msgid "Review {subject} in our workspace. Check current data and highlight what needs attention."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:535
+#: src/pages/workspace/sections/UtilitiesSection.tsx:592
 msgid "Review bill"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:120
+#: src/pages/workspace/sections/UtilitiesSection.tsx:128
 msgid "Review the city bill amount, then post to the tenant ledger."
 msgstr ""
 
@@ -5785,10 +5843,11 @@ msgstr ""
 #: src/pages/workspace/sections/ReportsSection.tsx:822
 #: src/pages/workspace/sections/SettingsSection.tsx:168
 #: src/pages/workspace/sections/SettingsSection.tsx:577
+#: src/pages/workspace/sections/UtilitiesSection.tsx:774
 msgid "Save"
 msgstr "저장"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:795
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1092
 msgid "Save city bill"
 msgstr ""
 
@@ -5861,7 +5920,7 @@ msgstr ""
 msgid "Search"
 msgstr "검색"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:262
+#: src/pages/workspace/sections/UtilitiesSection.tsx:275
 msgid "Search address…"
 msgstr ""
 
@@ -5894,7 +5953,7 @@ msgstr "모델 검색"
 msgid "Search people, companies, tags"
 msgstr "사람, 회사, 태그 검색"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:261
+#: src/pages/workspace/sections/UtilitiesSection.tsx:274
 msgid "Search properties or bills"
 msgstr ""
 
@@ -6114,7 +6173,7 @@ msgstr "시트"
 msgid "Show all {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:305
+#: src/pages/workspace/sections/UtilitiesSection.tsx:318
 msgid "Show all bills"
 msgstr ""
 
@@ -6196,7 +6255,7 @@ msgid "Skills"
 msgstr "스킬"
 
 #: src/pages/Shell.tsx:5607
-#: src/pages/workspace/sections/UtilitiesSection.tsx:955
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1252
 msgid "Skip"
 msgstr "건너뛰기"
 
@@ -6208,7 +6267,7 @@ msgstr "지금은 건너뛰기"
 msgid "Skip or deploy key"
 msgstr "건너뛰거나 배포 키"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:817
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1114
 msgid "Skipped"
 msgstr ""
 
@@ -6285,6 +6344,11 @@ msgstr "이 답변 읽기"
 #: src/pages/CallView.tsx:242
 msgid "Speaking…"
 msgstr "말하는 중…"
+
+#: src/pages/workspace/sections/UtilitiesSection.tsx:764
+#: src/pages/workspace/sections/UtilitiesSection.tsx:769
+msgid "Split evenly across active leases"
+msgstr ""
 
 #. placeholder {0}: index + 1
 #: src/pages/crm/CrmPipelineBoard.tsx:730
@@ -6447,7 +6511,7 @@ msgstr ""
 msgid "Switching…"
 msgstr "전환 중…"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:251
+#: src/pages/workspace/sections/UtilitiesSection.tsx:264
 msgid "Sync from CRM"
 msgstr ""
 
@@ -6510,11 +6574,12 @@ msgstr "팀 컴퓨터"
 msgid "Tell an agent to add a contact or lead, including the details you have. For example: “Add Jordan Ellis, jordan@example.com, to the CRM as a lead interested in a maintenance quote. Check for an existing contact first.” The agent can create or update the record from your conversation. Open CRM → Contacts to review it, add notes or tags, or edit records yourself."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:98
+#: src/pages/workspace/sections/UtilitiesSection.tsx:101
+#: src/pages/workspace/sections/UtilitiesSection.tsx:643
 msgid "Tenant pays directly"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:118
+#: src/pages/workspace/sections/UtilitiesSection.tsx:126
 msgid "Tenant pays the utility provider. No ledger charge."
 msgstr ""
 
@@ -6666,14 +6731,14 @@ msgstr ""
 msgid "This Mac runs shell commands with your account, including files in your home folder. Do not turn it on for a shared or public server."
 msgstr "이 Mac에서는 홈 폴더의 파일을 포함해 내 계정 권한으로 터미널 명령을 실행합니다. 여러 사람이 쓰거나 공개된 서버에서는 사용하지 마세요."
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:432
-#: src/pages/workspace/sections/UtilitiesSection.tsx:587
+#: src/pages/workspace/sections/UtilitiesSection.tsx:491
+#: src/pages/workspace/sections/UtilitiesSection.tsx:879
 #: src/pages/workspace/sections/VoiceSection.tsx:85
 #: src/pages/workspace/sections/VoiceSection.tsx:122
 msgid "This month"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:283
+#: src/pages/workspace/sections/UtilitiesSection.tsx:296
 msgid "This month's city bill and prior months"
 msgstr ""
 
@@ -6788,7 +6853,7 @@ msgstr ""
 msgid "Topic"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:348
+#: src/pages/workspace/sections/UtilitiesSection.tsx:360
 msgid "Total"
 msgstr ""
 
@@ -6870,7 +6935,7 @@ msgstr "사용 불가"
 msgid "Unexpected result: provide the missing source or a concrete correction. Check whether an action already happened before asking the agent to repeat it."
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:983
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1280
 msgid "Unit"
 msgstr ""
 
@@ -6879,12 +6944,12 @@ msgstr ""
 #. placeholder {0}: row.unitNumber
 #: src/pages/workspace/sections/LeasingSection.tsx:130
 #: src/pages/workspace/sections/LeasingSection.tsx:207
-#: src/pages/workspace/sections/UtilitiesSection.tsx:483
-#: src/pages/workspace/sections/UtilitiesSection.tsx:828
+#: src/pages/workspace/sections/UtilitiesSection.tsx:542
+#: src/pages/workspace/sections/UtilitiesSection.tsx:1125
 msgid "Unit {0}"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:688
+#: src/pages/workspace/sections/UtilitiesSection.tsx:980
 msgid "Unknown address"
 msgstr ""
 
@@ -6895,19 +6960,6 @@ msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:132
 msgid "Unlink"
-msgstr ""
-
-#: src/pages/workspace/sections/UtilitiesSection.tsx:336
-msgid "Unmatched"
-msgstr ""
-
-#: src/pages/workspace/sections/UtilitiesSection.tsx:374
-msgid "Unmatched bill"
-msgstr ""
-
-#. placeholder {0}: formatNumber(unmatchedBills)
-#: src/pages/workspace/sections/UtilitiesSection.tsx:397
-msgid "Unmatched bills ({0})"
 msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx:333
@@ -7053,12 +7105,12 @@ msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:118
 #: src/pages/workspace/sections/SettingsSection.tsx:365
-#: src/pages/workspace/sections/UtilitiesSection.tsx:204
+#: src/pages/workspace/sections/UtilitiesSection.tsx:217
 #: src/pages/workspace/WorkspaceView.tsx:147
 msgid "Utilities"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:236
+#: src/pages/workspace/sections/UtilitiesSection.tsx:249
 msgid "Utilities view"
 msgstr ""
 
@@ -7099,7 +7151,7 @@ msgstr ""
 msgid "View logs"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:540
+#: src/pages/workspace/sections/UtilitiesSection.tsx:597
 msgid "View monthly bills"
 msgstr ""
 
@@ -7149,7 +7201,7 @@ msgstr ""
 msgid "Watch it work"
 msgstr "작동 모습 보기"
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:280
+#: src/pages/workspace/sections/UtilitiesSection.tsx:293
 msgid "Water bills"
 msgstr ""
 
@@ -7157,8 +7209,8 @@ msgstr ""
 msgid "Water GL account"
 msgstr ""
 
-#: src/pages/workspace/sections/UtilitiesSection.tsx:213
-#: src/pages/workspace/sections/UtilitiesSection.tsx:392
+#: src/pages/workspace/sections/UtilitiesSection.tsx:226
+#: src/pages/workspace/sections/UtilitiesSection.tsx:445
 msgid "Water-billed properties"
 msgstr ""
 

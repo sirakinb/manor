@@ -1603,6 +1603,8 @@ model Workspace {
   // line description Buildium shows. Per organization, no longer an env var.
   waterGlAccountId          Int?
   buildiumChargeDescription String @default("Water bill")
+  /// Water billing months hidden from the billing view, first day of each month.
+  archivedUtilityMonths     DateTime[] @default([]) @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2154,6 +2156,8 @@ model WorkspaceUtilityProperty {
   active      Boolean   @default(true)
   splitEvenly Boolean   @default(false)
   notes       String?
+  /// Other spellings the city or CRM uses for this address, e.g. "12 N Main St".
+  aliases     String[]  @default([])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

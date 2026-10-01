@@ -446,7 +446,10 @@ export const UtilityTargetStatusSchema = z.enum(UTILITY_TARGET_STATUSES);
 export const UtilityBillingTargetSchema = z.object({
   utilityPropertyId: Id,
   address: z.string(),
+  /// Other spellings bills use for this address.
+  aliases: z.array(z.string()).optional(),
   billingMode: z.string(),
+  splitEvenly: z.boolean().optional(),
   notes: z.string().nullable().optional(),
   propertyId: z.number().int().nullable(),
   buildiumAddress: z.string().nullable(),
@@ -507,6 +510,11 @@ export const WaterBillGroupSchema = z.object({
   parseStatus: z.string(),
   resolutionStatus: UtilityTargetStatusSchema,
   billingMode: z.string().nullable(),
+  /// Bills in an archived month stay out of the billing view until it is restored.
+  archived: z.boolean().optional(),
+  /// How the bill was tied to its property: exact address or saved spelling, an address
+  /// variation, or the same total amount due and due date as another bill for it.
+  matchedBy: z.enum(["address", "variation", "balance_due_date"]).optional(),
   charges: z.array(WaterBillChargeSchema),
 });
 export type WaterBillGroup = z.infer<typeof WaterBillGroupSchema>;
@@ -520,10 +528,44 @@ export const RecordCityUtilityBillSchema = z.object({
 });
 export type RecordCityUtilityBill = z.infer<typeof RecordCityUtilityBillSchema>;
 
+export const UTILITY_BILLING_MODES = [
+  "pass_through",
+  "tenant_direct",
+  "owner_sends_bill",
+  "blocked",
+] as const;
+
+/// Create a tracked property (no id) or edit one. Bills only show for tracked properties.
+export const SaveUtilityPropertySchema = z.object({
+  utilityPropertyId: Id.optional(),
+  address: z.string().trim().min(1).max(200),
+  aliases: z.array(z.string().trim().min(1).max(200)).max(10).default([]),
+  propertyId: z.number().int().positive().nullable(),
+  billingMode: z.enum(UTILITY_BILLING_MODES),
+  splitEvenly: z.boolean().default(false),
+  notes: z.string().trim().max(1000).nullable().optional(),
+});
+export type SaveUtilityProperty = z.infer<typeof SaveUtilityPropertySchema>;
+
+/// Archive or restore a billing month. Bills that arrive later for that month stay archived.
+export const ArchiveWaterBillsSchema = z.object({
+  billingMonth: DayString,
+  archived: z.boolean(),
+});
+export type ArchiveWaterBills = z.infer<typeof ArchiveWaterBillsSchema>;
+
 export const UtilitiesOverviewSchema = z.object({
   currentBillingMonth: DayString,
   targets: z.array(UtilityBillingTargetSchema),
+  /// Bills for tracked properties only; addresses that match no property are left out.
   bills: z.array(WaterBillGroupSchema),
+  /// Archived billing months, newest first, whether or not a bill still shows for them.
+  archivedMonths: z.array(DayString).optional(),
+  archivedProperties: z.array(z.object({ utilityPropertyId: Id, address: z.string() })).optional(),
+  /// Active Buildium properties a tracked address can be linked to.
+  buildiumProperties: z
+    .array(z.object({ propertyId: z.number().int(), address: z.string() }))
+    .optional(),
 });
 export type UtilitiesOverview = z.infer<typeof UtilitiesOverviewSchema>;
 
