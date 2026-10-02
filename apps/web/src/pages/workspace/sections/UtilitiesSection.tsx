@@ -7,7 +7,7 @@ import type {
   WorkspaceSummary,
 } from "@rakazo/contracts";
 import { ChevronDown, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BuiButton } from "../../../components/beautiful-ui/primitives";
 import { rpc } from "../../../lib/rpc";
 import {
@@ -649,6 +649,8 @@ function PropertyForm({
   const [notes, setNotes] = useState(target?.notes ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
   const linked =
     propertyId === null || buildiumProperties.some((row) => row.propertyId === propertyId);
 
@@ -682,14 +684,22 @@ function PropertyForm({
     );
   }
 
+  // The form opens above the list, often far from the row's Edit button: bring it into view.
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    addressRef.current?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <div
-      className="mb-4 space-y-3 rounded-xl border border-[#202023] bg-[#0F0F11] p-3.5"
+      ref={formRef}
+      className="mb-4 scroll-mt-24 space-y-3 rounded-xl border border-[#202023] bg-[#0F0F11] p-3.5"
       data-testid="utility-property-form"
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t`Address`}>
           <input
+            ref={addressRef}
             className={INPUT}
             value={address}
             disabled={busy}

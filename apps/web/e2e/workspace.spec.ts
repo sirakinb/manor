@@ -427,6 +427,11 @@ test("workspace appears once the organization has one and its map opens sections
   const sampleRow = page.getByRole("row").filter({ hasText: "90 Sample Road" });
   await expect(sampleRow.getByText("Manual handling", { exact: true })).toBeVisible();
   await sampleRow.getByRole("button", { name: "Edit", exact: true }).click();
+  // The form opens above the list, so it scrolls into view with the address focused.
+  await expect(page.getByTestId("utility-property-form")).toBeInViewport();
+  await expect(
+    page.getByTestId("utility-property-form").getByLabel("Address", { exact: true }),
+  ).toBeFocused();
   await page
     .getByTestId("utility-property-form")
     .getByRole("button", { name: "Archive property", exact: true })
