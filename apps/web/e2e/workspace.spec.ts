@@ -426,7 +426,20 @@ test("workspace appears once the organization has one and its map opens sections
   await propertyForm.getByRole("button", { name: "Add property", exact: true }).click();
   const sampleRow = page.getByRole("row").filter({ hasText: "90 Sample Road" });
   await expect(sampleRow.getByText("Manual handling", { exact: true })).toBeVisible();
+  // The form opens above the list: from a short viewport scrolled to the row, so the top of
+  // the list is off-screen, Edit must bring the whole address field into view, focused.
+  await page.setViewportSize({ width: utilityViewport.width, height: 360 });
+  await sampleRow.getByRole("button", { name: "Edit", exact: true }).scrollIntoViewIfNeeded();
+  await expect(
+    page.getByText("Water-billed properties", { exact: true }).last(),
+  ).not.toBeInViewport();
   await sampleRow.getByRole("button", { name: "Edit", exact: true }).click();
+  const addressField = page
+    .getByTestId("utility-property-form")
+    .getByLabel("Address", { exact: true });
+  await expect(addressField).toBeInViewport({ ratio: 1 });
+  await expect(addressField).toBeFocused();
+  await page.setViewportSize(utilityViewport);
   await page
     .getByTestId("utility-property-form")
     .getByRole("button", { name: "Archive property", exact: true })
