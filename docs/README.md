@@ -5,15 +5,13 @@ service business. Use it as a template and adapt it to your own operations.
 
 ## Start here
 
+- [Getting started](getting-started.md): install on a VPS, then your first agent
 - [Product overview and local setup](../README.md)
 - [VPS deployment from a source checkout](DEPLOY.md)
 - [Self-hosting from published images](self-host.md)
 - [Setup prompts for a coding agent](../SETUP_PROMPT.md)
 - [Product priorities and dropped directions](../WISHLIST.md)
 - [Contributions and suggestions](../CONTRIBUTING.md)
-
-A guided command for source-checkout VPS setup and first-agent verification is
-planned. The deployment guide describes the current manual steps.
 
 ## Product and operations
 

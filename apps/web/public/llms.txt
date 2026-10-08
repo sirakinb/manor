@@ -26,7 +26,7 @@ You are helping the user run their own Manor on a VPS behind a Cloudflare Tunnel
    ```
 
    It installs Docker if needed, writes `/opt/manor/.env` with random secrets, firewalls agent computers, starts Manor, and waits until it is healthy (the first run downloads images and takes a few minutes). Rerunning it is safe and keeps existing data.
-6. **Finish.** Tell the user to open `https://<hostname>` and sign up with the owner email. Then they can connect an AI model in Settings.
+6. **Finish.** Tell the user to open `https://<hostname>` and sign up with the owner email. Then point them to the getting-started guide for connecting a model and creating their first agent: https://github.com/sirakinb/manor/blob/main/docs/getting-started.md
 
 If the user is at the VPS terminal themselves, they can instead run the interactive version, which asks the same three questions:
 

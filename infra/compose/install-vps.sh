@@ -181,7 +181,7 @@ case "\${1:-}" in
   update) compose pull && compose up -d --remove-orphans && docker image prune -f >/dev/null ;;
   status) compose ps ;;
   logs) shift; compose logs --tail 200 -f "\$@" ;;
-  restart) compose restart ;;
+  restart) compose up -d --force-recreate ;;
   stop) compose down ;;
   start) compose up -d ;;
   *) echo "Usage: manor update | status | logs [service] | restart | stop | start" >&2; exit 2 ;;
