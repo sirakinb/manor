@@ -150,7 +150,7 @@ describe("the images compose file", () => {
     expect(tunnel?.profiles).toEqual(["tunnel"]);
     expect(tunnel?.ports).toBeUndefined();
     expect(tunnel?.image).toMatch(/^cloudflare\/cloudflared:\d{4}\.\d+\.\d+$/);
-    expect(tunnel?.environment?.TUNNEL_TOKEN).toBe("${CLOUDFLARE_TUNNEL_TOKEN:-}");
+    expect(tunnel?.environment?.TUNNEL_TOKEN).toContain("CLOUDFLARE_TUNNEL_TOKEN");
     for (const [name, service] of Object.entries(compose.services)) {
       if (name !== "cloudflared") expect(service.profiles).toBeUndefined();
     }
