@@ -29,15 +29,22 @@ for (const width of [320, 390, 1440]) {
         }),
       )
       .toBeGreaterThan(4);
-    await expect(page.getByRole("button", { name: "Watch it work" })).toBeVisible();
+    const demo = page.getByRole("button", { name: "Watch it work" });
+    await expect(demo).toBeVisible();
     const agentSetup = page.locator(".lp-agent-setup");
     await expect(agentSetup).toContainText("https://manor.pentridgemedia.com/llms.txt");
     await expect(page.getByRole("button", { name: "Copy agent setup command" })).toBeVisible();
-    const setupBox = await agentSetup.boundingBox();
-    const wordmarkBox = await page.locator(".lp-wordmark").boundingBox();
-    expect(setupBox!.y + setupBox!.height).toBeLessThanOrEqual(wordmarkBox!.y);
-    expect(setupBox!.x).toBeGreaterThanOrEqual(0);
-    expect(setupBox!.x + setupBox!.width).toBeLessThanOrEqual(width);
+    const demoBox = (await demo.boundingBox())!;
+    const setupBox = (await agentSetup.boundingBox())!;
+    const wordmarkBox = (await page.locator(".lp-wordmark").boundingBox())!;
+    const headlineBox = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+    expect(demoBox.y + demoBox.height).toBeLessThanOrEqual(wordmarkBox.y);
+    expect(setupBox.y).toBeGreaterThanOrEqual(wordmarkBox.y + wordmarkBox.height);
+    expect(setupBox.y + setupBox.height).toBeLessThanOrEqual(headlineBox.y);
+    expect(setupBox.x).toBeGreaterThanOrEqual(0);
+    expect(setupBox.x + setupBox.width).toBeLessThanOrEqual(width);
+    await demo.hover();
+    expect(await demo.boundingBox()).toEqual(demoBox);
     await captureScreenshot(page, testInfo, `landing-${width}`);
   });
 }

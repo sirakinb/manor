@@ -73,7 +73,7 @@ export function WelcomePage() {
         <button
           type="button"
           onClick={() => setDemoOpen(true)}
-          className="lp-lumen app-no-drag absolute top-1/2 left-1/2 inline-flex -translate-x-1/2 -translate-y-[58%] items-center gap-2 rounded-full px-5 py-2.5 text-sm text-[#fafafa] transition"
+          className="lp-lumen app-no-drag absolute top-[3%] left-1/2 inline-flex -translate-x-1/2 items-center whitespace-nowrap gap-2 rounded-full px-5 py-2.5 text-sm text-[#fafafa] transition"
         >
           <span
             aria-hidden="true"
@@ -126,7 +126,7 @@ function AgentSetup() {
   }
 
   return (
-    <div className="lp-agent-setup lp-glass app-no-drag absolute top-[2%] left-1/2 w-[min(580px,calc(100%-40px))] -translate-x-1/2 rounded-2xl p-1.5 shadow-[0_24px_60px_rgba(0,0,0,.45)]">
+    <div className="lp-agent-setup lp-glass app-no-drag absolute top-1/2 left-1/2 w-[min(580px,calc(100%-40px))] -translate-x-1/2 -translate-y-[58%] rounded-2xl p-1.5 shadow-[0_24px_60px_rgba(0,0,0,.45)]">
       <div className="flex items-center justify-center gap-2.5 px-3 pt-1.5 pb-2 sm:gap-3">
         <p className="text-[12px] font-medium whitespace-nowrap text-[#fafafa]">
           <Trans>Give this to your agent</Trans>
