@@ -1651,8 +1651,8 @@ msgstr ""
 msgid "Close computer"
 msgstr "कंप्यूटर बंद करें"
 
-#: src/pages/Welcome.tsx:198
-#: src/pages/Welcome.tsx:225
+#: src/pages/Welcome.tsx:196
+#: src/pages/Welcome.tsx:223
 msgid "Close demo"
 msgstr "डेमो बंद करें"
 
@@ -1974,19 +1974,19 @@ msgstr "ईमेल से जारी रखें"
 #: src/pages/CrmApiAccessPanel.tsx:287
 #: src/pages/CrmApiAccessPanel.tsx:368
 #: src/pages/DocsView.tsx:452
-#: src/pages/Welcome.tsx:159
-#: src/pages/Welcome.tsx:162
+#: src/pages/Welcome.tsx:157
+#: src/pages/Welcome.tsx:160
 msgid "Copied"
 msgstr "कॉपी हो गया"
 
 #: src/pages/CrmApiAccessPanel.tsx:250
 #: src/pages/CrmApiAccessPanel.tsx:362
 #: src/pages/Shell.tsx:5553
-#: src/pages/Welcome.tsx:162
+#: src/pages/Welcome.tsx:160
 msgid "Copy"
 msgstr "कॉपी करें"
 
-#: src/pages/Welcome.tsx:159
+#: src/pages/Welcome.tsx:157
 msgid "Copy agent setup command"
 msgstr ""
 
@@ -3469,10 +3469,6 @@ msgstr "बॉट्स को रिमोट MCP सर्वर, OpenAPI स�
 msgid "Give it access to the right tools"
 msgstr ""
 
-#: src/pages/Welcome.tsx:132
-msgid "Give this to your agent"
-msgstr ""
-
 #: src/pages/workspace/sections/UtilitiesSection.tsx:281
 msgid "Gmail notices match the CRM water bills sheet by address and due date. If that due date is not in CRM yet, the water job checks again each morning."
 msgstr ""
@@ -4006,7 +4002,7 @@ msgstr "वर्कस्पेस के सिमेंटिक मेमो
 msgid "Manor bot"
 msgstr ""
 
-#: src/pages/Welcome.tsx:206
+#: src/pages/Welcome.tsx:204
 msgid "Manor demo"
 msgstr "Manor डेमो"
 
@@ -6511,6 +6507,10 @@ msgstr ""
 
 #: src/components/VerificationComparison.tsx:419
 msgid "Supported"
+msgstr ""
+
+#: src/pages/Welcome.tsx:131
+msgid "Supported agents"
 msgstr ""
 
 #: src/components/FilesPanel.tsx:670

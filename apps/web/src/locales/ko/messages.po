@@ -1651,8 +1651,8 @@ msgstr ""
 msgid "Close computer"
 msgstr "컴퓨터 닫기"
 
-#: src/pages/Welcome.tsx:198
-#: src/pages/Welcome.tsx:225
+#: src/pages/Welcome.tsx:196
+#: src/pages/Welcome.tsx:223
 msgid "Close demo"
 msgstr "데모 닫기"
 
@@ -1974,19 +1974,19 @@ msgstr "이메일로 계속하기"
 #: src/pages/CrmApiAccessPanel.tsx:287
 #: src/pages/CrmApiAccessPanel.tsx:368
 #: src/pages/DocsView.tsx:452
-#: src/pages/Welcome.tsx:159
-#: src/pages/Welcome.tsx:162
+#: src/pages/Welcome.tsx:157
+#: src/pages/Welcome.tsx:160
 msgid "Copied"
 msgstr "복사됨"
 
 #: src/pages/CrmApiAccessPanel.tsx:250
 #: src/pages/CrmApiAccessPanel.tsx:362
 #: src/pages/Shell.tsx:5553
-#: src/pages/Welcome.tsx:162
+#: src/pages/Welcome.tsx:160
 msgid "Copy"
 msgstr "복사"
 
-#: src/pages/Welcome.tsx:159
+#: src/pages/Welcome.tsx:157
 msgid "Copy agent setup command"
 msgstr ""
 
@@ -3469,10 +3469,6 @@ msgstr "원격 MCP 서버, OpenAPI 사양 또는 Treg에서 봇에 추가 도구
 msgid "Give it access to the right tools"
 msgstr ""
 
-#: src/pages/Welcome.tsx:132
-msgid "Give this to your agent"
-msgstr ""
-
 #: src/pages/workspace/sections/UtilitiesSection.tsx:281
 msgid "Gmail notices match the CRM water bills sheet by address and due date. If that due date is not in CRM yet, the water job checks again each morning."
 msgstr ""
@@ -4006,7 +4002,7 @@ msgstr "작업공간에서 사용할 장기 기억 서비스를 관리합니다.
 msgid "Manor bot"
 msgstr ""
 
-#: src/pages/Welcome.tsx:206
+#: src/pages/Welcome.tsx:204
 msgid "Manor demo"
 msgstr "Manor 데모"
 
@@ -6511,6 +6507,10 @@ msgstr ""
 
 #: src/components/VerificationComparison.tsx:419
 msgid "Supported"
+msgstr ""
+
+#: src/pages/Welcome.tsx:131
+msgid "Supported agents"
 msgstr ""
 
 #: src/components/FilesPanel.tsx:670
