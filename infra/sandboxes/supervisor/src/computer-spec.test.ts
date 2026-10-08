@@ -12,7 +12,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  COMPUTER_BRIDGE_PREFIX,
   COMPUTER_IMAGE,
+  computerBridgeNameFor,
   computerNetworkNameFor,
   computerNetworkNamesForCleanup,
   containerCreateOptions,
@@ -101,6 +103,13 @@ describe("graphical computer spec", () => {
   it("keeps sanitized network names unique when botIds only differ by stripped characters", () => {
     expect(computerNetworkNameFor("a/b")).not.toBe(computerNetworkNameFor("ab"));
     expect(computerNetworkNameFor("a/b")).toBe(computerNetworkNameFor("a/b"));
+  });
+
+  it("names per-bot bridges with a firewall-matchable prefix inside the 15-character limit", () => {
+    const name = computerBridgeNameFor("bot_isolation");
+    expect(name.startsWith(COMPUTER_BRIDGE_PREFIX)).toBe(true);
+    expect(name).toMatch(/^mnrc[0-9a-f]{11}$/);
+    expect(computerBridgeNameFor("a/b")).not.toBe(computerBridgeNameFor("ab"));
   });
 
   it("lists prior network name variants for cleanup", () => {

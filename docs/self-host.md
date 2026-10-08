@@ -50,6 +50,20 @@ SIGNUP_ALLOWLIST=you@example.com
 Set `SIGNUP_ALLOWLIST` before the hostname goes live: the first account to sign up owns the
 deployment.
 
+### Agent computer firewall
+
+Agent computers run untrusted activity. On a public Linux host, block them from the host and the
+private network while keeping internet access. Each bot's network uses an `mnrc…` bridge, so:
+
+```bash
+sudo install -m 0755 harden-computer-egress.sh /usr/local/sbin/rakazo-computer-egress
+sudo COMPUTER_BRIDGE=mnrc /usr/local/sbin/rakazo-computer-egress
+```
+
+Docker rebuilds its chains on restart; `infra/systemd/rakazo-computer-egress.service` reapplies the
+rules (add `Environment=COMPUTER_BRIDGE=mnrc` under `[Service]`). Bot networks created before this
+release keep Docker's default bridge names until the bot's computer is deleted and recreated.
+
 ### Restricted networks / mirror downloads
 
 Stage B of the installer (Compose YAML and `.env.images.example`) downloads from

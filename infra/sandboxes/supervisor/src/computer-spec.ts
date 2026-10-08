@@ -162,6 +162,18 @@ export function computerNetworkNameFor(botId: string) {
   return `rakazo-computer-${sanitizeIdentifier(botId).slice(0, 32)}-${hash}`;
 }
 
+/**
+ * Host bridge interface prefix for per-bot networks. A fixed prefix lets the host firewall match
+ * every computer network by interface (`mnrc+`) without knowing Docker's subnet choices.
+ */
+export const COMPUTER_BRIDGE_PREFIX = "mnrc";
+
+/** Linux caps interface names at 15 characters, so this is the prefix plus 11 hex characters. */
+export function computerBridgeNameFor(botId: string) {
+  const hash = createHash("sha256").update(botId).digest("hex").slice(0, 11);
+  return `${COMPUTER_BRIDGE_PREFIX}${hash}`;
+}
+
 /** Current and prior network names used by this PR, for delete cleanup. */
 export function computerNetworkNamesForCleanup(botId: string) {
   const safe = sanitizeIdentifier(botId);
