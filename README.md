@@ -82,6 +82,25 @@ TypeScript end to end — React 19 + Vite on the web, Electron on desktop, Expo 
 
 ## Run it yourself
 
+The quickest way is a VPS (2 vCPU, 8 GB RAM) and a domain on Cloudflare. Paste this into your
+coding agent (Claude Code, Codex, Cursor, or similar) and it walks you through the rest:
+
+```text
+set up manor - https://manor.pentridgemedia.com/llms.txt
+```
+
+Or run the installer yourself on the VPS. It asks for your hostname, your email, and a Cloudflare
+Tunnel token:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-vps.sh | sudo bash
+```
+
+Then follow [Getting started](./docs/getting-started.md). The [self-hosting guide](./docs/self-host.md)
+covers the details.
+
+### From source
+
 For a source checkout, use Node.js 22.22.2 or a version supported by
 [`package.json`](./package.json), pnpm 9.15.0, and Docker with the Compose plugin.
 
@@ -124,9 +143,7 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173), create an account, connect 
 your first bot.
 
 That runs Manor locally. To deploy a source checkout on a VPS, follow the
-[deployment guide](./docs/DEPLOY.md). It covers server preparation, configuration,
-and the Compose launch command. A guided command that takes a fresh clone through
-VPS setup and first-agent verification is planned; it is not available yet.
+[deployment guide](./docs/DEPLOY.md).
 
 ### Self-host from published images
 
