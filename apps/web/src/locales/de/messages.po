@@ -1189,10 +1189,6 @@ msgstr ""
 msgid "Bills to review"
 msgstr ""
 
-#: src/pages/Welcome.tsx:59
-msgid "Book demo"
-msgstr "Demo buchen"
-
 #: src/pages/crm/CrmForms.tsx:271
 msgid "Booking link"
 msgstr ""
@@ -1651,8 +1647,8 @@ msgstr ""
 msgid "Close computer"
 msgstr "Computer schließen"
 
-#: src/pages/Welcome.tsx:198
-#: src/pages/Welcome.tsx:225
+#: src/pages/Welcome.tsx:188
+#: src/pages/Welcome.tsx:215
 msgid "Close demo"
 msgstr "Demo schließen"
 
@@ -1974,19 +1970,19 @@ msgstr "Mit E-Mail fortfahren"
 #: src/pages/CrmApiAccessPanel.tsx:287
 #: src/pages/CrmApiAccessPanel.tsx:368
 #: src/pages/DocsView.tsx:452
-#: src/pages/Welcome.tsx:159
-#: src/pages/Welcome.tsx:162
+#: src/pages/Welcome.tsx:149
+#: src/pages/Welcome.tsx:152
 msgid "Copied"
 msgstr "Kopiert"
 
 #: src/pages/CrmApiAccessPanel.tsx:250
 #: src/pages/CrmApiAccessPanel.tsx:362
 #: src/pages/Shell.tsx:5553
-#: src/pages/Welcome.tsx:162
+#: src/pages/Welcome.tsx:152
 msgid "Copy"
 msgstr "Kopieren"
 
-#: src/pages/Welcome.tsx:159
+#: src/pages/Welcome.tsx:149
 msgid "Copy agent setup command"
 msgstr ""
 
@@ -3469,10 +3465,6 @@ msgstr "Gib Bots zusätzliche Werkzeuge aus einem Remote-MCP-Server, einer OpenA
 msgid "Give it access to the right tools"
 msgstr ""
 
-#: src/pages/Welcome.tsx:132
-msgid "Give this to your agent"
-msgstr ""
-
 #: src/pages/workspace/sections/UtilitiesSection.tsx:281
 msgid "Gmail notices match the CRM water bills sheet by address and due date. If that due date is not in CRM yet, the water job checks again each morning."
 msgstr ""
@@ -4006,7 +3998,7 @@ msgstr "Verwalte den Anbieter für semantische Erinnerungen des Arbeitsbereichs.
 msgid "Manor bot"
 msgstr ""
 
-#: src/pages/Welcome.tsx:206
+#: src/pages/Welcome.tsx:196
 msgid "Manor demo"
 msgstr "Manor-Demo"
 
@@ -6513,6 +6505,10 @@ msgstr ""
 msgid "Supported"
 msgstr ""
 
+#: src/pages/Welcome.tsx:123
+msgid "Supported agents"
+msgstr ""
+
 #: src/components/FilesPanel.tsx:670
 #: src/components/FilesPanel.tsx:695
 msgid "Switch branch"
@@ -7208,7 +7204,7 @@ msgstr "Computer wecken"
 msgid "Wake the computer to manage its files."
 msgstr ""
 
-#: src/pages/Welcome.tsx:84
+#: src/pages/Welcome.tsx:76
 msgid "Watch it work"
 msgstr "Sieh zu, wie es arbeitet"
 
@@ -7419,6 +7415,6 @@ msgstr "Dein Schlüssel oder Abonnementtoken wird sicher gespeichert und hier ni
 msgid "Your name"
 msgstr "Dein Name"
 
-#: src/pages/Welcome.tsx:88
+#: src/pages/Welcome.tsx:80
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "Dein Team aus <0>Always-on-KI-Agenten</0>,<1/>denen du <2>echte Arbeit</2> geben kannst."

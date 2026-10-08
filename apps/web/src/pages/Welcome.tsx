@@ -11,8 +11,8 @@ const SETUP_AGENTS = [
   { name: "Codex", logo: "/agent-logos/codex.svg" },
   { name: "Cursor", logo: "/agent-logos/cursor.svg" },
   { name: "Gemini CLI", logo: "/agent-logos/gemini.svg" },
-  { name: "GitHub Copilot", logo: "/agent-logos/githubcopilot.svg", wideOnly: true },
-  { name: "OpenClaw", logo: "/agent-logos/openclaw.svg", wideOnly: true },
+  { name: "GitHub Copilot", logo: "/agent-logos/githubcopilot.svg" },
+  { name: "OpenClaw", logo: "/agent-logos/openclaw.svg" },
 ];
 
 export function WelcomePage() {
@@ -40,23 +40,15 @@ export function WelcomePage() {
           <span className="rk-wordmark text-[13px] text-[#fafafa]">Manor</span>
         </div>
         <a
-          href="https://cal.com/akinyemi-bajulaiye-2jua88/30min?overlayCalendar=true"
+          href="https://github.com/sirakinb/manor"
           target="_blank"
           rel="noreferrer"
           className="lp-glass app-no-drag inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[12px] text-[#fafafa9e] transition hover:text-[#fafafa]"
         >
-          <svg
-            viewBox="0 0 16 16"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            className="size-4"
-          >
-            <rect x="2" y="3" width="12" height="11" rx="2.5" />
-            <path d="M2 6.5h12M5.5 1.6v2.4M10.5 1.6v2.4" strokeLinecap="round" />
+          <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor" className="size-4">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
           </svg>
-          <Trans>Book demo</Trans>
+          GitHub
         </a>
       </header>
 
@@ -127,25 +119,23 @@ function AgentSetup() {
 
   return (
     <div className="lp-agent-setup lp-glass app-no-drag absolute top-1/2 left-1/2 w-[min(580px,calc(100%-40px))] -translate-x-1/2 -translate-y-[58%] rounded-2xl p-1.5 shadow-[0_24px_60px_rgba(0,0,0,.45)]">
-      <div className="flex items-center justify-center gap-2.5 px-3 pt-1.5 pb-2 sm:gap-3">
-        <p className="text-[12px] font-medium whitespace-nowrap text-[#fafafa]">
-          <Trans>Give this to your agent</Trans>
-        </p>
-        <ul className="flex items-center gap-2">
-          {SETUP_AGENTS.map((agent) => (
-            <li key={agent.name} className={agent.wideOnly ? "hidden sm:block" : undefined}>
-              <img
-                src={agent.logo}
-                alt={agent.name}
-                title={agent.name}
-                width={16}
-                height={16}
-                className="h-3.5 w-3.5 opacity-60 sm:h-4 sm:w-4 brightness-0 invert transition-opacity hover:opacity-100"
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
+      <ul
+        aria-label={t`Supported agents`}
+        className="flex items-center justify-center gap-2.5 px-3 pt-1.5 pb-2"
+      >
+        {SETUP_AGENTS.map((agent) => (
+          <li key={agent.name}>
+            <img
+              src={agent.logo}
+              alt={agent.name}
+              title={agent.name}
+              width={16}
+              height={16}
+              className="h-3.5 w-3.5 opacity-60 sm:h-4 sm:w-4 brightness-0 invert transition-opacity hover:opacity-100"
+            />
+          </li>
+        ))}
+      </ul>
       <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-black/55 py-1.5 pr-1.5 pl-3.5">
         <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-[#fafafa] select-all sm:text-[13px]">
           <span aria-hidden="true" className="mr-2 text-[#a78bfa]">
