@@ -5,6 +5,8 @@ import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { brand } from "../lib/brand";
 import { WindowChrome } from "./WindowChrome";
 
+const AGENT_SETUP_COMMAND = "set up manor - https://manor.pentridgemedia.com/llms.txt";
+
 export function WelcomePage() {
   const [demoOpen, setDemoOpen] = useState(false);
   return (
@@ -51,6 +53,7 @@ export function WelcomePage() {
       </header>
 
       <main className="relative z-10 flex min-h-[calc(100dvh-108px)] flex-col justify-end px-5 pb-24 sm:px-8 sm:pb-36">
+        {brand.id === "manor" ? <AgentSetup /> : null}
         {brand.id === "manor" ? (
           <div
             aria-hidden="true"
@@ -91,6 +94,50 @@ export function WelcomePage() {
       </main>
 
       {demoOpen ? <DemoOverlay onClose={() => setDemoOpen(false)} /> : null}
+    </div>
+  );
+}
+
+function AgentSetup() {
+  const { t } = useLingui();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(AGENT_SETUP_COMMAND);
+      setCopied(true);
+    } catch {
+      // Clipboard access can be refused; the command stays selectable.
+    }
+  }
+
+  return (
+    <div className="lp-agent-setup app-no-drag absolute top-[2%] left-1/2 w-[min(560px,calc(100%-40px))] -translate-x-1/2">
+      <p className="mb-2 text-center text-[12px] text-[#fafafa9e]">
+        <Trans>Give this to your agent</Trans>
+      </p>
+      <div className="lp-glass flex items-center gap-2 rounded-xl py-1.5 pr-1.5 pl-3.5">
+        <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-[#fafafa] select-all sm:text-[13px]">
+          <span aria-hidden="true" className="mr-2 text-[#fafafa61]">
+            $
+          </span>
+          {AGENT_SETUP_COMMAND}
+        </code>
+        <button
+          type="button"
+          onClick={() => void copy()}
+          aria-label={copied ? t`Copied` : t`Copy agent setup command`}
+          className="shrink-0 rounded-lg bg-[#fafafa] px-3 py-1.5 text-[12px] font-medium text-black transition hover:bg-white"
+        >
+          {copied ? <Trans>Copied</Trans> : <Trans>Copy</Trans>}
+        </button>
+      </div>
     </div>
   );
 }

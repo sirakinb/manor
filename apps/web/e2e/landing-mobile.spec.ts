@@ -30,6 +30,14 @@ for (const width of [320, 390, 1440]) {
       )
       .toBeGreaterThan(4);
     await expect(page.getByRole("button", { name: "Watch it work" })).toBeVisible();
+    const agentSetup = page.locator(".lp-agent-setup");
+    await expect(agentSetup).toContainText("https://manor.pentridgemedia.com/llms.txt");
+    await expect(page.getByRole("button", { name: "Copy agent setup command" })).toBeVisible();
+    const setupBox = await agentSetup.boundingBox();
+    const wordmarkBox = await page.locator(".lp-wordmark").boundingBox();
+    expect(setupBox!.y + setupBox!.height).toBeLessThanOrEqual(wordmarkBox!.y);
+    expect(setupBox!.x).toBeGreaterThanOrEqual(0);
+    expect(setupBox!.x + setupBox!.width).toBeLessThanOrEqual(width);
     await captureScreenshot(page, testInfo, `landing-${width}`);
   });
 }

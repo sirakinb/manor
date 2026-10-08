@@ -1,0 +1,37 @@
+# Manor
+
+> Manor is an open source team of always-on AI agents that you can give real work to. Each agent gets its own sandboxed computer, connected tools, routines, and memory. It runs on a server the user controls.
+
+Source: https://github.com/sirakinb/manor (Apache-2.0)
+Self-hosting guide: https://github.com/sirakinb/manor/blob/main/docs/self-host.md
+
+## Set up Manor for the user
+
+You are helping the user run their own Manor on a VPS behind a Cloudflare Tunnel. Work through these steps in order. Ask the user for anything you cannot do yourself, one step at a time, and never print or log the tunnel token or other secrets.
+
+1. **A VPS.** Ask whether they already have one. If not, have them buy an Ubuntu 24.04 (or Debian 12) VPS with 2 vCPU, 8 GB RAM, and 40 GB disk from any provider (4 GB RAM works for a trial). Get its IP address and confirm you can run `ssh root@<ip>` (or a sudo user).
+2. **A domain on Cloudflare.** Ask which hostname Manor should use, for example `manor.example.com`. Its domain must already use Cloudflare DNS.
+3. **A Cloudflare Tunnel.** Have the user open the Cloudflare dashboard → Zero Trust → Networks → Tunnels → Create a tunnel (type Cloudflared), name it `manor`, and copy the token from the install command it shows. Then, on the tunnel's Public Hostname tab, add the hostname from step 2 with service type `HTTP` and URL `web:5173`.
+4. **The owner's email.** Only this address can create the first account, which owns the server.
+5. **Install.** On the VPS, run the installer non-interactively, passing the values through the environment:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-vps.sh -o install-vps.sh
+   sudo MANOR_HOST='<hostname>' MANOR_OWNER_EMAIL='<email>' CLOUDFLARE_TUNNEL_TOKEN='<token>' bash install-vps.sh
+   ```
+
+   It installs Docker if needed, writes `/opt/manor/.env` with random secrets, firewalls agent computers, starts Manor, and waits until it is healthy (the first run downloads images and takes a few minutes). Rerunning it is safe and keeps existing data.
+6. **Finish.** Tell the user to open `https://<hostname>` and sign up with the owner email. Then they can connect an AI model in Settings.
+
+If the user is at the VPS terminal themselves, they can instead run the interactive version, which asks the same three questions:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-vps.sh | sudo bash
+```
+
+## Troubleshooting
+
+- `manor status` shows the containers. `manor logs api` (or `web`, `worker`, `cloudflared`) shows recent logs.
+- Page does not load: check the tunnel's public hostname points to `http://web:5173` and `manor logs cloudflared` shows a registered connection.
+- "Forbidden" or sign-in loops: `RAKAZO_HOST`, `BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL` in `/opt/manor/.env` must match the hostname. Run `manor restart` after editing.
+- Updates: `manor update`.
