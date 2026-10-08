@@ -5,6 +5,16 @@ import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { brand } from "../lib/brand";
 import { WindowChrome } from "./WindowChrome";
 
+const AGENT_SETUP_COMMAND = "set up manor - https://manor.pentridgemedia.com/llms.txt";
+const SETUP_AGENTS = [
+  { name: "Claude Code", logo: "/agent-logos/claude.svg" },
+  { name: "Codex", logo: "/agent-logos/codex.svg" },
+  { name: "Cursor", logo: "/agent-logos/cursor.svg" },
+  { name: "Gemini CLI", logo: "/agent-logos/gemini.svg" },
+  { name: "GitHub Copilot", logo: "/agent-logos/githubcopilot.svg", wideOnly: true },
+  { name: "OpenClaw", logo: "/agent-logos/openclaw.svg", wideOnly: true },
+];
+
 export function WelcomePage() {
   const [demoOpen, setDemoOpen] = useState(false);
   return (
@@ -51,6 +61,7 @@ export function WelcomePage() {
       </header>
 
       <main className="relative z-10 flex min-h-[calc(100dvh-108px)] flex-col justify-end px-5 pb-24 sm:px-8 sm:pb-36">
+        {brand.id === "manor" ? <AgentSetup /> : null}
         {brand.id === "manor" ? (
           <div
             aria-hidden="true"
@@ -91,6 +102,66 @@ export function WelcomePage() {
       </main>
 
       {demoOpen ? <DemoOverlay onClose={() => setDemoOpen(false)} /> : null}
+    </div>
+  );
+}
+
+function AgentSetup() {
+  const { t } = useLingui();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(AGENT_SETUP_COMMAND);
+      setCopied(true);
+    } catch {
+      // Clipboard access can be refused; the command stays selectable.
+    }
+  }
+
+  return (
+    <div className="lp-agent-setup lp-glass app-no-drag absolute top-[2%] left-1/2 w-[min(580px,calc(100%-40px))] -translate-x-1/2 rounded-2xl p-1.5 shadow-[0_24px_60px_rgba(0,0,0,.45)]">
+      <div className="flex items-center justify-center gap-2.5 px-3 pt-1.5 pb-2 sm:gap-3">
+        <p className="text-[12px] font-medium whitespace-nowrap text-[#fafafa]">
+          <Trans>Give this to your agent</Trans>
+        </p>
+        <ul className="flex items-center gap-2">
+          {SETUP_AGENTS.map((agent) => (
+            <li key={agent.name} className={agent.wideOnly ? "hidden sm:block" : undefined}>
+              <img
+                src={agent.logo}
+                alt={agent.name}
+                title={agent.name}
+                width={16}
+                height={16}
+                className="h-3.5 w-3.5 opacity-60 sm:h-4 sm:w-4 brightness-0 invert transition-opacity hover:opacity-100"
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-black/55 py-1.5 pr-1.5 pl-3.5">
+        <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-[#fafafa] select-all sm:text-[13px]">
+          <span aria-hidden="true" className="mr-2 text-[#a78bfa]">
+            $
+          </span>
+          {AGENT_SETUP_COMMAND}
+        </code>
+        <button
+          type="button"
+          onClick={() => void copy()}
+          aria-label={copied ? t`Copied` : t`Copy agent setup command`}
+          className="shrink-0 rounded-lg bg-[#fafafa] px-3.5 py-1.5 text-[12px] font-medium text-black transition hover:bg-white"
+        >
+          {copied ? <Trans>Copied</Trans> : <Trans>Copy</Trans>}
+        </button>
+      </div>
     </div>
   );
 }
