@@ -14,6 +14,7 @@ interface ComposeService {
   ports?: unknown[];
   user?: string;
   restart?: string;
+  profiles?: string[];
 }
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
@@ -51,6 +52,7 @@ describe("the images compose file", () => {
   it("runs postgres, app roles, supervisor, and a published computer image", () => {
     expect(Object.keys(compose.services).sort()).toEqual([
       "api",
+      "cloudflared",
       "computer",
       "data-init",
       "postgres",
@@ -141,5 +143,16 @@ describe("the images compose file", () => {
     expect(compose.services.web?.ports).toEqual(["127.0.0.1:5173:5173"]);
     expect(compose.services.postgres?.ports).toBeUndefined();
     expect(compose.services.supervisor?.ports).toBeUndefined();
+  });
+
+  it("runs the Cloudflare Tunnel only when the tunnel profile is enabled", () => {
+    const tunnel = compose.services.cloudflared;
+    expect(tunnel?.profiles).toEqual(["tunnel"]);
+    expect(tunnel?.ports).toBeUndefined();
+    expect(tunnel?.image).toMatch(/^cloudflare\/cloudflared:\d{4}\.\d+\.\d+$/);
+    expect(tunnel?.environment?.TUNNEL_TOKEN).toBe("${CLOUDFLARE_TUNNEL_TOKEN:-}");
+    for (const [name, service] of Object.entries(compose.services)) {
+      if (name !== "cloudflared") expect(service.profiles).toBeUndefined();
+    }
   });
 });

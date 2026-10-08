@@ -7,6 +7,8 @@
 # Pin a published release tag (vX.Y.Z or latest, when present) for multi-arch and fixed versions.
 # Default SANDBOX_PROVIDER=docker boots a local computer via the in-stack supervisor (no E2B key).
 # Optional: set e2b / daytona / box plus the matching API key for remote computers.
+# Optional: COMPOSE_PROFILES=tunnel plus CLOUDFLARE_TUNNEL_TOKEN serves the web app through a
+# Cloudflare Tunnel, so the host needs no open ports or certificates.
 name: rakazo
 
 services:
@@ -196,6 +198,27 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  # Public ingress without open ports. Point the tunnel's public hostname at http://web:5173.
+  cloudflared:
+    profiles: ["tunnel"]
+    # Pinned rather than :latest because this container terminates public ingress. Bump deliberately.
+    image: cloudflare/cloudflared:2026.8.2
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 128m
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      - app
+    depends_on:
+      web:
+        condition: service_started
 
 volumes:
   pgdata:
