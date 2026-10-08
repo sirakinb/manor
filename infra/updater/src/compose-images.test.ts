@@ -14,6 +14,7 @@ interface ComposeService {
   ports?: unknown[];
   user?: string;
   restart?: string;
+  profiles?: string[];
 }
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
@@ -35,7 +36,7 @@ const publishWorkflow = parse(readFileSync(publishWorkflowFile, "utf8")) as {
 };
 
 const appServices = ["api", "worker", "web", "supervisor"] as const;
-const FIRST_PARTY_IMAGE = /ghcr\.io\/elie222\/rakazo\/([a-z0-9][a-z0-9._-]*)/g;
+const FIRST_PARTY_IMAGE = /ghcr\.io\/sirakinb\/manor\/([a-z0-9][a-z0-9._-]*)/g;
 
 function firstPartyImageNames(value: unknown): string[] {
   if (typeof value !== "string") return [];
@@ -51,6 +52,7 @@ describe("the images compose file", () => {
   it("runs postgres, app roles, supervisor, and a published computer image", () => {
     expect(Object.keys(compose.services).sort()).toEqual([
       "api",
+      "cloudflared",
       "computer",
       "data-init",
       "postgres",
@@ -59,10 +61,10 @@ describe("the images compose file", () => {
       "worker",
     ]);
     for (const service of appServices) {
-      expect(compose.services[service]?.image).toContain("ghcr.io/elie222/rakazo/app");
+      expect(compose.services[service]?.image).toContain("ghcr.io/sirakinb/manor/app");
       expect(compose.services[service]?.image).toContain("RAKAZO_IMAGE_TAG");
     }
-    expect(compose.services.computer?.image).toContain("ghcr.io/elie222/rakazo/computer");
+    expect(compose.services.computer?.image).toContain("ghcr.io/sirakinb/manor/computer");
     expect(compose.services.computer?.image).toContain("RAKAZO_COMPUTER_IMAGE_TAG");
     expect(compose.services.postgres?.image).toMatch(/^postgres:16@sha256:[0-9a-f]{64}$/);
   });
@@ -71,7 +73,7 @@ describe("the images compose file", () => {
     expect(firstPartyImageNames(null)).toEqual([]);
     expect(firstPartyImageNames(true)).toEqual([]);
     expect(firstPartyImageNames(7091)).toEqual([]);
-    expect(firstPartyImageNames("ghcr.io/elie222/rakazo/computer:edge")).toEqual(["computer"]);
+    expect(firstPartyImageNames("ghcr.io/sirakinb/manor/computer:edge")).toEqual(["computer"]);
   });
 
   it("only references first-party images that the publish matrix publishes", () => {
@@ -141,5 +143,16 @@ describe("the images compose file", () => {
     expect(compose.services.web?.ports).toEqual(["127.0.0.1:5173:5173"]);
     expect(compose.services.postgres?.ports).toBeUndefined();
     expect(compose.services.supervisor?.ports).toBeUndefined();
+  });
+
+  it("runs the Cloudflare Tunnel only when the tunnel profile is enabled", () => {
+    const tunnel = compose.services.cloudflared;
+    expect(tunnel?.profiles).toEqual(["tunnel"]);
+    expect(tunnel?.ports).toBeUndefined();
+    expect(tunnel?.image).toMatch(/^cloudflare\/cloudflared:\d{4}\.\d+\.\d+$/);
+    expect(tunnel?.environment?.TUNNEL_TOKEN).toContain("CLOUDFLARE_TUNNEL_TOKEN");
+    for (const [name, service] of Object.entries(compose.services)) {
+      if (name !== "cloudflared") expect(service.profiles).toBeUndefined();
+    }
   });
 });
