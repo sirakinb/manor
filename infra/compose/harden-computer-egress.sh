@@ -21,6 +21,10 @@
 #   COMPUTER_SUBNET   CIDR of the computers' network (default 172.31.240.0/24)
 #   SCREEN_PROXY_IPS  space-separated addresses allowed to open connections
 #                     into it (default ".10 .11": web, supervisor)
+#   COMPUTER_BRIDGE   bridge interface prefix for per-bot networks (the images
+#                     stack uses "mnrc"). When set, rules match those bridges
+#                     instead of COMPUTER_SUBNET: each bot already has its own
+#                     network, so only private and host traffic is dropped.
 #
 # Rules live in memory and Docker rebuilds its chains on restart, so install
 # infra/systemd/rakazo-computer-egress.service to reapply them. Setup steps are
@@ -50,6 +54,32 @@ flush_tagged() {
 
 flush_tagged DOCKER-USER
 flush_tagged INPUT
+
+# --- Per-bot bridges (images stack) -------------------------------------------
+# Traffic that stays on one bot's bridge is the web and supervisor containers
+# reaching that bot's screen and control ports; Docker's own isolation chains
+# still drop traffic between two different bridges. The supervisor API is never
+# a computer's business, so new connections to it are dropped even on-bridge.
+if [ -n "${COMPUTER_BRIDGE:-}" ]; then
+  bridge="${COMPUTER_BRIDGE}+"
+  pos=1
+  iptables -I DOCKER-USER "${pos}" -m conntrack --ctstate ESTABLISHED,RELATED \
+    -m comment --comment "${TAG}" -j RETURN; pos=$((pos + 1))
+  iptables -I DOCKER-USER "${pos}" -i "${bridge}" -o "${bridge}" -p tcp --dport 7091 \
+    -m comment --comment "${TAG}" -j DROP; pos=$((pos + 1))
+  iptables -I DOCKER-USER "${pos}" -i "${bridge}" -o "${bridge}" \
+    -m comment --comment "${TAG}" -j RETURN; pos=$((pos + 1))
+  for range in "${PRIVATE_RANGES[@]}"; do
+    iptables -I DOCKER-USER "${pos}" -i "${bridge}" -d "${range}" \
+      -m comment --comment "${TAG}" -j DROP
+    pos=$((pos + 1))
+  done
+  iptables -I INPUT 1 -i "${bridge}" -m conntrack --ctstate ESTABLISHED,RELATED \
+    -m comment --comment "${TAG}" -j ACCEPT
+  iptables -I INPUT 2 -i "${bridge}" -m comment --comment "${TAG}" -j DROP
+  echo "Applied ${TAG} rules for bridges ${bridge}."
+  exit 0
+fi
 
 # --- FORWARD path: container -> other networks -------------------------------
 pos=1
