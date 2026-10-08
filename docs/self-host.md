@@ -14,21 +14,12 @@ Requires Docker Engine, the Compose plugin, curl, and OpenSSL.
 
 ```bash
 mkdir -p manor && cd manor &&
-export RAKAZO_DOWNLOAD_BASE=https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose &&
 curl -fsSLO https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-images.sh &&
 bash install-images.sh --prepare-only
 ```
 
-The installer downloads `docker-compose.images.yml` and `.env.images.example`, creates `.env` with
-random secrets. It preserves an existing `.env` when rerun. Before starting a new Manor instance,
-set these image values in the generated `.env`; the shared installer defaults otherwise point
-to the original project's images:
-
-```env
-RAKAZO_IMAGE=ghcr.io/sirakinb/manor/app
-RAKAZO_COMPUTER_IMAGE=ghcr.io/sirakinb/manor/computer
-RAKAZO_UPDATER_IMAGE=ghcr.io/sirakinb/manor/updater
-```
+The installer downloads `docker-compose.images.yml` and `.env.images.example`, and creates `.env`
+with random secrets. It preserves an existing `.env` when rerun.
 
 Review the public URL, image tags, and optional providers, then start using the downloaded files:
 
@@ -39,6 +30,39 @@ bash install-images.sh --local
 The `RAKAZO_` configuration keys are retained compatibility identifiers. If an existing installation
 uses another image namespace, review its data and upgrade compatibility before switching images.
 Flags may be combined in either order: `--prepare-only`, `--local`.
+
+### Cloudflare Tunnel
+
+To serve a VPS install without opening ports or managing certificates, create a tunnel in the
+Cloudflare dashboard (Networks → Tunnels), add a public hostname that points at `http://web:5173`,
+and copy the tunnel token. Then set these in `.env`, using your hostname:
+
+```env
+COMPOSE_PROFILES=tunnel
+CLOUDFLARE_TUNNEL_TOKEN=<tunnel token>
+BETTER_AUTH_URL=https://manor.example.com
+WEB_ORIGIN=https://manor.example.com
+API_URL=https://manor.example.com
+RAKAZO_HOST=manor.example.com
+SIGNUP_ALLOWLIST=you@example.com
+```
+
+Set `SIGNUP_ALLOWLIST` before the hostname goes live: the first account to sign up owns the
+deployment.
+
+### Agent computer firewall
+
+Agent computers run untrusted activity. On a public Linux host, block them from the host and the
+private network while keeping internet access. Each bot's network uses an `mnrc…` bridge, so:
+
+```bash
+sudo install -m 0755 harden-computer-egress.sh /usr/local/sbin/rakazo-computer-egress
+sudo COMPUTER_BRIDGE=mnrc /usr/local/sbin/rakazo-computer-egress
+```
+
+Docker rebuilds its chains on restart; `infra/systemd/rakazo-computer-egress.service` reapplies the
+rules (add `Environment=COMPUTER_BRIDGE=mnrc` under `[Service]`). Bot networks created before this
+release keep Docker's default bridge names until the bot's computer is deleted and recreated.
 
 ### Restricted networks / mirror downloads
 

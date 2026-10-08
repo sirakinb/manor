@@ -16,6 +16,7 @@ import {
   COMPUTER_IMAGE,
   COMPUTER_UID,
   COMPUTER_USER,
+  computerBridgeNameFor,
   computerNetworkNameFor,
   computerNetworkNamesForCleanup,
   containerCreateOptions,
@@ -922,7 +923,12 @@ async function connectComposeScreenPeers(networkName: string, info: Docker.Conta
 async function ensureBotNetwork(botId: string) {
   const name = computerNetworkNameFor(botId);
   await docker
-    .createNetwork({ Name: name, Driver: "bridge", CheckDuplicate: true })
+    .createNetwork({
+      Name: name,
+      Driver: "bridge",
+      CheckDuplicate: true,
+      Options: { "com.docker.network.bridge.name": computerBridgeNameFor(botId) },
+    })
     .catch((error) => {
       // Existing networks and concurrent provision requests are both safe.
       if (!/already exists/i.test(String(error))) throw error;
