@@ -31,6 +31,25 @@ The `RAKAZO_` configuration keys are retained compatibility identifiers. If an e
 uses another image namespace, review its data and upgrade compatibility before switching images.
 Flags may be combined in either order: `--prepare-only`, `--local`.
 
+### Cloudflare Tunnel
+
+To serve a VPS install without opening ports or managing certificates, create a tunnel in the
+Cloudflare dashboard (Networks → Tunnels), add a public hostname that points at `http://web:5173`,
+and copy the tunnel token. Then set these in `.env`, using your hostname:
+
+```env
+COMPOSE_PROFILES=tunnel
+CLOUDFLARE_TUNNEL_TOKEN=<tunnel token>
+BETTER_AUTH_URL=https://manor.example.com
+WEB_ORIGIN=https://manor.example.com
+API_URL=https://manor.example.com
+RAKAZO_HOST=manor.example.com
+SIGNUP_ALLOWLIST=you@example.com
+```
+
+Set `SIGNUP_ALLOWLIST` before the hostname goes live: the first account to sign up owns the
+deployment.
+
 ### Restricted networks / mirror downloads
 
 Stage B of the installer (Compose YAML and `.env.images.example`) downloads from
