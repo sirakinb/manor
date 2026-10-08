@@ -14,21 +14,12 @@ Requires Docker Engine, the Compose plugin, curl, and OpenSSL.
 
 ```bash
 mkdir -p manor && cd manor &&
-export RAKAZO_DOWNLOAD_BASE=https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose &&
 curl -fsSLO https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-images.sh &&
 bash install-images.sh --prepare-only
 ```
 
-The installer downloads `docker-compose.images.yml` and `.env.images.example`, creates `.env` with
-random secrets. It preserves an existing `.env` when rerun. Before starting a new Manor instance,
-set these image values in the generated `.env`; the shared installer defaults otherwise point
-to the original project's images:
-
-```env
-RAKAZO_IMAGE=ghcr.io/sirakinb/manor/app
-RAKAZO_COMPUTER_IMAGE=ghcr.io/sirakinb/manor/computer
-RAKAZO_UPDATER_IMAGE=ghcr.io/sirakinb/manor/updater
-```
+The installer downloads `docker-compose.images.yml` and `.env.images.example`, and creates `.env`
+with random secrets. It preserves an existing `.env` when rerun.
 
 Review the public URL, image tags, and optional providers, then start using the downloaded files:
 
