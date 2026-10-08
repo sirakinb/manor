@@ -7,6 +7,27 @@ The signed-in product is a long-running API, a Graphile Worker, Postgres, and a 
 
 Same as the README quick start: `.env` from `.env.example`, Postgres via Compose, `pnpm sandbox:build`, `pnpm dev`, then [http://127.0.0.1:5173](http://127.0.0.1:5173). Electron: `pnpm --filter @rakazo/desktop dev` while that stack is up.
 
+## One-command VPS install
+
+On a fresh Ubuntu or Debian VPS (2 vCPU, 8 GB RAM, 40 GB disk recommended; 4 GB works for a trial),
+with a domain on Cloudflare:
+
+1. In the Cloudflare dashboard, open Networks → Tunnels, create a tunnel, and copy its token.
+2. Add a public hostname to the tunnel (for example `manor.example.com`) pointing at `http://web:5173`.
+3. On the VPS, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/install-vps.sh | sudo bash
+```
+
+It asks for the hostname, your email, and the tunnel token. Then it installs Docker, writes
+`/opt/manor/.env` with random secrets, firewalls agent computers, and starts Manor. Only your email
+can create the first account, which owns the server. Afterwards, `manor update`, `manor status`,
+and `manor logs` manage it.
+
+To run it without prompts (for example from an agent over SSH), set `MANOR_HOST`,
+`MANOR_OWNER_EMAIL`, and `CLOUDFLARE_TUNNEL_TOKEN` first.
+
 ## Published images (no checkout)
 
 Pull Postgres and `ghcr.io/sirakinb/manor/app` into any empty folder. No clone or image build.
