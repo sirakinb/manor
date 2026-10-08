@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- One-command self-hosting: `install-vps.sh` sets up Manor on a fresh Ubuntu or Debian VPS behind an optional Cloudflare Tunnel, with signups locked to the owner, agent computers firewalled from the host and private network, and a `manor` command for updates. The landing page offers a "Give this to your agent" command backed by `/llms.txt`.
 - Zoho Campaigns in Integrations: draft-only agent tools that reuse the existing workspace `zoho-campaigns` credential (list mailing lists/topics, create a draft). No send or schedule. Orgs without that workspace login see the tile disconnected until the existing client/refresh token is saved in Workspace Settings.
 - Bot and shared workspace file management across web, desktop, and mobile, with folders, transfers, document previews, protected edits, and Git review and commit controls.
 - Voice mode: speak replies, hold-to-talk dictation, and half-duplex calls. Speech sits behind a `VoiceProvider` interface (ElevenLabs, OpenAI, Cartesia) so the product is not tied to one vendor. Keys stay on the server.
