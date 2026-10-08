@@ -1189,10 +1189,6 @@ msgstr ""
 msgid "Bills to review"
 msgstr ""
 
-#: src/pages/Welcome.tsx:59
-msgid "Book demo"
-msgstr "डेमो बुक करें"
-
 #: src/pages/crm/CrmForms.tsx:271
 msgid "Booking link"
 msgstr ""
@@ -1651,8 +1647,8 @@ msgstr ""
 msgid "Close computer"
 msgstr "कंप्यूटर बंद करें"
 
-#: src/pages/Welcome.tsx:196
-#: src/pages/Welcome.tsx:223
+#: src/pages/Welcome.tsx:188
+#: src/pages/Welcome.tsx:215
 msgid "Close demo"
 msgstr "डेमो बंद करें"
 
@@ -1974,19 +1970,19 @@ msgstr "ईमेल से जारी रखें"
 #: src/pages/CrmApiAccessPanel.tsx:287
 #: src/pages/CrmApiAccessPanel.tsx:368
 #: src/pages/DocsView.tsx:452
-#: src/pages/Welcome.tsx:157
-#: src/pages/Welcome.tsx:160
+#: src/pages/Welcome.tsx:149
+#: src/pages/Welcome.tsx:152
 msgid "Copied"
 msgstr "कॉपी हो गया"
 
 #: src/pages/CrmApiAccessPanel.tsx:250
 #: src/pages/CrmApiAccessPanel.tsx:362
 #: src/pages/Shell.tsx:5553
-#: src/pages/Welcome.tsx:160
+#: src/pages/Welcome.tsx:152
 msgid "Copy"
 msgstr "कॉपी करें"
 
-#: src/pages/Welcome.tsx:157
+#: src/pages/Welcome.tsx:149
 msgid "Copy agent setup command"
 msgstr ""
 
@@ -4002,7 +3998,7 @@ msgstr "वर्कस्पेस के सिमेंटिक मेमो
 msgid "Manor bot"
 msgstr ""
 
-#: src/pages/Welcome.tsx:204
+#: src/pages/Welcome.tsx:196
 msgid "Manor demo"
 msgstr "Manor डेमो"
 
@@ -6509,7 +6505,7 @@ msgstr ""
 msgid "Supported"
 msgstr ""
 
-#: src/pages/Welcome.tsx:131
+#: src/pages/Welcome.tsx:123
 msgid "Supported agents"
 msgstr ""
 
@@ -7208,7 +7204,7 @@ msgstr "कंप्यूटर जगाएँ"
 msgid "Wake the computer to manage its files."
 msgstr ""
 
-#: src/pages/Welcome.tsx:84
+#: src/pages/Welcome.tsx:76
 msgid "Watch it work"
 msgstr "इसे काम करते देखें"
 
@@ -7419,6 +7415,6 @@ msgstr "आपकी कुंजी या सब्सक्रिप्शन
 msgid "Your name"
 msgstr "आपका नाम"
 
-#: src/pages/Welcome.tsx:88
+#: src/pages/Welcome.tsx:80
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>हमेशा सक्रिय AI एजेंटों</0> की आपकी टीम,<1/>जिसे आप <2>असली काम</2> सौंप सकते हैं।"

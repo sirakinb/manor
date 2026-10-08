@@ -1189,10 +1189,6 @@ msgstr "Bills"
 msgid "Bills to review"
 msgstr "Bills to review"
 
-#: src/pages/Welcome.tsx:59
-msgid "Book demo"
-msgstr "Book demo"
-
 #: src/pages/crm/CrmForms.tsx:271
 msgid "Booking link"
 msgstr "Booking link"
@@ -1651,8 +1647,8 @@ msgstr "Close checker comparison"
 msgid "Close computer"
 msgstr "Close computer"
 
-#: src/pages/Welcome.tsx:196
-#: src/pages/Welcome.tsx:223
+#: src/pages/Welcome.tsx:188
+#: src/pages/Welcome.tsx:215
 msgid "Close demo"
 msgstr "Close demo"
 
@@ -1974,19 +1970,19 @@ msgstr "Continue with email"
 #: src/pages/CrmApiAccessPanel.tsx:287
 #: src/pages/CrmApiAccessPanel.tsx:368
 #: src/pages/DocsView.tsx:452
-#: src/pages/Welcome.tsx:157
-#: src/pages/Welcome.tsx:160
+#: src/pages/Welcome.tsx:149
+#: src/pages/Welcome.tsx:152
 msgid "Copied"
 msgstr "Copied"
 
 #: src/pages/CrmApiAccessPanel.tsx:250
 #: src/pages/CrmApiAccessPanel.tsx:362
 #: src/pages/Shell.tsx:5553
-#: src/pages/Welcome.tsx:160
+#: src/pages/Welcome.tsx:152
 msgid "Copy"
 msgstr "Copy"
 
-#: src/pages/Welcome.tsx:157
+#: src/pages/Welcome.tsx:149
 msgid "Copy agent setup command"
 msgstr "Copy agent setup command"
 
@@ -4002,7 +3998,7 @@ msgstr "Manage the Space semantic memory provider."
 msgid "Manor bot"
 msgstr "Manor bot"
 
-#: src/pages/Welcome.tsx:204
+#: src/pages/Welcome.tsx:196
 msgid "Manor demo"
 msgstr "Manor demo"
 
@@ -6509,7 +6505,7 @@ msgstr "Sunday"
 msgid "Supported"
 msgstr "Supported"
 
-#: src/pages/Welcome.tsx:131
+#: src/pages/Welcome.tsx:123
 msgid "Supported agents"
 msgstr "Supported agents"
 
@@ -7208,7 +7204,7 @@ msgstr "Wake computer"
 msgid "Wake the computer to manage its files."
 msgstr "Wake the computer to manage its files."
 
-#: src/pages/Welcome.tsx:84
+#: src/pages/Welcome.tsx:76
 msgid "Watch it work"
 msgstr "Watch it work"
 
@@ -7419,6 +7415,6 @@ msgstr "Your key or subscription token is stored securely and is never shown her
 msgid "Your name"
 msgstr "Your name"
 
-#: src/pages/Welcome.tsx:88
+#: src/pages/Welcome.tsx:80
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
