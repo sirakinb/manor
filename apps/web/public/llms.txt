@@ -9,7 +9,12 @@ Self-hosting guide: https://github.com/sirakinb/manor/blob/main/docs/self-host.m
 
 You are helping the user run their own Manor on a VPS behind a Cloudflare Tunnel. Work through these steps in order. Ask the user for anything you cannot do yourself, one step at a time, and never print or log the tunnel token or other secrets.
 
-1. **A VPS.** Ask whether they already have one. If not, have them buy an Ubuntu 24.04 (or Debian 12) VPS with 2 vCPU, 8 GB RAM, and 40 GB disk from any provider (4 GB RAM works for a trial). Get its IP address and confirm you can run `ssh root@<ip>` (or a sudo user).
+1. **A VPS.** Ask whether they already have one. If not, offer these options (any provider works):
+   - **Hetzner Cloud**: usually the lowest cost; pick a shared vCPU plan with 8 GB RAM.
+   - **DigitalOcean**: simple dashboard; pick a Basic Droplet with 8 GB RAM.
+   - **Hostinger VPS**: a KVM plan with 8 GB RAM.
+
+   Choose Ubuntu 24.04 (or Debian 12), at least 2 vCPU, 8 GB RAM, and 40 GB disk (4 GB RAM works for a trial). x86 is simplest. If the provider has a CLI the user is signed into (for example `hcloud` or `doctl`), you may offer to create the server for them after they confirm the plan and cost. Get the server's IP address and confirm you can run `ssh root@<ip>` (or a sudo user).
 2. **A domain on Cloudflare.** Ask which hostname Manor should use, for example `manor.example.com`. Its domain must already use Cloudflare DNS.
 3. **A Cloudflare Tunnel.** Have the user open the Cloudflare dashboard → Zero Trust → Networks → Tunnels → Create a tunnel (type Cloudflared), name it `manor`, and copy the token from the install command it shows. Then, on the tunnel's Public Hostname tab, add the hostname from step 2 with service type `HTTP` and URL `web:5173`.
 4. **The owner's email.** Only this address can create the first account, which owns the server.
