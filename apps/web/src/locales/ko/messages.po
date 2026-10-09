@@ -296,7 +296,7 @@ msgstr "{botName}의 컴퓨터"
 msgid "{brandName} brings your agents, customer records, and business tools together. Start with one agent and one useful task. Build from a result you have checked."
 msgstr ""
 
-#: src/pages/DocsView.tsx:606
+#: src/pages/DocsView.tsx:605
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr "{brandName}는 등록한 URL로 CRM 변경 사항을 전송합니다 — 통합 → API 및 에이전트 액세스에서 또는 <0>POST /v1/webhooks</0>로 등록하세요. 각 엔드포인트에는 한 번만 표시되는 서명 시크릿이 발급됩니다."
 
@@ -409,7 +409,7 @@ msgstr "+ 필드"
 msgid "+ New pipeline"
 msgstr "+ 새 파이프라인"
 
-#: src/pages/DocsView.tsx:634
+#: src/pages/DocsView.tsx:633
 msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
 msgstr "<0>record.*</0> 이벤트는 커스텀 모듈 레코드에 대해 발생하며, 페이로드의 <1>data</1>에는 변경 후의 전체 객체가 담깁니다."
 
@@ -469,6 +469,7 @@ msgstr ""
 msgid "Accept submissions"
 msgstr ""
 
+#: src/pages/OAuthAuthorize.tsx:135
 #: src/pages/Shell.tsx:6667
 msgid "Access"
 msgstr "접근 권한"
@@ -790,6 +791,10 @@ msgstr ""
 msgid "All time"
 msgstr ""
 
+#: src/pages/OAuthAuthorize.tsx:170
+msgid "Allow"
+msgstr ""
+
 #. placeholder {0}: rule.matchValue
 #: src/components/ApprovalRulesSettings.tsx:26
 msgid "Allow {0} actions without asking"
@@ -833,7 +838,7 @@ msgstr ""
 msgid "Allows"
 msgstr ""
 
-#: src/pages/Auth.tsx:265
+#: src/pages/Auth.tsx:268
 msgid "Already have an account?"
 msgstr "이미 계정이 있나요?"
 
@@ -983,7 +988,7 @@ msgid "Arguments"
 msgstr "인자"
 
 #: src/pages/DocsView.tsx:289
-#: src/pages/DocsView.tsx:585
+#: src/pages/DocsView.tsx:584
 msgid "Arguments:"
 msgstr ""
 
@@ -1139,9 +1144,9 @@ msgstr ""
 msgid "Back"
 msgstr "뒤로"
 
-#: src/pages/Auth.tsx:133
-#: src/pages/Auth.tsx:272
-#: src/pages/Auth.tsx:364
+#: src/pages/Auth.tsx:136
+#: src/pages/Auth.tsx:275
+#: src/pages/Auth.tsx:367
 msgid "Back to sign in"
 msgstr "로그인으로 돌아가기"
 
@@ -1364,7 +1369,7 @@ msgstr ""
 msgid "Campaigns per month"
 msgstr ""
 
-#: src/App.tsx:163
+#: src/App.tsx:183
 msgid "Can't reach the server."
 msgstr "서버에 연결할 수 없습니다."
 
@@ -1384,6 +1389,7 @@ msgstr "서버에 연결할 수 없습니다."
 #: src/pages/KnowledgeSection.tsx:196
 #: src/pages/KnowledgeSection.tsx:374
 #: src/pages/McpServersOverlay.tsx:549
+#: src/pages/OAuthAuthorize.tsx:163
 #: src/pages/PluginsOverlay.tsx:484
 #: src/pages/Shell.tsx:6687
 #: src/pages/Shell.tsx:6769
@@ -1510,7 +1516,7 @@ msgstr ""
 msgid "Check workspace_activities before repeating work. Use the available tools below to read this organization’s data and check its timestamps."
 msgstr ""
 
-#: src/pages/Auth.tsx:127
+#: src/pages/Auth.tsx:130
 msgid "Check your email"
 msgstr "이메일을 확인하세요"
 
@@ -1542,7 +1548,7 @@ msgstr ""
 msgid "Choose a bot…"
 msgstr ""
 
-#: src/pages/Auth.tsx:325
+#: src/pages/Auth.tsx:328
 msgid "Choose a new password"
 msgstr "새 비밀번호 선택"
 
@@ -1622,6 +1628,10 @@ msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:304
 msgid "Client recipients"
+msgstr ""
+
+#: src/pages/DocsView.tsx:208
+msgid "Clients that cannot supply bearer headers, such as claude.ai and ChatGPT connectors, can add the URL alone and sign in with OAuth instead."
 msgstr ""
 
 #: src/pages/BotContextMenu.tsx:67
@@ -1817,7 +1827,7 @@ msgid "Confirm delete"
 msgstr "삭제 확인"
 
 #: src/pages/AccountSettingsOverlay.tsx:326
-#: src/pages/Auth.tsx:346
+#: src/pages/Auth.tsx:349
 msgid "Confirm password"
 msgstr "비밀번호 확인"
 
@@ -1837,6 +1847,11 @@ msgstr ""
 #: src/pages/VoiceSettingsOverlay.tsx:286
 msgid "Connect"
 msgstr "연결"
+
+#. placeholder {0}: details.client_name
+#: src/pages/OAuthAuthorize.tsx:107
+msgid "Connect {0} to {brandName}"
+msgstr ""
 
 #: src/pages/Onboarding.tsx:243
 msgid "Connect a model"
@@ -1929,10 +1944,15 @@ msgstr ""
 #: src/pages/McpServersOverlay.tsx:16
 #: src/pages/McpServersOverlay.tsx:542
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
+#: src/pages/OAuthAuthorize.tsx:170
 #: src/pages/Shell.tsx:7335
 #: src/pages/VoiceSettingsOverlay.tsx:282
 msgid "Connecting…"
 msgstr "연결 중…"
+
+#: src/pages/OAuthAuthorize.tsx:91
+msgid "Connection failed"
+msgstr ""
 
 #. placeholder {0}: item.name
 #: src/pages/PluginsOverlay.tsx:159
@@ -1961,7 +1981,7 @@ msgstr ""
 msgid "Continue"
 msgstr "계속"
 
-#: src/pages/Auth.tsx:248
+#: src/pages/Auth.tsx:251
 msgid "Continue with email"
 msgstr "이메일로 계속하기"
 
@@ -2079,6 +2099,8 @@ msgstr "대화 내용을 비우지 못했습니다."
 msgid "Could not complete OAuth"
 msgstr "OAuth 인증을 완료하지 못했습니다."
 
+#: src/pages/OAuthAuthorize.tsx:77
+#: src/pages/OAuthAuthorize.tsx:80
 #: src/pages/PluginsOverlay.tsx:163
 msgid "Could not connect"
 msgstr "연결하지 못했습니다."
@@ -2096,7 +2118,7 @@ msgstr "AI 서비스에 연결하지 못했습니다."
 msgid "Could not connect this voice provider"
 msgstr "음성 서비스에 연결하지 못했습니다."
 
-#: src/pages/Auth.tsx:86
+#: src/pages/Auth.tsx:87
 msgid "Could not continue"
 msgstr "계속 진행하지 못했습니다."
 
@@ -2293,8 +2315,8 @@ msgid "Could not post"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:301
-#: src/pages/Auth.tsx:92
-#: src/pages/Auth.tsx:311
+#: src/pages/Auth.tsx:95
+#: src/pages/Auth.tsx:314
 msgid "Could not reach the server"
 msgstr "서버에 연결할 수 없습니다"
 
@@ -2340,7 +2362,7 @@ msgstr "웹훅을 제거하지 못했습니다"
 msgid "Could not render chart"
 msgstr "차트를 만들지 못했습니다."
 
-#: src/pages/Auth.tsx:306
+#: src/pages/Auth.tsx:309
 msgid "Could not reset password"
 msgstr "비밀번호를 재설정할 수 없습니다"
 
@@ -2421,7 +2443,7 @@ msgstr ""
 msgid "Could not save this choice"
 msgstr "선택 내용을 저장하지 못했습니다."
 
-#: src/pages/Auth.tsx:71
+#: src/pages/Auth.tsx:72
 msgid "Could not send reset email"
 msgstr "재설정 이메일을 보낼 수 없습니다"
 
@@ -2516,7 +2538,7 @@ msgstr ""
 msgid "Create a section and move {0} into it."
 msgstr "새 섹션을 만들고 {0}을 옮깁니다."
 
-#: src/pages/Auth.tsx:252
+#: src/pages/Auth.tsx:255
 msgid "Create account"
 msgstr "계정 만들기"
 
@@ -2546,7 +2568,7 @@ msgstr "스페이스 만들기"
 msgid "Create token"
 msgstr "토큰 생성"
 
-#: src/pages/Auth.tsx:33
+#: src/pages/Auth.tsx:34
 msgid "Create your {brandName} account"
 msgstr "{brandName} 계정 만들기"
 
@@ -2554,7 +2576,7 @@ msgstr "{brandName} 계정 만들기"
 msgid "Create your first bot"
 msgstr "첫 Bot 만들기"
 
-#: src/pages/Auth.tsx:31
+#: src/pages/Auth.tsx:32
 msgid "Create your Manor"
 msgstr "나만의 Manor 만들기"
 
@@ -2598,7 +2620,7 @@ msgstr ""
 msgid "CRM tag"
 msgstr ""
 
-#: src/pages/DocsView.tsx:571
+#: src/pages/DocsView.tsx:570
 msgid "CRM tools"
 msgstr ""
 
@@ -2626,7 +2648,7 @@ msgstr "현재 비밀번호"
 msgid "Custom modules"
 msgstr "커스텀 모듈"
 
-#: src/pages/DocsView.tsx:591
+#: src/pages/DocsView.tsx:590
 msgid "Custom sheets are called modules in the tools. Identify a module by name or id, and use field labels in record values."
 msgstr ""
 
@@ -2779,7 +2801,7 @@ msgstr "삭제 중…"
 msgid "Delivered"
 msgstr ""
 
-#: src/pages/DocsView.tsx:640
+#: src/pages/DocsView.tsx:639
 #: src/pages/workspace/sections/EmailSection.tsx:322
 msgid "Delivery"
 msgstr "전송"
@@ -2911,7 +2933,7 @@ msgstr "문서 ↗"
 msgid "Documentation topics"
 msgstr ""
 
-#: src/pages/Auth.tsx:258
+#: src/pages/Auth.tsx:261
 msgid "Don’t have an account?"
 msgstr "계정이 없나요?"
 
@@ -3023,7 +3045,7 @@ msgstr "Bot 정보 수정"
 msgid "Edit report"
 msgstr ""
 
-#: src/pages/Auth.tsx:153
+#: src/pages/Auth.tsx:156
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
@@ -3110,7 +3132,7 @@ msgstr ""
 msgid "Event"
 msgstr ""
 
-#: src/pages/DocsView.tsx:627
+#: src/pages/DocsView.tsx:626
 msgid "Events"
 msgstr "이벤트"
 
@@ -3203,7 +3225,7 @@ msgstr ""
 msgid "Failed"
 msgstr "실패"
 
-#: src/pages/DocsView.tsx:650
+#: src/pages/DocsView.tsx:649
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr "실패한 전송은 지수 백오프로 최대 8회 재시도되며, 시도 간격은 최대 1시간입니다. 10초 이내에 2xx로 응답하세요."
 
@@ -3367,15 +3389,11 @@ msgstr ""
 msgid "followers now"
 msgstr ""
 
-#: src/pages/DocsView.tsx:208
-msgid "For a client that cannot supply bearer headers, use its HTTP/API integration instead. This endpoint does not provide an OAuth sign-in flow."
-msgstr ""
-
 #: src/pages/DocsView.tsx:532
 msgid "For delivery format, retries, and signatures, open “Send CRM changes to another app” below."
 msgstr ""
 
-#: src/pages/Auth.tsx:229
+#: src/pages/Auth.tsx:232
 msgid "Forgot password?"
 msgstr "비밀번호를 잊으셨나요?"
 
@@ -3534,7 +3552,7 @@ msgstr ""
 msgid "Hide live activity"
 msgstr "실시간 활동 숨기기"
 
-#: src/pages/Auth.tsx:187
+#: src/pages/Auth.tsx:190
 msgid "Hide password"
 msgstr "비밀번호 숨기기"
 
@@ -3605,7 +3623,7 @@ msgstr ""
 msgid "idle (no data)"
 msgstr ""
 
-#: src/pages/Auth.tsx:130
+#: src/pages/Auth.tsx:133
 msgid "If an account exists for that address, we sent a password reset link."
 msgstr "해당 주소의 계정이 존재하면 비밀번호 재설정 링크를 보냈습니다."
 
@@ -3641,7 +3659,7 @@ msgstr ""
 msgid "In your app’s MCP settings, add an HTTP server using each URL below."
 msgstr ""
 
-#: src/pages/DocsView.tsx:673
+#: src/pages/DocsView.tsx:672
 msgid "Inbound: trigger a bot"
 msgstr "인바운드: 봇 트리거"
 
@@ -3900,6 +3918,10 @@ msgstr "이전 메시지 불러오기"
 msgid "Load more"
 msgstr "더 불러오기"
 
+#: src/pages/OAuthAuthorize.tsx:96
+msgid "loading"
+msgstr ""
+
 #: src/pages/workspace/bits.tsx:276
 msgid "Loading"
 msgstr ""
@@ -3949,7 +3971,7 @@ msgstr ""
 msgid "Loading voice providers…"
 msgstr "음성 서비스를 불러오는 중…"
 
-#: src/App.tsx:54
+#: src/App.tsx:58
 #: src/components/BotCredentialsSettings.tsx:165
 #: src/pages/crm/CrmForms.tsx:122
 #: src/pages/crm/CrmView.tsx:190
@@ -4297,7 +4319,7 @@ msgstr "섹션으로 이동"
 #: src/components/FilesPanel.tsx:341
 #: src/components/FilesPanel.tsx:343
 #: src/components/teach/SkillDraftCard.tsx:82
-#: src/pages/Auth.tsx:140
+#: src/pages/Auth.tsx:143
 #: src/pages/crm/CrmContacts.tsx:129
 #: src/pages/crm/CrmView.tsx:76
 #: src/pages/GroupPanel.tsx:110
@@ -4403,7 +4425,7 @@ msgid "New open-work item"
 msgstr "새 진행 작업"
 
 #: src/pages/AccountSettingsOverlay.tsx:320
-#: src/pages/Auth.tsx:340
+#: src/pages/Auth.tsx:343
 msgid "New password"
 msgstr "새 비밀번호"
 
@@ -4919,7 +4941,7 @@ msgstr ""
 msgid "Opened its thread."
 msgstr "대화가 만들어졌습니다."
 
-#: src/App.tsx:204
+#: src/App.tsx:224
 msgid "Opening your Space…"
 msgstr "작업공간을 여는 중…"
 
@@ -5018,22 +5040,22 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:253
 #: src/pages/AccountSettingsOverlay.tsx:310
-#: src/pages/Auth.tsx:169
-#: src/pages/Auth.tsx:178
+#: src/pages/Auth.tsx:172
+#: src/pages/Auth.tsx:181
 msgid "Password"
 msgstr "비밀번호"
 
-#: src/pages/Auth.tsx:63
+#: src/pages/Auth.tsx:64
 msgid "Password recovery is not configured for this server"
 msgstr "이 서버에는 비밀번호 복구가 설정되어 있지 않습니다"
 
 #: src/pages/AccountSettingsOverlay.tsx:345
-#: src/pages/Auth.tsx:330
+#: src/pages/Auth.tsx:333
 msgid "Password updated"
 msgstr "비밀번호가 업데이트되었습니다"
 
 #: src/pages/AccountSettingsOverlay.tsx:280
-#: src/pages/Auth.tsx:298
+#: src/pages/Auth.tsx:301
 msgid "Passwords do not match"
 msgstr "비밀번호가 일치하지 않습니다"
 
@@ -5324,7 +5346,7 @@ msgstr ""
 msgid "Reach"
 msgstr ""
 
-#: src/pages/DocsView.tsx:581
+#: src/pages/DocsView.tsx:580
 msgid "read / write"
 msgstr "읽기 / 쓰기"
 
@@ -5348,12 +5370,12 @@ msgstr ""
 msgid "Read your workspace with context"
 msgstr ""
 
-#: src/pages/DocsView.tsx:581
+#: src/pages/DocsView.tsx:580
 #: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "읽기 전용"
 
-#: src/pages/DocsView.tsx:565
+#: src/pages/DocsView.tsx:564
 msgid "Reading requires <0>crm:read</0>; changing records requires <1>crm:write</1>. The connection only advertises tools your token can use."
 msgstr ""
 
@@ -5393,7 +5415,7 @@ msgstr ""
 msgid "Reconnect OAuth"
 msgstr "OAuth 다시 연결"
 
-#: src/App.tsx:161
+#: src/App.tsx:181
 msgid "Reconnecting"
 msgstr "다시 연결 중"
 
@@ -5456,7 +5478,7 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
-#: src/pages/DocsView.tsx:611
+#: src/pages/DocsView.tsx:610
 msgid "Register an endpoint"
 msgstr "엔드포인트 등록"
 
@@ -5464,7 +5486,7 @@ msgstr "엔드포인트 등록"
 msgid "Register the server"
 msgstr ""
 
-#: src/pages/DocsView.tsx:668
+#: src/pages/DocsView.tsx:667
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr "리플레이를 막으려면 타임스탬프가 몇 분 이상 지난 전달은 거부하세요."
 
@@ -5655,11 +5677,11 @@ msgstr "컴퓨터 초기화"
 msgid "Reset computer?"
 msgstr "컴퓨터를 초기화할까요?"
 
-#: src/pages/Auth.tsx:361
+#: src/pages/Auth.tsx:364
 msgid "Reset password"
 msgstr "비밀번호 재설정"
 
-#: src/pages/Auth.tsx:36
+#: src/pages/Auth.tsx:37
 msgid "Reset your password"
 msgstr "비밀번호를 재설정하세요"
 
@@ -5702,7 +5724,7 @@ msgstr ""
 msgid "Retry"
 msgstr ""
 
-#: src/App.tsx:173
+#: src/App.tsx:193
 msgid "Retry now"
 msgstr "지금 다시 시도"
 
@@ -6026,7 +6048,7 @@ msgstr "보내기"
 msgid "Send report"
 msgstr ""
 
-#: src/pages/Auth.tsx:250
+#: src/pages/Auth.tsx:253
 msgid "Send reset link"
 msgstr "재설정 링크 보내기"
 
@@ -6042,7 +6064,7 @@ msgstr ""
 msgid "Sender name"
 msgstr ""
 
-#: src/pages/DocsView.tsx:686
+#: src/pages/DocsView.tsx:685
 msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 msgstr "헤더를 설정할 수 없는 발신자(cal.com, 폼 빌더)는 대신 URL에 키를 붙일 수 있습니다: <0>?token=<webhook key></0>. 본문은 64 KB로 제한되며, <1>text</1> 필드는 그대로 전달되고 그 외에는 JSON으로 전달됩니다. 같은 <2>Idempotency-Key</2> 헤더(또는 페이로드 <3>id</3>/<4>event_id</4>)를 가진 반복 전달은 중복 제거됩니다."
 
@@ -6203,7 +6225,7 @@ msgstr "실시간 활동 보기"
 msgid "Show more"
 msgstr ""
 
-#: src/pages/Auth.tsx:187
+#: src/pages/Auth.tsx:190
 msgid "Show password"
 msgstr "비밀번호 표시"
 
@@ -6220,18 +6242,18 @@ msgid "Showing the most recent checks only. Pick a shorter range for complete da
 msgstr ""
 
 #: src/lib/localized-provider-hint.ts:7
-#: src/pages/Auth.tsx:267
-#: src/pages/Auth.tsx:333
+#: src/pages/Auth.tsx:270
+#: src/pages/Auth.tsx:336
 #: src/pages/ModelSettingsOverlay.tsx:619
 #: src/pages/Onboarding.tsx:122
 msgid "Sign in"
 msgstr "로그인"
 
-#: src/pages/Auth.tsx:28
+#: src/pages/Auth.tsx:29
 msgid "Sign in to {brandName}"
 msgstr "{brandName}에 로그인"
 
-#: src/pages/Auth.tsx:260
+#: src/pages/Auth.tsx:263
 msgid "Sign up"
 msgstr "가입하기"
 
@@ -6304,6 +6326,10 @@ msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:342
 msgid "Sources"
+msgstr ""
+
+#: src/pages/OAuthAuthorize.tsx:118
+msgid "Space"
 msgstr ""
 
 #: src/pages/Shell.tsx:6669
@@ -6656,7 +6682,7 @@ msgstr "선택한 기억 서비스는 현재 빌드에서 사용할 수 없습�
 msgid "The setup prompt includes the connection instructions. These references are here when you or your agent need a specific tool, permission, or endpoint."
 msgstr ""
 
-#: src/pages/DocsView.tsx:658
+#: src/pages/DocsView.tsx:657
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "서명은 엔드포인트의 서명 시크릿으로 <0><timestamp>.<raw body></0>를 HMAC-SHA256 처리한 값입니다:"
 
@@ -6711,7 +6737,12 @@ msgid "This computer runs shell commands with your account, including files in y
 msgstr "이 컴퓨터에서는 홈 폴더의 파일을 포함해 내 계정 권한으로 터미널 명령을 실행합니다. 여러 사람이 쓰거나 공개된 서버에서는 사용하지 마세요."
 
 #: src/pages/DocsView.tsx:557
-msgid "This connection provides the customer record tools listed below. Use Streamable HTTP with a bearer token. Clients that require an OAuth sign-in flow cannot use this endpoint directly."
+msgid "This connection provides the customer record tools listed below. Use Streamable HTTP with a bearer token, or add the URL alone to a client that signs in with OAuth."
+msgstr ""
+
+#: src/pages/OAuthAuthorize.tsx:32
+#: src/pages/OAuthAuthorize.tsx:49
+msgid "This connection request is invalid."
 msgstr ""
 
 #: src/components/FilesPanel.tsx:523
@@ -6769,7 +6800,7 @@ msgstr "이 서비스는 여기에서 API 키를 입력할 수 없습니다. 서
 msgid "This removes the item and everything inside it from the computer."
 msgstr ""
 
-#: src/pages/Auth.tsx:290
+#: src/pages/Auth.tsx:293
 msgid "This reset link is invalid or expired"
 msgstr "이 재설정 링크는 유효하지 않거나 만료되었습니다"
 
@@ -7056,7 +7087,7 @@ msgstr ""
 msgid "URL"
 msgstr ""
 
-#: src/pages/DocsView.tsx:621
+#: src/pages/DocsView.tsx:620
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr "URL은 HTTPS여야 합니다. 응답에는 엔드포인트와 서명 시크릿이 포함됩니다 — 시크릿은 다시 조회할 수 없으니 저장해 두세요."
 
@@ -7142,7 +7173,7 @@ msgstr ""
 msgid "Verify and add"
 msgstr "확인 후 추가"
 
-#: src/pages/DocsView.tsx:656
+#: src/pages/DocsView.tsx:655
 msgid "Verify the signature"
 msgstr "서명 검증"
 
@@ -7237,7 +7268,7 @@ msgstr "웹훅 관리"
 msgid "Webhook name"
 msgstr "웹훅 이름"
 
-#: src/pages/DocsView.tsx:675
+#: src/pages/DocsView.tsx:674
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "웹훅은 반대 방향으로도 흐릅니다 — 모든 봇에는 외부 서비스가 POST할 수 있는 인바운드 URL이 있습니다. 페이로드는 메시지로 도착하고 웹훅 트리거가 있는 루틴이 실행되어 봇이 도구로 대응할 수 있습니다. 봇의 루틴 편집기에서 설정하세요."
 
@@ -7339,8 +7370,8 @@ msgstr ""
 msgid "Working with agents"
 msgstr ""
 
-#: src/pages/Auth.tsx:246
-#: src/pages/Auth.tsx:361
+#: src/pages/Auth.tsx:249
+#: src/pages/Auth.tsx:364
 #: src/pages/CallView.tsx:244
 msgid "Working…"
 msgstr "처리 중…"
@@ -7391,6 +7422,11 @@ msgstr "이 창을 닫아도 됩니다."
 msgid "You have control"
 msgstr "직접 조작 중"
 
+#. placeholder {0}: details.redirect_host
+#: src/pages/OAuthAuthorize.tsx:112
+msgid "You will return to {0}."
+msgstr ""
+
 #: src/pages/workspace/sections/TeamSection.tsx:46
 msgid "Your AI team"
 msgstr ""
@@ -7399,7 +7435,7 @@ msgstr ""
 msgid "Your app must support Streamable HTTP and custom headers. Manor uses a token here; there is no browser sign-in step."
 msgstr ""
 
-#: src/pages/Auth.tsx:160
+#: src/pages/Auth.tsx:163
 msgid "Your email address"
 msgstr "이메일 주소"
 
@@ -7411,7 +7447,7 @@ msgstr ""
 msgid "Your key or subscription token is stored securely and is never shown here."
 msgstr "API 키 또는 구독 토큰은 서버에 안전하게 저장되며 이 화면에 다시 표시되지 않습니다."
 
-#: src/pages/Auth.tsx:147
+#: src/pages/Auth.tsx:150
 msgid "Your name"
 msgstr "이름"
 

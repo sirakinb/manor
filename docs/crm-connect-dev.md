@@ -56,6 +56,25 @@ Generic `mcpServers` config:
 }
 ```
 
+### OAuth sign-in
+
+Clients that cannot send headers — claude.ai and Claude Desktop custom
+connectors, ChatGPT connectors — take the endpoint URL alone. An unauthenticated
+request returns `401` with `WWW-Authenticate: Bearer resource_metadata=…`, and
+the client discovers the rest:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /.well-known/oauth-protected-resource/mcp/crm` (or `/mcp/workspace`) | Resource metadata |
+| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+| `POST /oauth/register` | Dynamic client registration |
+| `GET /oauth/authorize` | Sign-in and consent: choose the space and scopes |
+| `POST /oauth/token` | `authorization_code` (PKCE `S256` required) and `refresh_token` |
+
+Each approval creates a credential in Integrations → API & agent access, named
+after the client. Access tokens last an hour; refresh tokens rotate on use and
+last 30 days. Revoking the credential disconnects the client.
+
 ### Tool catalog
 
 Read tools need `crm:read`; the rest need `crm:write`.

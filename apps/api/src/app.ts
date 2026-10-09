@@ -85,6 +85,7 @@ import { type AppEnv, loadEnv } from "./env.js";
 import { createGoogleFormsTokenBroker } from "./google-forms-token-broker.js";
 import { attachLocalComputerSocket, type LocalComputerUpgradeServer } from "./local-computer.js";
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
+import { isOAuthPublicPath, mountMcpOAuthProvider } from "./mcp-oauth-provider.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
 import {
@@ -420,8 +421,18 @@ export async function createApp(
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
   });
+  // OAuth discovery, registration and token exchange carry no cookies, so any MCP client may call them.
+  const oauthCors = cors({
+    origin: "*",
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Authorization", "Content-Type", "MCP-Protocol-Version"],
+  });
   app.use("*", (c, next) =>
-    c.req.path.startsWith(PUBLIC_FORM_PREFIX) ? publicFormCors(c, next) : appCors(c, next),
+    c.req.path.startsWith(PUBLIC_FORM_PREFIX)
+      ? publicFormCors(c, next)
+      : isOAuthPublicPath(c.req.path)
+        ? oauthCors(c, next)
+        : appCors(c, next),
   );
   mountMaintenanceAdmission(app, admission);
   app.get("/api/auth/capabilities", (c) =>
@@ -462,15 +473,21 @@ export async function createApp(
     return auth.handler(c.req.raw);
   });
   mountPublicFormRoutes(app, { prisma, service: crmIntegrationService, email });
+  const resolveSessionActor = async (request: Request) => {
+    const session = await auth.api.getSession({ headers: sessionHeaders(request) });
+    if (!session?.user) return null;
+    return requirePortalMembership(prisma, session.user.id, request).catch(() => null);
+  };
+  mountMcpOAuthProvider(app, {
+    prisma,
+    resolveActor: resolveSessionActor,
+    publicOrigin: (request) => publicOrigin(request, env),
+  });
   const crmIntegrations = mountCrmIntegrationRoutes(app, {
     prisma,
     secrets,
     service: crmIntegrationService,
-    resolveActor: async (request) => {
-      const session = await auth.api.getSession({ headers: sessionHeaders(request) });
-      if (!session?.user) return null;
-      return requirePortalMembership(prisma, session.user.id, request).catch(() => null);
-    },
+    resolveActor: resolveSessionActor,
   });
   app.use("/rpc/*", async (c, next) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
@@ -587,6 +604,16 @@ function isTrustedOrigin(origin: string, env: AppEnv) {
   } catch {
     return false;
   }
+}
+
+/** The origin a client used to reach this deployment, so each brand host advertises itself. */
+function publicOrigin(request: Request, env: AppEnv) {
+  const url = new URL(request.url);
+  const forwarded = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol =
+    forwarded === "https" || forwarded === "http" ? forwarded : url.protocol.slice(0, -1);
+  const origin = `${protocol}://${request.headers.get("host") ?? url.host}`;
+  return isTrustedOrigin(origin, env) ? origin : env.webOrigin;
 }
 
 function isLoopbackHost(host: string): boolean {

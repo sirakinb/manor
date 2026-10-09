@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -318,6 +319,102 @@ describeWithDatabase("CRM public integrations", () => {
       id: 1,
       result: { serverInfo: { name: "Personal CRM" } },
     });
+  });
+
+  it("connects an OAuth MCP client to the approved space and scopes", async () => {
+    const challenge = await app.request("/mcp/crm", { method: "POST" });
+    const metadataUrl = /resource_metadata="([^"]+)"/.exec(
+      challenge.headers.get("www-authenticate") ?? "",
+    )?.[1];
+    expect(metadataUrl).toMatch(/\/\.well-known\/oauth-protected-resource\/mcp\/crm$/);
+    const resource = (await (await app.request(metadataUrl!)).json()) as {
+      authorization_servers: string[];
+    };
+    const server = (await (
+      await app.request(
+        `${resource.authorization_servers[0]}/.well-known/oauth-authorization-server`,
+      )
+    ).json()) as Record<string, string>;
+
+    const redirectUri = "https://client.example.test/callback";
+    const registered = await app.request(server.registration_endpoint!, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ client_name: "OAuth journey", redirect_uris: [redirectUri] }),
+    });
+    expect(registered.status).toBe(201);
+    const { client_id } = (await registered.json()) as { client_id: string };
+
+    const verifier = createHash("sha256").update(stamp).digest("base64url");
+    const approval = await app.request("/v1/oauth/authorize", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        response_type: "code",
+        client_id,
+        redirect_uri: redirectUri,
+        code_challenge: createHash("sha256").update(verifier).digest("base64url"),
+        code_challenge_method: "S256",
+        scope: "crm:read",
+        scopes: ["crm:read"],
+      }),
+    });
+    expect(approval.status).toBe(200);
+    const { redirect_to } = (await approval.json()) as { redirect_to: string };
+    const code = new URL(redirect_to).searchParams.get("code")!;
+
+    const exchange = (form: Record<string, string>) =>
+      app.request(server.token_endpoint!, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ client_id, ...form }).toString(),
+      });
+    const issued = await exchange({
+      grant_type: "authorization_code",
+      code,
+      code_verifier: verifier,
+      redirect_uri: redirectUri,
+    });
+    expect(issued.status).toBe(200);
+    const tokens = (await issued.json()) as { access_token: string; refresh_token: string };
+
+    const listTools = (accessToken: string) =>
+      app.request("/mcp/crm", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+      });
+    const listed = await listTools(tokens.access_token);
+    expect(listed.status).toBe(200);
+    const names = (
+      (await listed.json()) as { result: { tools: Array<{ name: string }> } }
+    ).result.tools.map((tool) => tool.name);
+    expect(names.length).toBeGreaterThan(0);
+    expect(names).not.toContain("crm_sync_contact");
+
+    const refreshed = await exchange({
+      grant_type: "refresh_token",
+      refresh_token: tokens.refresh_token,
+    });
+    expect(refreshed.status).toBe(200);
+    const next = (await refreshed.json()) as { access_token: string };
+    expect((await listTools(tokens.access_token)).status).toBe(401);
+    expect((await listTools(next.access_token)).status).toBe(200);
+
+    const credential = await handles.prisma.integrationCredential.findFirstOrThrow({
+      where: { oauthClientId: client_id },
+    });
+    expect(credential.name).toBe("OAuth journey");
+    const revoked = await app.request(`/v1/integration-credentials/${credential.id}`, {
+      method: "DELETE",
+      headers: { cookie },
+    });
+    expect(revoked.status).toBe(200);
+    expect((await listTools(next.access_token)).status).toBe(401);
   });
 
   async function upsert(body: Record<string, unknown>) {

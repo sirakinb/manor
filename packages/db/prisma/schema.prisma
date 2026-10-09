@@ -37,6 +37,7 @@ model User {
   verificationChecks          VerificationCheck[]
   createdSpaces               Space[]                      @relation("SpaceCreator")
   integrationCredentials      IntegrationCredential[]
+  oauthAuthorizationCodes     OAuthAuthorizationCode[]
   crmWebhookEndpoints         CrmWebhookEndpoint[]
   localDevices                LocalDevice[]
 
@@ -258,6 +259,7 @@ model Space {
   secrets                     Secret[]
   chatGroups                  ChatGroup[]
   integrationCredentials      IntegrationCredential[]
+  oauthAuthorizationCodes     OAuthAuthorizationCode[]
   integrationIdempotencyKeys  IntegrationIdempotencyKey[]
 
   @@unique([id, organizationId])
@@ -1301,11 +1303,50 @@ model IntegrationCredential {
   expiresAt       DateTime?
   revokedAt       DateTime?
   createdAt       DateTime  @default(now())
+  // Set when an MCP client obtained this credential through OAuth; the refresh
+  // token rotates the access token in place so the grant stays one revocable row.
+  oauthClientId    String?
+  oauthClient      OAuthClient? @relation(fields: [oauthClientId], references: [id], onDelete: Cascade)
+  refreshTokenHash String?      @unique
+  refreshExpiresAt DateTime?
 
   idempotencyKeys IntegrationIdempotencyKey[]
 
   @@index([spaceId, revokedAt])
   @@map("integration_credentials")
+}
+
+/// An MCP client registered through OAuth dynamic client registration.
+model OAuthClient {
+  id           String   @id
+  name         String
+  redirectUris Json
+  secretHash   String?
+  createdAt    DateTime @default(now())
+
+  credentials IntegrationCredential[]
+  codes       OAuthAuthorizationCode[]
+
+  @@map("oauth_clients")
+}
+
+model OAuthAuthorizationCode {
+  id            String      @id @default(cuid())
+  codeHash      String      @unique
+  clientId      String
+  client        OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  spaceId       String
+  space         Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redirectUri   String
+  codeChallenge String
+  scopes        Json
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+
+  @@index([expiresAt])
+  @@map("oauth_authorization_codes")
 }
 
 model IntegrationIdempotencyKey {

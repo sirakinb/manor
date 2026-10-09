@@ -5,6 +5,7 @@ import { BuiButton, LoadingState } from "./components/beautiful-ui/primitives";
 import { authClient } from "./lib/auth";
 import { brand } from "./lib/brand";
 import { markAfterPaint, markOnce } from "./lib/performance";
+import { signInPathFor, signInReturnPath } from "./lib/return-path";
 import {
   holdUnreachableGate,
   sessionGate,
@@ -19,6 +20,9 @@ const AuthPage = lazy(() =>
 );
 const PasswordResetPage = lazy(() =>
   import("./pages/Auth").then((module) => ({ default: module.PasswordResetPage })),
+);
+const OAuthAuthorizePage = lazy(() =>
+  import("./pages/OAuthAuthorize").then((module) => ({ default: module.OAuthAuthorizePage })),
 );
 const OnboardingPage = lazy(() =>
   import("./pages/Onboarding").then((module) => ({ default: module.OnboardingPage })),
@@ -75,7 +79,13 @@ export function App() {
           />
           <Route
             path="/sign-in"
-            element={user ? <Navigate to="/app" replace /> : <AuthPage key="in" mode="in" />}
+            element={
+              user ? (
+                <Navigate to={signInReturnPath(window.location.search) ?? "/app"} replace />
+              ) : (
+                <AuthPage key="in" mode="in" />
+              )
+            }
           />
           <Route
             path="/sign-up"
@@ -91,6 +101,16 @@ export function App() {
           <Route
             path="/onboarding"
             element={user ? <OnboardingPage /> : <Navigate to="/sign-in" replace />}
+          />
+          <Route
+            path="/oauth/authorize"
+            element={
+              user ? (
+                <OAuthAuthorizePage />
+              ) : (
+                <Navigate to={signInPathFor(window.location)} replace />
+              )
+            }
           />
           <Route
             path="/mcp/oauth/callback"

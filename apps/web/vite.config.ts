@@ -312,6 +312,10 @@ export default defineConfig(({ mode }) => {
       proxy: {
         "/api": { target: api, changeOrigin: false },
         "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },
+        "^/(\\.well-known/oauth-|oauth/(register|token)(?:[/?]|$))": {
+          target: api,
+          changeOrigin: false,
+        },
         "/rpc": { target: api, changeOrigin: false },
         "/v1": { target: api, changeOrigin: false },
         "/local-computer": { target: api, changeOrigin: false, ws: true },
@@ -324,6 +328,10 @@ export default defineConfig(({ mode }) => {
       proxy: {
         "/api": { target: api, changeOrigin: false },
         "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },
+        "^/(\\.well-known/oauth-|oauth/(register|token)(?:[/?]|$))": {
+          target: api,
+          changeOrigin: false,
+        },
         "/rpc": { target: api, changeOrigin: false },
         "/v1": { target: api, changeOrigin: false },
         "/local-computer": { target: api, changeOrigin: false, ws: true },

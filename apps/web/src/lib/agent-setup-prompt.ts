@@ -57,7 +57,7 @@ ${
 ## Workspace operations and durable handoff
 
 - Workspace MCP endpoint (Streamable HTTP): ${origin}/mcp/workspace
-- Use Authorization: Bearer <token>. Configure a separate MCP server entry for each surface you need. Use a client that supports bearer headers; there is no OAuth authorization flow on these endpoints.
+- Use Authorization: Bearer <token>. Configure a separate MCP server entry for each surface you need. Clients that cannot send headers can add the URL alone and sign in with OAuth.
 - Create a named token in Integrations → API & agent access. Workspace reads require workspace:read. Enable workspace:context:write, workspace:skills:write and workspace:activities:write only when needed. Existing CRM tokens do not gain workspace access automatically.
 - For clients without MCP, GET ${origin}/v1/workspace/tools lists the granted tools and their JSON schemas. POST JSON arguments to ${origin}/v1/workspace/tools/<tool-name>.
 
@@ -105,7 +105,7 @@ Pick whichever matches this environment:
       }
     }
 
-- Other clients: configure the endpoint with the bearer header if supported; otherwise use the HTTP API. Do not assume an OAuth-only connector can use a bearer token.
+- Other clients: configure the endpoint with the bearer header if supported. OAuth-only connectors (claude.ai, ChatGPT) take the URL alone and open a ${brandName} sign-in to approve the space and scopes.
 
 Once connected, these tools are available (tools the token cannot use are not advertised):
 
