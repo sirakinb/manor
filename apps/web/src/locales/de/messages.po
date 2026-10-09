@@ -296,7 +296,7 @@ msgstr "Computer von {botName}"
 msgid "{brandName} brings your agents, customer records, and business tools together. Start with one agent and one useful task. Build from a result you have checked."
 msgstr ""
 
-#: src/pages/DocsView.tsx:606
+#: src/pages/DocsView.tsx:605
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr "{brandName} sendet CRM-Änderungen an URLs, die du registrierst — unter Integrationen → API- & Agent-Zugriff oder über <0>POST /v1/webhooks</0>. Jeder Endpunkt erhält ein Signatur-Secret, das einmal angezeigt wird."
 
@@ -409,7 +409,7 @@ msgstr "+ Feld"
 msgid "+ New pipeline"
 msgstr "+ Neue Pipeline"
 
-#: src/pages/DocsView.tsx:634
+#: src/pages/DocsView.tsx:633
 msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
 msgstr "<0>record.*</0>-Events werden für Datensätze benutzerdefinierter Module ausgelöst; <1>data</1> im Payload enthält das vollständige Objekt nach der Änderung."
 
@@ -469,6 +469,7 @@ msgstr ""
 msgid "Accept submissions"
 msgstr ""
 
+#: src/pages/OAuthAuthorize.tsx:135
 #: src/pages/Shell.tsx:6667
 msgid "Access"
 msgstr "Zugriff"
@@ -790,6 +791,10 @@ msgstr ""
 msgid "All time"
 msgstr ""
 
+#: src/pages/OAuthAuthorize.tsx:170
+msgid "Allow"
+msgstr ""
+
 #. placeholder {0}: rule.matchValue
 #: src/components/ApprovalRulesSettings.tsx:26
 msgid "Allow {0} actions without asking"
@@ -833,7 +838,7 @@ msgstr ""
 msgid "Allows"
 msgstr ""
 
-#: src/pages/Auth.tsx:265
+#: src/pages/Auth.tsx:268
 msgid "Already have an account?"
 msgstr "Du hast bereits ein Konto?"
 
@@ -983,7 +988,7 @@ msgid "Arguments"
 msgstr "Argumente"
 
 #: src/pages/DocsView.tsx:289
-#: src/pages/DocsView.tsx:585
+#: src/pages/DocsView.tsx:584
 msgid "Arguments:"
 msgstr ""
 
@@ -1139,9 +1144,9 @@ msgstr ""
 msgid "Back"
 msgstr "Zurück"
 
-#: src/pages/Auth.tsx:133
-#: src/pages/Auth.tsx:272
-#: src/pages/Auth.tsx:364
+#: src/pages/Auth.tsx:136
+#: src/pages/Auth.tsx:275
+#: src/pages/Auth.tsx:367
 msgid "Back to sign in"
 msgstr "Zurück zur Anmeldung"
 
@@ -1364,7 +1369,7 @@ msgstr ""
 msgid "Campaigns per month"
 msgstr ""
 
-#: src/App.tsx:163
+#: src/App.tsx:183
 msgid "Can't reach the server."
 msgstr "Server nicht erreichbar."
 
@@ -1384,6 +1389,7 @@ msgstr "Server nicht erreichbar."
 #: src/pages/KnowledgeSection.tsx:196
 #: src/pages/KnowledgeSection.tsx:374
 #: src/pages/McpServersOverlay.tsx:549
+#: src/pages/OAuthAuthorize.tsx:163
 #: src/pages/PluginsOverlay.tsx:484
 #: src/pages/Shell.tsx:6687
 #: src/pages/Shell.tsx:6769
@@ -1510,7 +1516,7 @@ msgstr ""
 msgid "Check workspace_activities before repeating work. Use the available tools below to read this organization’s data and check its timestamps."
 msgstr ""
 
-#: src/pages/Auth.tsx:127
+#: src/pages/Auth.tsx:130
 msgid "Check your email"
 msgstr "Prüfe deine E-Mails"
 
@@ -1542,7 +1548,7 @@ msgstr ""
 msgid "Choose a bot…"
 msgstr ""
 
-#: src/pages/Auth.tsx:325
+#: src/pages/Auth.tsx:328
 msgid "Choose a new password"
 msgstr "Wähle ein neues Passwort"
 
@@ -1622,6 +1628,10 @@ msgstr ""
 
 #: src/pages/workspace/sections/SettingsSection.tsx:304
 msgid "Client recipients"
+msgstr ""
+
+#: src/pages/DocsView.tsx:208
+msgid "Clients that cannot supply bearer headers, such as claude.ai and ChatGPT connectors, can add the URL alone and sign in with OAuth instead."
 msgstr ""
 
 #: src/pages/BotContextMenu.tsx:67
@@ -1817,7 +1827,7 @@ msgid "Confirm delete"
 msgstr "Löschen bestätigen"
 
 #: src/pages/AccountSettingsOverlay.tsx:326
-#: src/pages/Auth.tsx:346
+#: src/pages/Auth.tsx:349
 msgid "Confirm password"
 msgstr "Passwort bestätigen"
 
@@ -1837,6 +1847,11 @@ msgstr ""
 #: src/pages/VoiceSettingsOverlay.tsx:286
 msgid "Connect"
 msgstr "Verbinden"
+
+#. placeholder {0}: details.client_name
+#: src/pages/OAuthAuthorize.tsx:107
+msgid "Connect {0} to {brandName}"
+msgstr ""
 
 #: src/pages/Onboarding.tsx:243
 msgid "Connect a model"
@@ -1929,10 +1944,15 @@ msgstr ""
 #: src/pages/McpServersOverlay.tsx:16
 #: src/pages/McpServersOverlay.tsx:542
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:80
+#: src/pages/OAuthAuthorize.tsx:170
 #: src/pages/Shell.tsx:7335
 #: src/pages/VoiceSettingsOverlay.tsx:282
 msgid "Connecting…"
 msgstr "Verbindung wird hergestellt…"
+
+#: src/pages/OAuthAuthorize.tsx:91
+msgid "Connection failed"
+msgstr ""
 
 #. placeholder {0}: item.name
 #: src/pages/PluginsOverlay.tsx:159
@@ -1961,7 +1981,7 @@ msgstr ""
 msgid "Continue"
 msgstr "Weiter"
 
-#: src/pages/Auth.tsx:248
+#: src/pages/Auth.tsx:251
 msgid "Continue with email"
 msgstr "Mit E-Mail fortfahren"
 
@@ -2079,6 +2099,8 @@ msgstr "Unterhaltung konnte nicht geleert werden"
 msgid "Could not complete OAuth"
 msgstr "OAuth konnte nicht abgeschlossen werden"
 
+#: src/pages/OAuthAuthorize.tsx:77
+#: src/pages/OAuthAuthorize.tsx:80
 #: src/pages/PluginsOverlay.tsx:163
 msgid "Could not connect"
 msgstr "Verbindung fehlgeschlagen"
@@ -2096,7 +2118,7 @@ msgstr "Anbieter konnte nicht verbunden werden"
 msgid "Could not connect this voice provider"
 msgstr "Stimmanbieter konnte nicht verbunden werden"
 
-#: src/pages/Auth.tsx:86
+#: src/pages/Auth.tsx:87
 msgid "Could not continue"
 msgstr "Fortfahren fehlgeschlagen"
 
@@ -2293,8 +2315,8 @@ msgid "Could not post"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:301
-#: src/pages/Auth.tsx:92
-#: src/pages/Auth.tsx:311
+#: src/pages/Auth.tsx:95
+#: src/pages/Auth.tsx:314
 msgid "Could not reach the server"
 msgstr "Server konnte nicht erreicht werden"
 
@@ -2340,7 +2362,7 @@ msgstr "Webhook konnte nicht entfernt werden"
 msgid "Could not render chart"
 msgstr "Diagramm konnte nicht angezeigt werden"
 
-#: src/pages/Auth.tsx:306
+#: src/pages/Auth.tsx:309
 msgid "Could not reset password"
 msgstr "Passwort konnte nicht zurückgesetzt werden"
 
@@ -2421,7 +2443,7 @@ msgstr ""
 msgid "Could not save this choice"
 msgstr "Diese Auswahl konnte nicht gespeichert werden"
 
-#: src/pages/Auth.tsx:71
+#: src/pages/Auth.tsx:72
 msgid "Could not send reset email"
 msgstr "E-Mail zum Zurücksetzen konnte nicht gesendet werden"
 
@@ -2516,7 +2538,7 @@ msgstr ""
 msgid "Create a section and move {0} into it."
 msgstr "Erstelle einen Abschnitt und verschiebe {0} dorthin."
 
-#: src/pages/Auth.tsx:252
+#: src/pages/Auth.tsx:255
 msgid "Create account"
 msgstr "Konto erstellen"
 
@@ -2546,7 +2568,7 @@ msgstr "Space erstellen"
 msgid "Create token"
 msgstr "Token erstellen"
 
-#: src/pages/Auth.tsx:33
+#: src/pages/Auth.tsx:34
 msgid "Create your {brandName} account"
 msgstr "Erstelle dein {brandName}-Konto"
 
@@ -2554,7 +2576,7 @@ msgstr "Erstelle dein {brandName}-Konto"
 msgid "Create your first bot"
 msgstr "Ersten Bot erstellen"
 
-#: src/pages/Auth.tsx:31
+#: src/pages/Auth.tsx:32
 msgid "Create your Manor"
 msgstr "Erstelle dein Manor"
 
@@ -2598,7 +2620,7 @@ msgstr ""
 msgid "CRM tag"
 msgstr ""
 
-#: src/pages/DocsView.tsx:571
+#: src/pages/DocsView.tsx:570
 msgid "CRM tools"
 msgstr ""
 
@@ -2626,7 +2648,7 @@ msgstr "Aktuelles Passwort"
 msgid "Custom modules"
 msgstr "Benutzerdefinierte Module"
 
-#: src/pages/DocsView.tsx:591
+#: src/pages/DocsView.tsx:590
 msgid "Custom sheets are called modules in the tools. Identify a module by name or id, and use field labels in record values."
 msgstr ""
 
@@ -2779,7 +2801,7 @@ msgstr "Wird gelöscht…"
 msgid "Delivered"
 msgstr ""
 
-#: src/pages/DocsView.tsx:640
+#: src/pages/DocsView.tsx:639
 #: src/pages/workspace/sections/EmailSection.tsx:322
 msgid "Delivery"
 msgstr "Zustellung"
@@ -2911,7 +2933,7 @@ msgstr "Dokumentation ↗"
 msgid "Documentation topics"
 msgstr ""
 
-#: src/pages/Auth.tsx:258
+#: src/pages/Auth.tsx:261
 msgid "Don’t have an account?"
 msgstr "Du hast noch kein Konto?"
 
@@ -3023,7 +3045,7 @@ msgstr "Profil bearbeiten"
 msgid "Edit report"
 msgstr ""
 
-#: src/pages/Auth.tsx:153
+#: src/pages/Auth.tsx:156
 #: src/pages/crm/CrmContacts.tsx:135
 #: src/pages/crm/CrmContacts.tsx:371
 #: src/pages/crm/CrmContactsSheet.tsx:102
@@ -3110,7 +3132,7 @@ msgstr ""
 msgid "Event"
 msgstr ""
 
-#: src/pages/DocsView.tsx:627
+#: src/pages/DocsView.tsx:626
 msgid "Events"
 msgstr ""
 
@@ -3203,7 +3225,7 @@ msgstr ""
 msgid "Failed"
 msgstr "Fehlgeschlagen"
 
-#: src/pages/DocsView.tsx:650
+#: src/pages/DocsView.tsx:649
 msgid "Failed deliveries retry up to 8 times with exponential backoff, capped at one hour between attempts. Respond with a 2xx within 10 seconds."
 msgstr "Fehlgeschlagene Zustellungen werden bis zu 8-mal mit exponentiellem Backoff wiederholt, mit maximal einer Stunde zwischen den Versuchen. Antworte innerhalb von 10 Sekunden mit 2xx."
 
@@ -3367,15 +3389,11 @@ msgstr ""
 msgid "followers now"
 msgstr ""
 
-#: src/pages/DocsView.tsx:208
-msgid "For a client that cannot supply bearer headers, use its HTTP/API integration instead. This endpoint does not provide an OAuth sign-in flow."
-msgstr ""
-
 #: src/pages/DocsView.tsx:532
 msgid "For delivery format, retries, and signatures, open “Send CRM changes to another app” below."
 msgstr ""
 
-#: src/pages/Auth.tsx:229
+#: src/pages/Auth.tsx:232
 msgid "Forgot password?"
 msgstr "Passwort vergessen?"
 
@@ -3534,7 +3552,7 @@ msgstr ""
 msgid "Hide live activity"
 msgstr "Live-Aktivität ausblenden"
 
-#: src/pages/Auth.tsx:187
+#: src/pages/Auth.tsx:190
 msgid "Hide password"
 msgstr "Passwort verbergen"
 
@@ -3605,7 +3623,7 @@ msgstr ""
 msgid "idle (no data)"
 msgstr ""
 
-#: src/pages/Auth.tsx:130
+#: src/pages/Auth.tsx:133
 msgid "If an account exists for that address, we sent a password reset link."
 msgstr "Wenn ein Konto mit dieser Adresse existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet."
 
@@ -3641,7 +3659,7 @@ msgstr ""
 msgid "In your app’s MCP settings, add an HTTP server using each URL below."
 msgstr ""
 
-#: src/pages/DocsView.tsx:673
+#: src/pages/DocsView.tsx:672
 msgid "Inbound: trigger a bot"
 msgstr "Eingehend: einen Bot auslösen"
 
@@ -3900,6 +3918,10 @@ msgstr "Frühere Nachrichten laden"
 msgid "Load more"
 msgstr "Mehr laden"
 
+#: src/pages/OAuthAuthorize.tsx:96
+msgid "loading"
+msgstr ""
+
 #: src/pages/workspace/bits.tsx:276
 msgid "Loading"
 msgstr ""
@@ -3949,7 +3971,7 @@ msgstr ""
 msgid "Loading voice providers…"
 msgstr "Stimmanbieter werden geladen…"
 
-#: src/App.tsx:54
+#: src/App.tsx:58
 #: src/components/BotCredentialsSettings.tsx:165
 #: src/pages/crm/CrmForms.tsx:122
 #: src/pages/crm/CrmView.tsx:190
@@ -4297,7 +4319,7 @@ msgstr "Verschieben nach"
 #: src/components/FilesPanel.tsx:341
 #: src/components/FilesPanel.tsx:343
 #: src/components/teach/SkillDraftCard.tsx:82
-#: src/pages/Auth.tsx:140
+#: src/pages/Auth.tsx:143
 #: src/pages/crm/CrmContacts.tsx:129
 #: src/pages/crm/CrmView.tsx:76
 #: src/pages/GroupPanel.tsx:110
@@ -4403,7 +4425,7 @@ msgid "New open-work item"
 msgstr "Neuer offener Arbeitspunkt"
 
 #: src/pages/AccountSettingsOverlay.tsx:320
-#: src/pages/Auth.tsx:340
+#: src/pages/Auth.tsx:343
 msgid "New password"
 msgstr "Neues Passwort"
 
@@ -4919,7 +4941,7 @@ msgstr ""
 msgid "Opened its thread."
 msgstr "Thread geöffnet."
 
-#: src/App.tsx:204
+#: src/App.tsx:224
 msgid "Opening your Space…"
 msgstr "Dein Arbeitsbereich wird geöffnet…"
 
@@ -5018,22 +5040,22 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx:253
 #: src/pages/AccountSettingsOverlay.tsx:310
-#: src/pages/Auth.tsx:169
-#: src/pages/Auth.tsx:178
+#: src/pages/Auth.tsx:172
+#: src/pages/Auth.tsx:181
 msgid "Password"
 msgstr "Passwort"
 
-#: src/pages/Auth.tsx:63
+#: src/pages/Auth.tsx:64
 msgid "Password recovery is not configured for this server"
 msgstr "Die Passwortwiederherstellung ist für diesen Server nicht konfiguriert"
 
 #: src/pages/AccountSettingsOverlay.tsx:345
-#: src/pages/Auth.tsx:330
+#: src/pages/Auth.tsx:333
 msgid "Password updated"
 msgstr "Passwort aktualisiert"
 
 #: src/pages/AccountSettingsOverlay.tsx:280
-#: src/pages/Auth.tsx:298
+#: src/pages/Auth.tsx:301
 msgid "Passwords do not match"
 msgstr "Die Passwörter stimmen nicht überein"
 
@@ -5324,7 +5346,7 @@ msgstr ""
 msgid "Reach"
 msgstr ""
 
-#: src/pages/DocsView.tsx:581
+#: src/pages/DocsView.tsx:580
 msgid "read / write"
 msgstr "Lesen / Schreiben"
 
@@ -5348,12 +5370,12 @@ msgstr ""
 msgid "Read your workspace with context"
 msgstr ""
 
-#: src/pages/DocsView.tsx:581
+#: src/pages/DocsView.tsx:580
 #: src/pages/KnowledgeSection.tsx:330
 msgid "read-only"
 msgstr "nur Lesen"
 
-#: src/pages/DocsView.tsx:565
+#: src/pages/DocsView.tsx:564
 msgid "Reading requires <0>crm:read</0>; changing records requires <1>crm:write</1>. The connection only advertises tools your token can use."
 msgstr ""
 
@@ -5393,7 +5415,7 @@ msgstr ""
 msgid "Reconnect OAuth"
 msgstr "OAuth erneut verbinden"
 
-#: src/App.tsx:161
+#: src/App.tsx:181
 msgid "Reconnecting"
 msgstr "Verbindung wird wiederhergestellt"
 
@@ -5456,7 +5478,7 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
-#: src/pages/DocsView.tsx:611
+#: src/pages/DocsView.tsx:610
 msgid "Register an endpoint"
 msgstr "Endpunkt registrieren"
 
@@ -5464,7 +5486,7 @@ msgstr "Endpunkt registrieren"
 msgid "Register the server"
 msgstr ""
 
-#: src/pages/DocsView.tsx:668
+#: src/pages/DocsView.tsx:667
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr "Lehne Zustellungen ab, deren Zeitstempel mehr als ein paar Minuten alt ist, um Replays zu blockieren."
 
@@ -5655,11 +5677,11 @@ msgstr "Computer zurücksetzen"
 msgid "Reset computer?"
 msgstr "Computer zurücksetzen?"
 
-#: src/pages/Auth.tsx:361
+#: src/pages/Auth.tsx:364
 msgid "Reset password"
 msgstr "Passwort zurücksetzen"
 
-#: src/pages/Auth.tsx:36
+#: src/pages/Auth.tsx:37
 msgid "Reset your password"
 msgstr "Setze dein Passwort zurück"
 
@@ -5702,7 +5724,7 @@ msgstr ""
 msgid "Retry"
 msgstr ""
 
-#: src/App.tsx:173
+#: src/App.tsx:193
 msgid "Retry now"
 msgstr "Jetzt erneut versuchen"
 
@@ -6026,7 +6048,7 @@ msgstr "Senden"
 msgid "Send report"
 msgstr ""
 
-#: src/pages/Auth.tsx:250
+#: src/pages/Auth.tsx:253
 msgid "Send reset link"
 msgstr "Link zum Zurücksetzen senden"
 
@@ -6042,7 +6064,7 @@ msgstr ""
 msgid "Sender name"
 msgstr ""
 
-#: src/pages/DocsView.tsx:686
+#: src/pages/DocsView.tsx:685
 msgid "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 msgstr "Sender, die keine Header setzen können (cal.com, Formular-Tools), können den Key stattdessen an die URL anhängen: <0>?token=<webhook key></0>. Bodys sind auf 64 KB begrenzt; ein <1>text</1>-Feld wird wörtlich zugestellt, alles andere als JSON übergeben. Wiederholte Zustellungen mit demselben <2>Idempotency-Key</2>-Header (oder Payload-<3>id</3>/<4>event_id</4>) werden dedupliziert."
 
@@ -6203,7 +6225,7 @@ msgstr "Live-Aktivität anzeigen"
 msgid "Show more"
 msgstr ""
 
-#: src/pages/Auth.tsx:187
+#: src/pages/Auth.tsx:190
 msgid "Show password"
 msgstr "Passwort anzeigen"
 
@@ -6220,18 +6242,18 @@ msgid "Showing the most recent checks only. Pick a shorter range for complete da
 msgstr ""
 
 #: src/lib/localized-provider-hint.ts:7
-#: src/pages/Auth.tsx:267
-#: src/pages/Auth.tsx:333
+#: src/pages/Auth.tsx:270
+#: src/pages/Auth.tsx:336
 #: src/pages/ModelSettingsOverlay.tsx:619
 #: src/pages/Onboarding.tsx:122
 msgid "Sign in"
 msgstr "Anmelden"
 
-#: src/pages/Auth.tsx:28
+#: src/pages/Auth.tsx:29
 msgid "Sign in to {brandName}"
 msgstr "Bei {brandName} anmelden"
 
-#: src/pages/Auth.tsx:260
+#: src/pages/Auth.tsx:263
 msgid "Sign up"
 msgstr "Registrieren"
 
@@ -6304,6 +6326,10 @@ msgstr ""
 
 #: src/pages/workspace/PipelineMap.tsx:342
 msgid "Sources"
+msgstr ""
+
+#: src/pages/OAuthAuthorize.tsx:118
+msgid "Space"
 msgstr ""
 
 #: src/pages/Shell.tsx:6669
@@ -6656,7 +6682,7 @@ msgstr "Der ausgewählte Erinnerungsanbieter ist in diesem Build nicht verfügba
 msgid "The setup prompt includes the connection instructions. These references are here when you or your agent need a specific tool, permission, or endpoint."
 msgstr ""
 
-#: src/pages/DocsView.tsx:658
+#: src/pages/DocsView.tsx:657
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "Die Signatur ist ein HMAC-SHA256 von <0><timestamp>.<raw body></0> mit dem Signatur-Secret des Endpunkts:"
 
@@ -6711,7 +6737,12 @@ msgid "This computer runs shell commands with your account, including files in y
 msgstr "Dieser Computer führt Shell-Befehle mit deinem Konto aus und kann auf Dateien in deinem persönlichen Ordner zugreifen. Aktiviere dies nicht auf einem gemeinsam genutzten oder öffentlichen Server."
 
 #: src/pages/DocsView.tsx:557
-msgid "This connection provides the customer record tools listed below. Use Streamable HTTP with a bearer token. Clients that require an OAuth sign-in flow cannot use this endpoint directly."
+msgid "This connection provides the customer record tools listed below. Use Streamable HTTP with a bearer token, or add the URL alone to a client that signs in with OAuth."
+msgstr ""
+
+#: src/pages/OAuthAuthorize.tsx:32
+#: src/pages/OAuthAuthorize.tsx:49
+msgid "This connection request is invalid."
 msgstr ""
 
 #: src/components/FilesPanel.tsx:523
@@ -6769,7 +6800,7 @@ msgstr "Bei diesem Anbieter kann hier kein Schlüssel eingefügt werden. Übersp
 msgid "This removes the item and everything inside it from the computer."
 msgstr ""
 
-#: src/pages/Auth.tsx:290
+#: src/pages/Auth.tsx:293
 msgid "This reset link is invalid or expired"
 msgstr "Dieser Link zum Zurücksetzen ist ungültig oder abgelaufen"
 
@@ -7056,7 +7087,7 @@ msgstr ""
 msgid "URL"
 msgstr ""
 
-#: src/pages/DocsView.tsx:621
+#: src/pages/DocsView.tsx:620
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr "URLs müssen HTTPS sein. Die Antwort enthält den Endpunkt und sein Signatur-Secret — bewahre es auf; es kann nicht erneut abgerufen werden."
 
@@ -7142,7 +7173,7 @@ msgstr ""
 msgid "Verify and add"
 msgstr "Prüfen und hinzufügen"
 
-#: src/pages/DocsView.tsx:656
+#: src/pages/DocsView.tsx:655
 msgid "Verify the signature"
 msgstr "Signatur überprüfen"
 
@@ -7237,7 +7268,7 @@ msgstr "Webhook-Verwaltung"
 msgid "Webhook name"
 msgstr "Webhook-Name"
 
-#: src/pages/DocsView.tsx:675
+#: src/pages/DocsView.tsx:674
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "Webhooks fließen auch in die andere Richtung — jeder Bot hat eine eingehende URL, an die externe Dienste POSTen können. Der Payload kommt als Nachricht an und jede Routine mit Webhook-Trigger läuft, sodass der Bot mit seinen Tools darauf reagieren kann. Eingerichtet wird das im Routinen-Editor des Bots."
 
@@ -7339,8 +7370,8 @@ msgstr ""
 msgid "Working with agents"
 msgstr ""
 
-#: src/pages/Auth.tsx:246
-#: src/pages/Auth.tsx:361
+#: src/pages/Auth.tsx:249
+#: src/pages/Auth.tsx:364
 #: src/pages/CallView.tsx:244
 msgid "Working…"
 msgstr "Wird verarbeitet…"
@@ -7391,6 +7422,11 @@ msgstr "Du kannst dieses Fenster schließen."
 msgid "You have control"
 msgstr "Du hast die Kontrolle"
 
+#. placeholder {0}: details.redirect_host
+#: src/pages/OAuthAuthorize.tsx:112
+msgid "You will return to {0}."
+msgstr ""
+
 #: src/pages/workspace/sections/TeamSection.tsx:46
 msgid "Your AI team"
 msgstr ""
@@ -7399,7 +7435,7 @@ msgstr ""
 msgid "Your app must support Streamable HTTP and custom headers. Manor uses a token here; there is no browser sign-in step."
 msgstr ""
 
-#: src/pages/Auth.tsx:160
+#: src/pages/Auth.tsx:163
 msgid "Your email address"
 msgstr "Deine E-Mail-Adresse"
 
@@ -7411,7 +7447,7 @@ msgstr ""
 msgid "Your key or subscription token is stored securely and is never shown here."
 msgstr "Dein Schlüssel oder Abonnementtoken wird sicher gespeichert und hier nie angezeigt."
 
-#: src/pages/Auth.tsx:147
+#: src/pages/Auth.tsx:150
 msgid "Your name"
 msgstr "Dein Name"
 

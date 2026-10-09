@@ -37,7 +37,9 @@ http://{$RAKAZO_HOST:app.example.com} {
 		reverse_proxy api:3100
 	}
 
-	handle /mcp/* {
+	# MCP servers and OAuth endpoints; /mcp/oauth/callback stays a web page.
+	@api_mcp path /mcp/crm /mcp/crm/* /mcp/workspace /mcp/workspace/* /oauth/register /oauth/token /.well-known/oauth-*
+	handle @api_mcp {
 		reverse_proxy api:3100
 	}
 

@@ -206,8 +206,8 @@ function WorkspaceReference({ origin, access }: OrganizationDocsProps) {
         <Code>{`${origin}/mcp/workspace\nAuthorization: Bearer <token>`}</Code>
         <Prose>
           <Trans>
-            For a client that cannot supply bearer headers, use its HTTP/API integration instead.
-            This endpoint does not provide an OAuth sign-in flow.
+            Clients that cannot supply bearer headers, such as claude.ai and ChatGPT connectors, can
+            add the URL alone and sign in with OAuth instead.
           </Trans>
         </Prose>
       </Section>
@@ -556,8 +556,7 @@ function McpReference({ origin }: OrganizationDocsProps) {
         <Prose>
           <Trans>
             This connection provides the customer record tools listed below. Use Streamable HTTP
-            with a bearer token. Clients that require an OAuth sign-in flow cannot use this endpoint
-            directly.
+            with a bearer token, or add the URL alone to a client that signs in with OAuth.
           </Trans>
         </Prose>
         <Code>{`${origin}/mcp/crm\nAuthorization: Bearer <token>`}</Code>

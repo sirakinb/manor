@@ -172,6 +172,12 @@ function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/** A new bearer token plus the fields stored for it; only the hash is persisted. */
+export function issueIntegrationToken() {
+  const token = `manor_${randomBytes(30).toString("base64url")}`;
+  return { token, tokenPrefix: `${token.slice(0, 14)}…`, tokenHash: tokenHash(token) };
+}
+
 function requestHash(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
@@ -342,14 +348,14 @@ export function createCrmIntegrationService(deps: {
   }
 
   async function createCredential(actor: Actor, input: z.infer<typeof IntegrationCredentialInput>) {
-    const token = `manor_${randomBytes(30).toString("base64url")}`;
+    const { token, tokenPrefix, tokenHash } = issueIntegrationToken();
     const row = await prisma.integrationCredential.create({
       data: {
         spaceId: actor.spaceId,
         createdByUserId: actor.userId,
         name: input.name,
-        tokenPrefix: `${token.slice(0, 14)}…`,
-        tokenHash: tokenHash(token),
+        tokenPrefix,
+        tokenHash,
         scopes: [...new Set(input.scopes)],
         expiresAt: input.expires_at ? new Date(input.expires_at) : null,
       },

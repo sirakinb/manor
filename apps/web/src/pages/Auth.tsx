@@ -5,6 +5,7 @@ import { BrandLogo } from "../components/BrandLogo";
 import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { authClient } from "../lib/auth";
 import { brand, brandName } from "../lib/brand";
+import { signInReturnPath } from "../lib/return-path";
 import { clearSpaceSelection } from "../lib/rpc";
 
 type AuthMode = "in" | "up" | "forgot";
@@ -87,7 +88,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         return;
       }
       clearSpaceSelection();
-      navigate(mode === "up" ? "/onboarding" : "/app");
+      navigate(
+        mode === "up" ? "/onboarding" : (signInReturnPath(window.location.search) ?? "/app"),
+      );
     } catch {
       setError(t`Could not reach the server`);
     } finally {

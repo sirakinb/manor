@@ -417,7 +417,8 @@ serves Electron and mobile's existing chat, skills, and memory surfaces.
 `/mcp/workspace` serves Streamable HTTP with the existing hashed, revocable
 integration tokens. `/mcp/crm` remains compatible. Create tokens under
 Integrations → API & agent access; CRM tokens gain no workspace access implicitly.
-Clients must support bearer headers; these endpoints do not implement OAuth.
+Clients that cannot send bearer headers sign in with OAuth instead; see
+[crm-connect-dev.md](./crm-connect-dev.md#oauth-sign-in).
 
 `GET /v1/workspace/tools` advertises the token's granted tools and JSON schemas.
 `POST /v1/workspace/tools/<name>` takes the same argument object as MCP, including

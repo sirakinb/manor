@@ -25,8 +25,8 @@ agent, no UI login, no SDK to install.
   `activity:write` — and nothing else. The key *is* the signup.
 - Keys are revocable individually, and every call is logged against the key,
   so the workspace owner sees exactly what each connected agent did.
-- Later: OAuth flow per the MCP spec, so third-party agents can *request* access
-  and the workspace owner approves once — the "Sign in with Manor" of agent data.
+- OAuth per the MCP spec lets third-party agents *request* access and the
+  workspace owner approve once — the "Sign in with Manor" of agent data.
 
 This is a proven pattern for us: our client agent-workspace deployments already run
 API-key-scoped MCP access in production (key determines workspace, results scoped
@@ -58,6 +58,6 @@ with scoped, revocable keys minted from the workspace UI, hashed at rest with
 one-time reveal, plus idempotent writes and HMAC-signed webhooks for change events.
 Developer docs — endpoint, key minting, scopes, tool catalog, REST reference,
 and webhook verification — live in [crm-connect-dev.md](./crm-connect-dev.md).
-What remains is the OAuth approval flow. A pilot integration with one external agent is the fastest
+OAuth sign-in lets connectors that cannot send headers (claude.ai, ChatGPT) connect with the URL alone. A pilot integration with one external agent is the fastest
 way to pressure-test the scope model — pick a first workflow (e.g. "agent logs
 every commitment it makes for its user as a CRM contact + deal") and wire it up.
