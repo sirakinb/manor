@@ -395,6 +395,9 @@ export function BotSettings({
       provider: entry.provider,
       modelId,
       label: `${entry.providerName ?? entry.provider} · ${entry.label}`,
+      // Grouped and searched by provider like a connected model's row.
+      providerLabel: entry.providerName ?? entry.provider,
+      modelLabel: entry.label,
     });
   }
   const modelChoices = chatModelChoices(

@@ -63,6 +63,7 @@ vi.mock("../KnowledgeSection", () => ({ KnowledgeSection: () => null }));
 vi.mock("./avatar-studio-popover", () => ({ AvatarStudioPopover: () => null }));
 vi.mock("./bot-credentials", () => ({ BotCredentialsSection: () => null }));
 
+import { rpc } from "../../lib/rpc";
 import { BotSettings } from "./bot-panel";
 
 const bot = {
@@ -502,4 +503,31 @@ it("omits projected identity values on unrelated saves but keeps explicit edits"
   await flush();
   expect(onSave.mock.calls[2]?.[0]).not.toHaveProperty("name");
   expect(onSave.mock.calls[2]?.[0]).not.toHaveProperty("title");
+});
+
+it("offers the deployment's models without a connected model of the user's own", async () => {
+  vi.mocked(rpc.models.list).mockResolvedValueOnce([
+    {
+      provider: "openrouter",
+      providerName: "OpenRouter",
+      id: "vendor/alpha",
+      label: "Vendor: Alpha",
+      deploymentAvailable: true,
+    },
+    {
+      provider: "openrouter",
+      providerName: "OpenRouter",
+      id: "vendor/beta",
+      label: "Vendor: Beta",
+      deploymentAvailable: true,
+    },
+    { provider: "anthropic", providerName: "Anthropic", id: "claude", label: "Claude" },
+  ] as never);
+  await renderSettings(vi.fn(async () => undefined));
+  const model = container.querySelector<HTMLSelectElement>('select[id$="-model"]')!;
+  expect([...model.options].map((option) => [option.value, option.textContent])).toEqual([
+    ["", "Space default"],
+    ["openrouter::vendor/alpha", "OpenRouter · Vendor: Alpha"],
+    ["openrouter::vendor/beta", "OpenRouter · Vendor: Beta"],
+  ]);
 });

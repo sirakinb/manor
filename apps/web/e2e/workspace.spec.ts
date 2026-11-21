@@ -600,9 +600,13 @@ test("workspace appears once the organization has one and its map opens sections
 
   // The API separately verifies shared-credential authorization. Here the catalog
   // fixture checks that deployment availability reaches the bot model selector.
+  let deploymentModels = 0;
   await page.route("**/rpc/models/list", async (route) => {
     const response = await route.fetch();
     const payload = (await response.json()) as { json: ModelCatalogEntry[] };
+    deploymentModels = payload.json.filter(
+      (entry) => entry.provider === "openrouter" && !entry.placeholder,
+    ).length;
     await route.fulfill({
       response,
       json: {
@@ -617,9 +621,22 @@ test("workspace appears once the organization has one and its map opens sections
   await page.goto(`/app/${selectedBotId}`);
   await page.locator("main").getByRole("button", { name: "Operations", exact: true }).click();
   const botSettings = page.getByTestId("bot-settings");
-  await botSettings.getByText("Advanced", { exact: true }).click();
-  const models = botSettings.getByRole("combobox", { name: "Model", exact: true });
-  await expect(models.locator("option").filter({ hasText: "OpenRouter" }).first()).toBeAttached();
-  expect(await models.locator("option").count()).toBeGreaterThan(2);
+  await expandAdvancedSection(botSettings.getByTestId("bot-settings-advanced"));
+  // No model of the user's own is connected, so every choice past the space default is
+  // the deployment's. That list is long enough for the searchable picker.
+  expect(deploymentModels).toBeGreaterThan(10);
+  const model = botSettings
+    .locator("label")
+    .filter({ hasText: /^Model/ })
+    .getByRole("button");
+  await expect(model).toHaveText(/^Space default/);
+  await model.click();
+  await expect(page.getByRole("combobox", { name: "Search models" })).toBeFocused();
+  const modelOptions = page.locator('[data-slot="command-list"]').getByRole("option");
+  await expect(modelOptions).toHaveCount(deploymentModels + 1);
+  await expect(modelOptions.filter({ hasText: "Space default" })).toHaveCount(1);
+  await expect(
+    page.locator('[data-slot="command-list"]').getByRole("option", { name: /^OpenRouter · / }),
+  ).toHaveCount(deploymentModels);
   await captureScreenshot(page, testInfo, "workspace-openrouter-model-choices");
 });
