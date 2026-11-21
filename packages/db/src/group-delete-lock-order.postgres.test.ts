@@ -40,7 +40,13 @@ describePostgres("group deletion lock order (PostgreSQL)", { concurrent: false }
   let pool: ReturnType<typeof createDb>["pool"];
   let close: () => Promise<void>;
   let provisioned = false;
-  let actor: { userId: string; spaceId: string; email: string; isDeploymentOwner: boolean };
+  let actor: {
+    userId: string;
+    spaceId: string;
+    organizationId: string;
+    email: string;
+    isDeploymentOwner: boolean;
+  };
   let botId: string;
   let botIds: string[];
   let groupId: string;
