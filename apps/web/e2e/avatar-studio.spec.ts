@@ -28,26 +28,38 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
 
+  // Manor draws its brand colours (the default violet among them) as sprites, so the
+  // preview shows the same avatar as the sidebar and chat. A chosen shape wins over
+  // the sprite; other colours get the robot face.
+  const sprite = studio.locator(".rakazo-bot-avatar-sprite");
+  const visor = studio.locator(".rakazo-bot-avatar-visor");
+
   await wedge.click();
   await expect(wedge).toHaveAttribute("aria-pressed", "true");
   await expect(defaultLook).toHaveAttribute("aria-pressed", "false");
-  await expect(studio.locator(".rakazo-bot-avatar-visor")).toHaveCount(0);
+  await expect(sprite).toHaveCount(0);
+  await expect(visor).toHaveCount(0);
 
   await defaultLook.click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
-  await expect(studio.locator(".rakazo-bot-avatar-visor")).toHaveCount(1);
-  await expect(studio.locator(".rakazo-bot-avatar-eyes").first()).toBeVisible();
+  await expect(sprite).toHaveCount(1);
+  await expect(sprite).toBeVisible();
+  await expect(visor).toHaveCount(0);
 
   await studio.getByRole("button", { name: "Color #EAB308" }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
+  await expect(sprite).toHaveCount(0);
+  await expect(visor).toHaveCount(1);
+  await expect(studio.locator(".rakazo-bot-avatar-eyes").first()).toBeVisible();
 
   await wedge.click();
   await studio.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
-  await expect(studio.locator(".rakazo-bot-avatar-visor")).toHaveCount(1);
+  await expect(sprite).toHaveCount(0);
+  await expect(visor).toHaveCount(1);
 
   await captureScreenshot(page, testInfo, "avatar-studio-bot-tab");
 });

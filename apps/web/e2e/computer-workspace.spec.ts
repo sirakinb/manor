@@ -55,8 +55,11 @@ test("the computer workspace browses, uploads, and downloads files over the scre
   });
   await openComputer(page);
 
-  await page.getByRole("button", { name: "Files", exact: true }).click();
-  const files = page.getByRole("region", { name: "Files" });
+  // Manor's header has its own Files button; the workspace's dock button lives in the viewport.
+  const viewport = page.getByTestId("computer-viewport");
+  const filesButton = viewport.getByRole("button", { name: "Files", exact: true });
+  await filesButton.click();
+  const files = viewport.getByRole("region", { name: "Files" });
   await files.getByRole("button", { name: /^reports/ }).click();
   await expect(files.getByText("~/reports", { exact: true })).toBeVisible();
   await expect(files.getByRole("button", { name: /^q3\.txt/ })).toBeVisible();
@@ -131,7 +134,7 @@ test("the computer workspace browses, uploads, and downloads files over the scre
   await expect(browser).toHaveAttribute("aria-pressed", "true");
   await expect(files).toBeHidden();
   await expect(page.getByRole("region", { name: "Terminal" })).toBeHidden();
-  await page.getByRole("button", { name: "Files", exact: true }).click();
+  await filesButton.click();
   await expect(files.getByText("Quarterly numbers checked.")).toBeVisible();
 
   await page.getByRole("button", { name: "Close Files" }).click();

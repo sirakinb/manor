@@ -64,10 +64,13 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
     await expect.poll(async () => (await panel.boundingBox())!.width).toBeGreaterThan(470);
   }
   await handle.focus();
-  const beforeKeyboard = (await panel.boundingBox())!.width;
+  // The panel animates its width, so read the target from the separator and wait for the
+  // panel to settle on it instead of measuring mid-transition. One key step is 32px.
+  const beforeKeyboard = Number(await handle.getAttribute("aria-valuenow"));
   await handle.press("ArrowLeft");
-  await expect.poll(async () => (await panel.boundingBox())!.width).toBeGreaterThan(beforeKeyboard);
-  const saved = (await panel.boundingBox())!.width;
+  const saved = beforeKeyboard + 32;
+  await expect(handle).toHaveAttribute("aria-valuenow", String(saved));
+  await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(saved);
   await captureScreenshot(page, testInfo, "computer-panel-expanded");
   await page.reload();
   // The right rail is restored after a reload, so only open it when it stayed closed.
@@ -76,7 +79,7 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
   if ((await panel.getAttribute("data-panel")) === "closed") {
     await page.getByTitle("Agent computer", { exact: true }).click();
   }
-  await expect.poll(async () => (await panel.boundingBox())!.width).toBe(saved);
+  await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(saved);
   await page.getByRole("button", { name: "Expand computer", exact: true }).click();
   await expect(page.getByTestId("computer-preview")).toContainText("Open in full window");
 });

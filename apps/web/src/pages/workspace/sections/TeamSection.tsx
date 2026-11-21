@@ -2,14 +2,23 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceActivity, WorkspaceOverview, WorkspaceSummary } from "@rakazo/contracts";
 import { BotAvatar } from "@rakazo/ui-web";
 import { ArrowUpRight, BookOpen, ChevronDown } from "lucide-react";
-import { useContext, useState } from "react";
+import { lazy, Suspense, useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { BuiButton } from "../../../components/ai/primitives";
+import { ErrorBoundary, SectionLoadFailed } from "../../../components/ErrorBoundary";
 import { rpc } from "../../../lib/rpc";
-import { KnowledgeSection, SpaceMemorySection } from "../../KnowledgeSection";
 import { WorkspaceTeamContext } from "../AskTeam";
 import { AutomationsCard } from "../AutomationsCard";
 import { Card, CLICKABLE_TEXT, Empty, ErrorLine, formatDateTime, PageHeader } from "../bits";
+
+// Lazy, as in the bot panel: a static import here would pull the section into the
+// shell's first load and undo its code split.
+const KnowledgeSection = lazy(() =>
+  import("../../KnowledgeSection").then((module) => ({ default: module.KnowledgeSection })),
+);
+const SpaceMemorySection = lazy(() =>
+  import("../../KnowledgeSection").then((module) => ({ default: module.SpaceMemorySection })),
+);
 
 export function TeamSection({
   eyebrow,
@@ -99,12 +108,16 @@ export function TeamSection({
           )}
           {knowledgeBotId ? (
             <div id="workspace-bot-knowledge" className="mt-4 border-t border-[#25282B] pt-2">
-              <KnowledgeSection
-                key={knowledgeBotId}
-                botId={knowledgeBotId}
-                onSkillsChange={() => {}}
-              />
-              <SpaceMemorySection />
+              <ErrorBoundary fallback={<SectionLoadFailed />}>
+                <Suspense fallback={null}>
+                  <KnowledgeSection
+                    key={knowledgeBotId}
+                    botId={knowledgeBotId}
+                    onSkillsChange={() => {}}
+                  />
+                  <SpaceMemorySection />
+                </Suspense>
+              </ErrorBoundary>
             </div>
           ) : null}
         </Card>

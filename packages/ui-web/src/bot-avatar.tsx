@@ -199,6 +199,7 @@ export const BotAvatar = memo(function BotAvatar({
         <img
           src={sprite}
           alt=""
+          className="rakazo-bot-avatar-sprite"
           style={{ width: size, height: size, objectFit: "contain", flex: "none" }}
         />
       </div>

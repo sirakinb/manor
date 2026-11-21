@@ -101,13 +101,23 @@ test("a routine that already ran is not put back when the thread refresh fails",
   const testRun = page.waitForResponse(
     (response) => response.url().includes("/rpc/routines/testRun") && response.ok(),
   );
+  const refreshFailed = page.waitForEvent("requestfailed", (request) =>
+    request.url().includes("/rpc/threads/get"),
+  );
   await page.route("**/rpc/threads/get", (route) => route.abort("internetdisconnected"));
   await composer.press("Enter");
   await testRun;
+  await refreshFailed;
 
-  await expect(page.getByTestId("composer-error")).toBeVisible();
   await expect(chip).toHaveCount(0);
   await expect(composer).toHaveValue("");
+  // Manor treats the follow-up refresh as non-fatal once the routine was accepted: the
+  // thread subscription catches the transcript up, so no send error is shown. Wait for
+  // the send to settle (Send enables again) before checking the error stayed away.
+  await composer.fill("after the routine");
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeEnabled();
+  await expect(page.getByTestId("composer-error")).toBeHidden();
+  await expect(chip).toHaveCount(0);
 });
 
 test("a message is not put back when one of its routines already ran", async ({ page }) => {

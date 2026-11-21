@@ -34,7 +34,9 @@ Stages done: `v0.1.6`. In progress: `v0.2.0`.
    `pnpm exec turbo run test --continue`, then CI for Postgres journeys and Playwright.
 5. Rehearse the stage's migrations with `prisma migrate deploy` against the copy of
    production data, and compare tenant row counts before and after.
-6. Compare every Manor-only file between the previous stage and this one. Anything
+6. Compare file modes with upstream (`git ls-tree -r`): a merge can keep a file's
+   content and drop an executable bit upstream added.
+7. Compare every Manor-only file between the previous stage and this one. Anything
    beyond an import path or logging change in CRM or Workspace code gets a review.
 
 ### Decisions that hold for every stage
@@ -66,6 +68,14 @@ Stages done: `v0.1.6`. In progress: `v0.2.0`.
 - Upstream tests whose fixtures lack models Manor's code reads (`spaceMember`,
   `workspace`, `organization`, `localComputerSession`, `maintenanceJob`,
   `workspaceAutomation`) get those added to the fixture; assertions are not weakened.
+- Manor's header keeps its Files, Run logs and Agent computer buttons under the
+  full-screen computer, so E2E locators for those names are scoped to a container.
+- Manor's sprite avatars show for the robot style on sprite colours; upstream specs
+  that expect the robot face use a non-sprite colour.
+- Manor-only modules must not statically import sections upstream lazy-loads
+  (`KnowledgeSection`), or upstream's code split and its chunk-failure specs break.
+- A dropped thread refresh after a send that succeeded is not shown as a send
+  failure (Manor's choice; upstream surfaces it).
 - Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
   and local sandbox tests (the temp directory is a symlink).
 
