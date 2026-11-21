@@ -148,7 +148,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t`Your name`}
-                  className="mt-2 w-full rounded-[13px] border border-[#262130] bg-[#0C0B0E] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
+                  className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
                 />
               </label>
             ) : null}
@@ -163,7 +163,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 placeholder={t`Your email address`}
                 type="email"
                 required
-                className="mt-2 w-full rounded-[13px] border border-[#262130] bg-[#0C0B0E] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
+                className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
               />
             </label>
             {mode !== "forgot" ? (
@@ -182,7 +182,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                     type={showPassword ? "text" : "password"}
                     required
                     minLength={8}
-                    className="w-full rounded-[13px] border border-[#262130] bg-[#0C0B0E] py-[17px] pl-[18px] pr-[52px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
+                    className="w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] py-[17px] pl-[18px] pr-[52px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
                   />
                   <button
                     type="button"

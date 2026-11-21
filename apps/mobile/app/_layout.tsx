@@ -5,7 +5,6 @@ import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AvatarStyleProvider } from "../components/avatar-style";
-import { Ridges } from "../components/ridges";
 import { currentApiBase, loadApiBase, loadSessionToken, selectedSpaceId } from "../lib/api";
 import {
   configureForegroundNotifications,
@@ -94,7 +93,6 @@ export default function Layout() {
                 <Stack.Screen name="run-logs" options={{ title: "Run logs" }} />
                 <Stack.Screen name="crm" options={{ title: "CRM" }} />
               </Stack>
-              <Ridges />
             </ThemeProvider>
           </AvatarStyleProvider>
         ) : (

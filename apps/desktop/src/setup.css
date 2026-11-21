@@ -186,7 +186,7 @@ html[data-platform="darwin"] .titlebar {
   padding: 10px 12px;
   border-radius: 9px;
   border: 1px solid var(--border-strong);
-  background: #08080a;
+  background: #0a0a0a;
   color: var(--text);
   font: inherit;
   font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
