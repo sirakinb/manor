@@ -1865,7 +1865,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
       where: { userId: memberActor.userId, spaceId: { not: shared.id } },
     });
     await handles.prisma.spaceMember.update({
-      where: { id: `space-shared-space-member-${stamp}` },
+      where: { spaceId_userId: { spaceId: shared.id, userId: memberActor.userId } },
       data: { role: "owner" },
     });
     expect(
