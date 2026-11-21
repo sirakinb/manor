@@ -1,3 +1,4 @@
+import type { Locator } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { chatUserBubbleColors } from "@rakazo/core";
 import { webDarkTokens } from "@rakazo/ui-tokens";
@@ -7,6 +8,22 @@ function rgb(hex: string) {
   const value = hex.replace("#", "");
   const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(value.slice(i, i + 2), 16));
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * A computed colour as [r, g, b, a] in 0–255, whatever space the browser reports it in (a
+ * colour-mix comes back as oklab). The canvas converts it the way it would be painted.
+ */
+function paintedColor(locator: Locator, property: "color" | "background-color") {
+  return locator.evaluate((element, name) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true })!;
+    context.fillStyle = getComputedStyle(element).getPropertyValue(name);
+    context.fillRect(0, 0, 1, 1);
+    return [...context.getImageData(0, 0, 1, 1).data];
+  }, property);
 }
 
 // Manor is pinned to dark, so the bubble keeps Manor's dark colours whatever the OS or the
@@ -37,10 +54,15 @@ test("colored user bubbles keep white text on Manor's dark theme", async ({ page
   await expect(send).toBeDisabled();
   await expect(send).not.toHaveCSS("background-color", rgb(colored.background));
   await captureScreenshot(page, testInfo, "chat-bubble-white-text-dark");
-  // ...and wears the bubble's color once there is something to send.
+  // ...and wears the bubble's color once there is something to send. The pointer leaves the
+  // button first, since hovering it lightens the color.
   await composer.fill("And the week after.");
-  await expect(send).toHaveCSS("background-color", rgb(colored.background));
-  await expect(send).toHaveCSS("color", rgb(colored.foreground));
+  await page.mouse.move(0, 0);
+  await expect(send).toBeEnabled();
+  await expect
+    .poll(() => paintedColor(send, "background-color"))
+    .toEqual(await paintedColor(bubble, "background-color"));
+  await expect.poll(() => paintedColor(send, "color")).toEqual(await paintedColor(bubble, "color"));
   await captureScreenshot(page, testInfo, "chat-send-button-bot-color-dark");
   await composer.fill("");
 

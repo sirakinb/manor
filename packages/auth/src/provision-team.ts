@@ -1,7 +1,12 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { brandById } from "@rakazo/brands";
 import type { PrismaClient } from "@rakazo/db";
-import { createSpaceAccount, joinOrganization, runAsSystem } from "@rakazo/db";
+import {
+  assertSpaceTakesPerson,
+  createSpaceAccount,
+  joinOrganization,
+  runAsSystem,
+} from "@rakazo/db";
 import { hashPassword } from "better-auth/crypto";
 
 type PortalTeamInput = { brandId: string; members: Array<{ email: string; name: string }> };
@@ -115,6 +120,9 @@ export async function provisionPortalTeam(prisma: PrismaClient, input: PortalTea
               defaultSpaceId: space.id,
             });
           } else {
+            // Manor: a space without a shared account holds one person, so provisioning never
+            // adds a second one to it; the whole batch rolls back instead.
+            await assertSpaceTakesPerson(tx, { spaceId: space.id, userId: user.id });
             await tx.spaceMember.upsert({
               where: { spaceId_userId: { spaceId: space.id, userId: user.id } },
               update: {},

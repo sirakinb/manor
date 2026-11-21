@@ -226,7 +226,7 @@ describePostgres("a Manor team space beside upstream's shared spaces (PostgreSQL
       await queue(null, "webhook"),
     ];
     await expect(
-      cancelDeactivatedAccountRuns(prisma, { notify: async () => undefined }, cy),
+      cancelDeactivatedAccountRuns(fixture, { notify: async () => undefined }, cy),
     ).resolves.toBe(1);
     const status = async (id: string) =>
       (await fixture.run.findUniqueOrThrow({ where: { id }, select: { status: true } })).status;

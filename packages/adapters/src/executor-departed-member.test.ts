@@ -4,12 +4,88 @@ import { createRunExecutor } from "./executor.js";
 
 const appendEventInTransaction = vi.hoisted(() => vi.fn(async () => ({ seq: 9 })));
 const createPendingSteeringRun = vi.hoisted(() => vi.fn(async () => "run-2"));
+const cancelDeactivatedAccountRuns = vi.hoisted(() => vi.fn(async () => 1));
 
 vi.mock("@rakazo/db", async (importOriginal) => ({
   ...(await importOriginal<typeof Db>()),
   appendEventInTransaction,
   createPendingSteeringRun,
+  cancelDeactivatedAccountRuns,
 }));
+
+// Manor: a team space's run acts as its shared account; the person who started it is
+// initiatedByUserId, and it is their deactivation that stops the run.
+describe("a team space's run started by a deactivated person", () => {
+  function teamRun(initiatedByUserId: string) {
+    const run = {
+      id: "run-1",
+      botId: "bot-1",
+      threadId: "thread-1",
+      taskId: "task-1",
+      spaceId: "space-1",
+      userId: "space-account",
+      initiatedByUserId,
+      status: "queued",
+      trigger: "user",
+      leaseFence: 0,
+    };
+    const prisma = {
+      run: {
+        findUnique: vi.fn(async () => run),
+        updateMany: vi.fn(async () => ({ count: 0 })),
+      },
+      user: {
+        findUnique: vi.fn(async ({ where }: { where: { id: string } }) => ({
+          deactivatedAt: where.id === "ada" ? new Date("2026-11-01T00:00:00Z") : null,
+        })),
+      },
+      // Past the deactivation check: the shared account is a member, then the claim stops.
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-account" })) },
+      space: { findUnique: vi.fn(async () => ({ accountUserId: "space-account" })) },
+      $transaction: vi.fn(async () => {
+        throw new Error("fixture stops at the claim");
+      }),
+    };
+    const events = { notify: vi.fn(async () => undefined) };
+    const executor = createRunExecutor({
+      prisma,
+      runtime: { describe: () => ({ capabilities: { scripted: false } }), run: vi.fn() },
+      events,
+      jobs: { enqueue: vi.fn(async () => undefined) },
+      secrets: [],
+    } as unknown as Parameters<typeof createRunExecutor>[0]);
+    return { executor, prisma, run };
+  }
+
+  it("does not start when the person who started it is deactivated", async () => {
+    cancelDeactivatedAccountRuns.mockClear();
+    const { executor, prisma, run } = teamRun("ada");
+    await executor.continueRun(run.id, "worker-1");
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "ada" } }),
+    );
+    expect(cancelDeactivatedAccountRuns).toHaveBeenCalledWith(
+      prisma,
+      expect.anything(),
+      "ada",
+      "run-1",
+    );
+    // Stopped before the membership check and the claim.
+    expect(prisma.spaceMember.findUnique).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("starts when another teammate started it", async () => {
+    cancelDeactivatedAccountRuns.mockClear();
+    const { executor, prisma, run } = teamRun("bea");
+    await executor.continueRun(run.id, "worker-1").catch(() => undefined);
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "bea" } }),
+    );
+    expect(cancelDeactivatedAccountRuns).not.toHaveBeenCalled();
+    expect(prisma.spaceMember.findUnique).toHaveBeenCalled();
+  });
+});
 
 describe("a run whose sender has left the space", () => {
   it("is cancelled without starting, so it cannot use their accounts", async () => {

@@ -62,3 +62,34 @@ export async function actsForRunUser(
   });
   return member !== null;
 }
+
+/** Manor: a space without a shared account already has its one person. */
+export class SpaceHasPersonError extends Error {
+  constructor() {
+    super("This space already belongs to someone; a person joining gets a space of their own");
+    this.name = "SpaceHasPersonError";
+  }
+}
+
+/**
+ * Manor's invariant: every space is a team space (a shared account plus people) or one person's own
+ * space. Upstream's spaces shared by invite link are the only exception, and exist only while
+ * `SPACE_SHARING_AVAILABLE` is lifted: an accepted invite lets its person in. Call before adding a
+ * person to an existing space.
+ */
+export async function assertSpaceTakesPerson(
+  db: Pick<PrismaClient, "space" | "spaceMember" | "spaceInvite">,
+  input: { spaceId: string; userId: string },
+): Promise<void> {
+  if (await isTeamSpace(db, input.spaceId)) return;
+  const invited = await db.spaceInvite.findFirst({
+    where: { spaceId: input.spaceId, acceptedByUserId: input.userId, acceptedAt: { not: null } },
+    select: { id: true },
+  });
+  if (invited) return;
+  const other = await db.spaceMember.findFirst({
+    where: { spaceId: input.spaceId, userId: { not: input.userId }, ...PERSON_MEMBER },
+    select: { id: true },
+  });
+  if (other) throw new SpaceHasPersonError();
+}

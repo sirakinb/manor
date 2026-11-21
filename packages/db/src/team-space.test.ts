@@ -6,8 +6,10 @@ import { loadMessageAuthors } from "./messages.js";
 import {
   actsForRunUser,
   assertNotTeamSpace,
+  assertSpaceTakesPerson,
   isTeamSpace,
   PERSON_MEMBER,
+  SpaceHasPersonError,
   TeamSpaceSharingError,
 } from "./team-space.js";
 import { markThreadUnreadForMembers, readerUserId } from "./thread-reads.js";
@@ -105,5 +107,27 @@ describe("Manor team spaces", () => {
     expect(authors.get("person-1")?.id).toBe("person-1");
     expect(authors.get("person-1")?.name).toBe(displayName("  Ada  ", "Member"));
     expect(authors.has("account-1")).toBe(false);
+  });
+
+  it("lets a person into a space only when it is a team space, invite-shared, or empty", async () => {
+    const db = (input: { account: string | null; invited: boolean; other: boolean }) =>
+      ({
+        space: { findUnique: vi.fn(async () => ({ accountUserId: input.account })) },
+        spaceInvite: { findFirst: vi.fn(async () => (input.invited ? { id: "invite-1" } : null)) },
+        spaceMember: { findFirst: vi.fn(async () => (input.other ? { id: "member-1" } : null)) },
+      }) as unknown as PrismaClient;
+    const target = { spaceId: "space-1", userId: "person-2" };
+    await expect(
+      assertSpaceTakesPerson(db({ account: "account-1", invited: false, other: true }), target),
+    ).resolves.toBeUndefined();
+    await expect(
+      assertSpaceTakesPerson(db({ account: null, invited: true, other: true }), target),
+    ).resolves.toBeUndefined();
+    await expect(
+      assertSpaceTakesPerson(db({ account: null, invited: false, other: false }), target),
+    ).resolves.toBeUndefined();
+    await expect(
+      assertSpaceTakesPerson(db({ account: null, invited: false, other: true }), target),
+    ).rejects.toBeInstanceOf(SpaceHasPersonError);
   });
 });

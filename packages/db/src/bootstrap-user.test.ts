@@ -11,7 +11,8 @@ function makePrisma(settings: { id: string; ownerUserId: string | null } | null)
         throw new Error("not found");
       }),
     },
-    member: { create: create() },
+    // Manor: not yet in any organization, so the personal bootstrap runs.
+    member: { create: create(), findFirst: vi.fn(async () => null) },
     space: { create: create() },
     spaceMember: { create: create() },
     deploymentSettings: {
@@ -160,7 +161,7 @@ describe("bootstrapUserSpace concurrency", () => {
         create: vi.fn(uniqueViolation),
         findUniqueOrThrow: vi.fn(async () => ({ id: "org-winner" })),
       },
-      member: { create: vi.fn(uniqueViolation) },
+      member: { create: vi.fn(uniqueViolation), findFirst: vi.fn(async () => null) },
       space: { create: vi.fn(uniqueViolation) },
       spaceMember: { create: vi.fn(uniqueViolation) },
       deploymentSettings: {

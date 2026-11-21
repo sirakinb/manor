@@ -509,9 +509,11 @@ async function memberSpaceNavigation(
       return {
         id: membership.spaceId,
         name: membership.space.name,
-        // Another person's default Space is not this member's default. Manor: a team space is
-        // the same Space for every teammate.
-        isDefault: membership.space.isDefault && (owner || Boolean(membership.space.accountUserId)),
+        // Upstream: another person's default Space (one a guest was invited into from another
+        // organization) is not this member's default. Manor lists only the actor's own
+        // organization and has no guests, so its default Space is every member's home, as before:
+        // a brand portal member's home is the client's default Space.
+        isDefault: membership.space.isDefault,
         organizationId: membership.organizationId,
         organizationName: membership.space.organization.name,
         hasContent: spacesWithContent.has(membership.spaceId),

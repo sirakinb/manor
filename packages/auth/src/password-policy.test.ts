@@ -12,6 +12,7 @@ vi.mock("better-auth/adapters/prisma", async () => {
 });
 vi.mock("@rakazo/db", () => ({
   bootstrapUserSpace: vi.fn(async () => ({ spaceId: "space-1" })),
+  ensureOwnSpace: vi.fn(async () => "space-1"),
   leaveInvitedSpaces: vi.fn(async () => ({ ownedOrganizationIds: [] })),
   recordSecurityEvent: vi.fn(async () => undefined),
 }));

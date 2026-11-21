@@ -203,8 +203,9 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     );
     const messages = snapshot.messages.filter((m) => m.role === "user");
     expect(messages).toHaveLength(2);
-    expect(new Set(messages.map((m) => m.authorName))).toEqual(new Set(["Alex", "Blair"]));
-    expect(new Set(messages.map((m) => m.authorUserId))).toEqual(
+    // Each message names the person who wrote it, never the space's shared account.
+    expect(new Set(messages.map((m) => m.author?.name))).toEqual(new Set(["Alex", "Blair"]));
+    expect(new Set(messages.map((m) => m.author?.id))).toEqual(
       new Set([owner.userId, peer.userId]),
     );
     expect(

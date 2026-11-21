@@ -12,6 +12,7 @@ vi.mock("better-auth/adapters/prisma", () => ({ prismaAdapter: () => memoryAdapt
 vi.mock("@rakazo/db", async (original) => ({
   ...(await original<typeof Db>()),
   bootstrapUserSpace: vi.fn(),
+  ensureOwnSpace: vi.fn(),
 }));
 
 const issuer = "https://identity.example.test";
@@ -76,7 +77,13 @@ function setup(options: Partial<AuthEnv> = {}, hasMembership = true) {
     // to the default brand, where every account belongs to a main-portal organization.
     member: {
       findMany: vi.fn(async () => []),
-      findFirst: vi.fn(async () => ({ organizationId: "organization-1" })),
+      // The session hook's own-space lookup (it filters by role) finds an organization only for an
+      // account that already has one; a brand-new account joins one through the bootstrap.
+      findFirst: vi.fn(async ({ where }: { where: { userId: string; role?: unknown } }) =>
+        !where.role || hasMembership || signedInUsers.has(where.userId)
+          ? { organizationId: "organization-1" }
+          : null,
+      ),
     },
     messagingIdentity: { deleteMany: vi.fn(async () => ({})) },
     messagingLinkCode: { deleteMany: vi.fn(async () => ({})) },

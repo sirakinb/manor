@@ -13,6 +13,11 @@ from docker_adapter import admission, quota_directory, run
 from release import Refused, canonical
 
 HEAVY_LOCK = "/run/lock/manor-development-heavy.lock"
+# One loop filesystem holds the workspace's bare clone, its worktree and the synthetic database.
+# A local clone copies every pack the source repository holds. By the v0.9.0 upstream sync that
+# was about 160-220 MiB of packs plus an 85 MiB worktree, already past the 256 MiB this used to
+# be, before Postgres's first initdb (about 40 MiB) and the workspace's own data.
+WORKSPACE_DISK_MB = 1024
 
 
 @contextlib.contextmanager
@@ -59,7 +64,7 @@ class Workspace:
         # One initial workspace and its bounded jobs fit a small shared VPS.
         if list(self.state.glob("*.json")):
             raise Refused("workspace_limit_reached")
-        admission(self.state, 256, disk_mb=512)
+        admission(self.state, 256, disk_mb=WORKSPACE_DISK_MB)
         source_archive(repository, revision)  # Fail closed on unsafe tracked paths.
         volume = self.state / self.workspace_id
         config = {
@@ -69,7 +74,7 @@ class Workspace:
         }
         self.record.write_text(canonical(config))
         self.record.chmod(0o600)
-        volume = quota_directory(self.state, self.workspace_id, 256)
+        volume = quota_directory(self.state, self.workspace_id, WORKSPACE_DISK_MB)
         repository_path = volume / "repository.git"
         tree = volume / "tree"
         if repository_path.exists():
@@ -160,7 +165,7 @@ class Workspace:
     def resume(self):
         config = self.read()
         admission(self.state, 256, disk_mb=0)
-        quota_directory(self.state, self.workspace_id, 256)
+        quota_directory(self.state, self.workspace_id, WORKSPACE_DISK_MB)
         actual = self.docker("inspect", "--format", "{{.State.Running}}", self.name).decode().strip()
         if actual != "true":
             # Recreate source mounts after edits, validating all paths again.
@@ -201,7 +206,7 @@ class Workspace:
     def status(self):
         config = self.read()
         return {"id": config["id"], "state": config["state"], "port": config["port"],
-                "diskLimitMb": 256, "memoryLimitMb": 256, "database": "synthetic",
+                "diskLimitMb": WORKSPACE_DISK_MB, "memoryLimitMb": 256, "database": "synthetic",
                 "access": "authenticated SSH tunnel; preview also requires bearer token"}
 
     def destroy(self):

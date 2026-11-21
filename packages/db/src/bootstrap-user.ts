@@ -1,7 +1,8 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { signupPolicyFromEnv } from "@rakazo/core";
 import type { PrismaClient } from "./client.js";
 import { isUniqueViolation } from "./prisma-errors.js";
+import { assertSpaceTakesPerson } from "./team-space.js";
 
 export interface SignupPolicyEnv {
   signupsEnabled: string | undefined;
@@ -10,7 +11,13 @@ export interface SignupPolicyEnv {
 
 type OrganizationClient = Pick<
   PrismaClient,
-  "organization" | "member" | "space" | "spaceMember" | "memoryDocument" | "notificationPreference"
+  | "organization"
+  | "member"
+  | "space"
+  | "spaceMember"
+  | "spaceInvite"
+  | "memoryDocument"
+  | "notificationPreference"
 >;
 
 function newId(): string {
@@ -71,16 +78,18 @@ export async function findBrandOrganization(
 }
 
 /**
- * Add a new user to an existing organization as a plain member of its default
- * space. No organization or space is created, and the deployment-owner seat is
- * never claimed: a client's staffer must not become the deployment owner.
- * Idempotent, like bootstrapUserSpace.
+ * Add a user to an existing organization. Manor: a space without a shared account holds one
+ * person, so they join the organization's default space only when it is a team space (a shared
+ * account); otherwise they get a space of their own there (`ensureOwnSpace`). No organization is
+ * created, and the deployment-owner seat is never claimed: a client's staffer must not become the
+ * deployment owner. Idempotent, like bootstrapUserSpace.
  */
 export async function joinOrganization(
   prisma: PrismaClient,
   user: { id: string },
   organization: { id: string; defaultSpaceId: string },
 ): Promise<{ spaceId: string; organizationId: string }> {
+  // The membership trigger adds the person to the organization's team spaces.
   await prisma.member
     .create({
       data: {
@@ -94,6 +103,15 @@ export async function joinOrganization(
     .catch((error: unknown) => {
       if (!isUniqueViolation(error)) throw error;
     });
+  const space = await prisma.space.findUniqueOrThrow({
+    where: { id: organization.defaultSpaceId },
+    select: { accountUserId: true },
+  });
+  if (!space.accountUserId) {
+    const spaceId = await ensureOwnSpace(prisma, user, organization.id);
+    return { spaceId, organizationId: organization.id };
+  }
+  await assertSpaceTakesPerson(prisma, { spaceId: organization.defaultSpaceId, userId: user.id });
   await prisma.spaceMember
     .upsert({
       where: { spaceId_userId: { spaceId: organization.defaultSpaceId, userId: user.id } },
@@ -110,15 +128,65 @@ export async function joinOrganization(
     .catch((error: unknown) => {
       if (!isUniqueViolation(error)) throw error;
     });
-  const space = await prisma.space.findUniqueOrThrow({
-    where: { id: organization.defaultSpaceId },
-    select: { accountUserId: true },
-  });
   await seedSpaceDefaults(prisma, {
     spaceId: organization.defaultSpaceId,
-    userId: space.accountUserId ?? user.id,
+    userId: space.accountUserId,
   });
   return { spaceId: organization.defaultSpaceId, organizationId: organization.id };
+}
+
+/**
+ * Manor: the person's space in this organization. An existing membership there (their own space,
+ * or a team space) is theirs already; otherwise a space of their own is created, marked as their
+ * default, and seeded like every personal space. Its id is derived from the organization and the
+ * person, so concurrent first sessions converge on one space.
+ */
+export async function ensureOwnSpace(
+  prisma: OrganizationClient,
+  user: { id: string },
+  organizationId: string,
+): Promise<string> {
+  const existing = await prisma.spaceMember.findFirst({
+    where: { organizationId, userId: user.id, space: { deletingAt: null } },
+    orderBy: [{ space: { isDefault: "desc" } }, { createdAt: "asc" }, { id: "asc" }],
+    select: { spaceId: true },
+  });
+  if (existing) return existing.spaceId;
+  const spaceId = createHash("sha256")
+    .update(`own-space:${organizationId}:${user.id}`)
+    .digest("hex")
+    .slice(0, 32);
+  const createdAt = new Date();
+  await prisma.space
+    .create({
+      data: {
+        id: spaceId,
+        organizationId,
+        name: "Personal",
+        isDefault: true,
+        createdByUserId: user.id,
+        createdAt,
+      },
+    })
+    .catch((error: unknown) => {
+      if (!isUniqueViolation(error)) throw error;
+    });
+  await prisma.spaceMember
+    .create({
+      data: {
+        id: newId(),
+        spaceId,
+        organizationId,
+        userId: user.id,
+        role: "owner",
+        createdAt,
+      },
+    })
+    .catch((error: unknown) => {
+      if (!isUniqueViolation(error)) throw error;
+    });
+  await seedSpaceDefaults(prisma, { spaceId, userId: user.id });
+  return spaceId;
 }
 
 /**
@@ -208,6 +276,17 @@ export async function bootstrapUserSpace(
   if (options.brandId) {
     const organization = await findBrandOrganization(prisma, options.brandId);
     if (organization) return joinOrganization(prisma, user, organization);
+  }
+  // Manor: someone already in an organization (whose shared default space they left when spaces
+  // became one person each) gets their own space there instead of a new organization.
+  const organizationMembership = await prisma.member.findFirst({
+    where: { userId: user.id, role: { not: "guest" }, organization: { brandId: { not: null } } },
+    orderBy: { createdAt: "asc" },
+    select: { organizationId: true },
+  });
+  if (organizationMembership) {
+    const spaceId = await ensureOwnSpace(prisma, user, organizationMembership.organizationId);
+    return { spaceId, organizationId: organizationMembership.organizationId };
   }
   const claimDeploymentOwner = options.claimDeploymentOwner ?? true;
   // Concurrent bootstraps for the same user (e.g. overlapping first phone inbounds) share the slug.

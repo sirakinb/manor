@@ -4,6 +4,8 @@ import argparse
 import json
 import os
 import secrets
+import shutil
+import subprocess
 import sys
 import time
 import urllib.error
@@ -17,6 +19,47 @@ from docker_adapter import DockerAdapter, load_policy, run
 from release import Controller, Store, canonical, digest
 from workspace import Workspace, heavy_lock
 from gate import Gate, start
+
+
+def container_report(name, volume=None):
+    """State and recent logs of a synthetic container, printed when a wait gives up."""
+    lines = ["--- " + name]
+    try:
+        state = json.loads(run(["docker", "inspect", "--format", "{{json .State}}", name]))
+        lines.append("state: " + json.dumps({key: state.get(key) for key in (
+            "Status", "Running", "Restarting", "ExitCode", "OOMKilled", "Error", "StartedAt", "FinishedAt")}))
+    except Exception as error:  # The report must never hide the original failure.
+        lines.append("inspect failed: " + str(error))
+    try:
+        # Postgres logs to stderr, which run() keeps only for failures, so read both streams here.
+        logs = subprocess.run(["docker", "logs", "--tail", "40", name], capture_output=True, timeout=30)
+        lines.append("last log lines:\n" + (logs.stdout + logs.stderr).decode("utf-8", errors="replace"))
+    except Exception as error:
+        lines.append("logs failed: " + str(error))
+    if volume is not None:
+        usage = shutil.disk_usage(volume)
+        lines.append("workspace filesystem: %d MiB used, %d MiB free of %d MiB" % (
+            usage.used // 2**20, usage.free // 2**20, usage.total // 2**20))
+        for part in ("repository.git", "tree", "postgres", "data"):
+            try:
+                size = run(["du", "-sm", str(Path(volume) / part)]).decode().split()[0]
+                lines.append("  %s: %s MiB" % (part, size))
+            except Exception:
+                pass
+    print("\n".join(lines), file=sys.stderr, flush=True)
+
+
+def wait_until(check, attempts, delay, failure, containers):
+    """Retries check; on giving up, reports each (name, volume) container, then raises."""
+    for _ in range(attempts):
+        try:
+            check()
+            return
+        except Exception:
+            time.sleep(delay)
+    for name, volume in containers:
+        container_report(name, volume)
+    raise RuntimeError(failure)
 
 
 def request(controller, action, **fields):
@@ -65,14 +108,11 @@ def main():
     workspace.execute(command + ["config", "user.name", "Manor contributors"])
     workspace.execute(command + ["config", "user.email", "contributors@example.invalid"])
     # Wait for the brand-new synthetic database, without consulting production.
-    for _ in range(60):
-        try:
-            workspace.docker("exec", workspace.name + "-db", "pg_isready", "-h", "127.0.0.1", "-U", "synthetic", "-d", "synthetic")
-            break
-        except Exception:
-            time.sleep(0.5)
-    else:
-        raise RuntimeError("Synthetic database did not become ready")
+    volume = workspace.read()["volume"]
+    wait_until(
+        lambda: workspace.docker("exec", workspace.name + "-db", "pg_isready", "-h", "127.0.0.1",
+                                 "-U", "synthetic", "-d", "synthetic"),
+        60, 0.5, "Synthetic database did not become ready", [(workspace.name + "-db", volume)])
     workspace.docker("exec", workspace.name + "-db", "psql", "-U", "synthetic", "-d", "synthetic",
                      "-c", "CREATE TABLE rehearsal(value text); INSERT INTO rehearsal VALUES ('synthetic only');")
     workspace.execute(["python3", "-c",
@@ -84,12 +124,11 @@ def main():
     workspace.docker("exec", "-d", workspace.name, "node", "/app/infra/updater/vps/fixtures/app.mjs")
     config = workspace.read()
     preview_url = workspace.preview_url()
-    for _ in range(30):
-        try:
-            with urllib.request.urlopen(preview_url + "/health", timeout=2):
-                break
-        except Exception:
-            time.sleep(0.3)
+    def preview_health():
+        with urllib.request.urlopen(preview_url + "/health", timeout=2):
+            pass
+    wait_until(preview_health, 30, 0.3, "Workspace preview did not answer",
+               [(workspace.name, workspace.read()["volume"])])
     try:
         urllib.request.urlopen(preview_url, timeout=3)
         raise AssertionError("Preview allowed unauthenticated access")

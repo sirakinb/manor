@@ -54,8 +54,8 @@ test("shows peer lines in transcript and opens view-only peer chat", async ({ pa
   await expect(chip).toHaveAccessibleName(
     /Messaged Researcher|Message from Researcher|messages with Researcher/,
   );
-  // Manor's default robot style: a sprite or the robot face, depending on the bot colour.
-  await expect(chip.locator(".rakazo-bot-avatar")).toBeVisible();
+  // The peer's avatar: Manor's sprite on a sprite colour, otherwise upstream's organic avatar.
+  await expect(chip.locator(".rakazo-bot-avatar, .rakazo-organic-avatar").first()).toBeVisible();
   await expect(chip).not.toContainText("{peer}");
   // User bubble still contains the phrase; peer body must not appear outside the chip.
   await expect(chip).not.toContainText("peer-exchange-alpha");

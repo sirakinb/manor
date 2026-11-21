@@ -13,6 +13,7 @@ import {
 import type { PrismaClient, SecurityEventType } from "@rakazo/db";
 import {
   bootstrapUserSpace,
+  ensureOwnSpace,
   personalOrganizationIds,
   recordSecurityEvent,
   SpaceDeletionInProgressError,
@@ -753,9 +754,29 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
               });
             }
             const headers = new Headers(ctx?.headers ?? ctx?.request?.headers);
+            // Manor: a space without a shared account holds one person. Someone already in this
+            // portal's organization gets their own space there when they have none (for example
+            // after leaving its shared default space); team-space members already have one.
+            const portalOrganization = env.singleAccount
+              ? null
+              : await prisma.member.findFirst({
+                  where: {
+                    userId: user.id,
+                    role: { not: "guest" },
+                    organization: { brandId: portalBrandId(headers) },
+                  },
+                  orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                  select: { organizationId: true },
+                });
+            const membership = portalOrganization
+              ? null
+              : await prisma.spaceMember.findFirst({ where: { userId: user.id } });
             // Only admitted sessions provision a workspace; never assign administration.
-            const membership = await prisma.spaceMember.findFirst({ where: { userId: user.id } });
-            if (!membership) {
+            if (portalOrganization) {
+              // Refuse a wrong portal before creating anything there.
+              await assertPortalAccess(prisma, session.userId, headers);
+              await ensureOwnSpace(prisma, user, portalOrganization.organizationId);
+            } else if (!membership) {
               if (
                 (!policy.enabled ||
                   (!bypassAllowlist && !emailAllowed(user.email, policy.allowlist))) &&

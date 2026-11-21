@@ -8,6 +8,7 @@ const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe :
 describePostgres("default Space membership trigger (PostgreSQL)", () => {
   const suffix = `${process.pid}-${Date.now()}`;
   const userId = `trigger-user-${suffix}`;
+  const secondUserId = `trigger-second-${suffix}`;
   const organizationId = `trigger-organization-${suffix}`;
   const spaceId = `trigger-space-${suffix}`;
   let prisma: PrismaClient;
@@ -16,7 +17,7 @@ describePostgres("default Space membership trigger (PostgreSQL)", () => {
   afterAll(async () => {
     if (!prisma) return;
     await prisma.organization.deleteMany({ where: { id: organizationId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
+    await prisma.user.deleteMany({ where: { id: { in: [userId, secondUserId] } } });
     await close();
   });
 
@@ -76,5 +77,28 @@ describePostgres("default Space membership trigger (PostgreSQL)", () => {
       userId,
       role: "member",
     });
+  });
+
+  it("Manor: never adds a second person to a default Space without a shared account", async () => {
+    await prisma.user.create({
+      data: {
+        id: secondUserId,
+        name: "Second Trigger User",
+        email: `${secondUserId}@rakazo.test`,
+        emailVerified: false,
+      },
+    });
+    await prisma.member.create({
+      data: {
+        id: `trigger-second-member-${suffix}`,
+        organizationId,
+        userId: secondUserId,
+        role: "member",
+        createdAt: new Date(),
+      },
+    });
+    await expect(
+      prisma.spaceMember.count({ where: { spaceId, userId: secondUserId } }),
+    ).resolves.toBe(0);
   });
 });

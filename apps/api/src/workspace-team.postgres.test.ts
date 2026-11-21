@@ -12,6 +12,8 @@ describePostgres("workspace team (PostgreSQL)", () => {
   const spaceId = `${stamp}-space`;
   const userId = `${stamp}-owner`;
   const peerId = `${stamp}-peer`;
+  // Manor: a space without a shared account is one person's, so the peer has a space of their own.
+  const peerSpaceId = `${stamp}-peer-space`;
   const actor = {
     organizationId,
     spaceId,
@@ -48,7 +50,11 @@ describePostgres("workspace team (PostgreSQL)", () => {
       },
     });
     await prisma.space.create({ data: { id: spaceId, organizationId, name: "Sample space" } });
-    for (const id of [userId, peerId]) {
+    await prisma.space.create({ data: { id: peerSpaceId, organizationId, name: "Personal" } });
+    for (const [id, memberSpaceId] of [
+      [userId, spaceId],
+      [peerId, peerSpaceId],
+    ] as const) {
       await prisma.user.create({
         data: { id, name: "Sample member", email: `${id}@example.test` },
       });
@@ -65,7 +71,7 @@ describePostgres("workspace team (PostgreSQL)", () => {
         data: {
           id: `${id}-space-member`,
           organizationId,
-          spaceId,
+          spaceId: memberSpaceId,
           userId: id,
           role: "owner",
           createdAt: new Date(),
@@ -102,11 +108,11 @@ describePostgres("workspace team (PostgreSQL)", () => {
     });
     const foreign = await system.bot.create({
       data: {
-        spaceId,
+        spaceId: peerSpaceId,
         userId: peerId,
         name: "Peer bot",
         color: "#123456",
-        thread: { create: { spaceId, userId: peerId } },
+        thread: { create: { spaceId: peerSpaceId, userId: peerId } },
       },
     });
     expect((await team.open(actor, second.id)).id).toBe(second.id);

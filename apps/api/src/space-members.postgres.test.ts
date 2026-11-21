@@ -649,7 +649,11 @@ describePostgres("shared spaces: invites and membership (PostgreSQL)", () => {
     );
   });
 
-  it("lists shared spaces across organizations and creates new spaces in the member's own", async () => {
+  // Not applicable in Manor: a guest invited from another organization never sees the Space in
+  // their list, because Manor's navigation lists only the actor's own organization (a session acts
+  // only in its portal's organization, `assertPortalAccess`). Lifting invite-link sharing needs that
+  // rule reconciled first; this case documents the upstream behaviour it would have to restore.
+  it.skip("lists shared spaces across organizations and creates new spaces in the member's own", async () => {
     const owner = await person("owner");
     const invitee = await person("invitee");
     const home = await sharedSpace(owner, "Home");
@@ -1618,6 +1622,16 @@ describePostgres("shared spaces: invites and membership (PostgreSQL)", () => {
         },
       });
       await system.space.update({ where: { id: team }, data: { accountUserId } });
+      // Manor: a space member must first be a member of the space's organization.
+      await system.member.create({
+        data: {
+          id: randomUUID(),
+          organizationId: owner.organizationId,
+          userId: teammate.id,
+          role: "member",
+          createdAt: new Date(),
+        },
+      });
       await system.spaceMember.create({
         data: {
           id: randomUUID(),

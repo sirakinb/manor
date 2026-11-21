@@ -41,7 +41,7 @@ Defaults deliberately fit one small workspace:
 | Resource                                              | Limit                           |
 | ----------------------------------------------------- | ------------------------------- |
 | Workspaces                                            | one                             |
-| Workspace source, Git, synthetic database and storage | 256 MiB ext4 loop filesystem    |
+| Workspace source, Git, synthetic database and storage | 1 GiB ext4 loop filesystem      |
 | Workspace memory / CPU / process count                | 256 MiB / one CPU / 128         |
 | Synthetic Postgres memory / CPU                       | 128 MiB / one-quarter CPU       |
 | Build writable filesystem                             | 3 GiB ext4 loop filesystem      |

@@ -150,7 +150,9 @@ describePostgres("account deletion on bot computers (PostgreSQL)", () => {
         { id: ids.soloSpace, organizationId: ids.sharedOrg, name: "Only mine" },
       ],
     });
-    // Members join each organization's default space by trigger.
+    // The first member joins each organization's empty default space by trigger. Manor: a later
+    // member joins only team spaces, so the stayer is added to "Ours" explicitly below, as a space
+    // shared by invite would hold them (deletion's hand-over is upstream's shared-space path).
     await system.member.createMany({
       data: [
         { org: ids.personalOrg, user: ids.leaver },
@@ -163,6 +165,16 @@ describePostgres("account deletion on bot computers (PostgreSQL)", () => {
         role: "owner",
         createdAt: now,
       })),
+    });
+    await system.spaceMember.create({
+      data: {
+        id: `${ids.sharedSpace}-stayer`,
+        spaceId: ids.sharedSpace,
+        organizationId: ids.sharedOrg,
+        userId: ids.stayer,
+        role: "owner",
+        createdAt: now,
+      },
     });
     await system.spaceMember.create({
       data: {

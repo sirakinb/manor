@@ -119,7 +119,7 @@ for (const trigger of ["webhook", "scheduled"] as const) {
   });
 }
 
-test("routine trigger menu offers schedule, Slack, change, Git and webhook triggers", async ({
+test("routine trigger menu offers schedule, Slack, change, email, Git and webhook triggers", async ({
   page,
 }, testInfo) => {
   await signup(
@@ -136,6 +136,7 @@ test("routine trigger menu offers schedule, Slack, change, Git and webhook trigg
     "On a schedule",
     "Slack message",
     "When something changes",
+    "Email",
     "Git event",
     "Webhook",
   ]);

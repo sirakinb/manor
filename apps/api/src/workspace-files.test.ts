@@ -75,6 +75,8 @@ describe("workspace file API", () => {
     const response = await call({ action: "create", path: "notes.txt", kind: "file" });
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(execute).not.toHaveBeenCalled();
+    // The space is the boundary: a space without a shared account holds one person, so another
+    // person's bot is in another space and is not found here.
     expect(prisma.bot.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ id: "bot-1", spaceId: "space-1" }),

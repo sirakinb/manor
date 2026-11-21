@@ -249,6 +249,25 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   features, and both stay. Upstream's switch for the bundled server needs
   `RAKAZO_DESKTOP_STACK_TOKEN`, which production leaves unset.
 
+- One person per space without a shared account (from `v0.9.0`). Every space is either a team
+  space (a shared account plus people) or one person's own space; upstream's spaces shared by
+  invite link are a third kind that exists only with `SPACE_SHARING_AVAILABLE` lifted. Why:
+  upstream's shared spaces removed the per-person filters on bots, chats, groups, routines, memory,
+  artifacts, search and more (about 200 queries) and treat everything in a space as visible to its
+  members; keeping one person per non-team space makes that true and private without re-adding
+  filters that every later release would have to re-audit. A person joining an organization joins
+  its team spaces and gets a space of their own otherwise (`joinOrganization` / `ensureOwnSpace`
+  in `packages/db/src/bootstrap-user.ts`); the membership trigger
+  (`20261211130000_manor_member_joins_team_spaces_only`) adds a new member to team spaces and to the
+  default space only while it has nobody in it. `assertSpaceTakesPerson` (`team-space.ts`) guards
+  adding a person to an existing space; there is no database trigger guard, because upstream's own
+  fixtures and invite flow insert further people into ordinary spaces directly.
+  `20261211130100_manor_one_person_per_space` brings existing spaces to one person without
+  touching authored content and stops the deploy on a space where two people both own some.
+  Derived rows (the seeded memory file, unedited Workspace knowledge and playbooks the Workspace
+  import copies, and the import marker) are not content: they go with a removed membership, along
+  with that person's notification, auto-review and approval-rule settings and their
+  skill, server and plugin availability rows in that space.
 - Team spaces (from `v0.9.0`, beside upstream's shared spaces #1935). Manor's team space keeps
   its shared-account model: people act as the space account (`space.accountUserId`), which owns
   the bots, routines, runs, connections and approval rules. The helpers live in
@@ -413,6 +432,91 @@ Things the one production deploy at the end must cover, collected as stages land
 - The iOS share extension needs the bundle id `com.pentridgemedia.manor.expo-sharing-extension`
   and the app group `group.com.pentridgemedia.manor` registered before the next iOS build.
 - The desktop app is on Electron 45 (45.2.2 from `v0.8.0`).
+- Before deploying `v0.9.0`, resolve every space without a shared account where more than one person
+  owns authored content; `20261211130100_manor_one_person_per_space` stops the deploy otherwise.
+  Run the query below against the backup first; where it lists a space, the person who is not
+  staying deletes their bots there through the product before the deploy. Their derived rows (the seeded `MEMORY.md`, the organization's Workspace knowledge copied into their
+  memory, the Workspace playbook skills and the import marker, all unedited) do not block the
+  deploy: the migration deletes them with the membership, and the import runs again in the space
+  they get at their next sign-in. An edited copy counts as authored. List such spaces, with each
+  person's authored and derived rows:
+
+  ```sql
+  WITH person AS (
+    SELECT m."spaceId", m."userId", u.email,
+      EXISTS (SELECT 1 FROM workspace_knowledge_imports k
+              WHERE k."spaceId" = m."spaceId" AND k."userId" = m."userId") AS imported
+    FROM space_members m
+    JOIN "user" u ON u.id = m."userId" AND NOT u."isSpaceAccount"
+    JOIN spaces s ON s.id = m."spaceId" AND s."accountUserId" IS NULL
+    WHERE NOT EXISTS (SELECT 1 FROM space_invites i
+                      WHERE i."spaceId" = m."spaceId" AND i."acceptedAt" IS NOT NULL)
+  ), crowded AS (
+    SELECT "spaceId" FROM person GROUP BY "spaceId" HAVING count(*) > 1
+  ), rows AS (
+    SELECT p."spaceId", p.email, t.kind, t.tbl, t.n
+    FROM person p JOIN crowded USING ("spaceId")
+    CROSS JOIN LATERAL (
+      SELECT 'authored' AS kind, a.tbl, a.n FROM (
+      SELECT 'bots', count(*) FROM "bots" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'bot_sections', count(*) FROM "bot_sections" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'chat_groups', count(*) FROM "chat_groups" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'threads', count(*) FROM "threads" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'tasks', count(*) FROM "tasks" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'runs', count(*) FROM "runs" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'routines', count(*) FROM "routines" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'scratchpad_items', count(*) FROM "scratchpad_items" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'taught_skills', count(*) FROM "taught_skills" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'agent_imports', count(*) FROM "agent_imports" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'connections', count(*) FROM "connections" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'capability_installs', count(*) FROM "capability_installs" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'mcp_servers', count(*) FROM "mcp_servers" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'secrets', count(*) FROM "secrets" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'bot_credentials', count(*) FROM "bot_credentials" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'bot_secrets', count(*) FROM "bot_secrets" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'vault_credentials', count(*) FROM "vault_credentials" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'artifacts', count(*) FROM "artifacts" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'pages', count(*) FROM "pages" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'computers', count(*) FROM "computers" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'agent_homes', count(*) FROM "agent_homes" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'browser_profiles', count(*) FROM "browser_profiles" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'external_conversations', count(*) FROM "external_conversations" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'messaging_identities', count(*) FROM "messaging_identities" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'messaging_installations', count(*) FROM "messaging_installations" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'cloud_agents', count(*) FROM "cloud_agents" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'local_devices', count(*) FROM "local_devices" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'purchases', count(*) FROM "purchases" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      UNION ALL SELECT 'payments', count(*) FROM "payments" x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      ) a(tbl, n)
+      UNION ALL
+      SELECT CASE WHEN x.scope = 'user' AND x."botId" IS NULL AND x.revision = 1
+                   AND (x.path = 'MEMORY.md' OR (x.path LIKE 'workspace/%' AND p.imported))
+                  THEN 'derived' ELSE 'authored' END,
+             'memory_documents', count(*)
+      FROM memory_documents x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      GROUP BY 1
+      UNION ALL
+      SELECT CASE WHEN x.source = 'user' AND x."installId" IS NULL AND NOT x."allSpaces"
+                   AND x.name LIKE 'workspace-%' AND x."createdAt" = x."updatedAt"
+                   AND strpos(x.content, '# Using this imported playbook') > 0 AND p.imported
+                  THEN 'derived' ELSE 'authored' END,
+             'agent_skills', count(*)
+      FROM agent_skills x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+      GROUP BY 1
+      UNION ALL
+      SELECT 'derived', 'workspace_knowledge_imports', count(*)
+      FROM workspace_knowledge_imports x WHERE x."spaceId" = p."spaceId" AND x."userId" = p."userId"
+    ) t(kind, tbl, n)
+    WHERE t.n > 0
+  )
+  SELECT "spaceId", email, kind, string_agg(tbl || ' ' || n, ', ' ORDER BY tbl) AS rows
+  FROM rows
+  GROUP BY "spaceId", email, kind
+  ORDER BY "spaceId", email, kind;
+  ```
+
+  An `authored` line for more than one person in a space means the migration will stop; its
+  message names the space and the counts.
 - `v0.9.0` deferred drops apply at once under plain `prisma migrate deploy`:
   `20261126120100_drop_message_history_search_idx`, `20261202120100_drop_thread_unread` (drops
   `threads.unread` and `threads."lastReadSeq"`) and `20261209120100_drop_message_history_search_files_idx`.

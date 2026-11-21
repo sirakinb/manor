@@ -328,9 +328,11 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
         return;
       }
       // Every way work reaches a bot ends here, so a deactivated account's run stops before it starts.
-      if (await accountDeactivated(deps.prisma, run.userId)) {
+      // Manor: in a team space the run acts as the shared account; the person is who started it.
+      const personId = run.initiatedByUserId ?? run.userId;
+      if (await accountDeactivated(deps.prisma, personId)) {
         // Nothing cancelled: the owner is back (or the run already ended), so carry on.
-        if (await cancelDeactivatedAccountRuns(deps.prisma, deps.events, run.userId, runId)) return;
+        if (await cancelDeactivatedAccountRuns(deps.prisma, deps.events, personId, runId)) return;
       }
       if (await cancelRunOfFormerMember(deps, run)) return;
       let { resumeCheckpoint, heldForTakeover, takeoverResume } = takeoverContinuePlan(run);
