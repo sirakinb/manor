@@ -60,7 +60,8 @@ export class LocalAwareSandbox implements SandboxProvider {
   readonly pageBrowser?: SandboxProvider["pageBrowser"];
 
   constructor(
-    private readonly cloud: SandboxProvider,
+    /** The provider behind every non-local computer. Tests observe it directly. */
+    readonly cloud: SandboxProvider,
     private readonly local: SandboxProvider,
   ) {
     if (cloud.pageBrowser || local.pageBrowser) {

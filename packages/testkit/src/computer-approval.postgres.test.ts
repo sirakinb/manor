@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ComposioEmulator, FakeSandboxProvider } from "@rakazo/adapters";
+import { ComposioEmulator, FakeSandboxProvider, LocalAwareSandbox } from "@rakazo/adapters";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { sessionCookieHeader } from "./index.js";
 import { type ModelEmulatorStep, startModelEmulator } from "./model-emulator.js";
@@ -118,8 +118,11 @@ describe.skipIf(!databaseAvailable)("offline Pi computer approval", () => {
           encryptionKey: "offline-computer-fixture-encryption-key",
         });
         stop = handles.stop;
-        expect(handles.sandbox).toBeInstanceOf(FakeSandboxProvider);
-        sandbox = handles.sandbox as FakeSandboxProvider;
+        // Manor routes "This Mac" computers through a wrapper; the fake provider sits behind it.
+        const provider =
+          handles.sandbox instanceof LocalAwareSandbox ? handles.sandbox.cloud : handles.sandbox;
+        expect(provider).toBeInstanceOf(FakeSandboxProvider);
+        sandbox = provider as FakeSandboxProvider;
         // Keep the real fake-provider implementation; observe calls and its state
         // independently of the model's claims and the persisted effect record.
         const act = vi.spyOn(sandbox, "act");

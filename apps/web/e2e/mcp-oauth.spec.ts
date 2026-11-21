@@ -1,7 +1,10 @@
 import { expect, type Route, test } from "@playwright/test";
 import type { McpServer } from "@rakazo/contracts";
-import { MCP_OAUTH_CHANNEL } from "../src/lib/mcp-connect";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+
+// Mirrors MCP_OAUTH_CHANNEL in src/lib/mcp-connect.ts. That module uses the translation macro,
+// which Playwright cannot load, so the spec cannot import it.
+const MCP_OAUTH_CHANNEL = "rakazo-mcp-oauth";
 
 test("connects an MCP server through the OAuth popup callback", async ({ page }, testInfo) => {
   const stamp = Date.now();
