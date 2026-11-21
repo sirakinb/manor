@@ -61,6 +61,36 @@ describe("host-aware sandbox", () => {
     expect(pageBrowser).not.toHaveBeenCalled();
   });
 
+  it("forwards the terminal and liveness checks through the run sandbox", async () => {
+    const connectTerminal = vi
+      .spyOn(FakeSandboxProvider.prototype, "connectTerminal")
+      .mockResolvedValue({ url: "ws://terminal.test/session" });
+    const sandbox = createRunSandbox("fake", {});
+    const computer: ComputerRef = {
+      id: "computer",
+      providerRef: "computer",
+      botId: "home",
+      kind: "fake",
+    };
+    expect(typeof sandbox.connectTerminal).toBe("function");
+    expect(await sandbox.connectTerminal!(computer, { controlToken: "lease" }, ctx)).toEqual({
+      url: "ws://terminal.test/session",
+    });
+    expect(connectTerminal).toHaveBeenCalledWith(computer, { controlToken: "lease" }, ctx);
+    // The fake has no liveness check, so neither does its wrapper; Docker's comes through.
+    expect(sandbox.isRunning).toBeUndefined();
+    const isRunning = vi
+      .spyOn(DockerSandboxProvider.prototype, "isRunning")
+      .mockResolvedValue(true);
+    const docker = createRunSandbox("docker", {
+      prisma: {
+        deploymentSettings: { findUnique: vi.fn().mockResolvedValue(null) },
+      } as unknown as PrismaClient,
+    });
+    expect(await docker.isRunning!({ ...computer, kind: "docker" }, ctx)).toBe(true);
+    expect(isRunning).toHaveBeenCalled();
+  });
+
   it("does not expose page commands when neither provider supports them", () => {
     const sandbox = new HostAwareSandbox(
       new FakeSandboxProvider(),

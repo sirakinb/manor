@@ -367,7 +367,8 @@ test("workspace appears once the organization has one and its map opens sections
   await captureScreenshot(page, testInfo, "workspace-team");
   await page.getByRole("button", { name: "Knowledge", exact: true }).first().click();
   const knowledge = page.getByTestId("bot-knowledge");
-  await knowledge.getByRole("tab", { name: "Skills", exact: true }).click();
+  // Upstream renamed the skills tab this release; skills are shared across the space.
+  await knowledge.getByRole("tab", { name: "Shared skills", exact: true }).click();
   await expect(
     knowledge.getByText("workspace-callback-playbook", { exact: true }).first(),
   ).toBeVisible();

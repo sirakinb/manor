@@ -69,7 +69,10 @@ test("the app stays dark whatever the system or a stored preference asks for", a
   await captureSidebarSearchSelected(page, testInfo, "sidebar-search-selected-dark");
 });
 
-test("sidebar bot rows hover with the same tone as the integrations row", async ({
+// Manor tints each bot row with its own colour, so bot rows cannot share one tone with the
+// navigation rows. What holds instead: bot rows show their tint on hover, and Manor's
+// navigation rows (Integrations, CRM, Documentation) hover with one shared tone.
+test("sidebar bot rows hover with their tint and navigation rows share one tone", async ({
   page,
 }, testInfo) => {
   const stamp = Date.now();
@@ -85,12 +88,17 @@ test("sidebar bot rows hover with the same tone as the integrations row", async 
 
   await chief.hover();
   await expect.poll(readChiefBg).not.toBe("rgba(0, 0, 0, 0)");
-  const chiefBg = await readChiefBg();
   await captureScreenshot(page, testInfo, "sidebar-row-hover");
 
-  const integrations = sidebar.getByRole("button", { name: "Integrations", exact: true });
-  await integrations.hover();
-  await expect
-    .poll(() => integrations.evaluate((el) => getComputedStyle(el).backgroundColor))
-    .toBe(chiefBg);
+  const navRow = (name: string) => sidebar.getByRole("button", { name, exact: true });
+  const readBg = (name: string) =>
+    navRow(name).evaluate((el) => getComputedStyle(el).backgroundColor);
+  await navRow("Integrations").hover();
+  await expect.poll(() => readBg("Integrations")).not.toBe("rgba(0, 0, 0, 0)");
+  const navBg = await readBg("Integrations");
+  for (const name of ["CRM", "Documentation"]) {
+    await expect.poll(() => readBg(name)).toBe("rgba(0, 0, 0, 0)");
+    await navRow(name).hover();
+    await expect.poll(() => readBg(name)).toBe(navBg);
+  }
 });

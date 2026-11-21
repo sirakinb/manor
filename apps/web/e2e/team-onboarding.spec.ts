@@ -22,10 +22,16 @@ test("new organization starts with one shared space and teammates reuse its setu
   let organizationId: string | undefined;
   let accountUserId: string | null = null;
   try {
+    // Let each signup finish its own first-run setup in its personal space before the team
+    // exists. Left running, that setup can land its first bot in the shared space once the
+    // personal organizations are deleted, and the shared setup below would never be shown.
     await signup(page, ownerEmail, "password12", "Alex");
-    await page.waitForURL(/\/(onboarding|app)/);
+    await completeOnboarding(page);
     await signup(peerPage, peerEmail, "password12", "Blair");
-    await peerPage.waitForURL(/\/(onboarding|app)/);
+    await completeOnboarding(peerPage);
+    // Park both pages so a running shell cannot react to its space disappearing.
+    await page.goto("about:blank");
+    await peerPage.goto("about:blank");
     const team = await provisionPortalTeam(db.prisma, {
       brandId: "vibecodephilly",
       members: [
@@ -55,7 +61,8 @@ test("new organization starts with one shared space and teammates reuse its setu
     accountUserId = space.accountUserId;
     expect(accountUserId).toBeTruthy();
     expect(await db.prisma.space.count({ where: { organizationId } })).toBe(1);
-    await page.evaluate((id) => localStorage.setItem("rakazo:space-id", id), team.spaceId);
+    expect(await db.prisma.bot.count({ where: { spaceId: team.spaceId } })).toBe(0);
+    await page.addInitScript((id) => localStorage.setItem("rakazo:space-id", id), team.spaceId);
     // Setup creates the first bot and opens its chat on its own. Hold that create so the
     // sharing notice is on screen for as long as the assertions need it.
     let releaseBotCreate: () => void = () => undefined;
@@ -84,7 +91,7 @@ test("new organization starts with one shared space and teammates reuse its setu
     ).toBeVisible();
     await captureScreenshot(page, testInfo, "shared-account-onboarding");
     const sharedBotUrl = page.url();
-    await peerPage.evaluate((id) => localStorage.setItem("rakazo:space-id", id), team.spaceId);
+    await peerPage.addInitScript((id) => localStorage.setItem("rakazo:space-id", id), team.spaceId);
     await peerPage.goto("/onboarding");
     await expect(peerPage).toHaveURL(sharedBotUrl);
     await expect(peerPage.getByRole("combobox", { name: "Message Chief" })).toBeVisible();

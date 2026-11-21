@@ -57,14 +57,46 @@ export function createRunSandbox(
 }
 
 /** Routes attended laptop computers without changing SANDBOX_PROVIDER. */
+/**
+ * Compile-time guard. The API treats a missing optional provider method as "this computer
+ * cannot do that" without any error, so a method the wrapper forgets silently disables a
+ * feature (it happened with the page browser and the terminal). When upstream adds a
+ * method to SandboxProvider, forward it in LocalAwareSandbox or list it here with a reason.
+ */
+type NotForwardedByLocalAwareSandbox =
+  // Idle detection for local computers is decided separately; see computer-idle.ts.
+  "inspectBackgroundWork";
+type UnforwardedSandboxMethods = Exclude<
+  keyof SandboxProvider,
+  keyof LocalAwareSandbox | NotForwardedByLocalAwareSandbox
+>;
+const allSandboxMethodsForwarded: [UnforwardedSandboxMethods] extends [never] ? true : never = true;
+void allSandboxMethodsForwarded;
+
 export class LocalAwareSandbox implements SandboxProvider {
   readonly pageBrowser?: SandboxProvider["pageBrowser"];
+  // Optional capabilities are only present when a wrapped provider has them: callers
+  // check for the method itself (an absent `connectTerminal` means "no terminal").
+  readonly connectTerminal?: SandboxProvider["connectTerminal"];
+  readonly isRunning?: SandboxProvider["isRunning"];
 
   constructor(
     /** The provider behind every non-local computer. Tests observe it directly. */
     readonly cloud: SandboxProvider,
     private readonly local: SandboxProvider,
   ) {
+    if (cloud.connectTerminal || local.connectTerminal) {
+      this.connectTerminal = (computer, request, context) => {
+        const provider = this.route(computer);
+        return provider.connectTerminal
+          ? provider.connectTerminal(computer, request, context)
+          : Promise.reject(new Error("terminal is unavailable on this computer"));
+      };
+    }
+    if (cloud.isRunning || local.isRunning) {
+      this.isRunning = async (computer, context) =>
+        (await this.route(computer).isRunning?.(computer, context)) ?? false;
+    }
     if (cloud.pageBrowser || local.pageBrowser) {
       this.pageBrowser = (computer, request, context) => {
         const provider = this.route(computer);

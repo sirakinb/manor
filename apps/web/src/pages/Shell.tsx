@@ -3642,12 +3642,12 @@ export function ShellPage() {
         <button
           type="button"
           onClick={() => setPluginsOpen(true)}
-          className="mx-3 mb-1 flex items-center gap-3 rounded-xl px-2.5 py-2 hover:bg-sidebar-accent"
+          className="mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315]"
         >
-          <span className="grid h-[30px] w-[30px] place-items-center rounded-lg bg-accent text-foreground/80">
-            <LayoutGrid size={15} strokeWidth={1.8} />
+          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
+            <LayoutGrid size={15} strokeWidth={1.7} />
           </span>
-          <span className="text-[14px] font-medium text-foreground/90">
+          <span className="text-[14.5px] text-[#C9C9CE]">
             <Trans>Integrations</Trans>
           </span>
         </button>
