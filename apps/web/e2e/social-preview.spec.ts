@@ -39,13 +39,18 @@ test("Manor link preview is available without JavaScript or sign-in", async ({
 test.describe("organization application bootstrap", () => {
   test.use({ javaScriptEnabled: true });
 
-  test("branded HTML leaves application scripts and sign-in working", async ({ page }) => {
+  test("branded HTML leaves application scripts and sign-in working", async ({ page, baseURL }) => {
     const brand = brandById("vibecodephilly")!;
     await page.route("**/*", async (route) => {
       const url = new URL(route.request().url());
       // This UI smoke test needs no running API or real account.
       if (url.pathname.startsWith("/api/")) {
         return route.fulfill({ json: null });
+      }
+      // Only the app's own requests carry the brand host; web fonts and other
+      // outside requests are not needed here and must not get that header.
+      if (url.origin !== new URL(page.url() === "about:blank" ? baseURL! : page.url()).origin) {
+        return route.abort();
       }
       const response = await route.fetch({ headers: { host: brand.hostnames[0]! } });
       await route.fulfill({ response });
