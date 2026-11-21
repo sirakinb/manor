@@ -89,6 +89,8 @@ Stages done: `v0.1.6`, `v0.2.0`. In progress: `v0.3.0`.
   `packages/ui-tokens/assets/Rakazo.icon`, and upstream's `export:brand` script is
   never run, since it rewrites them from upstream's artwork.
 - Voice calls stay on: production sets `PHONE_CALLS_ENABLED=true`.
+- The composer's Send button follows upstream's styling (white), not the brand accent.
+- `AI_PRIVACY_URL` points at Pentridge Media's privacy policy, never upstream's.
 - Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
   and local sandbox tests (the temp directory is a symlink).
 
@@ -100,8 +102,11 @@ Things the one production deploy at the end must cover, collected as stages land
   controls and the bot's `call_user` tool behind it, off by default.
 - Keep `PI_DEFAULT_MODEL` set. Upstream's built-in default OpenRouter model differs
   from the one production runs on.
-- The AI data sharing screen links to upstream's privacy page unless the server
-  supplies a privacy URL. Set Manor's before the screen is reachable.
+- The mobile app's AI data sharing prompt links to the operator's privacy policy.
+  `AI_PRIVACY_URL` in `packages/contracts/src/ai-consent.ts` defaults to Pentridge
+  Media's page; `PRIVACY_POLICY_URL` overrides it. That page does not yet describe
+  Manor or the model, voice and memory providers Manor sends data to; it needs a
+  Manor section before the mobile app goes to people outside the team.
 - New accounts get Manor's `robot` avatar style, so they see Manor's sprites;
   `20261121120000_manor_robot_avatar_default` changes only the column default, so
   every existing account keeps its stored style.
