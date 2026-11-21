@@ -99,6 +99,37 @@ function launch(extraEnv: Record<string, string> = {}) {
   });
 }
 
+/**
+ * Screenshots the setup window once it is shown and has painted. Manor's first-run page shows the
+ * Manor Cloud address panel straight away, and on Linux CI an early capture can find no frame yet.
+ */
+async function setupScreenshot(launched: ElectronApplication, page: Page, name: string) {
+  await expect
+    .poll(() =>
+      launched.evaluate(({ BrowserWindow }) => {
+        const window = BrowserWindow.getAllWindows()[0];
+        return window?.isVisible() === true && !window.isMinimized();
+      }),
+    )
+    .toBe(true);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  const file = path.join(import.meta.dirname, "screenshots", name);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await page.screenshot({ path: file });
+      return;
+    } catch (error) {
+      if (attempt >= 5 || !String(error).includes("Unable to capture screenshot")) throw error;
+      await page.waitForTimeout(250);
+    }
+  }
+}
+
 test("first run offers Rakazo Cloud first, with local and existing instances", async () => {
   app = await launch();
   if (process.env.RAKAZO_E2E_EXECUTABLE) {
@@ -116,9 +147,8 @@ test("first run offers Rakazo Cloud first, with local and existing instances", a
   await expect(setup.getByRole("radio", { name: /Manor Cloud/ })).toBeChecked();
   await expect(setup.locator("#panel-new")).toBeHidden();
   await expect(setup.getByRole("button", { name: "Continue" })).toBeEnabled();
-  await setup.screenshot({
-    path: path.join(import.meta.dirname, "screenshots", "00-setup-cloud.png"),
-  });
+  await expect(setup.locator("#panel-existing")).toBeVisible();
+  await setupScreenshot(app, setup, "00-setup-cloud.png");
 
   await setup.getByRole("radio", { name: /This computer/ }).check();
   // The panel is empty until a start begins, so check the attribute rather than the box.
@@ -127,9 +157,7 @@ test("first run offers Rakazo Cloud first, with local and existing instances", a
   await expect(setup.getByRole("button", { name: "Check connection" })).toBeHidden();
   await expect(setup.locator("#panel-existing")).toBeHidden();
 
-  await setup.screenshot({
-    path: path.join(import.meta.dirname, "screenshots", "01-setup-new-instance.png"),
-  });
+  await setupScreenshot(app, setup, "01-setup-new-instance.png");
 
   // Linux CI verifies the layout state; the macOS CI job also captures the native controls.
   await setup.evaluate(() => {
@@ -696,7 +724,8 @@ test("the app window stays on its server when a link redirects to another site",
     await appWindow.evaluate((to) => window.location.assign(to), elsewhereUrl);
     await expect.poll(openedUrls).toEqual([elsewhereUrl]);
     // Playwright keeps waiting on a navigation cancelled before it starts, so ask the page itself.
-    expect(await appWindow.evaluate(() => window.location.href)).toBe(`${serverUrl}/`);
+    // Manor's window opens a server's app route (`appEntryUrl`), not its marketing root.
+    expect(await appWindow.evaluate(() => window.location.href)).toBe(`${serverUrl}/app`);
 
     // So does a server redirect to another site.
     await appWindow.evaluate(
@@ -704,7 +733,7 @@ test("the app window stays on its server when a link redirects to another site",
       elsewhereUrl,
     );
     await expect.poll(openedUrls).toEqual([elsewhereUrl, elsewhereUrl]);
-    await expect(appWindow).toHaveURL(`${serverUrl}/`);
+    await expect(appWindow).toHaveURL(`${serverUrl}/app`);
     await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
 
     // Embedded frames may still follow redirects to other sites.

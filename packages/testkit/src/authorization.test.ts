@@ -86,6 +86,9 @@ describeWithDatabase("API authorization and resource isolation", () => {
     const ownerActor = await rpc<Actor>(app, owner, "me");
     const peerActor = await rpc<Actor>(app, peer, "me");
     const space = await db.space.findUniqueOrThrow({ where: { id: ownerActor.spaceId } });
+    // Manor: a main-portal account acts only in its primary organization, so the peer joins
+    // the owner's as its only one (the trigger on member adds the default-space membership).
+    await db.member.deleteMany({ where: { userId: peerActor.userId } });
     await db.member.create({
       data: {
         id: `routine-keys-member-${stamp}`,

@@ -175,9 +175,10 @@ export async function routineTestTarget(
 /**
  * The run key of a test run. The caller's id keeps another member from ever taking it, and the
  * previous release wrote `routine-test:<client nonce>` as given, so it can never write this prefix.
+ * Manor: keyed on the person, so teammates acting through a shared space account stay apart.
  */
 export function routineTestRunNonce(actor: Actor, clientNonce: string): string {
-  return `routine-run:${actor.userId}:${clientNonce}`;
+  return `routine-run:${actor.initiatedByUserId ?? actor.userId}:${clientNonce}`;
 }
 
 /** Task + run commit together; a run already saved under the nonce fails the insert. */
