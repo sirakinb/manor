@@ -15,8 +15,8 @@ previous stage. CI is the verification gate; the local stack is not run. Product
 deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
-Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`. In
-progress: `v0.5.0`.
+Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
+`v0.5.0`. In progress: `v0.6.0`.
 
 ### How a stage is resolved
 
@@ -202,6 +202,22 @@ progress: `v0.5.0`.
   Manor in every locale: `emailText()` in the auth package does it for emails, and the
   desktop catalogs carry Manor directly.
 - CI stays on `ubuntu-latest`; upstream moved to a runner label Manor does not have.
+- Saved-home retention (upstream, from `v0.6.0`) deletes a remote computer's stored files
+  after a plan ends or the computer goes unused. It runs only with `HOME_RETENTION_ENABLED`
+  set as well as billing (`homeRetentionEnabled` in `apps/api/src/home-retention.ts`), and
+  never touches This Mac computers (kind `local`): they are excluded from the sweep, and their
+  cached copy is kept when a stored home is gone (`home-object-store.ts`).
+- Under Never ask, a bot's own instruction change is refused when the run could have been
+  steered (not started by the owner, or it took in outside content), as with This Mac and
+  shared pages (`prepareOwnBotUpdate` in `run-tool-request.ts`). Ask and Auto are upstream's.
+- Routine and webhook runs cannot create schedules: `schedule_create` is hidden from them
+  (`schedule-tools.ts`) and refused at dispatch (`run-tools.ts`). Upstream now allows it.
+- A push from a bot drawn as Manor's sprite carries no portrait, so the phone shows the app
+  icon; other bots keep upstream's portrait. The sprite colours live in
+  `packages/contracts/src/manor-sprite-colors.ts` (`drawsManorSprite`).
+- Upstream's brighter Executive Violet (`#A97EFE`, the default colour) draws Manor's purple
+  sprite like `#8B5CF6`. Stored bot colours are never remapped.
+- The account-level bot style (upstream's `botAvatarSet`) is not offered in Manor's apps.
 
 ### Deploy checklist for the staged sync
 
@@ -306,6 +322,18 @@ Things the one production deploy at the end must cover, collected as stages land
 - Keep `RAKAZO_DESKTOP_STACK_TOKEN` (single-account mode) unset in production.
 - The iOS widget extension needs the bundle id `com.pentridgemedia.manor.widgets`
   registered before the first iOS build that includes it.
+- Keep `HOME_RETENTION_ENABLED` unset: it would let saved-home retention delete computers'
+  stored files once billing is configured.
+- Pipedream connections that store only the app name (no account) lose their tools until
+  reconnected; upstream dropped the fallback. Count them on the backup first:
+  `SELECT count(*) FROM connections WHERE "connectorId" = 'pipedream' AND status = 'connected'
+  AND "providerRef" = provider;`
+- `20261120120001_runs_bot_id_created_at_idx_concurrent` and
+  `20261120120002_drop_runs_bot_id_idx_concurrent` run outside a transaction. On failure drop
+  any invalid index (`DROP INDEX CONCURRENTLY IF EXISTS "<name>"`), run
+  `prisma migrate resolve --rolled-back <migration>`, then deploy again.
+- Desktop updates on Linux and Windows release builds now need signing keys; a build without
+  a key refuses updates.
 
 ## Standing rules
 

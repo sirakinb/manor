@@ -28,7 +28,10 @@ export const SCHEDULE_TOOL_NAMES = new Set([
   "schedule_cancel",
 ]);
 
-/** A routine run may list or cancel routines, but not write new unattended work. */
+/**
+ * A routine run may list or cancel routines, but not write new unattended work. Manor keeps this
+ * (upstream now offers schedule_create here): dispatch refuses it in routine and webhook runs.
+ */
 const ROUTINE_RUN_HIDDEN_TOOLS = new Set(["schedule_create", "schedule_update"]);
 
 export function filterBuiltinToolsForRun<T extends { name: string }>(

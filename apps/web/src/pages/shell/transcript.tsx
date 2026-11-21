@@ -39,6 +39,7 @@ import { VoiceChatCard } from "../../components/call/VoiceChatCard";
 import type { ArtifactTarget } from "../../lib/artifact-open";
 import { projectPageCards } from "../../lib/page-cards";
 import { lastSelectedText, quoteDraftForSelection } from "../../lib/quote-selection";
+import type { createSpaceRpc } from "../../lib/rpc";
 import { TRANSCRIPT_CONTENT_PADDING } from "../../lib/transcript-layout";
 import { transcriptIsNearEnd, transcriptMovedDown } from "../../lib/transcript-scroll";
 import { TimeSeparator, UnreadDivider } from "./chat-context";
@@ -93,6 +94,7 @@ export const Transcript = memo(function Transcript({
   onSpeak,
   onOpenComputer,
   onOpenImportSetup,
+  rpc,
 }: {
   scrollRef: RefObject<HTMLDivElement | null>;
   scrollRequest: { messageId: string; nonce: number } | null;
@@ -148,6 +150,7 @@ export const Transcript = memo(function Transcript({
   onSpeak: (message: ThreadMessage) => void;
   onOpenComputer: (botId?: string) => void;
   onOpenImportSetup?: (target: ImportSetupTarget) => void;
+  rpc: ReturnType<typeof createSpaceRpc>;
 }) {
   const { t } = useLingui();
   const [atEnd, setAtEnd] = useState(true);
@@ -619,6 +622,7 @@ export const Transcript = memo(function Transcript({
                       onSpeak={onSpeak}
                       onOpenComputer={onOpenComputer}
                       onOpenImportSetup={onOpenImportSetup}
+                      rpc={rpc}
                       onReply={onReply}
                       onMarkUnread={onMarkUnread}
                       onReact={onReact}

@@ -44,6 +44,8 @@ export const KO_MESSAGES: Record<string, string> = {
   "Version {version}": "버전 {version}",
   "Automatic updates are turned off for this install.":
     "이 설치에서는 자동 업데이트가 꺼져 있습니다.",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "이 빌드는 업데이트를 확인할 수 없습니다. 릴리스 페이지에서 최신 Manor를 다운로드하세요.",
   "Automatic updates only run in an installed build.":
     "자동 업데이트는 설치된 빌드에서만 실행됩니다.",
   "No desktop releases are published for this build yet.":

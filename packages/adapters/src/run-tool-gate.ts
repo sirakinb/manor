@@ -229,12 +229,14 @@ export async function gateToolCall(
       (name === "schedule_update" && Boolean(args.prompt))) &&
     (await isRunTainted(ctx)) &&
     (await ctx.trust.routineNamesNewSite(String(args.prompt ?? "")));
-  const { purchase } = request;
+  const { purchase, cardUse } = request;
+  // Typing a saved card is approved like a purchase: every time, by a person.
+  const paying = Boolean(purchase) || Boolean(cardUse);
   // Manor: changing a page shared by link changes what people outside the space see.
   const editsSharedPage = name === "save_page" && (await savesSharedPage(ctx, args));
   const requiresApprovalByDefault =
     request.heldForApproval ||
-    Boolean(purchase) ||
+    paying ||
     editsSharedPage ||
     commandWatch ||
     requiresUnattendedApproval ||
@@ -248,7 +250,7 @@ export async function gateToolCall(
   // A gated read still fails closed when its review errors, and keeps its approval key.
   const gated = requiresApprovalByDefault || connectorReadGated;
   const requiresMandatoryApproval =
-    Boolean(purchase) ||
+    paying ||
     commandWatch ||
     scheduleNamesNewSite ||
     requiresUnattendedApproval ||
@@ -298,12 +300,12 @@ export async function gateToolCall(
         reviewOnly: connectorReadGated,
         checkerConfigured,
         newDestination: siteGate === "new",
-        purchase: Boolean(purchase),
+        purchase: paying,
       });
   // Manor: Never ask still refuses a shared page change that outside content could have asked for.
   const plan = editsSharedPage && steerable && gatePlan === "allow" ? "deny" : gatePlan;
   // Nobody is there to approve a purchase a webhook run reaches.
-  if (purchase && run.trigger === "webhook" && plan !== "deny") {
+  if (paying && run.trigger === "webhook" && plan !== "deny") {
     await auditToolCall(ctx, name, "denied", { reason: "purchase_unattended" });
     return {
       result: {

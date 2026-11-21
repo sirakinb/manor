@@ -17,7 +17,7 @@ import {
 const ORGANIC_COLOR = "#10B981";
 
 describe("BotAvatar", () => {
-  it("renders distinct SVG gradient IDs for concurrent working avatars", () => {
+  it("renders distinct ring gradient IDs for concurrent working avatars", () => {
     const html = renderToString(
       <div>
         <BotAvatar color="#8B5CF6::shape_0" status="running" />
@@ -26,8 +26,8 @@ describe("BotAvatar", () => {
     );
 
     const gradMatches = [...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
-    expect(gradMatches).toHaveLength(4);
-    expect(new Set(gradMatches).size).toBe(4);
+    expect(gradMatches).toHaveLength(2);
+    expect(new Set(gradMatches).size).toBe(2);
     for (const id of gradMatches) {
       expect(id).toBeTruthy();
       expect(html).toContain(`url(#${id})`);
@@ -72,7 +72,7 @@ describe("BotAvatar", () => {
   });
 
   it("resolves explicit colors and shapes", () => {
-    expect(resolvePersonaColorDef("bot", "#10B981").hex.toLowerCase()).toBe("#10b981");
+    expect(resolvePersonaColorDef("bot", "#10B981").hex).toBe("#00C972");
     expect(resolvePersonaColorDef("bot", "#fff").hex).toBe("#fff");
     expect(BOT_AVATAR_COLORS.length).toBeGreaterThan(0);
   });

@@ -83,6 +83,7 @@ import {
   McpOAuthBroker,
   maintenanceControlFromEnv,
   messagingPlatformsFromEnv,
+  ObjectAgentHomeStore,
   PiAgentRuntime,
   PiOAuthLogins,
   PipedreamConnector,
@@ -188,6 +189,8 @@ import type { AppEnv } from "./env.js";
 import { loadEnv } from "./env.js";
 import { createGoogleFormsTokenBroker } from "./google-forms-token-broker.js";
 import { healthRoutes } from "./health.js";
+import { homeRetentionEnabled, homeRetentionSweep } from "./home-retention.js";
+import { startHourlySweep } from "./hourly-sweep.js";
 import { trackInFlightRequests } from "./in-flight-requests.js";
 import type { LocalComputerUpgradeServer } from "./local-computer.js";
 import { attachLocalComputerSocket } from "./local-computer.js";
@@ -210,11 +213,7 @@ import {
   PUBLIC_FORM_PREFIX,
   publicFormAllowsOrigin,
 } from "./public-forms.js";
-import {
-  referralEmailsEnabled,
-  sendReferralEmails,
-  startReferralEmails,
-} from "./referral-email.js";
+import { referralEmailsEnabled, sendReferralEmails } from "./referral-email.js";
 import { mountApiRequestBodyLimits, rpcBodyLimit } from "./request-body-limit.js";
 import { createRouter } from "./router.js";
 import { mountScreenTarget } from "./screen-proxy.js";
@@ -821,7 +820,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
       referralEmailEnabled: env.referralEmailEnabled,
       referralsEnabled: billing?.referralsEnabled,
     })
-      ? startReferralEmails(
+      ? startHourlySweep(
           sendReferralEmails({
             prisma,
             email,
@@ -831,6 +830,27 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
             onError: onEmailError,
           }),
           onEmailError,
+        )
+      : undefined;
+
+  // Self-hosted deployments without billing keep every saved home. Manor: billing alone is not
+  // enough; HOME_RETENTION_ENABLED must be set too.
+  const stopHomeRetention =
+    email &&
+    homeRetentionEnabled({
+      homeRetentionEnabled: env.homeRetentionEnabled,
+      billingConfigured: Boolean(billingProvider),
+      emailConfigured: true,
+      objectStorage: home instanceof ObjectAgentHomeStore,
+    })
+      ? startHourlySweep(
+          homeRetentionSweep({
+            prisma,
+            email,
+            appUrl: new URL("/app", env.webOrigin).href,
+            onError: (error) => getLogger().error("saved home retention failed", error),
+          }),
+          (error) => getLogger().error("saved home retention failed", error),
         )
       : undefined;
 
@@ -1652,6 +1672,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
       await teamChatBridge?.stop();
       await stopInstalledBridges?.();
       await stopReferralEmails?.();
+      await stopHomeRetention?.();
       await reconciler?.stop();
       await oauthTokenUpgrade;
       await mcpArgsMove;

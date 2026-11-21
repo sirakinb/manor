@@ -389,7 +389,7 @@ msgstr "{brandName} pushes CRM changes to URLs you register — in Integrations 
 msgid "{brandName} signs contact events and retries failed deliveries automatically."
 msgstr "{brandName} signs contact events and retries failed deliveries automatically."
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "{commandVariable} is reserved and cannot be used as a command variable. Choose another name."
 msgstr "{commandVariable} is reserved and cannot be used as a command variable. Choose another name."
 
@@ -886,6 +886,7 @@ msgstr "Activity writes require a stable idempotencyKey per action. Repeating th
 
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/SecretAskCard.tsx
 #: src/pages/crm/CrmContacts.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
@@ -914,6 +915,10 @@ msgstr "Add a file or folder to watch"
 #: src/components/ApprovalRulesSettings.tsx
 msgid "Add a model in Settings to use this."
 msgstr "Add a model in Settings to use this."
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Add a note"
+msgstr "Add a note"
 
 #: src/components/PasskeyOffer.tsx
 msgid "Add a passkey for faster sign-in?"
@@ -957,7 +962,6 @@ msgid "Add another"
 msgstr "Add another"
 
 #: src/components/BotCredentialsSettings.tsx
-#: src/components/VaultSettings.tsx
 msgid "Add credential"
 msgstr "Add credential"
 
@@ -977,7 +981,7 @@ msgstr "Add Executor"
 msgid "Add fallback"
 msgstr "Add fallback"
 
-#: src/components/LoginFields.tsx
+#: src/components/vault/LoginFieldsInput.tsx
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Add field"
 msgstr "Add field"
@@ -1020,6 +1024,10 @@ msgstr "Add property"
 #: src/pages/model-settings/providers-section.tsx
 msgid "Add provider"
 msgstr "Add provider"
+
+#: src/components/ApprovalRulesSettings.tsx
+msgid "Add rule"
+msgstr "Add rule"
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Add server"
@@ -1073,6 +1081,8 @@ msgstr "Added"
 msgid "Adding…"
 msgstr "Adding…"
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmForms.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Address"
@@ -1081,6 +1091,10 @@ msgstr "Address"
 #: src/pages/McpServersOverlay.tsx
 msgid "Address after approving"
 msgstr "Address after approving"
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Address line 2"
+msgstr "Address line 2"
 
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
@@ -1141,6 +1155,7 @@ msgstr "AI team"
 msgid "AI tool"
 msgstr "AI tool"
 
+#: src/components/VaultSettings.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/workspace/sections/LeasingSection.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -1329,8 +1344,9 @@ msgstr "Anyone with the link"
 msgid "API & agent access"
 msgstr "API & agent access"
 
-#: src/components/AskCard.tsx
 #: src/components/ComputerProviderSettings.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/kinds.tsx
 #: src/lib/localized-provider-hint.ts
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/model-settings/compatible-key-field.tsx
@@ -1604,7 +1620,7 @@ msgstr "Available in"
 msgid "Available rentals"
 msgstr "Available rentals"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Available to shell commands as {commandVariable}"
 msgstr "Available to shell commands as {commandVariable}"
 
@@ -1636,6 +1652,7 @@ msgstr "Await the next water bill."
 
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
+#: src/components/vault/VaultPageHeader.tsx
 #: src/pages/AdminAccessPage.tsx
 #: src/pages/AdminPluginsPage.tsx
 #: src/pages/Auth.tsx
@@ -1665,11 +1682,11 @@ msgstr "Base URL"
 msgid "Base32 key or otpauth:// link from the site's authenticator setup"
 msgstr "Base32 key or otpauth:// link from the site's authenticator setup"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Basic auth"
 msgstr "Basic auth"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Basic auth ({username})"
 msgstr "Basic auth ({username})"
 
@@ -1677,7 +1694,8 @@ msgstr "Basic auth ({username})"
 msgid "Bd/ba"
 msgstr "Bd/ba"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Bearer token"
@@ -1695,6 +1713,11 @@ msgstr "Bill through Buildium"
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Billing"
 msgstr "Billing"
+
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Billing address"
+msgstr "Billing address"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Billing instructions, this month's city bill, tenant leases, and the next step"
@@ -1956,7 +1979,7 @@ msgstr "Can't read images"
 #: src/components/ModelCredits.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/crm/CrmForms.tsx
@@ -2005,9 +2028,21 @@ msgstr "cancelled"
 msgid "Cancelled"
 msgstr "Cancelled"
 
+#: src/components/vault/kinds.tsx
+msgid "Card"
+msgstr "Card"
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Card number"
+msgstr "Card number"
+
 #: src/pages/Artifacts.tsx
 msgid "Card view"
 msgstr "Card view"
+
+#: src/components/vault/kinds.tsx
+msgid "Cards"
+msgstr "Cards"
 
 #: src/pages/ModelRoleSettings.tsx
 msgid "Change {name}"
@@ -2227,6 +2262,10 @@ msgstr "Choose lease"
 msgid "Choose your app to see its setup instructions."
 msgstr "Choose your app to see its setup instructions."
 
+#: src/components/vault/VaultItemEditor.tsx
+msgid "City"
+msgstr "City"
+
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "City bill"
 msgstr "City bill"
@@ -2248,7 +2287,11 @@ msgstr "Claims the {0} page"
 msgid "Claude subscription"
 msgstr "Claude subscription"
 
-#: src/components/AskCard.tsx
+#: src/pages/shell/computer-panel.tsx
+msgid "Clean up"
+msgstr "Clean up"
+
+#: src/components/SecretAskCard.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Clear"
 msgstr "Clear"
@@ -2391,8 +2434,8 @@ msgstr "Close voice settings"
 msgid "Cloud"
 msgstr "Cloud"
 
-#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Code"
 msgstr "Code"
 
@@ -2431,8 +2474,7 @@ msgstr "Command"
 msgid "Command menu"
 msgstr "Command menu"
 
-#: src/components/AskCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Command variable"
 msgstr "Command variable"
 
@@ -2502,6 +2544,10 @@ msgstr "Computer failed to boot"
 #: src/components/ModelCredits.tsx
 msgid "Computer hours left"
 msgstr "Computer hours left"
+
+#: src/pages/shell/computer-panel.tsx
+msgid "Computer is {percent}% full"
+msgstr "Computer is {percent}% full"
 
 #: src/pages/shell/computer-overlay.tsx
 msgid "Computer is asleep"
@@ -2727,10 +2773,12 @@ msgstr "Connections"
 msgid "Connector"
 msgstr "Connector"
 
+#: src/components/vault/kinds.tsx
 #: src/pages/crm/CrmContacts.tsx
 msgid "Contact"
 msgstr "Contact"
 
+#: src/components/vault/kinds.tsx
 #: src/pages/crm/CrmView.tsx
 #: src/pages/DocsView.tsx
 msgid "Contacts"
@@ -2750,10 +2798,11 @@ msgstr "Contains code to run"
 msgid "Context limit"
 msgstr "Context limit"
 
-#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/SignupSurvey.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/Auth.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/shell/agent-import.tsx
@@ -2784,7 +2833,7 @@ msgstr "Conversations"
 #: src/components/pages/PublicPageShell.tsx
 #: src/components/pages/SharePopover.tsx
 #: src/components/RunLogsPanel.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/AgentConnectionSetup.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/DocsView.tsx
@@ -2795,7 +2844,7 @@ msgstr "Conversations"
 msgid "Copied"
 msgstr "Copied"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
@@ -3516,6 +3565,7 @@ msgid "Could not stop sharing"
 msgstr "Could not stop sharing"
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Could not submit this answer"
 msgstr "Could not submit this answer"
 
@@ -3619,6 +3669,10 @@ msgstr "Couldn't update your timezone"
 #: src/pages/PaymentWalletSettingsPanel.tsx
 msgid "Couldn't update your wallet"
 msgstr "Couldn't update your wallet"
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Country"
+msgstr "Country"
 
 #: src/pages/Board.tsx
 #: src/pages/crm/CrmContacts.tsx
@@ -3756,7 +3810,7 @@ msgstr "Cron expression"
 msgid "Current password"
 msgstr "Current password"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Custom header"
 msgstr "Custom header"
 
@@ -4143,7 +4197,10 @@ msgstr "Disconnecting…"
 #: src/components/AskCard.tsx
 #: src/components/ComputerUpdateProgress.tsx
 #: src/components/PasskeyOffer.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
+#: src/components/vault/VaultItemEditor.tsx
+#: src/pages/shell/computer-panel.tsx
 #: src/pages/shell/message-cards.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -4155,6 +4212,7 @@ msgid "Dismiss error"
 msgstr "Dismiss error"
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Dismissed"
 msgstr "Dismissed"
 
@@ -4309,6 +4367,7 @@ msgstr "Each name can be used once."
 #: src/components/AskCard.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/FilesPanel.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/crm/CrmPipelineBoard.tsx
 #: src/pages/McpServersOverlay.tsx
@@ -4343,6 +4402,8 @@ msgstr "Edit Profile"
 msgid "Edit report"
 msgstr "Edit report"
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AdminAccessPage.tsx
 #: src/pages/Auth.tsx
 #: src/pages/crm/CrmContacts.tsx
@@ -4598,6 +4659,18 @@ msgstr "Expand table"
 #: src/components/CloudAgentCard.tsx
 msgid "expired"
 msgstr "expired"
+
+#: src/components/vault/VaultItemDetail.tsx
+msgid "Expires"
+msgstr "Expires"
+
+#: src/components/vault/kinds.tsx
+msgid "Expires {expiry}"
+msgstr "Expires {expiry}"
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Expiry"
+msgstr "Expiry"
 
 #: src/components/AccountDataSettings.tsx
 #: src/pages/shell/bot-panel.tsx
@@ -4905,6 +4978,11 @@ msgstr "From {0}"
 msgid "From GitHub"
 msgstr "From GitHub"
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Full name"
+msgstr "Full name"
+
 #: src/pages/WindowChrome.tsx
 msgid "Fullscreen"
 msgstr "Fullscreen"
@@ -5051,12 +5129,12 @@ msgstr "Hard bounces"
 msgid "header"
 msgstr "header"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Header \"{header}\""
 msgstr "Header \"{header}\""
 
 #: src/components/ModelHeadersEditor.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Header name"
@@ -5080,11 +5158,11 @@ msgid "Hi, this is how I'll sound when I read replies out loud."
 msgstr "Hi, this is how I'll sound when I read replies out loud."
 
 #: src/components/FilesPanel.tsx
-#: src/components/LoginFields.tsx
+#: src/components/vault/LoginFieldsInput.tsx
 msgid "Hidden"
 msgstr "Hidden"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Hide"
 msgstr "Hide"
 
@@ -5121,6 +5199,7 @@ msgstr "Hold to talk"
 msgid "Hold to talk, release to send"
 msgstr "Hold to talk, release to send"
 
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmView.tsx
 msgid "Home"
 msgstr "Home"
@@ -5453,12 +5532,17 @@ msgstr "Keep your business context organized"
 msgid "key"
 msgstr "key"
 
+#: src/components/vault/kinds.tsx
+msgid "Keys"
+msgstr "Keys"
+
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Knowledge"
 msgstr "Knowledge"
 
 #: src/components/BotCredentialsSettings.tsx
-#: src/components/LoginFields.tsx
+#: src/components/vault/LoginFieldsInput.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
 msgid "Label"
 msgstr "Label"
@@ -5742,6 +5826,14 @@ msgstr "Local computer access requires the latest desktop app."
 msgid "Log out"
 msgstr "Log out"
 
+#: src/components/vault/kinds.tsx
+msgid "Login"
+msgstr "Login"
+
+#: src/components/vault/kinds.tsx
+msgid "Logins"
+msgstr "Logins"
+
 #: src/components/BotCredentialsSettings.tsx
 msgid "Logins this bot may use on its computer. Passwords and 2FA seeds are stored encrypted and typed for the bot, never shown to it."
 msgstr "Logins this bot may use on its computer. Passwords and 2FA seeds are stored encrypted and typed for the bot, never shown to it."
@@ -5765,10 +5857,6 @@ msgstr "Low"
 #: src/lib/model-catalog.ts
 msgid "Low"
 msgstr "Low"
-
-#: src/components/VaultSettings.tsx
-msgid "Lowercase letters, numbers, hyphens and underscores, starting with a letter."
-msgstr "Lowercase letters, numbers, hyphens and underscores, starting with a letter."
 
 #: src/pages/CrmApiAccessPanel.tsx
 msgid "Machine credentials"
@@ -6256,7 +6344,7 @@ msgstr "My computers"
 
 #: src/components/FilesPanel.tsx
 #: src/components/teach/SkillDraftCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Auth.tsx
 #: src/pages/crm/CrmContacts.tsx
@@ -6273,6 +6361,11 @@ msgstr "My computers"
 #: src/pages/SpaceSettingsPanel.tsx
 msgid "Name"
 msgstr "Name"
+
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Name on card"
+msgstr "Name on card"
 
 #: src/pages/UserGuide.tsx
 msgid "Name the records and time period you want reviewed. For example: “Review these open inquiries, group them by next step, and cite the record for each recommendation.” Confirm that the agent can access the source, then check its findings against the records before applying changes."
@@ -6307,6 +6400,7 @@ msgstr "Needs an answer"
 msgid "Needs an OAuth client ID"
 msgstr "Needs an OAuth client ID"
 
+#: src/pages/ActivityList.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Needs attention"
 msgstr "Needs attention"
@@ -6337,9 +6431,14 @@ msgstr "Needs: {names}"
 msgid "Never ask"
 msgstr "Never ask"
 
+#: src/components/VaultSettings.tsx
 #: src/pages/shell/chat-context.tsx
 msgid "New"
 msgstr "New"
+
+#: src/components/VaultSettings.tsx
+msgid "New API key"
+msgstr "New API key"
 
 #: src/pages/Shell.tsx
 #: src/pages/shell/bot-picker.tsx
@@ -6351,10 +6450,15 @@ msgstr "New bot"
 msgid "New branch"
 msgstr "New branch"
 
+#: src/components/VaultSettings.tsx
+msgid "New card"
+msgstr "New card"
+
 #: src/components/ComputerProviderSettings.tsx
 msgid "New computers run on"
 msgstr "New computers run on"
 
+#: src/components/VaultSettings.tsx
 #: src/pages/crm/CrmContacts.tsx
 msgid "New contact"
 msgstr "New contact"
@@ -6391,6 +6495,10 @@ msgstr "New group"
 #: src/pages/shell/bot-picker.tsx
 msgid "New group chat"
 msgstr "New group chat"
+
+#: src/components/VaultSettings.tsx
+msgid "New login"
+msgstr "New login"
 
 #: src/pages/shell/chat-context.tsx
 msgid "New messages"
@@ -6442,6 +6550,10 @@ msgstr "New tag"
 #: src/pages/Board.tsx
 msgid "New ticket"
 msgstr "New ticket"
+
+#: src/components/VaultSettings.tsx
+msgid "New variable"
+msgstr "New variable"
 
 #. placeholder {0}: formatDateTime(automation.nextRunAt)
 #. placeholder {0}: formatDateTime(nextRunFor(pipe.automationKey))
@@ -6578,12 +6690,17 @@ msgid "No leases expire soon"
 msgstr "No leases expire soon"
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "No longer active"
 msgstr "No longer active"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "No managed app catalog is configured on this deployment."
 msgstr "No managed app catalog is configured on this deployment."
+
+#: src/components/VaultSettings.tsx
+msgid "No matches"
+msgstr "No matches"
 
 #: src/pages/Artifacts.tsx
 msgid "No matching artifacts on this page."
@@ -6716,6 +6833,10 @@ msgstr "No workspace is connected to this account."
 msgid "Nobody matches that search"
 msgstr "Nobody matches that search"
 
+#: src/components/vault/VaultItemEditor.tsx
+msgid "None"
+msgstr "None"
+
 #: src/components/VerificationComparison.tsx
 msgid "None in this period."
 msgstr "None in this period."
@@ -6815,10 +6936,7 @@ msgstr "Notifications"
 msgid "Notify"
 msgstr "Notify"
 
-#: src/pages/ActivityList.tsx
-msgid "Now"
-msgstr "Now"
-
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Number"
 msgstr "Number"
@@ -6910,7 +7028,7 @@ msgstr "One-time purchase. Credits do not expire."
 msgid "Only an admin can change a local MCP server."
 msgstr "Only an admin can change a local MCP server."
 
-#: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Only enter a code {codeHost} sent you."
 msgstr "Only enter a code {codeHost} sent you."
 
@@ -7240,10 +7358,11 @@ msgstr "Passkeys"
 msgid "password"
 msgstr "password"
 
-#: src/components/AskCard.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/ConfirmIdentityDialog.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Auth.tsx
 msgid "Password"
@@ -7360,6 +7479,8 @@ msgstr "Personal"
 msgid "Personal — only you"
 msgstr "Personal — only you"
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmContacts.tsx
 #: src/pages/crm/CrmContactsSheet.tsx
 #: src/pages/crm/CrmModuleSheet.tsx
@@ -7935,9 +8056,9 @@ msgstr "Reload file"
 #: src/components/ApprovalRulesSettings.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/integrations/plugin-marketplace.tsx
-#: src/components/LoginFields.tsx
 #: src/components/TrustedLinkSitesSettings.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/LoginFieldsInput.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/ModelRoleSettings.tsx
@@ -7968,7 +8089,7 @@ msgstr "Remove {0} from the group"
 msgid "Remove {address}"
 msgstr "Remove {address}"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Remove {secretName}? Bots will no longer be able to use it."
 msgstr "Remove {secretName}? Bots will no longer be able to use it."
 
@@ -8085,13 +8206,12 @@ msgstr "Replace API key"
 msgid "Replace key"
 msgstr "Replace key"
 
-#: src/components/VaultSettings.tsx
-msgid "Replace value"
-msgstr "Replace value"
-
-#: src/components/AskCard.tsx
-msgid "Replaces the login saved for {replacedSite}"
-msgstr "Replaces the login saved for {replacedSite}"
+#. placeholder {0}: block.replaces.origin
+#. placeholder {0}: initial.replacedSite
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Replaces the login saved for {0}"
+msgstr "Replaces the login saved for {0}"
 
 #: src/components/VerificationComparison.tsx
 msgid "Replies"
@@ -8432,12 +8552,14 @@ msgstr "Sat"
 msgid "Saturday"
 msgstr "Saturday"
 
-#: src/components/AskCard.tsx
+#: src/components/ApprovalRulesSettings.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/ComputerProviderSettings.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/PasskeySettings.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Board.tsx
 #: src/pages/crm/CrmContacts.tsx
@@ -8464,17 +8586,9 @@ msgstr "Save"
 msgid "Save city bill"
 msgstr "Save city bill"
 
-#: src/components/VaultSettings.tsx
-msgid "Save credential"
-msgstr "Save credential"
-
 #: src/pages/DocsView.tsx
 msgid "Save durable findings with workspace_set_context and reusable work with workspace_save_skill. Log the outcome and artifact links with workspace_log_activity so the next agent can pick up where you stopped."
 msgstr "Save durable findings with workspace_set_context and reusable work with workspace_save_skill. Log the outcome and artifact links with workspace_log_activity so the next agent can pick up where you stopped."
-
-#: src/components/VaultSettings.tsx
-msgid "Save new value"
-msgstr "Save new value"
 
 #: src/pages/AgentConnectionSetup.tsx
 msgid "Save the file, then open Cursor’s MCP settings to check the connection."
@@ -8484,12 +8598,12 @@ msgstr "Save the file, then open Cursor’s MCP settings to check the connection
 msgid "Save the workspace and install current software."
 msgstr "Save the workspace and install current software."
 
-#: src/components/AskCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Save to Vault"
 msgstr "Save to Vault"
 
-#: src/components/AskCard.tsx
 #: src/components/ComputerProviderSettings.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/ExternalConversationSettings.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
@@ -8516,10 +8630,10 @@ msgstr "Saving your workspace"
 msgid "Saving..."
 msgstr "Saving..."
 
-#: src/components/AskCard.tsx
 #: src/components/FilesPanel.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmForms.tsx
 #: src/pages/GroupPanel.tsx
 #: src/pages/McpServersOverlay.tsx
@@ -8572,6 +8686,7 @@ msgid "Screen not connected"
 msgstr "Screen not connected"
 
 #: src/components/FoundModelPicker.tsx
+#: src/components/VaultSettings.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/model-settings/providers-section.tsx
 #: src/pages/model-settings/role-model-picker.tsx
@@ -8648,6 +8763,10 @@ msgstr "Search runs"
 msgid "Search skills"
 msgstr "Search skills"
 
+#: src/components/VaultSettings.tsx
+msgid "Search Vault"
+msgstr "Search Vault"
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -8669,6 +8788,11 @@ msgstr "Security"
 #: src/pages/PluginsOverlay.tsx
 msgid "Security & Ops"
 msgstr "Security & Ops"
+
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Security code"
+msgstr "Security code"
 
 #: src/components/BotCredentialsSettings.tsx
 msgid "Security question answers, account number, sign-in hints"
@@ -8760,10 +8884,13 @@ msgid "Senders that cannot set headers (cal.com, form builders) can append the k
 msgstr "Senders that cannot set headers (cal.com, form builders) can append the key to the URL instead: <0>?token=<webhook key></0>. Bodies are limited to 64 KB; a <1>text</1> field is delivered verbatim, anything else is passed as JSON. Repeat deliveries with the same <2>Idempotency-Key</2> header (or payload <3>id</3>/<4>event_id</4>) are deduplicated."
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Sending…"
 msgstr "Sending…"
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 #: src/pages/workspace/sections/EmailSection.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Sent"
@@ -8914,6 +9041,7 @@ msgstr "Sharing…"
 msgid "Sheet"
 msgstr "Sheet"
 
+#: src/components/vault/VaultItemDetail.tsx
 #: src/components/VaultSettings.tsx
 msgid "Show"
 msgstr "Show"
@@ -9053,7 +9181,8 @@ msgid "Sign-off"
 msgstr "Sign-off"
 
 #: src/components/BotCredentialsSettings.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Site"
 msgstr "Site"
 
@@ -9312,6 +9441,10 @@ msgstr "Starting…"
 #: src/pages/crm/CrmForms.tsx
 msgid "Starts"
 msgstr "Starts"
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "State or region"
+msgstr "State or region"
 
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Stats"
@@ -9705,6 +9838,7 @@ msgstr "These files are too large to import."
 msgid "These files or choices no longer match. Choose the files again."
 msgstr "These files or choices no longer match. Choose the files again."
 
+#: src/components/vault/VaultItemDetail.tsx
 #: src/components/VaultSettings.tsx
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr "These saved settings can't be read. Remove it and add it again."
@@ -10013,6 +10147,7 @@ msgstr "Tool arguments must be a JSON object"
 msgid "Tool arguments must be JSON"
 msgstr "Tool arguments must be JSON"
 
+#: src/components/ApprovalRulesSettings.tsx
 #: src/pages/RoutineEditor.tsx
 msgid "Tool name"
 msgstr "Tool name"
@@ -10141,7 +10276,8 @@ msgstr "Turn on Compare checkers to see both engines on the same checks."
 msgid "Turn these inquiry notes into a follow-up plan. For each inquiry, list the request, missing information, and next step. Draft a short reply for me to review. Ask if anything is unclear, and don’t send any messages."
 msgstr "Turn these inquiry notes into a follow-up plan. For each inquiry, list the request, missing information, and next step. Draft a short reply for me to review. Ask if anything is unclear, and don’t send any messages."
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/workspace/sections/LeasingSection.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Type"
@@ -10218,6 +10354,10 @@ msgstr "Unopened"
 msgid "Unpin"
 msgstr "Unpin"
 
+#: src/pages/ActivityList.tsx
+msgid "Unread"
+msgstr "Unread"
+
 #: src/pages/workspace/sections/EmailSection.tsx
 msgid "Unsubscribe rate"
 msgstr "Unsubscribe rate"
@@ -10280,10 +10420,6 @@ msgstr "Update required"
 msgid "Updated {0}"
 msgstr "Updated {0}"
 
-#: src/components/VaultSettings.tsx
-msgid "Updated {updated}"
-msgstr "Updated {updated}"
-
 #: src/pages/settings-nav.ts
 msgid "Updates"
 msgstr "Updates"
@@ -10334,7 +10470,6 @@ msgstr "URL"
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 
-#: src/components/SidebarFooter.tsx
 #: src/pages/settings-nav.ts
 msgid "Usage"
 msgstr "Usage"
@@ -10422,8 +10557,9 @@ msgstr "Use up to 512 letters, digits, _ or -."
 msgid "User peer"
 msgstr "User peer"
 
-#: src/components/AskCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Username"
 msgstr "Username"
 
@@ -10470,8 +10606,9 @@ msgstr "Utilities view"
 msgid "Utility portal, bank, property software…"
 msgstr "Utility portal, bank, property software…"
 
-#: src/components/LoginFields.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/LoginFieldsInput.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/McpServersOverlay.tsx
 msgid "Value"
 msgstr "Value"
@@ -10483,6 +10620,19 @@ msgstr "Value (USD)"
 #: src/pages/crm/CrmHome.tsx
 msgid "Value distribution"
 msgstr "Value distribution"
+
+#: src/components/vault/kinds.tsx
+#: src/components/vault/VaultItemDetail.tsx
+msgid "Variable"
+msgstr "Variable"
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Variable name"
+msgstr "Variable name"
+
+#: src/components/vault/kinds.tsx
+msgid "Variables"
+msgstr "Variables"
 
 #: src/pages/settings-nav.ts
 #: src/pages/SpaceSettingOverrides.tsx
@@ -10620,10 +10770,6 @@ msgstr "Webhook name"
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 
-#: src/components/VaultSettings.tsx
-msgid "Website login"
-msgstr "Website login"
-
 #: src/pages/workspace/bits.tsx
 msgid "Wed"
 msgstr "Wed"
@@ -10729,6 +10875,8 @@ msgid "When to run"
 msgstr "When to run"
 
 #: src/components/teach/SkillDraftCard.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "When to use"
 msgstr "When to use"
 
@@ -10759,6 +10907,10 @@ msgstr "Won't do"
 #: src/components/SignupSurvey.tsx
 msgid "Work"
 msgstr "Work"
+
+#: src/pages/ActivityList.tsx
+msgid "Working"
+msgstr "Working"
 
 #: src/pages/shell/agent-import.tsx
 msgid "Working instructions"
@@ -10875,6 +11027,10 @@ msgstr "Your app must support Streamable HTTP and custom headers. Manor uses a t
 msgid "Your card is charged {annualPrice} today, less the unused part of this month."
 msgstr "Your card is charged {annualPrice} today, less the unused part of this month."
 
+#: src/pages/Shell.tsx
+msgid "Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need."
+msgstr "Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need."
+
 #: src/components/AccountDataSettings.tsx
 msgid "Your data"
 msgstr "Your data"
@@ -10941,3 +11097,7 @@ msgstr "Your voice provider is out of credit."
 #: src/lib/user-error.ts
 msgid "Your voice provider key was rejected."
 msgstr "Your voice provider key was rejected."
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "ZIP or postal code"
+msgstr "ZIP or postal code"

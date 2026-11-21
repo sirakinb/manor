@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { Bot, BotSection, Group, Space } from "@rakazo/contracts";
+import type { Bot, BotAvatarSet, BotSection, Group, Space } from "@rakazo/contracts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,6 +101,7 @@ export function ShellDialogs({
   openSpaceSettings,
   closeMobileSidebar,
   createBot,
+  botAvatarSet,
   clearOpenThread,
   deleteRoutineDialogProps,
   localComputer,
@@ -120,6 +121,8 @@ export function ShellDialogs({
   openSpaceSettings: (spaceId: string) => void;
   closeMobileSidebar: () => void;
   createBot: (input: CreateBotDialogInput) => Promise<void>;
+  /** The account's set, which a new bot takes. */
+  botAvatarSet: BotAvatarSet;
   clearOpenThread: () => void;
   deleteRoutineDialogProps: ComponentProps<typeof DeleteItemDialog> | null;
   /** Manor: this Mac's live session, offered as a computer for the new bot. */
@@ -332,6 +335,7 @@ export function ShellDialogs({
 
       {createBotOpen ? (
         <CreateBotDialog
+          avatarSet={botAvatarSet}
           onCancel={() => setCreateBotOpen(false)}
           onCreate={createBot}
           localComputer={localComputer}

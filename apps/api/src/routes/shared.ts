@@ -8,7 +8,12 @@ import {
   selectConfiguredModel,
 } from "@rakazo/adapters";
 import type { Actor, Me } from "@rakazo/contracts";
-import { attachmentMaxBytes, attachmentMaxCount, canonicalPiProviderId } from "@rakazo/contracts";
+import {
+  attachmentMaxBytes,
+  attachmentMaxCount,
+  canonicalPiProviderId,
+  resolveBotAvatarSet,
+} from "@rakazo/contracts";
 import { spaceResourceActor } from "@rakazo/db";
 import { isAdmin } from "../admins.js";
 import { effectiveSandboxProvider } from "../computer-provider-config.js";
@@ -35,6 +40,7 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
         name: true,
         timezone: true,
         locale: true,
+        botAvatarSet: true,
         signupSurvey: { select: { userId: true } },
       },
     }),
@@ -78,6 +84,7 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
         allowedCommands: deps.env.mcpStdioAllowedCommands,
       }),
     avatarStyle: "organic",
+    botAvatarSet: resolveBotAvatarSet(user.botAvatarSet),
     timezone: user.timezone ?? null,
     locale: user.locale ?? null,
     localComputer: await localComputerLiveSession(deps.prisma, actor),

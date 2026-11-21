@@ -43,6 +43,8 @@ export const HE_MESSAGES: Record<string, string> = {
   "Manor is up to date.": "Manor מעודכן.",
   "Version {version}": "גרסה {version}",
   "Automatic updates are turned off for this install.": "העדכונים האוטומטיים כבויים בהתקנה הזו.",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "גרסה זו לא יכולה לאמת עדכונים. הורידו את Manor העדכנית מדף הגרסאות.",
   "Automatic updates only run in an installed build.": "עדכונים אוטומטיים פועלים רק בגרסה מותקנת.",
   "No desktop releases are published for this build yet.":
     "עדיין לא פורסמו גרסאות שולחן עבודה עבור ה-build הזה.",

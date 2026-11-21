@@ -178,6 +178,7 @@ export const BotSchema = z.object({
   threadId: Id,
   preview: z.string(),
   status: z.string(),
+  threadStatus: z.string().optional(),
   runErrorId: Id.nullable().default(null),
   computerMode: ComputerModeSchema,
   updatedAt: z.string(),
@@ -333,6 +334,7 @@ export const SpaceBotSchema = BotSchema.pick({
   parentBotId: true,
   preview: true,
   status: true,
+  threadStatus: true,
   runErrorId: true,
   updatedAt: true,
 });
@@ -470,6 +472,7 @@ export const CreateBotInput = z.object({
   dailyCheckIns: z.boolean().optional(),
   fleetManagement: z.boolean().optional(),
   color: BotAvatarValueSchema.optional(),
+  /** Ignored: a new bot takes its owner's set. Older apps still send one. */
   avatarSet: BotAvatarSetSchema.optional(),
   /** Organic body family (0-9); the server picks a matching id unless one is reserved. */
   avatarFamily: z.number().int().min(0).max(9).optional(),
@@ -1528,6 +1531,8 @@ export const ComputerStatusSchema = z.object({
   busyBotName: z.string().nullable(),
   canUpdate: z.boolean(),
   terminalAvailable: z.boolean(),
+  /** Set only while the user should see that the disk is nearly full. */
+  diskFullPercent: z.number().int().min(0).max(100).optional(),
 });
 export type ComputerStatus = z.infer<typeof ComputerStatusSchema>;
 
@@ -2209,6 +2214,8 @@ export const MeSchema = z.object({
   mcpStdioEnabled: z.boolean().default(false),
   avatarStyle: AvatarStyleSchema,
   localComputer: LocalComputerLiveSessionSchema,
+  /** The icon set new and unpinned bots wear. Absent from servers that predate it. */
+  botAvatarSet: BotAvatarSetSchema.optional(),
   /**
    * The user's IANA timezone, or null when unset (bots then see UTC only).
    * Absent from servers that predate it.
@@ -2235,6 +2242,8 @@ export const BYOK_MONTHLY_PRICE_CENTS: number | null = 1500;
  * is written for a plural number of weeks, so check its wording in every language if this changes.
  */
 export const INVITED_TRIAL_WEEKS = 2;
+/** Length of a new organization's free trial of the own-model plan, in days. */
+export const TRIAL_DAYS = 7;
 /** Yearly price in cents of the same plan; `null` offers it monthly only. */
 export const BYOK_ANNUAL_PRICE_CENTS: number | null = 14400;
 export const ByokIntervalSchema = z.enum(["month", "year"]);

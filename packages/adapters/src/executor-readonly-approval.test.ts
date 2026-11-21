@@ -1594,15 +1594,29 @@ describe("own instructions through update_bot", () => {
     expect(f.pauseRunForInput).not.toHaveBeenCalled();
     expect(f.instructionState.instructions).toBe(first);
   });
+  // Manor: Never ask refuses an instruction change a run someone else could have steered.
   it.each(["user", "bot_message"])(
-    "applies a change in Never ask after outside content in a %s run",
+    "refuses a change in Never ask after outside content in a %s run",
     async (trigger) => {
       const f = fixture({ name: "update_bot", builtin: true, skipApprovals: true, trigger });
       f.claimedOutsideSteering(true);
       f.setCalls([{ args: { instructions: first }, executionId: "call-1" }]);
       await f.run();
       expect(f.pauseRunForInput).not.toHaveBeenCalled();
-      expect(f.instructionState.instructions).toBe(first);
+      expect(f.results[0]).toEqual({ error: expect.stringContaining("this space never asks") });
+      expect(f.instructionState.instructions).toBe("Draft only");
+      expect(f.instructionState.instructionHistory).toHaveLength(0);
+    },
+  );
+  it.each(["webhook", "routine", "created"])(
+    "Manor: refuses a change in Never ask in a %s run the owner did not start",
+    async (trigger) => {
+      const f = fixture({ name: "update_bot", builtin: true, skipApprovals: true, trigger });
+      f.setCalls([{ args: { instructions: first }, executionId: "call-1" }]);
+      await f.run();
+      expect(f.pauseRunForInput).not.toHaveBeenCalled();
+      expect(f.results[0]).toEqual({ error: expect.stringContaining("this space never asks") });
+      expect(f.instructionState.instructions).toBe("Draft only");
     },
   );
   it("completes a stale approved change with an error", async () => {
@@ -1676,6 +1690,57 @@ describe("own instructions through update_bot", () => {
     expect(f.results[1]).toEqual({ error: expect.stringContaining("Instructions changed") });
     expect(f.instructionState.instructions).toBe("Imported profile");
     expect(f.instructionState.instructionHistory).toHaveLength(0);
+  });
+  it("reads long instructions in pages the model can follow to the end", async () => {
+    const long = "Keep receipts for every claim. ".repeat(650);
+    const f = fixture({ name: "update_bot", builtin: true });
+    f.instructionState.instructions = long;
+    f.setCalls([
+      { args: {}, executionId: "call-1" },
+      { args: { instructions_offset: 8_000 }, executionId: "call-2" },
+      { args: { instructions_offset: 16_000 }, executionId: "call-3" },
+    ]);
+    await f.run();
+    expect(f.results[0]).toMatchObject({
+      instructions: long.slice(0, 8_000),
+      instructionsLength: long.length,
+      instructionsOffset: 0,
+      instructionsNextOffset: 8_000,
+    });
+    expect(f.results[1]).toMatchObject({
+      instructions: long.slice(8_000, 16_000),
+      instructionsOffset: 8_000,
+      instructionsNextOffset: 16_000,
+    });
+    expect(f.results[2]).toMatchObject({
+      instructions: long.slice(16_000),
+      instructionsOffset: 16_000,
+      instructionsNextOffset: null,
+    });
+    expect(f.results.map((page) => (page as { instructions: string }).instructions).join("")).toBe(
+      long,
+    );
+  });
+  it("rejects an instructions offset that is not a plain read", async () => {
+    const f = fixture({ name: "update_bot", builtin: true });
+    const long = "x".repeat(19_000);
+    f.instructionState.instructions = long;
+    f.setCalls([
+      { args: { instructions_offset: -1 }, executionId: "call-1" },
+      { args: { instructions_offset: 1.5 }, executionId: "call-2" },
+      { args: { instructions_offset: 0, name: "New name" }, executionId: "call-3" },
+      { args: { instructions_offset: 19_000 }, executionId: "call-4" },
+    ]);
+    await f.run();
+    expect(f.results).toEqual([
+      { error: "instructions_offset must be a whole number of 0 or more." },
+      { error: "instructions_offset must be a whole number of 0 or more." },
+      {
+        error: "instructions_offset only works on a read: call update_bot with no other fields.",
+      },
+      { error: "instructions_offset is past the end of your instructions." },
+    ]);
+    expect(f.instructionState.instructions).toBe(long);
   });
   it("applies a second instruction change later in the same run", async () => {
     const f = fixture({ name: "update_bot", builtin: true, skipApprovals: true });

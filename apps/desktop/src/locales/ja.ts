@@ -44,6 +44,8 @@ export const JA_MESSAGES: Record<string, string> = {
   "Version {version}": "バージョン{version}",
   "Automatic updates are turned off for this install.":
     "このインストールでは自動アップデートがオフになっています。",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "このビルドはアップデートを検証できません。リリースページから最新の Manor をダウンロードしてください。",
   "Automatic updates only run in an installed build.":
     "自動アップデートはインストール済みのビルドでのみ動作します。",
   "No desktop releases are published for this build yet.":

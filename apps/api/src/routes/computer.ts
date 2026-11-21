@@ -13,6 +13,7 @@ import {
   computerSupportsTerminal,
   computerSupportsUpdate,
   computerUpdateView,
+  diskUsedPercent,
   displayBotWorkspacePath,
   enqueueTakeoverContinuation,
   ensureComputerWorkspaceLayout,
@@ -337,6 +338,19 @@ export function computerRoutes(ctx: RouterContext) {
         });
         return { ok: true as const };
       }),
+      dismissDiskWarning: spaceAuthed.computer.dismissDiskWarning.handler(
+        async ({ context, input }) => {
+          const computer = (await repos.getBot(context.actor, input.botId)).computer;
+          const percent = computer ? diskUsedPercent(computer) : null;
+          if (computer && percent !== null) {
+            await deps.prisma.computer.updateMany({
+              where: { id: computer.id },
+              data: { diskDismissedPercent: percent },
+            });
+          }
+          return { ok: true as const };
+        },
+      ),
       takeover: spaceAuthed.computer.takeover.handler(async ({ context, input }) => {
         let bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer?.providerRef || bot.computer.state !== "running") {

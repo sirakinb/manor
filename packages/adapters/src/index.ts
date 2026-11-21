@@ -17,11 +17,16 @@ export * from "./bot-avatar.js";
 export * from "./bot-credentials.js";
 export * from "./bot-messages.js";
 export {
+  defaultVaultItemTitle,
   forgetBotSecret,
   getBotSecretMetadata,
+  isSecretAlreadySaved,
   listBotSecretMetadata,
+  listVaultItems,
+  newVaultItemName,
   normalizeSecretDestination,
   pageUrlOrigin,
+  relabelVaultItem,
   revealBotSecret,
   SPACE_VAULT_NOT_IN_USE,
   storeBotSecret,
@@ -50,6 +55,7 @@ export * from "./composio-connector.js";
 export * from "./composio-fake.js";
 export * from "./computer-browser.js";
 export * from "./computer-control.js";
+export * from "./computer-disk.js";
 export * from "./computer-idle.js";
 export * from "./computer-lifecycle.js";
 export * from "./computer-provider-descriptor.js";

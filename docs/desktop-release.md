@@ -61,17 +61,48 @@ form does not match.
 | `DESKTOP_WIN_SIGNING_PROFILE` | The certificate profile name |
 | `DESKTOP_WIN_PUBLISHER` | The certificate's common name, exactly as validated |
 
-When `DESKTOP_WIN_AZURE_CLIENT_ID` is unset the Windows installer ships
-unsigned, and Windows shows a SmartScreen warning on first launch. Unsigned
-builds carry no publisher in their update config, so they accept the first
-signed update; from then on updates must match the publisher. The release is
-only published when every platform produced its installer and update feed.
+Windows builds are always signed: there is no unsigned installer, and the
+release stops if any Windows setting is missing. The release is only published
+when every platform produced its installer and update feed.
 
 Set a secret from a file without echoing it:
 
 ```sh
 base64 -i devid.p12 | gh secret set DESKTOP_MAC_CSC_LINK
 gh secret set APPLE_API_KEY_P8 < AuthKey_XXXXXXXXXX.p8
+```
+
+## Signing
+
+Set these up before the next desktop release. The build job checks each
+platform's settings before it installs anything and names any that are
+missing.
+
+- **macOS:** `DESKTOP_MAC_CSC_LINK`, `DESKTOP_MAC_CSC_KEY_PASSWORD`,
+  `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` and `APPLE_API_KEY_P8` (secrets, see
+  above). `DESKTOP_MAC_PROVISIONING_PROFILE` is optional and only adds the
+  system passkey association.
+- **Windows:** Azure Artifact Signing with the `desktop-release` environment,
+  the secrets `DESKTOP_WIN_AZURE_TENANT_ID` and `DESKTOP_WIN_AZURE_CLIENT_ID`,
+  and the variables `DESKTOP_WIN_SIGNING_ENDPOINT`,
+  `DESKTOP_WIN_SIGNING_ACCOUNT`, `DESKTOP_WIN_SIGNING_PROFILE` and
+  `DESKTOP_WIN_PUBLISHER` (see above).
+- **Linux:** an Ed25519 key pair for AppImage update signatures. Store the
+  private key (PEM) as the secret `DESKTOP_LINUX_UPDATE_SIGNING_KEY` and the
+  public key (PEM) as the variable `DESKTOP_LINUX_UPDATE_PUBLIC_KEY`. The
+  build compiles the public key into the app (`RAKAZO_LINUX_UPDATE_PUBLIC_KEY`),
+  and each release publishes `<AppImage>.sig` beside the AppImage in
+  `sirakinb/manor-desktop`. An installed Linux build downloads an update only
+  when it has the key, and installs it only when the signature checks out. A
+  build made without the key offers no Linux updates and says so in its update
+  status. Changing the key later strands installs made with the old one, so
+  keep the private key backed up.
+
+```sh
+openssl genpkey -algorithm ed25519 -out linux-update.pem
+openssl pkey -in linux-update.pem -pubout -out linux-update.pub.pem
+gh secret set DESKTOP_LINUX_UPDATE_SIGNING_KEY < linux-update.pem
+gh variable set DESKTOP_LINUX_UPDATE_PUBLIC_KEY < linux-update.pub.pem
 ```
 
 ## Cut a release

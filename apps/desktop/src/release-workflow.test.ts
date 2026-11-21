@@ -56,22 +56,15 @@ describe("desktop release workflow", () => {
     );
   });
 
-  it("always builds Windows and signs it once Azure Artifact Signing is configured", () => {
-    expect(workflow).toContain(
-      `WINDOWS_SIGNING: ${expression("secrets.DESKTOP_WIN_AZURE_CLIENT_ID != ''")}`,
-    );
+  it("always signs Windows with Azure Artifact Signing and has no unsigned fallback", () => {
+    expect(workflow).toContain('test -n "$AZURE_CLIENT_ID"');
+    expect(workflow).not.toMatch(/windows_signed|WINDOWS_SIGNING|unsigned/i);
     expect(workflow).not.toContain("AZURE_CLIENT_SECRET");
     expect(workflow).toContain("environment: desktop-release");
     expect(workflow).toContain("id-token: write");
     expect(workflow).toContain("azure/login@");
     expect(workflow).toContain("TimeStamperCertificate");
-    expect(workflow).toContain(
-      "if: runner.os == 'Windows' && needs.validate.outputs.windows_signed == 'true'",
-    );
-    expect(workflow).toContain(
-      "if: runner.os == 'Windows' && needs.validate.outputs.windows_signed != 'true'",
-    );
-    expect(workflow).toContain("Unsigned Windows update config names a publisher.");
+    expect(workflow.match(/--win --x64/g)).toHaveLength(1);
     for (const option of [
       "endpoint",
       "codeSigningAccountName",
@@ -90,6 +83,44 @@ describe("desktop release workflow", () => {
     expect(workflow.split("windows-2022")).toHaveLength(2);
     expect(workflow).toContain("test -f release-artifacts/latest.yml");
     expect(workflow).toContain("compgen -G 'release-artifacts/*.exe' >/dev/null");
+  });
+
+  it("signs every Linux AppImage and publishes its signature", () => {
+    expect(workflow).toContain(
+      `SIGNING_KEY: ${expression("secrets.DESKTOP_LINUX_UPDATE_SIGNING_KEY")}`,
+    );
+    expect(workflow).toMatch(/if \[\[ -z "\$SIGNING_KEY" \]\]; then\n.*\n\s+exit 1/);
+    expect(workflow).toContain(`trap 'rm -f "$key"' EXIT`);
+    expect(workflow).toContain('chmod 600 "$key"');
+    expect(workflow).toContain("pnpm exec tsx apps/desktop/scripts/sign-linux-update.ts");
+    expect(workflow).toContain("apps/desktop/out/*.AppImage.sig");
+    expect(workflow).toContain('if [[ ! -s "$image.sig" ]]; then');
+  });
+
+  it("names missing Linux and Windows signing settings before installing or building", () => {
+    const check = workflow.indexOf("- name: Require release signing settings");
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(workflow.indexOf("- run: pnpm install --frozen-lockfile"));
+    for (const setting of [
+      "secrets.DESKTOP_LINUX_UPDATE_SIGNING_KEY",
+      "vars.DESKTOP_LINUX_UPDATE_PUBLIC_KEY",
+      "secrets.DESKTOP_WIN_AZURE_CLIENT_ID",
+      "secrets.DESKTOP_WIN_AZURE_TENANT_ID",
+      "vars.DESKTOP_WIN_SIGNING_ENDPOINT",
+      "vars.DESKTOP_WIN_SIGNING_ACCOUNT",
+      "vars.DESKTOP_WIN_SIGNING_PROFILE",
+      "vars.DESKTOP_WIN_PUBLISHER",
+    ]) {
+      expect(workflow).toContain(expression(setting));
+    }
+    expect(workflow).toContain("release signing is not set up. Missing:");
+    // The app is built with the public key it checks Linux updates against; it is never inlined.
+    expect(
+      workflow.split(
+        `RAKAZO_LINUX_UPDATE_PUBLIC_KEY: ${expression("vars.DESKTOP_LINUX_UPDATE_PUBLIC_KEY")}`,
+      ),
+    ).toHaveLength(3);
+    expect(workflow).not.toContain("BEGIN PUBLIC KEY");
   });
 
   it("pins every platform update feed to the official GitHub owner and repo", () => {

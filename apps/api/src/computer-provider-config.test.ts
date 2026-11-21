@@ -97,8 +97,18 @@ describe("computer provider settings", () => {
 
   it("lets Manor's deployment owner change it and refuses another member", async () => {
     const update = { provider: "desktop", values: testDesktop } as const;
-    const owner = { userId: "owner-1", spaceId: "space-1", isDeploymentOwner: true } as never;
-    const member = { userId: "member-1", spaceId: "space-1", isDeploymentOwner: false } as never;
+    const owner = {
+      userId: "owner-1",
+      spaceId: "space-1",
+      organizationId: "org-1",
+      isDeploymentOwner: true,
+    } as never;
+    const member = {
+      userId: "member-1",
+      spaceId: "space-1",
+      organizationId: "org-1",
+      isDeploymentOwner: false,
+    } as never;
     const { deps, state } = makeDeps({ admin: false });
     await expect(updateComputerProviderSettings(deps, owner, update)).resolves.toMatchObject({
       provider: "desktop",
@@ -113,6 +123,7 @@ describe("computer provider settings", () => {
       ({
         userId: "space-account",
         spaceId: "space-1",
+        organizationId: "org-1",
         initiatedByUserId: userId,
         isDeploymentOwner: false,
       }) as never;

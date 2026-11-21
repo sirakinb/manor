@@ -44,6 +44,8 @@ export const TR_MESSAGES: Record<string, string> = {
   "Version {version}": "Sürüm {version}",
   "Automatic updates are turned off for this install.":
     "Bu kurulumda otomatik güncellemeler kapalı.",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "Bu sürüm güncellemeleri doğrulayamıyor. En yeni Manor'u sürümler sayfasından indirin.",
   "Automatic updates only run in an installed build.":
     "Otomatik güncellemeler yalnızca kurulu bir sürümde çalışır.",
   "No desktop releases are published for this build yet.":

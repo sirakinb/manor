@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { BotAvatarSet, LocalComputerLiveSession } from "@rakazo/contracts";
-import { BOT_NAME_MAX_LENGTH, DEFAULT_NEW_BOT_AVATAR_SET } from "@rakazo/contracts";
+import { BOT_NAME_MAX_LENGTH } from "@rakazo/contracts";
 import {
   newClientId,
   ORGANIC_AVATAR_HEART_FAMILY,
@@ -37,7 +37,6 @@ export interface CreateBotDialogInput {
   color: string;
   /** Reserve the logo preview's persistent seed through creation and retries. */
   id?: string;
-  avatarSet: BotAvatarSet;
   /** The organic family the preview drew; omitted when a studio shape is picked. */
   avatarFamily?: number;
   /** Manor: set when the bot should run on the shared "This Mac" computer. */
@@ -46,10 +45,13 @@ export interface CreateBotDialogInput {
 
 /** Mounted only while open; the parent unmounts it from `onCancel` or after `onCreate`. */
 export function CreateBotDialog({
+  avatarSet,
   onCancel,
   onCreate,
   localComputer,
 }: {
+  /** The account's set: the server gives it to the new bot, so the preview draws it too. */
+  avatarSet: BotAvatarSet;
   onCancel: () => void;
   onCreate: (input: CreateBotDialogInput) => Promise<void>;
   /** Manor: offers "This Mac" while the desktop app is sharing it. */
@@ -71,7 +73,6 @@ export function CreateBotDialog({
     value: pick(BOT_AVATAR_COLORS),
     identity: pick(ORGANIC_IDENTITIES),
   }));
-  const [avatarSet, setAvatarSet] = useState<BotAvatarSet>(DEFAULT_NEW_BOT_AVATAR_SET);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const trimmed = name.trim();
@@ -86,7 +87,6 @@ export function CreateBotDialog({
         name: trimmed,
         color: look.value,
         ...(avatarSet === "rakazo" ? { id: previewId } : {}),
-        avatarSet,
         ...(organic ? { avatarFamily: organicAvatarFamily(look.identity) } : {}),
         ...(onThisMac && localComputer?.connected ? { computerMode: "local" as const } : {}),
       });
@@ -149,10 +149,6 @@ export function CreateBotDialog({
             identity={avatarSet === "rakazo" ? previewId : look.identity}
             organicIdentities={ORGANIC_IDENTITIES}
             avatarSet={avatarSet}
-            onAvatarSetChange={(set, value) => {
-              setAvatarSet(set);
-              setLook((current) => ({ ...current, value }));
-            }}
             onChange={(value, identity) => {
               setLook((current) => ({ value, identity: identity ?? current.identity }));
             }}

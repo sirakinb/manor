@@ -44,6 +44,8 @@ export const DE_MESSAGES: Record<string, string> = {
   "Version {version}": "Version {version}",
   "Automatic updates are turned off for this install.":
     "Automatische Updates sind für diese Installation deaktiviert.",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "Dieser Build kann Updates nicht überprüfen. Lade das neueste Manor von der Release-Seite herunter.",
   "Automatic updates only run in an installed build.":
     "Automatische Updates funktionieren nur in einer installierten Version.",
   "No desktop releases are published for this build yet.":

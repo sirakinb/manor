@@ -55,8 +55,9 @@ describe("built-in tool bridge", () => {
       "web_search",
       "write_file",
     ]);
+    // request_secret carries the card and contact kinds; update_bot carries instructions paging.
     // Manor: schedule_create also offers a webhook trigger on every branch (about 3 KB more).
-    expect(definitionBytes(listed)).toBeLessThanOrEqual(34_400);
+    expect(definitionBytes(listed)).toBeLessThanOrEqual(35_100);
     expect(deferred.map((tool) => tool.name)).toEqual(
       expect.arrayContaining(["render_plot", "create_space", "generate_secret", "scratchpad_add"]),
     );

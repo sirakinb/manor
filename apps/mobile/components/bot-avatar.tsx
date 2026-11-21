@@ -1,4 +1,5 @@
 import type { BotAvatarSet } from "@rakazo/contracts";
+import { parseBotAvatarValue } from "@rakazo/contracts";
 import type { AvatarMotionMode, LogoAvatarActivity } from "@rakazo/core";
 import {
   AVATAR_LID_CLOSE,
@@ -17,11 +18,10 @@ import {
   botAvatarActivity,
   isRunWorking,
   organicAvatarPath,
-  SHIPPED_BOT_AVATAR_CENTER,
+  SHIPPED_BOT_AVATAR_EYES,
   SHIPPED_BOT_AVATAR_VIEWBOX,
   usesLogoAvatar,
 } from "@rakazo/core";
-import { botEyeColor } from "@rakazo/ui-tokens";
 import { memo, useSyncExternalStore } from "react";
 import { Image, Pressable, View } from "react-native";
 import Animated, {
@@ -29,10 +29,10 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
 } from "react-native-reanimated";
-import Svg, { Ellipse, G, Path, Rect } from "react-native-svg";
+import Svg, { G, Path, Rect } from "react-native-svg";
 import type { AvatarLife } from "../lib/avatar-life";
 import { useAvatarOnScreen, useLife, usePoke, useSettling } from "../lib/avatar-life";
-import { mobileBotAvatarPresentation } from "../lib/bot-avatar";
+import { botEyeInk, mobileBotAvatarPresentation } from "../lib/bot-avatar";
 import { useI18n } from "../lib/i18n";
 import { mobileLogoAvatarActivity } from "../lib/logo-avatar-activity";
 import { useMobileTokens } from "../lib/native";
@@ -40,7 +40,6 @@ import { LogoAvatar } from "./logo-avatar";
 import { NativeSymbol } from "./native-symbol";
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
-const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 
 /** How far (0–1) the face has turned into the typing dots, for a morph of 0–1. */
 function morphGrow(morph: number): number {
@@ -113,6 +112,8 @@ function eyeState(life: AvatarLife) {
 // Hexes must match the SPRITES map in packages/ui-web/src/bot-avatar.tsx.
 const SPRITES: Record<string, number> = {
   "#8B5CF6": require("../assets/sprites/sprite-purple.png"),
+  // Upstream's brighter Executive Violet, which `#8B5CF6` now resolves to and new bots get.
+  "#A97EFE": require("../assets/sprites/sprite-purple.png"),
   "#F5C542": require("../assets/sprites/sprite-yellow.png"),
   "#3FB6AE": require("../assets/sprites/sprite-teal.png"),
   "#A78BFA": require("../assets/sprites/sprite-lavender.png"),
@@ -120,6 +121,15 @@ const SPRITES: Record<string, number> = {
   "#E0524D": require("../assets/sprites/sprite-red.png"),
   "#5B8DEF": require("../assets/sprites/sprite-blue.png"),
 };
+
+/**
+ * The sprite for a stored plain colour, read from the stored value: the presentation resolves an
+ * earlier colour value to upstream's current one, which is not the colour the sprite is keyed on.
+ */
+function spriteFor(color: string): number | undefined {
+  const parsed = parseBotAvatarValue(color);
+  return parsed.kind === "color" ? SPRITES[parsed.color.toUpperCase()] : undefined;
+}
 
 export interface BotAvatarProps {
   color: string;
@@ -136,10 +146,8 @@ export interface BotAvatarProps {
 
 /** Missing set metadata deliberately preserves every existing avatar. */
 export const BotAvatar = memo(function BotAvatar(props: BotAvatarProps) {
-  const parsed = mobileBotAvatarPresentation(props.color);
   // Manor's sprite colours keep the sprite (drawn by LegacyBotAvatar) in either avatar set.
-  const sprite = parsed.kind === "color" && SPRITES[parsed.color.toUpperCase()] !== undefined;
-  if (usesLogoAvatar(props) && !sprite) {
+  if (usesLogoAvatar(props) && spriteFor(props.color) === undefined) {
     return <RakazoBotAvatar {...props} />;
   }
   return <LegacyBotAvatar {...props} />;
@@ -286,6 +294,8 @@ function LegacyBotAvatar({
   // itself that sign, so it carries none.
   const isWorking = isRunWorking(status) && !composing && motion !== "running";
   const parsed = mobileBotAvatarPresentation(color);
+  const fillColor = parsed.kind === "shape" || parsed.kind === "color" ? parsed.color : color;
+  const eyeColor = botEyeInk(fillColor, tokens);
   const onScreen = useAvatarOnScreen();
   const reducedMotion = useReducedMotion();
   const settling = useSettling(state);
@@ -301,10 +311,9 @@ function LegacyBotAvatar({
   const life = useLife(state, clock, size, motion);
   const poke = usePoke(life, pokeable && clock === "running");
   const bodyStyle = useBodyStyle(life, size);
-  const fillColor = parsed.kind === "shape" || parsed.kind === "color" ? parsed.color : color;
   // Manor's sprite is how a bot on one of Manor's sprite colours is drawn when it has no
   // uploaded image and no chosen shape; it moves with upstream's body motion.
-  const sprite = parsed.kind === "color" ? SPRITES[parsed.color.toUpperCase()] : undefined;
+  const sprite = spriteFor(color);
   const picture =
     sprite !== undefined ? (
       <Animated.View style={[{ width: size, height: size }, bodyStyle]}>
@@ -326,7 +335,7 @@ function LegacyBotAvatar({
     ) : parsed.kind === "shape" ? (
       <ShippedShapeAvatar
         color={parsed.color}
-        eyeColor={parsed.eyeColor}
+        eyeColor={eyeColor}
         shapePath={parsed.shapePath}
         size={size}
         life={life}
@@ -335,6 +344,7 @@ function LegacyBotAvatar({
     ) : (
       <OrganicAvatar
         color={fillColor}
+        eyeColor={eyeColor}
         identity={identity}
         size={size}
         life={life}
@@ -416,27 +426,24 @@ function ShippedShapeAvatar({
   life: AvatarLife;
   bodyStyle: BodyStyle;
 }) {
-  const center = SHIPPED_BOT_AVATAR_CENTER;
-  // Offsets are in motion units, scaled to the shape's view box.
-  const eyeProps = (cx: number) => () => {
+  const eyes = SHIPPED_BOT_AVATAR_EYES;
+  // Offsets are in motion units, scaled to the shape's view box; eyes close about their centre.
+  const eyeProps = (x: number) => () => {
     "worklet";
     const state = eyeState(life);
     const scale = SHAPE_UNITS / AVATAR_MOTION_UNITS;
-    return {
-      cx: cx + state.x * scale,
-      cy: center - 8 + state.y * scale,
-      ry: state.hidden ? 0 : 7 * state.lid,
-    };
+    const height = state.hidden ? 0 : eyes.height * state.lid;
+    return { x: x + state.x * scale, y: eyes.centerY - height / 2 + state.y * scale, height };
   };
-  const leftEye = useAnimatedProps(eyeProps(center - 29));
-  const rightEye = useAnimatedProps(eyeProps(center + 29));
+  const leftEye = useAnimatedProps(eyeProps(eyes.leftX));
+  const rightEye = useAnimatedProps(eyeProps(eyes.rightX));
   return (
     <Animated.View style={[{ width: size, height: size }, bodyStyle]}>
       <Svg width={size} height={size} viewBox={SHIPPED_BOT_AVATAR_VIEWBOX}>
         <Path d={shapePath} fill={color} />
         <G fill={eyeColor}>
-          <AnimatedEllipse animatedProps={leftEye} rx={10} />
-          <AnimatedEllipse animatedProps={rightEye} rx={10} />
+          <AnimatedRect animatedProps={leftEye} width={eyes.width} rx={eyes.width / 2} />
+          <AnimatedRect animatedProps={rightEye} width={eyes.width} rx={eyes.width / 2} />
         </G>
       </Svg>
     </Animated.View>
@@ -445,12 +452,14 @@ function ShippedShapeAvatar({
 
 function OrganicAvatar({
   color,
+  eyeColor,
   identity,
   size,
   life,
   bodyStyle,
 }: {
   color: string;
+  eyeColor: string;
   identity?: string;
   size: number;
   life: AvatarLife;
@@ -472,8 +481,8 @@ function OrganicAvatar({
       <Svg width={size} height={size} viewBox="-60 -60 120 120">
         <Path d={organicAvatarPath(seed)} fill={color} />
         <G transform={`rotate(${(seed % 9) - 4})`}>
-          <AnimatedRect animatedProps={leftEyeProps} width={7} rx={3.5} fill={botEyeColor} />
-          <AnimatedRect animatedProps={rightEyeProps} width={7} rx={3.5} fill={botEyeColor} />
+          <AnimatedRect animatedProps={leftEyeProps} width={7} rx={3.5} fill={eyeColor} />
+          <AnimatedRect animatedProps={rightEyeProps} width={7} rx={3.5} fill={eyeColor} />
         </G>
       </Svg>
     </Animated.View>

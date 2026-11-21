@@ -514,6 +514,7 @@ describe("run tool selection", () => {
     expect(withoutPage).toEqual(expect.arrayContaining(["computer_observe", "computer_act"]));
   });
 
+  // Manor: routine runs cannot create schedules; dispatch refuses it, so it is not offered.
   it("withholds schedule creation only from routine-triggered runs", () => {
     expect(toolNames("routine")).not.toContain("schedule_create");
     expect(toolNames("routine")).toContain("task_catalog");
@@ -1473,7 +1474,9 @@ describe("run notification preference", () => {
         userId: "user-1",
       },
       select: {
-        bot: { select: { notifyOnFinish: true } },
+        bot: {
+          select: { id: true, name: true, color: true, avatarSet: true, notifyOnFinish: true },
+        },
         thread: { select: { groupId: true } },
       },
     });

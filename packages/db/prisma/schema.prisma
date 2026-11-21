@@ -33,6 +33,8 @@ model User {
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
   avatarStyle                 String                       @default("robot") // Manor: set by 20261121120000_manor_robot_avatar_default
+  /// The icon set this user's bots wear unless one is pinned to another: "organic" or "rakazo".
+  botAvatarSet                String                       @default("organic")
   /// IANA timezone such as "Pacific/Auckland". Null until set; bots then get UTC only.
   timezone                    String?
   portalBrandId               String?
@@ -128,6 +130,8 @@ model PushToken {
   ciphertext String
   tokenDigest String @unique
   sessionId String
+  /// "android_sender" when the installed Android build renders data-only sender pushes.
+  presentation String?
   updatedAt DateTime @updatedAt
 
   @@map("push_tokens")
@@ -313,6 +317,8 @@ model BillingAccount {
   cancellationReason  String?
   cancellationComment String?
   subscribedAt        DateTime?
+  /// When a subscription was first seen active, so a trial that never paid is not a paid plan.
+  paidAt              DateTime?
   syncedAt            DateTime?
   checkoutLeaseId     String?
   checkoutLeaseExpiresAt DateTime?
@@ -807,6 +813,8 @@ model Bot {
   instructionHistory Json @default("[]")
   color             String
   avatarSet         String            @default("organic")
+  /// True once the owner picks this bot a set other than their default; the default no longer moves it.
+  avatarSetPinned   Boolean           @default(false)
   notifyOnFinish    Boolean           @default(true)
   pinned            Boolean           @default(false)
   position          Int               @default(0)
@@ -1096,7 +1104,7 @@ model Run {
   @@index([trigger, status, messagingMirroredAt, updatedAt])
   @@index([trigger, status, teamChatMirroredAt, updatedAt])
   @@index([spaceId, botId])
-  @@index([botId])
+  @@index([botId, createdAt])
   @@index([taskId])
   @@index([sourceMessageId])
   @@index([threadId, status, createdAt])
@@ -1552,6 +1560,11 @@ model Computer {
   screenUrl               String?
   /// When the computer last started running; bounds how long it can stay up in one stretch.
   runningSince            DateTime?
+  /// The home's disk as the computer last reported it; null where it was never measured.
+  diskUsedBytes           BigInt?
+  diskFreeBytes           BigInt?
+  /// How full the disk was when the user hid its warning; the warning returns once it is fuller.
+  diskDismissedPercent    Int?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   bots                    Bot[]
@@ -1559,9 +1572,26 @@ model Computer {
   localSessions           LocalComputerSession[]
   maintenanceId           String?
   updates                 ComputerUpdate[]
+  homeDeletionNotice      HomeDeletionNotice?
 
   @@index([spaceId, scope])
   @@map("computers")
+}
+
+/// Hosted billing only: a stopped computer whose saved home is due for deletion after its plan
+/// ended or it went unused. `claimId` leases the row to one process while it emails.
+model HomeDeletionNotice {
+  computerId     String    @id
+  computer       Computer  @relation(fields: [computerId], references: [id], onDelete: Cascade)
+  claimId        String?
+  claimExpiresAt DateTime?
+  /// When the owner was emailed; null until then, and nothing is deleted before it.
+  warnedAt       DateTime?
+  /// The deletion date the email gave.
+  deleteAfter    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@map("home_deletion_notices")
 }
 
 /// One stretch a computer ran at its provider, from `computers.runningSince` until it stopped,
@@ -3161,8 +3191,10 @@ model BotSecret {
   @@map("bot_secrets")
 }
 
-/// A member's saved credentials. A null spaceId is the account vault every Space uses; a Space
-/// with a "credentials" override uses its own rows instead, which no other Space can read.
+/// A member's vault items: logins, cards, contacts, API credentials and command variables. A null
+/// spaceId is the account vault every Space uses; a Space with a "credentials" override uses its
+/// own rows instead, which no other Space can read. `name` is the handle bots use, `auth` says what
+/// kind of item it is and how it is used, and `ciphertext` holds every value, contacts included.
 model VaultCredential {
   id         String   @id
   userId     String
@@ -3170,6 +3202,10 @@ model VaultCredential {
   spaceId    String?
   space      Space?   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   name       String
+  /// What people call it; empty uses a default read from the item.
+  title      String   @default("")
+  /// When the bot should use it, such as "For travel".
+  note       String   @default("")
   origin     String
   auth       Json
   ciphertext String

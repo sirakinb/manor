@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { BotAvatarSet } from "@rakazo/contracts";
 import { ORGANIC_AVATAR_LOOKS } from "@rakazo/core";
 import type { ReactNode } from "react";
 import { act } from "react";
@@ -37,9 +38,14 @@ afterEach(() => {
   container.remove();
 });
 
-async function render(onCreate: (input: CreateBotDialogInput) => Promise<void>) {
+async function render(
+  onCreate: (input: CreateBotDialogInput) => Promise<void>,
+  avatarSet: BotAvatarSet = "organic",
+) {
   await act(async () => {
-    root.render(<CreateBotDialog onCancel={() => undefined} onCreate={onCreate} />);
+    root.render(
+      <CreateBotDialog avatarSet={avatarSet} onCancel={() => undefined} onCreate={onCreate} />,
+    );
   });
 }
 
@@ -76,44 +82,70 @@ describe("CreateBotDialog", () => {
     expect(button("Create").disabled).toBe(false);
   });
 
-  it("defaults new bots to the Original set with the family the preview draws", async () => {
+  it("draws the account's set without offering another, and leaves the set to the server", async () => {
     const onCreate = vi.fn(async (_input: CreateBotDialogInput) => undefined);
     await render(onCreate);
     // Manor does not offer upstream's logo set, so there is no set to choose.
+    expect(document.querySelector('[role="tablist"]')).toBeNull();
     expect([...document.querySelectorAll("button")].some((b) => b.textContent === "Rakazo")).toBe(
       false,
     );
     // The starting colour is random, and on one of Manor's sprite colours the preview draws the
     // sprite instead of the organic body, so pick a colour that is not a sprite first.
-    await click(button("Color #10B981"));
+    await click(button("Color #00C972"));
     const preview = document.querySelector(".rakazo-organic-avatar");
     expect(preview).not.toBeNull();
     const family = Number(preview!.getAttribute("data-shape-family"));
     expect(Number.isInteger(family)).toBe(true);
     await typeName("Scout");
     await click(button("Create"));
-    expect(onCreate.mock.lastCall?.[0]).toMatchObject({
-      name: "Scout",
-      avatarSet: "organic",
-      avatarFamily: family,
-    });
+    expect(onCreate.mock.lastCall?.[0]).toMatchObject({ name: "Scout", avatarFamily: family });
+    expect(onCreate.mock.lastCall?.[0]).not.toHaveProperty("avatarSet");
     expect(onCreate.mock.lastCall?.[0]).not.toHaveProperty("id");
+  });
+
+  // An account whose stored set is upstream's logo set: Manor never offers it, but still draws it.
+  it("sends the Rakazo preview id without an organic family", async () => {
+    const onCreate = vi.fn(async (_input: CreateBotDialogInput) => undefined);
+    await render(onCreate, "rakazo");
+    // A random sprite colour would draw Manor's sprite, so pick a colour that is not a sprite.
+    await click(button("Color #00C972"));
+    await typeName("Scout");
+    await click(button("Create"));
+    const input = onCreate.mock.lastCall![0];
+    const preview = document.querySelector(".rakazo-logo-avatar")!;
+    expect(input).toMatchObject({ name: "Scout" });
+    expect(input).not.toHaveProperty("avatarFamily");
+    expect(input.id).toMatch(/^c[a-z0-9]{24}$/);
+    expect(input.color?.toUpperCase()).toBe(preview.getAttribute("data-color")?.toUpperCase());
+  });
+
+  it("preserves an explicitly chosen Rakazo colour through a failed create and retry", async () => {
+    const onCreate = vi
+      .fn(async (_input: CreateBotDialogInput) => undefined)
+      .mockRejectedValueOnce(new Error("Try again"));
+    await render(onCreate, "rakazo");
+    await click(button("Color #00C972"));
+    await typeName("Scout");
+    await click(button("Create"));
+    expect(onCreate.mock.lastCall?.[0]).toMatchObject({ color: "#00C972" });
+    await click(button("Create"));
+    expect(onCreate.mock.lastCall?.[0]).toMatchObject({ color: "#00C972" });
   });
 
   it("sends the organic family the preview draws", async () => {
     const onCreate = vi.fn(async (_input: CreateBotDialogInput) => undefined);
     await render(onCreate);
     await click(button("Shape 2"));
-    await click(button("Color #10B981"));
+    await click(button("Color #00C972"));
     const preview = document.querySelector(".rakazo-organic-avatar");
     const family = Number(preview?.getAttribute("data-shape-family"));
     await typeName("Scout");
     await click(button("Create"));
     expect(onCreate).toHaveBeenCalledWith({
       name: "Scout",
-      color: "#10B981",
+      color: "#00C972",
       avatarFamily: family,
-      avatarSet: "organic",
     });
     expect(family).toBe(ORGANIC_AVATAR_LOOKS[1]);
   });
@@ -121,14 +153,13 @@ describe("CreateBotDialog", () => {
   it("sends a studio shape without an organic family", async () => {
     const onCreate = vi.fn(async (_input: CreateBotDialogInput) => undefined);
     await render(onCreate);
-    await click(button("Color #F97316"));
+    await click(button("Color #FF781C"));
     await click(button("wedge"));
     await typeName("Scout");
     await click(button("Create"));
     expect(onCreate).toHaveBeenCalledWith({
       name: "Scout",
-      color: "#F97316::shape_1",
-      avatarSet: "organic",
+      color: "#FF781C::shape_1",
     });
   });
 
@@ -143,4 +174,26 @@ describe("CreateBotDialog", () => {
     );
     expect(document.querySelector('[data-testid="create-bot-dialog"]')).not.toBeNull();
   });
+});
+
+it("retains the preview identity and colour through rerenders and a retry", async () => {
+  const onCreate = vi
+    .fn(async (_input: CreateBotDialogInput) => undefined)
+    .mockRejectedValueOnce(new Error("Try again"));
+  await render(onCreate, "rakazo");
+  // A random sprite colour would draw Manor's sprite, so pick a colour that is not a sprite.
+  await click(button("Color #00C972"));
+  const colour = document.querySelector(".rakazo-logo-avatar")!.getAttribute("data-color");
+  await typeName("First name");
+  await render(onCreate, "rakazo");
+  expect(document.querySelector(".rakazo-logo-avatar")!.getAttribute("data-color")).toBe(colour);
+  await click(button("Create"));
+  const first = onCreate.mock.lastCall![0];
+  await typeName("Retry name");
+  await click(button("Create"));
+  const second = onCreate.mock.lastCall![0];
+  expect(first.id).toMatch(/^c[a-z0-9]{24}$/);
+  expect(second.id).toBe(first.id);
+  expect(second.color).toBe(first.color);
+  expect(second.color?.toUpperCase()).toBe(colour?.toUpperCase());
 });

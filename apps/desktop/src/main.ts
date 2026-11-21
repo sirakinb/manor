@@ -54,6 +54,7 @@ import {
   t,
   withDetail,
 } from "./i18n.js";
+import { linuxUpdatePublicKey, verifyDownloadedLinuxUpdate } from "./linux-update-signature.js";
 import { createLocalComputerSession } from "./local-computer-session.js";
 import { saveLocalComputerHost } from "./local-settings.js";
 import {
@@ -154,6 +155,8 @@ const updaterEnvironment = {
   packaged: app.isPackaged && existsSync(path.join(process.resourcesPath, "app-update.yml")),
   version: app.getVersion(),
   disabled: process.env.RAKAZO_DISABLE_AUTO_UPDATE === "1",
+  // Linux updates must carry a signature this build can check; without the key none are offered.
+  verifiable: process.platform !== "linux" || linuxUpdatePublicKey() !== null,
 };
 /** Created once the app's language is known, so its first message is in it. */
 let desktopUpdater: DesktopUpdateController;
@@ -1338,6 +1341,9 @@ app.whenReady().then(async () => {
     () => {
       quitting = false;
     },
+    process.platform === "linux"
+      ? (update) => verifyDownloadedLinuxUpdate(update, (url, signal) => net.fetch(url, { signal }))
+      : undefined,
   );
   try {
     hostComputer = await prepareHostComputer(userDataDir);
@@ -1889,6 +1895,10 @@ app.on("window-all-closed", () => {
   // during startup; its teardown must not quit the app.
   if (liveProbeWindows > 0) return;
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("quit", (_event, exitCode) => {
+  if (exitCode === 0) desktopUpdater?.installOnQuit();
 });
 
 app.on("before-quit", () => {

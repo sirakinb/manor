@@ -35,7 +35,7 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   const organic = studio.locator(".rakazo-organic-avatar");
   const sprite = studio.locator(".rakazo-bot-avatar-sprite");
 
-  await studio.getByRole("button", { name: "Color #8B5CF6" }).click();
+  await studio.getByRole("button", { name: "Color #A97EFE" }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(sprite).toHaveCount(1);
   await expect(sprite).toHaveAttribute("src", /\/sprites\/sprite-purple\.png$/);
@@ -53,13 +53,13 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   await expect(sprite).toHaveCount(1);
   await expect(organic).toHaveCount(0);
 
-  await studio.getByRole("button", { name: "Color #EAB308" }).click();
+  await studio.getByRole("button", { name: "Color #FFAF38" }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
   await expect(organic.first()).toBeVisible();
   await expect(sprite).toHaveCount(0);
 
-  await studio.getByRole("button", { name: "Color #8B5CF6" }).click();
+  await studio.getByRole("button", { name: "Color #A97EFE" }).click();
   await wedge.click();
   await studio.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");

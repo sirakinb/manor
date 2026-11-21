@@ -43,6 +43,8 @@ export const HI_MESSAGES: Record<string, string> = {
   "Manor is up to date.": "Manor अप टू डेट है।",
   "Version {version}": "वर्शन {version}",
   "Automatic updates are turned off for this install.": "इस इंस्टॉल के लिए ऑटोमैटिक अपडेट बंद हैं।",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "यह बिल्ड अपडेट सत्यापित नहीं कर सकता। रिलीज़ पेज से नवीनतम Manor डाउनलोड करें।",
   "Automatic updates only run in an installed build.":
     "ऑटोमैटिक अपडेट सिर्फ़ इंस्टॉल किए गए बिल्ड में चलते हैं।",
   "No desktop releases are published for this build yet.":

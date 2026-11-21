@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { AccountSecurity, UsageSummary } from "@rakazo/contracts";
+import type { AccountSecurity, BotAvatarSet, UsageSummary } from "@rakazo/contracts";
 import {
   accountDisplay,
   displayName,
@@ -88,6 +88,12 @@ export type SettingsGeneralProps = {
   /** The user's saved IANA timezone, or null before one is set. */
   timezone?: string | null;
   onTimezoneChange?: (timezone: string) => Promise<void>;
+  /**
+   * The icon set new and unpinned bots wear; absent from servers that predate it. Manor offers no
+   * bot style choice (upstream's only other set is its Rakazo mark), so these are not rendered.
+   */
+  botAvatarSet?: BotAvatarSet;
+  onBotAvatarSetChange?: (set: BotAvatarSet) => Promise<void>;
   onAccountImported?: () => Promise<void>;
   onLocalComputerChanged?: () => void;
   onImportAgent?: () => void;

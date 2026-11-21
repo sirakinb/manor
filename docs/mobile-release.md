@@ -12,7 +12,12 @@ your own branded build, use your own Expo and store accounts.
 ## Configure a build
 
 1. Link `apps/mobile` to an Expo project owned by your account.
-2. Choose unique iOS and Android application identifiers.
+2. Choose unique iOS and Android application identifiers. iOS also builds two
+   app extensions that need their own identifiers registered beside the app's:
+   the widgets (`com.pentridgemedia.manor.widgets` in Manor's build) and the
+   agent notification service (`com.pentridgemedia.manor.notifications`), which
+   also needs the Communication Notifications capability. Both are set under
+   `appExtensions` in `apps/mobile/app.json`; change them with the app's own.
 3. Configure `EXPO_PUBLIC_API_URL` in the EAS build environment. Production
    builds require a valid HTTPS URL.
 4. Keep store application IDs, team IDs, signing credentials, API keys, and

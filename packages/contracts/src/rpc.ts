@@ -33,6 +33,7 @@ import {
   TicketSchema,
   UpdateTicketInput,
 } from "./board.js";
+import { BotAvatarSetSchema } from "./bot-avatar.js";
 import {
   MaintenanceApprovalSchema,
   MaintenanceCreateSchema,
@@ -444,6 +445,8 @@ export const appContract = {
         z
           .object({
             avatarStyle: AvatarStyleSchema.optional(),
+            /** Restyles every bot not pinned to another set, and is what new bots get. */
+            botAvatarSet: BotAvatarSetSchema.optional(),
             timezone: TimeZoneSchema.nullable().optional(),
             /** The language the app runs in, so emails can be written in it. */
             locale: AppLocaleSchema.optional(),
@@ -451,6 +454,7 @@ export const appContract = {
           .refine(
             (input) =>
               input.avatarStyle !== undefined ||
+              input.botAvatarSet !== undefined ||
               input.timezone !== undefined ||
               input.locale !== undefined,
             { message: "Nothing to update" },
@@ -1167,6 +1171,7 @@ export const appContract = {
       .input(z.object({ id: Id, workersStopped: z.literal(true) }))
       .output(z.object({ ok: z.literal(true) })),
     dismissUpdate: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
+    dismissDiskWarning: oc.input(botId).output(z.object({ ok: z.literal(true) })),
     takeover: oc.input(botId).output(z.object({ leaseId: Id, expiresAt: z.string() })),
     release: oc
       .input(
@@ -1701,9 +1706,9 @@ export const appContract = {
     set: oc
       .input(
         settingsScopeInput.extend({
-          effect: z.enum(["always_allow", "deny"]),
+          effect: z.enum(["always_allow", "require_approval", "deny"]),
           matchKind: z.enum(["tool", "connector", "site"]),
-          matchValue: z.string().min(1),
+          matchValue: z.string().trim().min(1),
         }),
       )
       .output(ActionApprovalRuleSchema),
@@ -1879,7 +1884,12 @@ export const appContract = {
       .output(z.object({ ok: z.literal(true) })),
     registerPush: oc
       // No whitespace: the token store keeps the registering session on the next line.
-      .input(z.object({ token: z.string().min(8).max(512).regex(/^\S+$/) }))
+      .input(
+        z.object({
+          token: z.string().min(8).max(512).regex(/^\S+$/),
+          presentation: z.literal("android_sender").optional(),
+        }),
+      )
       .output(z.object({ ok: z.literal(true) })),
     unregisterPush: oc.output(z.object({ ok: z.literal(true) })),
   },

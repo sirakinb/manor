@@ -44,6 +44,8 @@ export const RU_MESSAGES: Record<string, string> = {
   "Version {version}": "Версия {version}",
   "Automatic updates are turned off for this install.":
     "Автоматические обновления отключены для этой установки.",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "Эта сборка не может проверять обновления. Скачайте последнюю версию Manor со страницы релизов.",
   "Automatic updates only run in an installed build.":
     "Автоматические обновления работают только в установленной версии.",
   "No desktop releases are published for this build yet.":

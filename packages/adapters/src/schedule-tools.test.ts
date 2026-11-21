@@ -257,7 +257,12 @@ describe("filterBuiltinToolsForThread", () => {
     ]);
   });
 
-  it("hides schedule creation from routine runs without removing schedule management", () => {
+  // Manor: routine and webhook runs cannot create schedules (upstream now offers it).
+  it("hides schedule creation and updates from routine and webhook runs", () => {
+    for (const trigger of ["routine", "webhook"])
+      expect(filterBuiltinToolsForRun(tools, trigger).map((tool) => tool.name)).not.toContain(
+        "schedule_create",
+      );
     expect(filterBuiltinToolsForRun(tools, "routine").map((tool) => tool.name)).toEqual([
       "handoff_to_bot",
       "message_bot",
@@ -265,15 +270,12 @@ describe("filterBuiltinToolsForThread", () => {
       "schedule_cancel",
       "remember",
     ]);
-    expect(filterBuiltinToolsForRun(tools, "user").map((tool) => tool.name)).toContain(
-      "schedule_create",
-    );
     const withUpdate = [...tools, { name: "schedule_update" }];
     expect(filterBuiltinToolsForRun(withUpdate, "routine").map((tool) => tool.name)).not.toContain(
       "schedule_update",
     );
-    expect(filterBuiltinToolsForRun(withUpdate, "user").map((tool) => tool.name)).toContain(
-      "schedule_update",
+    expect(filterBuiltinToolsForRun(withUpdate, "user").map((tool) => tool.name)).toEqual(
+      withUpdate.map((tool) => tool.name),
     );
   });
 

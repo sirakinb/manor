@@ -43,6 +43,8 @@ export const ZH_CN_MESSAGES: Record<string, string> = {
   "Manor is up to date.": "Manor 已是最新版本。",
   "Version {version}": "版本 {version}",
   "Automatic updates are turned off for this install.": "此安装已关闭自动更新。",
+  "This build can't verify updates. Download the latest Manor from its releases page.":
+    "此版本无法验证更新。请从发布页面下载最新的 Manor。",
   "Automatic updates only run in an installed build.": "自动更新仅在已安装的版本中运行。",
   "No desktop releases are published for this build yet.": "此版本尚未发布桌面版。",
   "Move Manor to Applications to install updates.": "将 Manor 移到“应用程序”文件夹以安装更新。",

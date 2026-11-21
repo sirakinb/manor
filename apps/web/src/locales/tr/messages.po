@@ -389,7 +389,7 @@ msgstr "{brandName}, CRM değişikliklerini kaydettiğin URL'lere gönderir — 
 msgid "{brandName} signs contact events and retries failed deliveries automatically."
 msgstr "{brandName} kişi olaylarını imzalar ve başarısız teslimatları otomatik olarak yeniden dener."
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "{commandVariable} is reserved and cannot be used as a command variable. Choose another name."
 msgstr "{commandVariable} ayrılmıştır ve komut değişkeni olarak kullanılamaz. Başka bir ad seçin."
 
@@ -886,6 +886,7 @@ msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/SecretAskCard.tsx
 #: src/pages/crm/CrmContacts.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
@@ -914,6 +915,10 @@ msgstr "İzlenecek bir dosya veya klasör ekleyin"
 #: src/components/ApprovalRulesSettings.tsx
 msgid "Add a model in Settings to use this."
 msgstr "Bunu kullanmak için Ayarlar'dan bir model ekleyin."
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Add a note"
+msgstr ""
 
 #: src/components/PasskeyOffer.tsx
 msgid "Add a passkey for faster sign-in?"
@@ -957,7 +962,6 @@ msgid "Add another"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx
-#: src/components/VaultSettings.tsx
 msgid "Add credential"
 msgstr ""
 
@@ -977,7 +981,7 @@ msgstr "Executor ekle"
 msgid "Add fallback"
 msgstr "Yedek ekle"
 
-#: src/components/LoginFields.tsx
+#: src/components/vault/LoginFieldsInput.tsx
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Add field"
 msgstr "Alan ekle"
@@ -1020,6 +1024,10 @@ msgstr ""
 #: src/pages/model-settings/providers-section.tsx
 msgid "Add provider"
 msgstr "Sağlayıcı ekle"
+
+#: src/components/ApprovalRulesSettings.tsx
+msgid "Add rule"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Add server"
@@ -1073,6 +1081,8 @@ msgstr ""
 msgid "Adding…"
 msgstr "Ekleniyor…"
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmForms.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Address"
@@ -1080,6 +1090,10 @@ msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Address after approving"
+msgstr ""
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Address line 2"
 msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
@@ -1141,6 +1155,7 @@ msgstr ""
 msgid "AI tool"
 msgstr ""
 
+#: src/components/VaultSettings.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/workspace/sections/LeasingSection.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -1329,8 +1344,9 @@ msgstr "Bağlantıya sahip herkes"
 msgid "API & agent access"
 msgstr "API ve ajan erişimi"
 
-#: src/components/AskCard.tsx
 #: src/components/ComputerProviderSettings.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/kinds.tsx
 #: src/lib/localized-provider-hint.ts
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/model-settings/compatible-key-field.tsx
@@ -1604,7 +1620,7 @@ msgstr ""
 msgid "Available rentals"
 msgstr ""
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Available to shell commands as {commandVariable}"
 msgstr "Kabuk komutlarında {commandVariable} olarak kullanılabilir"
 
@@ -1636,6 +1652,7 @@ msgstr ""
 
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
+#: src/components/vault/VaultPageHeader.tsx
 #: src/pages/AdminAccessPage.tsx
 #: src/pages/AdminPluginsPage.tsx
 #: src/pages/Auth.tsx
@@ -1665,11 +1682,11 @@ msgstr "Temel URL"
 msgid "Base32 key or otpauth:// link from the site's authenticator setup"
 msgstr ""
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Basic auth"
 msgstr ""
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Basic auth ({username})"
 msgstr ""
 
@@ -1677,7 +1694,8 @@ msgstr ""
 msgid "Bd/ba"
 msgstr ""
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Bearer token"
@@ -1694,6 +1712,11 @@ msgstr ""
 #: src/pages/settings-nav.ts
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Billing"
+msgstr ""
+
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Billing address"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -1956,7 +1979,7 @@ msgstr "Görselleri okuyamaz"
 #: src/components/ModelCredits.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/crm/CrmForms.tsx
@@ -2005,8 +2028,20 @@ msgstr "iptal edildi"
 msgid "Cancelled"
 msgstr "İptal edildi"
 
+#: src/components/vault/kinds.tsx
+msgid "Card"
+msgstr ""
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Card number"
+msgstr ""
+
 #: src/pages/Artifacts.tsx
 msgid "Card view"
+msgstr ""
+
+#: src/components/vault/kinds.tsx
+msgid "Cards"
 msgstr ""
 
 #: src/pages/ModelRoleSettings.tsx
@@ -2227,6 +2262,10 @@ msgstr ""
 msgid "Choose your app to see its setup instructions."
 msgstr ""
 
+#: src/components/vault/VaultItemEditor.tsx
+msgid "City"
+msgstr ""
+
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "City bill"
 msgstr ""
@@ -2248,7 +2287,11 @@ msgstr ""
 msgid "Claude subscription"
 msgstr ""
 
-#: src/components/AskCard.tsx
+#: src/pages/shell/computer-panel.tsx
+msgid "Clean up"
+msgstr "Temizle"
+
+#: src/components/SecretAskCard.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Clear"
 msgstr "Temizle"
@@ -2391,8 +2434,8 @@ msgstr "Ses ayarlarını kapat"
 msgid "Cloud"
 msgstr "Bulut"
 
-#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Code"
 msgstr "Kod"
 
@@ -2431,8 +2474,7 @@ msgstr "Komut"
 msgid "Command menu"
 msgstr ""
 
-#: src/components/AskCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Command variable"
 msgstr "Komut değişkeni"
 
@@ -2502,6 +2544,10 @@ msgstr "Bilgisayar başlatılamadı"
 #: src/components/ModelCredits.tsx
 msgid "Computer hours left"
 msgstr "Kalan bilgisayar saati"
+
+#: src/pages/shell/computer-panel.tsx
+msgid "Computer is {percent}% full"
+msgstr "Bilgisayar %{percent} dolu"
 
 #: src/pages/shell/computer-overlay.tsx
 msgid "Computer is asleep"
@@ -2727,10 +2773,12 @@ msgstr ""
 msgid "Connector"
 msgstr ""
 
+#: src/components/vault/kinds.tsx
 #: src/pages/crm/CrmContacts.tsx
 msgid "Contact"
 msgstr "Kişi"
 
+#: src/components/vault/kinds.tsx
 #: src/pages/crm/CrmView.tsx
 #: src/pages/DocsView.tsx
 msgid "Contacts"
@@ -2750,10 +2798,11 @@ msgstr "Çalıştırılacak kod içeriyor"
 msgid "Context limit"
 msgstr "Bağlam sınırı"
 
-#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/SignupSurvey.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/Auth.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/shell/agent-import.tsx
@@ -2784,7 +2833,7 @@ msgstr ""
 #: src/components/pages/PublicPageShell.tsx
 #: src/components/pages/SharePopover.tsx
 #: src/components/RunLogsPanel.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/AgentConnectionSetup.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/DocsView.tsx
@@ -2795,7 +2844,7 @@ msgstr ""
 msgid "Copied"
 msgstr "Kopyalandı"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
@@ -3516,6 +3565,7 @@ msgid "Could not stop sharing"
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Could not submit this answer"
 msgstr "Bu yanıt gönderilemedi"
 
@@ -3618,6 +3668,10 @@ msgstr ""
 
 #: src/pages/PaymentWalletSettingsPanel.tsx
 msgid "Couldn't update your wallet"
+msgstr ""
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Country"
 msgstr ""
 
 #: src/pages/Board.tsx
@@ -3756,7 +3810,7 @@ msgstr "Cron ifadesi"
 msgid "Current password"
 msgstr "Mevcut parola"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Custom header"
 msgstr ""
 
@@ -4143,7 +4197,10 @@ msgstr "Bağlantı kesiliyor…"
 #: src/components/AskCard.tsx
 #: src/components/ComputerUpdateProgress.tsx
 #: src/components/PasskeyOffer.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
+#: src/components/vault/VaultItemEditor.tsx
+#: src/pages/shell/computer-panel.tsx
 #: src/pages/shell/message-cards.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -4155,6 +4212,7 @@ msgid "Dismiss error"
 msgstr "Hatayı kapat"
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Dismissed"
 msgstr "Kapatıldı"
 
@@ -4309,6 +4367,7 @@ msgstr "Her ad yalnızca bir kez kullanılabilir."
 #: src/components/AskCard.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/FilesPanel.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/crm/CrmPipelineBoard.tsx
 #: src/pages/McpServersOverlay.tsx
@@ -4343,6 +4402,8 @@ msgstr "Profili Düzenle"
 msgid "Edit report"
 msgstr ""
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AdminAccessPage.tsx
 #: src/pages/Auth.tsx
 #: src/pages/crm/CrmContacts.tsx
@@ -4598,6 +4659,18 @@ msgstr "Tabloyu genişlet"
 #: src/components/CloudAgentCard.tsx
 msgid "expired"
 msgstr "süresi doldu"
+
+#: src/components/vault/VaultItemDetail.tsx
+msgid "Expires"
+msgstr ""
+
+#: src/components/vault/kinds.tsx
+msgid "Expires {expiry}"
+msgstr ""
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Expiry"
+msgstr ""
 
 #: src/components/AccountDataSettings.tsx
 #: src/pages/shell/bot-panel.tsx
@@ -4905,6 +4978,11 @@ msgstr ""
 msgid "From GitHub"
 msgstr ""
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Full name"
+msgstr ""
+
 #: src/pages/WindowChrome.tsx
 msgid "Fullscreen"
 msgstr "Tam ekran"
@@ -5051,12 +5129,12 @@ msgstr ""
 msgid "header"
 msgstr "üstbilgi"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Header \"{header}\""
 msgstr ""
 
 #: src/components/ModelHeadersEditor.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Header name"
@@ -5080,11 +5158,11 @@ msgid "Hi, this is how I'll sound when I read replies out loud."
 msgstr "Merhaba, yanıtları sesli okuduğumda böyle duyulacağım."
 
 #: src/components/FilesPanel.tsx
-#: src/components/LoginFields.tsx
+#: src/components/vault/LoginFieldsInput.tsx
 msgid "Hidden"
 msgstr "Gizli"
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Hide"
 msgstr "Gizle"
 
@@ -5121,6 +5199,7 @@ msgstr ""
 msgid "Hold to talk, release to send"
 msgstr ""
 
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmView.tsx
 msgid "Home"
 msgstr "Ana sayfa"
@@ -5453,12 +5532,17 @@ msgstr ""
 msgid "key"
 msgstr "anahtar"
 
+#: src/components/vault/kinds.tsx
+msgid "Keys"
+msgstr ""
+
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Knowledge"
 msgstr "Bilgi"
 
 #: src/components/BotCredentialsSettings.tsx
-#: src/components/LoginFields.tsx
+#: src/components/vault/LoginFieldsInput.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
 msgid "Label"
 msgstr "Etiket"
@@ -5742,6 +5826,14 @@ msgstr ""
 msgid "Log out"
 msgstr "Çıkış yap"
 
+#: src/components/vault/kinds.tsx
+msgid "Login"
+msgstr ""
+
+#: src/components/vault/kinds.tsx
+msgid "Logins"
+msgstr ""
+
 #: src/components/BotCredentialsSettings.tsx
 msgid "Logins this bot may use on its computer. Passwords and 2FA seeds are stored encrypted and typed for the bot, never shown to it."
 msgstr ""
@@ -5765,10 +5857,6 @@ msgstr "Düşük"
 #: src/lib/model-catalog.ts
 msgid "Low"
 msgstr "Düşük"
-
-#: src/components/VaultSettings.tsx
-msgid "Lowercase letters, numbers, hyphens and underscores, starting with a letter."
-msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx
 msgid "Machine credentials"
@@ -6256,7 +6344,7 @@ msgstr ""
 
 #: src/components/FilesPanel.tsx
 #: src/components/teach/SkillDraftCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Auth.tsx
 #: src/pages/crm/CrmContacts.tsx
@@ -6273,6 +6361,11 @@ msgstr ""
 #: src/pages/SpaceSettingsPanel.tsx
 msgid "Name"
 msgstr "Ad"
+
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Name on card"
+msgstr ""
 
 #: src/pages/UserGuide.tsx
 msgid "Name the records and time period you want reviewed. For example: “Review these open inquiries, group them by next step, and cite the record for each recommendation.” Confirm that the agent can access the source, then check its findings against the records before applying changes."
@@ -6307,9 +6400,10 @@ msgstr ""
 msgid "Needs an OAuth client ID"
 msgstr "OAuth istemci kimliği gerekli"
 
+#: src/pages/ActivityList.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Needs attention"
-msgstr ""
+msgstr "İlgi gerekiyor"
 
 #: src/pages/ActivityList.tsx
 msgid "Needs input"
@@ -6337,8 +6431,13 @@ msgstr "Gerekenler: {names}"
 msgid "Never ask"
 msgstr "Asla sorma"
 
+#: src/components/VaultSettings.tsx
 #: src/pages/shell/chat-context.tsx
 msgid "New"
+msgstr ""
+
+#: src/components/VaultSettings.tsx
+msgid "New API key"
 msgstr ""
 
 #: src/pages/Shell.tsx
@@ -6351,10 +6450,15 @@ msgstr "Yeni bot"
 msgid "New branch"
 msgstr ""
 
+#: src/components/VaultSettings.tsx
+msgid "New card"
+msgstr ""
+
 #: src/components/ComputerProviderSettings.tsx
 msgid "New computers run on"
 msgstr ""
 
+#: src/components/VaultSettings.tsx
 #: src/pages/crm/CrmContacts.tsx
 msgid "New contact"
 msgstr "Yeni kişi"
@@ -6391,6 +6495,10 @@ msgstr "Yeni grup"
 #: src/pages/shell/bot-picker.tsx
 msgid "New group chat"
 msgstr "Yeni grup sohbeti"
+
+#: src/components/VaultSettings.tsx
+msgid "New login"
+msgstr ""
 
 #: src/pages/shell/chat-context.tsx
 msgid "New messages"
@@ -6441,6 +6549,10 @@ msgstr "Yeni etiket"
 
 #: src/pages/Board.tsx
 msgid "New ticket"
+msgstr ""
+
+#: src/components/VaultSettings.tsx
+msgid "New variable"
 msgstr ""
 
 #. placeholder {0}: formatDateTime(automation.nextRunAt)
@@ -6578,12 +6690,17 @@ msgid "No leases expire soon"
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "No longer active"
 msgstr "Artık etkin değil"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "No managed app catalog is configured on this deployment."
 msgstr "Bu dağıtımda yönetilen uygulama kataloğu yapılandırılmamış."
+
+#: src/components/VaultSettings.tsx
+msgid "No matches"
+msgstr ""
 
 #: src/pages/Artifacts.tsx
 msgid "No matching artifacts on this page."
@@ -6716,6 +6833,10 @@ msgstr ""
 msgid "Nobody matches that search"
 msgstr "Bu aramayla eşleşen kimse yok"
 
+#: src/components/vault/VaultItemEditor.tsx
+msgid "None"
+msgstr ""
+
 #: src/components/VerificationComparison.tsx
 msgid "None in this period."
 msgstr ""
@@ -6815,10 +6936,7 @@ msgstr "Bildirimler"
 msgid "Notify"
 msgstr ""
 
-#: src/pages/ActivityList.tsx
-msgid "Now"
-msgstr "Şimdi"
-
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Number"
 msgstr "Sayı"
@@ -6910,7 +7028,7 @@ msgstr ""
 msgid "Only an admin can change a local MCP server."
 msgstr ""
 
-#: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 msgid "Only enter a code {codeHost} sent you."
 msgstr ""
 
@@ -7240,10 +7358,11 @@ msgstr "Geçiş anahtarları"
 msgid "password"
 msgstr ""
 
-#: src/components/AskCard.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/ConfirmIdentityDialog.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Auth.tsx
 msgid "Password"
@@ -7360,6 +7479,8 @@ msgstr ""
 msgid "Personal — only you"
 msgstr "Kişisel — yalnızca siz"
 
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmContacts.tsx
 #: src/pages/crm/CrmContactsSheet.tsx
 #: src/pages/crm/CrmModuleSheet.tsx
@@ -7935,9 +8056,9 @@ msgstr ""
 #: src/components/ApprovalRulesSettings.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/integrations/plugin-marketplace.tsx
-#: src/components/LoginFields.tsx
 #: src/components/TrustedLinkSitesSettings.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/LoginFieldsInput.tsx
+#: src/components/vault/VaultItemDetail.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/ModelRoleSettings.tsx
@@ -7968,7 +8089,7 @@ msgstr ""
 msgid "Remove {address}"
 msgstr ""
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
 msgid "Remove {secretName}? Bots will no longer be able to use it."
 msgstr "{secretName} kaldırılsın mı? Botlar artık bunu kullanamayacak."
 
@@ -8085,13 +8206,12 @@ msgstr "API anahtarını değiştir"
 msgid "Replace key"
 msgstr "Anahtarı değiştir"
 
-#: src/components/VaultSettings.tsx
-msgid "Replace value"
+#. placeholder {0}: block.replaces.origin
+#. placeholder {0}: initial.replacedSite
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Replaces the login saved for {0}"
 msgstr ""
-
-#: src/components/AskCard.tsx
-msgid "Replaces the login saved for {replacedSite}"
-msgstr "{replacedSite} için kayıtlı girişin yerini alır"
 
 #: src/components/VerificationComparison.tsx
 msgid "Replies"
@@ -8432,12 +8552,14 @@ msgstr ""
 msgid "Saturday"
 msgstr "Cumartesi"
 
-#: src/components/AskCard.tsx
+#: src/components/ApprovalRulesSettings.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/ComputerProviderSettings.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/PasskeySettings.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Board.tsx
 #: src/pages/crm/CrmContacts.tsx
@@ -8464,16 +8586,8 @@ msgstr "Kaydet"
 msgid "Save city bill"
 msgstr ""
 
-#: src/components/VaultSettings.tsx
-msgid "Save credential"
-msgstr ""
-
 #: src/pages/DocsView.tsx
 msgid "Save durable findings with workspace_set_context and reusable work with workspace_save_skill. Log the outcome and artifact links with workspace_log_activity so the next agent can pick up where you stopped."
-msgstr ""
-
-#: src/components/VaultSettings.tsx
-msgid "Save new value"
 msgstr ""
 
 #: src/pages/AgentConnectionSetup.tsx
@@ -8484,12 +8598,12 @@ msgstr ""
 msgid "Save the workspace and install current software."
 msgstr "Çalışma alanını kaydedin ve güncel yazılımı yükleyin."
 
-#: src/components/AskCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Save to Vault"
 msgstr "Kasaya kaydet"
 
-#: src/components/AskCard.tsx
 #: src/components/ComputerProviderSettings.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/ExternalConversationSettings.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
@@ -8516,10 +8630,10 @@ msgstr ""
 msgid "Saving..."
 msgstr ""
 
-#: src/components/AskCard.tsx
 #: src/components/FilesPanel.tsx
+#: src/components/SecretAskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/crm/CrmForms.tsx
 #: src/pages/GroupPanel.tsx
 #: src/pages/McpServersOverlay.tsx
@@ -8572,6 +8686,7 @@ msgid "Screen not connected"
 msgstr "Ekran bağlı değil"
 
 #: src/components/FoundModelPicker.tsx
+#: src/components/VaultSettings.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/model-settings/providers-section.tsx
 #: src/pages/model-settings/role-model-picker.tsx
@@ -8648,6 +8763,10 @@ msgstr "Çalıştırmaları ara"
 msgid "Search skills"
 msgstr ""
 
+#: src/components/VaultSettings.tsx
+msgid "Search Vault"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -8668,6 +8787,11 @@ msgstr "Güvenlik"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Security & Ops"
+msgstr ""
+
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Security code"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx
@@ -8760,10 +8884,13 @@ msgid "Senders that cannot set headers (cal.com, form builders) can append the k
 msgstr "Başlık ayarlayamayan gönderenler (cal.com, form araçları) anahtarı URL'ye ekleyebilir: <0>?token=<webhook key></0>. Gövdeler 64 KB ile sınırlıdır; <1>text</1> alanı olduğu gibi iletilir, geri kalan her şey JSON olarak aktarılır. Aynı <2>Idempotency-Key</2> başlığına (veya yükteki <3>id</3>/<4>event_id</4> değerine) sahip yinelenen teslimler tekilleştirilir."
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Sending…"
 msgstr "Gönderiliyor…"
 
 #: src/components/AskCard.tsx
+#: src/components/SecretAskCard.tsx
 #: src/pages/workspace/sections/EmailSection.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Sent"
@@ -8914,6 +9041,7 @@ msgstr ""
 msgid "Sheet"
 msgstr "Tablo"
 
+#: src/components/vault/VaultItemDetail.tsx
 #: src/components/VaultSettings.tsx
 msgid "Show"
 msgstr "Göster"
@@ -9053,7 +9181,8 @@ msgid "Sign-off"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Site"
 msgstr ""
 
@@ -9311,6 +9440,10 @@ msgstr "Başlatılıyor…"
 
 #: src/pages/crm/CrmForms.tsx
 msgid "Starts"
+msgstr ""
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "State or region"
 msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx
@@ -9705,6 +9838,7 @@ msgstr "Bu dosyalar içe aktarmak için çok büyük."
 msgid "These files or choices no longer match. Choose the files again."
 msgstr "Bu dosyalar veya seçimler artık eşleşmiyor. Dosyaları yeniden seç."
 
+#: src/components/vault/VaultItemDetail.tsx
 #: src/components/VaultSettings.tsx
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr ""
@@ -10013,6 +10147,7 @@ msgstr "Araç bağımsız değişkenleri bir JSON nesnesi olmalıdır"
 msgid "Tool arguments must be JSON"
 msgstr "Araç bağımsız değişkenleri JSON olmalıdır"
 
+#: src/components/ApprovalRulesSettings.tsx
 #: src/pages/RoutineEditor.tsx
 msgid "Tool name"
 msgstr "Araç adı"
@@ -10141,7 +10276,8 @@ msgstr ""
 msgid "Turn these inquiry notes into a follow-up plan. For each inquiry, list the request, missing information, and next step. Draft a short reply for me to review. Ask if anything is unclear, and don’t send any messages."
 msgstr ""
 
-#: src/components/VaultSettings.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/workspace/sections/LeasingSection.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Type"
@@ -10218,6 +10354,10 @@ msgstr ""
 msgid "Unpin"
 msgstr "Sabitlemeyi kaldır"
 
+#: src/pages/ActivityList.tsx
+msgid "Unread"
+msgstr "Okunmamış"
+
 #: src/pages/workspace/sections/EmailSection.tsx
 msgid "Unsubscribe rate"
 msgstr ""
@@ -10280,10 +10420,6 @@ msgstr "Güncelleme gerekli"
 msgid "Updated {0}"
 msgstr ""
 
-#: src/components/VaultSettings.tsx
-msgid "Updated {updated}"
-msgstr ""
-
 #: src/pages/settings-nav.ts
 msgid "Updates"
 msgstr "Güncellemeler"
@@ -10334,7 +10470,6 @@ msgstr ""
 msgid "URLs must be HTTPS. The response includes the endpoint and its signing secret — store it; it cannot be retrieved again."
 msgstr "URL'ler HTTPS olmalıdır. Yanıt, uç noktayı ve imzalama gizli anahtarını içerir — sakla; yeniden alınamaz."
 
-#: src/components/SidebarFooter.tsx
 #: src/pages/settings-nav.ts
 msgid "Usage"
 msgstr "Kullanım"
@@ -10422,8 +10557,9 @@ msgstr ""
 msgid "User peer"
 msgstr ""
 
-#: src/components/AskCard.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/SecretAskCard.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "Username"
 msgstr ""
 
@@ -10470,8 +10606,9 @@ msgstr ""
 msgid "Utility portal, bank, property software…"
 msgstr ""
 
-#: src/components/LoginFields.tsx
-#: src/components/VaultSettings.tsx
+#: src/components/vault/LoginFieldsInput.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 #: src/pages/McpServersOverlay.tsx
 msgid "Value"
 msgstr "Değer"
@@ -10483,6 +10620,19 @@ msgstr "Değer (USD)"
 #: src/pages/crm/CrmHome.tsx
 msgid "Value distribution"
 msgstr "Değer dağılımı"
+
+#: src/components/vault/kinds.tsx
+#: src/components/vault/VaultItemDetail.tsx
+msgid "Variable"
+msgstr ""
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "Variable name"
+msgstr ""
+
+#: src/components/vault/kinds.tsx
+msgid "Variables"
+msgstr ""
 
 #: src/pages/settings-nav.ts
 #: src/pages/SpaceSettingOverrides.tsx
@@ -10620,10 +10770,6 @@ msgstr "Webhook adı"
 msgid "Webhooks also flow the other way — every bot has an inbound URL that external services can POST to. The payload arrives as a message and any routine with a webhook trigger runs, so the bot can act on it with its tools. Set it up in the bot's routine editor."
 msgstr "Webhook'lar diğer yönde de akar — her botun dış servislerin POST edebileceği bir gelen URL'si vardır. Yük mesaj olarak ulaşır ve webhook tetikleyicili her rutin çalışır, böylece bot araçlarıyla harekete geçebilir. Botun rutin düzenleyicisinde ayarla."
 
-#: src/components/VaultSettings.tsx
-msgid "Website login"
-msgstr ""
-
 #: src/pages/workspace/bits.tsx
 msgid "Wed"
 msgstr ""
@@ -10729,6 +10875,8 @@ msgid "When to run"
 msgstr "Ne zaman çalışacak"
 
 #: src/components/teach/SkillDraftCard.tsx
+#: src/components/vault/VaultItemDetail.tsx
+#: src/components/vault/VaultItemEditor.tsx
 msgid "When to use"
 msgstr "Ne zaman kullanılır"
 
@@ -10759,6 +10907,10 @@ msgstr ""
 #: src/components/SignupSurvey.tsx
 msgid "Work"
 msgstr ""
+
+#: src/pages/ActivityList.tsx
+msgid "Working"
+msgstr "Çalışıyor"
 
 #: src/pages/shell/agent-import.tsx
 msgid "Working instructions"
@@ -10875,6 +11027,10 @@ msgstr ""
 msgid "Your card is charged {annualPrice} today, less the unused part of this month."
 msgstr "Bugün kartından {annualPrice} tahsil edilir, bu ayın kullanılmayan kısmı düşülür."
 
+#: src/pages/Shell.tsx
+msgid "Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need."
+msgstr "Bilgisayarınızın diski neredeyse dolu. Artık ihtiyaç duymadığınız derleme çıktılarını ve önbellekleri silerek yer açın."
+
 #: src/components/AccountDataSettings.tsx
 msgid "Your data"
 msgstr ""
@@ -10941,3 +11097,7 @@ msgstr "Ses sağlayıcınızın kredisi bitti."
 #: src/lib/user-error.ts
 msgid "Your voice provider key was rejected."
 msgstr "Ses sağlayıcınız anahtarı reddetti."
+
+#: src/components/vault/VaultItemEditor.tsx
+msgid "ZIP or postal code"
+msgstr ""

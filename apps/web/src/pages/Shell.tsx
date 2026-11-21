@@ -8,7 +8,7 @@ import type {
   VoiceStatus,
   WorkspaceSummary,
 } from "@rakazo/contracts";
-import { ATTACHMENT_MAX_COUNT } from "@rakazo/contracts";
+import { ATTACHMENT_MAX_COUNT, DEFAULT_NEW_BOT_AVATAR_SET } from "@rakazo/contracts";
 import {
   answerableAskMessageIds,
   channelMessageSender,
@@ -103,6 +103,7 @@ import {
 import { useDesktopBadge } from "../lib/use-desktop-badge";
 import { useFileDropZone } from "../lib/use-file-drop";
 import { useTeamPresence } from "../lib/use-team-presence";
+import { errorText } from "../lib/user-error";
 import { CrmView } from "./crm/CrmView";
 import { DocsView } from "./DocsView";
 import { HostComputerPrompt } from "./HostComputerPrompt";
@@ -362,6 +363,17 @@ function SpaceShell() {
   activeGroupId.current = groupId;
   const computerState = useComputerState({ rpc, panel, activeId: active?.id, activeBotId });
   const { computer, computerOpen, setComputerOpen, booting, commitComputer } = computerState;
+  const [cleaningUpDisk, setCleaningUpDisk] = useState(false);
+  const dismissDiskWarning = (botId: string) => {
+    const current = computerState.computerRef.current;
+    if (current?.botId === botId) commitComputer({ ...current, diskFullPercent: undefined });
+    const cached = computerState.computerCacheRef.current.get(botId)?.computer;
+    if (cached)
+      computerState.cacheComputerFor(botId, {
+        computer: { ...cached, diskFullPercent: undefined },
+      });
+    return rpc.computer.dismissDiskWarning({ botId }).catch(() => undefined);
+  };
   useReportedUiLocale(rpc, bootstrapMe?.locale);
   const cycleBots = useMemo(
     () => groupBotsForSidebar(bots, botSections).flatMap((group) => group.bots),
@@ -392,7 +404,7 @@ function SpaceShell() {
       if (shortcut.type === "search") {
         if (isMobileSidebar) setMobileSidebarOpen(true);
         else if (botsSidebarCollapsed) setBotsSidebarCollapsedPref(false);
-        if (!search.activityMode) search.setSearchOpen(true);
+        search.setSearchOpen(true);
         focusSidebarSearch();
         return true;
       }
@@ -1134,6 +1146,9 @@ function SpaceShell() {
         setCreateMenuOpen={setCreateMenuOpen}
         search={search}
         bots={bots}
+        groups={groups}
+        collapsedSidebarSections={collapsedSidebarSections}
+        toggleSidebarSection={toggleSidebarSection}
         setPanel={setPanel}
         navigate={navigate}
         setNewSpaceOpen={dialogs.setNewSpaceOpen}
@@ -1465,6 +1480,7 @@ function SpaceShell() {
                   onSpeak={speakMessage}
                   onOpenComputer={computerControls.onOpenComputer}
                   onOpenImportSetup={openImportSetup}
+                  rpc={rpc}
                 />
               )}
             </div>
@@ -1602,6 +1618,25 @@ function SpaceShell() {
               onRecoveryDismissed={computerControls.releaseComputerRecovery}
               onOpenComputerSettings={() => openSettings("computer")}
               onOpen={() => void openComputer()}
+              cleaningUpDisk={cleaningUpDisk}
+              onCleanUpDisk={() => {
+                const botId = active.id;
+                setCleaningUpDisk(true);
+                void rpc.threads
+                  .send({
+                    botId,
+                    clientNonce: crypto.randomUUID(),
+                    text: t`Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need.`,
+                  })
+                  .then(async () => {
+                    // The refresh must read the dismissal, or it would paint the warning again.
+                    await dismissDiskWarning(botId);
+                    void refreshThread(botId);
+                  })
+                  .catch((error: unknown) => composer.setSendError(errorText(error)))
+                  .finally(() => setCleaningUpDisk(false));
+              }}
+              onDismissDiskWarning={() => void dismissDiskWarning(active.id)}
             />
           ) : null
         }
@@ -1782,6 +1817,7 @@ function SpaceShell() {
           openSpaceSettings={openSpaceSettings}
           closeMobileSidebar={() => setMobileSidebarOpen(false)}
           createBot={createBot}
+          botAvatarSet={bootstrapMe?.botAvatarSet ?? DEFAULT_NEW_BOT_AVATAR_SET}
           clearOpenThread={() => {
             thread.resetHistory();
             thread.updateSnapshot((current) =>

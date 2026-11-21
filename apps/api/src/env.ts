@@ -124,6 +124,8 @@ export interface AppEnv {
   welcomeEmailEnabled?: boolean;
   /** Manor: referral emails have their own switch (REFERRAL_EMAIL_ENABLED), off by default. */
   referralEmailEnabled?: boolean;
+  /** Manor: saved-home retention (deleting stored computer files) needs HOME_RETENTION_ENABLED. */
+  homeRetentionEnabled?: boolean;
   emailApiKey?: string;
   emailFrom: string | undefined;
   ingestionUrl: string | undefined;
@@ -315,6 +317,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     emailReplyTo: optional(source.EMAIL_REPLY_TO),
     welcomeEmailEnabled: source.WELCOME_EMAIL_ENABLED === "true",
     referralEmailEnabled: source.REFERRAL_EMAIL_ENABLED === "true",
+    homeRetentionEnabled: source.HOME_RETENTION_ENABLED === "true",
     stripeSecretKey: optional(source.STRIPE_SECRET_KEY),
     stripeWebhookSecret: optional(source.STRIPE_WEBHOOK_SECRET),
     stripePriceId: optional(source.STRIPE_PRICE_ID),

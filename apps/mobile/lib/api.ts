@@ -1152,6 +1152,7 @@ export type MobileBot = Pick<
   | "threadId"
   | "pinned"
   | "status"
+  | "threadStatus"
   | "sectionId"
   | "archivedAt"
   | "unread"
@@ -1186,6 +1187,7 @@ export type MobileMe = Pick<
   | "paymentWalletProvider"
   | "ticketBoardEnabled"
   | "locale"
+  | "botAvatarSet"
 >;
 
 export type MobileModel = ModelCatalogEntry;
