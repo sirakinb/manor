@@ -1706,6 +1706,36 @@ describePostgres("shared spaces: invites and membership (PostgreSQL)", () => {
 
       const refused = await call(inSpace(actor, other), "spaces/remove", { spaceId: own });
       expect(refused.status).toBe(400);
+      // A member who does not own a Space is refused as a non-owner first, even when it is their
+      // only Space in that organization and so their default there.
+      const team = await sharedSpace(lead, "Team");
+      const accountUserId = randomUUID();
+      users.push(accountUserId);
+      await system.user.create({
+        data: {
+          id: accountUserId,
+          name: "Team",
+          email: `${accountUserId}@space.invalid`,
+          isSpaceAccount: true,
+        },
+      });
+      await system.space.update({ where: { id: team }, data: { accountUserId } });
+      const joiner = await person("joiner");
+      await system.member.create({
+        data: {
+          id: randomUUID(),
+          organizationId: lead.organizationId,
+          userId: joiner.id,
+          role: "member",
+          createdAt: new Date(),
+        },
+      });
+      const inTeam: Actor = { ...joiner.actor, spaceId: team, organizationId: lead.organizationId };
+      const teamList = await call(inTeam, "spaces/list", {});
+      expect(
+        (teamList.json.spaces as Array<Record<string, unknown>>).find((space) => space.id === team),
+      ).toMatchObject({ isDefault: true, canDelete: false });
+      expect((await call(inTeam, "spaces/remove", { spaceId: team })).status).toBe(403);
       await expect(system.space.findUnique({ where: { id: own } })).resolves.not.toBeNull();
       // The organization's default stays the lead's own home.
       const leadList = await call(lead.actor, "spaces/list", {});

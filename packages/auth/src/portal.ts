@@ -1,6 +1,6 @@
 import { defaultBrand, resolveBrand } from "@rakazo/brands";
 import type { PrismaClient } from "@rakazo/db";
-import { requireMembership } from "@rakazo/db";
+import { ensureOwnSpace, IsolationError, requireMembership, runAsSystem } from "@rakazo/db";
 import { APIError } from "better-auth/api";
 
 /** Public proxies preserve Host. Never let Origin override an actual destination host. */
@@ -45,11 +45,25 @@ export async function requirePortalMembership(
   request: Request,
 ) {
   const portalOrganizationId = await assertPortalAccess(prisma, userId, request.headers);
-  const actor = await requireMembership(
-    prisma,
-    userId,
-    request.headers.get("x-rakazo-space-id"),
-    portalOrganizationId,
-  );
-  return { ...actor, portalOrganizationId };
+  const requestedSpaceId = request.headers.get("x-rakazo-space-id");
+  const resolve = () => requireMembership(prisma, userId, requestedSpaceId, portalOrganizationId);
+  try {
+    return { ...(await resolve()), portalOrganizationId };
+  } catch (error) {
+    if (!(error instanceof IsolationError) || requestedSpaceId) throw error;
+    // Manor: a space without a shared account holds one person, and joining an organization adds
+    // nobody to another person's space. A session that reaches this portal (one signed in
+    // elsewhere, or a member whose shared space was taken away) gets its own space here, as the
+    // first sign-in on the portal would have. Only a member (not a guest) of the organization
+    // the portal allows, after the pin check above; a request naming a space never creates one.
+    const member = await prisma.member.findFirst({
+      where: { userId, organizationId: portalOrganizationId, role: { not: "guest" } },
+      select: { id: true },
+    });
+    if (!member) throw error;
+    await runAsSystem("own space in the portal's organization", () =>
+      ensureOwnSpace(prisma, { id: userId }, portalOrganizationId),
+    );
+    return { ...(await resolve()), portalOrganizationId };
+  }
 }

@@ -1,6 +1,14 @@
+import type * as Db from "@rakazo/db";
 import type { PrismaClient } from "@rakazo/db";
-import { describe, expect, it, vi } from "vitest";
+import { ensureOwnSpace } from "@rakazo/db";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { assertPortalAccess, portalBrandId, requirePortalMembership } from "./portal.js";
+
+vi.mock("@rakazo/db", async (original) => ({
+  ...(await original<typeof Db>()),
+  ensureOwnSpace: vi.fn(async () => "own-space"),
+  runAsSystem: (_reason: string, work: () => unknown) => work(),
+}));
 
 const clientHost = "jrhmanor.agentworkspace.cloud";
 function fixture(assigned: string | null = "jrh", member = true) {
@@ -115,5 +123,79 @@ describe("client portal access", () => {
         },
       }),
     );
+  });
+});
+
+describe("a portal member with no space in the portal's organization", () => {
+  beforeEach(() => vi.mocked(ensureOwnSpace).mockClear());
+  const membership = {
+    userId: "outsider",
+    spaceId: "own-space",
+    organizationId: "client-org",
+    member: { user: { email: "outsider@example.test" } },
+    space: { accountUserId: null },
+  };
+  /** Signed in elsewhere, then reaching the client's portal with the same session. */
+  function arriving({ pin = null as string | null, role = "member" } = {}) {
+    const prisma = {
+      user: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({ portalBrandId: pin, isSpaceAccount: false }),
+      },
+      member: {
+        findFirst: vi.fn(async ({ where }: { where: { role?: { not: string } } }) =>
+          where.role && role === where.role.not
+            ? null
+            : { id: "member", organizationId: "client-org" },
+        ),
+      },
+      // No space in the client organization until ensureOwnSpace has run.
+      spaceMember: { findFirst: vi.fn().mockResolvedValueOnce(null).mockResolvedValue(membership) },
+      deploymentSettings: { findUnique: vi.fn().mockResolvedValue(null) },
+    };
+    return prisma;
+  }
+  const request = (headers: Record<string, string> = {}) =>
+    new Request(`https://${clientHost}/rpc/spaces/list`, {
+      headers: { host: clientHost, ...headers },
+    });
+
+  it("gets their own space there, as a first sign-in on the portal would give them", async () => {
+    const prisma = arriving();
+    await expect(
+      requirePortalMembership(prisma as unknown as PrismaClient, "outsider", request()),
+    ).resolves.toMatchObject({ spaceId: "own-space", portalOrganizationId: "client-org" });
+    expect(ensureOwnSpace).toHaveBeenCalledExactlyOnceWith(
+      prisma,
+      { id: "outsider" },
+      "client-org",
+    );
+  });
+
+  it("gets nothing when they are only a guest of the organization", async () => {
+    const prisma = arriving({ role: "guest" });
+    await expect(
+      requirePortalMembership(prisma as unknown as PrismaClient, "outsider", request()),
+    ).rejects.toThrow("No personal space");
+    expect(ensureOwnSpace).not.toHaveBeenCalled();
+  });
+
+  it("gets nothing for a request that names a space", async () => {
+    const prisma = arriving();
+    await expect(
+      requirePortalMembership(
+        prisma as unknown as PrismaClient,
+        "outsider",
+        request({ "x-rakazo-space-id": "personal-space" }),
+      ),
+    ).rejects.toThrow("No personal space");
+    expect(ensureOwnSpace).not.toHaveBeenCalled();
+  });
+
+  it("gets nothing on a portal their account is not pinned to", async () => {
+    const prisma = arriving({ pin: "meridian" });
+    await expect(
+      requirePortalMembership(prisma as unknown as PrismaClient, "outsider", request()),
+    ).rejects.toThrow("Use your organization's sign-in page.");
+    expect(ensureOwnSpace).not.toHaveBeenCalled();
   });
 });

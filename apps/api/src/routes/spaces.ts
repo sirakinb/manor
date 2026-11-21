@@ -597,8 +597,18 @@ async function isPersonsDefaultSpace(
   space: { organizationId: string },
   spaceId: string,
 ): Promise<boolean> {
-  const defaultId = await runAsSystem("find a person's default Space in an organization", () =>
-    defaultSpaceForMember(prisma, { userId, organizationId: space.organizationId }),
-  );
-  return defaultId === spaceId;
+  return runAsSystem("find a person's default Space in an organization", async () => {
+    // Someone who may not delete the Space anyway is refused for that first (as upstream), so
+    // only an owner meets this rule.
+    const membership = await prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId } },
+      select: { role: true },
+    });
+    if (!membership || !isOwnerRole(membership.role)) return false;
+    const defaultId = await defaultSpaceForMember(prisma, {
+      userId,
+      organizationId: space.organizationId,
+    });
+    return defaultId === spaceId;
+  });
 }

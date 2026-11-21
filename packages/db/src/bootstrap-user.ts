@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { signupPolicyFromEnv } from "@rakazo/core";
 import type { PrismaClient } from "./client.js";
 import { isUniqueViolation } from "./prisma-errors.js";
+import { runAsSystem } from "./row-security.js";
 import { assertSpaceTakesPerson } from "./team-space.js";
 
 export interface SignupPolicyEnv {
@@ -24,34 +25,44 @@ function newId(): string {
   return randomBytes(16).toString("hex");
 }
 
-/** The memory file and notification row every space member starts with. */
+/**
+ * The memory file and notification row every space member starts with. Memory is a protected
+ * table, so seeding runs as a named system step here, in one place, whichever path reaches it (the
+ * session hook, the owner CLI, provisioning). Inside a caller's transaction (a client without
+ * `$transaction`) the caller's context already applies.
+ */
 async function seedSpaceDefaults(
   prisma: Pick<OrganizationClient, "memoryDocument" | "notificationPreference">,
   input: { spaceId: string; userId: string },
 ): Promise<void> {
-  const hasMemory = await prisma.memoryDocument.findFirst({
-    where: { spaceId: input.spaceId, userId: input.userId, scope: "user", path: "MEMORY.md" },
-  });
-  if (!hasMemory) {
-    await prisma.memoryDocument
-      .create({
-        data: {
-          spaceId: input.spaceId,
-          userId: input.userId,
-          scope: "user",
-          path: "MEMORY.md",
-          content: "# Space memory\n\nPreferences and context kept within this space live here.\n",
-        },
-      })
-      .catch((error: unknown) => {
-        if (!isUniqueViolation(error)) throw error;
-      });
-  }
-  await prisma.notificationPreference.upsert({
-    where: { spaceId_userId: input },
-    create: input,
-    update: {},
-  });
+  const seed = async () => {
+    const hasMemory = await prisma.memoryDocument.findFirst({
+      where: { spaceId: input.spaceId, userId: input.userId, scope: "user", path: "MEMORY.md" },
+    });
+    if (!hasMemory) {
+      await prisma.memoryDocument
+        .create({
+          data: {
+            spaceId: input.spaceId,
+            userId: input.userId,
+            scope: "user",
+            path: "MEMORY.md",
+            content:
+              "# Space memory\n\nPreferences and context kept within this space live here.\n",
+          },
+        })
+        .catch((error: unknown) => {
+          if (!isUniqueViolation(error)) throw error;
+        });
+    }
+    await prisma.notificationPreference.upsert({
+      where: { spaceId_userId: input },
+      create: input,
+      update: {},
+    });
+  };
+  if ("$transaction" in prisma) await runAsSystem("seed a space member's defaults", seed);
+  else await seed();
 }
 
 /** The organization that owns a brand's client team, with its default space. */
