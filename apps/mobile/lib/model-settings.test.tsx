@@ -180,11 +180,6 @@ vi.mock("./native", () => ({
 vi.mock("./user-error", () => ({
   errorText: (_: unknown, fallback = "Something went wrong. Try again.") => fallback,
 }));
-vi.mock("./i18n", () => {
-  const t = (text: string, values: Record<string, string | number> = {}) =>
-    text.replace(/\{(\w+)\}/g, (match, key: string) => String(values[key] ?? match));
-  return { useI18n: () => ({ t }) };
-});
 vi.mock("./message-action-sheet", () => ({ presentMessageActionSheet: vi.fn() }));
 vi.mock("../components/native-switch", () => ({
   NativeSwitch: ({
@@ -690,11 +685,11 @@ it("keeps setup help and API key collapsible for generic compatible servers", as
   const row = (name: string) =>
     [...container.querySelectorAll("button")].find((button) => button.textContent === name)!;
   expect(field("API key")).toBeNull();
-  expect(container.textContent).not.toContain("Rakazo adds /v1");
+  expect(container.textContent).not.toContain("Manor adds /v1");
   await act(async () => row("Setup help").click());
-  expect(container.textContent).toContain("Rakazo adds /v1");
+  expect(container.textContent).toContain("Manor adds /v1");
   await act(async () => row("Setup help").click());
-  expect(container.textContent).not.toContain("Rakazo adds /v1");
+  expect(container.textContent).not.toContain("Manor adds /v1");
   await act(async () => row("API key").click());
   expect(field("API key")).not.toBeNull();
   await act(async () => row("API key").click());

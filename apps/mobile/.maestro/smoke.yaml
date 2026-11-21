@@ -1,23 +1,21 @@
-appId: com.rakazo.app
-name: Rakazo mobile smoke
+appId: com.pentridgemedia.manor
+name: Manor mobile smoke
 ---
 - launchApp:
     clearState: true
 
-- assertVisible: "Sign up for Rakazo"
-- assertVisible: "Name"
-- tapOn: "Sign in"
+- assertVisible: "Sign up"
 - runFlow:
     when:
       true: ${typeof RAKAZO_MOBILE_API_URL !== "undefined" && RAKAZO_MOBILE_API_URL != null && RAKAZO_MOBILE_API_URL.trim() !== ""}
     file: helpers/server.yaml
-- assertVisible: "Sign in to Rakazo"
+- assertVisible: "Sign up"
 - tapOn: "Email"
 - inputText: ${RAKAZO_E2E_EMAIL}
 - tapOn: "Password"
 - inputText: ${RAKAZO_E2E_PASSWORD}
 - hideKeyboard
-- tapOn: "Sign in"
+- tapOn: "Continue with email"
 
 - extendedWaitUntil:
     visible: "Create"

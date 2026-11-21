@@ -7,6 +7,7 @@ import {
   defaultVaultItemTitle,
   forgetBotSecret,
   forgetPageShareSecrets,
+  groupsRemovedByDeletingBot,
   hasActiveComputerControl,
   isSecretAlreadySaved,
   listPiCatalog,
@@ -56,6 +57,7 @@ import type { AgentImportServices } from "../agent-import.js";
 import { agentImportSetupState, createImportedBot, previewAgentImport } from "../agent-import.js";
 import { deleteAgentSecret, listAgentSecrets, putAgentSecret } from "../agent-secrets.js";
 import { botEmailAddress, botEmailAddresses, claimBotEmailAddress } from "../bot-email-address.js";
+import { loadBotForRemoval } from "../bot-removal.js";
 import { changedBotSettings } from "../bot-setting-analytics.js";
 import { createBotFromTemplate, listBotTemplates } from "../bot-templates.js";
 import { requireIdentityConfirmation } from "../identity-confirmation.js";
@@ -689,6 +691,10 @@ export function botsRoutes(ctx: RouterContext) {
       remove: spaceAuthed.bots.remove.handler(async ({ context, input }) => {
         await removeBot(context.actor, input.botId, { deleteMemories: input.deleteMemories });
         return { ok: true as const };
+      }),
+      removePreview: spaceAuthed.bots.removePreview.handler(async ({ context, input }) => {
+        const bot = await loadBotForRemoval(deps.prisma, repos, context.actor, input.botId);
+        return groupsRemovedByDeletingBot(deps.prisma, bot.id);
       }),
       emailAddress: spaceAuthed.bots.emailAddress.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);

@@ -27,6 +27,7 @@ import {
   setOrganizationDeletionLease,
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import { assertOrganizationDeletable } from "./account-deletion-guard.js";
 import type { BillingService } from "./billing.js";
 import type { SpaceDeletionDeps } from "./space-deletion.js";
 import { afterSpaceDeparture } from "./space-departure.js";
@@ -130,6 +131,12 @@ export async function deleteOrganization(
     where: { id: organizationId },
     select: { name: true },
   });
+  // Manor: a new deletion is refused for an organization with a Workspace, CRM data or forms; one
+  // already claimed (a stalled attempt being finished) has started tearing down and goes on.
+  const resuming = await deps.prisma.space.count({
+    where: { organizationId, deletionClaimId: { startsWith: "organization-deletion:" } },
+  });
+  if (resuming === 0) await assertOrganizationDeletable(deps.prisma, organizationId);
   const { claimId, spaceIds, fresh } = await claimOrganizationForDeletion(deps.prisma, {
     userId,
     organizationId,

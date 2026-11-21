@@ -1,3 +1,4 @@
+import { t } from "@lingui/core/macro";
 import * as SecureStore from "expo-secure-store";
 import type { PendingSignOut } from "./api";
 import {
@@ -22,7 +23,6 @@ import {
 } from "./api";
 import type { EndpointResult } from "./endpoint";
 import { defaultApiBase, normalizeApiBase } from "./endpoint";
-import { t } from "./i18n";
 import { resumeLiveNotifications } from "./live-notifications";
 import type { MobileMe } from "./mobile-types";
 import { API_BASE_STORAGE_KEY as ENDPOINT_KEY } from "./server-config";
@@ -287,7 +287,7 @@ async function clearCredentialsForEndpointChange(
   if (!previousToken.ok || !revokedToken.ok) {
     return {
       ok: false,
-      result: { ok: false, error: t("Could not save the previous server session") },
+      result: { ok: false, error: t`Could not save the previous server session` },
     };
   }
   let pendingSignOut: PendingSignOut | undefined;
@@ -305,7 +305,7 @@ async function clearCredentialsForEndpointChange(
       // Without the record the old server keeps its session, so the switch cannot proceed.
       return {
         ok: false,
-        result: { ok: false, error: t("Could not save the previous server session") },
+        result: { ok: false, error: t`Could not save the previous server session` },
       };
     }
   }
@@ -314,7 +314,7 @@ async function clearCredentialsForEndpointChange(
     await settleRolledBackSignOut(pendingSignOut, restoredToken);
     return {
       ok: false as const,
-      result: { ok: false as const, error: t("Could not clear the previous server session") },
+      result: { ok: false as const, error: t`Could not clear the previous server session` },
     };
   };
   // Captured before the read, so a selection made during it cannot pass as the one read.
@@ -454,14 +454,14 @@ export async function saveApiBase(
     }
     if (!(await saveServerHeaders(parsed.url, headers))) {
       await rollBackEndpointChange(cleared);
-      return { ok: false, error: t("Could not save the server URL") };
+      return { ok: false, error: t`Could not save the server URL` };
     }
     try {
       await SecureStore.setItemAsync(ENDPOINT_KEY, parsed.url);
     } catch {
       await saveServerHeaders(previous, previousHeaders);
       await rollBackEndpointChange(cleared);
-      return { ok: false, error: t("Could not save the server URL") };
+      return { ok: false, error: t`Could not save the server URL` };
     }
     setCachedApiBase(parsed.url);
     await clearStoredValue(SPACE_ROLLBACK_KEY);
@@ -484,7 +484,7 @@ export async function resetApiBase(): Promise<EndpointResult> {
     } catch {
       if (cleared) {
         await rollBackEndpointChange(cleared);
-        return { ok: false, error: t("Could not clear the custom server URL") };
+        return { ok: false, error: t`Could not clear the custom server URL` };
       }
     }
     if (!(await saveServerHeaders(url, {}))) {
@@ -497,7 +497,7 @@ export async function resetApiBase(): Promise<EndpointResult> {
         setCachedApiBase(url);
         if (cleared) await clearStoredValue(ORGANIZATION_SPACES_KEY);
       }
-      return { ok: false, error: t("Could not clear the custom server URL") };
+      return { ok: false, error: t`Could not clear the custom server URL` };
     }
     setCachedApiBase(url);
     await clearStoredValue(SPACE_ROLLBACK_KEY);

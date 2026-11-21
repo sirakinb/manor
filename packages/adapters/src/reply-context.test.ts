@@ -2,7 +2,7 @@ import { REPLY_QUOTE_MAX_LENGTH } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import { toHistory } from "./pi-runtime-history.js";
-import { loadReplyContext, messageToAgentHistoryText } from "./reply-context.js";
+import { isStepsOnlyReply, loadReplyContext, messageToAgentHistoryText } from "./reply-context.js";
 
 function harness(replyTo: unknown = null, replyQuote: string | null = null) {
   const findFirst = vi.fn().mockResolvedValue({
@@ -243,5 +243,30 @@ describe("earlier turns' tool work", () => {
     expect(text).toContain("Shell ×2: Installing the password manager extension.");
     expect(text).toContain("Computer screenshot");
     expect(text).toContain("Done.");
+  });
+});
+
+describe("isStepsOnlyReply", () => {
+  const steps = { kind: "steps", steps: [{ label: "Shell", count: 1 }] };
+
+  it("is a bot row of only tool steps, as a silent run stores", () => {
+    expect(isStepsOnlyReply({ role: "bot", blocks: [steps] })).toBe(true);
+    expect(
+      isStepsOnlyReply({
+        role: "bot",
+        blocks: [steps, { kind: "progress", text: "Working", activity: true }],
+      }),
+    ).toBe(true);
+  });
+
+  it("is not a reply with text, a person's message, or an empty row", () => {
+    expect(
+      isStepsOnlyReply({ role: "bot", blocks: [steps, { kind: "text", text: "Done." }] }),
+    ).toBe(false);
+    expect(isStepsOnlyReply({ role: "user", blocks: [steps] })).toBe(false);
+    expect(isStepsOnlyReply({ role: "bot", blocks: [] })).toBe(false);
+    expect(
+      isStepsOnlyReply({ role: "bot", blocks: [{ kind: "progress", text: "Narration" }] }),
+    ).toBe(false);
   });
 });

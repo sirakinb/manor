@@ -1,4 +1,6 @@
 import { MenuView } from "@expo/ui/community/menu";
+import { ph } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import type { SpaceMember, SpaceMembers } from "@rakazo/contracts";
 import { accountDisplay } from "@rakazo/core";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -18,7 +20,6 @@ import { cancelHeaderOptions } from "../components/sheet-header";
 import { rpc, selectedSpaceId } from "../lib/api";
 import { selectSpace } from "../lib/api-server";
 import { mobileTokens } from "../lib/appearance";
-import { useI18n } from "../lib/i18n";
 import { native, useMobileTokens, useResolvedAppearance, useThemedStyles } from "../lib/native";
 import { SPACE_SHARING } from "../lib/space-sharing";
 import { errorText } from "../lib/user-error";
@@ -29,7 +30,7 @@ export default function SpaceMembersRoute() {
 }
 
 function SpaceMembersScreen() {
-  const { t } = useI18n();
+  const { t } = useLingui();
   const styles = useThemedStyles(createStyles);
   const appearance = useResolvedAppearance();
   const tokens = useMobileTokens();
@@ -47,7 +48,7 @@ function SpaceMembersScreen() {
         if (active) setMembers(next);
       })
       .catch((err: unknown) => {
-        if (active) setError(errorText(err, t("Could not load members")));
+        if (active) setError(errorText(err, t`Could not load members`));
       });
     return () => {
       active = false;
@@ -65,7 +66,7 @@ function SpaceMembersScreen() {
       // iOS shares a URL as a link; Android only takes text.
       await Share.share(Platform.OS === "ios" ? { url: link.url } : { message: link.url });
     } catch (err) {
-      Alert.alert(t("Could not create invite link"), errorText(err, t("Try again.")));
+      Alert.alert(t`Could not create invite link`, errorText(err, t`Try again.`));
     } finally {
       setPending(false);
     }
@@ -77,15 +78,15 @@ function SpaceMembersScreen() {
       await rpc("spaces/invites/cancel", { spaceId });
       setMembers((current) => (current ? { ...current, openInvites: 0 } : current));
     } catch (err) {
-      Alert.alert(t("Could not cancel invites"), errorText(err, t("Try again.")));
+      Alert.alert(t`Could not cancel invites`, errorText(err, t`Try again.`));
     }
   }
 
   function confirmRemove(member: SpaceMember, label: string) {
-    Alert.alert(t("Remove {name}?", { name: label }), undefined, [
-      { text: t("Cancel"), style: "cancel" },
+    Alert.alert(t`Remove ${ph({ name: label })}?`, undefined, [
+      { text: t`Cancel`, style: "cancel" },
       {
-        text: t("Remove"),
+        text: t`Remove`,
         style: "destructive",
         onPress: () => {
           void rpc("spaces/members/remove", { spaceId, userId: member.userId })
@@ -100,7 +101,7 @@ function SpaceMembersScreen() {
               ),
             )
             .catch((err: unknown) =>
-              Alert.alert(t("Could not remove member"), errorText(err, t("Try again."))),
+              Alert.alert(t`Could not remove member`, errorText(err, t`Try again.`)),
             );
         },
       },
@@ -108,9 +109,9 @@ function SpaceMembersScreen() {
   }
 
   function confirmLeave() {
-    Alert.alert(t("Leave {name}?", { name: name ?? members?.spaceName ?? "" }), undefined, [
-      { text: t("Cancel"), style: "cancel" },
-      { text: t("Leave"), style: "destructive", onPress: () => void leave() },
+    Alert.alert(t`Leave ${ph({ name: name ?? members?.spaceName ?? "" })}?`, undefined, [
+      { text: t`Cancel`, style: "cancel" },
+      { text: t`Leave`, style: "destructive", onPress: () => void leave() },
     ]);
   }
 
@@ -123,7 +124,7 @@ function SpaceMembersScreen() {
       router.dismissAll();
       router.replace("/");
     } catch (err) {
-      Alert.alert(t("Could not leave space"), errorText(err, t("Try again.")));
+      Alert.alert(t`Could not leave space`, errorText(err, t`Try again.`));
       setPending(false);
     }
   }
@@ -131,7 +132,7 @@ function SpaceMembersScreen() {
   const canManage = members?.canManage === true;
   return (
     <>
-      <Stack.Screen options={cancelHeaderOptions(t("Close"), () => router.back())} />
+      <Stack.Screen options={cancelHeaderOptions(t`Close`, () => router.back())} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={styles.screen}
@@ -140,7 +141,7 @@ function SpaceMembersScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {!members && !error ? <ActivityIndicator /> : null}
         {members ? (
-          <SettingsGroup accessibilityLabel={t("Members")}>
+          <SettingsGroup accessibilityLabel={t`Members`}>
             {members.members.map((member) => {
               const display = accountDisplay(member, member.email);
               const row = (
@@ -148,10 +149,10 @@ function SpaceMembersScreen() {
                   key={member.userId}
                   title={display.label}
                   detail={display.label === member.email ? undefined : member.email}
-                  value={member.role === "owner" ? t("Owner") : undefined}
+                  value={member.role === "owner" ? t`Owner` : undefined}
                   accessibilityActions={
                     canManage && member.role !== "owner"
-                      ? [{ name: "remove", label: t("Remove") }]
+                      ? [{ name: "remove", label: t`Remove` }]
                       : undefined
                   }
                   onAccessibilityAction={() => confirmRemove(member, display.label)}
@@ -165,7 +166,7 @@ function SpaceMembersScreen() {
                   actions={[
                     {
                       id: "remove",
-                      title: t("Remove"),
+                      title: t`Remove`,
                       image: "person.badge.minus",
                       attributes: { destructive: true },
                     },
@@ -181,7 +182,7 @@ function SpaceMembersScreen() {
             {canManage ? (
               <SettingsRow
                 key="invite"
-                title={t("Invite")}
+                title={t`Invite`}
                 tinted
                 leading={
                   <NativeSymbol
@@ -201,7 +202,7 @@ function SpaceMembersScreen() {
           <SettingsGroup>
             <SettingsRow
               key="cancel-invites"
-              title={t("Cancel open invites")}
+              title={t`Cancel open invites`}
               destructive
               // A link still being created would outlive the cancel.
               disabled={pending}
@@ -214,7 +215,7 @@ function SpaceMembersScreen() {
           <SettingsGroup>
             <SettingsRow
               key="leave"
-              title={t("Leave space")}
+              title={t`Leave space`}
               destructive
               disabled={pending}
               accessibilityRole="button"

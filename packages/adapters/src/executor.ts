@@ -125,7 +125,7 @@ import { createPaidServiceProvider } from "./paid-services-factory.js";
 import { paymentWalletConnected } from "./payment-wallets.js";
 import { restoreComputerModels } from "./pi-runtime-computer-mode.js";
 import { loadPurchaseRedactions } from "./purchase-service.js";
-import { loadReplyContext, messageToAgentHistoryText } from "./reply-context.js";
+import { isStepsOnlyReply, loadReplyContext, messageToAgentHistoryText } from "./reply-context.js";
 import { backOffRoutineAfterAccountError } from "./routine-backoff.js";
 import { lateRoutineRunDueAt, lateRoutineRunInstruction } from "./routine-lateness.js";
 import { routineWebhookRedactionSecrets } from "./routine-webhook.js";
@@ -804,33 +804,37 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
         const threadContext = threadContextForRun(
           run.trigger,
           {
-            messages: [...messages].reverse().map((m) => {
-              const speaker = historySpeaker(speakers, m);
-              // In a group, turns from several speakers are joined, so no line may pose as a label.
-              const body = speakers
-                ? neutralizeSpeakerLabels(messageToAgentHistoryText(m))
-                : messageToAgentHistoryText(m);
-              // Manor: in a shared space, user messages name their authors. Upstream's speaker
-              // label already names a known author, so the prefix is only for a line without one.
-              const namedBySpeaker = speaker !== undefined && speaker !== USER_SPEAKER;
-              const authorPrefix =
-                m.role === "user" && m.authorName && !namedBySpeaker ? `[${m.authorName}] ` : "";
-              const text = `${authorPrefix}${body}`;
-              return {
-                id: m.id,
-                createdAt: m.createdAt?.toISOString(),
-                seq: m.seq,
-                role: (m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant") as
-                  | "user"
-                  | "assistant"
-                  | "system",
-                ...(speaker ? { speaker } : {}),
-                waiting: m.steeringMessages.length > 0,
-                content: isPartialReplyClientNonce(m.clientNonce)
-                  ? `${text}\n\n${PARTIAL_REPLY_NOTE}`
-                  : text,
-              };
-            }),
+            messages: [...messages]
+              .reverse()
+              .filter((m) => !isStepsOnlyReply(m))
+              .map((m) => {
+                const speaker = historySpeaker(speakers, m);
+                // In a group, turns from several speakers are joined, so no line may pose as a label.
+                const body = speakers
+                  ? neutralizeSpeakerLabels(messageToAgentHistoryText(m))
+                  : messageToAgentHistoryText(m);
+                // Manor: in a shared space, user messages name their authors. Upstream's speaker
+                // label already names a known author, so the prefix is only for a line without one.
+                const namedBySpeaker = speaker !== undefined && speaker !== USER_SPEAKER;
+                const authorPrefix =
+                  m.role === "user" && m.authorName && !namedBySpeaker ? `[${m.authorName}] ` : "";
+                const text = `${authorPrefix}${body}`;
+                return {
+                  id: m.id,
+                  createdAt: m.createdAt?.toISOString(),
+                  seq: m.seq,
+                  role: (m.role === "user"
+                    ? "user"
+                    : m.role === "system"
+                      ? "system"
+                      : "assistant") as "user" | "assistant" | "system",
+                  ...(speaker ? { speaker } : {}),
+                  waiting: m.steeringMessages.length > 0,
+                  content: isPartialReplyClientNonce(m.clientNonce)
+                    ? `${text}\n\n${PARTIAL_REPLY_NOTE}`
+                    : text,
+                };
+              }),
             summary: thread.historyCompactionSummary,
             historyCompactedUpToSeq: thread.historyCompactedUpToSeq,
           },
@@ -1337,6 +1341,7 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
           botUserId: bot.userId,
         });
         let userComputer: UserComputerState;
+        let userComputerShell = false;
         let userComputerScreen = false;
         if (
           userComputerOwnerId &&
@@ -1346,6 +1351,7 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
           const device = await deps.userDevices.connected(userComputerOwnerId).catch(() => null);
           if (device) {
             userComputer = "connected";
+            userComputerShell = !device.screenOnly;
             // The macOS and Windows desktops fetch a screen driver; Linux has none yet.
             userComputerScreen = device.platform === "darwin" || device.platform === "win32";
           } else userComputer = "offline";
@@ -1377,7 +1383,7 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
               : bot.disabledBuiltinTools,
             fleetManagement: bot.fleetManagement,
             followUpFromUser: sourceMessage?.role === "user",
-            userComputer: userComputer === "connected",
+            userComputer: userComputerShell,
             userComputerScreen,
             emailInbox,
             emailClaimable:
@@ -1455,7 +1461,11 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
                 disabled: disabledBuiltinTools,
               });
         const dockerToolInstruction = computerToolsAvailable
-          ? dockerComputerToolInstruction(computerKind, disabledBuiltinTools)
+          ? dockerComputerToolInstruction(
+              computerKind,
+              disabledBuiltinTools,
+              new Set(tools.map((tool) => tool.name)),
+            )
           : undefined;
         const hostEnvironment =
           computerKind && usesNativeShell(computerKind)

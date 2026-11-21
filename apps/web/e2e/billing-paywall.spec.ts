@@ -1,7 +1,7 @@
 import type { Route } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { BillingStatus } from "@rakazo/contracts";
-import { captureScreenshot, completeOnboarding, openUserSettings, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserSettings, rpc, signup } from "./helpers";
 
 const price = { amount: 1200, currency: "usd", interval: "month", intervalCount: 1 } as const;
 
@@ -236,6 +236,44 @@ test("choose your own key or monthly credits, then add a one-time top-up", async
     reactivated.getByRole("button", { name: "Use Manor credits", exact: true }),
   ).toHaveCount(0);
   expect(purchase).toEqual({ amountCents: 5000, monthly: false });
+});
+
+// Manor: a session acts only in the organization its portal allows, so the plan choice offers no
+// way to delete it, and the server refuses removing one, saying why (see organizations.spec.ts).
+test("the plan choice offers no organization delete", async ({ page }, testInfo) => {
+  await signup(page, `org-paywall-${Date.now()}@rakazo.test`, "password12", "Demo Customer");
+  await completeOnboarding(page);
+  await page.route("**/api/auth/capabilities", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...(await response.json()), billing: true } });
+  });
+  await page.route("**/rpc/me", (route) => enableBilling(route, "me"));
+  await page.route("**/rpc/bootstrap", (route) => enableBilling(route, "bootstrap"));
+  await page.route("**/rpc/billing/status", (route) =>
+    route.fulfill({ json: { json: billingStatus({}) } }),
+  );
+  await page.reload();
+  await expect(page.getByTestId("billing-paywall")).toBeVisible();
+
+  await page.getByRole("button", { name: "Account", exact: true }).click();
+  await expect(page.getByRole("menuitem", { name: "Log out" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Delete organization" })).toHaveCount(0);
+  await captureScreenshot(page, testInfo, "billing-no-organization-delete");
+  await page.keyboard.press("Escape");
+
+  const { organizations } = await rpc<{ organizations: Array<{ id: string }> }>(
+    page,
+    "organizations/list",
+    {},
+  );
+  expect(organizations).toHaveLength(1);
+  const refused = await page.request.post("/rpc/organizations/remove", {
+    data: { json: { organizationId: organizations[0]!.id } },
+  });
+  expect(refused.status()).toBe(403);
+  const body = (await refused.json()) as { json?: { code?: string; data?: { reason?: string } } };
+  expect(body.json?.code).toBe("FORBIDDEN");
+  expect(body.json?.data?.reason).toBe("ORGANIZATIONS_UNAVAILABLE");
 });
 
 test("start the own-key plan billed yearly", async ({ page }, testInfo) => {

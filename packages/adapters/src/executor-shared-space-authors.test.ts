@@ -17,7 +17,7 @@ vi.mock("./computer-lifecycle.js", async (importOriginal) => ({
 
 type Space = { members: number; authors: boolean } | "legacy";
 
-function historyMessages(authors: boolean) {
+function historyMessages(authors: boolean, withToolWork = false) {
   const message = (
     id: string,
     seq: number,
@@ -37,9 +37,35 @@ function historyMessages(authors: boolean) {
     replyQuote: null,
     replyTo: null,
   });
+  // A silent run's steps-only row, and a reply that used tools before answering.
+  const toolWork = withToolWork
+    ? [
+        message(
+          "silent",
+          3.6,
+          "",
+          [
+            { kind: "steps", steps: [{ label: "Shell", count: 2 }] },
+            { kind: "progress", text: "Running a command", activity: true },
+          ],
+          "bot",
+        ),
+        message(
+          "worked",
+          3.5,
+          "",
+          [
+            { kind: "steps", steps: [{ label: "Web search", count: 1 }] },
+            { kind: "text", text: "Two places are open." },
+          ],
+          "bot",
+        ),
+      ]
+    : [];
   // Newest first, like the history query.
   return [
     message("current", 4, "user-b", [{ kind: "text", text: "Book the table" }]),
+    ...toolWork,
     message("reply", 3, "", [{ kind: "text", text: "Which night?" }], "bot"),
     message("earlier", 2, "user-a", [{ kind: "text", text: "Find us a restaurant" }]),
     message("group", 1, "user-a", [
@@ -61,6 +87,8 @@ type RunOptions = {
   taughtSkills?: Array<Record<string, unknown>>;
   /** The bot is linked to its creator's chat app and may talk to other people's agents. */
   chatLinkedBotOf?: string;
+  /** History also holds a silent run's steps-only row and a reply with steps and text. */
+  withToolWork?: boolean;
 };
 
 async function runInSpace(space: Space, options: RunOptions = {}) {
@@ -144,7 +172,9 @@ async function runInSpace(space: Space, options: RunOptions = {}) {
     },
     message: {
       findMany: vi.fn(async (args: { where?: { threadId?: string } }) =>
-        args.where?.threadId ? historyMessages(space !== "legacy" && space.authors) : [],
+        args.where?.threadId
+          ? historyMessages(space !== "legacy" && space.authors, options.withToolWork)
+          : [],
       ),
       findUnique: vi.fn(async () => null),
       findFirst: vi.fn(async () => null),
@@ -322,5 +352,18 @@ describe("agent connections in a shared space", () => {
 
     expect(offered(own.request)).toBe(true);
     expect(offered(other.request)).toBe(false);
+  });
+});
+
+describe("earlier tool work in the replayed history", () => {
+  it("leaves out a silent run's steps-only row and keeps a reply's steps with its text", async () => {
+    const { request } = await runInSpace({ members: 1, authors: true }, { withToolWork: true });
+
+    expect(request.history.some((entry) => entry.id === "silent")).toBe(false);
+    expect(historyEntry(request, "worked")).toEqual({
+      speaker: undefined,
+      content: "[tool calls this reply made]\n- Web search\nTwo places are open.",
+    });
+    expect(historyEntry(request, "reply")).toEqual({ speaker: undefined, content: "Which night?" });
   });
 });

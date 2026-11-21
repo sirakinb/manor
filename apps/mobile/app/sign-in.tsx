@@ -1,3 +1,5 @@
+import { ph } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import {
   credentialIssue,
   MAX_PASSWORD_LENGTH,
@@ -37,7 +39,6 @@ import {
 } from "../lib/api-auth";
 import type { AuthMode } from "../lib/auth-routing";
 import { displayApiHost, usesCustomApiBase } from "../lib/endpoint";
-import { useI18n } from "../lib/i18n";
 import { hasIncomingShare } from "../lib/incoming-share";
 import { brandType, manor } from "../lib/native";
 import { passkeysAvailable, signInWithPasskey } from "../lib/passkey";
@@ -48,7 +49,7 @@ import { credentialIssueText, errorText } from "../lib/user-error";
 const CODE_LENGTH = 6;
 
 export default function SignIn() {
-  const { t } = useI18n();
+  const { t } = useLingui();
   const router = useRouter();
   const { mode: requestedMode } = useLocalSearchParams<{ mode?: string | string[] }>();
   // Manor opens on sign-in; sign-up only when a link asks for it with mode=up.
@@ -121,13 +122,13 @@ export default function SignIn() {
   }, [reset]);
 
   useEffect(() => {
-    if (resetSent || codeSent) AccessibilityInfo.announceForAccessibility(t("Check your email"));
+    if (resetSent || codeSent) AccessibilityInfo.announceForAccessibility(t`Check your email`);
   }, [resetSent, codeSent, t]);
 
   if (!ready) {
     return (
       <View style={{ flex: 1, backgroundColor: manor.page, justifyContent: "center", padding: 24 }}>
-        <ActivityIndicator color={manor.muted} accessibilityLabel={t("Loading…")} />
+        <ActivityIndicator color={manor.muted} accessibilityLabel={t`Loading…`} />
       </View>
     );
   }
@@ -152,7 +153,7 @@ export default function SignIn() {
       setWarnedEmail(email);
       setEmailBlurred(true);
       AccessibilityInfo.announceForAccessibility(
-        t("Did you mean {email}?", { email: emailSuggestion }),
+        t`Did you mean ${ph({ email: emailSuggestion })}?`,
       );
       return;
     }
@@ -163,7 +164,7 @@ export default function SignIn() {
     try {
       if (mode === "forgot") {
         if (!reset?.passwordReset || !reset.resetUrl) {
-          throw new Error(t("Password recovery is not configured for this server"));
+          throw new Error(t`Password recovery is not configured for this server`);
         }
         await requestPasswordReset(email.trim(), reset.resetUrl);
         setResetSent(true);
@@ -201,7 +202,7 @@ export default function SignIn() {
       }
       await openApp();
     } catch (err) {
-      setError(errorText(err, t("Could not continue")));
+      setError(errorText(err, t`Could not continue`));
     } finally {
       setPending(false);
     }
@@ -220,7 +221,7 @@ export default function SignIn() {
     try {
       if (await run()) await openApp();
     } catch (err) {
-      setError(errorText(err, t("Could not continue")));
+      setError(errorText(err, t`Could not continue`));
     } finally {
       setPending(false);
     }
@@ -255,7 +256,7 @@ export default function SignIn() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Manor"
-                accessibilityHint="Double tap and hold to choose a custom server"
+                accessibilityHint={t`Double tap and hold to choose a custom server`}
                 delayLongPress={600}
                 onLongPress={() => router.push("/server")}
                 style={{ alignItems: "center", marginBottom: 34 }}
@@ -271,7 +272,7 @@ export default function SignIn() {
               {resetSent ? (
                 <View style={{ alignItems: "center", marginTop: 6 }}>
                   <Text accessibilityRole="header" style={{ color: manor.ink, fontSize: 17 }}>
-                    {t("Check your email")}
+                    {t`Check your email`}
                   </Text>
                   {/* Sign-up verification lands here too; the reset sentence is only true for a reset. */}
                   {mode === "forgot" ? (
@@ -283,7 +284,7 @@ export default function SignIn() {
                         textAlign: "center",
                       }}
                     >
-                      If an account exists for that address, we sent a password reset link.
+                      {t`If an account exists for that address, we sent a password reset link.`}
                     </Text>
                   ) : null}
                   <Pressable
@@ -296,7 +297,7 @@ export default function SignIn() {
                     style={{ marginTop: 22 }}
                   >
                     <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
-                      {t("Back to sign in")}
+                      {t`Back to sign in`}
                     </Text>
                   </Pressable>
                 </View>
@@ -305,23 +306,23 @@ export default function SignIn() {
                   {capabilityError ? (
                     <View accessibilityRole="alert">
                       <Text style={{ color: manor.danger }}>
-                        {t("Could not load sign-in options")}
+                        {t`Could not load sign-in options`}
                       </Text>
                       <NativeActionButton
-                        label={t("Retry")}
+                        label={t`Retry`}
                         onPress={() => setCapabilityAttempt((value) => value + 1)}
                       />
                     </View>
                   ) : !reset ? (
                     <ActivityIndicator
                       color={manor.muted}
-                      accessibilityLabel={t("Loading…")}
+                      accessibilityLabel={t`Loading…`}
                       style={{ marginTop: 16 }}
                     />
                   ) : null}
                   {reset?.sso && !reset.passwordAuth && mode !== "forgot" ? (
                     <NativeActionButton
-                      label={t("Continue with {name}", { name: reset.sso.name })}
+                      label={t`Continue with ${ph({ name: reset.sso.name })}`}
                       disabled={pending}
                       onPress={() => void externalSignIn(continueWithSso)}
                       style={{ marginTop: 16 }}
@@ -338,16 +339,16 @@ export default function SignIn() {
                         accessibilityRole="header"
                         style={{ color: manor.ink, fontSize: 17, textAlign: "center" }}
                       >
-                        {t("Check your email")}
+                        {t`Check your email`}
                       </Text>
                       <TextInput
-                        accessibilityLabel={t("Code")}
+                        accessibilityLabel={t`Code`}
                         autoComplete="one-time-code"
                         autoFocus
                         keyboardType="number-pad"
                         keyboardAppearance="dark"
                         maxLength={CODE_LENGTH}
-                        placeholder={t("Code")}
+                        placeholder={t`Code`}
                         placeholderTextColor={manor.muted2}
                         textContentType="oneTimeCode"
                         value={code}
@@ -374,11 +375,11 @@ export default function SignIn() {
                         ]}
                       >
                         <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
-                          {pending ? t("Working…") : t("Continue")}
+                          {pending ? t`Working…` : t`Continue`}
                         </Text>
                       </Pressable>
                       <NativeActionButton
-                        label={t("Back")}
+                        label={t`Back`}
                         prominence="quiet"
                         disabled={pending}
                         onPress={() => {
@@ -394,7 +395,7 @@ export default function SignIn() {
                       {mode === "up" ? (
                         <TextInput
                           autoComplete="name"
-                          placeholder={t("Name")}
+                          placeholder={t`Name`}
                           placeholderTextColor={manor.muted2}
                           keyboardAppearance="dark"
                           value={name}
@@ -407,7 +408,7 @@ export default function SignIn() {
                         autoComplete="email"
                         keyboardType="email-address"
                         keyboardAppearance="dark"
-                        placeholder={t("Email")}
+                        placeholder={t`Email`}
                         placeholderTextColor={manor.muted2}
                         value={email}
                         onChangeText={(value) => {
@@ -425,7 +426,7 @@ export default function SignIn() {
                           style={{ marginTop: 8, paddingHorizontal: 4 }}
                         >
                           <Text style={{ color: manor.accent, fontSize: 14 }}>
-                            {t("Did you mean {email}?", { email: emailSuggestion })}
+                            {t`Did you mean ${ph({ email: emailSuggestion })}?`}
                           </Text>
                         </Pressable>
                       ) : null}
@@ -436,7 +437,7 @@ export default function SignIn() {
                             textContentType={mode === "in" ? "password" : "newPassword"}
                             passwordRules={mode === "in" ? undefined : PASSWORD_RULES}
                             maxLength={MAX_PASSWORD_LENGTH}
-                            placeholder={t("Password")}
+                            placeholder={t`Password`}
                             placeholderTextColor={manor.muted2}
                             keyboardAppearance="dark"
                             returnKeyType="go"
@@ -450,7 +451,7 @@ export default function SignIn() {
                           />
                           <NativeActionButton
                             accessibilityLabel={
-                              passwordVisible ? t("Hide password") : t("Show password")
+                              passwordVisible ? t`Hide password` : t`Show password`
                             }
                             icon={{
                               ios: passwordVisible ? "eye.slash" : "eye",
@@ -481,19 +482,19 @@ export default function SignIn() {
                       >
                         <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
                           {pending
-                            ? t("Working…")
+                            ? t`Working…`
                             : usingCode
-                              ? t("Continue")
+                              ? t`Continue`
                               : mode === "in"
-                                ? "Continue with email"
+                                ? t`Continue with email`
                                 : mode === "up"
-                                  ? t("Sign up")
-                                  : t("Send reset link")}
+                                  ? t`Sign up`
+                                  : t`Send reset link`}
                         </Text>
                       </Pressable>
                       {passkeys && mode === "in" ? (
                         <NativeActionButton
-                          label={t("Sign in with passkey")}
+                          label={t`Sign in with passkey`}
                           icon={{ ios: "key.fill", android: "key-outline" }}
                           prominence="secondary"
                           fill
@@ -504,7 +505,7 @@ export default function SignIn() {
                       ) : null}
                       {reset.sso && mode !== "forgot" ? (
                         <NativeActionButton
-                          label={t("Continue with {name}", { name: reset.sso.name })}
+                          label={t`Continue with ${ph({ name: reset.sso.name })}`}
                           prominence="quiet"
                           disabled={pending}
                           onPress={() => void externalSignIn(continueWithSso)}
@@ -522,7 +523,7 @@ export default function SignIn() {
                           style={{ alignSelf: "center", marginTop: 16 }}
                         >
                           <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
-                            {t("Forgot password?")}
+                            {t`Forgot password?`}
                           </Text>
                         </Pressable>
                       ) : null}
@@ -537,8 +538,8 @@ export default function SignIn() {
                         >
                           <Text style={{ color: manor.muted2, fontSize: 15 }}>
                             {mode === "in"
-                              ? t("Don’t have an account?")
-                              : t("Already have an account?")}
+                              ? t`Don’t have an account?`
+                              : t`Already have an account?`}
                           </Text>
                           <Pressable
                             accessibilityRole="button"
@@ -550,7 +551,7 @@ export default function SignIn() {
                             style={{ marginLeft: 5 }}
                           >
                             <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
-                              {mode === "in" ? t("Sign up") : t("Sign in")}
+                              {mode === "in" ? t`Sign up` : t`Sign in`}
                             </Text>
                           </Pressable>
                         </View>
@@ -563,7 +564,7 @@ export default function SignIn() {
             {custom ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t("Custom server {host}", { host: displayApiHost(apiBase) })}
+                accessibilityLabel={t`Custom server ${ph({ host: displayApiHost(apiBase) })}`}
                 hitSlop={12}
                 onPress={() => router.push("/server")}
                 style={{
@@ -573,7 +574,7 @@ export default function SignIn() {
                   paddingTop: 8,
                 }}
               >
-                <Text style={styles.footnoteLabel}>{t("Custom server")}</Text>
+                <Text style={styles.footnoteLabel}>{t`Custom server`}</Text>
                 <Text style={{ color: manor.muted2, fontSize: 13, marginTop: 3 }}>
                   {displayApiHost(apiBase)}
                 </Text>

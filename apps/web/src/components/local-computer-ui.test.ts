@@ -20,7 +20,7 @@ describe("local computer UI surfaces", () => {
     // The computer screen's empty states moved out of Shell into the shell's computer view.
     const computerView = read("../pages/shell/computer-view.tsx");
 
-    const enCatalog = read("../locales/en/messages.po");
+    const enCatalog = read("../../../../packages/i18n/locales/en/messages.po");
     expect(enCatalog).toContain('msgid "Share this Mac"');
     expect(enCatalog).toContain(
       'msgid "Pick one folder on this laptop. Writes and shell need Allow once. Overnight work stays on the cloud computer."',

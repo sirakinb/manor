@@ -12,6 +12,16 @@ export class AccountDeletionRefusedError extends Error {
   }
 }
 
+/** Deleting this organization would remove its Workspace, CRM data or public forms. */
+export class OrganizationHoldsBusinessDataError extends Error {
+  constructor() {
+    super(
+      "This organization has a Workspace, CRM data or public forms, so it can't be deleted here.",
+    );
+    this.name = "OrganizationHoldsBusinessDataError";
+  }
+}
+
 const SHARED_ACCOUNT_MESSAGE = "A shared space's account can't be deleted.";
 const ORGANIZATION_MESSAGE =
   "This account belongs to an organization other people or business data depend on. Ask the organization's owner to remove you from it, then delete your account.";
@@ -28,6 +38,33 @@ type GuardClient = Pick<
   | "crmModule"
   | "publicForm"
 >;
+
+/** Whether an organization holds a Workspace, CRM data or public forms. */
+async function holdsBusinessData(prisma: GuardClient, organizationId: string): Promise<boolean> {
+  const scope = { organizationId };
+  const counts = await Promise.all([
+    prisma.workspace.count({ where: scope }),
+    prisma.crmContact.count({ where: scope }),
+    prisma.crmPipeline.count({ where: scope }),
+    prisma.crmDeal.count({ where: scope }),
+    prisma.crmModule.count({ where: scope }),
+    prisma.publicForm.count({ where: scope }),
+  ]);
+  return counts.some((count) => count > 0);
+}
+
+/**
+ * Manor: deleting an organization removes the Workspace, CRM and forms inside it, so it is refused
+ * while it holds any (upstream already refuses one with other members). Callers run in a context.
+ */
+export async function assertOrganizationDeletable(
+  prisma: GuardClient,
+  organizationId: string,
+): Promise<void> {
+  if (await holdsBusinessData(prisma, organizationId)) {
+    throw new OrganizationHoldsBusinessDataError();
+  }
+}
 
 /**
  * Manor: an account deletion tears down the person's bots and spaces, deletes organizations where
@@ -50,17 +87,11 @@ export async function assertAccountDeletable(prisma: GuardClient, userId: string
       select: { organizationId: true },
     });
     for (const { organizationId } of memberships) {
-      const scope = { organizationId };
-      const counts = await Promise.all([
+      const [others, businessData] = await Promise.all([
         prisma.member.count({ where: { organizationId, userId: { not: userId } } }),
-        prisma.workspace.count({ where: scope }),
-        prisma.crmContact.count({ where: scope }),
-        prisma.crmPipeline.count({ where: scope }),
-        prisma.crmDeal.count({ where: scope }),
-        prisma.crmModule.count({ where: scope }),
-        prisma.publicForm.count({ where: scope }),
+        holdsBusinessData(prisma, organizationId),
       ]);
-      if (counts.some((count) => count > 0)) {
+      if (others > 0 || businessData) {
         throw new AccountDeletionRefusedError(ORGANIZATION_MESSAGE);
       }
     }

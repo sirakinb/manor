@@ -16,7 +16,7 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`. In progress: `v0.9.0`.
+`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`. In progress: `v0.10.0`.
 
 ### How a stage is resolved
 
@@ -24,20 +24,27 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
    `merge.conflictStyle=zdiff3`, `rerere.enabled`, and `merge.renameLimit=8000`.
 2. Mechanical files: identity docs (`README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
    `CHANGELOG.md`, `SETUP_PROMPT.md`) and Manor icons take ours; `pnpm-lock.yaml`
-   and the message catalogs take theirs. After code is resolved, carry Manor's
-   existing translations back into the catalogs, then run `intl:extract`, then
-   `pnpm install`. The catalogs stay committed. From `v0.9.0` (upstream's #3717) no CI
-   check compares them with the code and production builds extract a template first,
-   so a missing string shows in English; the stage step above is what keeps Manor's
-   translations. Never commit `apps/web/src/locales/messages.pot` (it is gitignored).
+   and the message catalogs take theirs. After code is resolved, run `pnpm intl:extract`
+   from the root (one catalog set for web and mobile,
+   `packages/i18n/locales/<locale>/messages.po`, configured in the root `lingui.config.ts`),
+   then carry Manor's translations back:
+   `python3 scripts/carry-translations.py HEAD packages/i18n/locales/*/messages.po` (for the
+   stage that merges `v0.10.0`, where the catalogs were still at `apps/web/src/locales` in the
+   previous stage, add `--from 'apps/web/src/locales/{locale}/messages.po'`). Extract first:
+   upstream's catalogs lack Manor's own strings, so a carry before extract fills nothing.
+   Strings that name the product get the brand-swapped translation (`{brandName}` for web,
+   "Manor" for mobile). The catalogs stay committed; no CI check compares them with the code
+   and production builds extract a template first, so a missing string shows in English.
+   Never commit `packages/i18n/locales/messages.pot`.
 3. Everything else is a hand union: Manor keeps every feature it has and gains
    everything upstream added. Where both sides changed the same code for the same
    purpose, upstream's structure is canonical and Manor's deliberate delta is
    re-applied on top.
-4. Verify: re-run `pnpm --filter @rakazo/web intl:extract` after any late string change
-   and commit the catalog result (no CI job catches a stale catalog any more),
-   `pnpm exec turbo run check --continue`, `pnpm lint`, `prisma validate`,
-   `pnpm exec turbo run test --continue`, then CI for Postgres journeys and Playwright.
+4. Verify: re-run `pnpm intl:extract` (root) after any late string change, re-run the
+   carry, and commit the catalog result; then `pnpm exec turbo run check --continue`,
+   `pnpm lint`, `prisma validate`, the unit suites (the catalog tests are
+   `apps/web/src/lib/i18n-catalog.test.ts`, `apps/mobile/lib/i18n.test.ts` and
+   `packages/i18n/src`), then CI for Postgres journeys and Playwright.
 5. Rehearse the stage's migrations with `prisma migrate deploy` against the copy of
    production data, and compare tenant row counts before and after.
 6. Compare file modes with upstream (`git ls-tree -r`): a merge can keep a file's
@@ -67,8 +74,8 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
 - New code in the API, worker, adapters, db and supervisor logs through
   `getLogger()`; `console.*` is a lint error there.
 - Product strings say Manor. Internal identifiers (`@rakazo/*`, `RAKAZO_*`) stay.
-- Manor's mobile screens stay in plain English where the mobile catalog test would
-  otherwise require a translation.
+- From `v0.10.0` Manor's mobile strings use the Lingui macro like upstream's and fall back to
+  English until translated. Mobile says "Manor" in the source; web uses `{brandName}`.
 - E2E specs must not import app modules that use the translation macro; Playwright
   cannot load them.
 - Upstream tests whose fixtures lack models Manor's code reads (`spaceMember`,
@@ -296,6 +303,19 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   `messages."authorUserId"`, which Manor's `20260911001000_shared_space_accounts` already created
   with the same nullable `TEXT` definition, so Manor's copy says `ADD COLUMN IF NOT EXISTS`. A
   later upstream change to that file must keep the guard, or every Manor database fails the deploy.
+- A silent run's steps-only row is kept for the activity timeline but never replayed to the model
+  (`isStepsOnlyReply` in `packages/adapters/src/reply-context.ts`): a bot turn that is nothing but
+  "[tool calls this reply made]" teaches models to answer with a tool-call list. Replies with text
+  keep their step lists, as upstream has them.
+- `usage.limits` (upstream, from `v0.10.0`) reads a member's own ChatGPT or Claude subscription
+  allowance from the provider with that sign-in and needs no billing.
+- Docker computers restart themselves after a command stops answering (upstream, from `v0.10.0`):
+  a computer that cannot run a trivial command is stopped and started again. The disk is kept;
+  running processes and unsaved browser state are lost.
+- Deleting an organization is also refused while it holds a Workspace, CRM data or public forms
+  (`assertOrganizationDeletable` in `apps/api/src/account-deletion-guard.ts`, the same checks as
+  account deletion), so the path stays safe if `ORGANIZATION_CHANGES_AVAILABLE` is lifted. A
+  deletion already claimed and stalled is finished.
 
 ### Decisions made during the sync
 
@@ -549,6 +569,10 @@ Things the one production deploy at the end must cover, collected as stages land
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR
   screenshots (`FLY_PREVIEW_ORG`) and the translation catalog sync (`CATALOG_SYNC_ENABLED`). The
   Google Play release runs only when started by hand or called by another workflow.
+- `20261211120001_model_credit_cap_idx_concurrent` builds an index outside a transaction. On
+  failure drop the invalid index (`DROP INDEX CONCURRENTLY IF EXISTS "<name>"`), run
+  `prisma migrate resolve --rolled-back <migration>`, then deploy again.
+- Every pnpm command needs pnpm 12, through corepack.
 
 ## Standing rules
 
@@ -581,14 +605,14 @@ git merge upstream/main                   # resolve by the policy table below
 
 ## Conflict policy, by category
 
-| Category                         | Examples                                                | Policy                                                                                                                                                                                                          |
-| -------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Our contributions returning home | Claude Pro/Max OAuth (`pi-oauth.ts`, upstream #106)     | **Ours is canonical.** Diff against upstream's landed copy; absorb only genuine improvements.                                                                                                                   |
-| Backport duplicates              | fixes we cherry-picked that upstream later merged       | Take **upstream** canonical, re-apply any deliberate Manor deltas.                                                                                                                                              |
-| Manor identity                   | `README.md`, `Shell.tsx`, `Onboarding.tsx`, mobile skin | Keep **Manor's** look and branding, weave in upstream's new logic.                                                                                                                                              |
-| High-care files                  | `router.ts`, `schema.prisma`, `app.ts`, `voice.ts`      | Hand-union: keep both sides' routes/models/wiring.                                                                                                                                                              |
-| Mechanical                       | `pnpm-lock.yaml`                                        | Take upstream, then `pnpm install` and commit the delta.                                                                                                                                                        |
-| Generated catalogs               | `apps/web/src/locales/*/messages.po`                    | Conflicts are only `#:` line refs. Take upstream, then **carry Manor's `msgstr` values over from `ORIG_HEAD`** before `intl:extract` — `--theirs` alone silently drops ~270 Manor-only translations per locale. |
+| Category                         | Examples                                                | Policy                                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Our contributions returning home | Claude Pro/Max OAuth (`pi-oauth.ts`, upstream #106)     | **Ours is canonical.** Diff against upstream's landed copy; absorb only genuine improvements.                                            |
+| Backport duplicates              | fixes we cherry-picked that upstream later merged       | Take **upstream** canonical, re-apply any deliberate Manor deltas.                                                                       |
+| Manor identity                   | `README.md`, `Shell.tsx`, `Onboarding.tsx`, mobile skin | Keep **Manor's** look and branding, weave in upstream's new logic.                                                                       |
+| High-care files                  | `router.ts`, `schema.prisma`, `app.ts`, `voice.ts`      | Hand-union: keep both sides' routes/models/wiring.                                                                                       |
+| Mechanical                       | `pnpm-lock.yaml`                                        | Take upstream, then `pnpm install` and commit the delta.                                                                                 |
+| Generated catalogs               | `packages/i18n/locales/*/messages.po`                   | Take upstream, run `pnpm intl:extract`, then carry Manor's `msgstr` values from the previous stage with `scripts/carry-translations.py`. |
 
 Known Manor deltas to preserve through any resolution:
 

@@ -1,4 +1,7 @@
-import { useRouter } from "expo-router";
+import { ph } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
+import { canDeleteOrganization } from "@rakazo/core";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -6,7 +9,6 @@ import { LoadFailure } from "../../components/load-failure";
 import { SettingsGroup, SettingsInputRow, SettingsRow } from "../../components/settings-group";
 import { rpc } from "../../lib/api";
 import { mobileTokens } from "../../lib/appearance";
-import { useI18n } from "../../lib/i18n";
 import { native, useThemedStyles } from "../../lib/native";
 import {
   activeOrganization,
@@ -20,14 +22,16 @@ import { useSideInsets } from "../../lib/side-insets";
 import { errorText } from "../../lib/user-error";
 
 export default function OrganizationSettings() {
-  const { t } = useI18n();
+  const { t } = useLingui();
   const router = useRouter();
   const sideInsets = useSideInsets();
   const styles = useThemedStyles(createStyles);
   const query = useOrganizations();
   const organization = activeOrganization(query.data);
   const [draft, setDraft] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
+  // The plan choice links here with the deletion confirmation already open.
+  const deleteRequested = useLocalSearchParams<{ delete?: string }>().delete === "1";
+  const [confirming, setConfirming] = useState(deleteRequested);
   const [confirmation, setConfirmation] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,9 +53,7 @@ export default function OrganizationSettings() {
   const name = draft ?? current.name;
   // Manor: removing an organization is off with switching; the server refuses it too.
   const canDelete =
-    ORGANIZATION_SWITCHING &&
-    current.canManage &&
-    (query.data?.organizations.filter((each) => each.canManage).length ?? 0) > 1;
+    ORGANIZATION_SWITCHING && canDeleteOrganization(query.data?.organizations ?? [], current);
 
   async function rename() {
     const next = name.trim();
@@ -93,11 +95,11 @@ export default function OrganizationSettings() {
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
       >
-        <SettingsGroup accessibilityLabel={t("Name")} label={t("Name")}>
+        <SettingsGroup accessibilityLabel={t`Name`} label={t`Name`}>
           {current.canManage ? (
             <SettingsInputRow
               key="name"
-              accessibilityLabel={t("Name")}
+              accessibilityLabel={t`Name`}
               editable={!pending}
               maxLength={60}
               value={name}
@@ -116,7 +118,7 @@ export default function OrganizationSettings() {
               key="create"
               accessibilityRole="button"
               disabled={pending}
-              title={t("Create organization")}
+              title={t`Create organization`}
               onPress={() => openFromSettingsSheet(router, "/new-organization")}
             />
           </SettingsGroup>
@@ -129,7 +131,7 @@ export default function OrganizationSettings() {
               destructive
               disabled={pending}
               dimmed={pending}
-              title={t("Delete organization")}
+              title={t`Delete organization`}
               onPress={() => {
                 setConfirming((open) => !open);
                 setConfirmation("");
@@ -138,12 +140,12 @@ export default function OrganizationSettings() {
             {confirming ? (
               <SettingsInputRow
                 key="confirmation"
-                accessibilityLabel={t("Type {name} to confirm", { name: current.name })}
+                accessibilityLabel={t`Type ${ph({ name: current.name })} to confirm`}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoFocus
                 editable={!pending}
-                placeholder={t("Type {name} to confirm", { name: current.name })}
+                placeholder={t`Type ${ph({ name: current.name })} to confirm`}
                 value={confirmation}
                 onChangeText={setConfirmation}
               />
@@ -155,7 +157,7 @@ export default function OrganizationSettings() {
                 destructive
                 disabled={pending || confirmation.trim() !== current.name.trim()}
                 dimmed={pending || confirmation.trim() !== current.name.trim()}
-                title={t("Delete")}
+                title={t`Delete`}
                 trailing={
                   pending ? <ActivityIndicator color={mobileTokens().destructive} /> : undefined
                 }

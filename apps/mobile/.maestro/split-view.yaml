@@ -1,5 +1,5 @@
-appId: com.rakazo.app
-name: Rakazo split view on a wide window
+appId: com.pentridgemedia.manor
+name: Manor split view on a wide window
 tags:
   - screenshots
 ---
@@ -9,7 +9,7 @@ tags:
     permissions:
       notifications: deny
 - extendedWaitUntil:
-    visible: "Sign up for Rakazo|Pixel Launcher isn't responding"
+    visible: "Sign up|Pixel Launcher isn't responding"
     timeout: 60000
 - runFlow:
     when:
@@ -17,16 +17,15 @@ tags:
     commands:
       - tapOn: "Close app"
 - extendedWaitUntil:
-    visible: "Sign up for Rakazo"
+    visible: "Sign up"
     timeout: 30000
-- tapOn: "Sign in"
 - runFlow: helpers/server.yaml
 - tapOn: "Email"
 - inputText: ${RAKAZO_SCREENSHOT_EMAIL}
 - tapOn: "Password"
 - inputText: ${RAKAZO_SCREENSHOT_PASSWORD}
 - hideKeyboard
-- tapOn: "Sign in"
+- tapOn: "Continue with email"
 - tapOn:
     text: "Don’t allow"
     optional: true

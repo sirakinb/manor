@@ -5,9 +5,16 @@ Used during an upstream sync: the catalogs take upstream's version, which drops
 Manor's own translations. This copies every non-empty msgstr for the same msgid
 (and msgctxt) from <rev> into entries that are empty now.
 
-Usage: scripts/carry-translations.py <git-rev> <catalog.po>...
+Usage: scripts/carry-translations.py <git-rev> <catalog.po>... [--from <old-path>]
+
+The catalogs live in packages/i18n/locales/<locale>/messages.po; run it after
+`pnpm intl:extract`. --from reads each catalog from another path at <rev>, for a
+revision where the catalogs were elsewhere. Its {locale} is the catalog's folder
+name, e.g. --from 'apps/web/src/locales/{locale}/messages.po' for revisions
+before upstream v0.10.0.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -34,10 +41,11 @@ def value(parts):
     return "".join(part[1:-1] for part in parts) if parts else ""
 
 
-def carry(path, rev):
-    shown = subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True, text=True)
+def carry(path, rev, source=None):
+    old = source.format(locale=os.path.basename(os.path.dirname(path))) if source else path
+    shown = subprocess.run(["git", "show", f"{rev}:{old}"], capture_output=True, text=True)
     if shown.returncode != 0:
-        print(f"{path}: not in {rev}, skipped")
+        print(f"{path}: {old} not in {rev}, skipped")
         return
     known = {}
     for _, fields in parse(shown.stdout):
@@ -70,7 +78,11 @@ def carry(path, rev):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    args, source = sys.argv[1:], None
+    if "--from" in args[:-1]:
+        at = args.index("--from")
+        source, args = args[at + 1], args[:at] + args[at + 2 :]
+    if len(args) < 2:
         sys.exit(__doc__)
-    for catalog in sys.argv[2:]:
-        carry(catalog, sys.argv[1])
+    for catalog in args[1:]:
+        carry(catalog, args[0], source)

@@ -14,6 +14,7 @@ import {
   SpaceDeletionInProgressError,
 } from "@rakazo/db";
 import { deleteOrganization } from "../account-deletion.js";
+import { OrganizationHoldsBusinessDataError } from "../account-deletion-guard.js";
 import {
   assertOrganizationChangesAvailable,
   ORGANIZATION_CHANGES_AVAILABLE,
@@ -94,7 +95,8 @@ export function organizationsRoutes(ctx: RouterContext) {
           } catch (error) {
             if (
               error instanceof CannotDeleteLastOrganizationError ||
-              error instanceof SharedOrganizationError
+              error instanceof SharedOrganizationError ||
+              error instanceof OrganizationHoldsBusinessDataError
             )
               throw new ORPCError("BAD_REQUEST", { message: error.message });
             if (error instanceof SpaceDeletionInProgressError)

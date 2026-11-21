@@ -11,11 +11,13 @@ await unwrapEnvFromKeyManager();
 import { serve } from "@hono/node-server";
 import { SERVICE_NAMES } from "@rakazo/logging";
 import { createRootLogger } from "@rakazo/logging/axiom";
+import { watchEventLoopStalls } from "@rakazo/logging/event-loop";
 import { createApp } from "./app.js";
 import { loadEnv } from "./env.js";
 import { LOCAL_COMPUTER_SOCKET_PATH } from "./local-computer.js";
 
 const logger = await createRootLogger(SERVICE_NAMES.api);
+const stopStallWatch = watchEventLoopStalls("api.event_loop_stalled");
 
 try {
   const env = loadEnv();
@@ -46,6 +48,7 @@ try {
   const shutdown = async () => {
     if (stopping) return;
     stopping = true;
+    stopStallWatch();
     const closed = new Promise<void>((resolve) => server.close(() => resolve()));
     const grace = setTimeout(() => {
       for (const socket of sockets) socket.destroy();

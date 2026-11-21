@@ -61,6 +61,22 @@ export function messageToAgentHistoryText(message: ReplyMessage): string {
     .join("\n\n");
 }
 
+/**
+ * Manor: a silent run keeps a row of only its tool steps for the activity timeline. Replayed as a
+ * bot turn it reads as a reply that is nothing but "[tool calls this reply made]", which models
+ * copy instead of calling tools, so it never reaches the model. A reply with text keeps its steps.
+ */
+export function isStepsOnlyReply(message: { role: string; blocks: unknown }): boolean {
+  if (message.role === "user" || message.role === "system") return false;
+  const blocks = Array.isArray(message.blocks) ? (message.blocks as MessageBlock[]) : [];
+  return (
+    blocks.some((block) => block.kind === "steps") &&
+    blocks.every(
+      (block) => block.kind === "steps" || (block.kind === "progress" && block.activity === true),
+    )
+  );
+}
+
 /** Fetch the explicit target even when it has fallen outside the history window. */
 export async function loadReplyContext(
   prisma: PrismaClient,

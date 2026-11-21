@@ -1,9 +1,9 @@
+import { useLingui } from "@lingui/react/macro";
 import type { ComputerMode } from "@rakazo/contracts";
 import { BOT_COMPUTER_MODES } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { rpc } from "../lib/api";
-import { useI18n } from "../lib/i18n";
 import { native, useMobileTokens } from "../lib/native";
 import { NativeSegmentedControl } from "./native-segmented-control";
 
@@ -18,7 +18,7 @@ export function ComputerModePicker({
   disabled?: boolean;
   plain?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t } = useLingui();
   const tokens = useMobileTokens();
   const [connected, setConnected] = useState(false);
 
@@ -56,16 +56,16 @@ export function ComputerModePicker({
               : { color: tokens.foreground, marginBottom: 12, fontSize: 16, fontWeight: "600" }
           }
         >
-          {t("Computer")}
+          {t`Computer`}
         </Text>
       ) : null}
       <NativeSegmentedControl
-        accessibilityLabel={t("Computer")}
+        accessibilityLabel={t`Computer`}
         disabled={disabled}
         onChange={onChange}
         options={BOT_COMPUTER_MODES.map((value) => ({
           value,
-          label: value === "team" ? t("Team") : t("Private"),
+          label: value === "team" ? t`Team` : t`Private`,
         }))}
         value={value}
       />
@@ -86,13 +86,13 @@ export function ComputerModePicker({
         }}
       >
         <Text style={{ color: value === "local" ? tokens.foreground : tokens.mutedForeground }}>
-          This Mac
+          {t`This Mac`}
         </Text>
       </Pressable>
       <Text style={{ color: tokens.mutedForeground, marginTop: 8, fontSize: 12.5, lineHeight: 18 }}>
         {connected
-          ? "Shared folder on this laptop, only while desktop is sharing."
-          : "Open Manor desktop to share this Mac."}
+          ? t`Shared folder on this laptop, only while desktop is sharing.`
+          : t`Open Manor desktop to share this Mac.`}
       </Text>
     </View>
   );

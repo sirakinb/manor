@@ -133,12 +133,6 @@ vi.mock("./native", () => ({
   manor: tokens,
   brandType: { wordmark: "serif", label: "monospace" },
 }));
-vi.mock("./i18n", () => ({
-  useI18n: () => ({
-    t: (text: string, values?: Record<string, string>) =>
-      text.replace(/\{(\w+)\}/g, (_, key: string) => values?.[key] ?? key),
-  }),
-}));
 vi.mock("./api-server", () => ({}));
 vi.mock("./api-live", () => ({}));
 vi.mock("./api", () => ({

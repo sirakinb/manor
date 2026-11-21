@@ -577,10 +577,14 @@ describePostgres("organizations (PostgreSQL)", () => {
         returnBilling = resolve;
       });
       const deadline = new AbortController();
+      // Going on after its deadline, the attempt's next step would be a query; record any it makes.
+      let billingReturned = false;
+      const queriesAfterBilling: string[] = [];
       const late = runAsSystem("an attempt cut off at its deadline", () =>
         deleteOrganization(
           {
             ...deps(),
+            prisma: recordingQueries(prisma, () => billingReturned, queriesAfterBilling),
             billing: {
               cancelForDeletedOrganization: async () => {
                 billingCalled();
@@ -605,9 +609,11 @@ describePostgres("organizations (PostgreSQL)", () => {
       const retry = client(ada).organizations.remove({ organizationId: work.id });
       await until(() => sandbox.started.includes(ref));
 
+      billingReturned = true;
       returnBilling();
-      // Give the cut-off attempt time to go on, if it would.
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // The cut-off attempt resumes within these microtasks, so by now it has stopped or gone on.
+      await new Promise(setImmediate);
+      expect(queriesAfterBilling).toEqual([]);
       expect(sandbox.started.filter((started) => started === ref)).toHaveLength(1);
       release();
       await retry;
@@ -896,15 +902,9 @@ describePostgres("organizations (PostgreSQL)", () => {
       const ada = await signup();
       const grace = await signup();
       const work = await client(ada).organizations.create({ name: "Work" });
-      await system.member.create({
-        data: {
-          id: `member-${grace.userId}`,
-          organizationId: work.id,
-          userId: grace.userId,
-          role: "member",
-          createdAt: new Date(),
-        },
-      });
+      await runAsSystem("organizations test", () =>
+        joinOrganization(system, { id: grace.userId }, work),
+      );
 
       await expect(
         client(ada).organizations.remove({ organizationId: work.id }),
@@ -915,23 +915,54 @@ describePostgres("organizations (PostgreSQL)", () => {
       });
     });
 
+    it("never deletes an organization that holds a Workspace, CRM data or public forms", async () => {
+      const ada = await signup();
+      const holders = [
+        (organizationId: string) =>
+          system.workspace.create({
+            data: { organizationId, name: "Ops", slug: `ops-${organizationId}` },
+          }),
+        (organizationId: string) =>
+          system.crmContact.create({
+            data: { organizationId, firstName: "Sam", lastName: "Lee" },
+          }),
+        (organizationId: string) =>
+          system.publicForm.create({
+            data: {
+              organizationId,
+              slug: `form-${organizationId}`,
+              kind: "contact",
+              title: "Contact us",
+              crmTag: "lead",
+            },
+          }),
+      ];
+      for (const [index, hold] of holders.entries()) {
+        const work = await client(ada).organizations.create({ name: `Work ${index}` });
+        await hold(work.id);
+
+        await expect(
+          client(ada).organizations.remove({ organizationId: work.id }),
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+        expect(await system.space.findUnique({ where: { id: work.id } })).toMatchObject({
+          deletionClaimId: null,
+          deletingAt: null,
+        });
+      }
+    });
+
     it("shows a team member the owner's trial, not their own", async () => {
       const ada = await signup();
       const grace = await signup();
       await subscribe(grace);
       const team = await client(grace).organizations.create({ name: "Team" });
-      await system.member.create({
-        data: {
-          id: `member-${ada.userId}-trial-team`,
-          organizationId: team.id,
-          userId: ada.userId,
-          role: "member",
-          createdAt: new Date(),
-        },
-      });
+      const joined = await runAsSystem("organizations test", () =>
+        joinOrganization(system, { id: ada.userId }, team),
+      );
 
       await expect(billing.status(ada)).resolves.toMatchObject({ trialAvailable: true });
-      await expect(billing.status(asUser(ada, team.defaultSpaceId))).resolves.toMatchObject({
+      await expect(billing.status(asUser(ada, joined.spaceId, team.id))).resolves.toMatchObject({
         trialAvailable: false,
       });
     });
@@ -1172,4 +1203,29 @@ function memoryRing() {
     sampleByMasterKey: async () => [],
   };
   return new ContentKeyRing(new LocalKeyProvider([{ id: "k1", key: randomBytes(32) }]), store);
+}
+
+/** `prisma`, recording each model query made while `recording()` is true. */
+function recordingQueries(
+  prisma: PrismaClient,
+  recording: () => boolean,
+  queries: string[],
+): PrismaClient {
+  return new Proxy(prisma, {
+    get(target, model, receiver) {
+      const delegate = Reflect.get(target, model, receiver);
+      if (typeof model !== "string" || model.startsWith("$") || typeof delegate !== "object")
+        return delegate;
+      return new Proxy(delegate, {
+        get(methods, method, methodsReceiver) {
+          const query = Reflect.get(methods, method, methodsReceiver);
+          if (typeof query !== "function") return query;
+          return (...args: unknown[]) => {
+            if (recording()) queries.push(`${model}.${String(method)}`);
+            return query.apply(methods, args);
+          };
+        },
+      });
+    },
+  });
 }

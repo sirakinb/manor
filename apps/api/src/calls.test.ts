@@ -59,7 +59,13 @@ describe("voice catalog", () => {
       vi.stubEnv("RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC", "0");
       try {
         const client = createRouterClient(
-          createRouter({ env: { mcpAllowPrivateEndpoint } } as unknown as RouterDeps),
+          createRouter({
+            env: { mcpAllowPrivateEndpoint },
+            prisma: {
+              userModelPreference: { findMany: vi.fn().mockResolvedValue([]) },
+              userModelCredential: { findMany: vi.fn().mockResolvedValue([]) },
+            },
+          } as unknown as RouterDeps),
           { context: { actor } },
         );
         const catalog = await client.voice.catalog();
@@ -67,6 +73,7 @@ describe("voice catalog", () => {
           mcpAllowPrivateEndpoint,
         );
         expect(catalog.some((entry) => entry.id === "elevenlabs")).toBe(true);
+        expect(catalog.find((entry) => entry.id === "xai")).toMatchObject({ transcribe: true });
       } finally {
         vi.unstubAllEnvs();
       }

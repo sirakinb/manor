@@ -1,4 +1,4 @@
-appId: com.rakazo.app
+appId: com.pentridgemedia.manor
 name: Android native features
 tags:
   - android
@@ -14,7 +14,7 @@ tags:
 - runFlow: helpers/sign-in.yaml
 
 # Device speech (expo-speech): no voice provider is connected yet.
-- openLink: "rakazo:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
+- openLink: "manor:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
 - extendedWaitUntil:
     visible: "The fixture workspace is ready."
     timeout: 10000
@@ -112,7 +112,7 @@ tags:
     timeout: 10000
 
 # Vault's New item menu opens from a Compose-hosted trigger on Android.
-- openLink: "rakazo:///vault"
+- openLink: "manor:///vault"
 - extendedWaitUntil:
     visible: "New item"
     timeout: 15000
@@ -124,7 +124,7 @@ tags:
 - back
 
 # A long press on a row opens its menu instead of the row's own tap action.
-- openLink: "rakazo:///archived-bots"
+- openLink: "manor:///archived-bots"
 - extendedWaitUntil:
     visible: "Archived fixture"
     timeout: 15000
@@ -134,7 +134,7 @@ tags:
     timeout: 5000
 - takeScreenshot: "46c-archived-bot-menu"
 - back
-- openLink: "rakazo:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
+- openLink: "manor:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
 - extendedWaitUntil:
     visible: "Message Researcher"
     timeout: 10000
@@ -165,7 +165,7 @@ tags:
 
 # Answering a ring in the app starts the call without a voice provider check.
 - launchApp
-- openLink: "rakazo:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
+- openLink: "manor:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
 - evalScript: ${output.ring = http.get(RAKAZO_DEVICE_CONTROL_URL + '/ring')}
 - assertTrue: ${output.ring.ok}
 - extendedWaitUntil:
@@ -185,12 +185,12 @@ tags:
 # Picking the provider in Voice settings turns device speech off for calls.
 - evalScript: ${output.voice = http.get(RAKAZO_DEVICE_CONTROL_URL + '/connect-voice')}
 - assertTrue: ${output.voice.ok}
-- openLink: "rakazo:///voice"
+- openLink: "manor:///voice"
 - extendedWaitUntil:
     visible: "Scripted"
     timeout: 15000
 - tapOn: "Scripted"
-- openLink: "rakazo:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
+- openLink: "manor:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
 - extendedWaitUntil:
     visible: "Message Researcher"
     timeout: 10000

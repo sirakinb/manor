@@ -261,5 +261,9 @@ describe("daily check-in dispatch restriction", () => {
       error: "Daily check-ins can only ask or message the user.",
     });
     expect(audited).toEqual([]);
+    // Kept for the log line of a loop this refusal goes on to cause.
+    expect(
+      (ctx.state as { toolRefusals?: Map<string, unknown> }).toolRefusals?.get("call-1"),
+    ).toEqual({ code: "daily_check_in_tool_not_allowed" });
   });
 });

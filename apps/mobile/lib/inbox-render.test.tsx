@@ -173,11 +173,6 @@ vi.mock("./native", () => ({
   brandType: new Proxy({}, { get: (_target, name) => String(name) }),
 }));
 vi.mock("./appearance", () => ({ mobileTokens: () => ({}) }));
-vi.mock("./i18n", () => {
-  const t = (text: string, values?: Record<string, string>) =>
-    text.replace(/\{(\w+)\}/g, (_, key: string) => values?.[key] ?? key);
-  return { t, useI18n: () => ({ t }), dateLocaleForUi: () => "en-US" };
-});
 // The row's avatar freezes while the row is scrolled out of view.
 vi.mock("./avatar-life", () => ({
   AvatarRow: ({ id, children }: { id: string; children: ReactNode }) => (
