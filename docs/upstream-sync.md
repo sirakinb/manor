@@ -236,15 +236,19 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   that recovery so the opening screen shows no error. There is no second recovery and no
   in-place shell remount; two paths raced and ended in different states.
 
-### Open decisions
+### Decisions made during the sync
 
-- Whether to enable upstream's multi-organization switching. With it on, any signed-in
+- Multi-organization switching stays off (decided 2026-11-21). With it on, any signed-in
   person can create up to ten organizations they own alone, and a session moves between
   organizations by choosing a Space in another one, or by a per-session pin
-  (`session.activeOrganizationId`) set from their latest run. Ownership is a `member` row
-  with role `owner`; only a sole-member owner can rename or delete. A non-owner member
-  reaches only the Spaces they belong to. Manor would first have to reconcile this with
-  the portal rule (one main-portal organization, brand organizations only on their portal).
+  (`session.activeOrganizationId`) set from their latest run. That would let a main-portal
+  session move into a client organization the person belongs to, which the portal rule
+  exists to prevent, and Manor already reaches each organization through its own portal.
+  Turning it on later means reconciling `assertPortalAccess` first, then lifting the flags.
+- Saved logins stay in two places (decided 2026-11-21): upstream's vault and Manor's
+  per-bot saved logins. Folding Manor's into the vault would need a data migration with
+  the encryption key and would lose live 2FA codes and notes, which the vault lacks, for
+  no gain to a tenant. Revisit only if upstream's vault gains both.
 
 ### Deploy checklist for the staged sync
 
