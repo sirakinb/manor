@@ -117,9 +117,19 @@ test("Manor shows one organization and offers no switcher or Create organization
     await page.goto("/app");
     const sidebar = page.locator("aside").first();
     await expect(sidebar.getByRole("button", { name: /^Chief/ })).toBeVisible();
-    await expect.poll(() => selectedSpace(page)).toBe(member.organizationId);
+    // Either recovery may win: Manor's saves the own Space, upstream's clears the selection so
+    // the server resolves the default Space, as on a fresh sign-in. Neither keeps the client's.
+    const ownOrNone = (saved: string | null) => saved === null || saved === member.organizationId;
+    await expect.poll(async () => ownOrNone(await selectedSpace(page))).toBe(true);
     await expect(sidebar.getByText("Client Company", { exact: true })).toHaveCount(0);
+    await expect(sidebar.getByText("Client assistant", { exact: true })).toHaveCount(0);
     await captureScreenshot(page, testInfo, "org-recovered-own-space");
+
+    // A reload stays on the own Space.
+    await page.reload();
+    await expect(sidebar.getByRole("button", { name: /^Chief/ })).toBeVisible();
+    expect(ownOrNone(await selectedSpace(page))).toBe(true);
+    await expect(sidebar.getByText("Client Company", { exact: true })).toHaveCount(0);
   } finally {
     await prisma.$disconnect();
     await pool.end();
