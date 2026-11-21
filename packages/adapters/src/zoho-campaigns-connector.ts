@@ -14,10 +14,8 @@ import {
   redactConnectorPayload,
   sanitizeConnectorError,
 } from "./connector-safety.js";
-import {
-  loadWorkspaceCredential,
-  type WorkspaceCredentialFields,
-} from "./workspace-credentials.js";
+import type { WorkspaceCredentialFields } from "./workspace-credentials.js";
+import { loadWorkspaceCredential } from "./workspace-credentials.js";
 
 export const ZOHO_CAMPAIGNS_CONNECTOR_ID = "zoho-campaigns";
 export const ZOHO_CAMPAIGNS_SLUG = "zoho-campaigns";

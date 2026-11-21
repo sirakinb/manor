@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createCompiledCatalog, extractFromFileWithBabel, getCatalogs } from "@lingui/cli/api";
-import { type ExtractedMessage, getConfig } from "@lingui/conf";
+import type { ExtractedMessage } from "@lingui/conf";
+import { getConfig } from "@lingui/conf";
 import { setupI18n } from "@lingui/core";
 import { expect, it } from "vitest";
 

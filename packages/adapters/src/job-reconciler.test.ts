@@ -1,6 +1,7 @@
 import type { BackgroundJob, JobPublisher } from "@rakazo/adapter-kit";
 import { stuckWorkStatusMessages } from "@rakazo/core";
-import { LEGACY_WATER_CRONS, type Pool, type PrismaClient, type ThreadEvents } from "@rakazo/db";
+import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
+import { LEGACY_WATER_CRONS } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import type { ReconciliationLeadership } from "./job-reconciler.js";
@@ -209,7 +210,12 @@ describe("createJobReconciler", () => {
     };
     const prisma = fakePrisma([run]);
     vi.mocked(prisma.computerExecutionLease.findMany).mockResolvedValue([
-      { computerId: "computer-1", botId: "bot-1", runId: "run-holder" },
+      {
+        computerId: "computer-1",
+        botId: "bot-1",
+        runId: "run-holder",
+        expiresAt: new Date(Date.now() + 60_000),
+      },
     ] as never);
     const { jobs, enqueue } = publisher();
     const reconciler = createJobReconciler({ prisma, jobs });
@@ -219,7 +225,7 @@ describe("createJobReconciler", () => {
     expect(enqueue).not.toHaveBeenCalledWith(expect.objectContaining({ name: "run.continue" }));
     expect(prisma.computerExecutionLease.findMany).toHaveBeenCalledWith({
       where: { botId: { in: ["bot-1"] }, expiresAt: { gt: expect.any(Date) } },
-      select: { computerId: true, botId: true, runId: true },
+      select: { computerId: true, botId: true, runId: true, expiresAt: true },
     });
 
     vi.mocked(prisma.computerExecutionLease.findMany).mockResolvedValue([]);
@@ -249,7 +255,9 @@ describe("createJobReconciler", () => {
         bot: { computerId: "computer-1" },
       },
     ]);
-    vi.mocked(prisma.computerExecutionLease.findMany).mockResolvedValue([lease] as never);
+    vi.mocked(prisma.computerExecutionLease.findMany).mockResolvedValue([
+      { ...lease, expiresAt: new Date(Date.now() + 60_000) },
+    ] as never);
     const { jobs, enqueue } = publisher();
 
     await createJobReconciler({ prisma, jobs }).reconcileOnce();
@@ -261,6 +269,52 @@ describe("createJobReconciler", () => {
         keepExisting: true,
       }),
     );
+  });
+
+  it.each([
+    { holder: [], blocks: false },
+    { holder: [{ id: "run-holder", status: "cancelled" }], blocks: false },
+    { holder: [{ id: "run-holder", status: "waiting_takeover" }], blocks: true },
+  ])("frees a takeover hold only once its run is gone or ended %j", async ({ holder, blocks }) => {
+    const waiting = {
+      id: "run-waiting",
+      status: "queued",
+      wakeAt: null,
+      updatedAt: new Date(Date.now() - 60_000),
+      botId: "bot-1",
+      bot: { computerId: "computer-1" },
+    };
+    const prisma = fakePrisma([waiting]);
+    vi.mocked(prisma.run.findMany).mockImplementation((async (args: { where: { id?: unknown } }) =>
+      args.where.id ? holder : [waiting]) as never);
+    vi.mocked(prisma.computerExecutionLease.findMany).mockResolvedValue([
+      {
+        computerId: "computer-1",
+        botId: "bot-1",
+        runId: "run-holder",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60_000),
+      },
+    ] as never);
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    Object.assign(prisma.computerExecutionLease, { updateMany });
+    const { jobs, enqueue } = publisher();
+
+    await createJobReconciler({ prisma, jobs }).reconcileOnce();
+
+    const recovered = expect.objectContaining({
+      name: "run.continue",
+      payload: { runId: waiting.id },
+    });
+    if (blocks) {
+      expect(updateMany).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalledWith(recovered);
+    } else {
+      expect(updateMany).toHaveBeenCalledWith({
+        where: { runId: { in: ["run-holder"] }, expiresAt: { gt: expect.any(Date) } },
+        data: { expiresAt: new Date(0) },
+      });
+      expect(enqueue).toHaveBeenCalledWith(recovered);
+    }
   });
 
   it("replaces any lock for an expired lease but only an old lock for a queued run", async () => {

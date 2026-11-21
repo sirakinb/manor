@@ -2,7 +2,8 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { FakeSandboxProvider } from "@rakazo/adapters";
 import type { Actor, WorkspaceFileOperation } from "@rakazo/contracts";
 import { describe, expect, it, vi } from "vitest";
-import { createRouter, type RouterDeps } from "./router.js";
+import type { RouterDeps } from "./router.js";
+import { createRouter } from "./router.js";
 
 const actor: Actor = {
   spaceId: "space-1",

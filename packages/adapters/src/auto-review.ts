@@ -21,6 +21,7 @@ import { formatCurrentTimeInstruction } from "./current-time.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { catalogModels } from "./model-vision.js";
 import { LOCAL_PROVIDER_ID } from "./pi-local-provider.js";
+import { localModelIds } from "./pi-local-provider-id.js";
 import { secretValuesToRedact } from "./pi-oauth.js";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -61,13 +62,6 @@ export const JEV_AUTO_REVIEW_PROVIDER = "jev";
 export const SCRIPTED_AUTO_REVIEW_PROVIDER = "scripted";
 export const DEFAULT_JEV_MODEL = "jev-latest";
 export const DEFAULT_AUTO_REVIEW_MIN_CONFIDENCE = 0.5;
-
-function localModelIds(env: NodeJS.ProcessEnv): string[] {
-  return (env.RAKAZO_LOCAL_MODELS ?? "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter((id) => id.length > 0);
-}
 
 const DEFAULT_ANSWER_TIMEOUT_MS = 6_000;
 

@@ -4,8 +4,8 @@ import type {
   SecretStore,
   TransactionalEmailProvider,
 } from "@rakazo/adapter-kit";
+import type { BuildiumCredential } from "@rakazo/adapters";
 import {
-  type BuildiumCredential,
   buildBuildiumChargePayload,
   createBuildiumLedger,
   deleteWorkspaceCredential,
@@ -42,15 +42,14 @@ import {
   renderReportEmailHtml,
   renderReportEmailText,
 } from "@rakazo/core";
+import type { PrismaClient, WorkspaceActorScope } from "@rakazo/db";
 import {
   automationNextRunAt,
   createWorkspaceRepos,
   ensureDefaultAutomations,
   IsolationError,
   listWorkspaceAutomations,
-  type PrismaClient,
   updateWorkspaceAutomation,
-  type WorkspaceActorScope,
 } from "@rakazo/db";
 
 /**

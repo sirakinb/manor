@@ -7,6 +7,7 @@ import {
   recoverInitialSpace,
   rpc,
   rpcForSpace,
+  SPACE_SELECTED_EVENT,
   selectedSpaceId,
   selectSpace,
 } from "./rpc.js";
@@ -49,7 +50,12 @@ describe("initial space recovery", () => {
         stored = null;
       },
     };
-    vi.stubGlobal("window", { localStorage, location: { origin: "http://localhost" } });
+    vi.stubGlobal("window", {
+      localStorage,
+      location: { origin: "http://localhost" },
+      // selectSpace announces a new selection.
+      dispatchEvent: vi.fn(),
+    });
     const fetch = vi.fn().mockResolvedValue(Response.json({ json: { spaceId: "main-space" } }));
     vi.stubGlobal("fetch", fetch);
     return fetch;
@@ -161,12 +167,30 @@ describe("space selection storage", () => {
         throw new Error("quota exceeded");
       },
     };
-    vi.stubGlobal("window", { localStorage });
+    vi.stubGlobal("window", { localStorage, dispatchEvent: () => true });
     vi.stubGlobal("localStorage", localStorage);
 
     expect(selectSpace("space-support")).toBe(false);
     expect(() => clearSpaceSelection()).not.toThrow();
     expect(selectedSpaceId()).toBeNull();
+  });
+
+  it("announces a new selection so per-organization state reloads", () => {
+    const items = new Map<string, string>();
+    const dispatchEvent = vi.fn(() => true);
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => items.get(key) ?? null,
+        setItem: (key: string, value: string) => items.set(key, value),
+        removeItem: (key: string) => items.delete(key),
+      },
+      dispatchEvent,
+    });
+
+    expect(selectSpace("space-support")).toBe(true);
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: SPACE_SELECTED_EVENT }),
+    );
   });
 
   it("treats an already-persisted selection as success when writes fail", () => {
@@ -177,7 +201,7 @@ describe("space selection storage", () => {
       },
       removeItem: vi.fn(),
     };
-    vi.stubGlobal("window", { localStorage });
+    vi.stubGlobal("window", { localStorage, dispatchEvent: () => true });
     vi.stubGlobal("localStorage", localStorage);
 
     expect(selectSpace("space-support")).toBe(true);
@@ -187,7 +211,7 @@ describe("space selection storage", () => {
   it("reports when a space selection was persisted", () => {
     const setItem = vi.fn();
     const localStorage = { getItem: () => null, setItem, removeItem: vi.fn() };
-    vi.stubGlobal("window", { localStorage });
+    vi.stubGlobal("window", { localStorage, dispatchEvent: () => true });
     vi.stubGlobal("localStorage", localStorage);
 
     expect(selectSpace("space-support")).toBe(true);

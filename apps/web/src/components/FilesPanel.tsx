@@ -1,12 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
-import {
-  WORKSPACE_FILE_MAX_BYTES,
-  type WorkspaceEntry,
-  type WorkspaceLocation,
-  type WorkspaceRepo,
-  workspacePreviewType,
-} from "@rakazo/contracts";
+import type { WorkspaceEntry, WorkspaceLocation, WorkspaceRepo } from "@rakazo/contracts";
+import { WORKSPACE_FILE_MAX_BYTES, workspacePreviewType } from "@rakazo/contracts";
 import type { WorkspaceFilesController } from "@rakazo/core";
 import {
   ChevronRight,

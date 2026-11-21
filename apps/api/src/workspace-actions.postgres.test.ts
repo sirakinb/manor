@@ -5,13 +5,11 @@ import {
   FakePropertyLedger,
   runWorkspaceReport,
 } from "@rakazo/adapters";
-import { asSystem, createDb, IsolationError, type PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { asSystem, createDb, IsolationError } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import {
-  createWorkspaceActions,
-  WorkspaceActionError,
-  type WorkspaceActions,
-} from "./workspace-actions.js";
+import type { WorkspaceActions } from "./workspace-actions.js";
+import { createWorkspaceActions, WorkspaceActionError } from "./workspace-actions.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres =

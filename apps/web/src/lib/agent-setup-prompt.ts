@@ -1,8 +1,9 @@
-import { type WorkspaceAccess, workspaceToolScope } from "@rakazo/contracts";
+import type { WorkspaceAccess } from "@rakazo/contracts";
+import { workspaceToolScope } from "@rakazo/contracts";
+import type { Endpoint } from "./api-catalog";
 import {
   CONTACT_ENDPOINTS,
   DEAL_ENDPOINTS,
-  type Endpoint,
   MCP_TOOLS,
   MODULE_ENDPOINTS,
   STATUS_CODES,

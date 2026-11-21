@@ -183,11 +183,6 @@ msgstr ""
 msgid "{0} connection"
 msgstr "{0}の接続"
 
-#. placeholder {0}: bot.name
-#: src/pages/ExternalConversationSettings.tsx
-msgid "{0} default"
-msgstr "{0}のデフォルト"
-
 #. placeholder {0}: formatNumber(batch.failed)
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "{0} failed"
@@ -359,11 +354,6 @@ msgstr "{0} TB"
 #: src/pages/workspace/Overview.tsx
 msgid "{0} this month · {1} charges pending"
 msgstr ""
-
-#. placeholder {0}: bot.name
-#: src/pages/ExternalConversationSettings.tsx
-msgid "{0} will still respond to direct mentions."
-msgstr "{0}は直接のメンションには引き続き応答します。"
 
 #. placeholder {0}: perDay.toFixed(perDay < 10 ? 1 : 0)
 #: src/pages/workspace/sections/VoiceSection.tsx
@@ -687,6 +677,10 @@ msgstr ""
 msgid "@{0}"
 msgstr "@{0}"
 
+#: src/components/ModelCredits.tsx
+msgid "/ month"
+msgstr "/ 月"
+
 #: src/pages/crm/CrmPipelineBoard.tsx
 msgid "+ Add stage"
 msgstr ""
@@ -777,6 +771,10 @@ msgstr "サブスクリプションの認証情報は安全に保存されてい
 msgid "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 msgstr ""
 
+#: src/pages/KnowledgeSection.tsx
+msgid "About {kb} KB of memory no longer reaches the bot."
+msgstr ""
+
 #: src/components/InfoTooltip.tsx
 msgid "About {label}"
 msgstr "{label}について"
@@ -790,10 +788,19 @@ msgstr ""
 msgid "Access"
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Access key ID"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Access key secret"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx
 msgid "Access token (optional)"
 msgstr "アクセストークン（任意）"
 
+#: src/components/AccountMenu.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Account"
 msgstr "アカウント"
@@ -836,6 +843,7 @@ msgstr ""
 #. placeholder {0}: entry.path
 #. placeholder {0}: group.spaceName
 #: src/components/FilesPanel.tsx
+#: src/components/pages/PagesList.tsx
 #: src/pages/BotContextMenu.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/shell/sidebar-roster.tsx
@@ -1313,11 +1321,16 @@ msgstr ""
 msgid "Any model, with your own key"
 msgstr "自分のキーで、あらゆるモデルを"
 
+#: src/components/pages/SharePopover.tsx
+msgid "Anyone with the link"
+msgstr "リンクを知っている全員"
+
 #: src/pages/PluginsOverlay.tsx
 msgid "API & agent access"
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/ComputerProviderSettings.tsx
 #: src/lib/localized-provider-hint.ts
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/model-settings/compatible-key-field.tsx
@@ -1338,6 +1351,14 @@ msgstr "APIキーのヘッダー"
 #: src/pages/shell/agent-import.tsx
 msgid "API keys"
 msgstr "APIキー"
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "API token"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "API URL"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "App preview"
@@ -1387,6 +1408,10 @@ msgstr "承認"
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Approve"
 msgstr "承認"
+
+#: src/lib/call-session.ts
+msgid "Approve or deny it on screen."
+msgstr "画面で承認または拒否してください。"
 
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Approve this report?"
@@ -1551,10 +1576,6 @@ msgstr "自動"
 msgid "Automated senders"
 msgstr "自動送信者"
 
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Automated senders will appear after they post here."
-msgstr "自動送信者は、ここに投稿すると表示されます。"
-
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Automatic"
 msgstr ""
@@ -1628,6 +1649,10 @@ msgstr ""
 msgid "Back"
 msgstr "戻る"
 
+#: src/components/pages/PageNotice.tsx
+msgid "Back to chat"
+msgstr "チャットに戻る"
+
 #: src/pages/Auth.tsx
 msgid "Back to sign in"
 msgstr "ログインに戻る"
@@ -1674,6 +1699,10 @@ msgstr "請求"
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Billing instructions, this month's city bill, tenant leases, and the next step"
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Billing period"
+msgstr "請求期間"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Bills"
@@ -1905,12 +1934,15 @@ msgstr ""
 msgid "Campaigns per month"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Can view without signing in"
+msgstr "サインインせずに閲覧できます"
+
 #: src/App.tsx
 msgid "Can't reach the server."
 msgstr "サーバーに接続できません。"
 
 #: src/components/TextOnlyMark.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
 msgid "Can't read images"
 msgstr "画像を読み取れません"
@@ -1921,6 +1953,7 @@ msgstr "画像を読み取れません"
 #: src/components/FilesPanel.tsx
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/markdown-link-prompt.tsx
+#: src/components/ModelCredits.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
 #: src/components/VaultSettings.tsx
@@ -2108,6 +2141,11 @@ msgstr ""
 msgid "Check workspace_activities before repeating work. Use the available tools below to read this organization’s data and check its timestamps."
 msgstr ""
 
+#: src/components/pages/PageView.tsx
+#: src/components/pages/PageViewHost.tsx
+msgid "Check your connection and try again."
+msgstr "接続を確認して、もう一度お試しください。"
+
 #: src/pages/Auth.tsx
 msgid "Check your email"
 msgstr "メールを確認してください"
@@ -2199,6 +2237,11 @@ msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "City current charges"
+msgstr ""
+
+#. placeholder {0}: submission.claim
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Claims the {0} page"
 msgstr ""
 
 #: src/lib/localized-provider-hint.ts
@@ -2313,6 +2356,10 @@ msgstr "モデル設定を閉じる"
 #: src/pages/shell/shell-sidebar.tsx
 msgid "Close navigation"
 msgstr "ナビゲーションを閉じる"
+
+#: src/components/pages/PageView.tsx
+msgid "Close page"
+msgstr "ページを閉じる"
 
 #: src/pages/GroupPanel.tsx
 #: src/pages/shell/side-panel.tsx
@@ -2541,6 +2588,7 @@ msgstr ""
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
+#: src/pages/shell/message-cards.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Connect"
 msgstr "接続"
@@ -2733,6 +2781,8 @@ msgstr ""
 #: src/components/ComputersUnavailableHint.tsx
 #: src/components/InviteDialog.tsx
 #: src/components/markdown-copy.tsx
+#: src/components/pages/PublicPageShell.tsx
+#: src/components/pages/SharePopover.tsx
 #: src/components/RunLogsPanel.tsx
 #: src/components/VaultSettings.tsx
 #: src/pages/AgentConnectionSetup.tsx
@@ -2745,7 +2795,6 @@ msgstr ""
 msgid "Copied"
 msgstr "コピーしました"
 
-#: src/components/InviteDialog.tsx
 #: src/components/VaultSettings.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/model-settings/connection-controls.tsx
@@ -2794,6 +2843,12 @@ msgstr "ダイアグラムのソースをコピー"
 #: src/pages/CrmApiAccessPanel.tsx
 msgid "Copy integration token"
 msgstr ""
+
+#: src/components/InviteDialog.tsx
+#: src/components/pages/PublicPageShell.tsx
+#: src/components/pages/SharePopover.tsx
+msgid "Copy link"
+msgstr "リンクをコピー"
 
 #: src/pages/shell/agent-import.tsx
 msgid "Copy prompt"
@@ -2871,6 +2926,10 @@ msgstr "パスワードを変更できませんでした"
 #: src/components/integrations/space-availability.tsx
 msgid "Could not change where this is available"
 msgstr ""
+
+#: src/components/pages/PageViewHost.tsx
+msgid "Could not change who can view this page. Try again."
+msgstr "このページを閲覧できる人を変更できませんでした。もう一度お試しください。"
 
 #: src/lib/model-connection-preflight.ts
 msgid "Could not check stored credentials."
@@ -2982,6 +3041,10 @@ msgstr "グループを削除できませんでした"
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not delete MCP server"
 msgstr "MCPサーバーを削除できませんでした"
+
+#: src/pages/shell/dialogs.tsx
+msgid "Could not delete page"
+msgstr "ページを削除できませんでした"
 
 #: src/pages/shell/dialogs.tsx
 msgid "Could not delete routine"
@@ -3103,6 +3166,10 @@ msgstr "請求情報を読み込めませんでした"
 msgid "Could not load bots. Reload to try again."
 msgstr "ボットを読み込めませんでした。再読み込みしてもう一度お試しください。"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Could not load computer settings"
+msgstr ""
+
 #: src/components/BotCredentialsSettings.tsx
 msgid "Could not load credentials"
 msgstr ""
@@ -3202,6 +3269,10 @@ msgstr "請求ページを開けませんでした"
 msgid "Could not open the team"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
+msgid "Could not pin this page. Try again."
+msgstr "このページをピン留めできませんでした。もう一度お試しください。"
+
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not play a test clip"
 msgstr "テスト音声を再生できませんでした"
@@ -3293,6 +3364,11 @@ msgstr "セクションの名前を変更できませんでした"
 msgid "Could not rename space"
 msgstr "スペースの名前を変更できませんでした"
 
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/PageViewHost.tsx
+msgid "Could not rename this page. Try again."
+msgstr "このページの名前を変更できませんでした。もう一度お試しください。"
+
 #: src/components/ChartCanvas.tsx
 #: src/pages/shell/message-cards.tsx
 msgid "Could not render chart"
@@ -3343,6 +3419,10 @@ msgstr "自動レビューを保存できませんでした"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Could not save city bill"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Could not save computer settings"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx
@@ -3500,6 +3580,10 @@ msgstr ""
 msgid "Could not verify computer setup ({failureMessage}). Fix the connection, then check again."
 msgstr "コンピューターのセットアップを確認できませんでした（{failureMessage}）。接続を修正してから、もう一度確認してください。"
 
+#: src/components/pages/SharePopover.tsx
+msgid "Couldn't copy. Select the link and copy it."
+msgstr "コピーできませんでした。リンクを選択してコピーしてください。"
+
 #: src/pages/AdminAccessPage.tsx
 msgid "Couldn't load grants"
 msgstr ""
@@ -3508,9 +3592,17 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr "メッセージ設定を読み込めませんでした"
 
+#: src/components/pages/PagesList.tsx
+msgid "Couldn't load pages."
+msgstr "ページを読み込めませんでした。"
+
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Couldn't load submissions"
 msgstr ""
+
+#: src/pages/SharedPage.tsx
+msgid "Couldn't load this page. Try again."
+msgstr "このページを読み込めませんでした。もう一度お試しください。"
 
 #: src/pages/PaymentWalletSettingsPanel.tsx
 msgid "Couldn't load your wallet"
@@ -3700,6 +3792,10 @@ msgstr "ボットのアバターをカスタマイズ"
 msgid "daily {time}"
 msgstr ""
 
+#: src/pages/shell/bot-panel.tsx
+msgid "Daily check-ins on unfinished work"
+msgstr "未完了の作業を毎日確認"
+
 #: src/pages/workspace/sections/SocialSection.tsx
 msgid "Daily reach"
 msgstr ""
@@ -3797,6 +3893,7 @@ msgstr "デフォルトの範囲"
 
 #: src/components/AccountAccess.tsx
 #: src/components/FilesPanel.tsx
+#: src/components/pages/PagesList.tsx
 #: src/components/PasskeySettings.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/BotContextMenu.tsx
@@ -3838,6 +3935,7 @@ msgid "Delete {0}?"
 msgstr "{0}を削除しますか？"
 
 #: src/components/AccountAccess.tsx
+#: src/components/AccountMenu.tsx
 msgid "Delete account"
 msgstr "アカウントを削除"
 
@@ -3910,6 +4008,11 @@ msgstr "拒否済み"
 msgid "Deny"
 msgstr "拒否"
 
+#. placeholder {0}: settings.defaultProvider
+#: src/components/ComputerProviderSettings.tsx
+msgid "Deployment default ({0})"
+msgstr ""
+
 #: src/pages/Board.tsx
 #: src/pages/shell/agent-import.tsx
 msgid "Description"
@@ -3922,6 +4025,10 @@ msgstr ""
 #: src/components/DesktopUpdates.tsx
 msgid "Desktop app"
 msgstr "デスクトップアプリ"
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Desktop ID"
+msgstr ""
 
 #: src/components/DesktopUpdates.tsx
 msgid "Desktop update"
@@ -3969,6 +4076,10 @@ msgstr ""
 #: src/lib/dictation.ts
 msgid "Dictation failed."
 msgstr ""
+
+#: src/pages/Auth.tsx
+msgid "Did you mean <0>{emailSuggestion}</0>?"
+msgstr "<0>{emailSuggestion}</0> のことですか？"
 
 #: src/pages/shell/bot-panel.tsx
 msgid "Disable a tool"
@@ -4138,6 +4249,10 @@ msgstr ""
 msgid "Download OpenAPI specification ↗"
 msgstr ""
 
+#: src/components/pages/DownloadPdfButton.tsx
+msgid "Download PDF"
+msgstr "PDF をダウンロード"
+
 #: src/components/DesktopUpdates.tsx
 msgid "Downloading…"
 msgstr "ダウンロード中…"
@@ -4295,17 +4410,17 @@ msgstr ""
 msgid "Enable Git in this folder"
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "End user ID"
+msgstr ""
+
 #: src/pages/workspace/sections/LeasingSection.tsx
 msgid "Ends"
 msgstr ""
 
-#: src/pages/BillingSettingsPanel.tsx
+#: src/lib/billing.ts
 msgid "Ends {day}"
 msgstr "{day}に終了"
-
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Engage when... Ignore..."
-msgstr "対応する場合… 無視する場合…"
 
 #: src/pages/workspace/sections/SocialSection.tsx
 msgid "Engagement rate"
@@ -4341,6 +4456,10 @@ msgstr "画像の上限には1〜1000の整数を入力してください。"
 #: src/lib/model-connection-preflight.ts
 msgid "Enter an API key before testing."
 msgstr "テストする前にAPIキーを入力してください。"
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Environment ID"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Environment variables"
@@ -4428,6 +4547,10 @@ msgstr "毎時"
 #: src/lib/cron.ts
 msgid "Every hour at :{0}"
 msgstr "毎時{0}分"
+
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Every message"
+msgstr "すべてのメッセージ"
 
 #: src/lib/cron.ts
 msgid "Every Monday"
@@ -4631,6 +4754,10 @@ msgstr ""
 msgid "Finance"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
+msgid "Find a page"
+msgstr "ページを検索"
+
 #: src/pages/AgentConnectionSetup.tsx
 msgid "Find contacts, add leads, and update deals in your CRM."
 msgstr ""
@@ -4734,7 +4861,6 @@ msgid "Forwards"
 msgstr ""
 
 #: src/components/ModelCredits.tsx
-#: src/pages/model-settings/model-picker.tsx
 msgid "Free"
 msgstr "無料"
 
@@ -4788,6 +4914,14 @@ msgstr "フルスクリーン"
 msgid "Gateway ID"
 msgstr "ゲートウェイID"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Gateway token"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Gateway URL"
+msgstr ""
+
 #: src/pages/settings-nav.ts
 #: src/pages/SettingsOverlay.tsx
 msgid "General"
@@ -4821,10 +4955,6 @@ msgstr ""
 msgid "GET /v1/workspace/tools lists the tools your token can use, including their JSON schemas. POST a JSON argument object to the tool’s path below. Read tools also use POST so MCP and HTTP take the same arguments. Use an empty object when no arguments are needed."
 msgstr ""
 
-#: src/components/InviteDialog.tsx
-msgid "Get a free month for each friend who starts a trial."
-msgstr "友だちがトライアルを開始するたびに、1か月無料になります。"
-
 #: src/pages/UserGuide.tsx
 msgid "Get better results from your agents"
 msgstr ""
@@ -4844,6 +4974,10 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "Git event"
 msgstr "Gitイベント"
+
+#: src/components/InviteDialog.tsx
+msgid "Give a friend {weeks} weeks free"
+msgstr "友だちに{weeks}週間無料をプレゼント"
 
 #: src/pages/UserGuide.tsx
 msgid "Give an agent enough context to act, a clear definition of done, and boundaries for decisions you want to review."
@@ -5208,6 +5342,10 @@ msgstr "指示 {position}"
 msgid "Instructions are too long. Untick some files."
 msgstr "指示が長すぎます。いくつかのファイルのチェックを外してください。"
 
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Instructions for this room"
+msgstr "このルームへの指示"
+
 #: src/components/AskCard.tsx
 msgid "Instructions updated"
 msgstr "指示を更新しました"
@@ -5242,7 +5380,10 @@ msgstr "間隔の単位"
 msgid "Invalid code"
 msgstr "無効なコード"
 
-#: src/components/InviteDialog.tsx
+#: src/pages/shell/chat-header.tsx
+msgid "Invite a friend"
+msgstr "友だちを招待"
+
 #: src/components/SidebarFooter.tsx
 msgid "Invite friends"
 msgstr "友だちを招待"
@@ -5260,6 +5401,10 @@ msgstr "分離"
 msgid "Isolated preview — no access to your account"
 msgstr "分離されたプレビュー — アカウントにはアクセスできません"
 
+#: src/components/pages/PageViewHost.tsx
+msgid "It may have been deleted, or it belongs to someone else."
+msgstr "削除されたか、別のユーザーのページの可能性があります。"
+
 #: src/pages/shell/shell-dialogs.tsx
 msgid "Its bots and groups are kept and leave the section."
 msgstr "セクション内のボットとグループは削除されず、セクションから外れます。"
@@ -5267,6 +5412,10 @@ msgstr "セクション内のボットとグループは削除されず、セク
 #: src/pages/shell/dialogs.tsx
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "会話、ファイル、ルーティンは完全に削除されます。作成したボットはリストに残ります。"
+
+#: src/components/pages/PagesList.tsx
+msgid "Its shared link stops working and its cards in chat show it as deleted. This can't be undone."
+msgstr "共有リンクは使えなくなり、チャット内のカードは削除済みと表示されます。元に戻すことはできません。"
 
 #: src/pages/crm/CrmForms.tsx
 msgid "Join link"
@@ -5445,6 +5594,11 @@ msgstr "ライト"
 msgid "Link"
 msgstr ""
 
+#: src/components/pages/PublicPageShell.tsx
+#: src/components/pages/SharePopover.tsx
+msgid "Link copied"
+msgstr "リンクをコピーしました"
+
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Link DMs"
 msgstr "DMを連携"
@@ -5469,12 +5623,7 @@ msgstr ""
 msgid "List view"
 msgstr "リスト表示"
 
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Listen"
-msgstr "常に聞く"
-
 #: src/components/call/CallCard.tsx
-#: src/pages/ExternalConversationSettings.tsx
 msgid "Listening"
 msgstr "聞いています"
 
@@ -5588,9 +5737,8 @@ msgstr "ローカルアクセスでは、ボットが確認なしでコマンド
 msgid "Local computer access requires the latest desktop app."
 msgstr "ローカルコンピューターへのアクセスには最新のデスクトップアプリが必要です。"
 
-#: src/components/ModelCredits.tsx
+#: src/components/AccountMenu.tsx
 #: src/components/SidebarFooter.tsx
-#: src/pages/Paywall.tsx
 msgid "Log out"
 msgstr "ログアウト"
 
@@ -5652,8 +5800,8 @@ msgid "Manage MCP servers"
 msgstr "MCPサーバーを管理"
 
 #: src/pages/shell/bot-panel.tsx
-msgid "Manage the bots it creates"
-msgstr "作成したボットを管理"
+msgid "Manage other bots"
+msgstr "他のボットを管理"
 
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Manor bot"
@@ -5959,7 +6107,6 @@ msgstr "モード"
 
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/agent-import.tsx
@@ -5980,7 +6127,7 @@ msgstr "モデル接続"
 msgid "Model id"
 msgstr "モデルID"
 
-#: src/pages/model-settings/model-picker.tsx
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 msgid "Model options"
 msgstr "モデルのオプション"
@@ -5995,8 +6142,8 @@ msgstr "モデル"
 msgid "Models at provider cost"
 msgstr "プロバイダー原価でのモデル利用"
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/Onboarding.tsx
 msgid "Models from server"
 msgstr "サーバーのモデル"
 
@@ -6037,6 +6184,7 @@ msgstr ""
 msgid "month-end {time}"
 msgstr ""
 
+#: src/components/ModelCredits.tsx
 #: src/lib/cron.ts
 msgid "Monthly"
 msgstr "毎月"
@@ -6101,6 +6249,10 @@ msgstr "ミュート"
 #: src/components/call/CallCard.tsx
 msgid "Muted"
 msgstr "ミュート中"
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "My computers"
+msgstr ""
 
 #: src/components/FilesPanel.tsx
 #: src/components/teach/SkillDraftCard.tsx
@@ -6197,6 +6349,10 @@ msgstr "新しいボット"
 
 #: src/components/FilesPanel.tsx
 msgid "New branch"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "New computers run on"
 msgstr ""
 
 #: src/pages/crm/CrmContacts.tsx
@@ -6438,7 +6594,6 @@ msgid "No matching files"
 msgstr ""
 
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
 msgid "No matching models"
@@ -6472,6 +6627,10 @@ msgstr ""
 #: src/pages/shell/agent-import.tsx
 msgid "No OpenClaw, Hermes or agent document found."
 msgstr "OpenClaw、Hermes、またはエージェントのドキュメントが見つかりません。"
+
+#: src/components/pages/PagesList.tsx
+msgid "No pages match “{query}”."
+msgstr "「{query}」に一致するページはありません。"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "No pending tenant charges. Review bill history if needed."
@@ -6751,6 +6910,14 @@ msgstr "1回限りの購入です。クレジットは失効しません。"
 msgid "Only an admin can change a local MCP server."
 msgstr ""
 
+#: src/components/AskCard.tsx
+msgid "Only enter a code {codeHost} sent you."
+msgstr ""
+
+#: src/components/pages/SharePopover.tsx
+msgid "Only people in this space"
+msgstr ""
+
 #: src/pages/shell/composer.tsx
 msgid "Only use connected plugins, never the computer"
 msgstr ""
@@ -6759,7 +6926,12 @@ msgstr ""
 msgid "Only use the computer and sandbox, never connected plugins"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Only you"
+msgstr "自分のみ"
+
 #: src/components/markdown-link-prompt.tsx
+#: src/components/pages/PagesList.tsx
 #: src/pages/crm/CrmHome.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
 #: src/pages/shell/computer-panel.tsx
@@ -6774,9 +6946,18 @@ msgstr "開く"
 msgid "Open {0}"
 msgstr "{0}を開く"
 
+#: src/components/pages/PublicPageShell.tsx
+#: src/pages/SharedPage.tsx
+msgid "Open {brandName}"
+msgstr "{brandName} を開く"
+
 #: src/pages/shell/import-setup-card.tsx
 msgid "Open {name}"
 msgstr "{name}を開く"
+
+#: src/components/pages/PageCard.tsx
+msgid "Open {title}"
+msgstr "{title} を開く"
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/model-settings/connection-controls.tsx
@@ -6824,6 +7005,10 @@ msgstr "フルウィンドウで開く"
 #: src/pages/Shell.tsx
 msgid "Open in new tab"
 msgstr ""
+
+#: src/components/pages/SharePopover.tsx
+msgid "Open link"
+msgstr "リンクを開く"
 
 #: src/pages/shell/bot-panel.tsx
 msgid "Open Manor desktop to share this Mac."
@@ -6895,6 +7080,10 @@ msgstr ""
 msgid "Opens by device"
 msgstr ""
 
+#: src/components/pages/DownloadPdfButton.tsx
+msgid "Opens your browser's print dialog. Choose Save as PDF as the destination."
+msgstr "ブラウザの印刷ダイアログを開きます。送信先に「PDF に保存」を選んでください。"
+
 #: src/components/SignupSurvey.tsx
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
@@ -6919,6 +7108,10 @@ msgstr "またはAPIキーを貼り付け"
 msgid "or, if the sender cannot set headers"
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Organization"
+msgstr ""
+
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Organization API key"
 msgstr "組織のAPIキー"
@@ -6932,8 +7125,8 @@ msgstr "元のメッセージを表示できません"
 msgid "Other"
 msgstr ""
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/Onboarding.tsx
 msgid "Other model…"
 msgstr "その他のモデル…"
 
@@ -6961,6 +7154,7 @@ msgstr ""
 msgid "Overview"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
 #: src/lib/identity-display.ts
 #: src/pages/Board.tsx
 msgid "Owner"
@@ -6970,13 +7164,61 @@ msgstr "オーナー"
 msgid "Owner sends bill"
 msgstr ""
 
+#: src/components/pages/PageCard.tsx
+#: src/components/pages/PageView.tsx
+msgid "Page"
+msgstr "ページ"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · {when}"
+msgstr "ページ · {when}"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · Deleted"
+msgstr "ページ · 削除済み"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · Shared · {when}"
+msgstr "ページ · 共有中 · {when}"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · Updated below"
+msgstr "ページ · 下で更新済み"
+
 #: src/components/markdown-copy.tsx
 msgid "Page {page} of {count}"
 msgstr "{page} / {count} ページ"
 
+#: src/components/pages/PublicPageShell.tsx
+msgid "Page actions"
+msgstr "ページの操作"
+
+#: src/components/pages/SharePopover.tsx
+msgid "Page link"
+msgstr "ページのリンク"
+
 #: src/pages/NotFound.tsx
 msgid "Page not found"
 msgstr "ページが見つかりません"
+
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/PageView.tsx
+msgid "Page title"
+msgstr "ページのタイトル"
+
+#: src/pages/GroupPanel.tsx
+#: src/pages/shell/bot-panel.tsx
+#: src/pages/shell/command-palette.tsx
+msgid "Pages"
+msgstr "ページ"
+
+#: src/components/pages/PagesList.tsx
+msgid "Pages this bot builds for you appear here. Ask for a dashboard, tracker or plan to make one."
+msgstr "このボットが作成したページがここに表示されます。ダッシュボード、トラッカー、計画などを頼むと作成されます。"
+
+#: src/components/pages/PagesList.tsx
+msgid "Pages this group builds for you appear here. Ask for a dashboard, tracker or plan to make one."
+msgstr "このグループが作成したページがここに表示されます。ダッシュボード、トラッカー、計画などを頼むと作成されます。"
 
 #: src/pages/DocsView.tsx
 msgid "Pagination"
@@ -7158,10 +7400,12 @@ msgstr ""
 msgid "Pick your AI tool"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/BotContextMenu.tsx
 msgid "Pin"
 msgstr "ピン留め"
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/Shell.tsx
 msgid "Pinned"
 msgstr "ピン留め済み"
@@ -7637,6 +7881,10 @@ msgstr "表示を更新"
 msgid "Refreshing…"
 msgstr "更新中…"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Region"
+msgstr ""
+
 #: src/pages/DocsView.tsx
 msgid "Register an endpoint"
 msgstr ""
@@ -7676,6 +7924,7 @@ msgid "Release control"
 msgstr "操作を戻す"
 
 #: src/components/InstructionSettings.tsx
+#: src/lib/client-update.ts
 msgid "Reload"
 msgstr "再読み込み"
 
@@ -7790,6 +8039,8 @@ msgstr "削除しましたが、一覧を更新できませんでした"
 msgid "Removing…"
 msgstr "削除中…"
 
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/PageView.tsx
 #: src/components/PasskeySettings.tsx
 msgid "Rename"
 msgstr "名前を変更"
@@ -7813,7 +8064,7 @@ msgstr "セクション名を変更"
 msgid "Rendering PDF"
 msgstr ""
 
-#: src/pages/BillingSettingsPanel.tsx
+#: src/lib/billing.ts
 msgid "Renews {day}"
 msgstr "{day}に更新"
 
@@ -7838,9 +8089,17 @@ msgstr "キーを置き換え"
 msgid "Replace value"
 msgstr "値を置き換え"
 
+#: src/components/AskCard.tsx
+msgid "Replaces the login saved for {replacedSite}"
+msgstr "{replacedSite} に保存されたログインを置き換えます"
+
 #: src/components/VerificationComparison.tsx
 msgid "Replies"
 msgstr ""
+
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Replies to"
+msgstr "返信対象"
 
 #: src/pages/shell/message-hover-actions.tsx
 #: src/pages/shell/quote-selection-button.tsx
@@ -7904,6 +8163,7 @@ msgid "Research & writing"
 msgstr "リサーチと執筆"
 
 #: src/components/ComputerMaintenanceActions.tsx
+#: src/pages/ExternalConversationSettings.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Reset"
 msgstr "リセット"
@@ -8055,9 +8315,9 @@ msgstr ""
 msgid "Right when you answered"
 msgstr ""
 
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Room guidance"
-msgstr "ルームのガイダンス"
+#: src/components/ComputerProviderSettings.tsx
+msgid "Root filesystem"
+msgstr ""
 
 #: src/pages/RoutineEditor.tsx
 msgid "Rotate key"
@@ -8159,6 +8419,10 @@ msgstr "このボットがこのプロバイダーから検証済みのメッセ
 msgid "Sales & CRM"
 msgstr ""
 
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Same as {botName}"
+msgstr "{botName}と同じ"
+
 #: src/pages/workspace/bits.tsx
 msgid "Sat"
 msgstr ""
@@ -8170,6 +8434,7 @@ msgstr "土曜日"
 
 #: src/components/AskCard.tsx
 #: src/components/BotCredentialsSettings.tsx
+#: src/components/ComputerProviderSettings.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
@@ -8224,6 +8489,7 @@ msgid "Save to Vault"
 msgstr "保管庫に保存"
 
 #: src/components/AskCard.tsx
+#: src/components/ComputerProviderSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/ExternalConversationSettings.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
@@ -8269,6 +8535,10 @@ msgstr "保存中…"
 msgid "Say yes or no, or answer in a sentence."
 msgstr "「はい」か「いいえ」、または文章で答えてください。"
 
+#: src/pages/RoutineEditor.tsx
+msgid "Schedule delayed"
+msgstr "予定の実行が遅れています"
+
 #: src/pages/workspace/AutomationsCard.tsx
 msgid "Scheduled pipelines and their newest run"
 msgstr ""
@@ -8301,8 +8571,8 @@ msgstr ""
 msgid "Screen not connected"
 msgstr "画面が接続されていません"
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/providers-section.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/PluginsOverlay.tsx
@@ -8355,8 +8625,8 @@ msgstr ""
 msgid "Search integrations.sh"
 msgstr "integrations.shを検索"
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
 msgid "Search models"
@@ -8567,6 +8837,7 @@ msgstr "設定ヘルプ"
 msgid "Severity"
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Shape"
 msgstr "形"
@@ -8576,10 +8847,24 @@ msgstr "形"
 msgid "Shape {0}"
 msgstr "形 {0}"
 
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/SharePopover.tsx
+msgid "Share"
+msgstr "共有"
+
+#: src/components/pages/SharePopover.tsx
+msgid "Share “{title}”"
+msgstr "「{title}」を共有"
+
 #: src/components/ShareThisMacSettings.tsx
 msgid "Share this Mac"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Share, anyone with the link can view"
+msgstr "共有、リンクを知っている人は誰でも閲覧可能"
+
+#: src/components/pages/PagesList.tsx
 #: src/pages/MemorySettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Shared"
@@ -8670,6 +8955,7 @@ msgstr "一覧を表示"
 msgid "Show live activity"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/ScratchpadSection.tsx
@@ -8964,6 +9250,14 @@ msgstr "{trialDays}日間の無料トライアルを開始"
 msgid "Start a new Claude Code session and run <0>/mcp</0>. Check that the Manor server is connected."
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "Start plan"
+msgstr "プランを開始"
+
+#: src/components/ModelCredits.tsx
+msgid "Start plan now"
+msgstr "今すぐプランを開始"
+
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Start recording"
 msgstr "録画を開始"
@@ -8980,6 +9274,10 @@ msgstr ""
 msgid "Start with workspace_overview. Read workspace_get_context and workspace_list_skills, then workspace_get_skill for the playbooks you need."
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "Start your plan now?"
+msgstr "今すぐプランを開始しますか？"
+
 #: src/components/RunLogsPanel.tsx
 msgid "started"
 msgstr ""
@@ -8987,6 +9285,18 @@ msgstr ""
 #: src/components/RunLogsPanel.tsx
 msgid "Started"
 msgstr ""
+
+#: src/pages/RoutineRunHistory.tsx
+msgid "Started {count}d late"
+msgstr "{count}日遅れて開始"
+
+#: src/pages/RoutineRunHistory.tsx
+msgid "Started {count}h late"
+msgstr "{count}時間遅れて開始"
+
+#: src/pages/RoutineRunHistory.tsx
+msgid "Started {count}m late"
+msgstr "{count}分遅れて開始"
 
 #: src/pages/ActivityList.tsx
 msgid "Starting"
@@ -9074,14 +9384,14 @@ msgstr "サブエージェント"
 msgid "Submit"
 msgstr "送信"
 
-#: src/pages/PluginsOverlay.tsx
-msgid "Submit a plugin"
-msgstr ""
-
 #: src/components/ModelCredits.tsx
 #: src/pages/Paywall.tsx
 msgid "Subscribe"
 msgstr "申し込む"
+
+#: src/components/ModelCredits.tsx
+msgid "Subscribe for {annualPrice} / year"
+msgstr "年額 {annualPrice} で登録"
 
 #: src/components/ModelCredits.tsx
 msgid "Subscribe for {price} / month"
@@ -9131,6 +9441,7 @@ msgstr "画像に対応"
 msgid "Supports thinking"
 msgstr "思考に対応"
 
+#: src/components/ModelCredits.tsx
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Switch"
 msgstr "切り替え"
@@ -9138,6 +9449,14 @@ msgstr "切り替え"
 #: src/components/FilesPanel.tsx
 msgid "Switch branch"
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Switch to yearly"
+msgstr "年払いに切り替え"
+
+#: src/components/ModelCredits.tsx
+msgid "Switch to yearly?"
+msgstr "年払いに切り替えますか？"
 
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Switching…"
@@ -9180,6 +9499,10 @@ msgstr ""
 msgid "Take control"
 msgstr "操作を引き継ぐ"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Target"
+msgstr ""
+
 #: src/pages/UserGuide.tsx
 msgid "Tasks can also start from an external event, such as a form submission. The external app must be connected to the routine separately; saving a routine does not connect the form. Test one submission and check the resulting work."
 msgstr ""
@@ -9215,6 +9538,10 @@ msgstr "Teamsメッセージ"
 
 #: src/pages/UserGuide.tsx
 msgid "Tell an agent to add a contact or lead, including the details you have. For example: “Add Jordan Ellis, jordan@example.com, to the CRM as a lead interested in a maintenance quote. Check for an existing contact first.” The agent can create or update the record from your conversation. Open CRM → Contacts to review it, add notes or tags, or edit records yourself."
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Template"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -9322,6 +9649,10 @@ msgstr "モデルプロバイダーがエラーを返しました。"
 msgid "The model returned an unusable response. Try again."
 msgstr "モデルが利用できない応答を返しました。もう一度お試しください。"
 
+#: src/pages/SharedPage.tsx
+msgid "The owner may have turned off its link or deleted it."
+msgstr "所有者がリンクをオフにしたか、ページを削除した可能性があります。"
+
 #: src/lib/model-connection-preflight.ts
 msgid "The provider is rate-limiting requests."
 msgstr "プロバイダーがリクエストを制限しています。"
@@ -9345,6 +9676,10 @@ msgstr "選択したメモリプロバイダーはこのビルドでは利用で
 #: src/pages/DocsView.tsx
 msgid "The setup prompt includes the connection instructions. These references are here when you or your agent need a specific tool, permission, or endpoint."
 msgstr ""
+
+#: src/components/pages/SharePopover.tsx
+msgid "The shared link stops working"
+msgstr "共有リンクは使えなくなります"
 
 #: src/pages/DocsView.tsx
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
@@ -9373,6 +9708,10 @@ msgstr "ファイルまたは選択内容が一致しなくなりました。も
 #: src/components/VaultSettings.tsx
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr "保存された設定を読み取れません。削除してから再度追加してください。"
+
+#: src/components/InviteDialog.tsx
+msgid "They get {weeks} weeks free."
+msgstr "友だちは{weeks}週間無料で使えます。"
 
 #: src/components/call/CallCard.tsx
 #: src/pages/ModelRoleSettings.tsx
@@ -9423,6 +9762,7 @@ msgid "This browser has no on-device dictation. Connect a voice provider with tr
 msgstr ""
 
 #: src/components/call/IncomingCall.tsx
+#: src/lib/user-error.ts
 msgid "This call is no longer ringing."
 msgstr "この通話の呼び出しは終了しました。"
 
@@ -9514,6 +9854,21 @@ msgstr ""
 #: src/components/WorkspacePdfPreview.tsx
 msgid "This page could not be previewed. Download the PDF to open it."
 msgstr ""
+
+#: src/lib/pages.ts
+msgid "This page couldn't be shown."
+msgstr "このページを表示できませんでした。"
+
+#: src/components/pages/PageCard.tsx
+#: src/components/pages/PageView.tsx
+#: src/components/pages/PageViewHost.tsx
+msgid "This page couldn't load"
+msgstr "このページを読み込めませんでした"
+
+#: src/components/pages/PageViewHost.tsx
+#: src/pages/SharedPage.tsx
+msgid "This page isn't available"
+msgstr "このページは利用できません"
 
 #: src/components/WorkspacePdfPreview.tsx
 msgid "This PDF could not be previewed. Download it to open it."
@@ -9732,16 +10087,24 @@ msgstr "Tregトークン"
 msgid "Trial"
 msgstr "トライアル"
 
-#: src/pages/BillingSettingsPanel.tsx
+#: src/lib/billing.ts
 msgid "Trial ends {day}"
 msgstr "トライアル終了: {day}"
+
+#: src/components/ModelCredits.tsx
+msgid "Trials get fewer hours to prevent abuse."
+msgstr "不正利用を防ぐため、トライアルでは時間が少なくなっています。"
 
 #: src/components/TrustedLinkSitesSettings.tsx
 msgid "Trusted sites"
 msgstr "信頼済みサイト"
 
+#: src/components/pages/PageNotice.tsx
+#: src/components/pages/PagesList.tsx
 #: src/pages/ActivityList.tsx
 #: src/pages/Onboarding.tsx
+#: src/pages/SharedPage.tsx
+#: src/pages/SpaceSearch.tsx
 msgid "Try again"
 msgstr "再試行"
 
@@ -9850,6 +10213,7 @@ msgstr "ミュート解除"
 msgid "Unopened"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/BotContextMenu.tsx
 msgid "Unpin"
 msgstr "ピン留めを解除"
@@ -9906,6 +10270,10 @@ msgstr "指示を更新しますか？"
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Update progress"
 msgstr "更新の進行状況"
+
+#: src/lib/client-update.ts
+msgid "Update required"
+msgstr "アップデートが必要です"
 
 #. placeholder {0}: formatAgo(newestPipe, i18n.locale)
 #: src/pages/workspace/PipelineMap.tsx
@@ -10005,10 +10373,6 @@ msgstr "「接続」でキーを確認してください。"
 #: src/pages/UserGuide.tsx
 msgid "Use customer records to track relationships and your workspace to understand the business data available to your team."
 msgstr ""
-
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Use default guidance"
-msgstr "デフォルトのガイダンスを使用"
 
 #: src/pages/SpaceSettingOverrides.tsx
 msgid "Use defaults"
@@ -10372,6 +10736,10 @@ msgstr "使用するタイミング"
 msgid "Where should bots run?"
 msgstr "ボットをどこで実行しますか？"
 
+#: src/components/pages/SharePopover.tsx
+msgid "Who can open this page"
+msgstr "このページを開けるユーザー"
+
 #: src/pages/AgentConnectionSetup.tsx
 msgid "With {organizationName} selected, open Integrations → API & agent access → CRM API access. Create a token for this agent and copy it."
 msgstr ""
@@ -10441,6 +10809,10 @@ msgstr ""
 msgid "year"
 msgstr "年"
 
+#: src/components/ModelCredits.tsx
+msgid "Yearly"
+msgstr "年払い"
+
 #: src/pages/crm/CrmModuleSheet.tsx
 #: src/pages/workspace/bits.tsx
 msgid "Yes"
@@ -10451,6 +10823,7 @@ msgstr ""
 msgid "Yesterday"
 msgstr "昨日"
 
+#: src/components/pages/SharePopover.tsx
 #: src/components/VerificationComparison.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Shell.tsx
@@ -10471,6 +10844,10 @@ msgstr "このウィンドウを閉じても構いません。"
 #: src/components/call/VoiceChatCard.tsx
 msgid "You declined"
 msgstr "辞退しました"
+
+#: src/components/InviteDialog.tsx
+msgid "You get a free month when they start their trial with a new card."
+msgstr "友だちが新しいカードでトライアルを始めると、あなたは1か月無料になります。"
 
 #: src/pages/shell/computer-overlay.tsx
 msgid "You have control"
@@ -10493,6 +10870,10 @@ msgstr "お使いのAnthropic"
 #: src/pages/AgentConnectionSetup.tsx
 msgid "Your app must support Streamable HTTP and custom headers. Manor uses a token here; there is no browser sign-in step."
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Your card is charged {annualPrice} today, less the unused part of this month."
+msgstr "本日カードに{annualPrice}が請求されます（今月の未使用分を差し引きます）。"
 
 #: src/components/AccountDataSettings.tsx
 msgid "Your data"
@@ -10529,6 +10910,10 @@ msgstr "お使いのOpenAI"
 msgid "Your OpenRouter"
 msgstr "お使いのOpenRouter"
 
+#: src/components/ModelCredits.tsx
+msgid "Your plan becomes {annualPrice} / year when your trial ends."
+msgstr "トライアル終了後、プランは年額 {annualPrice} になります。"
+
 #: src/components/integrations/skills-dialog.tsx
 msgid "Your skills"
 msgstr ""
@@ -10540,6 +10925,14 @@ msgstr "自分のサブスクリプションまたはAPIキー"
 #: src/pages/Welcome.tsx
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Your trial ends and your card is charged {price} today."
+msgstr "トライアルが終了し、本日カードに{price}が請求されます。"
+
+#: src/components/ModelCredits.tsx
+msgid "Your trial ends and your card is charged today."
+msgstr "トライアルが終了し、本日カードに請求されます。"
 
 #: src/lib/user-error.ts
 msgid "Your voice provider is out of credit."

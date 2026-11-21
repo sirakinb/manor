@@ -16,10 +16,11 @@ export const CLIENT_KINDS = ["web", "mobile"] as const;
 export type ClientKind = (typeof CLIENT_KINDS)[number];
 export type MinimumClientBuilds = Partial<Record<ClientKind, string>>;
 
-// Manor: both point at Manor's releases page, never upstream's store listing or APK.
+// Manor: all three point at Manor's releases page, never upstream's store listings or APK.
 const MANOR_RELEASES_URL = "https://github.com/sirakinb/manor/releases";
 export const IOS_APP_STORE_URL = MANOR_RELEASES_URL;
 export const ANDROID_APK_URL = MANOR_RELEASES_URL;
+export const ANDROID_APP_STORE_URL = MANOR_RELEASES_URL;
 
 const BUILD_ID = /^\d{14}$/;
 

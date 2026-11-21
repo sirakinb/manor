@@ -3,10 +3,10 @@ import type { WorkspaceAccess } from "@rakazo/contracts";
 import { useState } from "react";
 import { BuiButton, LoadingState } from "../components/ai/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
+import type { Endpoint } from "../lib/api-catalog";
 import {
   CONTACT_ENDPOINTS,
   DEAL_ENDPOINTS,
-  type Endpoint,
   MCP_TOOLS,
   MODULE_ENDPOINTS,
   SCOPES,

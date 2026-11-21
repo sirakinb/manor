@@ -5,12 +5,14 @@ import { hasValidBearerToken } from "@rakazo/core";
 import type { Context, Hono } from "hono";
 import { mountGithubWebhookRoute } from "./github-webhook.js";
 import { readBoundedBody } from "./http-body.js";
-import type { WebhookSecretCache } from "./webhook-inbound.js";
+import type {
+  WebhookDeps as InboundWebhookDeps,
+  WebhookEvents as InboundWebhookEvents,
+  WebhookSecretCache,
+} from "./webhook-inbound.js";
 import {
   deliverWebhookEvent,
   formatWebhookPrompt,
-  type WebhookDeps as InboundWebhookDeps,
-  type WebhookEvents as InboundWebhookEvents,
   loadWebhookTarget,
   parseWebhookPayload,
   WEBHOOK_MAX_BODY_BYTES,

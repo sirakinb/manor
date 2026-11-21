@@ -14,8 +14,17 @@ import { toolEffectIdempotencyKey } from "@rakazo/core/node/approval-effect-key"
 import type { Bot, Computer, effectiveMemoryScope, Run, Task, Thread } from "@rakazo/db";
 import { dropRunTurnCheckpoint, saveRunTurnCheckpoint } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
-import type { ApprovalPausedToolResult, ApprovedEffectReplayQueue } from "./approval-effect.js";
-import { approvalPausedToolResult, approvedEffectOccurrence } from "./approval-effect.js";
+import type {
+  ApprovalPausedToolResult,
+  ApprovedEffectReplayQueue,
+  TerminatingToolResult,
+} from "./approval-effect.js";
+import {
+  approvalPausedToolResult,
+  approvedEffectOccurrence,
+  OWNER_SETTINGS_REFUSAL_REPLY,
+  terminatingToolResult,
+} from "./approval-effect.js";
 import type { BotCredentialRow } from "./bot-credentials.js";
 import type { loadBotMessageContext } from "./bot-messages.js";
 import { partitionTools } from "./builtin-tool-bridge.js";
@@ -90,6 +99,8 @@ export interface ReplyState {
   progressBudgetStart: number;
   /** The first interim message after one may answer the person at once. */
   steeringReplyPending: boolean;
+  /** The bot called a browser or desktop tool, so it may say at once that this will take a while. */
+  computerTaskStarted: boolean;
   steeringResets: number;
   lastSteeringResetAt: number;
   /**
@@ -171,6 +182,11 @@ export interface RunState {
    */
   tainted: boolean;
   /**
+   * The taint refusal for owner settings was returned in this attempt. A model that calls
+   * again gets the turn ended instead of the same error a second time.
+   */
+  ownerSettingsRefused: boolean;
+  /**
    * The instructions this attempt's model works from: the attempt-start snapshot its prompt
    * was built with, restored from the turn checkpoint on resume, and advanced only after a
    * successful own-instruction write in this attempt. Own instruction writes guard on it, so
@@ -180,6 +196,11 @@ export interface RunState {
    */
   ownInstructionsBaseline: string | undefined;
   earlierAttempt: Promise<boolean> | undefined;
+  /**
+   * Hosts of the sites this run typed an approved wallet purchase into (fill_card, fill_pay_token):
+   * the wallet owner approved paying there, so the pay click there asks nothing more.
+   */
+  walletHosts: Set<string>;
   handedOff: boolean;
   terminalCheckpointComplete: boolean;
 }
@@ -198,7 +219,10 @@ export interface RunComputerContext {
   pageBrowserAllowed: boolean;
   acceptsImages: boolean;
   heldForTakeover: boolean;
-  /** "local" for a This Mac computer; otherwise what the provider provisions. */
+  /**
+   * Where the computer starts this run, which can differ from `stored` before it provisions:
+   * "local" for a This Mac computer, otherwise what the provider provisions.
+   */
   kind: string;
   /** False when the user pinned this turn to plugins (toolRoutingMode "plugins"). */
   toolsAvailable: boolean;
@@ -341,6 +365,22 @@ export async function neverAsks(ctx: RunContext) {
   return (await ctx.trust.loadAutoReviewPreference()).skipApprovals;
 }
 
+/**
+ * Refuse an owner-settings change in a run that read outside content. The first refusal
+ * explains the block; a repeat ends the turn, because a model that ignored the explanation
+ * would otherwise retry the same call without a bound.
+ */
+export function refuseOwnerSettingsChange(
+  ctx: RunContext,
+  error: string,
+): { error: string } | TerminatingToolResult {
+  if (ctx.state.ownerSettingsRefused) {
+    return terminatingToolResult(OWNER_SETTINGS_REFUSAL_REPLY, { refused: "owner-settings" });
+  }
+  ctx.state.ownerSettingsRefused = true;
+  return { error };
+}
+
 export async function isRunTainted(ctx: RunContext) {
   const { state } = ctx;
   if (state.tainted) return true;
@@ -453,7 +493,9 @@ export function restoreTurnCheckpointEffects(
         for (const call of message.content) {
           if (call.type !== "toolCall" || unresolved.has(call)) continue;
           const tool = namedTools.find((tool) => tool.name === call.name)?.tool;
-          if (tool && tool.name !== "request_secret" && tool.name !== "connect_app")
+          // A code request counts like any tool: each one is its own card.
+          const single = tool?.name === "connect_app" || tool?.name === "request_secret";
+          if (tool && (!single || call.arguments.oneTimeCode !== undefined))
             nextMutatingEffectOccurrence(
               ctx,
               tool.name,

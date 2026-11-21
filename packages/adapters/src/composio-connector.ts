@@ -1,5 +1,8 @@
-import type { ConnectedAccountStatus, ToolRouterCreateSessionConfig } from "@composio/core";
-import { Composio } from "@composio/core";
+import type {
+  Composio,
+  ConnectedAccountStatus,
+  ToolRouterCreateSessionConfig,
+} from "@composio/core";
 import type {
   AdapterContext,
   ConnectedConnector,
@@ -381,7 +384,7 @@ export class ComposioConnector implements ComposioProvider {
 
   /** @param entityId The Composio entity id — use composioEntityId(userId, spaceId) for a real run. */
   async sessionFor(entityId: string): Promise<ComposioSession> {
-    const composio = this.sdk();
+    const composio = await this.sdk();
     const existing = this.catalogSessions.get(entityId);
     if (existing) {
       try {
@@ -444,7 +447,7 @@ export class ComposioConnector implements ComposioProvider {
     }
     if (toolkits.length === 0) return { reconnect, connectedAccounts };
     const key = executeSessionKey(toolkits, connectedAccounts);
-    const composio = this.sdk();
+    const composio = await this.sdk();
     const existing = this.executeSessions.get(entityId);
     if (existing?.key === key) {
       try {
@@ -694,10 +697,8 @@ export class ComposioConnector implements ComposioProvider {
       accountId = listed[0];
       if (!accountId) {
         try {
-          const account = await this.sdk().connectedAccounts.waitForConnection(
-            connectionRef,
-            20_000,
-          );
+          const { connectedAccounts } = await this.sdk();
+          const account = await connectedAccounts.waitForConnection(connectionRef, 20_000);
           accountId = account?.id;
         } catch {
           // Not a resolvable request id; fall through to treat ref as an account id.
@@ -711,7 +712,8 @@ export class ComposioConnector implements ComposioProvider {
       throw error;
     }
     try {
-      await this.sdk().connectedAccounts.delete(accountId ?? connectionRef, requestOptions);
+      const { connectedAccounts } = await this.sdk();
+      await connectedAccounts.delete(accountId ?? connectionRef, requestOptions);
     } catch (error) {
       // Already deleted upstream: the revoke goal is met.
       if (!isComposioNotFoundError(error)) throw error;
@@ -776,7 +778,8 @@ export class ComposioConnector implements ComposioProvider {
     requestOptions?: { signal?: AbortSignal },
   ): Promise<string[]> {
     const accounts = await collectPages(async (cursor) => {
-      const page = await this.sdk().connectedAccounts.list(
+      const { connectedAccounts } = await this.sdk();
+      const page = await connectedAccounts.list(
         {
           userIds: [entityId],
           ...(toolkits.length > 0 ? { toolkitSlugs: toolkits } : {}),
@@ -803,7 +806,8 @@ export class ComposioConnector implements ComposioProvider {
     // revoke-win begin does not wait for OAuth to finish, and the authorization
     // URL cannot later create an untracked remote. Ignore missing ids.
     try {
-      await this.sdk().connectedAccounts.delete(id, { signal: context.signal });
+      const { connectedAccounts } = await this.sdk();
+      await connectedAccounts.delete(id, { signal: context.signal });
     } catch (error) {
       if (!isComposioNotFoundError(error)) throw error;
     }
@@ -827,7 +831,8 @@ export class ComposioConnector implements ComposioProvider {
 
     if (current && composioSlugKey(current) !== slugKey) {
       try {
-        const account = await this.sdk().connectedAccounts.waitForConnection(current, 20_000);
+        const { connectedAccounts } = await this.sdk();
+        const account = await connectedAccounts.waitForConnection(current, 20_000);
         if (account?.id && !excluded.has(account.id)) return account.id;
       } catch {
         // Request id could not be resolved. Do not fall back to another connected
@@ -844,8 +849,12 @@ export class ComposioConnector implements ComposioProvider {
     return ids.find((id) => !excluded.has(id));
   }
 
-  private sdk(): ComposioClient {
-    this.client ??= new Composio(this.apiKey ? { apiKey: this.apiKey } : undefined);
+  /** The SDK loads on first use, so deployments without Composio never load it. */
+  private async sdk(): Promise<ComposioClient> {
+    if (!this.client) {
+      const { Composio } = await import("@composio/core");
+      this.client ??= new Composio(this.apiKey ? { apiKey: this.apiKey } : undefined);
+    }
     return this.client;
   }
 }
@@ -934,7 +943,30 @@ export class ConnectorRegistry implements ConnectorProvider {
       yield { type: "error", message: `unknown connector ${connectorId}` };
       return;
     }
-    yield* provider.execute({ ...call, tool: call.route?.toolName ?? call.tool }, context);
+    const connectionId = call.route?.connectionId ?? call.connectionId;
+    if (
+      connectionId &&
+      !context.connectedConnections?.some(
+        (connection) => connection.id === connectionId && connection.connectorId === connectorId,
+      )
+    ) {
+      yield { type: "error", message: "The selected connected account is unavailable." };
+      return;
+    }
+    const scopedContext = connectionId
+      ? {
+          ...context,
+          connectedConnections: context.connectedConnections!.filter(
+            (connection) =>
+              connection.id === connectionId && connection.connectorId === connectorId,
+          ),
+          connectedProviders: undefined,
+        }
+      : context;
+    yield* provider.execute(
+      { ...call, connectionId, tool: call.route?.toolName ?? call.tool },
+      scopedContext,
+    );
   }
 
   async resolveCall(

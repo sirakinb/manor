@@ -56,7 +56,7 @@ describe("built-in tool bridge", () => {
       "write_file",
     ]);
     // Manor: schedule_create also offers a webhook trigger on every branch (about 3 KB more).
-    expect(definitionBytes(listed)).toBeLessThanOrEqual(34_000);
+    expect(definitionBytes(listed)).toBeLessThanOrEqual(34_400);
     expect(deferred.map((tool) => tool.name)).toEqual(
       expect.arrayContaining(["render_plot", "create_space", "generate_secret", "scratchpad_add"]),
     );

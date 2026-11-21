@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FakeSandboxProvider } from "@rakazo/adapters";
-import { asSystem } from "@rakazo/db";
+import { asSystem, runAsSystem } from "@rakazo/db";
 import { expect, it } from "vitest";
 import { sessionCookieHeader } from "../../../packages/testkit/src/index.js";
 import { createApp } from "./app.js";
@@ -15,6 +15,8 @@ it.skipIf(!databaseUrl).each([
   { sandboxProvider: "fake", nativeToken: true, expected: false },
 ])("exposes native host choice only on a managed Docker instance (%j)", async (fixture) => {
   const dataDir = await mkdtemp(join(tmpdir(), "rakazo-host-choice-"));
+  const emailFor = (role: string) =>
+    `host-choice-${role}-${fixture.sandboxProvider}-${fixture.nativeToken}@example.test`;
   const handles = await createApp({
     databaseUrl: databaseUrl!,
     dataDir,
@@ -36,7 +38,7 @@ it.skipIf(!databaseUrl).each([
         method: "POST",
         headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
         body: JSON.stringify({
-          email: `host-choice-${role}-${fixture.sandboxProvider}-${fixture.nativeToken}@example.test`,
+          email: emailFor(role),
           password: "test-password-123",
           name: "Host tester",
         }),
@@ -46,7 +48,8 @@ it.skipIf(!databaseUrl).each([
       return { userId: user.id, cookie: sessionCookieHeader(signup) };
     };
     const owner = await signUp("owner");
-    const member = await signUp("member");
+    // A managed stack (desktop token set) admits only its first account, so it has no member.
+    const member = fixture.nativeToken ? undefined : await signUp("member");
     // Manor keeps a deployment owner (the first sign-up); host choice must not depend on it.
     previousOwner =
       (await system.deploymentSettings.findUnique({ where: { id: "default" } }))?.ownerUserId ??
@@ -55,10 +58,8 @@ it.skipIf(!databaseUrl).each([
       where: { id: "default" },
       data: { ownerUserId: owner.userId },
     });
-    for (const [account, isDeploymentOwner] of [
-      [owner, true],
-      [member, false],
-    ] as const) {
+    const accounts = [[owner, true] as const, ...(member ? [[member, false] as const] : [])];
+    for (const [account, isDeploymentOwner] of accounts) {
       for (const procedure of ["me", "bootstrap"]) {
         const response = await handles.app.request(`/rpc/${procedure}`, {
           method: "POST",
@@ -84,6 +85,12 @@ it.skipIf(!databaseUrl).each([
         data: { ownerUserId: previousOwner },
       });
     }
+    // A managed stack admits only its first account, so each case starts without one.
+    await runAsSystem("remove the host choice testers", () =>
+      handles.prisma.user.deleteMany({
+        where: { email: { in: [emailFor("owner"), emailFor("member")] } },
+      }),
+    );
     await handles.stop();
     await rm(dataDir, { recursive: true, force: true });
   }

@@ -183,11 +183,6 @@ msgstr ""
 msgid "{0} connection"
 msgstr "{0} कनेक्शन"
 
-#. placeholder {0}: bot.name
-#: src/pages/ExternalConversationSettings.tsx
-msgid "{0} default"
-msgstr ""
-
 #. placeholder {0}: formatNumber(batch.failed)
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "{0} failed"
@@ -358,11 +353,6 @@ msgstr "{0} TB"
 #. placeholder {1}: formatNumber(utilities.chargesPending)
 #: src/pages/workspace/Overview.tsx
 msgid "{0} this month · {1} charges pending"
-msgstr ""
-
-#. placeholder {0}: bot.name
-#: src/pages/ExternalConversationSettings.tsx
-msgid "{0} will still respond to direct mentions."
 msgstr ""
 
 #. placeholder {0}: perDay.toFixed(perDay < 10 ? 1 : 0)
@@ -687,6 +677,10 @@ msgstr "{wonCount} बंद"
 msgid "@{0}"
 msgstr "@{0}"
 
+#: src/components/ModelCredits.tsx
+msgid "/ month"
+msgstr "/ महीना"
+
 #: src/pages/crm/CrmPipelineBoard.tsx
 msgid "+ Add stage"
 msgstr "+ चरण जोड़ें"
@@ -777,6 +771,10 @@ msgstr "एक सब्सक्रिप्शन क्रेडेंशि�
 msgid "A webhook notifies another app when something changes in your CRM. For example, a new contact can trigger a workflow in that app. Your agent can help configure the receiving app and the events to send."
 msgstr ""
 
+#: src/pages/KnowledgeSection.tsx
+msgid "About {kb} KB of memory no longer reaches the bot."
+msgstr ""
+
 #: src/components/InfoTooltip.tsx
 msgid "About {label}"
 msgstr "{label} के बारे में"
@@ -790,10 +788,19 @@ msgstr ""
 msgid "Access"
 msgstr "पहुँच"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Access key ID"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Access key secret"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx
 msgid "Access token (optional)"
 msgstr "एक्सेस टोकन (वैकल्पिक)"
 
+#: src/components/AccountMenu.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Account"
 msgstr "खाता"
@@ -836,6 +843,7 @@ msgstr ""
 #. placeholder {0}: entry.path
 #. placeholder {0}: group.spaceName
 #: src/components/FilesPanel.tsx
+#: src/components/pages/PagesList.tsx
 #: src/pages/BotContextMenu.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/shell/sidebar-roster.tsx
@@ -1313,11 +1321,16 @@ msgstr ""
 msgid "Any model, with your own key"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Anyone with the link"
+msgstr "लिंक वाला कोई भी"
+
 #: src/pages/PluginsOverlay.tsx
 msgid "API & agent access"
 msgstr "API और एजेंट एक्सेस"
 
 #: src/components/AskCard.tsx
+#: src/components/ComputerProviderSettings.tsx
 #: src/lib/localized-provider-hint.ts
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/model-settings/compatible-key-field.tsx
@@ -1338,6 +1351,14 @@ msgstr "API कुंजी हेडर"
 #: src/pages/shell/agent-import.tsx
 msgid "API keys"
 msgstr "API कुंजियाँ"
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "API token"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "API URL"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "App preview"
@@ -1387,6 +1408,10 @@ msgstr "स्वीकृतियाँ"
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Approve"
 msgstr "अनुमोदित करें"
+
+#: src/lib/call-session.ts
+msgid "Approve or deny it on screen."
+msgstr "स्क्रीन पर अनुमोदित या अस्वीकार करें।"
 
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Approve this report?"
@@ -1551,10 +1576,6 @@ msgstr "ऑटो"
 msgid "Automated senders"
 msgstr ""
 
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Automated senders will appear after they post here."
-msgstr ""
-
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Automatic"
 msgstr ""
@@ -1628,6 +1649,10 @@ msgstr ""
 msgid "Back"
 msgstr "वापस"
 
+#: src/components/pages/PageNotice.tsx
+msgid "Back to chat"
+msgstr "चैट पर वापस जाएँ"
+
 #: src/pages/Auth.tsx
 msgid "Back to sign in"
 msgstr "साइन इन पर वापस जाएँ"
@@ -1674,6 +1699,10 @@ msgstr ""
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Billing instructions, this month's city bill, tenant leases, and the next step"
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Billing period"
+msgstr "बिलिंग अवधि"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Bills"
@@ -1905,12 +1934,15 @@ msgstr ""
 msgid "Campaigns per month"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Can view without signing in"
+msgstr "साइन इन किए बिना देख सकते हैं"
+
 #: src/App.tsx
 msgid "Can't reach the server."
 msgstr "सर्वर तक नहीं पहुंचा जा सका।"
 
 #: src/components/TextOnlyMark.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
 msgid "Can't read images"
 msgstr "तस्वीरें नहीं पढ़ सकता"
@@ -1921,6 +1953,7 @@ msgstr "तस्वीरें नहीं पढ़ सकता"
 #: src/components/FilesPanel.tsx
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/markdown-link-prompt.tsx
+#: src/components/ModelCredits.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
 #: src/components/VaultSettings.tsx
@@ -2108,6 +2141,11 @@ msgstr ""
 msgid "Check workspace_activities before repeating work. Use the available tools below to read this organization’s data and check its timestamps."
 msgstr ""
 
+#: src/components/pages/PageView.tsx
+#: src/components/pages/PageViewHost.tsx
+msgid "Check your connection and try again."
+msgstr "अपना कनेक्शन जाँचें और फिर से कोशिश करें।"
+
 #: src/pages/Auth.tsx
 msgid "Check your email"
 msgstr "अपना ईमेल देखें"
@@ -2199,6 +2237,11 @@ msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "City current charges"
+msgstr ""
+
+#. placeholder {0}: submission.claim
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Claims the {0} page"
 msgstr ""
 
 #: src/lib/localized-provider-hint.ts
@@ -2313,6 +2356,10 @@ msgstr "मॉडल सेटिंग्स बंद करें"
 #: src/pages/shell/shell-sidebar.tsx
 msgid "Close navigation"
 msgstr "नेविगेशन बंद करें"
+
+#: src/components/pages/PageView.tsx
+msgid "Close page"
+msgstr "पेज बंद करें"
 
 #: src/pages/GroupPanel.tsx
 #: src/pages/shell/side-panel.tsx
@@ -2541,6 +2588,7 @@ msgstr ""
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
+#: src/pages/shell/message-cards.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Connect"
 msgstr "कनेक्ट करें"
@@ -2733,6 +2781,8 @@ msgstr ""
 #: src/components/ComputersUnavailableHint.tsx
 #: src/components/InviteDialog.tsx
 #: src/components/markdown-copy.tsx
+#: src/components/pages/PublicPageShell.tsx
+#: src/components/pages/SharePopover.tsx
 #: src/components/RunLogsPanel.tsx
 #: src/components/VaultSettings.tsx
 #: src/pages/AgentConnectionSetup.tsx
@@ -2745,7 +2795,6 @@ msgstr ""
 msgid "Copied"
 msgstr "कॉपी किया गया"
 
-#: src/components/InviteDialog.tsx
 #: src/components/VaultSettings.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/model-settings/connection-controls.tsx
@@ -2794,6 +2843,12 @@ msgstr "डायग्राम स्रोत कॉपी करें"
 #: src/pages/CrmApiAccessPanel.tsx
 msgid "Copy integration token"
 msgstr "इंटीग्रेशन टोकन कॉपी करें"
+
+#: src/components/InviteDialog.tsx
+#: src/components/pages/PublicPageShell.tsx
+#: src/components/pages/SharePopover.tsx
+msgid "Copy link"
+msgstr "लिंक कॉपी करें"
 
 #: src/pages/shell/agent-import.tsx
 msgid "Copy prompt"
@@ -2871,6 +2926,10 @@ msgstr "पासवर्ड बदला नहीं जा सका"
 #: src/components/integrations/space-availability.tsx
 msgid "Could not change where this is available"
 msgstr ""
+
+#: src/components/pages/PageViewHost.tsx
+msgid "Could not change who can view this page. Try again."
+msgstr "यह नहीं बदला जा सका कि इस पेज को कौन देख सकता है। फिर कोशिश करें।"
 
 #: src/lib/model-connection-preflight.ts
 msgid "Could not check stored credentials."
@@ -2982,6 +3041,10 @@ msgstr "समूह हटाया नहीं जा सका"
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not delete MCP server"
 msgstr "MCP सर्वर डिलीट नहीं किया जा सका"
+
+#: src/pages/shell/dialogs.tsx
+msgid "Could not delete page"
+msgstr "पेज हटाया नहीं जा सका"
 
 #: src/pages/shell/dialogs.tsx
 msgid "Could not delete routine"
@@ -3103,6 +3166,10 @@ msgstr ""
 msgid "Could not load bots. Reload to try again."
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Could not load computer settings"
+msgstr ""
+
 #: src/components/BotCredentialsSettings.tsx
 msgid "Could not load credentials"
 msgstr ""
@@ -3202,6 +3269,10 @@ msgstr ""
 msgid "Could not open the team"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
+msgid "Could not pin this page. Try again."
+msgstr "यह पेज पिन नहीं हो सका। फिर से कोशिश करें।"
+
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not play a test clip"
 msgstr "टेस्ट क्लिप नहीं चलाई जा सकी"
@@ -3293,6 +3364,11 @@ msgstr "अनुभाग का नाम नहीं बदला जा स
 msgid "Could not rename space"
 msgstr "स्पेस का नाम नहीं बदला जा सका"
 
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/PageViewHost.tsx
+msgid "Could not rename this page. Try again."
+msgstr "इस पेज का नाम नहीं बदला जा सका। फिर कोशिश करें।"
+
 #: src/components/ChartCanvas.tsx
 #: src/pages/shell/message-cards.tsx
 msgid "Could not render chart"
@@ -3343,6 +3419,10 @@ msgstr "ऑटो रिव्यू सहेजा नहीं जा सक�
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Could not save city bill"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Could not save computer settings"
 msgstr ""
 
 #: src/components/BotCredentialsSettings.tsx
@@ -3500,6 +3580,10 @@ msgstr ""
 msgid "Could not verify computer setup ({failureMessage}). Fix the connection, then check again."
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Couldn't copy. Select the link and copy it."
+msgstr "कॉपी नहीं हो सका। लिंक चुनें और उसे कॉपी करें।"
+
 #: src/pages/AdminAccessPage.tsx
 msgid "Couldn't load grants"
 msgstr ""
@@ -3508,9 +3592,17 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
+msgid "Couldn't load pages."
+msgstr "पेज लोड नहीं हो सके।"
+
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Couldn't load submissions"
 msgstr ""
+
+#: src/pages/SharedPage.tsx
+msgid "Couldn't load this page. Try again."
+msgstr "यह पेज लोड नहीं हो सका। फिर से कोशिश करें।"
 
 #: src/pages/PaymentWalletSettingsPanel.tsx
 msgid "Couldn't load your wallet"
@@ -3700,6 +3792,10 @@ msgstr "बॉट अवतार अनुकूलित करें"
 msgid "daily {time}"
 msgstr ""
 
+#: src/pages/shell/bot-panel.tsx
+msgid "Daily check-ins on unfinished work"
+msgstr "अधूरे काम पर रोज़ पूछें"
+
 #: src/pages/workspace/sections/SocialSection.tsx
 msgid "Daily reach"
 msgstr ""
@@ -3797,6 +3893,7 @@ msgstr "डिफ़ॉल्ट स्कोप"
 
 #: src/components/AccountAccess.tsx
 #: src/components/FilesPanel.tsx
+#: src/components/pages/PagesList.tsx
 #: src/components/PasskeySettings.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/BotContextMenu.tsx
@@ -3838,6 +3935,7 @@ msgid "Delete {0}?"
 msgstr "{0} डिलीट करें?"
 
 #: src/components/AccountAccess.tsx
+#: src/components/AccountMenu.tsx
 msgid "Delete account"
 msgstr "खाता हटाएँ"
 
@@ -3910,6 +4008,11 @@ msgstr "अस्वीकृत"
 msgid "Deny"
 msgstr "अस्वीकार करें"
 
+#. placeholder {0}: settings.defaultProvider
+#: src/components/ComputerProviderSettings.tsx
+msgid "Deployment default ({0})"
+msgstr ""
+
 #: src/pages/Board.tsx
 #: src/pages/shell/agent-import.tsx
 msgid "Description"
@@ -3921,6 +4024,10 @@ msgstr ""
 
 #: src/components/DesktopUpdates.tsx
 msgid "Desktop app"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Desktop ID"
 msgstr ""
 
 #: src/components/DesktopUpdates.tsx
@@ -3969,6 +4076,10 @@ msgstr ""
 #: src/lib/dictation.ts
 msgid "Dictation failed."
 msgstr ""
+
+#: src/pages/Auth.tsx
+msgid "Did you mean <0>{emailSuggestion}</0>?"
+msgstr "क्या आपका मतलब <0>{emailSuggestion}</0> था?"
 
 #: src/pages/shell/bot-panel.tsx
 msgid "Disable a tool"
@@ -4138,6 +4249,10 @@ msgstr ""
 msgid "Download OpenAPI specification ↗"
 msgstr ""
 
+#: src/components/pages/DownloadPdfButton.tsx
+msgid "Download PDF"
+msgstr "PDF डाउनलोड करें"
+
 #: src/components/DesktopUpdates.tsx
 msgid "Downloading…"
 msgstr ""
@@ -4295,16 +4410,16 @@ msgstr ""
 msgid "Enable Git in this folder"
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "End user ID"
+msgstr ""
+
 #: src/pages/workspace/sections/LeasingSection.tsx
 msgid "Ends"
 msgstr ""
 
-#: src/pages/BillingSettingsPanel.tsx
+#: src/lib/billing.ts
 msgid "Ends {day}"
-msgstr ""
-
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Engage when... Ignore..."
 msgstr ""
 
 #: src/pages/workspace/sections/SocialSection.tsx
@@ -4341,6 +4456,10 @@ msgstr "इमेज सीमा के लिए 1 से 1000 के बी�
 #: src/lib/model-connection-preflight.ts
 msgid "Enter an API key before testing."
 msgstr "परीक्षण से पहले API कुंजी दर्ज करें।"
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Environment ID"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Environment variables"
@@ -4428,6 +4547,10 @@ msgstr "हर घंटे"
 #: src/lib/cron.ts
 msgid "Every hour at :{0}"
 msgstr "हर घंटे :{0} मिनट पर"
+
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Every message"
+msgstr "हर संदेश"
 
 #: src/lib/cron.ts
 msgid "Every Monday"
@@ -4631,6 +4754,10 @@ msgstr ""
 msgid "Finance"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
+msgid "Find a page"
+msgstr "पेज खोजें"
+
 #: src/pages/AgentConnectionSetup.tsx
 msgid "Find contacts, add leads, and update deals in your CRM."
 msgstr ""
@@ -4734,7 +4861,6 @@ msgid "Forwards"
 msgstr ""
 
 #: src/components/ModelCredits.tsx
-#: src/pages/model-settings/model-picker.tsx
 msgid "Free"
 msgstr "मुफ़्त"
 
@@ -4788,6 +4914,14 @@ msgstr "फ़ुलस्क्रीन"
 msgid "Gateway ID"
 msgstr "गेटवे आईडी"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Gateway token"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Gateway URL"
+msgstr ""
+
 #: src/pages/settings-nav.ts
 #: src/pages/SettingsOverlay.tsx
 msgid "General"
@@ -4821,10 +4955,6 @@ msgstr ""
 msgid "GET /v1/workspace/tools lists the tools your token can use, including their JSON schemas. POST a JSON argument object to the tool’s path below. Read tools also use POST so MCP and HTTP take the same arguments. Use an empty object when no arguments are needed."
 msgstr ""
 
-#: src/components/InviteDialog.tsx
-msgid "Get a free month for each friend who starts a trial."
-msgstr "ट्रायल शुरू करने वाले हर दोस्त के लिए एक महीना मुफ़्त पाएँ।"
-
 #: src/pages/UserGuide.tsx
 msgid "Get better results from your agents"
 msgstr ""
@@ -4844,6 +4974,10 @@ msgstr "शुरुआत करें"
 #: src/pages/RoutineEditor.tsx
 msgid "Git event"
 msgstr ""
+
+#: src/components/InviteDialog.tsx
+msgid "Give a friend {weeks} weeks free"
+msgstr "किसी दोस्त को {weeks} हफ़्ते मुफ़्त दें"
 
 #: src/pages/UserGuide.tsx
 msgid "Give an agent enough context to act, a clear definition of done, and boundaries for decisions you want to review."
@@ -4903,11 +5037,11 @@ msgstr "कॉल समाप्त करें"
 
 #: src/lib/call-session.ts
 msgid "Hang up first, then enter the code on screen."
-msgstr "पहले कॉल समाप्त करें, फिर स्क्रीन पर दिख रहा कोड दर्ज करें।"
+msgstr "पहले कॉल समाप्त करें, फिर स्क्रीन पर कोड डालें।"
 
 #: src/lib/call-session.ts
 msgid "Hang up, then enter the code on screen."
-msgstr "कॉल समाप्त करें, फिर स्क्रीन पर दिख रहा कोड दर्ज करें।"
+msgstr "कॉल समाप्त करें, फिर स्क्रीन पर कोड डालें।"
 
 #: src/pages/workspace/sections/EmailSection.tsx
 msgid "Hard bounces"
@@ -5208,6 +5342,10 @@ msgstr "निर्देश {position}"
 msgid "Instructions are too long. Untick some files."
 msgstr "निर्देश बहुत लंबे हैं। कुछ फ़ाइलों से टिक हटाएँ।"
 
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Instructions for this room"
+msgstr "इस रूम के लिए निर्देश"
+
 #: src/components/AskCard.tsx
 msgid "Instructions updated"
 msgstr "निर्देश अपडेट किए गए"
@@ -5242,7 +5380,10 @@ msgstr "अंतराल इकाई"
 msgid "Invalid code"
 msgstr "अमान्य कोड"
 
-#: src/components/InviteDialog.tsx
+#: src/pages/shell/chat-header.tsx
+msgid "Invite a friend"
+msgstr "किसी दोस्त को आमंत्रित करें"
+
 #: src/components/SidebarFooter.tsx
 msgid "Invite friends"
 msgstr "दोस्तों को आमंत्रित करें"
@@ -5260,6 +5401,10 @@ msgstr "पृथक"
 msgid "Isolated preview — no access to your account"
 msgstr ""
 
+#: src/components/pages/PageViewHost.tsx
+msgid "It may have been deleted, or it belongs to someone else."
+msgstr "हो सकता है इसे हटा दिया गया हो, या यह किसी और का हो।"
+
 #: src/pages/shell/shell-dialogs.tsx
 msgid "Its bots and groups are kept and leave the section."
 msgstr "इसके बॉट और समूह बने रहेंगे और अनुभाग से बाहर हो जाएँगे।"
@@ -5267,6 +5412,10 @@ msgstr "इसके बॉट और समूह बने रहेंगे 
 #: src/pages/shell/dialogs.tsx
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "इसकी बातचीत, फ़ाइलें और रूटीन स्थायी रूप से डिलीट कर दिए जाएंगे। इसके बनाए बॉट आपकी सूची में बने रहेंगे।"
+
+#: src/components/pages/PagesList.tsx
+msgid "Its shared link stops working and its cards in chat show it as deleted. This can't be undone."
+msgstr "इसका शेयर किया गया लिंक काम करना बंद कर देगा और चैट में इसके कार्ड हटाए गए दिखेंगे। इसे पूर्ववत नहीं किया जा सकता।"
 
 #: src/pages/crm/CrmForms.tsx
 msgid "Join link"
@@ -5445,6 +5594,11 @@ msgstr "लाइट"
 msgid "Link"
 msgstr ""
 
+#: src/components/pages/PublicPageShell.tsx
+#: src/components/pages/SharePopover.tsx
+msgid "Link copied"
+msgstr "लिंक कॉपी हो गया"
+
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Link DMs"
 msgstr "निजी संदेश लिंक करें"
@@ -5469,12 +5623,7 @@ msgstr "लिस्ट एंडपॉइंट <0>limit</0> (1–100, डि�
 msgid "List view"
 msgstr ""
 
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Listen"
-msgstr ""
-
 #: src/components/call/CallCard.tsx
-#: src/pages/ExternalConversationSettings.tsx
 msgid "Listening"
 msgstr "सुन रहा है"
 
@@ -5588,9 +5737,8 @@ msgstr "स्थानीय पहुँच मिलने पर बॉट�
 msgid "Local computer access requires the latest desktop app."
 msgstr ""
 
-#: src/components/ModelCredits.tsx
+#: src/components/AccountMenu.tsx
 #: src/components/SidebarFooter.tsx
-#: src/pages/Paywall.tsx
 msgid "Log out"
 msgstr "लॉग आउट"
 
@@ -5652,8 +5800,8 @@ msgid "Manage MCP servers"
 msgstr "MCP सर्वर प्रबंधित करें"
 
 #: src/pages/shell/bot-panel.tsx
-msgid "Manage the bots it creates"
-msgstr "इसके बनाए बॉट प्रबंधित करें"
+msgid "Manage other bots"
+msgstr "अन्य बॉट प्रबंधित करें"
 
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Manor bot"
@@ -5959,7 +6107,6 @@ msgstr "मोड"
 
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/agent-import.tsx
@@ -5980,7 +6127,7 @@ msgstr "मॉडल कनेक्शन"
 msgid "Model id"
 msgstr "मॉडल आईडी"
 
-#: src/pages/model-settings/model-picker.tsx
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 msgid "Model options"
 msgstr "मॉडल विकल्प"
@@ -5995,8 +6142,8 @@ msgstr "मॉडल्स"
 msgid "Models at provider cost"
 msgstr ""
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/Onboarding.tsx
 msgid "Models from server"
 msgstr "सर्वर से मॉडल"
 
@@ -6037,6 +6184,7 @@ msgstr ""
 msgid "month-end {time}"
 msgstr ""
 
+#: src/components/ModelCredits.tsx
 #: src/lib/cron.ts
 msgid "Monthly"
 msgstr "मासिक"
@@ -6101,6 +6249,10 @@ msgstr "म्यूट करें"
 #: src/components/call/CallCard.tsx
 msgid "Muted"
 msgstr "माइक बंद है"
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "My computers"
+msgstr ""
 
 #: src/components/FilesPanel.tsx
 #: src/components/teach/SkillDraftCard.tsx
@@ -6197,6 +6349,10 @@ msgstr "नया बॉट"
 
 #: src/components/FilesPanel.tsx
 msgid "New branch"
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "New computers run on"
 msgstr ""
 
 #: src/pages/crm/CrmContacts.tsx
@@ -6438,7 +6594,6 @@ msgid "No matching files"
 msgstr ""
 
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
 msgid "No matching models"
@@ -6472,6 +6627,10 @@ msgstr ""
 #: src/pages/shell/agent-import.tsx
 msgid "No OpenClaw, Hermes or agent document found."
 msgstr "कोई OpenClaw, Hermes या एजेंट दस्तावेज़ नहीं मिला।"
+
+#: src/components/pages/PagesList.tsx
+msgid "No pages match “{query}”."
+msgstr "“{query}” से कोई पेज मेल नहीं खाता।"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "No pending tenant charges. Review bill history if needed."
@@ -6751,6 +6910,14 @@ msgstr ""
 msgid "Only an admin can change a local MCP server."
 msgstr ""
 
+#: src/components/AskCard.tsx
+msgid "Only enter a code {codeHost} sent you."
+msgstr ""
+
+#: src/components/pages/SharePopover.tsx
+msgid "Only people in this space"
+msgstr ""
+
 #: src/pages/shell/composer.tsx
 msgid "Only use connected plugins, never the computer"
 msgstr ""
@@ -6759,7 +6926,12 @@ msgstr ""
 msgid "Only use the computer and sandbox, never connected plugins"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Only you"
+msgstr "सिर्फ़ आप"
+
 #: src/components/markdown-link-prompt.tsx
+#: src/components/pages/PagesList.tsx
 #: src/pages/crm/CrmHome.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
 #: src/pages/shell/computer-panel.tsx
@@ -6774,9 +6946,18 @@ msgstr "खोलें"
 msgid "Open {0}"
 msgstr "{0} खोलें"
 
+#: src/components/pages/PublicPageShell.tsx
+#: src/pages/SharedPage.tsx
+msgid "Open {brandName}"
+msgstr "{brandName} खोलें"
+
 #: src/pages/shell/import-setup-card.tsx
 msgid "Open {name}"
 msgstr "{name} खोलें"
+
+#: src/components/pages/PageCard.tsx
+msgid "Open {title}"
+msgstr "{title} खोलें"
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/model-settings/connection-controls.tsx
@@ -6824,6 +7005,10 @@ msgstr "पूरी विंडो में खोलें"
 #: src/pages/Shell.tsx
 msgid "Open in new tab"
 msgstr ""
+
+#: src/components/pages/SharePopover.tsx
+msgid "Open link"
+msgstr "लिंक खोलें"
 
 #: src/pages/shell/bot-panel.tsx
 msgid "Open Manor desktop to share this Mac."
@@ -6895,6 +7080,10 @@ msgstr ""
 msgid "Opens by device"
 msgstr ""
 
+#: src/components/pages/DownloadPdfButton.tsx
+msgid "Opens your browser's print dialog. Choose Save as PDF as the destination."
+msgstr "आपके ब्राउज़र का प्रिंट डायलॉग खोलता है। गंतव्य के रूप में Save as PDF चुनें।"
+
 #: src/components/SignupSurvey.tsx
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
@@ -6919,6 +7108,10 @@ msgstr "या एक API कुंजी पेस्ट करें"
 msgid "or, if the sender cannot set headers"
 msgstr "या, अगर भेजने वाला हेडर सेट नहीं कर सकता"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Organization"
+msgstr ""
+
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Organization API key"
 msgstr "संगठन API कुंजी"
@@ -6932,8 +7125,8 @@ msgstr "मूल संदेश उपलब्ध नहीं है"
 msgid "Other"
 msgstr ""
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/Onboarding.tsx
 msgid "Other model…"
 msgstr "अन्य मॉडल…"
 
@@ -6961,6 +7154,7 @@ msgstr ""
 msgid "Overview"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
 #: src/lib/identity-display.ts
 #: src/pages/Board.tsx
 msgid "Owner"
@@ -6970,13 +7164,61 @@ msgstr "मालिक"
 msgid "Owner sends bill"
 msgstr ""
 
+#: src/components/pages/PageCard.tsx
+#: src/components/pages/PageView.tsx
+msgid "Page"
+msgstr "पेज"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · {when}"
+msgstr "पेज · {when}"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · Deleted"
+msgstr "पेज · हटाया गया"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · Shared · {when}"
+msgstr "पेज · शेयर किया गया · {when}"
+
+#: src/components/pages/PageCard.tsx
+msgid "Page · Updated below"
+msgstr "पेज · नीचे अपडेट हुआ"
+
 #: src/components/markdown-copy.tsx
 msgid "Page {page} of {count}"
 msgstr "पृष्ठ {page} / {count}"
 
+#: src/components/pages/PublicPageShell.tsx
+msgid "Page actions"
+msgstr "पेज कार्रवाइयाँ"
+
+#: src/components/pages/SharePopover.tsx
+msgid "Page link"
+msgstr "पेज का लिंक"
+
 #: src/pages/NotFound.tsx
 msgid "Page not found"
 msgstr "पेज नहीं मिला"
+
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/PageView.tsx
+msgid "Page title"
+msgstr "पेज का शीर्षक"
+
+#: src/pages/GroupPanel.tsx
+#: src/pages/shell/bot-panel.tsx
+#: src/pages/shell/command-palette.tsx
+msgid "Pages"
+msgstr "पेज"
+
+#: src/components/pages/PagesList.tsx
+msgid "Pages this bot builds for you appear here. Ask for a dashboard, tracker or plan to make one."
+msgstr "यह बॉट आपके लिए जो पेज बनाता है, वे यहाँ दिखते हैं। कोई डैशबोर्ड, ट्रैकर या योजना माँगकर एक बनवाएँ।"
+
+#: src/components/pages/PagesList.tsx
+msgid "Pages this group builds for you appear here. Ask for a dashboard, tracker or plan to make one."
+msgstr "यह समूह आपके लिए जो पेज बनाता है, वे यहाँ दिखते हैं। कोई डैशबोर्ड, ट्रैकर या योजना माँगकर एक बनवाएँ।"
 
 #: src/pages/DocsView.tsx
 msgid "Pagination"
@@ -7158,10 +7400,12 @@ msgstr ""
 msgid "Pick your AI tool"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/BotContextMenu.tsx
 msgid "Pin"
 msgstr "पिन करें"
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/Shell.tsx
 msgid "Pinned"
 msgstr "पिन किए गए"
@@ -7637,6 +7881,10 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Region"
+msgstr ""
+
 #: src/pages/DocsView.tsx
 msgid "Register an endpoint"
 msgstr "एंडपॉइंट रजिस्टर करें"
@@ -7676,6 +7924,7 @@ msgid "Release control"
 msgstr "नियंत्रण छोड़ें"
 
 #: src/components/InstructionSettings.tsx
+#: src/lib/client-update.ts
 msgid "Reload"
 msgstr "फिर से लोड करें"
 
@@ -7790,6 +8039,8 @@ msgstr "हटाया गया, लेकिन सूची रिफ़्�
 msgid "Removing…"
 msgstr "हटाया जा रहा है…"
 
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/PageView.tsx
 #: src/components/PasskeySettings.tsx
 msgid "Rename"
 msgstr "नाम बदलें"
@@ -7813,7 +8064,7 @@ msgstr "अनुभाग का नाम बदलें"
 msgid "Rendering PDF"
 msgstr ""
 
-#: src/pages/BillingSettingsPanel.tsx
+#: src/lib/billing.ts
 msgid "Renews {day}"
 msgstr ""
 
@@ -7838,9 +8089,17 @@ msgstr "कुंजी बदलें"
 msgid "Replace value"
 msgstr ""
 
+#: src/components/AskCard.tsx
+msgid "Replaces the login saved for {replacedSite}"
+msgstr "{replacedSite} के लिए सहेजे गए लॉगिन को बदलता है"
+
 #: src/components/VerificationComparison.tsx
 msgid "Replies"
 msgstr ""
+
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Replies to"
+msgstr "जवाब देता है"
 
 #: src/pages/shell/message-hover-actions.tsx
 #: src/pages/shell/quote-selection-button.tsx
@@ -7904,6 +8163,7 @@ msgid "Research & writing"
 msgstr ""
 
 #: src/components/ComputerMaintenanceActions.tsx
+#: src/pages/ExternalConversationSettings.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Reset"
 msgstr "रीसेट करें"
@@ -8055,8 +8315,8 @@ msgstr "रद्द हो रहा है…"
 msgid "Right when you answered"
 msgstr ""
 
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Room guidance"
+#: src/components/ComputerProviderSettings.tsx
+msgid "Root filesystem"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -8159,6 +8419,10 @@ msgstr ""
 msgid "Sales & CRM"
 msgstr ""
 
+#: src/pages/ExternalConversationSettings.tsx
+msgid "Same as {botName}"
+msgstr "{botName} जैसा"
+
 #: src/pages/workspace/bits.tsx
 msgid "Sat"
 msgstr ""
@@ -8170,6 +8434,7 @@ msgstr "शनिवार"
 
 #: src/components/AskCard.tsx
 #: src/components/BotCredentialsSettings.tsx
+#: src/components/ComputerProviderSettings.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
@@ -8224,6 +8489,7 @@ msgid "Save to Vault"
 msgstr "वॉल्ट में सहेजें"
 
 #: src/components/AskCard.tsx
+#: src/components/ComputerProviderSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/ExternalConversationSettings.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
@@ -8269,6 +8535,10 @@ msgstr "सहेजा जा रहा है…"
 msgid "Say yes or no, or answer in a sentence."
 msgstr "हां या ना कहें, या एक वाक्य में उत्तर दें।"
 
+#: src/pages/RoutineEditor.tsx
+msgid "Schedule delayed"
+msgstr "निर्धारित निष्पादन में देरी"
+
 #: src/pages/workspace/AutomationsCard.tsx
 msgid "Scheduled pipelines and their newest run"
 msgstr ""
@@ -8301,8 +8571,8 @@ msgstr ""
 msgid "Screen not connected"
 msgstr "स्क्रीन कनेक्ट नहीं है"
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/providers-section.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/PluginsOverlay.tsx
@@ -8355,8 +8625,8 @@ msgstr ""
 msgid "Search integrations.sh"
 msgstr ""
 
+#: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
-#: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
 msgid "Search models"
@@ -8567,6 +8837,7 @@ msgstr "सेटअप सहायता"
 msgid "Severity"
 msgstr ""
 
+#: src/components/ComputerProviderSettings.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Shape"
 msgstr "आकार"
@@ -8576,10 +8847,24 @@ msgstr "आकार"
 msgid "Shape {0}"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
+#: src/components/pages/SharePopover.tsx
+msgid "Share"
+msgstr "शेयर करें"
+
+#: src/components/pages/SharePopover.tsx
+msgid "Share “{title}”"
+msgstr "“{title}” शेयर करें"
+
 #: src/components/ShareThisMacSettings.tsx
 msgid "Share this Mac"
 msgstr ""
 
+#: src/components/pages/SharePopover.tsx
+msgid "Share, anyone with the link can view"
+msgstr "शेयर करें, लिंक वाला कोई भी देख सकता है"
+
+#: src/components/pages/PagesList.tsx
 #: src/pages/MemorySettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Shared"
@@ -8670,6 +8955,7 @@ msgstr ""
 msgid "Show live activity"
 msgstr "लाइव गतिविधि दिखाएं"
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/ScratchpadSection.tsx
@@ -8964,6 +9250,14 @@ msgstr "{trialDays} दिन का मुफ़्त ट्रायल श�
 msgid "Start a new Claude Code session and run <0>/mcp</0>. Check that the Manor server is connected."
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "Start plan"
+msgstr "प्लान शुरू करें"
+
+#: src/components/ModelCredits.tsx
+msgid "Start plan now"
+msgstr "प्लान अभी शुरू करें"
+
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Start recording"
 msgstr "रिकॉर्डिंग शुरू करें"
@@ -8980,6 +9274,10 @@ msgstr ""
 msgid "Start with workspace_overview. Read workspace_get_context and workspace_list_skills, then workspace_get_skill for the playbooks you need."
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "Start your plan now?"
+msgstr "अपना प्लान अभी शुरू करें?"
+
 #: src/components/RunLogsPanel.tsx
 msgid "started"
 msgstr ""
@@ -8987,6 +9285,18 @@ msgstr ""
 #: src/components/RunLogsPanel.tsx
 msgid "Started"
 msgstr ""
+
+#: src/pages/RoutineRunHistory.tsx
+msgid "Started {count}d late"
+msgstr "{count} दिन देर से शुरू हुआ"
+
+#: src/pages/RoutineRunHistory.tsx
+msgid "Started {count}h late"
+msgstr "{count} घंटे देर से शुरू हुआ"
+
+#: src/pages/RoutineRunHistory.tsx
+msgid "Started {count}m late"
+msgstr "{count} मिनट देर से शुरू हुआ"
 
 #: src/pages/ActivityList.tsx
 msgid "Starting"
@@ -9074,14 +9384,14 @@ msgstr "सबएजेंट"
 msgid "Submit"
 msgstr "सबमिट करें"
 
-#: src/pages/PluginsOverlay.tsx
-msgid "Submit a plugin"
-msgstr ""
-
 #: src/components/ModelCredits.tsx
 #: src/pages/Paywall.tsx
 msgid "Subscribe"
 msgstr "सदस्यता लें"
+
+#: src/components/ModelCredits.tsx
+msgid "Subscribe for {annualPrice} / year"
+msgstr "{annualPrice} / वर्ष में सब्सक्राइब करें"
 
 #: src/components/ModelCredits.tsx
 msgid "Subscribe for {price} / month"
@@ -9131,13 +9441,22 @@ msgstr "छवियों का समर्थन"
 msgid "Supports thinking"
 msgstr "सोचने की क्षमता का समर्थन करता है"
 
+#: src/components/ModelCredits.tsx
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Switch"
-msgstr ""
+msgstr "बदलें"
 
 #: src/components/FilesPanel.tsx
 msgid "Switch branch"
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Switch to yearly"
+msgstr "वार्षिक पर जाएं"
+
+#: src/components/ModelCredits.tsx
+msgid "Switch to yearly?"
+msgstr "वार्षिक पर जाएं?"
 
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Switching…"
@@ -9180,6 +9499,10 @@ msgstr "टैग"
 msgid "Take control"
 msgstr "नियंत्रण लें"
 
+#: src/components/ComputerProviderSettings.tsx
+msgid "Target"
+msgstr ""
+
 #: src/pages/UserGuide.tsx
 msgid "Tasks can also start from an external event, such as a form submission. The external app must be connected to the routine separately; saving a routine does not connect the form. Test one submission and check the resulting work."
 msgstr ""
@@ -9215,6 +9538,10 @@ msgstr ""
 
 #: src/pages/UserGuide.tsx
 msgid "Tell an agent to add a contact or lead, including the details you have. For example: “Add Jordan Ellis, jordan@example.com, to the CRM as a lead interested in a maintenance quote. Check for an existing contact first.” The agent can create or update the record from your conversation. Open CRM → Contacts to review it, add notes or tags, or edit records yourself."
+msgstr ""
+
+#: src/components/ComputerProviderSettings.tsx
+msgid "Template"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -9322,6 +9649,10 @@ msgstr "मॉडल प्रदाता ने एक त्रुटि ल�
 msgid "The model returned an unusable response. Try again."
 msgstr "मॉडल ने ऐसा जवाब दिया जिसका उपयोग नहीं हो सकता। फिर से कोशिश करें।"
 
+#: src/pages/SharedPage.tsx
+msgid "The owner may have turned off its link or deleted it."
+msgstr "हो सकता है मालिक ने इसका लिंक बंद कर दिया हो या इसे हटा दिया हो।"
+
 #: src/lib/model-connection-preflight.ts
 msgid "The provider is rate-limiting requests."
 msgstr "प्रोवाइडर अनुरोधों की दर सीमित कर रहा है।"
@@ -9345,6 +9676,10 @@ msgstr "चयनित मेमोरी प्रोवाइडर इस �
 #: src/pages/DocsView.tsx
 msgid "The setup prompt includes the connection instructions. These references are here when you or your agent need a specific tool, permission, or endpoint."
 msgstr ""
+
+#: src/components/pages/SharePopover.tsx
+msgid "The shared link stops working"
+msgstr "शेयर किया गया लिंक काम करना बंद कर देगा"
 
 #: src/pages/DocsView.tsx
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
@@ -9373,6 +9708,10 @@ msgstr "ये फ़ाइलें या विकल्प अब मेल 
 #: src/components/VaultSettings.tsx
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr ""
+
+#: src/components/InviteDialog.tsx
+msgid "They get {weeks} weeks free."
+msgstr "उन्हें {weeks} हफ़्ते मुफ़्त मिलते हैं।"
 
 #: src/components/call/CallCard.tsx
 #: src/pages/ModelRoleSettings.tsx
@@ -9423,6 +9762,7 @@ msgid "This browser has no on-device dictation. Connect a voice provider with tr
 msgstr ""
 
 #: src/components/call/IncomingCall.tsx
+#: src/lib/user-error.ts
 msgid "This call is no longer ringing."
 msgstr "यह कॉल अब नहीं बज रही है।"
 
@@ -9514,6 +9854,21 @@ msgstr ""
 #: src/components/WorkspacePdfPreview.tsx
 msgid "This page could not be previewed. Download the PDF to open it."
 msgstr ""
+
+#: src/lib/pages.ts
+msgid "This page couldn't be shown."
+msgstr "यह पेज दिखाया नहीं जा सका।"
+
+#: src/components/pages/PageCard.tsx
+#: src/components/pages/PageView.tsx
+#: src/components/pages/PageViewHost.tsx
+msgid "This page couldn't load"
+msgstr "यह पेज लोड नहीं हो सका"
+
+#: src/components/pages/PageViewHost.tsx
+#: src/pages/SharedPage.tsx
+msgid "This page isn't available"
+msgstr "यह पेज उपलब्ध नहीं है"
 
 #: src/components/WorkspacePdfPreview.tsx
 msgid "This PDF could not be previewed. Download it to open it."
@@ -9732,16 +10087,24 @@ msgstr "Treg टोकन"
 msgid "Trial"
 msgstr ""
 
-#: src/pages/BillingSettingsPanel.tsx
+#: src/lib/billing.ts
 msgid "Trial ends {day}"
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Trials get fewer hours to prevent abuse."
+msgstr "दुरुपयोग रोकने के लिए ट्रायल में कम घंटे मिलते हैं।"
 
 #: src/components/TrustedLinkSitesSettings.tsx
 msgid "Trusted sites"
 msgstr "विश्वसनीय साइटें"
 
+#: src/components/pages/PageNotice.tsx
+#: src/components/pages/PagesList.tsx
 #: src/pages/ActivityList.tsx
 #: src/pages/Onboarding.tsx
+#: src/pages/SharedPage.tsx
+#: src/pages/SpaceSearch.tsx
 msgid "Try again"
 msgstr "फिर से कोशिश करें"
 
@@ -9850,6 +10213,7 @@ msgstr "अनम्यूट करें"
 msgid "Unopened"
 msgstr ""
 
+#: src/components/pages/PagesList.tsx
 #: src/pages/BotContextMenu.tsx
 msgid "Unpin"
 msgstr "पिन हटाएं"
@@ -9906,6 +10270,10 @@ msgstr "निर्देश अपडेट करें?"
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Update progress"
 msgstr ""
+
+#: src/lib/client-update.ts
+msgid "Update required"
+msgstr "अपडेट आवश्यक है"
 
 #. placeholder {0}: formatAgo(newestPipe, i18n.locale)
 #: src/pages/workspace/PipelineMap.tsx
@@ -10004,10 +10372,6 @@ msgstr "कुंजी जाँचने के लिए कनेक्ट �
 
 #: src/pages/UserGuide.tsx
 msgid "Use customer records to track relationships and your workspace to understand the business data available to your team."
-msgstr ""
-
-#: src/pages/ExternalConversationSettings.tsx
-msgid "Use default guidance"
 msgstr ""
 
 #: src/pages/SpaceSettingOverrides.tsx
@@ -10372,6 +10736,10 @@ msgstr "कब उपयोग करें"
 msgid "Where should bots run?"
 msgstr "बॉट कहां चलने चाहिए?"
 
+#: src/components/pages/SharePopover.tsx
+msgid "Who can open this page"
+msgstr "यह पेज कौन खोल सकता है"
+
 #: src/pages/AgentConnectionSetup.tsx
 msgid "With {organizationName} selected, open Integrations → API & agent access → CRM API access. Create a token for this agent and copy it."
 msgstr ""
@@ -10441,6 +10809,10 @@ msgstr ""
 msgid "year"
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "Yearly"
+msgstr "वार्षिक"
+
 #: src/pages/crm/CrmModuleSheet.tsx
 #: src/pages/workspace/bits.tsx
 msgid "Yes"
@@ -10451,6 +10823,7 @@ msgstr "हाँ"
 msgid "Yesterday"
 msgstr "कल"
 
+#: src/components/pages/SharePopover.tsx
 #: src/components/VerificationComparison.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/Shell.tsx
@@ -10471,6 +10844,10 @@ msgstr "आप यह विंडो बंद कर सकते हैं।
 #: src/components/call/VoiceChatCard.tsx
 msgid "You declined"
 msgstr "आपने कॉल अस्वीकार की"
+
+#: src/components/InviteDialog.tsx
+msgid "You get a free month when they start their trial with a new card."
+msgstr "जब वे नए कार्ड से अपना ट्रायल शुरू करते हैं, तो आपको एक महीना मुफ़्त मिलता है।"
 
 #: src/pages/shell/computer-overlay.tsx
 msgid "You have control"
@@ -10493,6 +10870,10 @@ msgstr "आपका Anthropic"
 #: src/pages/AgentConnectionSetup.tsx
 msgid "Your app must support Streamable HTTP and custom headers. Manor uses a token here; there is no browser sign-in step."
 msgstr ""
+
+#: src/components/ModelCredits.tsx
+msgid "Your card is charged {annualPrice} today, less the unused part of this month."
+msgstr "आज आपके कार्ड से {annualPrice} लिए जाएंगे, इस महीने के बचे हुए हिस्से को घटाकर।"
 
 #: src/components/AccountDataSettings.tsx
 msgid "Your data"
@@ -10529,6 +10910,10 @@ msgstr "आपका OpenAI"
 msgid "Your OpenRouter"
 msgstr "आपका OpenRouter"
 
+#: src/components/ModelCredits.tsx
+msgid "Your plan becomes {annualPrice} / year when your trial ends."
+msgstr "ट्रायल खत्म होने पर आपका प्लान {annualPrice} / वर्ष हो जाएगा।"
+
 #: src/components/integrations/skills-dialog.tsx
 msgid "Your skills"
 msgstr ""
@@ -10540,6 +10925,14 @@ msgstr ""
 #: src/pages/Welcome.tsx
 msgid "Your team of <0>always-on AI agents</0><1/>that you can give <2>real work</2> to."
 msgstr "<0>हमेशा सक्रिय AI एजेंटों</0> की आपकी टीम,<1/>जिसे आप <2>असली काम</2> सौंप सकते हैं।"
+
+#: src/components/ModelCredits.tsx
+msgid "Your trial ends and your card is charged {price} today."
+msgstr "आपका ट्रायल खत्म होगा और आज आपके कार्ड से {price} लिया जाएगा।"
+
+#: src/components/ModelCredits.tsx
+msgid "Your trial ends and your card is charged today."
+msgstr "आपका ट्रायल खत्म होगा और आज आपके कार्ड से भुगतान लिया जाएगा।"
 
 #: src/lib/user-error.ts
 msgid "Your voice provider is out of credit."

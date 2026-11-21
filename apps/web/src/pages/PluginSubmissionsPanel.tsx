@@ -131,7 +131,13 @@ export function PluginSubmissionsPanel() {
                   <h3 className="truncate text-[15px] font-medium text-foreground">
                     {submission.name}
                   </h3>
-                  <ExternalLink href={submission.source} />
+                  {submission.source ? <ExternalLink href={submission.source} /> : null}
+                  {/* Manor: claim pages live on upstream's site, so the claim is named, not linked. */}
+                  {submission.claim ? (
+                    <div className="truncate text-muted-foreground">
+                      <Trans>Claims the {submission.claim} page</Trans>
+                    </div>
+                  ) : null}
                   {submission.website ? (
                     <div>
                       <ExternalLink href={submission.website} />
@@ -176,20 +182,24 @@ export function PluginSubmissionsPanel() {
                   </div>
                 ) : null}
               </div>
-              <p className="whitespace-pre-wrap text-[14px] leading-6 text-foreground" dir="auto">
-                {submission.description}
-              </p>
-              <Disclosure
-                summary={<Trans>Testing</Trans>}
-                summaryClassName="text-[13px] text-muted-foreground"
-              >
-                <p
-                  className="mt-2 whitespace-pre-wrap text-[13px] leading-5 text-muted-foreground"
-                  dir="auto"
-                >
-                  {submission.testing}
+              {submission.description ? (
+                <p className="whitespace-pre-wrap text-[14px] leading-6 text-foreground" dir="auto">
+                  {submission.description}
                 </p>
-              </Disclosure>
+              ) : null}
+              {submission.testing ? (
+                <Disclosure
+                  summary={<Trans>Testing</Trans>}
+                  summaryClassName="text-[13px] text-muted-foreground"
+                >
+                  <p
+                    className="mt-2 whitespace-pre-wrap text-[13px] leading-5 text-muted-foreground"
+                    dir="auto"
+                  >
+                    {submission.testing}
+                  </p>
+                </Disclosure>
+              ) : null}
               {submission.reason ? (
                 <p className="text-[13px] text-destructive" dir="auto">
                   {submission.reason}

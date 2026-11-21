@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Actor } from "@rakazo/contracts";
-import { Prisma, type PrismaClient } from "./client.js";
+import type { PrismaClient } from "./client.js";
+import { Prisma } from "./client.js";
 import { runAsSystem } from "./row-security.js";
 import { IsolationError } from "./scope.js";
 import { withTransactionRetry } from "./transaction-retry.js";

@@ -81,6 +81,9 @@
       "./plugins/with-lan-cleartext",
       "./plugins/with-app-intents"
     ],
+    "locales": {
+      "es": "./locales/es.json"
+    },
     "ios": {
       "bundleIdentifier": "com.pentridgemedia.manor",
       "buildNumber": "1",
@@ -95,7 +98,11 @@
         "NSLocalNetworkUsageDescription": "Manor connects to a self-hosted Manor server on your local network.",
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
-        }
+        },
+        "UIBackgroundModes": ["voip", "audio", "remote-notification"]
+      },
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
       }
     },
     "android": {
@@ -116,7 +123,19 @@
       "router": {},
       "supportsRTL": true,
       "eas": {
-        "projectId": "10b6d66c-519d-4222-b5bb-4c68bd275905"
+        "projectId": "10b6d66c-519d-4222-b5bb-4c68bd275905",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "RakazoWidgets",
+                  "bundleIdentifier": "com.pentridgemedia.manor.widgets"
+                }
+              ]
+            }
+          }
+        }
       }
     },
     "runtimeVersion": {

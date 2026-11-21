@@ -10,13 +10,22 @@ import type {
   ProcessEvent,
   SandboxProvider,
   ScreenRequest,
+  SecretStore,
   TerminalRequest,
   WorkspaceDirectoryRequest,
   WorkspaceExportLimits,
 } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
+import { runAsSystem } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
 import { cancelComputerRunWork } from "./computer-idle.js";
+import { computerProviderDescriptor } from "./computer-provider-registry.js";
 import { manageComputerWorkspaceDirectories } from "./computer-workspace.js";
+import {
+  ConfiguredSandbox,
+  loadComputerOwnerSettings,
+  loadComputerProviderSelection,
+} from "./configured-sandbox.js";
 import { assertHostCommandsAllowed, DesktopSandboxProvider } from "./desktop-sandbox.js";
 import { HostComputerSandbox } from "./host-computer-sandbox.js";
 import { DisconnectedLocalSandboxProvider } from "./local-sandbox.js";
@@ -30,21 +39,78 @@ export function sandboxKindForBot(envKind: string, computerHost: string | null |
 
 export async function createRunSandbox(
   kind: string,
-  opts: SandboxProviderOptions & { prisma?: PrismaClient; localComputer?: SandboxProvider },
+  opts: SandboxProviderOptions & {
+    prisma?: PrismaClient;
+    secrets?: Pick<SecretStore, "load" | "onChange">;
+    localComputer?: SandboxProvider;
+  },
 ): Promise<SandboxProvider> {
+  // Manor: "This Mac" computers are routed by kind outside every cloud choice, so Settings can
+  // never send a local computer to another provider.
   const local = opts.localComputer ?? new DisconnectedLocalSandboxProvider();
+  return new LocalAwareSandbox(await createCloudRunSandbox(kind, opts), local);
+}
+
+async function createCloudRunSandbox(
+  kind: string,
+  opts: SandboxProviderOptions & {
+    prisma?: PrismaClient;
+    secrets?: Pick<SecretStore, "load" | "onChange">;
+  },
+): Promise<SandboxProvider> {
+  const base = await createBaseRunSandbox(kind, opts);
+  // With the database at hand, Settings can send computers elsewhere: an admin's choice for
+  // everyone, or an account's own provider.
+  if (!opts.prisma || !opts.secrets || kind === "desktop" || kind === "fake") return base;
+  const { prisma, secrets } = opts;
+  const configured = new ConfiguredSandbox(
+    base,
+    () => loadComputerProviderSelection(prisma, secrets, true),
+    {
+      onSecretChange: secrets.onChange?.bind(secrets),
+      loadOwn: (homeKey) => loadComputerOwnerSettings(prisma, secrets, homeKey, true),
+      createProvider: (settings) =>
+        createBaseRunSandbox(settings.provider, {
+          ...opts,
+          ...computerProviderDescriptor(settings.provider).verify(settings.values),
+        }),
+    },
+  );
+  // Startup never waits on the secret store or a saved provider: routing rereads them on first use.
+  await configured
+    .refresh()
+    .catch((error) => getLogger().warn("computer_provider.load_failed", { error }));
+  return configured;
+}
+
+async function createBaseRunSandbox(
+  kind: string,
+  opts: SandboxProviderOptions & { prisma?: PrismaClient },
+): Promise<SandboxProvider> {
   if (kind === "desktop") {
     assertHostCommandsAllowed();
-    return new LocalAwareSandbox(
-      new DesktopSandboxProvider({
-        root: opts.dataDir,
-        hostRoots: [homedir()],
-      }),
-      local,
-    );
+    return new DesktopSandboxProvider({
+      root: opts.dataDir,
+      hostRoots: [homedir()],
+    });
   }
+  const prisma = opts.prisma;
   const primary = await createSandboxProvider(kind, {
     ...opts,
+    referenceInUse: prisma
+      ? async (computer) =>
+          (await runAsSystem("check whether another computer shares a provider resource", () =>
+            prisma.computer.count({
+              where: {
+                kind: computer.kind,
+                providerRef: computer.providerRef,
+                homeKey: { not: computer.botId },
+                // One still saving its workspace needs the desktop until it finishes.
+                state: { in: ["booting", "running", "suspending"] },
+              },
+            }),
+          )) > 0
+      : opts.referenceInUse,
     onUnsafeStop: opts.prisma
       ? async (providerRef) => {
           const quarantined = await opts.prisma!.computer.updateMany({
@@ -66,19 +132,16 @@ export async function createRunSandbox(
         }
       : opts.onUnsafeStop,
   });
-  if (kind !== "docker" || !opts.prisma) return new LocalAwareSandbox(primary, local);
-  return new LocalAwareSandbox(
-    new HostAwareSandbox(
-      primary,
-      new HostComputerSandbox(opts.hostComputerUrl ?? "", opts.hostComputerToken ?? ""),
-      async () => {
-        const settings = await opts.prisma!.deploymentSettings.findUnique({
-          where: { id: "default" },
-        });
-        return settings?.computerHost === "this-mac";
-      },
-    ),
-    local,
+  if (kind !== "docker" || !opts.prisma) return primary;
+  return new HostAwareSandbox(
+    primary,
+    new HostComputerSandbox(opts.hostComputerUrl ?? "", opts.hostComputerToken ?? ""),
+    async () => {
+      const settings = await opts.prisma!.deploymentSettings.findUnique({
+        where: { id: "default" },
+      });
+      return settings?.computerHost === "this-mac";
+    },
   );
 }
 
@@ -126,7 +189,7 @@ export class LocalAwareSandbox implements SandboxProvider {
         this.route(computer).environment?.(computer, context);
     }
     if (cloud.provisionKind) {
-      this.provisionKind = () => cloud.provisionKind!();
+      this.provisionKind = (homeKey) => cloud.provisionKind!(homeKey);
     }
     if (cloud.connectTerminal || local.connectTerminal) {
       this.connectTerminal = (computer, request, context) => {
@@ -163,6 +226,10 @@ export class LocalAwareSandbox implements SandboxProvider {
     }
   }
 
+  ownsReference(computer: Pick<ComputerRef, "kind" | "providerRef">) {
+    return this.route(computer).ownsReference?.(computer) ?? true;
+  }
+
   describe() {
     return this.cloud.describe();
   }
@@ -171,15 +238,7 @@ export class LocalAwareSandbox implements SandboxProvider {
     return computer.kind === "local" ? this.local : this.cloud;
   }
 
-  async provision(
-    request: {
-      botId: string;
-      homePath: string;
-      providerRef?: string;
-      providerKind?: ComputerRef["kind"];
-    },
-    context: AdapterContext,
-  ) {
+  async provision(request: Parameters<SandboxProvider["provision"]>[0], context: AdapterContext) {
     const provider = request.providerKind === "local" ? this.local : this.cloud;
     return provider.provision(request, context);
   }
@@ -314,6 +373,10 @@ export class HostAwareSandbox implements SandboxProvider {
             });
       };
     }
+  }
+
+  ownsReference(computer: Pick<ComputerRef, "kind" | "providerRef">) {
+    return this.route(computer).ownsReference?.(computer) ?? true;
   }
 
   describe() {

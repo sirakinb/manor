@@ -1,4 +1,5 @@
-import { type BrandConfig, brandById, resolveBrand } from "@rakazo/brands";
+import type { BrandConfig } from "@rakazo/brands";
+import { brandById, resolveBrand } from "@rakazo/brands";
 import { tokens } from "@rakazo/ui-tokens";
 import { brandThemeVariables } from "./brand-theme";
 

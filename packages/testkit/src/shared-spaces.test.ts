@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { ComposioConnector, FakeComposioClient } from "@rakazo/adapters";
 import type { Bot, Me, Space, SpaceNavigation, ThreadSnapshot } from "@rakazo/contracts";
+import type { PrismaClient } from "@rakazo/db";
 import {
-  type PrismaClient,
   requireMembership,
   shareUnstartedSpace,
   spaceNotificationRecipients,

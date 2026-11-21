@@ -21,6 +21,20 @@ export function sessionGate(session: SessionGateInput): SessionGate {
   return "anonymous";
 }
 
+/** The public shared-page route, which anyone holding the link may open. */
+export function isPublicPagePath(pathname: string): boolean {
+  return pathname.startsWith("/p/");
+}
+
+/**
+ * A shared page renders whatever the visitor's session: on a host whose portal check refuses
+ * the session, the lookup fails, and that page is shown signed out instead of the reconnect
+ * screen. Every other route keeps the gate as it is.
+ */
+export function gateForPath(gate: SessionGate, pathname: string): SessionGate {
+  return gate === "unreachable" && isPublicPagePath(pathname) ? "anonymous" : gate;
+}
+
 /**
  * Better Auth clears `error` and sets `isPending` while a null-session refetch
  * runs, which would otherwise look like a cold "loading" and unmount the

@@ -30,6 +30,7 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@rakazo/adapters": "workspace:*",
+    "@rakazo/core": "workspace:*",
     "@rakazo/ui-tokens": "workspace:*",
     "@types/ws": "^8.18.1",
     "electron": "45.0.0",
@@ -81,6 +82,10 @@
         {
           "from": "build/speech/rakazo-speech",
           "to": "speech/rakazo-speech"
+        },
+        {
+          "from": "assets/es.lproj",
+          "to": "es.lproj"
         }
       ],
       "target": [

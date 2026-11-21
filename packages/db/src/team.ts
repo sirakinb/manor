@@ -1,4 +1,5 @@
-import { type Actor, TEAM_ACTIVE_MS, TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
+import type { Actor } from "@rakazo/contracts";
+import { TEAM_ACTIVE_MS, TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
 import type { PrismaClient } from "./client.js";
 import { IsolationError } from "./scope.js";
 

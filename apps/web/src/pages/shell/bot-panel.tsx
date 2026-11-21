@@ -46,6 +46,7 @@ import { Suspense, useEffect, useId, useRef, useState } from "react";
 import { BotCredentialsSettings } from "../../components/BotCredentialsSettings";
 import { ErrorBoundary, SectionLoadFailed } from "../../components/ErrorBoundary";
 import { InstructionSettings } from "../../components/InstructionSettings";
+import { PagesList } from "../../components/pages/PagesList";
 import { botProfilePatch } from "../../lib/bot-profile-patch";
 import { thinkingLevelLabel } from "../../lib/model-catalog";
 import { lazyComponent } from "../../lib/preload-recovery";
@@ -153,9 +154,9 @@ export function ComputerModePicker({
   );
 }
 
-export type BotPanelTab = "computer" | "routines" | "settings";
+export type BotPanelTab = "computer" | "routines" | "pages" | "settings";
 
-/** A bot's profile above its Computer, Routines and Advanced tabs. */
+/** A bot's profile above its Computer, Routines, Pages and Advanced tabs. */
 export function BotSettings({
   bot,
   localComputer,
@@ -193,6 +194,7 @@ export function BotSettings({
     autoSpeak?: boolean;
     fleetManagement?: boolean;
     crossSpaceCommunication?: boolean;
+    dailyCheckIns?: boolean;
     voiceId?: string | null;
     modelProvider?: string | null;
     modelId?: string | null;
@@ -238,6 +240,8 @@ export function BotSettings({
     () => setCrossSpaceCommunication(bot.crossSpaceCommunication ?? true),
     [bot.crossSpaceCommunication],
   );
+  const [dailyCheckIns, setDailyCheckIns] = useState(bot.dailyCheckIns ?? true);
+  useEffect(() => setDailyCheckIns(bot.dailyCheckIns ?? true), [bot.dailyCheckIns]);
   const [fleetManagement, setFleetManagement] = useState(bot.fleetManagement);
   useEffect(() => setFleetManagement(bot.fleetManagement), [bot.fleetManagement]);
   const [voiceId, setVoiceId] = useState(bot.voiceId ?? "");
@@ -305,6 +309,7 @@ export function BotSettings({
         notifyOnFinish?: boolean;
         fleetManagement?: boolean;
         crossSpaceCommunication?: boolean;
+        dailyCheckIns?: boolean;
         disabledBuiltinTools?: string[];
         baseDisabledBuiltinTools?: string[];
       },
@@ -413,6 +418,7 @@ export function BotSettings({
       notifyOnFinish?: boolean;
       fleetManagement?: boolean;
       crossSpaceCommunication?: boolean;
+      dailyCheckIns?: boolean;
       disabledBuiltinTools?: string[];
       baseDisabledBuiltinTools?: string[];
     },
@@ -423,6 +429,10 @@ export function BotSettings({
       setError(null);
       if (patchOverrides?.crossSpaceCommunication !== undefined) {
         await onSave({ crossSpaceCommunication: patchOverrides.crossSpaceCommunication });
+        return;
+      }
+      if (patchOverrides?.dailyCheckIns !== undefined) {
+        await onSave({ dailyCheckIns: patchOverrides.dailyCheckIns });
         return;
       }
       if (patchOverrides?.fleetManagement !== undefined) {
@@ -531,6 +541,8 @@ export function BotSettings({
         setNotifyOnFinish(acceptedAutomatic.current.notifyOnFinish);
       if (patchOverrides?.crossSpaceCommunication !== undefined)
         setCrossSpaceCommunication(!patchOverrides.crossSpaceCommunication);
+      if (patchOverrides?.dailyCheckIns !== undefined)
+        setDailyCheckIns(!patchOverrides.dailyCheckIns);
       if (patchOverrides?.fleetManagement !== undefined)
         setFleetManagement(!patchOverrides.fleetManagement);
       setError(errorText(err, t`Could not save`));
@@ -563,6 +575,7 @@ export function BotSettings({
     notifyOnFinish?: boolean;
     fleetManagement?: boolean;
     crossSpaceCommunication?: boolean;
+    dailyCheckIns?: boolean;
     disabledBuiltinTools?: string[];
   }) {
     // Serialize full-object auto-saves so an older in-flight request cannot
@@ -627,6 +640,9 @@ export function BotSettings({
           <TabsTrigger value="routines">
             <Trans>Routines</Trans>
           </TabsTrigger>
+          <TabsTrigger value="pages">
+            <Trans>Pages</Trans>
+          </TabsTrigger>
           <TabsTrigger value="settings">
             <Trans>Advanced</Trans>
           </TabsTrigger>
@@ -636,6 +652,9 @@ export function BotSettings({
         </TabsContent>
         <TabsContent value="routines" className="pt-4">
           {routines}
+        </TabsContent>
+        <TabsContent value="pages" className="pt-4">
+          {tab === "pages" ? <PagesList botId={bot.id} /> : null}
         </TabsContent>
         {/* Stays mounted so scratchpad and knowledge drafts survive a tab switch. */}
         <TabsContent value="settings" keepMounted data-testid="bot-settings-advanced">
@@ -808,6 +827,20 @@ export function BotSettings({
             </SettingsGroup>
             <SettingsGroup label={t`Permissions`}>
               <div className="flex min-h-11 items-center justify-between gap-3 text-sm">
+                <label htmlFor={`${ids}-daily-check-ins`} className={rowLabelClass}>
+                  <Trans>Daily check-ins on unfinished work</Trans>
+                </label>
+                <Switch
+                  id={`${ids}-daily-check-ins`}
+                  checked={dailyCheckIns}
+                  disabled={saving}
+                  onCheckedChange={(checked) => {
+                    setDailyCheckIns(checked);
+                    void enqueueSave({ dailyCheckIns: checked });
+                  }}
+                />
+              </div>
+              <div className="flex min-h-11 items-center justify-between gap-3 text-sm">
                 <label htmlFor={`${ids}-cross-space`} className={rowLabelClass}>
                   <Trans>Allow cross-space bot communication</Trans>
                 </label>
@@ -823,7 +856,7 @@ export function BotSettings({
               </div>
               <div className="flex min-h-11 items-center justify-between gap-3 text-sm">
                 <label htmlFor={`${ids}-fleet-management`} className={rowLabelClass}>
-                  <Trans>Manage the bots it creates</Trans>
+                  <Trans>Manage other bots</Trans>
                 </label>
                 <Switch
                   id={`${ids}-fleet-management`}

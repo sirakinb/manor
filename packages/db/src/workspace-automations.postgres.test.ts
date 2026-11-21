@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createDb, type PrismaClient } from "./client.js";
+import type { PrismaClient } from "./client.js";
+import { createDb } from "./client.js";
 import { IsolationError } from "./scope.js";
 import {
   ensureDefaultAutomations,

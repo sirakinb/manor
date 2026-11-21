@@ -279,6 +279,14 @@ describe("web palette", () => {
     overlay: "rgba(4, 4, 5, 0.72)",
     scrollbar: "#1E2026",
     scrollbarHover: "#2E313A",
+    pageIconSheet: "#2C2C2E",
+    pageIconEdge: "#363638",
+    pageIconFold: "#3C3C3E",
+    pageIconLine: "#6F6F71",
+    pageIconLineSoft: "#616163",
+    pageTile: "#343434",
+    pageTileEdge: "#414141",
+    pageTileLine: "#626262",
   };
   const mobileLight = {
     background: "#FCFCFC",
@@ -322,6 +330,14 @@ describe("web palette", () => {
     overlay: "rgba(0, 0, 0, 0.19)",
     scrollbar: "#C8C8C4",
     scrollbarHover: "#A8A8A4",
+    pageIconSheet: "#E8E8EA",
+    pageIconEdge: "#D6D6DA",
+    pageIconFold: "#D0D0D4",
+    pageIconLine: "#8E8E93",
+    pageIconLineSoft: "#A1A1A6",
+    pageTile: "#ECECEE",
+    pageTileEdge: "#DADADD",
+    pageTileLine: "#A1A1A6",
   };
 
   it("leaves the mobile palettes unchanged", () => {

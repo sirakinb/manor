@@ -1,11 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import type { Actor } from "@rakazo/contracts";
-import {
-  createRepos,
-  IsolationError,
-  importWorkspaceKnowledge,
-  type PrismaClient,
-} from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { createRepos, IsolationError, importWorkspaceKnowledge } from "@rakazo/db";
 
 export function createWorkspaceTeam(prisma: PrismaClient) {
   const repos = createRepos(prisma);

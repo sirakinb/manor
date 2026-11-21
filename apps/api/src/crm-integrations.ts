@@ -10,17 +10,15 @@ import {
   crmAgentTools,
   executeCrmTool,
 } from "@rakazo/adapters";
+import type { Actor, CrmModule, CrmModuleRecord, IntegrationScope } from "@rakazo/contracts";
 import {
-  type Actor,
   CRM_MODULE_FIELD_MAX,
   CRM_MODULE_FIELD_TYPES,
   CRM_MODULE_NAME_MAX,
-  type CrmModule,
-  type CrmModuleRecord,
   INTEGRATION_SCOPES,
-  type IntegrationScope,
 } from "@rakazo/contracts";
-import { createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { createCrmRepos, IsolationError } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import type { Context, Hono } from "hono";
 import * as z from "zod";

@@ -13,6 +13,7 @@ import {
 } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import { LoadingState } from "./components/ai/primitives";
+import { CallLayout } from "./components/call/CallLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MarkdownLinkPrompt } from "./components/markdown-link-prompt";
 import { PageLoading } from "./components/PageLoading";
@@ -29,8 +30,10 @@ import { lazyComponent } from "./lib/preload-recovery";
 import { QueryUserProvider, setQueryUser } from "./lib/query";
 import { getRemoteImagesEnabled, subscribeRemoteImages } from "./lib/remote-images-preference";
 import { signInPathFor, signInReturnPath } from "./lib/return-path";
+import { rememberSignedIn } from "./lib/returning-user";
 import { rpc } from "./lib/rpc";
 import {
+  gateForPath,
   holdAnonymousGate,
   holdUnreachableGate,
   sessionGate,
@@ -42,6 +45,7 @@ import { completeSsoCallback, SSO_CALLBACK_PATH } from "./lib/sso-flow";
 import { IntegrationCallbackPage } from "./pages/IntegrationCallback";
 import { IntegrationSetupPage } from "./pages/IntegrationSetup";
 import { McpOAuthCallbackPage } from "./pages/McpOAuthCallback";
+import { SharedPagePage } from "./pages/SharedPage";
 import { ShellPage } from "./pages/Shell";
 import { SlackInstallCallbackPage } from "./pages/SlackInstallCallback";
 
@@ -55,6 +59,7 @@ const OnboardingPage = lazyComponent(() =>
 const OAuthAuthorizePage = lazyComponent(() =>
   import("./pages/OAuthAuthorize").then((module) => module.OAuthAuthorizePage),
 );
+// Manor keeps its landing screen at / on the primary host.
 const WelcomePage = lazyComponent(() =>
   import("./pages/Welcome").then((module) => module.WelcomePage),
 );
@@ -153,12 +158,13 @@ function SessionApp() {
       .then(() => rpc.analytics.screen({ screen, surface: desktopBridge() ? "desktop" : "web" }))
       .catch(() => undefined);
   }, [analyticsUserId, screen]);
-  const gate = sessionGate(session);
+  const gate = gateForPath(sessionGate(session), pathname);
   useLayoutEffect(() => {
     if (gate !== "authenticated" && gate !== "anonymous") return;
     syncWebLogoAvatarIdentity(analyticsUserId ?? null);
     syncCallIdentity(analyticsUserId ?? null);
     syncLogOutFailure(gate === "authenticated");
+    if (gate === "authenticated") rememberSignedIn();
   }, [gate, analyticsUserId]);
   useEffect(() => {
     if (gate === "authenticated" || gate === "anonymous") setQueryUser(analyticsUserId ?? null);
@@ -198,6 +204,7 @@ function SessionApp() {
                   ) : brand.id === "manor" ? (
                     <WelcomePage />
                   ) : (
+                    // Brand portal accounts are provisioned by the operator, so a portal opens sign-in.
                     <Navigate to="/sign-in" replace />
                   )
                 }
@@ -228,6 +235,7 @@ function SessionApp() {
                 }
               />
               <Route path="/reset-password" element={<PasswordResetPage />} />
+              <Route path="/p/:slugToken" element={<SharedPagePage />} />
               <Route
                 path="/oauth/authorize"
                 element={
@@ -305,17 +313,19 @@ function SessionApp() {
                   )
                 }
               >
-                <Route path="/onboarding/:step?" element={<OnboardingPage />} />
                 <Route path="/app" element={<ShellPage />} />
                 <Route path="/app/g/:groupId" element={<ShellPage />} />
                 <Route path="/app/workspace/*" element={<ShellPage />} />
                 <Route path="/app/crm" element={<ShellPage />} />
                 <Route path="/app/docs" element={<ShellPage />} />
-                <Route path="/app/artifacts" element={<ArtifactsPage />} />
-                <Route path="/app/artifacts/:artifactId" element={<ArtifactsPage />} />
-                {ticketBoardEnabled ? <Route path="/app/board" element={<BoardPage />} /> : null}
-                <Route path="/app/x/:linkId" element={<NavLinkPage />} />
                 <Route path="/app/:botId" element={<ShellPage />} />
+                <Route element={<CallLayout />}>
+                  <Route path="/onboarding/:step?" element={<OnboardingPage />} />
+                  <Route path="/app/artifacts" element={<ArtifactsPage />} />
+                  <Route path="/app/artifacts/:artifactId" element={<ArtifactsPage />} />
+                  {ticketBoardEnabled ? <Route path="/app/board" element={<BoardPage />} /> : null}
+                  <Route path="/app/x/:linkId" element={<NavLinkPage />} />
+                </Route>
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

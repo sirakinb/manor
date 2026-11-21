@@ -1,7 +1,8 @@
 import type { CrmContact, CrmDeal, CrmOverview, CrmPipeline, CrmTag } from "@rakazo/contracts";
 import type { PrismaClient } from "./client.js";
 import { createCrmModuleRepos } from "./crm-modules.js";
-import { IsolationError, type OrganizationScope } from "./scope.js";
+import type { OrganizationScope } from "./scope.js";
+import { IsolationError } from "./scope.js";
 
 /**
  * CRM data access. Every function takes the actor and scopes by its

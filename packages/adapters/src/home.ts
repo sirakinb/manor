@@ -192,9 +192,10 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   ): Promise<string> {
     return this.withBotWrite(botId, async () => {
       await this.recoverInterruptedCommit(botId);
-      const full = await containedExistingPath(this.botDir(botId), filePath);
+      const { root, full } = await containedExistingPath(this.botDir(botId), filePath);
       const handle = await open(full, constants.O_RDONLY | constants.O_NOFOLLOW);
       try {
+        assertContained(root, await fileHandlePath(handle.fd));
         if (options?.maxBytes !== undefined) {
           const info = await handle.stat();
           if (info.size > options.maxBytes) {
@@ -415,8 +416,10 @@ function safeJoin(root: string, rel: string) {
 
 async function containedExistingPath(root: string, rel: string) {
   await mkdir(root, { recursive: true });
-  const candidate = safeJoin(root, rel);
-  return containedTarget(root, candidate);
+  const resolvedRoot = await realpath(root);
+  const full = await realpath(safeJoin(resolvedRoot, rel));
+  assertContained(resolvedRoot, full);
+  return { root: resolvedRoot, full };
 }
 
 async function containedWritePath(root: string, rel: string) {
@@ -445,7 +448,12 @@ async function ensureContainedDirectory(root: string, candidate: string) {
       current = await realpath(next);
     } catch (error) {
       if (!isMissing(error)) throw error;
-      await mkdir(next);
+      // A concurrent request can make the folder first; a dangling link still fails realpath.
+      await mkdir(next).catch((failure: unknown) => {
+        if (!(failure instanceof Error && "code" in failure && failure.code === "EEXIST")) {
+          throw failure;
+        }
+      });
       current = await realpath(next);
     }
     assertContained(resolvedRoot, current);

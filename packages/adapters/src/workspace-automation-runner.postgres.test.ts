@@ -1,5 +1,6 @@
 import type { BackgroundJob, JobPublisher } from "@rakazo/adapter-kit";
-import { createDb, ensureDefaultAutomations, type PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { createDb, ensureDefaultAutomations } from "@rakazo/db";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { FakeIngestionRunner } from "./ingestion-runner.js";
 import { EncryptedSecretStore } from "./secrets.js";

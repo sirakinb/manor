@@ -1,4 +1,5 @@
-import { type DragEvent, useCallback, useRef, useState } from "react";
+import type { DragEvent } from "react";
+import { useCallback, useRef, useState } from "react";
 import { isFileDrag } from "./pending-attachments";
 
 /**

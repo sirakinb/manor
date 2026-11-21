@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import type { Actor } from "@rakazo/contracts";
 import type { RouterDeps } from "./router.js";
 
-type AdminDeps = Pick<RouterDeps, "prisma" | "env">;
+type AdminDeps = Pick<RouterDeps, "prisma"> & { env: Pick<RouterDeps["env"], "adminEmails"> };
 type Person = Pick<Actor, "userId" | "initiatedByUserId" | "isDeploymentOwner">;
 
 /**

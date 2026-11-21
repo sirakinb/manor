@@ -27,13 +27,13 @@ import { findConnectedModelCredential, hasHostedModelCredits } from "./model-sel
 import { autoReviewCheckerProvider } from "./run-auto-review.js";
 import type { RunTrust } from "./run-context.js";
 import { resolveModelKey } from "./run-model.js";
+import type { VerificationEngineId } from "./verification-engines.js";
 import {
   isVerificationEngineId,
   JEV_ENGINE,
   jevVerifierFromEnv,
   LLM_ENGINE,
   planVerificationEngines,
-  type VerificationEngineId,
 } from "./verification-engines.js";
 
 type VerificationCheckSubject = {

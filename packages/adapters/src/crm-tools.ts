@@ -1,20 +1,16 @@
 import type { ConnectorTool } from "@rakazo/adapter-kit";
-import {
-  CRM_MODULE_FIELD_TYPES,
-  type CrmContact,
-  type CrmDeal,
-  type CrmModule,
-  type CrmModuleFieldType,
-  type CrmModuleRecord,
-  type CrmOverview,
-  type CrmPipeline,
+import type {
+  CrmContact,
+  CrmDeal,
+  CrmModule,
+  CrmModuleFieldType,
+  CrmModuleRecord,
+  CrmOverview,
+  CrmPipeline,
 } from "@rakazo/contracts";
-import {
-  CrmModuleValueError,
-  type createCrmRepos,
-  IsolationError,
-  type PrismaClient,
-} from "@rakazo/db";
+import { CRM_MODULE_FIELD_TYPES } from "@rakazo/contracts";
+import type { createCrmRepos, PrismaClient } from "@rakazo/db";
+import { CrmModuleValueError, IsolationError } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 
 /**

@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { brandById } from "@rakazo/brands";
-import { createSpaceAccount, joinOrganization, type PrismaClient, runAsSystem } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { createSpaceAccount, joinOrganization, runAsSystem } from "@rakazo/db";
 import { hashPassword } from "better-auth/crypto";
 
 type PortalTeamInput = { brandId: string; members: Array<{ email: string; name: string }> };

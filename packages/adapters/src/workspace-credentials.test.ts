@@ -1,4 +1,5 @@
-import { currentDbContext, type PrismaClient, runAsTenant } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { currentDbContext, runAsTenant } from "@rakazo/db";
 import { describe, expect, it } from "vitest";
 import { loadBotCredentialSecret, serializeBotCredentialSecret } from "./bot-credentials.js";
 import { EncryptedSecretStore } from "./secrets.js";

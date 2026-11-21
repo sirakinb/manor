@@ -193,6 +193,7 @@ async function runRoutine(
                 runId: run.id,
                 seq: 1,
                 blocks: [attachment],
+                steeringMessages: [],
               },
             ]
           : [],

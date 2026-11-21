@@ -4,6 +4,7 @@ import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
   signupRequiresEmailVerification,
+  suggestEmailCorrection,
 } from "@rakazo/core";
 import { Button, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +19,7 @@ import { brand, brandName } from "../lib/brand";
 import { clearSpaceSelection } from "../lib/rpc";
 import { runSsoFlow } from "../lib/sso-flow";
 import { authErrorText, credentialIssueText } from "../lib/user-error";
+import { WindowChrome } from "./WindowChrome";
 
 type AuthMode = "in" | "up" | "forgot";
 
@@ -32,6 +34,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [emailBlurred, setEmailBlurred] = useState(false);
+  const [warnedEmail, setWarnedEmail] = useState<string | null>(null);
+  const emailSuggestion = mode === "up" ? suggestEmailCorrection(email) : null;
   const [error, setError] = useState<string | null>(() => {
     const code = searchParams.get("error");
     if (!code) return null;
@@ -102,6 +107,11 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     });
     if (issue) {
       setError(credentialIssueText(issue));
+      return;
+    }
+    if (emailSuggestion && warnedEmail !== email) {
+      setWarnedEmail(email);
+      setEmailBlurred(true);
       return;
     }
     setPending(true);
@@ -227,279 +237,312 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-[var(--rk-page)] px-6 py-16 text-[#F1F0F3]">
-      <form onSubmit={submit} className="flex w-[460px] flex-col items-center">
-        <BrandLogo
-          className={
-            brand.logo.viewBox
-              ? "h-[90px] w-[156px]"
-              : brand.logo.wide
-                ? "h-12 w-auto"
-                : "h-[74px] w-[74px]"
-          }
-        />
-        {brand.id === "manor" ? (
-          <div className="mt-5 w-[300px]">
-            <ParticleWordmark text="MANOR" fontSize={40} gap={2} label="Manor" />
-          </div>
-        ) : null}
-        <h1
-          className={
-            logoOnly
-              ? "sr-only"
-              : `rk-serif mb-[38px] text-center text-[38px] ${brand.id === "manor" ? "mt-3" : "mt-[30px]"}`
-          }
-        >
-          {title}
-        </h1>
-        {sent ? (
-          <div role="status" className="w-full text-center">
-            {resetSent ? (
-              <p className="mb-6 text-[15px] leading-relaxed text-[#8A8590]">
-                <Trans>If an account exists for that address, we sent a password reset link.</Trans>
-              </p>
-            ) : null}
-            <Link to="/sign-in" className="inline-block font-medium text-[#F1F0F3]">
-              <Trans>Back to sign in</Trans>
-            </Link>
-          </div>
-        ) : !reset?.passwordAuth ? (
-          <div
-            className={`flex w-full flex-col items-center text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}
+    <div
+      className="flex min-h-full flex-col bg-[var(--rk-page)] text-[#F1F0F3]"
+      data-rakazo-surface="auth"
+    >
+      <div className="app-drag flex gap-2 px-5 py-[18px]">
+        <WindowChrome />
+      </div>
+      <div className="flex flex-1 items-center justify-center px-6 pb-16">
+        <form onSubmit={submit} className="flex w-full max-w-[460px] flex-col items-center">
+          <BrandLogo
+            className={
+              brand.logo.viewBox
+                ? "h-[90px] w-[156px]"
+                : brand.logo.wide
+                  ? "h-12 w-auto"
+                  : "h-[74px] w-[74px]"
+            }
+          />
+          {brand.id === "manor" ? (
+            <div className="mt-5 w-[300px]">
+              <ParticleWordmark text="MANOR" fontSize={40} gap={2} label="Manor" />
+            </div>
+          ) : null}
+          <h1
+            className={
+              logoOnly
+                ? "sr-only"
+                : `rk-serif mb-[38px] text-center text-[38px] ${brand.id === "manor" ? "mt-3" : "mt-[30px]"}`
+            }
           >
-            {capabilityError ? (
-              <div role="alert" className="w-full text-center">
-                <p>
-                  <Trans>Could not load sign-in options</Trans>
+            {title}
+          </h1>
+          {sent ? (
+            <div role="status" className="w-full text-center">
+              {resetSent ? (
+                <p className="mb-6 text-[15px] leading-relaxed text-[#8A8590]">
+                  <Trans>
+                    If an account exists for that address, we sent a password reset link.
+                  </Trans>
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-3"
-                  onClick={() => setCapabilityAttempt((attempt) => attempt + 1)}
-                >
-                  <Trans>Retry</Trans>
-                </Button>
-              </div>
-            ) : null}
-            {reset?.sso && mode !== "forgot" ? (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => void signInWithSso()}
-                className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)]"
-              >
-                <Trans>Continue with {reset.sso.name}</Trans>
-              </button>
-            ) : null}
-            {error ? (
-              <p role="alert" className="mt-3 text-sm text-[#EF4444]">
-                {error}
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <>
-            {mode === "up" && !codeStep ? (
-              <label className="mb-4 w-full text-[16px] text-[#8A8590]">
-                <Trans>Name</Trans>
-                <input
-                  id="name"
-                  name="name"
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t`Your name`}
-                  className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
-                />
-              </label>
-            ) : null}
-            {codeStep ? (
-              <div className="flex w-full justify-center">
-                <InputOTP
-                  aria-label={t({ message: "Code", context: "email sign-in" })}
-                  maxLength={CODE_LENGTH}
-                  pattern={"^\\d+$"}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  autoFocus
-                  value={code}
-                  onChange={setCode}
-                  onComplete={(value: string) => void verifyCode(value)}
-                >
-                  <InputOTPGroup>
-                    {[0, 1, 2, 3, 4, 5].map((index) => (
-                      <InputOTPSlot
-                        key={index}
-                        index={index}
-                        className="size-12 text-lg first:rounded-l-xl last:rounded-r-xl"
-                      />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-            ) : (
-              <label className={`w-full text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}>
-                <Trans>Email</Trans>
-                <input
-                  id="email"
-                  name="email"
-                  autoComplete={mode === "in" ? "username webauthn" : "username"}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t`Your email address`}
-                  type="email"
-                  required
-                  className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
-                />
-              </label>
-            )}
-            {mode !== "forgot" && !codeStep ? (
-              <div className="mt-4 w-full text-[16px] text-[#8A8590]">
-                <label htmlFor={passwordFieldId}>
-                  <Trans>Password</Trans>
-                </label>
-                <div className="relative mt-2">
-                  <input
-                    id={passwordFieldId}
-                    name="password"
-                    autoComplete={mode === "in" ? "current-password" : "new-password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t`Password`}
-                    type={showPassword ? "text" : "password"}
-                    required={!useCode}
-                    minLength={mode === "up" ? MIN_PASSWORD_LENGTH : undefined}
-                    maxLength={MAX_PASSWORD_LENGTH}
-                    className="w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] py-[17px] pl-[18px] pr-[52px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((shown) => !shown)}
-                    aria-label={showPassword ? t`Hide password` : t`Show password`}
-                    aria-pressed={showPassword}
-                    className="absolute inset-y-0 right-0 flex items-center px-[18px] text-[#8A8590] hover:text-[#F1F0F3]"
-                  >
-                    {showPassword ? (
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                        <line x1="2" y1="2" x2="22" y2="22" />
-                      </svg>
-                    ) : (
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                {mode === "in" && reset?.passwordReset ? (
-                  <div className="mt-2 text-right text-[14px]">
-                    <Link to="/forgot-password" className="font-medium text-[#F1F0F3]">
-                      <Trans>Forgot password?</Trans>
-                    </Link>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            {error ? (
-              <p role="alert" className="mt-3 w-full text-sm text-[#EF4444]">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={pending || (codeStep && code.length < CODE_LENGTH)}
-              className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)] disabled:opacity-60"
+              ) : null}
+              <Link to="/sign-in" className="inline-block font-medium text-[#F1F0F3]">
+                <Trans>Back to sign in</Trans>
+              </Link>
+            </div>
+          ) : !reset?.passwordAuth ? (
+            <div
+              className={`flex w-full flex-col items-center text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}
             >
-              {pending ? (
-                <Trans>Working…</Trans>
-              ) : codeMode ? (
-                <Trans>Continue</Trans>
-              ) : mode === "in" ? (
-                <Trans>Sign in</Trans>
-              ) : mode === "forgot" ? (
-                <Trans>Send reset link</Trans>
+              {capabilityError ? (
+                <div role="alert" className="w-full text-center">
+                  <p>
+                    <Trans>Could not load sign-in options</Trans>
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => setCapabilityAttempt((attempt) => attempt + 1)}
+                  >
+                    <Trans>Retry</Trans>
+                  </Button>
+                </div>
+              ) : null}
+              {reset?.sso && mode !== "forgot" ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => void signInWithSso()}
+                  className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)]"
+                >
+                  <Trans>Continue with {reset.sso.name}</Trans>
+                </button>
+              ) : null}
+              {error ? (
+                <p role="alert" className="mt-3 text-sm text-[#EF4444]">
+                  {error}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              {mode === "up" && !codeStep ? (
+                <label className="mb-4 w-full text-[16px] text-[#8A8590]">
+                  <Trans>Name</Trans>
+                  <input
+                    id="name"
+                    name="name"
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t`Your name`}
+                    className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
+                  />
+                </label>
+              ) : null}
+              {codeStep ? (
+                <div className="flex w-full justify-center">
+                  <InputOTP
+                    aria-label={t({ message: "Code", context: "email sign-in" })}
+                    maxLength={CODE_LENGTH}
+                    pattern={"^\\d+$"}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    value={code}
+                    onChange={setCode}
+                    onComplete={(value: string) => void verifyCode(value)}
+                  >
+                    <InputOTPGroup>
+                      {[0, 1, 2, 3, 4, 5].map((index) => (
+                        <InputOTPSlot
+                          key={index}
+                          index={index}
+                          className="size-12 text-lg first:rounded-l-xl last:rounded-r-xl"
+                        />
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
               ) : (
-                <Trans>Create account</Trans>
+                <>
+                  <label
+                    className={`w-full text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}
+                  >
+                    <Trans>Email</Trans>
+                    <input
+                      id="email"
+                      name="email"
+                      autoComplete={mode === "in" ? "username webauthn" : "username"}
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setEmailBlurred(false);
+                      }}
+                      onBlur={() => setEmailBlurred(true)}
+                      placeholder={t`Your email address`}
+                      type="email"
+                      required
+                      className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
+                    />
+                  </label>
+                  {emailSuggestion && emailBlurred ? (
+                    <p role="status" className="mt-2 w-full text-sm text-warning">
+                      <Trans>
+                        Did you mean{" "}
+                        <button
+                          type="button"
+                          className="font-medium underline"
+                          onClick={() => setEmail(emailSuggestion)}
+                        >
+                          {emailSuggestion}
+                        </button>
+                        ?
+                      </Trans>
+                    </p>
+                  ) : null}
+                </>
               )}
-            </button>
-            {mode === "in" && !codeStep ? (
-              <PasskeySignIn
-                disabled={pending}
-                className="mt-3 h-auto w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-transparent py-[17px] text-[16px] text-[#F1F0F3] hover:bg-[var(--rk-main)]"
-                onSignedIn={enterApp}
-                onError={setError}
-              />
-            ) : null}
-            {codeStep ? (
+              {mode !== "forgot" && !codeStep ? (
+                <div className="mt-4 w-full text-[16px] text-[#8A8590]">
+                  <label htmlFor={passwordFieldId}>
+                    <Trans>Password</Trans>
+                  </label>
+                  <div className="relative mt-2">
+                    <input
+                      id={passwordFieldId}
+                      name="password"
+                      autoComplete={mode === "in" ? "current-password" : "new-password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={t`Password`}
+                      type={showPassword ? "text" : "password"}
+                      required={!useCode}
+                      minLength={mode === "up" ? MIN_PASSWORD_LENGTH : undefined}
+                      maxLength={MAX_PASSWORD_LENGTH}
+                      className="w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] py-[17px] pl-[18px] pr-[52px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((shown) => !shown)}
+                      aria-label={showPassword ? t`Hide password` : t`Show password`}
+                      aria-pressed={showPassword}
+                      className="absolute inset-y-0 right-0 flex items-center px-[18px] text-[#8A8590] hover:text-[#F1F0F3]"
+                    >
+                      {showPassword ? (
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {mode === "in" && reset?.passwordReset ? (
+                    <div className="mt-2 text-right text-[14px]">
+                      <Link to="/forgot-password" className="font-medium text-[#F1F0F3]">
+                        <Trans>Forgot password?</Trans>
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              {error ? (
+                <p role="alert" className="mt-3 w-full text-sm text-[#EF4444]">
+                  {error}
+                </p>
+              ) : null}
               <button
-                type="button"
-                disabled={pending}
-                onClick={leaveCodeStep}
-                className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
+                type="submit"
+                disabled={pending || (codeStep && code.length < CODE_LENGTH)}
+                className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)] disabled:opacity-60"
               >
-                <Trans>Back</Trans>
-              </button>
-            ) : null}
-            {reset?.sso && mode !== "forgot" && !codeStep ? (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => void signInWithSso()}
-                className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
-              >
-                <Trans>Continue with {reset.sso.name}</Trans>
-              </button>
-            ) : null}
-            {codeStep ? null : (
-              <p className="mt-[30px] text-[16px] text-[#8A8590]">
-                {mode === "in" ? (
-                  <>
-                    <Trans>Don’t have an account?</Trans>{" "}
-                    <Link to="/sign-up" className="font-medium text-[#F1F0F3]">
-                      <Trans>Sign up</Trans>
-                    </Link>
-                  </>
-                ) : mode === "up" ? (
-                  <>
-                    <Trans>Already have an account?</Trans>{" "}
-                    <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
-                      <Trans>Sign in</Trans>
-                    </Link>
-                  </>
+                {pending ? (
+                  <Trans>Working…</Trans>
+                ) : codeMode ? (
+                  <Trans>Continue</Trans>
+                ) : mode === "in" ? (
+                  <Trans>Sign in</Trans>
+                ) : mode === "forgot" ? (
+                  <Trans>Send reset link</Trans>
                 ) : (
-                  <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
-                    <Trans>Back to sign in</Trans>
-                  </Link>
+                  <Trans>Create account</Trans>
                 )}
-              </p>
-            )}
-          </>
-        )}
-      </form>
+              </button>
+              {mode === "in" && !codeStep ? (
+                <PasskeySignIn
+                  disabled={pending}
+                  className="mt-3 h-auto w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-transparent py-[17px] text-[16px] text-[#F1F0F3] hover:bg-[var(--rk-main)]"
+                  onSignedIn={enterApp}
+                  onError={setError}
+                />
+              ) : null}
+              {codeStep ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={leaveCodeStep}
+                  className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
+                >
+                  <Trans>Back</Trans>
+                </button>
+              ) : null}
+              {reset?.sso && mode !== "forgot" && !codeStep ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => void signInWithSso()}
+                  className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
+                >
+                  <Trans>Continue with {reset.sso.name}</Trans>
+                </button>
+              ) : null}
+              {codeStep ? null : (
+                <p className="mt-[30px] text-[16px] text-[#8A8590]">
+                  {mode === "in" ? (
+                    <>
+                      <Trans>Don’t have an account?</Trans>{" "}
+                      <Link to="/sign-up" className="font-medium text-[#F1F0F3]">
+                        <Trans>Sign up</Trans>
+                      </Link>
+                    </>
+                  ) : mode === "up" ? (
+                    <>
+                      <Trans>Already have an account?</Trans>{" "}
+                      <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
+                        <Trans>Sign in</Trans>
+                      </Link>
+                    </>
+                  ) : (
+                    <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
+                      <Trans>Back to sign in</Trans>
+                    </Link>
+                  )}
+                </p>
+              )}
+            </>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
@@ -597,22 +640,30 @@ export function AuthFrame({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-full items-center justify-center bg-background px-6 py-16 text-foreground">
-      <form onSubmit={onSubmit} className="flex w-[460px] flex-col items-center">
-        <BrandLogo
-          className={
-            brand.logo.viewBox
-              ? "h-[90px] w-[156px]"
-              : brand.logo.wide
-                ? "h-12 w-auto"
-                : "h-[74px] w-[74px]"
-          }
-        />
-        <h1 aria-live="polite" className="mb-9 mt-7 text-4xl font-medium tracking-tight">
-          {title}
-        </h1>
-        {children}
-      </form>
+    <div
+      className="flex min-h-full flex-col bg-background text-foreground"
+      data-rakazo-surface="auth"
+    >
+      <div className="app-drag flex gap-2 px-5 py-[18px]">
+        <WindowChrome />
+      </div>
+      <div className="flex flex-1 items-center justify-center px-6 pb-16">
+        <form onSubmit={onSubmit} className="flex w-full max-w-[460px] flex-col items-center">
+          <BrandLogo
+            className={
+              brand.logo.viewBox
+                ? "h-[90px] w-[156px]"
+                : brand.logo.wide
+                  ? "h-12 w-auto"
+                  : "h-[74px] w-[74px]"
+            }
+          />
+          <h1 aria-live="polite" className="mb-9 mt-7 text-4xl font-medium tracking-tight">
+            {title}
+          </h1>
+          {children}
+        </form>
+      </div>
     </div>
   );
 }

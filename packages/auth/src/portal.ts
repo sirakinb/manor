@@ -1,5 +1,6 @@
 import { defaultBrand, resolveBrand } from "@rakazo/brands";
-import { type PrismaClient, requireMembership } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { requireMembership } from "@rakazo/db";
 import { APIError } from "better-auth/api";
 
 /** Public proxies preserve Host. Never let Origin override an actual destination host. */

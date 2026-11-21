@@ -25,7 +25,7 @@ test("a bot connects an app inline in a normal chat", async ({ page }, testInfo)
   ).toBeVisible();
   // Manor is pinned to dark, so the card is only captured in dark.
   await captureScreenshot(page, testInfo, "web-pending-dark");
-  await card.getByRole("button", { name: "Authorize", exact: true }).click();
+  await card.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(card.getByText("Connected", { exact: true })).toBeVisible();
   await page.reload();
   await expect(card.getByText("Connected", { exact: true })).toBeVisible();
@@ -49,9 +49,9 @@ test("a group card authorizes in its own thread without duplicate pending cards"
   await page.keyboard.press("Enter");
   const card = page.getByRole("group", { name: "Gmail connection", exact: true });
   await expect(card).toHaveCount(1);
-  await expect(card.getByRole("button", { name: "Authorize", exact: true })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Connect", exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "group-app-connect-pending");
-  await card.getByRole("button", { name: "Authorize", exact: true }).click();
+  await card.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(card.getByText("Connected", { exact: true })).toBeVisible();
   await page.reload();
   await expect(card.getByText("Connected", { exact: true })).toBeVisible();

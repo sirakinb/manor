@@ -1,6 +1,7 @@
 import type { Server } from "node:http";
 import { createServer } from "node:http";
 import type { RakazoDesktopOAuthCallback } from "@rakazo/contracts";
+import { t } from "./i18n.js";
 import { LOOPBACK_HOSTS } from "./oauth-callback.js";
 
 /** Native transport only: providers still own PKCE, token exchange and persistence. */
@@ -84,11 +85,11 @@ export async function openBrowserAuth(
             !code ||
             target.searchParams.has("error")
           ) {
-            response.writeHead(400).end("Sign-in callback rejected. Return to Manor to retry.");
+            response.writeHead(400).end(t("Sign-in callback rejected. Return to Manor to retry."));
             return;
           }
           consumed = true;
-          response.end("You can close this tab and return to Manor.", close);
+          response.end(t("You can close this tab and return to Manor."), close);
           options.onCallback({ code, state });
         });
         server.requestTimeout = 10_000;

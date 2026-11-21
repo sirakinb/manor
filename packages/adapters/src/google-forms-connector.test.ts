@@ -1,10 +1,7 @@
 import type { AdapterContext, ConnectorEvent } from "@rakazo/adapter-kit";
 import { describe, expect, it, vi } from "vitest";
-import {
-  GOOGLE_FORMS_SCOPES,
-  GoogleFormsConnector,
-  type GoogleFormsTokenBroker,
-} from "./google-forms-connector.js";
+import type { GoogleFormsTokenBroker } from "./google-forms-connector.js";
+import { GOOGLE_FORMS_SCOPES, GoogleFormsConnector } from "./google-forms-connector.js";
 
 const context: AdapterContext = {
   operationId: "google-forms-test",

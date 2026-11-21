@@ -1,7 +1,8 @@
 import type { MaintenanceJob, MaintenanceOverview } from "@rakazo/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { maintenanceCanApprove, maintenanceUpdateAdvice } from "./maintenance.js";
-import { MaintenanceController, type MaintenanceTransport } from "./maintenance-controller.js";
+import type { MaintenanceTransport } from "./maintenance-controller.js";
+import { MaintenanceController } from "./maintenance-controller.js";
 
 const job: MaintenanceJob = {
   id: "job-1",

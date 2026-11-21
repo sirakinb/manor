@@ -15,7 +15,8 @@ previous stage. CI is the verification gate; the local stack is not run. Product
 deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
-Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`. In progress: `v0.4.0`.
+Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`. In
+progress: `v0.5.0`.
 
 ### How a stage is resolved
 
@@ -188,6 +189,19 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`. In prog
 - Upstream's row-level security bypass key needs nothing in production: the owner login
   bypasses the policies, and `rls_bypass_keys` stays empty without upstream's migrate
   runner, so the plain bypass is still accepted.
+- Manor keeps its Welcome page at `/` on the primary host. Upstream removed its welcome
+  screen; a brand portal goes straight to sign-in.
+- Bot pages (upstream, from `v0.5.0`) run only in the sandboxed viewer with no
+  same-origin access, and shared links live on the primary host. The `pages.*`
+  procedures are on the team-space tier, so a shared space's members see the pages its
+  bots save. Editing a page that is shared by link asks first.
+- Manor's hard-coded colours (Workspace, CRM and other Manor pages) are excluded from
+  upstream's hex-colour and `[var(--…)]` lint rules in `biome.json`. A new Manor file
+  with hex colours needs an entry there.
+- Account and desktop strings are translated upstream, with the product name swapped to
+  Manor in every locale: `emailText()` in the auth package does it for emails, and the
+  desktop catalogs carry Manor directly.
+- CI stays on `ubuntu-latest`; upstream moved to a runner label Manor does not have.
 
 ### Deploy checklist for the staged sync
 
@@ -282,6 +296,16 @@ Things the one production deploy at the end must cover, collected as stages land
   bot computers.
 - `TICKET_BOARD_ENABLED` decides whether the ticket board shows.
 - The desktop release workflow now refuses a tag without a matching changelog section.
+- Existing bots have daily check-ins turned off by
+  `20261121130200_manor_daily_check_ins_off_for_existing_bots`; upstream's
+  `20261116120000_bot_daily_check_ins` would otherwise let every bot with untouched open
+  scratchpad items start a run once a day. Bots created afterwards get upstream's default
+  (on); a person turns it on per bot in the bot's advanced settings.
+- An admin (the deployment owner) can change the whole deployment's computer provider in
+  Settings, which re-routes every organization's bot computers.
+- Keep `RAKAZO_DESKTOP_STACK_TOKEN` (single-account mode) unset in production.
+- The iOS widget extension needs the bundle id `com.pentridgemedia.manor.widgets`
+  registered before the first iOS build that includes it.
 
 ## Standing rules
 

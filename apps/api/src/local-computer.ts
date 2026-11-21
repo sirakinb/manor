@@ -1,15 +1,13 @@
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { RealtimeFanout } from "@rakazo/adapter-kit";
-import {
-  completeLocalComputerCommand,
-  type LocalComputerMethod,
-  localComputerSessionTopic,
-} from "@rakazo/adapters";
+import type { LocalComputerMethod } from "@rakazo/adapters";
+import { completeLocalComputerCommand, localComputerSessionTopic } from "@rakazo/adapters";
 import type { LocalComputerLiveSession, LocalDevice as LocalDeviceDto } from "@rakazo/contracts";
 import { LOCAL_COMPUTER_OFFLINE_MESSAGE } from "@rakazo/core";
 import { hashLocalDeviceToken, mintLocalDeviceToken } from "@rakazo/core/node/local-device-token";
-import { ensureComputerRecord, type PrismaClient, runAsTenant } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { ensureComputerRecord, runAsTenant } from "@rakazo/db";
 import { WebSocket, WebSocketServer } from "ws";
 
 export const LOCAL_COMPUTER_SOCKET_PATH = "/local-computer";

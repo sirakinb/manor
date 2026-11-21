@@ -1,17 +1,20 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type {
+  ReportEditItem,
+  ReportGenerateInput,
+  WorkspaceReport,
+  WorkspaceReportRow,
+  WorkspaceSummary,
+} from "@rakazo/contracts";
 import {
   REPORT_ACTION_SECTION,
   REPORT_BULLET_SECTIONS,
   REPORT_EDIT_LIMITS,
-  type ReportEditItem,
-  type ReportGenerateInput,
-  type WorkspaceReport,
-  type WorkspaceReportRow,
-  type WorkspaceSummary,
 } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { BuiButton, SuccessPop } from "../../../components/ai/primitives";
 import { rpc } from "../../../lib/rpc";
+import type { PillTone } from "../bits";
 import {
   Card,
   CLICKABLE_TEXT,
@@ -27,7 +30,6 @@ import {
   KeyValueTree,
   Loading,
   PageHeader,
-  type PillTone,
   Section,
   StatusPill,
   Table,

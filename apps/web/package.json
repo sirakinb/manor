@@ -14,7 +14,7 @@
     "intl:compile": "lingui compile"
   },
   "dependencies": {
-    "@better-auth/passkey": "1.7.12",
+    "@better-auth/passkey": "1.7.15",
     "@dnd-kit/core": "^6.3.1",
     "@lingui/core": "6.6.0",
     "@lingui/react": "6.6.0",
@@ -30,7 +30,7 @@
     "@sentry/react": "11.8.0",
     "@simplewebauthn/browser": "13.3.0",
     "@tanstack/react-query": "5.104.5",
-    "better-auth": "1.7.12",
+    "better-auth": "1.7.15",
     "lucide-react": "1.60.0",
     "pdfjs-dist": "^6.3.289",
     "react": "19.2.3",

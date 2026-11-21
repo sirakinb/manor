@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
+import type { WorkspaceFileResult } from "@rakazo/contracts";
 import {
   WORKSPACE_FILE_MAX_BYTES,
   WORKSPACE_TEXT_MAX_BYTES,
   WorkspaceFileOperationSchema,
-  type WorkspaceFileResult,
 } from "@rakazo/contracts";
 import type { FakeBox } from "./fake-sandbox.js";
 

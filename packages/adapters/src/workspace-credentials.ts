@@ -1,5 +1,6 @@
 import type { SecretStore } from "@rakazo/adapter-kit";
-import { type PrismaClient, runAsSystem } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { runAsSystem } from "@rakazo/db";
 
 /**
  * Per-organization provider logins for the Workspace (Buildium, Zoho, ...).

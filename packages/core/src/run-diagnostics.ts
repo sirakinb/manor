@@ -1,4 +1,5 @@
-import { type RunFailureDiagnostic, RunFailureDiagnosticSchema } from "@rakazo/contracts";
+import type { RunFailureDiagnostic } from "@rakazo/contracts";
+import { RunFailureDiagnosticSchema } from "@rakazo/contracts";
 
 /** Only categorical metadata crosses the diagnostics boundary; never error causes or URLs. */
 export function diagnoseRunFailure(

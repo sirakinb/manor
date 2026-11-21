@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { JobPublisher } from "@rakazo/adapter-kit";
 import { parseSkillMd } from "@rakazo/core";
+import type { PrismaClient } from "@rakazo/db";
 import {
   asSystem,
   createDb,
   importWorkspaceKnowledge as importAsMember,
-  type PrismaClient,
   runAsTenant,
   workspaceForAgent,
 } from "@rakazo/db";

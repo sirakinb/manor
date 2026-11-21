@@ -1,31 +1,43 @@
 /** @jsxRuntime automatic */
 import type { TransactionalEmail } from "@rakazo/adapter-kit";
 import { ANDROID_APK_URL } from "@rakazo/contracts";
-import { displayName } from "@rakazo/core";
 import { Link, Text } from "react-email";
-import { linkStyle, message } from "./email.js";
+import { emailText, greeting, linkStyle, message } from "./email.js";
 
 // Manor: every app download lives on Manor's releases page.
 const MANOR_RELEASES_URL = ANDROID_APK_URL;
+const APPS = ["iPhone", "Android", "Mac", "Windows", "Linux"];
 
 export function welcomeEmail(
   user: { email: string; name: string },
   unsubscribeUrl: string,
+  locale = "en",
 ): Promise<TransactionalEmail> {
+  const say = emailText(locale);
   return message(
     user.email,
-    "Welcome to Manor",
+    locale,
+    say("Welcome to Rakazo"),
     <>
-      <Text>Hi {displayName(user.name, "there")},</Text>
-      <Text>Thanks for signing up for Manor.</Text>
+      <Text>{greeting(say, user.name)}</Text>
+      <Text>{say("Thanks for signing up for Rakazo.")}</Text>
       <Text>
-        Manor also has apps for iPhone, Android, Mac, Windows, and Linux.{" "}
-        <Link href={MANOR_RELEASES_URL} style={linkStyle}>
-          Download them here
-        </Link>
+        {say("Rakazo also has apps for")}{" "}
+        {/* The language's own list ("A, B, and C", "A, B y C"), with each app a link. */}
+        {new Intl.ListFormat(locale, { type: "conjunction" })
+          .formatToParts(APPS)
+          .map((part, index) =>
+            part.type === "element" ? (
+              <Link key={part.value} href={MANOR_RELEASES_URL} style={linkStyle}>
+                {part.value}
+              </Link>
+            ) : (
+              <span key={`${index}${part.value}`}>{part.value}</span>
+            ),
+          )}
         .
       </Text>
-      <Text>Have any questions? Reply to this email.</Text>
+      <Text>{say("Have any questions? Reply to this email.")}</Text>
     </>,
     unsubscribeUrl,
   );

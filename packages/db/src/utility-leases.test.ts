@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { UtilityLeaseTerm } from "./utility-leases.js";
 import {
   allocateLeasesForBillingMonth,
   leaseCoversBillingMonth,
   splitChargeAmounts,
-  type UtilityLeaseTerm,
 } from "./utility-leases.js";
 
 const past: UtilityLeaseTerm = {

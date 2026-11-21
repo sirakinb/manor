@@ -1,11 +1,6 @@
 import { ChatMarkdown } from "@rakazo/chat-ui/native";
-import {
-  type ComputerStatus,
-  WORKSPACE_FILE_MAX_BYTES,
-  type WorkspaceEntry,
-  type WorkspaceLocation,
-  workspacePreviewType,
-} from "@rakazo/contracts";
+import type { ComputerStatus, WorkspaceEntry, WorkspaceLocation } from "@rakazo/contracts";
+import { WORKSPACE_FILE_MAX_BYTES, workspacePreviewType } from "@rakazo/contracts";
 import { WorkspaceFilesController } from "@rakazo/core";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";

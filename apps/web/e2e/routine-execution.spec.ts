@@ -196,6 +196,7 @@ test("run history links runs that replied and marks silent ones", async ({ page 
       error: null,
       createdAt: at,
       startedAt: at,
+      lateSince: null,
       completedAt: status === "running" ? null : at,
       messageId: null,
       ...extra,
@@ -211,7 +212,9 @@ test("run history links runs that replied and marks silent ones", async ({ page 
             run(1, "completed", { messageId: `message-${stamp}` }),
             run(2, "completed"),
             run(3, "failed", { error: "504: request timed out" }),
-            run(4, "completed"),
+            run(4, "completed", {
+              lateSince: new Date(Date.now() - (4 * 60 + 40) * minute).toISOString(),
+            }),
           ],
           nextCursor: null,
         },
@@ -232,6 +235,8 @@ test("run history links runs that replied and marks silent ones", async ({ page 
     `/app/${botId}?m=message-${stamp}`,
   );
   await expect(history.getByText("No reply", { exact: true })).toHaveCount(2);
+  await expect(rows.nth(4)).toContainText("Started 40m late");
+  await expect(history.getByText(/Started .* late/)).toHaveCount(1);
   await history.scrollIntoViewIfNeeded();
   await captureScreenshot(page, testInfo, "routine-run-history-states");
 });

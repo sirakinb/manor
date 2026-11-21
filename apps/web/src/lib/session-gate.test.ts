@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  gateForPath,
   holdAnonymousGate,
   holdUnreachableGate,
   sessionGate,
@@ -62,5 +63,25 @@ describe("session gate", () => {
     expect(sessionRetryDelayMs(1)).toBe(2_000);
     expect(sessionRetryDelayMs(3)).toBe(8_000);
     expect(sessionRetryDelayMs(20)).toBe(15_000);
+  });
+});
+
+describe("shared page gate", () => {
+  const refused = sessionGate({ data: null, isPending: false, error: { status: 403 } });
+
+  it("shows a shared page signed out when the session lookup is refused", () => {
+    expect(refused).toBe("unreachable");
+    expect(gateForPath(refused, "/p/plan-abc123")).toBe("anonymous");
+  });
+
+  it("keeps the reconnect screen for every other route", () => {
+    expect(gateForPath(refused, "/app")).toBe("unreachable");
+    expect(gateForPath(refused, "/sign-in")).toBe("unreachable");
+    expect(gateForPath(refused, "/pricing")).toBe("unreachable");
+  });
+
+  it("leaves a signed-in or loading session alone on a shared page", () => {
+    expect(gateForPath("authenticated", "/p/plan-abc123")).toBe("authenticated");
+    expect(gateForPath("loading", "/p/plan-abc123")).toBe("loading");
   });
 });

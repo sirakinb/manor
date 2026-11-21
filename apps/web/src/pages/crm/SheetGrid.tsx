@@ -1,12 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
-import {
-  type KeyboardEvent,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Spreadsheet-feel grid: full gridlines, a single active cell, inline editing

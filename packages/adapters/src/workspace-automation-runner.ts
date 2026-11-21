@@ -1,11 +1,7 @@
 import type { IngestionRunner, JobPublisher, SecretStore } from "@rakazo/adapter-kit";
 import { workspaceAutomationWakeupJob } from "@rakazo/adapter-kit";
-import {
-  automationNextRunAt,
-  automationSpec,
-  fillWaterBillsFromCrmByDueDate,
-  type PrismaClient,
-} from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { automationNextRunAt, automationSpec, fillWaterBillsFromCrmByDueDate } from "@rakazo/db";
 import { loadWorkspaceCredential } from "./workspace-credentials.js";
 
 /**

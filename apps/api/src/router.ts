@@ -8,6 +8,7 @@ import type {
   JobPublisher,
   MaintenanceAdapter,
   MemoryStore,
+  NotificationProvider,
   PaymentWalletProvider,
   ProductAnalytics,
   SandboxProvider,
@@ -97,6 +98,7 @@ import { availabilityRoutes } from "./routes/availability.js";
 import { boardsRoutes } from "./routes/boards.js";
 import { botsRoutes } from "./routes/bots.js";
 import { computerRoutes } from "./routes/computer.js";
+import { computerProviderRoutes } from "./routes/computer-provider.js";
 import { connectionsRoutes } from "./routes/connections.js";
 import { contentRoutes } from "./routes/content.js";
 import type { RouterContext } from "./routes/context.js";
@@ -105,6 +107,7 @@ import { mcpRoutes } from "./routes/mcp.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
+import { pagesRoutes } from "./routes/pages.js";
 import { paymentWalletRoutes } from "./routes/payment-wallet.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { computerContext } from "./routes/shared.js";
@@ -114,11 +117,8 @@ import { getRunDiagnostics, listBotRunHistory } from "./runs.js";
 import { addPreviewProxyCapability } from "./screen-proxy.js";
 import type { VoiceDeps } from "./voice.js";
 import { workspaceAccess } from "./workspace-access.js";
-import {
-  createWorkspaceActions,
-  type PropertyLedgerFactory,
-  WorkspaceActionError,
-} from "./workspace-actions.js";
+import type { PropertyLedgerFactory } from "./workspace-actions.js";
+import { createWorkspaceActions, WorkspaceActionError } from "./workspace-actions.js";
 import { createWorkspaceTeam } from "./workspace-team.js";
 
 export { nextConnectionLabel } from "./model-credentials.js";
@@ -129,6 +129,8 @@ export { callMarkerClientNonce } from "./routes/threads.js";
 export interface RouterDeps {
   maintenance?: MaintenanceAdapter;
   pushTokens: PushTokenStore;
+  /** Stops a call's ring on the owner's other devices once it is settled. */
+  notifications?: NotificationProvider;
   analytics?: ProductAnalytics;
   cloudAgent?: CloudAgentConnection | null;
   /** The deployment's wallet provider; absent hides purchases. */
@@ -240,6 +242,7 @@ export function createRouter(deps: RouterDeps) {
     ...botsRoutes(ctx),
     ...threadsRoutes(ctx),
     ...computer,
+    ...computerProviderRoutes(ctx),
     ...memoryRoutes(ctx),
     ...routinesRoutes(ctx),
     ...boardsRoutes(ctx),
@@ -248,6 +251,7 @@ export function createRouter(deps: RouterDeps) {
     ...connectionsRoutes(ctx),
     ...messagingRoutes(ctx),
     ...content,
+    ...pagesRoutes(ctx),
     ...paymentWalletRoutes(ctx),
     // Manor-owned areas, and Manor's procedures inside upstream's computer and runs groups.
     ...manorRoutes(ctx, { computer: computer.computer, runs: content.runs }),

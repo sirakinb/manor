@@ -9,14 +9,8 @@ import {
 } from "@rakazo/adapter-kit";
 import type { MessageBlock } from "@rakazo/contracts";
 import { stuckWorkStatusMessages } from "@rakazo/core";
-import {
-  migrateLegacyWaterSchedules,
-  type Pool,
-  type PrismaClient,
-  reconcileComputerRuns,
-  runAsSystem,
-  type ThreadEvents,
-} from "@rakazo/db";
+import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
+import { migrateLegacyWaterSchedules, reconcileComputerRuns, runAsSystem } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
@@ -132,6 +126,7 @@ export function createJobReconciler(
     reconcilePurchases?: () => Promise<void>;
     reconcileModelCredits?: () => Promise<void>;
     reconcileRoutineRetryNotices?: () => Promise<void>;
+    reconcileStrategicInitiatives?: () => Promise<void>;
     reconcileSecurityEventRetention?: () => Promise<void>;
     reconcileAuditLog?: () => Promise<void>;
     reconcileHomeStorage?: () => Promise<void>;
@@ -192,6 +187,7 @@ export function createJobReconciler(
           deps.reconcileModelCredits,
           deps.reconcileComputerUpdates,
           deps.reconcileRoutineRetryNotices,
+          deps.reconcileStrategicInitiatives,
           deps.reconcileSecurityEventRetention,
           deps.reconcileAuditLog,
           deps.reconcileHomeStorage,

@@ -53,6 +53,7 @@ test("launches with a narrow preload bridge and an isolated renderer", async () 
       "computer",
       "device",
       "localComputer",
+      "locale",
       "menu",
       "monitoring",
       "nativeWindowFrame",

@@ -7,7 +7,8 @@ import type {
 } from "@rakazo/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { accentColor } from "../../lib/brand";
-import { formatAgo, formatNumber, PIPE_COLORS, type SectionKey, withAlpha } from "./bits";
+import type { SectionKey } from "./bits";
+import { formatAgo, formatNumber, PIPE_COLORS, withAlpha } from "./bits";
 
 /**
  * A source node's title: the row name when it is already a proper name

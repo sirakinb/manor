@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { VerificationCheckInput } from "./verification-report.js";
 import {
   checksStartingSince,
   summarizeVerification,
   userAnswerFor,
-  type VerificationCheckInput,
   verificationReportCsv,
   verificationReportMarkdown,
 } from "./verification-report.js";

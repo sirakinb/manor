@@ -1,11 +1,5 @@
-import {
-  type Actor,
-  MessageBlock,
-  type RunActivityRow,
-  type RunDiagnostics,
-  RunFailureDiagnosticSchema,
-  RunSchema,
-} from "@rakazo/contracts";
+import type { Actor, RunActivityRow, RunDiagnostics } from "@rakazo/contracts";
+import { MessageBlock, RunFailureDiagnosticSchema, RunSchema } from "@rakazo/contracts";
 import {
   ACTIVE_RUN_STATUSES,
   BACKGROUND_RUN_TRIGGERS,
@@ -15,7 +9,8 @@ import {
   runFailureSummary,
   truncatePlainText,
 } from "@rakazo/core";
-import { createRepos, IsolationError, type Prisma, type PrismaClient } from "@rakazo/db";
+import type { Prisma, PrismaClient } from "@rakazo/db";
+import { createRepos, IsolationError } from "@rakazo/db";
 
 const runSelect = {
   id: true,

@@ -24,6 +24,85 @@
       "!**/apps/www"
     ]
   },
+  "plugins": [
+    {
+      "path": "./scripts/biome/no-hex-colors.grit",
+      "includes": [
+        "**/apps/web/src/**/*.tsx",
+        "**/packages/ui-web/src/**/*.tsx",
+        "!**/*.test.tsx",
+        "!**/packages/ui-web/src/bot-avatar.tsx",
+        "!**/apps/web/src/pages/WindowChrome.tsx",
+        "!**/apps/web/src/pages/workspace/**",
+        "!**/apps/web/src/pages/crm/**",
+        "!**/apps/web/src/pages/AgentConnectionSetup.tsx",
+        "!**/apps/web/src/pages/CrmApiAccessPanel.tsx",
+        "!**/apps/web/src/pages/DocsView.tsx",
+        "!**/apps/web/src/pages/OAuthAuthorize.tsx",
+        "!**/apps/web/src/pages/UserGuide.tsx",
+        "!**/apps/web/src/pages/Welcome.tsx",
+        "!**/apps/web/src/components/BotCredentialsSettings.tsx",
+        "!**/apps/web/src/components/ChartCanvas.tsx",
+        "!**/apps/web/src/components/FilesPanel.tsx",
+        "!**/apps/web/src/components/RunLogsPanel.tsx",
+        "!**/apps/web/src/components/ShareThisMacSettings.tsx",
+        "!**/apps/web/src/components/TeamMembers.tsx",
+        "!**/apps/web/src/components/VerificationComparison.tsx",
+        "!**/apps/web/src/components/WorkspacePdfPreview.tsx",
+        "!**/apps/web/src/components/ai/ParticleWordmark.tsx",
+        "!**/apps/web/src/components/ai/manor-primitives.tsx",
+        "!**/apps/web/src/App.tsx",
+        "!**/apps/web/src/pages/Auth.tsx",
+        "!**/apps/web/src/pages/Auth.test.tsx",
+        "!**/apps/web/src/pages/PluginsOverlay.tsx",
+        "!**/apps/web/src/pages/Shell.tsx",
+        "!**/apps/web/src/pages/shell/composer.tsx",
+        "!**/apps/web/src/pages/shell/computer-overlay.tsx",
+        "!**/apps/web/src/pages/shell/computer-panel.tsx",
+        "!**/apps/web/src/pages/shell/message-view.tsx",
+        "!**/apps/web/src/pages/shell/sidebar-header.tsx",
+        "!**/apps/web/src/pages/shell/sidebar-roster.tsx",
+        "!**/apps/web/src/pages/shell/transcript.tsx"
+      ]
+    },
+    {
+      "path": "./scripts/biome/no-css-var-arbitrary-values.grit",
+      "includes": [
+        "**/apps/web/src/**/*.tsx",
+        "**/packages/ui-web/src/**/*.tsx",
+        "!**/apps/web/src/pages/workspace/**",
+        "!**/apps/web/src/pages/crm/**",
+        "!**/apps/web/src/pages/AgentConnectionSetup.tsx",
+        "!**/apps/web/src/pages/CrmApiAccessPanel.tsx",
+        "!**/apps/web/src/pages/DocsView.tsx",
+        "!**/apps/web/src/pages/OAuthAuthorize.tsx",
+        "!**/apps/web/src/pages/UserGuide.tsx",
+        "!**/apps/web/src/pages/Welcome.tsx",
+        "!**/apps/web/src/components/BotCredentialsSettings.tsx",
+        "!**/apps/web/src/components/ChartCanvas.tsx",
+        "!**/apps/web/src/components/FilesPanel.tsx",
+        "!**/apps/web/src/components/RunLogsPanel.tsx",
+        "!**/apps/web/src/components/ShareThisMacSettings.tsx",
+        "!**/apps/web/src/components/TeamMembers.tsx",
+        "!**/apps/web/src/components/VerificationComparison.tsx",
+        "!**/apps/web/src/components/WorkspacePdfPreview.tsx",
+        "!**/apps/web/src/components/ai/ParticleWordmark.tsx",
+        "!**/apps/web/src/components/ai/manor-primitives.tsx",
+        "!**/apps/web/src/App.tsx",
+        "!**/apps/web/src/pages/Auth.tsx",
+        "!**/apps/web/src/pages/Auth.test.tsx",
+        "!**/apps/web/src/pages/PluginsOverlay.tsx",
+        "!**/apps/web/src/pages/Shell.tsx",
+        "!**/apps/web/src/pages/shell/composer.tsx",
+        "!**/apps/web/src/pages/shell/computer-overlay.tsx",
+        "!**/apps/web/src/pages/shell/computer-panel.tsx",
+        "!**/apps/web/src/pages/shell/message-view.tsx",
+        "!**/apps/web/src/pages/shell/sidebar-header.tsx",
+        "!**/apps/web/src/pages/shell/sidebar-roster.tsx",
+        "!**/apps/web/src/pages/shell/transcript.tsx"
+      ]
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -35,7 +114,8 @@
     "rules": {
       "preset": "recommended",
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useImportType": { "level": "error", "options": { "style": "separatedType" } }
       },
       "correctness": {
         "useExhaustiveDependencies": "off"

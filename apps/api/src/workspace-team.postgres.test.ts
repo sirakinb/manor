@@ -1,4 +1,5 @@
-import { asSystem, createDb, type PrismaClient, runAsTenant } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { asSystem, createDb, runAsTenant } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createWorkspaceTeam } from "./workspace-team.js";
 

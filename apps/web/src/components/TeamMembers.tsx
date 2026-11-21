@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { TEAM_HEARTBEAT_MS, type TeamMember } from "@rakazo/contracts";
+import type { TeamMember } from "@rakazo/contracts";
+import { TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
 import { displayName } from "@rakazo/core";
 import { useEffect, useState } from "react";
 import { rpc } from "../lib/rpc";

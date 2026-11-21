@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, View, type ViewStyle } from "react-native";
+import type { ViewStyle } from "react-native";
+import { KeyboardAvoidingView, Platform, View } from "react-native";
 
 /**
  * KeyboardAvoidingView compares its own onLayout frame, which is relative to its

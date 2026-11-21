@@ -10,6 +10,7 @@ import { ChevronDown, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BuiButton } from "../../../components/ai/primitives";
 import { rpc } from "../../../lib/rpc";
+import type { PillTone } from "../bits";
 import {
   Card,
   CLICKABLE_TEXT,
@@ -26,7 +27,6 @@ import {
   KpiTile,
   Loading,
   PageHeader,
-  type PillTone,
   Segmented,
   StatusPill,
   Table,

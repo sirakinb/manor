@@ -2,7 +2,8 @@ import { Plural, useLingui } from "@lingui/react/macro";
 import type { CrmContact, CrmTag } from "@rakazo/contracts";
 import { useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
-import { type SheetColumn, SheetGrid } from "./SheetGrid";
+import type { SheetColumn } from "./SheetGrid";
+import { SheetGrid } from "./SheetGrid";
 
 /**
  * Contacts as a sheet. Each cell edit commits through the same update path the

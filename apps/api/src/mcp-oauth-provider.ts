@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { type Actor, INTEGRATION_SCOPES, type IntegrationScope } from "@rakazo/contracts";
+import type { Actor, IntegrationScope } from "@rakazo/contracts";
+import { INTEGRATION_SCOPES } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import type { Context, Hono } from "hono";
 import * as z from "zod";

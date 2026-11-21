@@ -505,7 +505,9 @@ export function McpServersOverlay({
     }
   }
 
-  const formOpen = adding || editing !== null || (serversQuery.isSuccess && servers.length === 0);
+  // A save refreshes the list before it resets the form, so the form waits for the reset.
+  const formOpen =
+    saving || adding || editing !== null || (serversQuery.isSuccess && servers.length === 0);
 
   // stdioEnabled is false for a non-admin, who can still open a stdio server an admin added.
   const stdioLocked = transport === "stdio" && !stdioEnabled;

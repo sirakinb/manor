@@ -1,11 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { MaintenanceAdapter } from "@rakazo/adapter-kit";
-import {
-  type MaintenanceApproval,
-  type MaintenanceCreate,
-  MaintenanceJobSchema,
-  MaintenanceReviewSchema,
-} from "@rakazo/contracts";
+import type { MaintenanceApproval, MaintenanceCreate } from "@rakazo/contracts";
+import { MaintenanceJobSchema, MaintenanceReviewSchema } from "@rakazo/contracts";
 import { maintenanceReviewPassed } from "@rakazo/core";
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import type { Prisma, PrismaClient } from "@rakazo/db";

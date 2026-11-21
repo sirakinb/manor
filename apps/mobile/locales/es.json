@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Manor usa la cámara para que puedas adjuntar fotos a un mensaje para un bot.",
+    "NSPhotoLibraryUsageDescription": "Manor usa tu fototeca para que puedas adjuntar imágenes a un mensaje para un bot.",
+    "NSLocalNetworkUsageDescription": "Manor se conecta a un servidor de Manor autoalojado en tu red local.",
+    "NSMicrophoneUsageDescription": "Manor usa el micrófono para las llamadas de voz con tus bots.",
+    "NSSpeechRecognitionUsageDescription": "Manor convierte lo que dices en mensajes durante las llamadas de voz.",
+    "NSFaceIDUsageDescription": "Permite que Manor acceda a tus datos biométricos de Face ID."
+  }
+}

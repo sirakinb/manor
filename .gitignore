@@ -59,6 +59,6 @@ __pycache__/
 # against a nested root config.
 .claude/worktrees/
 
-# Wuying Web SDK vendor files; fetch with node scripts/wuying-web-sdk.mjs
-apps/web/public/wuying/WuyingWebSDK.js
-apps/web/public/wuying/sdk/
+# Downloaded embedded computer screen SDK files
+apps/web/public/computer-screen/*.js
+apps/web/public/computer-screen/sdk/

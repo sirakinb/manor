@@ -465,7 +465,7 @@ export type FleetListing = {
   groups: FleetGroup[];
   sections: string[];
   truncated: boolean;
-  /** With `bot_id` of a bot the caller created: what an instruction edit must start from. */
+  /** With `bot_id`: what an instruction edit must start from. */
   bot?: { id: string; name: string; instructions: string; instructionsVersion: string };
 };
 
@@ -794,7 +794,7 @@ export async function updateFleetGroup(
 const CHILD_CHANGED = "child changed; read it again with list_fleet";
 const ALREADY_WROTE_INSTRUCTIONS = "You already changed this bot's instructions in this run.";
 
-/** `update_bot` with `bot_id`: the profile fields of a bot the caller created. */
+/** `update_bot` with `bot_id`: the profile fields of another bot in the space. */
 export async function updateChildBot(
   deps: Pick<FleetDeps, "prisma" | "events"> & { runSecrets: readonly string[] },
   run: FleetRun,
@@ -807,6 +807,7 @@ export async function updateChildBot(
     return { error: "Change another bot's instructions with set_child_instructions." };
   }
   const profile = {
+    dailyCheckIns: argumentGiven(args.dailyCheckIns) ? args.dailyCheckIns : undefined,
     name: argumentGiven(args.name) ? args.name : undefined,
     description: argumentGiven(args.description) ? args.description : undefined,
     notifyOnFinish: argumentGiven(args.notifyOnFinish)
@@ -1232,7 +1233,7 @@ function singleLine(value: string): string {
 const CARD_TITLE_ESCAPED = new RegExp(CARD_TITLE_ESCAPED_CHARACTERS, "g");
 
 /** A name in a card title, which renders as Markdown: one line, and no links or emphasis. */
-function cardName(value: string): string {
+export function cardName(value: string): string {
   return singleLine(value).replace(CARD_TITLE_ESCAPED, "\\$&");
 }
 
@@ -1352,6 +1353,7 @@ export async function updateOwnBotFromTool(
       description: true,
       color: true,
       notifyOnFinish: true,
+      dailyCheckIns: true,
     },
   });
   try {
@@ -1377,5 +1379,6 @@ export async function updateOwnBotFromTool(
     description: updated.description,
     avatar: updated.color.startsWith("data:image/") ? "image" : updated.color,
     notifyOnFinish: updated.notifyOnFinish,
+    dailyCheckIns: updated.dailyCheckIns,
   };
 }

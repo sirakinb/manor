@@ -1,5 +1,7 @@
-import { type WorkspaceAccess, workspaceExternalToolsForChannels } from "@rakazo/contracts";
-import { createWorkspaceRepos, type PrismaClient } from "@rakazo/db";
+import type { WorkspaceAccess } from "@rakazo/contracts";
+import { workspaceExternalToolsForChannels } from "@rakazo/contracts";
+import type { PrismaClient } from "@rakazo/db";
+import { createWorkspaceRepos } from "@rakazo/db";
 
 /** Resolve only from an authenticated actor or integration principal. */
 export async function workspaceAccess(

@@ -16,11 +16,13 @@ loadRootEnv();
 await unwrapEnvFromKeyManager();
 
 import {
+  apnsVoipConfig,
   auditLogConfig,
   ChatSdkMessagingSurface,
   CodexCatalogCache,
   contentKeyProviderFromEnv,
   createAgentHomeStore,
+  createApnsVoipProvider,
   createArtifactStore,
   createAuditLogReconciler,
   createBackgroundJobHandlers,
@@ -40,6 +42,7 @@ import {
   createRunExecutor,
   createRunSandbox,
   createRunSecretWriter,
+  createStrategicInitiativeReconciler,
   createTicketChangeNotifier,
   createWebProvider,
   DurableLocalComputerGateway,
@@ -179,6 +182,7 @@ async function main() {
     dataDir,
     prisma,
     localComputer: new LocalSandboxProvider(prisma, localComputerGateway),
+    secrets,
   });
   const allowPrivateEndpoint = process.env.MCP_ALLOW_PRIVATE_ENDPOINT === "true";
   const mcpOAuth = new McpOAuthBroker(prisma, secrets, {}, allowPrivateEndpoint);
@@ -281,6 +285,7 @@ async function main() {
     sessionExpiresAt: (sessionId) => pushSessionExpiresAt(prisma, sessionId),
     jobs,
     accessToken: process.env.EXPO_ACCESS_TOKEN,
+    voip: await createApnsVoipProvider(apnsVoipConfig(process.env)),
   });
   const executor = createRunExecutor({
     maxUploadSizeBytes: uploadSizeFromEnv(process.env),
@@ -383,6 +388,7 @@ async function main() {
       prisma,
       lookup: deploymentModelUsageLookup(),
     }),
+    reconcileStrategicInitiatives: createStrategicInitiativeReconciler({ prisma, jobs }),
     reconcileCloudAgents: () => reconcileCloudAgents({ prisma, jobs, cloudAgent }),
     reconcilePurchases: () => reconcilePurchases({ prisma, jobs, paymentWallet }),
     reconcileComputerUpdates: () => reconcileComputerUpdates({ prisma, jobs }),
@@ -402,30 +408,43 @@ async function main() {
   });
   let stopHealth: (() => Promise<void>) | undefined;
   let stopping = false;
-  const stop = async () => {
-    if (stopping) return;
-    stopping = true;
-    shutdown.abort();
-    stopStallWatch();
-    try {
-      await stopHealth?.();
-      await reconciler.stop();
-      await jobHost.stop();
-      await jobs.close();
-      await secrets.close();
-      await realtime.close();
-      await mcp.close();
-      await control?.close();
-      await installedConnectors.close();
-      await prisma.$disconnect().catch(() => undefined);
-      await pool.end().catch(() => undefined);
-    } finally {
-      await analytics?.flush();
-      await shutdownPiTelemetry();
-      await logger.flush({ timeoutMs: 2_000 });
-    }
-  };
-  stopOnShutdownSignals(stop);
+  let stopped: Promise<void> | undefined;
+  // Every caller waits for the same shutdown, which can take as long as the running jobs do.
+  const stop = () =>
+    (stopped ??= (async () => {
+      stopping = true;
+      shutdown.abort();
+      stopStallWatch();
+      try {
+        await stopHealth?.();
+        await reconciler.stop();
+        await jobHost.stop();
+        await jobs.close();
+        await secrets.close();
+        await realtime.close();
+        await mcp.close();
+        await control?.close();
+        await installedConnectors.close();
+        await prisma.$disconnect().catch(() => undefined);
+        await pool.end().catch(() => undefined);
+      } finally {
+        await analytics?.flush();
+        await shutdownPiTelemetry();
+        await logger.flush({ timeoutMs: 2_000 });
+      }
+    })());
+  // Exit rather than wait on a hung job that was handed back, which another worker now retries.
+  // process.exitCode keeps a crash that arrives while draining from exiting as a clean stop.
+  stopOnShutdownSignals(() =>
+    stop().then(
+      () => process.exit(),
+      async (error) => {
+        logger.error("worker shutdown failed", error);
+        await logger.flush({ timeoutMs: 2_000 });
+        process.exit(1);
+      },
+    ),
+  );
   // graphile-worker fires completeJob()/failJobs() without awaiting them. When
   // pool.connect() then hits Postgres 53300 or a saturated pool's checkout timeout,
   // that rejection is unhandled. Exiting on 53300 is a crash loop: Docker restarts
@@ -435,11 +454,13 @@ async function main() {
   // process in an undefined state).
   process.on("uncaughtException", (error) => {
     logger.error("uncaughtException", error);
+    process.exitCode = 1;
     void stop().finally(() => process.exit(1));
   });
   process.on("unhandledRejection", (reason) => {
     logger.error("unhandledRejection", reason);
     if (isTooManyDatabaseConnections(reason) || isPoolCheckoutTimeout(reason)) return;
+    process.exitCode = 1;
     void stop().finally(() => process.exit(1));
   });
 

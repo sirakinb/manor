@@ -1,11 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AdapterContext, ComputerRef, SandboxProvider } from "@rakazo/adapter-kit";
-import {
-  WORKSPACE_FILE_MAX_BYTES,
-  type WorkspaceFileOperation,
-  type WorkspaceFileResult,
-  WorkspaceFileResultSchema,
-} from "@rakazo/contracts";
+import type { WorkspaceFileOperation, WorkspaceFileResult } from "@rakazo/contracts";
+import { WORKSPACE_FILE_MAX_BYTES, WorkspaceFileResultSchema } from "@rakazo/contracts";
 import { WORKSPACE_FILE_SCRIPT } from "./workspace-file-script.js";
 
 export class WorkspaceFileError extends Error {

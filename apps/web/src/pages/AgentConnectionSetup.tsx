@@ -1,14 +1,11 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceAccess } from "@rakazo/contracts";
 import { Ellipsis } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { BuiButton, BuiCard } from "../components/ai/primitives";
-import {
-  type McpClient,
-  type McpSurface,
-  mcpClientSetup,
-  mcpConnections,
-} from "../lib/mcp-client-setup";
+import type { McpClient, McpSurface } from "../lib/mcp-client-setup";
+import { mcpClientSetup, mcpConnections } from "../lib/mcp-client-setup";
 
 const CLIENTS = [
   { id: "claude", name: "Claude Code", logo: "/agent-logos/claude.svg" },

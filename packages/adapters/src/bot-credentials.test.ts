@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { BotCredentialRow } from "./bot-credentials.js";
 import {
-  type BotCredentialRow,
   findBotCredential,
   formatBotCredentialsPrompt,
   parseBotCredentialSecret,
