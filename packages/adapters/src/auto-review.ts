@@ -17,8 +17,10 @@ import type {
 } from "@rakazo/adapter-kit";
 import type { AutoReviewJudgeDecision } from "@rakazo/core";
 import { escapePromptData, redactSecrets } from "@rakazo/core";
+import { z } from "zod";
 import { formatCurrentTimeInstruction } from "./current-time.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
+import { parseModelJson } from "./model-json.js";
 import { catalogModels } from "./model-vision.js";
 import { LOCAL_PROVIDER_ID } from "./pi-local-provider.js";
 import { localModelIds } from "./pi-local-provider-id.js";
@@ -271,26 +273,21 @@ export function sanitizeAutoReviewReason(reason: string | undefined): string | u
   return truncateReviewText(cleaned, MAX_REASON_CHARS);
 }
 
+const AutoReviewVerdict = z.object({
+  decision: z.enum(["pass", "ask"]),
+  reason: z.string().optional().catch(undefined),
+});
+
 export function parseAutoReviewJudgeText(text: string): {
   decision: AutoReviewJudgeDecision;
   reason?: string;
 } {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/\{[\s\S]*\}/);
-  const candidate = fenced?.[0] ?? trimmed;
-  try {
-    const parsed = JSON.parse(candidate) as { decision?: unknown; reason?: unknown };
-    if (parsed.decision === "pass" || parsed.decision === "ask") {
-      return {
-        decision: parsed.decision,
-        reason:
-          typeof parsed.reason === "string" ? sanitizeAutoReviewReason(parsed.reason) : undefined,
-      };
-    }
-  } catch {
-    // fall through
-  }
-  return { decision: "error" };
+  const verdict = parseModelJson(text, AutoReviewVerdict);
+  if (!verdict) return { decision: "error" };
+  return {
+    decision: verdict.decision,
+    reason: verdict.reason === undefined ? undefined : sanitizeAutoReviewReason(verdict.reason),
+  };
 }
 
 /**
@@ -454,15 +451,53 @@ async function runCheckerCall(input: CheckerCallInput): Promise<CheckerCallResul
   return { text, ...measured() };
 }
 
+type CheckerVerdict<T> = Omit<CheckerCallResult, "text"> & { verdict?: T };
+
+/**
+ * One checker call read as a verdict. An unreadable verdict gets one more try, within the
+ * same deadline, before it counts as no decision; tokens and time cover both calls.
+ */
+async function runCheckerVerdict<T>(
+  input: CheckerCallInput,
+  parse: (text: string) => T | null,
+): Promise<CheckerVerdict<T>> {
+  const timeoutMs = input.timeoutMs ?? autoReviewTimeoutMs();
+  let spent: Omit<CheckerCallResult, "text" | "failure"> | undefined;
+  for (let attempt = 0; ; attempt++) {
+    const remainingMs = timeoutMs - (spent?.latencyMs ?? 0);
+    if (spent && remainingMs <= 0) return { failure: "Checker timed out.", ...spent };
+    const { text, failure, ...measured } = await runCheckerCall({
+      ...input,
+      timeoutMs: remainingMs,
+    });
+    spent = spent
+      ? {
+          model: measured.model,
+          latencyMs: spent.latencyMs + measured.latencyMs,
+          inputTokens: addTokens(spent.inputTokens, measured.inputTokens),
+          outputTokens: addTokens(spent.outputTokens, measured.outputTokens),
+        }
+      : measured;
+    if (failure || !text) return { failure: failure ?? "Checker returned no decision.", ...spent };
+    const verdict = parse(text);
+    // An unreadable verdict gets one more try before the owner is asked.
+    if (verdict === null && attempt === 0) continue;
+    if (verdict === null) return { failure: "Checker returned no decision.", ...spent };
+    return { verdict, ...spent };
+  }
+}
+
+function addTokens(left: number | undefined, right: number | undefined): number | undefined {
+  return left === undefined && right === undefined ? undefined : (left ?? 0) + (right ?? 0);
+}
+
 export async function runAutoReviewJudge(input: CheckerCallInput): Promise<AutoReviewJudgeResult> {
-  const { text, failure, ...measured } = await runCheckerCall(input);
-  if (failure || !text) return { decision: "error", reason: failure, ...measured };
-  const parsed = parseAutoReviewJudgeText(text);
-  return {
-    decision: parsed.decision,
-    reason: parsed.decision === "error" ? "Checker returned no decision." : parsed.reason,
-    ...measured,
-  };
+  const { verdict, failure, ...measured } = await runCheckerVerdict(input, (text) => {
+    const parsed = parseAutoReviewJudgeText(text);
+    return parsed.decision === "error" ? null : parsed;
+  });
+  if (!verdict) return { decision: "error", reason: failure, ...measured };
+  return { decision: verdict.decision, reason: verdict.reason, ...measured };
 }
 
 const MAX_SOURCE_PROMPT_CHARS = 12_000;
@@ -489,29 +524,27 @@ export function buildAnswerCheckPrompt(request: AnswerCheckRequest): string {
   ].join("\n");
 }
 
+const AnswerCheckVerdict = z.object({
+  unsupported: z.array(z.number().int()),
+  reason: z.string().optional().catch(undefined),
+});
+
 /** Maps the model's unsupported claim numbers onto per-claim verdicts; null when malformed. */
 export function parseAnswerCheckText(
   text: string,
   claims: string[],
 ): { verdicts: ClaimVerdict[]; reason?: string } | null {
-  const candidate = text.trim().match(/\{[\s\S]*\}/)?.[0] ?? text.trim();
-  try {
-    const parsed = JSON.parse(candidate) as { unsupported?: unknown; reason?: unknown };
-    if (!Array.isArray(parsed.unsupported)) return null;
-    const numbers = parsed.unsupported;
-    if (!numbers.every((n) => Number.isInteger(n) && n >= 1 && n <= claims.length)) return null;
-    const unsupported = new Set(numbers as number[]);
-    return {
-      verdicts: claims.map((claim, index) => ({
-        text: claim,
-        supported: !unsupported.has(index + 1),
-      })),
-      reason:
-        typeof parsed.reason === "string" ? sanitizeAutoReviewReason(parsed.reason) : undefined,
-    };
-  } catch {
-    return null;
-  }
+  const parsed = parseModelJson(text, AnswerCheckVerdict);
+  if (!parsed) return null;
+  if (!parsed.unsupported.every((n) => n >= 1 && n <= claims.length)) return null;
+  const unsupported = new Set(parsed.unsupported);
+  return {
+    verdicts: claims.map((claim, index) => ({
+      text: claim,
+      supported: !unsupported.has(index + 1),
+    })),
+    reason: parsed.reason === undefined ? undefined : sanitizeAutoReviewReason(parsed.reason),
+  };
 }
 
 /** Catalog price for a checker call, when the model has one. */
@@ -552,15 +585,21 @@ export function createLlmVerifier(
       return { ...judge, costUsd: cost(judge) };
     },
     async checkAnswer(request, context): Promise<VerificationResult> {
-      const { text, failure, ...measured } = await runCheckerCall({
-        ...input,
-        prompt: buildAnswerCheckPrompt(request),
-        spaceId: context.spaceId,
-        userId: context.userId,
-        timeoutMs: input.answerTimeoutMs ?? answerCheckTimeoutMs(),
-        signal: context.signal,
-      });
-      const parsed = text ? parseAnswerCheckText(text, request.claims) : null;
+      const {
+        verdict: parsed,
+        failure,
+        ...measured
+      } = await runCheckerVerdict(
+        {
+          ...input,
+          prompt: buildAnswerCheckPrompt(request),
+          spaceId: context.spaceId,
+          userId: context.userId,
+          timeoutMs: input.answerTimeoutMs ?? answerCheckTimeoutMs(),
+          signal: context.signal,
+        },
+        (text) => parseAnswerCheckText(text, request.claims),
+      );
       if (!parsed) {
         return {
           decision: "error",

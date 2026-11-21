@@ -192,10 +192,16 @@ export const NL_MESSAGES: Record<string, string> = {
   "Previous Bot": "Vorige bot",
   "Command Menu…": "Opdrachtmenu…",
   "Toggle Sidebar": "Navigatiekolom tonen/verbergen",
-  "Search…": "Zoek…",
+  "Find…": "Zoek…",
+  "Search Bots…": "Bots zoeken…",
   "The window closed before the app loaded.":
     "Het venster werd gesloten voordat de app was geladen.",
   "Could not open Manor. Check the connection and try again.":
     "Kan Manor niet openen. Controleer de verbinding en probeer het opnieuw.",
   "Could not reach Manor. {detail}": "Kan Manor niet bereiken. {detail}",
+  "New Group Chat": "Nieuwe groepschat",
+  "Integrations…": "Integraties…",
+  "Chat Details": "Chatdetails",
+  Help: "Help",
+  "Keyboard Shortcuts": "Sneltoetsen",
 };

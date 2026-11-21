@@ -1670,6 +1670,10 @@ msgstr "Await the next water bill."
 msgid "Back"
 msgstr "Back"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Back or forward"
+msgstr "Back or forward"
+
 #: src/components/pages/PageNotice.tsx
 msgid "Back to chat"
 msgstr "Back to chat"
@@ -2103,6 +2107,10 @@ msgstr "Chat"
 msgid "Chat Completions"
 msgstr "Chat Completions"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Chat details"
+msgstr "Chat details"
+
 #: src/pages/shell/composer-mentions.tsx
 msgid "Chat Settings"
 msgstr "Chat Settings"
@@ -2359,6 +2367,7 @@ msgstr "Clients that cannot supply bearer headers, such as claude.ai and ChatGPT
 #: src/pages/PeerMessagesOverlay.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
+#: src/pages/shell/chat-find-bar.tsx
 #: src/pages/WindowChrome.tsx
 msgid "Close"
 msgstr "Close"
@@ -2476,6 +2485,7 @@ msgid "Command"
 msgstr "Command"
 
 #: src/pages/shell/command-palette.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Command menu"
 msgstr "Command menu"
 
@@ -2684,7 +2694,6 @@ msgid "Connect API key"
 msgstr "Connect API key"
 
 #: src/components/SidebarFooter.tsx
-#: src/pages/Shell.tsx
 msgid "Connect apps"
 msgstr "Connect apps"
 
@@ -4141,6 +4150,10 @@ msgstr "Developer"
 msgid "Diagnostics exclude prompts, credentials, tool inputs and outputs."
 msgstr "Diagnostics exclude prompts, credentials, tool inputs and outputs."
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Dictate"
+msgstr "Dictate"
+
 #: src/lib/dictation.ts
 msgid "Dictation ended unexpectedly."
 msgstr "Dictation ended unexpectedly."
@@ -4857,6 +4870,11 @@ msgstr "Find a page"
 msgid "Find contacts, add leads, and update deals in your CRM."
 msgstr "Find contacts, add leads, and update deals in your CRM."
 
+#: src/pages/shell/chat-find-bar.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Find in chat"
+msgstr "Find in chat"
+
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/Onboarding.tsx
 msgid "Find models"
@@ -4921,6 +4939,10 @@ msgstr "flowing"
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Flowing"
 msgstr "Flowing"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Focus message"
+msgstr "Focus message"
 
 #: src/components/FilesPanel.tsx
 msgid "Folder path"
@@ -5098,6 +5120,10 @@ msgstr "Gmail notices match the CRM water bills sheet by address and due date. I
 #: src/pages/NotFound.tsx
 msgid "Go home"
 msgstr "Go home"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Go to bot"
+msgstr "Go to bot"
 
 #: src/pages/AdminAccessPage.tsx
 msgid "Grant"
@@ -5457,6 +5483,7 @@ msgstr "Integration domain"
 
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Integrations"
 msgstr "Integrations"
 
@@ -5553,6 +5580,11 @@ msgstr "Keep your business context organized"
 #: src/pages/RoutineEditor.tsx
 msgid "key"
 msgstr "key"
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Keyboard shortcuts"
+msgstr "Keyboard shortcuts"
 
 #: src/components/vault/kinds.tsx
 msgid "Keys"
@@ -6457,6 +6489,7 @@ msgstr "Never ask"
 
 #: src/components/VaultSettings.tsx
 #: src/pages/shell/chat-context.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New"
 msgstr "New"
 
@@ -6517,6 +6550,7 @@ msgstr "New group"
 
 #: src/pages/Shell.tsx
 #: src/pages/shell/bot-picker.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New group chat"
 msgstr "New group chat"
 
@@ -6585,6 +6619,14 @@ msgstr "New variable"
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Next {0}"
 msgstr "Next {0}"
+
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Next match"
+msgstr "Next match"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Next or previous bot"
+msgstr "Next or previous bot"
 
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
@@ -7716,6 +7758,10 @@ msgstr "Preview tenant recap"
 msgid "Preview unavailable. Download this file to open it."
 msgstr "Preview unavailable. Download this file to open it."
 
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Previous match"
+msgstr "Previous match"
+
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
 msgid "Previous page"
@@ -8745,6 +8791,10 @@ msgstr "Search apps"
 msgid "Search artifacts…"
 msgstr "Search artifacts…"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Search bots"
+msgstr "Search bots"
+
 #: src/pages/shell/command-palette.tsx
 msgid "Search bots, actions, and settings"
 msgstr "Search bots, actions, and settings"
@@ -8963,6 +9013,7 @@ msgstr "Setting up"
 #: src/components/SidebarFooter.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/SettingsOverlay.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 #: src/pages/shell/shell-dialogs.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
 #: src/pages/workspace/WorkspaceView.tsx
@@ -10160,6 +10211,10 @@ msgstr "To:"
 #: src/pages/shell/chat-context.tsx
 msgid "Today"
 msgstr "Today"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Toggle sidebar"
+msgstr "Toggle sidebar"
 
 #: src/pages/DocsView.tsx
 msgid "Token permissions"

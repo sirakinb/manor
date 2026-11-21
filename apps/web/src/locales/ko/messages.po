@@ -1670,6 +1670,10 @@ msgstr ""
 msgid "Back"
 msgstr "뒤로"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Back or forward"
+msgstr "뒤로 또는 앞으로"
+
 #: src/components/pages/PageNotice.tsx
 msgid "Back to chat"
 msgstr "채팅으로 돌아가기"
@@ -2103,6 +2107,10 @@ msgstr ""
 msgid "Chat Completions"
 msgstr ""
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Chat details"
+msgstr "채팅 세부정보"
+
 #: src/pages/shell/composer-mentions.tsx
 msgid "Chat Settings"
 msgstr "채팅 설정"
@@ -2359,6 +2367,7 @@ msgstr ""
 #: src/pages/PeerMessagesOverlay.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
+#: src/pages/shell/chat-find-bar.tsx
 #: src/pages/WindowChrome.tsx
 msgid "Close"
 msgstr "닫기"
@@ -2476,6 +2485,7 @@ msgid "Command"
 msgstr "실행 명령"
 
 #: src/pages/shell/command-palette.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Command menu"
 msgstr ""
 
@@ -2684,7 +2694,6 @@ msgid "Connect API key"
 msgstr "API 키 연결"
 
 #: src/components/SidebarFooter.tsx
-#: src/pages/Shell.tsx
 msgid "Connect apps"
 msgstr "앱 연결"
 
@@ -4141,6 +4150,10 @@ msgstr ""
 msgid "Diagnostics exclude prompts, credentials, tool inputs and outputs."
 msgstr ""
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Dictate"
+msgstr "받아쓰기"
+
 #: src/lib/dictation.ts
 msgid "Dictation ended unexpectedly."
 msgstr ""
@@ -4857,6 +4870,11 @@ msgstr "페이지 찾기"
 msgid "Find contacts, add leads, and update deals in your CRM."
 msgstr ""
 
+#: src/pages/shell/chat-find-bar.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Find in chat"
+msgstr "채팅에서 찾기"
+
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/Onboarding.tsx
 msgid "Find models"
@@ -4921,6 +4939,10 @@ msgstr ""
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Flowing"
 msgstr ""
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Focus message"
+msgstr "메시지 입력란으로 이동"
 
 #: src/components/FilesPanel.tsx
 msgid "Folder path"
@@ -5098,6 +5120,10 @@ msgstr ""
 #: src/pages/NotFound.tsx
 msgid "Go home"
 msgstr "홈으로"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Go to bot"
+msgstr "Bot으로 이동"
 
 #: src/pages/AdminAccessPage.tsx
 msgid "Grant"
@@ -5457,6 +5483,7 @@ msgstr ""
 
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Integrations"
 msgstr "앱·도구 연동"
 
@@ -5553,6 +5580,11 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "key"
 msgstr "key"
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Keyboard shortcuts"
+msgstr "키보드 단축키"
 
 #: src/components/vault/kinds.tsx
 msgid "Keys"
@@ -6457,6 +6489,7 @@ msgstr "묻지 않기"
 
 #: src/components/VaultSettings.tsx
 #: src/pages/shell/chat-context.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New"
 msgstr ""
 
@@ -6517,6 +6550,7 @@ msgstr "새 그룹 만들기"
 
 #: src/pages/Shell.tsx
 #: src/pages/shell/bot-picker.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New group chat"
 msgstr "새 그룹 채팅"
 
@@ -6585,6 +6619,14 @@ msgstr ""
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Next {0}"
 msgstr ""
+
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Next match"
+msgstr "다음 항목"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Next or previous bot"
+msgstr "다음 또는 이전 Bot"
 
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
@@ -7716,6 +7758,10 @@ msgstr ""
 msgid "Preview unavailable. Download this file to open it."
 msgstr ""
 
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Previous match"
+msgstr "이전 항목"
+
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
 msgid "Previous page"
@@ -8745,6 +8791,10 @@ msgstr "앱 검색"
 msgid "Search artifacts…"
 msgstr ""
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Search bots"
+msgstr "Bot 검색"
+
 #: src/pages/shell/command-palette.tsx
 msgid "Search bots, actions, and settings"
 msgstr ""
@@ -8963,6 +9013,7 @@ msgstr ""
 #: src/components/SidebarFooter.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/SettingsOverlay.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 #: src/pages/shell/shell-dialogs.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
 #: src/pages/workspace/WorkspaceView.tsx
@@ -10160,6 +10211,10 @@ msgstr "받는 사람:"
 #: src/pages/shell/chat-context.tsx
 msgid "Today"
 msgstr "오늘"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Toggle sidebar"
+msgstr "사이드바 표시/숨기기"
 
 #: src/pages/DocsView.tsx
 msgid "Token permissions"

@@ -7,7 +7,7 @@ import {
   truncatedPlainText,
   truncatePlainText,
 } from "@rakazo/core";
-import type { PrismaClient } from "@rakazo/db";
+import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { countUnreadInboxChats, spaceNotificationRecipients } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import type { ExecutorDeps } from "./executor-deps.js";
@@ -86,20 +86,9 @@ export async function notifyRun(
     getLogger().error("notification recipient lookup", error);
     return [] as string[];
   });
-  // Open apps alert from this too, for every recipient. Not awaited, so it never holds up the push.
-  const alert = {
-    kind: message.kind,
-    title: truncatePlainText(message.title, COMPLETION_NOTIFICATION_MAX_CHARS),
-    body: truncatePlainText(message.body, COMPLETION_NOTIFICATION_MAX_CHARS),
-    spaceId: run.spaceId,
-    botId: message.botId,
-    threadId: message.threadId,
-    ...(notice.groupId ? { groupId: notice.groupId } : {}),
-  };
+  // Open apps alert from this too, for every recipient.
   for (const userId of recipients) {
-    void (async () => deps.events.publishChatAlert?.(userId, alert))().catch((error) =>
-      getLogger().error("chat alert publish", error),
-    );
+    publishChatAlert(deps.events, { spaceId: run.spaceId, userId }, message, notice.groupId);
   }
   if (!deps.notifications) return;
   const bot = notice.bot;
@@ -144,6 +133,25 @@ export async function notifyRun(
   if (options.retryOnFailure && failures.length > 0 && failures.length === sent.length) {
     throw failures[0];
   }
+}
+
+/** Open apps alert from the same message. Not awaited, so it never holds up the push. */
+export function publishChatAlert(
+  events: Pick<ThreadEvents, "publishChatAlert"> | undefined,
+  run: { spaceId: string; userId: string },
+  message: NotificationMessage,
+  groupId: string | null,
+) {
+  void (async () =>
+    events?.publishChatAlert?.(run.userId, {
+      kind: message.kind,
+      title: truncatePlainText(message.title, COMPLETION_NOTIFICATION_MAX_CHARS),
+      body: truncatePlainText(message.body, COMPLETION_NOTIFICATION_MAX_CHARS),
+      spaceId: run.spaceId,
+      botId: message.botId,
+      threadId: message.threadId,
+      ...(groupId ? { groupId } : {}),
+    }))().catch((error) => getLogger().error("chat alert publish", error));
 }
 
 export function runSendsFinishNotification(trigger: string): boolean {

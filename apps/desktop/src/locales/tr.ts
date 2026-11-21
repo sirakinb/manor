@@ -185,9 +185,15 @@ export const TR_MESSAGES: Record<string, string> = {
   "Previous Bot": "Önceki Bot",
   "Command Menu…": "Komut Menüsü…",
   "Toggle Sidebar": "Kenar Çubuğunu Aç/Kapat",
-  "Search…": "Ara…",
+  "Find…": "Bul…",
+  "Search Bots…": "Bot Ara…",
   "The window closed before the app loaded.": "Pencere, uygulama yüklenmeden kapandı.",
   "Could not open Manor. Check the connection and try again.":
     "Manor açılamadı. Bağlantıyı kontrol edip tekrar deneyin.",
   "Could not reach Manor. {detail}": "Manor'a ulaşılamadı. {detail}",
+  "New Group Chat": "Yeni Grup Sohbeti",
+  "Integrations…": "Entegrasyonlar…",
+  "Chat Details": "Sohbet Ayrıntıları",
+  Help: "Yardım",
+  "Keyboard Shortcuts": "Klavye Kısayolları",
 };

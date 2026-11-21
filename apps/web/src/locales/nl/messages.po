@@ -1670,6 +1670,10 @@ msgstr ""
 msgid "Back"
 msgstr "Terug"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Back or forward"
+msgstr "Terug of vooruit"
+
 #: src/components/pages/PageNotice.tsx
 msgid "Back to chat"
 msgstr "Terug naar chat"
@@ -2103,6 +2107,10 @@ msgstr ""
 msgid "Chat Completions"
 msgstr ""
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Chat details"
+msgstr "Chatdetails"
+
 #: src/pages/shell/composer-mentions.tsx
 msgid "Chat Settings"
 msgstr "Chatinstellingen"
@@ -2359,6 +2367,7 @@ msgstr ""
 #: src/pages/PeerMessagesOverlay.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
+#: src/pages/shell/chat-find-bar.tsx
 #: src/pages/WindowChrome.tsx
 msgid "Close"
 msgstr "Sluiten"
@@ -2476,6 +2485,7 @@ msgid "Command"
 msgstr "Commando"
 
 #: src/pages/shell/command-palette.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Command menu"
 msgstr ""
 
@@ -2684,7 +2694,6 @@ msgid "Connect API key"
 msgstr "API-sleutel koppelen"
 
 #: src/components/SidebarFooter.tsx
-#: src/pages/Shell.tsx
 msgid "Connect apps"
 msgstr "Apps verbinden"
 
@@ -4141,6 +4150,10 @@ msgstr ""
 msgid "Diagnostics exclude prompts, credentials, tool inputs and outputs."
 msgstr ""
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Dictate"
+msgstr "Dicteren"
+
 #: src/lib/dictation.ts
 msgid "Dictation ended unexpectedly."
 msgstr ""
@@ -4857,6 +4870,11 @@ msgstr "Pagina zoeken"
 msgid "Find contacts, add leads, and update deals in your CRM."
 msgstr ""
 
+#: src/pages/shell/chat-find-bar.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Find in chat"
+msgstr "Zoeken in chat"
+
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/Onboarding.tsx
 msgid "Find models"
@@ -4921,6 +4939,10 @@ msgstr ""
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Flowing"
 msgstr ""
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Focus message"
+msgstr "Naar bericht"
 
 #: src/components/FilesPanel.tsx
 msgid "Folder path"
@@ -5098,6 +5120,10 @@ msgstr ""
 #: src/pages/NotFound.tsx
 msgid "Go home"
 msgstr "Naar home"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Go to bot"
+msgstr "Naar bot"
 
 #: src/pages/AdminAccessPage.tsx
 msgid "Grant"
@@ -5457,6 +5483,7 @@ msgstr "Integratiedomein"
 
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Integrations"
 msgstr "Integraties"
 
@@ -5553,6 +5580,11 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "key"
 msgstr "sleutel"
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Keyboard shortcuts"
+msgstr "Sneltoetsen"
 
 #: src/components/vault/kinds.tsx
 msgid "Keys"
@@ -6457,6 +6489,7 @@ msgstr "Nooit vragen"
 
 #: src/components/VaultSettings.tsx
 #: src/pages/shell/chat-context.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New"
 msgstr "Nieuw"
 
@@ -6517,6 +6550,7 @@ msgstr "Nieuwe groep"
 
 #: src/pages/Shell.tsx
 #: src/pages/shell/bot-picker.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New group chat"
 msgstr "Nieuwe groepschat"
 
@@ -6585,6 +6619,14 @@ msgstr ""
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Next {0}"
 msgstr ""
+
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Next match"
+msgstr "Volgende overeenkomst"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Next or previous bot"
+msgstr "Volgende of vorige bot"
 
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
@@ -7716,6 +7758,10 @@ msgstr ""
 msgid "Preview unavailable. Download this file to open it."
 msgstr ""
 
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Previous match"
+msgstr "Vorige overeenkomst"
+
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
 msgid "Previous page"
@@ -8745,6 +8791,10 @@ msgstr "Apps zoeken"
 msgid "Search artifacts…"
 msgstr "Artefacten zoeken…"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Search bots"
+msgstr "Bots zoeken"
+
 #: src/pages/shell/command-palette.tsx
 msgid "Search bots, actions, and settings"
 msgstr ""
@@ -8963,6 +9013,7 @@ msgstr ""
 #: src/components/SidebarFooter.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/SettingsOverlay.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 #: src/pages/shell/shell-dialogs.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
 #: src/pages/workspace/WorkspaceView.tsx
@@ -10160,6 +10211,10 @@ msgstr "Aan:"
 #: src/pages/shell/chat-context.tsx
 msgid "Today"
 msgstr "Vandaag"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Toggle sidebar"
+msgstr "Zijbalk tonen/verbergen"
 
 #: src/pages/DocsView.tsx
 msgid "Token permissions"

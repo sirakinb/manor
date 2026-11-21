@@ -13,7 +13,7 @@ const catalogDir = path.join(mobileDir, "e2e", "ios-screenshots");
 /** Screens the catalog cannot reach yet, and why. Capture one and remove it here. */
 const UNCOVERED: Record<string, string> = {
   "integration-setup": "redirects to Integrations",
-  share: "Android only: iOS has no share extension yet",
+  share: "opened from another app's share sheet, which the catalog cannot drive",
   // Manor's own screens. The catalog's flows come from upstream and do not visit them yet.
   crm: "Manor screen: needs a CRM fixture the catalog's server does not seed",
   files: "Manor screen: needs a bot computer with workspace files",

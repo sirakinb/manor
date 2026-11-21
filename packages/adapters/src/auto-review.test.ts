@@ -5,6 +5,8 @@ import {
   autoReviewTimeoutMs,
   buildAnswerCheckPrompt,
   buildAutoReviewPrompt,
+  checkerCostUsd,
+  createLlmVerifier,
   isAutoReviewCheckerConfigured,
   LlmAutoReviewProvider,
   parseAnswerCheckText,
@@ -185,6 +187,7 @@ describe("parseAutoReviewJudgeText", () => {
       reason: "Sends email outside scope.",
     });
     expect(parseAutoReviewJudgeText("not json")).toEqual({ decision: "error" });
+    expect(parseAutoReviewJudgeText('{"decision":"pass"')).toEqual({ decision: "error" });
   });
 
   it("strips em dashes from reasons", () => {
@@ -414,6 +417,165 @@ describe("runAutoReviewJudge instructions", () => {
       threadId: "thread",
     });
     expect(captured?.model?.thinkingLevel).toBe("low");
+  });
+});
+
+describe("runAutoReviewJudge unreadable verdict", () => {
+  const judge = (replies: string[]) => {
+    const run = vi.fn(() =>
+      (async function* () {
+        yield { type: "done", text: replies.shift() } as never;
+      })(),
+    );
+    const result = runAutoReviewJudge({
+      runtime: { describe: () => ({ capabilities: { scripted: false } }), run } as never,
+      checker: { provider: "openrouter", model: "x" },
+      prompt: "test",
+      runId: "run",
+      spaceId: "ws",
+      userId: "user",
+      botId: "bot",
+      threadId: "thread",
+    });
+    return { run, result };
+  };
+
+  it("asks the checker once more before giving up", async () => {
+    const recovered = judge(["I think this is fine.", '{"decision":"pass","reason":"Fits."}']);
+    expect(await recovered.result).toMatchObject({ decision: "pass", reason: "Fits." });
+    expect(recovered.run).toHaveBeenCalledTimes(2);
+
+    const unreadable = judge(["I think this is fine.", "Still fine."]);
+    expect((await unreadable.result).decision).toBe("error");
+    expect(unreadable.run).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("checker verdict repair and retry", () => {
+  const checker = { provider: "openrouter", model: "openai/gpt-5.6-luna" };
+  const ctx = {
+    operationId: "op",
+    traceId: "trace",
+    spaceId: "ws",
+    userId: "user",
+    signal: new AbortController().signal,
+  };
+  const answerRequest = {
+    userTask: "Run the tests",
+    claims: ["All 12 tests passed.", "The build was deployed."],
+    sources: [{ tool: "shell", content: "12 passed, 0 failed" }],
+  };
+  /** Each call answers with the next reply and reports 10 input and 2 output tokens. */
+  const verifier = (replies: string[], timeoutMs = 5_000) => {
+    const run = vi.fn(() =>
+      (async function* () {
+        yield { type: "usage", inputTokens: 10, outputTokens: 2, accounted: true } as never;
+        yield { type: "done", text: replies.shift() } as never;
+      })(),
+    );
+    const engine = createLlmVerifier({
+      runtime: { describe: () => ({ capabilities: { scripted: false } }), run } as never,
+      checker,
+      runId: "run",
+      botId: "bot",
+      threadId: "thread",
+      timeoutMs,
+      answerTimeoutMs: timeoutMs,
+    });
+    return { run, engine };
+  };
+
+  it("reads a readable verdict from one call", async () => {
+    const { run, engine } = verifier(['{"decision":"pass","reason":"Fits."}']);
+    const result = await engine.reviewAction(
+      {
+        toolName: "gmail_send_email",
+        connectorKind: "gmail",
+        args: {},
+        userTask: "Reply",
+        botDescription: "Mail bot",
+        matchingRules: [],
+      },
+      ctx,
+    );
+    expect(result).toMatchObject({ decision: "pass", inputTokens: 10, outputTokens: 2 });
+    expect(result.costUsd).toBe(checkerCostUsd(checker, 10, 2));
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks once more after an unreadable verdict and prices both calls", async () => {
+    const { run, engine } = verifier([
+      "Claim 2 looks unsupported.",
+      'Sure: {"unsupported":[2],"reason":"No deploy.",}',
+    ]);
+    const result = await engine.checkAnswer(answerRequest, ctx);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ decision: "ask", inputTokens: 20, outputTokens: 4 });
+    expect(result.costUsd).toBeGreaterThan(0);
+    expect(result.costUsd).toBe(checkerCostUsd(checker, 20, 4));
+  });
+
+  it("gives up after a second unreadable verdict without passing", async () => {
+    const action = verifier(["Looks fine to me.", "Still fine."]);
+    const review = await action.engine.reviewAction(
+      {
+        toolName: "gmail_send_email",
+        connectorKind: "gmail",
+        args: {},
+        userTask: "Reply",
+        botDescription: "Mail bot",
+        matchingRules: [],
+      },
+      ctx,
+    );
+    // The gate asks a person on "error" (executor-readonly-approval.test.ts).
+    expect(review).toMatchObject({ decision: "error", reason: "Checker returned no decision." });
+    expect(action.run).toHaveBeenCalledTimes(2);
+
+    const reply = verifier(["Claim 2 is off.", "Claim 2 is still off."]);
+    const answer = await reply.engine.checkAnswer(answerRequest, ctx);
+    // checkReply adds a note only for "ask" with unsupported claims.
+    expect(answer.decision).toBe("error");
+    expect(answer.details).toBeUndefined();
+    expect(reply.run).toHaveBeenCalledTimes(2);
+    expect(answer.costUsd).toBe(checkerCostUsd(checker, 20, 4));
+  });
+
+  it("keeps both calls inside one deadline", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    let calls = 0;
+    const run = vi.fn((_request: unknown, context: { signal: AbortSignal }) =>
+      (async function* () {
+        calls++;
+        if (calls === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          yield { type: "done", text: "not a verdict" } as never;
+          return;
+        }
+        await new Promise((_, reject) =>
+          context.signal.addEventListener("abort", () => reject(context.signal.reason), {
+            once: true,
+          }),
+        );
+      })(),
+    );
+    const started = performance.now();
+    const result = await runAutoReviewJudge({
+      runtime: { describe: () => ({ capabilities: { scripted: false } }), run } as never,
+      checker,
+      prompt: "test",
+      runId: "run",
+      spaceId: "ws",
+      userId: "user",
+      botId: "bot",
+      threadId: "thread",
+      timeoutMs: 250,
+    });
+    const elapsed = performance.now() - started;
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ decision: "error", reason: "Checker timed out." });
+    expect(elapsed).toBeLessThan(340);
+    vi.restoreAllMocks();
   });
 });
 

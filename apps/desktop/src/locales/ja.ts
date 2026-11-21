@@ -193,9 +193,15 @@ export const JA_MESSAGES: Record<string, string> = {
   "Previous Bot": "前のボット",
   "Command Menu…": "コマンドメニュー…",
   "Toggle Sidebar": "サイドバーを切り替え",
-  "Search…": "検索…",
+  "Find…": "検索…",
+  "Search Bots…": "ボットを検索…",
   "The window closed before the app loaded.": "アプリの読み込み前にウインドウが閉じられました。",
   "Could not open Manor. Check the connection and try again.":
     "Manorを開けませんでした。接続を確認して、もう一度お試しください。",
   "Could not reach Manor. {detail}": "Manorに接続できませんでした。{detail}",
+  "New Group Chat": "新規グループチャット",
+  "Integrations…": "連携…",
+  "Chat Details": "チャットの詳細",
+  Help: "ヘルプ",
+  "Keyboard Shortcuts": "キーボードショートカット",
 };

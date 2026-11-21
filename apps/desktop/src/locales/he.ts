@@ -184,9 +184,15 @@ export const HE_MESSAGES: Record<string, string> = {
   "Previous Bot": "הבוט הקודם",
   "Command Menu…": "תפריט פקודות…",
   "Toggle Sidebar": "הצגה/הסתרה של סרגל הצד",
-  "Search…": "חיפוש…",
+  "Find…": "חיפוש…",
+  "Search Bots…": "חיפוש בוטים…",
   "The window closed before the app loaded.": "החלון נסגר לפני שהאפליקציה נטענה.",
   "Could not open Manor. Check the connection and try again.":
     "לא ניתן לפתוח את Manor. יש לבדוק את החיבור ולנסות שוב.",
   "Could not reach Manor. {detail}": "לא ניתן להתחבר ל-Manor. {detail}",
+  "New Group Chat": "צ׳אט קבוצתי חדש",
+  "Integrations…": "אינטגרציות…",
+  "Chat Details": "פרטי הצ׳אט",
+  Help: "עזרה",
+  "Keyboard Shortcuts": "קיצורי מקלדת",
 };

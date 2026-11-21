@@ -183,9 +183,15 @@ export const HI_MESSAGES: Record<string, string> = {
   "Previous Bot": "पिछला बॉट",
   "Command Menu…": "कमांड मेन्यू…",
   "Toggle Sidebar": "साइडबार दिखाएँ/छिपाएँ",
-  "Search…": "खोजें…",
+  "Find…": "खोजें…",
+  "Search Bots…": "बॉट खोजें…",
   "The window closed before the app loaded.": "ऐप लोड होने से पहले विंडो बंद हो गई।",
   "Could not open Manor. Check the connection and try again.":
     "Manor नहीं खुल सका। कनेक्शन जाँचें और फिर से कोशिश करें।",
   "Could not reach Manor. {detail}": "Manor तक नहीं पहुँच सके। {detail}",
+  "New Group Chat": "नई समूह चैट",
+  "Integrations…": "इंटीग्रेशन…",
+  "Chat Details": "चैट विवरण",
+  Help: "सहायता",
+  "Keyboard Shortcuts": "कीबोर्ड शॉर्टकट",
 };

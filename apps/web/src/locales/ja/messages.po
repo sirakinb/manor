@@ -1670,6 +1670,10 @@ msgstr ""
 msgid "Back"
 msgstr "戻る"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Back or forward"
+msgstr "戻る・進む"
+
 #: src/components/pages/PageNotice.tsx
 msgid "Back to chat"
 msgstr "チャットに戻る"
@@ -2103,6 +2107,10 @@ msgstr ""
 msgid "Chat Completions"
 msgstr ""
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Chat details"
+msgstr "チャットの詳細"
+
 #: src/pages/shell/composer-mentions.tsx
 msgid "Chat Settings"
 msgstr "チャット設定"
@@ -2359,6 +2367,7 @@ msgstr ""
 #: src/pages/PeerMessagesOverlay.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
+#: src/pages/shell/chat-find-bar.tsx
 #: src/pages/WindowChrome.tsx
 msgid "Close"
 msgstr "閉じる"
@@ -2476,6 +2485,7 @@ msgid "Command"
 msgstr "コマンド"
 
 #: src/pages/shell/command-palette.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Command menu"
 msgstr ""
 
@@ -2684,7 +2694,6 @@ msgid "Connect API key"
 msgstr "APIキーを接続"
 
 #: src/components/SidebarFooter.tsx
-#: src/pages/Shell.tsx
 msgid "Connect apps"
 msgstr "アプリを接続"
 
@@ -4141,6 +4150,10 @@ msgstr ""
 msgid "Diagnostics exclude prompts, credentials, tool inputs and outputs."
 msgstr ""
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Dictate"
+msgstr "音声入力"
+
 #: src/lib/dictation.ts
 msgid "Dictation ended unexpectedly."
 msgstr ""
@@ -4857,6 +4870,11 @@ msgstr "ページを検索"
 msgid "Find contacts, add leads, and update deals in your CRM."
 msgstr ""
 
+#: src/pages/shell/chat-find-bar.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Find in chat"
+msgstr "チャット内を検索"
+
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/Onboarding.tsx
 msgid "Find models"
@@ -4921,6 +4939,10 @@ msgstr ""
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Flowing"
 msgstr ""
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Focus message"
+msgstr "メッセージ欄に移動"
 
 #: src/components/FilesPanel.tsx
 msgid "Folder path"
@@ -5098,6 +5120,10 @@ msgstr ""
 #: src/pages/NotFound.tsx
 msgid "Go home"
 msgstr "ホームへ"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Go to bot"
+msgstr "ボットに移動"
 
 #: src/pages/AdminAccessPage.tsx
 msgid "Grant"
@@ -5457,6 +5483,7 @@ msgstr "連携ドメイン"
 
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Integrations"
 msgstr "連携"
 
@@ -5553,6 +5580,11 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "key"
 msgstr "キー"
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Keyboard shortcuts"
+msgstr "キーボードショートカット"
 
 #: src/components/vault/kinds.tsx
 msgid "Keys"
@@ -6457,6 +6489,7 @@ msgstr "確認しない"
 
 #: src/components/VaultSettings.tsx
 #: src/pages/shell/chat-context.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New"
 msgstr "新規"
 
@@ -6517,6 +6550,7 @@ msgstr "新しいグループ"
 
 #: src/pages/Shell.tsx
 #: src/pages/shell/bot-picker.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "New group chat"
 msgstr "新しいグループチャット"
 
@@ -6585,6 +6619,14 @@ msgstr ""
 #: src/pages/workspace/sections/SystemSection.tsx
 msgid "Next {0}"
 msgstr ""
+
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Next match"
+msgstr "次の一致"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Next or previous bot"
+msgstr "次・前のボット"
 
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
@@ -7716,6 +7758,10 @@ msgstr ""
 msgid "Preview unavailable. Download this file to open it."
 msgstr ""
 
+#: src/pages/shell/chat-find-bar.tsx
+msgid "Previous match"
+msgstr "前の一致"
+
 #: src/components/markdown-copy.tsx
 #: src/components/WorkspacePdfPreview.tsx
 msgid "Previous page"
@@ -8745,6 +8791,10 @@ msgstr "アプリを検索"
 msgid "Search artifacts…"
 msgstr "アーティファクトを検索…"
 
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Search bots"
+msgstr "ボットを検索"
+
 #: src/pages/shell/command-palette.tsx
 msgid "Search bots, actions, and settings"
 msgstr ""
@@ -8963,6 +9013,7 @@ msgstr ""
 #: src/components/SidebarFooter.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/SettingsOverlay.tsx
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
 #: src/pages/shell/shell-dialogs.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
 #: src/pages/workspace/WorkspaceView.tsx
@@ -10160,6 +10211,10 @@ msgstr "宛先:"
 #: src/pages/shell/chat-context.tsx
 msgid "Today"
 msgstr "今日"
+
+#: src/pages/shell/keyboard-shortcuts-dialog.tsx
+msgid "Toggle sidebar"
+msgstr "サイドバーの表示切り替え"
 
 #: src/pages/DocsView.tsx
 msgid "Token permissions"

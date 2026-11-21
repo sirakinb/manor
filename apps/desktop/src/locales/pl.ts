@@ -203,9 +203,15 @@ export const PL_MESSAGES: Record<string, string> = {
   "Previous Bot": "Poprzedni bot",
   "Command Menu…": "Menu poleceń…",
   "Toggle Sidebar": "Pokaż lub ukryj pasek boczny",
-  "Search…": "Szukaj…",
+  "Find…": "Znajdź…",
+  "Search Bots…": "Szukaj botów…",
   "The window closed before the app loaded.": "Okno zamknęło się przed wczytaniem aplikacji.",
   "Could not open Manor. Check the connection and try again.":
     "Nie udało się otworzyć Manor. Sprawdź połączenie i spróbuj ponownie.",
   "Could not reach Manor. {detail}": "Nie udało się połączyć z Manor. {detail}",
+  "New Group Chat": "Nowy czat grupowy",
+  "Integrations…": "Integracje…",
+  "Chat Details": "Szczegóły czatu",
+  Help: "Pomoc",
+  "Keyboard Shortcuts": "Skróty klawiszowe",
 };

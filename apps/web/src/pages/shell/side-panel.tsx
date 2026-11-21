@@ -55,6 +55,7 @@ export function ShellSidePanel({
   manorTitle,
   manorHeaderActions,
   manorContent,
+  discardChatAttachments,
 }: {
   rpc: ReturnType<typeof createSpaceRpc>;
   panel: Panel;
@@ -90,6 +91,8 @@ export function ShellSidePanel({
   manorHeaderActions?: ReactNode;
   /** Manor: the preview, files and run-log panels. */
   manorContent?: ReactNode;
+  /** Drops a deleted chat's pending attachments with their previews. */
+  discardChatAttachments: (threadKey: string) => void;
 }) {
   const { t } = useLingui();
   const open = Boolean(panel && (active || activeGroup || panel === "import-agent"));
@@ -182,6 +185,7 @@ export function ShellSidePanel({
               }}
               onRemove={async () => {
                 await rpc.groups.remove({ groupId: activeGroup.id });
+                discardChatAttachments(activeGroup.id);
                 const remainingGroups = groups.filter((group) => group.id !== activeGroup.id);
                 setGroups(remainingGroups);
                 setPanel(null);

@@ -192,9 +192,15 @@ export const RU_MESSAGES: Record<string, string> = {
   "Previous Bot": "Предыдущий бот",
   "Command Menu…": "Меню команд…",
   "Toggle Sidebar": "Показать или скрыть боковую панель",
-  "Search…": "Найти…",
+  "Find…": "Найти…",
+  "Search Bots…": "Поиск ботов…",
   "The window closed before the app loaded.": "Окно закрылось до загрузки приложения.",
   "Could not open Manor. Check the connection and try again.":
     "Не удалось открыть Manor. Проверьте подключение и повторите попытку.",
   "Could not reach Manor. {detail}": "Не удалось подключиться к Manor. {detail}",
+  "New Group Chat": "Новый групповой чат",
+  "Integrations…": "Интеграции…",
+  "Chat Details": "Сведения о чате",
+  Help: "Справка",
+  "Keyboard Shortcuts": "Сочетания клавиш",
 };

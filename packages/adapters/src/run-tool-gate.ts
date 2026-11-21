@@ -37,6 +37,7 @@ import {
 } from "./approval-effect.js";
 import { redactToolArgsForReview } from "./auto-review.js";
 import { RAKAZO_DOCS_URLS } from "./builtin-skills.js";
+import { CATALOG_LOAD, CATALOG_SEARCH } from "./lazy-tool-catalog.js";
 import { paidRequestEffect } from "./paid-request.js";
 import { PURCHASE_CHECKED_TOOLS, purchaseApprovalOf } from "./purchase-gate.js";
 import type { RunContext } from "./run-context.js";
@@ -144,21 +145,28 @@ export async function gateToolCall(
   const unidentifiedAction = Boolean(batch && !batch.complete);
   const approvalName = connectorCall.route?.connectionId ? connectorCall.route.toolName : name;
   const approvalToolNames = batch?.actions.length ? batch.actions : [approvalName];
+  // Search and load return a list or a schema. They never call the connector.
+  const catalogControlRead =
+    !connectorCall.route?.connectionId &&
+    !connectorCall.route?.resourceId &&
+    (connectorCall.route?.toolName === CATALOG_SEARCH ||
+      connectorCall.route?.toolName === CATALOG_LOAD);
   // A batch tool declared as a write makes each of its actions one.
   const declaredReadOnlyFor = (toolName: string) =>
     toolName === approvalName || toolName === name || declaredReadOnly === false
       ? declaredReadOnly
       : ctx.tools.connector.get(toolName)?.readOnly;
   const requiresUnattendedApproval =
-    (unidentifiedAction && run.trigger === "webhook") ||
-    approvalToolNames.some((toolName) =>
-      unattendedTriggerToolRequiresApproval(
-        run.trigger,
-        toolName,
-        viaConnector,
-        declaredReadOnlyFor(toolName),
-      ),
-    );
+    !catalogControlRead &&
+    ((unidentifiedAction && run.trigger === "webhook") ||
+      approvalToolNames.some((toolName) =>
+        unattendedTriggerToolRequiresApproval(
+          run.trigger,
+          toolName,
+          viaConnector,
+          declaredReadOnlyFor(toolName),
+        ),
+      ));
   const connectorProviders = ctx.tools.connectedPlugins.map((plugin) => plugin.provider);
   const connectorKind = connectorKindFromToolName(approvalName, connectorProviders);
   // paid_request with only a purchase id sends the request its approval already named.
@@ -203,9 +211,10 @@ export async function gateToolCall(
       )
     : viaConnector &&
         !unidentifiedAction &&
-        approvalToolNames.every(
-          (toolName) => !connectorToolRequiresApproval(toolName, declaredReadOnlyFor(toolName)),
-        )
+        (catalogControlRead ||
+          approvalToolNames.every(
+            (toolName) => !connectorToolRequiresApproval(toolName, declaredReadOnlyFor(toolName)),
+          ))
       ? connectorTrusts
       : undefined;
   const connectorReadGated =
@@ -242,11 +251,12 @@ export async function gateToolCall(
     requiresUnattendedApproval ||
     siteGate === "new" ||
     unidentifiedAction ||
-    approvalToolNames.some((toolName) =>
-      toolRequiresApproval(toolName, viaConnector, declaredReadOnlyFor(toolName), {
-        computerKind: ctx.computer.kind,
-      }),
-    );
+    (!catalogControlRead &&
+      approvalToolNames.some((toolName) =>
+        toolRequiresApproval(toolName, viaConnector, declaredReadOnlyFor(toolName), {
+          computerKind: ctx.computer.kind,
+        }),
+      ));
   // A gated read still fails closed when its review errors, and keeps its approval key.
   const gated = requiresApprovalByDefault || connectorReadGated;
   const requiresMandatoryApproval =

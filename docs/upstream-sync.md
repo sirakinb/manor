@@ -16,7 +16,7 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`. In progress: `v0.7.0`.
+`v0.5.0`, `v0.6.0`, `v0.7.0`. In progress: `v0.8.0`.
 
 ### How a stage is resolved
 
@@ -235,6 +235,16 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   page reloads into the account's own space. Manor's `recoverInitialSpace` just waits for
   that recovery so the opening screen shows no error. There is no second recovery and no
   in-place shell remount; two paths raced and ended in different states.
+- Manor's reply check and approval checker share upstream's verdict parser (`parseModelJson`)
+  and its single repair-and-retry (`runCheckerVerdict` in `packages/adapters/src/auto-review.ts`):
+  an unreadable verdict gets one more call inside the same deadline, and the cost covers both
+  calls. A verdict that still cannot be read is an error, never an approval: an action asks a
+  person, and a reply check adds no note.
+- Upstream's "Let bots use this computer" (the whole computer, through a paired device or the
+  desktop app's bundled local server) and Manor's "Share this Mac" (one picked folder, used by a
+  bot set to "This Mac" through `/local-computer` and `LocalSandboxProvider`) are different
+  features, and both stay. Upstream's switch for the bundled server needs
+  `RAKAZO_DESKTOP_STACK_TOKEN`, which production leaves unset.
 
 ### Decisions made during the sync
 
@@ -368,6 +378,11 @@ Things the one production deploy at the end must cover, collected as stages land
 - `SANDBOX_PROVIDER=incus` is not used in production. Never point a copy of production data
   (such as the rehearsal) at a shared Incus project: Incus orphan removal deletes every
   instance labelled with a bot's id, and a copy has the same bot ids.
+- A message in a group chat that names no bot now starts a run for every bot in the group (up to
+  ten) instead of only the first, so busy groups cost more. Each bot may stay silent.
+- The iOS share extension needs the bundle id `com.pentridgemedia.manor.expo-sharing-extension`
+  and the app group `group.com.pentridgemedia.manor` registered before the next iOS build.
+- The desktop app is on Electron 45 (45.2.2 from `v0.8.0`).
 
 ## Standing rules
 

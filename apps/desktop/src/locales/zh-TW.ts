@@ -175,9 +175,15 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   "Previous Bot": "上一個機器人",
   "Command Menu…": "指令選單…",
   "Toggle Sidebar": "切換側邊欄",
-  "Search…": "搜尋…",
+  "Find…": "尋找…",
+  "Search Bots…": "搜尋機器人…",
   "The window closed before the app loaded.": "App 載入完成前視窗已關閉。",
   "Could not open Manor. Check the connection and try again.":
     "無法開啟 Manor。請檢查網路連線後再試一次。",
   "Could not reach Manor. {detail}": "無法連線至 Manor。{detail}",
+  "New Group Chat": "新增群組聊天",
+  "Integrations…": "整合…",
+  "Chat Details": "聊天詳細資料",
+  Help: "說明",
+  "Keyboard Shortcuts": "鍵盤快速鍵",
 };
