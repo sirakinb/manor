@@ -345,6 +345,10 @@ msgstr "{botName}’s computer"
 msgid "{brandName} brings your agents, customer records, and business tools together. Start with one agent and one useful task. Build from a result you have checked."
 msgstr "{brandName} brings your agents, customer records, and business tools together. Start with one agent and one useful task. Build from a result you have checked."
 
+#: src/components/ModelCredits.tsx
+msgid "{brandName} credits"
+msgstr "{brandName} credits"
+
 #: src/pages/DocsView.tsx
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
@@ -1193,8 +1197,8 @@ msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "An API key is stored for this provider, not a subscription sign-in."
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "An existing Honcho peer to read from. Rakazo never writes to it."
-msgstr "An existing Honcho peer to read from. Rakazo never writes to it."
+msgid "An existing Honcho peer to read from. {brandName} never writes to it."
+msgstr "An existing Honcho peer to read from. {brandName} never writes to it."
 
 #: src/lib/agent-import-errors.ts
 msgid "An imported API key could not be checked. Try again."
@@ -2100,8 +2104,8 @@ msgid "Choose folder"
 msgstr "Choose folder"
 
 #: src/components/ModelCredits.tsx
-msgid "Choose how to use Rakazo"
-msgstr "Choose how to use Rakazo"
+msgid "Choose how to use {brandName}"
+msgstr "Choose how to use {brandName}"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Choose lease"
@@ -4745,8 +4749,8 @@ msgid "How to check"
 msgstr "How to check"
 
 #: src/components/SignupSurvey.tsx
-msgid "How will you use Rakazo?"
-msgstr "How will you use Rakazo?"
+msgid "How will you use {brandName}?"
+msgstr "How will you use {brandName}?"
 
 #: src/pages/DocsView.tsx
 msgid "HTTP API reference"
@@ -6227,8 +6231,8 @@ msgid "Not imported"
 msgstr "Not imported"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in Rakazo's catalog"
-msgstr "Not in Rakazo's catalog"
+msgid "Not in {brandName}'s catalog"
+msgstr "Not in {brandName}'s catalog"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Not in the plugin catalog"
@@ -6252,16 +6256,16 @@ msgstr "Not scheduled"
 
 #: src/pages/shell/agent-import.tsx
 #: src/pages/shell/import-status.ts
-msgid "Not supported in Rakazo"
-msgstr "Not supported in Rakazo"
+msgid "Not supported in {brandName}"
+msgstr "Not supported in {brandName}"
 
 #: src/pages/workspace/PipelineMap.tsx
 msgid "Not synced yet"
 msgstr "Not synced yet"
 
 #: src/pages/shell/agent-import.tsx
-msgid "Not used by Rakazo"
-msgstr "Not used by Rakazo"
+msgid "Not used by {brandName}"
+msgstr "Not used by {brandName}"
 
 #: src/components/McpServerHealthLine.tsx
 msgid "Not working"
@@ -7000,13 +7004,9 @@ msgstr "Pull request"
 msgid "Queued"
 msgstr "Queued"
 
-#: src/components/ModelCredits.tsx
-msgid "Rakazo credits"
-msgstr "Rakazo credits"
-
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
-msgstr "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
+msgid "rakazo-shared and IDs starting with bot- are reserved for {brandName}."
+msgstr "rakazo-shared and IDs starting with bot- are reserved for {brandName}."
 
 #: src/pages/workspace/sections/EmailSection.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
@@ -9375,6 +9375,11 @@ msgstr "Usage"
 msgid "Use {0}"
 msgstr "Use {0}"
 
+#: src/components/ModelCredits.tsx
+#: src/pages/Onboarding.tsx
+msgid "Use {brandName} credits"
+msgstr "Use {brandName} credits"
+
 #: src/pages/HostComputerPrompt.tsx
 msgid "Use {hostLabel}"
 msgstr "Use {hostLabel}"
@@ -9427,11 +9432,6 @@ msgstr "Use password"
 #: src/components/teach/TeachRecordingChrome.tsx
 msgid "Use Protected input for passwords."
 msgstr "Use Protected input for passwords."
-
-#: src/components/ModelCredits.tsx
-#: src/pages/Onboarding.tsx
-msgid "Use Rakazo credits"
-msgstr "Use Rakazo credits"
 
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Use space default"
@@ -9653,8 +9653,8 @@ msgid "Weekly email recap"
 msgstr "Weekly email recap"
 
 #: src/components/SignupSurvey.tsx
-msgid "Welcome to Rakazo"
-msgstr "Welcome to Rakazo"
+msgid "Welcome to {brandName}"
+msgstr "Welcome to {brandName}"
 
 #: src/pages/shell/dialogs.tsx
 msgid "What about its memories?"
@@ -9665,8 +9665,8 @@ msgid "What can I do with this connection?"
 msgstr "What can I do with this connection?"
 
 #: src/components/SignupSurvey.tsx
-msgid "What do you most want Rakazo to help with?"
-msgstr "What do you most want Rakazo to help with?"
+msgid "What do you most want {brandName} to help with?"
+msgstr "What do you most want {brandName} to help with?"
 
 #: src/pages/shell/message-cards.tsx
 msgid "What do you want me on first?"

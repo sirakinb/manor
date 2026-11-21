@@ -42,9 +42,10 @@ it.skipIf(!testDatabase)(
         });
       await boot(env.OWNER_PASSWORD);
       const owner = await prisma.user.findUniqueOrThrow({ where: { email: env.OWNER_EMAIL } });
+      // Manor keeps the deployment owner: the bootstrapped account is the first claimant.
       expect(
         await prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-      ).toMatchObject({ ownerUserId: null, signupsEnabled: false });
+      ).toMatchObject({ ownerUserId: owner.id, signupsEnabled: false });
       expect(await prisma.session.count()).toBe(0);
       expect(owner.emailVerified).toBe(true);
       const memberships = await prisma.spaceMember.count({ where: { userId: owner.id } });
@@ -53,11 +54,11 @@ it.skipIf(!testDatabase)(
       await expect(boot("wrong-recovery-password")).rejects.toThrow();
       expect(
         await prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-      ).toMatchObject({ ownerUserId: null });
+      ).toMatchObject({ ownerUserId: owner.id });
       await boot(env.OWNER_PASSWORD);
       expect(
         await prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-      ).toMatchObject({ ownerUserId: null, signupsEnabled: false });
+      ).toMatchObject({ ownerUserId: owner.id, signupsEnabled: false });
       expect(await prisma.spaceMember.count({ where: { userId: owner.id } })).toBe(memberships);
       await boot("a-different-password-on-restart");
       expect(await prisma.user.count()).toBe(1);
@@ -97,6 +98,9 @@ it.skipIf(!testDatabase)(
         ).status,
       ).toBe(400);
       expect(await prisma.user.count()).toBe(1);
+      expect(
+        await prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
+      ).toMatchObject({ ownerUserId: owner.id, signupsEnabled: false });
     } finally {
       await prisma.$disconnect();
       await pool.end();

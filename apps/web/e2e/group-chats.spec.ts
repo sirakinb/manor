@@ -22,6 +22,10 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
 
   const researcherId = await createBot(page, "Researcher");
   const writerId = await createBot(page, "Research Writer");
+  // New bots get one of Manor's sprite colours, which draw Manor's sprite. Off-sprite colours
+  // draw upstream's organic avatar, whose working animation this test covers.
+  await rpc(page, "bots/update", { botId: researcherId, color: "#22C55E" });
+  await rpc(page, "bots/update", { botId: writerId, color: "#EC4899" });
 
   await openNewGroup(page);
   await page.locator("label:has-text('Name') input").fill("Draft team");
@@ -87,8 +91,6 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
       }),
     });
   });
-  // Manor defaults to the robot style; choose organic to cover its working animation.
-  await rpc(page, "preferences/update", { avatarStyle: "organic" });
   await page.reload();
   // Anchor ^ so Now/Recent activity rows ("Bot · Draft team, …") do not match.
   const groupAvatar = page

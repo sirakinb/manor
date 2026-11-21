@@ -48,6 +48,7 @@ import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { readAgentDocument } from "../../lib/agent-document";
 import { agentImportErrorText } from "../../lib/agent-import-errors";
+import { brandName } from "../../lib/brand";
 import { rpc } from "../../lib/rpc";
 import { errorText } from "../../lib/user-error";
 import { ComputerModePicker } from "./bot-panel";
@@ -488,10 +489,10 @@ export function AgentImportForm({
   };
   const skipReason = (reason: AgentImportSkipReason) =>
     ({
-      runtime: t`Not used by Rakazo`,
+      runtime: t`Not used by ${brandName}`,
       invalid_skill: t`Not a valid skill`,
       builtin: t`Built-in`,
-      unsupported: t`Not supported in Rakazo`,
+      unsupported: t`Not supported in ${brandName}`,
       connected: t`Already connected`,
       invalid_file: t`Could not read these files`,
       default: defaultNote,

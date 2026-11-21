@@ -34,6 +34,7 @@ import type { ArtifactTarget } from "../../lib/artifact-open";
 import { quoteDraftForSelection } from "../../lib/quote-selection";
 import { transcriptIsNearEnd, transcriptMovedDown } from "../../lib/transcript-scroll";
 import { TimeSeparator, UnreadDivider } from "./chat-context";
+import { isNarrationMessage } from "./chat-shared";
 import type { ImportSetupTarget } from "./import-setup-card";
 import { MessageView } from "./message-view";
 import { QuoteSelectionButton } from "./quote-selection-button";
@@ -588,12 +589,9 @@ export const Transcript = memo(function Transcript({
         {running ? (
           <div className="flex flex-col items-start gap-2.5">
             {activityFeed}
-            {!messages.some(
-              (message) =>
-                message.id.startsWith("progress:") &&
-                (message.blocks[0]?.kind === "progress" ||
-                  message.blocks[0]?.kind === "thinking") &&
-                message.blocks[0].text,
+            {/* A live narration draws its own status line, so the glyph would repeat it. */}
+            {!shownMessages.some(
+              (message) => message.id.startsWith("progress:") && isNarrationMessage(message),
             ) ? (
               <ActiveBotGlyph bots={workingBots} label={workingLabel} />
             ) : null}

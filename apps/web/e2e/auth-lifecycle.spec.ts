@@ -43,7 +43,7 @@ test("sign-up stays blank until session and sign-in options are ready", async ({
   await captureScreenshot(page, testInfo, "signup-options-pending");
 
   releaseCapabilities();
-  await expect(page.getByRole("heading", { name: "Create your Rakazo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create your Manor" })).toBeVisible();
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "signup-ready");
 });
@@ -338,7 +338,7 @@ test("changes and recovers an email password", async ({ page }, testInfo) => {
       html: string;
     }>;
     return messages.filter(
-      (message) => message.to === email && message.subject === "Reset your Rakazo password",
+      (message) => message.to === email && message.subject === "Reset your Manor password",
     );
   };
   await expect.poll(async () => (await sentToUser()).length).toBeGreaterThan(0);

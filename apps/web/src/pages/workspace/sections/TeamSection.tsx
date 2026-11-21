@@ -110,12 +110,15 @@ export function TeamSection({
             <div id="workspace-bot-knowledge" className="mt-4 border-t border-[#25282B] pt-2">
               <ErrorBoundary fallback={<SectionLoadFailed />}>
                 <Suspense fallback={null}>
-                  <KnowledgeSection
-                    key={knowledgeBotId}
-                    botId={knowledgeBotId}
-                    onSkillsChange={() => {}}
-                  />
-                  <SpaceMemorySection />
+                  {/* Upstream split the bot's knowledge into memory and a separate skills
+                      section; the team panel shows both, with the space's shared memory. */}
+                  <KnowledgeSection key={knowledgeBotId} botId={knowledgeBotId} />
+                  <div className="mt-6">
+                    <KnowledgeSection botId={knowledgeBotId} skillsOnly />
+                  </div>
+                  <div className="mt-6">
+                    <SpaceMemorySection />
+                  </div>
                 </Suspense>
               </ErrorBoundary>
             </div>

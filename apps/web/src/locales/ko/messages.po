@@ -345,6 +345,10 @@ msgstr "{botName}의 컴퓨터"
 msgid "{brandName} brings your agents, customer records, and business tools together. Start with one agent and one useful task. Build from a result you have checked."
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "{brandName} credits"
+msgstr ""
+
 #: src/pages/DocsView.tsx
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr "{brandName}는 등록한 URL로 CRM 변경 사항을 전송합니다 — 통합 → API 및 에이전트 액세스에서 또는 <0>POST /v1/webhooks</0>로 등록하세요. 각 엔드포인트에는 한 번만 표시되는 서명 시크릿이 발급됩니다."
@@ -1193,8 +1197,8 @@ msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "이 서비스에는 구독 로그인이 아니라 API 키가 저장되어 있습니다."
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "An existing Honcho peer to read from. Rakazo never writes to it."
-msgstr "데이터를 읽어올 기존 Honcho 피어입니다. Rakazo는 이 피어에 데이터를 쓰지 않습니다."
+msgid "An existing Honcho peer to read from. {brandName} never writes to it."
+msgstr "데이터를 읽어올 기존 Honcho 피어입니다. {brandName}는 이 피어에 데이터를 쓰지 않습니다."
 
 #: src/lib/agent-import-errors.ts
 msgid "An imported API key could not be checked. Try again."
@@ -2100,7 +2104,7 @@ msgid "Choose folder"
 msgstr "폴더 선택"
 
 #: src/components/ModelCredits.tsx
-msgid "Choose how to use Rakazo"
+msgid "Choose how to use {brandName}"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -4745,7 +4749,7 @@ msgid "How to check"
 msgstr "완료 확인 방법"
 
 #: src/components/SignupSurvey.tsx
-msgid "How will you use Rakazo?"
+msgid "How will you use {brandName}?"
 msgstr ""
 
 #: src/pages/DocsView.tsx
@@ -6227,8 +6231,8 @@ msgid "Not imported"
 msgstr "가져오지 않음"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in Rakazo's catalog"
-msgstr "Rakazo 카탈로그에 없음"
+msgid "Not in {brandName}'s catalog"
+msgstr "{brandName} 카탈로그에 없음"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Not in the plugin catalog"
@@ -6252,16 +6256,16 @@ msgstr ""
 
 #: src/pages/shell/agent-import.tsx
 #: src/pages/shell/import-status.ts
-msgid "Not supported in Rakazo"
-msgstr "Rakazo에서 지원하지 않음"
+msgid "Not supported in {brandName}"
+msgstr "{brandName}에서 지원하지 않음"
 
 #: src/pages/workspace/PipelineMap.tsx
 msgid "Not synced yet"
 msgstr ""
 
 #: src/pages/shell/agent-import.tsx
-msgid "Not used by Rakazo"
-msgstr "Rakazo에서 사용하지 않음"
+msgid "Not used by {brandName}"
+msgstr "{brandName}에서 사용하지 않음"
 
 #: src/components/McpServerHealthLine.tsx
 msgid "Not working"
@@ -7000,12 +7004,8 @@ msgstr "풀 리퀘스트"
 msgid "Queued"
 msgstr "대기 중"
 
-#: src/components/ModelCredits.tsx
-msgid "Rakazo credits"
-msgstr ""
-
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
+msgid "rakazo-shared and IDs starting with bot- are reserved for {brandName}."
 msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx
@@ -9375,6 +9375,11 @@ msgstr "사용량"
 msgid "Use {0}"
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+#: src/pages/Onboarding.tsx
+msgid "Use {brandName} credits"
+msgstr ""
+
 #: src/pages/HostComputerPrompt.tsx
 msgid "Use {hostLabel}"
 msgstr "{hostLabel} 사용"
@@ -9426,11 +9431,6 @@ msgstr "비밀번호 사용"
 
 #: src/components/teach/TeachRecordingChrome.tsx
 msgid "Use Protected input for passwords."
-msgstr ""
-
-#: src/components/ModelCredits.tsx
-#: src/pages/Onboarding.tsx
-msgid "Use Rakazo credits"
 msgstr ""
 
 #: src/pages/model-settings/space-bots-model.tsx
@@ -9653,7 +9653,7 @@ msgid "Weekly email recap"
 msgstr ""
 
 #: src/components/SignupSurvey.tsx
-msgid "Welcome to Rakazo"
+msgid "Welcome to {brandName}"
 msgstr ""
 
 #: src/pages/shell/dialogs.tsx
@@ -9665,7 +9665,7 @@ msgid "What can I do with this connection?"
 msgstr ""
 
 #: src/components/SignupSurvey.tsx
-msgid "What do you most want Rakazo to help with?"
+msgid "What do you most want {brandName} to help with?"
 msgstr ""
 
 #: src/pages/shell/message-cards.tsx

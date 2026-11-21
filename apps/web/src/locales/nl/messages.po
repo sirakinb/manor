@@ -345,6 +345,10 @@ msgstr "de computer van {botName}"
 msgid "{brandName} brings your agents, customer records, and business tools together. Start with one agent and one useful task. Build from a result you have checked."
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "{brandName} credits"
+msgstr ""
+
 #: src/pages/DocsView.tsx
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr ""
@@ -1193,8 +1197,8 @@ msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "Voor deze aanbieder is een API-sleutel opgeslagen, geen abonnementsaanmelding."
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "An existing Honcho peer to read from. Rakazo never writes to it."
-msgstr "Een bestaande Honcho-peer om uit te lezen. Rakazo schrijft er nooit naar."
+msgid "An existing Honcho peer to read from. {brandName} never writes to it."
+msgstr "Een bestaande Honcho-peer om uit te lezen. {brandName} schrijft er nooit naar."
 
 #: src/lib/agent-import-errors.ts
 msgid "An imported API key could not be checked. Try again."
@@ -2100,7 +2104,7 @@ msgid "Choose folder"
 msgstr "Map kiezen"
 
 #: src/components/ModelCredits.tsx
-msgid "Choose how to use Rakazo"
+msgid "Choose how to use {brandName}"
 msgstr ""
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
@@ -4745,7 +4749,7 @@ msgid "How to check"
 msgstr "Hoe te controleren"
 
 #: src/components/SignupSurvey.tsx
-msgid "How will you use Rakazo?"
+msgid "How will you use {brandName}?"
 msgstr ""
 
 #: src/pages/DocsView.tsx
@@ -6227,8 +6231,8 @@ msgid "Not imported"
 msgstr "Niet geïmporteerd"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in Rakazo's catalog"
-msgstr "Niet in de catalogus van Rakazo"
+msgid "Not in {brandName}'s catalog"
+msgstr "Niet in de catalogus van {brandName}"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Not in the plugin catalog"
@@ -6252,16 +6256,16 @@ msgstr ""
 
 #: src/pages/shell/agent-import.tsx
 #: src/pages/shell/import-status.ts
-msgid "Not supported in Rakazo"
-msgstr "Niet ondersteund in Rakazo"
+msgid "Not supported in {brandName}"
+msgstr "Niet ondersteund in {brandName}"
 
 #: src/pages/workspace/PipelineMap.tsx
 msgid "Not synced yet"
 msgstr ""
 
 #: src/pages/shell/agent-import.tsx
-msgid "Not used by Rakazo"
-msgstr "Niet gebruikt door Rakazo"
+msgid "Not used by {brandName}"
+msgstr "Niet gebruikt door {brandName}"
 
 #: src/components/McpServerHealthLine.tsx
 msgid "Not working"
@@ -7000,12 +7004,8 @@ msgstr "Pull request"
 msgid "Queued"
 msgstr "In wachtrij"
 
-#: src/components/ModelCredits.tsx
-msgid "Rakazo credits"
-msgstr ""
-
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
+msgid "rakazo-shared and IDs starting with bot- are reserved for {brandName}."
 msgstr ""
 
 #: src/pages/workspace/sections/EmailSection.tsx
@@ -9375,6 +9375,11 @@ msgstr "Gebruik"
 msgid "Use {0}"
 msgstr "{0} gebruiken"
 
+#: src/components/ModelCredits.tsx
+#: src/pages/Onboarding.tsx
+msgid "Use {brandName} credits"
+msgstr ""
+
 #: src/pages/HostComputerPrompt.tsx
 msgid "Use {hostLabel}"
 msgstr "{hostLabel} gebruiken"
@@ -9427,11 +9432,6 @@ msgstr "Wachtwoord gebruiken"
 #: src/components/teach/TeachRecordingChrome.tsx
 msgid "Use Protected input for passwords."
 msgstr "Gebruik Beveiligde invoer voor wachtwoorden."
-
-#: src/components/ModelCredits.tsx
-#: src/pages/Onboarding.tsx
-msgid "Use Rakazo credits"
-msgstr ""
 
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Use space default"
@@ -9653,7 +9653,7 @@ msgid "Weekly email recap"
 msgstr ""
 
 #: src/components/SignupSurvey.tsx
-msgid "Welcome to Rakazo"
+msgid "Welcome to {brandName}"
 msgstr ""
 
 #: src/pages/shell/dialogs.tsx
@@ -9665,7 +9665,7 @@ msgid "What can I do with this connection?"
 msgstr ""
 
 #: src/components/SignupSurvey.tsx
-msgid "What do you most want Rakazo to help with?"
+msgid "What do you most want {brandName} to help with?"
 msgstr ""
 
 #: src/pages/shell/message-cards.tsx

@@ -24,14 +24,21 @@ test("thread reducer hides live tokens when Stream replies is off", async ({ pag
   await expect(page.locator(".rk-chat-markdown-streaming")).toHaveCount(1);
   await expect(page.locator(".rk-chat-markdown-cursor")).toHaveCount(1);
   await expect(page.getByTestId("message-bot-bubble")).not.toContainText(COMPLETE_TEXT);
+  // Manor's live narration carries its own status line; no separate working glyph repeats it.
+  await expect(page.getByTestId("live-status")).toBeVisible();
   await expect(page.getByRole("status")).toHaveCount(0);
   await captureScreenshot(page, testInfo, "thread-stream-on-live");
 
   await openFixture(page, { stream: "off", phase: "live" });
   await expect(page.getByTestId("message-user-bubble")).toBeVisible();
-  await expect(page.getByTestId("message-bot-bubble")).toHaveCount(0);
-  await expect(page.getByTestId("tool-activity")).toContainText("Browser");
-  await expect(page.getByRole("status")).toBeVisible();
+  // Manor keeps tool steps in the open, so the live turn is a narration holding only its
+  // activity timeline and status line: no reply text until the message is complete.
+  const transcript = page.getByTestId("transcript");
+  await expect(transcript).not.toContainText(LIVE_TOKENS);
+  await expect(page.getByTestId("message-bot-bubble").getByTestId("narration")).toHaveCount(1);
+  await expect(page.getByTestId("activity-timeline")).toContainText("Browser");
+  await expect(page.getByTestId("live-status")).toBeVisible();
+  await expect(page.locator(".rk-chat-markdown-streaming")).toHaveCount(0);
   await expect(page.locator(".rk-chat-markdown-cursor")).toHaveCount(0);
   await captureScreenshot(page, testInfo, "thread-stream-off-live");
 

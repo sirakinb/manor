@@ -50,6 +50,7 @@ import {
 import { ModelHeadersEditor } from "../components/ModelHeadersEditor";
 import { PageLoading } from "../components/PageLoading";
 import { SignupSurvey } from "../components/SignupSurvey";
+import { brandName } from "../lib/brand";
 import { useCopyText } from "../lib/copy-text";
 import { providerDisplayName } from "../lib/localized-provider-hint";
 import type { ModelCatalogEntry } from "../lib/model-auth";
@@ -178,6 +179,8 @@ export function OnboardingPage() {
   // An imported agent replaces Chief as the first bot.
   const [importing, setImporting] = useState(false);
   const importedBotRef = useRef<{ id: string } | null>(null);
+  // Manor: a bot the space already has; a step opened by its URL finishes there instead of making one.
+  const existingBotRef = useRef<string | null>(null);
   // Mirrors importedBotRef for rendering; the ref serves the async flow.
   const [importedBotId, setImportedBotId] = useState<string | null>(null);
   const noModelStep = afterSurvey === "bot";
@@ -220,10 +223,12 @@ export function OnboardingPage() {
         if (cancelled) return;
         setSpace(navigation.spaces.find((entry) => entry.id === me.spaceId) ?? null);
         // A teammate may already have completed the shared setup.
-        if (navigation.current.bots[0]) {
-          navigate(`/app/${navigation.current.bots[0].id}`, { replace: true });
+        const existingBot = navigation.current.bots[0];
+        if (existingBot && !linkedStep) {
+          navigate(`/app/${existingBot.id}`, { replace: true });
           return;
         }
+        existingBotRef.current = existingBot?.id ?? null;
         setBillingEnabled(me.billingEnabled);
         setCatalog(models);
         const next = me.needsModel ? "model" : "bot";
@@ -540,6 +545,10 @@ export function OnboardingPage() {
     if (createStartedRef.current) return;
     createStartedRef.current = true;
     setError(null);
+    if (!importedBotRef.current && existingBotRef.current) {
+      navigate(`/app/${existingBotRef.current}`, { replace: true });
+      return;
+    }
     try {
       const imported = importedBotRef.current;
       const bot = imported ?? (await ensureFirstBot());
@@ -566,7 +575,8 @@ export function OnboardingPage() {
   }, [step]);
 
   // Loading, and creating the first bot, both wait on one spinner until the chat opens.
-  if ((step === "loading" || step === "bot") && !error) return <PageLoading />;
+  // Manor: a shared space keeps its sharing notice on screen while its first bot is made.
+  if ((step === "loading" || (step === "bot" && !space?.shared)) && !error) return <PageLoading />;
 
   return (
     <div className="min-h-full bg-background px-6 py-12">
@@ -1134,7 +1144,7 @@ export function OnboardingPage() {
                       .catch(() => setError(t`Could not open billing`))
                   }
                 >
-                  <Trans>Use Rakazo credits</Trans>
+                  <Trans>Use {brandName} credits</Trans>
                 </Button>
               ) : null}
             </div>
@@ -1149,7 +1159,7 @@ export function OnboardingPage() {
             )}
           </div>
         ) : null}
-        {step === "bot" ? (
+        {step === "bot" && error ? (
           <div>
             <p className="text-sm text-destructive">{error}</p>
             <Button className="mt-4" onClick={() => void createFirstBot()}>

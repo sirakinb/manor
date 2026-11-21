@@ -18,7 +18,17 @@ test("chat shows mid-turn progress without Working…", async ({ page }, testInf
       const bubbles = page.getByTestId("message-bot-bubble");
       await expect(bubbles).toHaveCount(2);
       await expect(bubbles.nth(0)).toHaveText("Checking your calendars…");
-      await expect(bubbles.nth(1)).toHaveText(state.reply);
+      if (state.live) {
+        // Manor's live turn keeps its tool steps and its own status line in the open around
+        // the streamed progress text.
+        const live = bubbles.nth(1);
+        await expect(live.getByTestId("activity-timeline")).toHaveText("Calendar");
+        await expect(live.locator(".rk-chat-markdown-streaming")).toHaveText(state.reply);
+        await expect(live.getByTestId("live-status")).toContainText("Waiting for");
+      } else {
+        await expect(bubbles.nth(1)).toHaveText(state.reply);
+        await expect(page.getByTestId("live-status")).toHaveCount(0);
+      }
       // The mid-turn update is a normal message you can reply to.
       await expect(
         page.locator('[data-message-id="bot-progress"]').getByTestId("message-hover-actions"),

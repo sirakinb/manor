@@ -366,9 +366,9 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(automations.getByText("Monthly recap", { exact: true })).toHaveCount(0);
   await captureScreenshot(page, testInfo, "workspace-team");
   await page.getByRole("button", { name: "Knowledge", exact: true }).first().click();
+  // Skills are their own section now (no tabs); imported workspace playbooks show there.
   const knowledge = page.getByTestId("bot-knowledge");
-  // Upstream renamed the skills tab this release; skills are shared across the space.
-  await knowledge.getByRole("tab", { name: "Shared skills", exact: true }).click();
+  await expect(knowledge.getByRole("heading", { name: "Skills", exact: true })).toBeVisible();
   await expect(
     knowledge.getByText("workspace-callback-playbook", { exact: true }).first(),
   ).toBeVisible();

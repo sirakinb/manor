@@ -21,7 +21,7 @@ import { SkillDraftCard } from "../../components/teach/SkillDraftCard";
 import type { ArtifactTarget } from "../../lib/artifact-open";
 import { messageProviderLabel } from "../../lib/messaging";
 import { ReplyLine } from "./chat-context";
-import { FALLBACK_BOT_COLOR, previewMessageText } from "./chat-shared";
+import { FALLBACK_BOT_COLOR, isNarrationMessage, previewMessageText } from "./chat-shared";
 import type { ImportSetupTarget } from "./import-setup-card";
 import { ImportSetupCard } from "./import-setup-card";
 import {
@@ -109,16 +109,7 @@ export const MessageView = memo(function MessageView({
   onReact: (message: ThreadMessage, reaction: MessageReaction) => Promise<void>;
 }) {
   const { t } = useLingui();
-  const isNarration =
-    message.role === "bot" &&
-    message.blocks.length > 0 &&
-    message.blocks.every(
-      (block) =>
-        block.kind === "text" ||
-        block.kind === "progress" ||
-        block.kind === "steps" ||
-        block.kind === "thinking",
-    );
+  const isNarration = isNarrationMessage(message);
   const isLive = message.id.startsWith("progress:");
   const quoteMessageId = message.id.includes(":") ? undefined : message.id;
 

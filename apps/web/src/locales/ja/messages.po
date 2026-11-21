@@ -345,6 +345,10 @@ msgstr "{botName}のコンピューター"
 msgid "{brandName} brings your agents, customer records, and business tools together. Start with one agent and one useful task. Build from a result you have checked."
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "{brandName} credits"
+msgstr "{brandName}クレジット"
+
 #: src/pages/DocsView.tsx
 msgid "{brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access or via <0>POST /v1/webhooks</0>. Each endpoint gets a signing secret, shown once."
 msgstr ""
@@ -1193,8 +1197,8 @@ msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "このプロバイダーにはサブスクリプションのログインではなく、APIキーが保存されています。"
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "An existing Honcho peer to read from. Rakazo never writes to it."
-msgstr "読み取り元となる既存のHonchoピアです。Rakazoが書き込むことはありません。"
+msgid "An existing Honcho peer to read from. {brandName} never writes to it."
+msgstr "読み取り元となる既存のHonchoピアです。{brandName}が書き込むことはありません。"
 
 #: src/lib/agent-import-errors.ts
 msgid "An imported API key could not be checked. Try again."
@@ -2100,8 +2104,8 @@ msgid "Choose folder"
 msgstr "フォルダを選択"
 
 #: src/components/ModelCredits.tsx
-msgid "Choose how to use Rakazo"
-msgstr "Rakazoの使い方を選択"
+msgid "Choose how to use {brandName}"
+msgstr "{brandName}の使い方を選択"
 
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Choose lease"
@@ -4745,8 +4749,8 @@ msgid "How to check"
 msgstr "確認方法"
 
 #: src/components/SignupSurvey.tsx
-msgid "How will you use Rakazo?"
-msgstr "Rakazoをどのように使いますか？"
+msgid "How will you use {brandName}?"
+msgstr "{brandName}をどのように使いますか？"
 
 #: src/pages/DocsView.tsx
 msgid "HTTP API reference"
@@ -6227,8 +6231,8 @@ msgid "Not imported"
 msgstr "インポートされていません"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in Rakazo's catalog"
-msgstr "Rakazoのカタログにありません"
+msgid "Not in {brandName}'s catalog"
+msgstr "{brandName}のカタログにありません"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Not in the plugin catalog"
@@ -6252,16 +6256,16 @@ msgstr ""
 
 #: src/pages/shell/agent-import.tsx
 #: src/pages/shell/import-status.ts
-msgid "Not supported in Rakazo"
-msgstr "Rakazoでは未対応です"
+msgid "Not supported in {brandName}"
+msgstr "{brandName}では未対応です"
 
 #: src/pages/workspace/PipelineMap.tsx
 msgid "Not synced yet"
 msgstr ""
 
 #: src/pages/shell/agent-import.tsx
-msgid "Not used by Rakazo"
-msgstr "Rakazoでは使用しません"
+msgid "Not used by {brandName}"
+msgstr "{brandName}では使用しません"
 
 #: src/components/McpServerHealthLine.tsx
 msgid "Not working"
@@ -7000,13 +7004,9 @@ msgstr "プルリクエスト"
 msgid "Queued"
 msgstr "待機中"
 
-#: src/components/ModelCredits.tsx
-msgid "Rakazo credits"
-msgstr "Rakazoクレジット"
-
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
-msgstr "rakazo-sharedおよびbot-で始まるIDはRakazo用に予約されています。"
+msgid "rakazo-shared and IDs starting with bot- are reserved for {brandName}."
+msgstr "rakazo-sharedおよびbot-で始まるIDは{brandName}用に予約されています。"
 
 #: src/pages/workspace/sections/EmailSection.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
@@ -9375,6 +9375,11 @@ msgstr "使用量"
 msgid "Use {0}"
 msgstr "{0}を使用"
 
+#: src/components/ModelCredits.tsx
+#: src/pages/Onboarding.tsx
+msgid "Use {brandName} credits"
+msgstr "{brandName}クレジットを使用"
+
 #: src/pages/HostComputerPrompt.tsx
 msgid "Use {hostLabel}"
 msgstr "{hostLabel}を使用"
@@ -9427,11 +9432,6 @@ msgstr "パスワードを使用"
 #: src/components/teach/TeachRecordingChrome.tsx
 msgid "Use Protected input for passwords."
 msgstr "パスワードには保護された入力を使用してください。"
-
-#: src/components/ModelCredits.tsx
-#: src/pages/Onboarding.tsx
-msgid "Use Rakazo credits"
-msgstr "Rakazoクレジットを使用"
 
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Use space default"
@@ -9653,8 +9653,8 @@ msgid "Weekly email recap"
 msgstr ""
 
 #: src/components/SignupSurvey.tsx
-msgid "Welcome to Rakazo"
-msgstr "Rakazoへようこそ"
+msgid "Welcome to {brandName}"
+msgstr "{brandName}へようこそ"
 
 #: src/pages/shell/dialogs.tsx
 msgid "What about its memories?"
@@ -9665,8 +9665,8 @@ msgid "What can I do with this connection?"
 msgstr ""
 
 #: src/components/SignupSurvey.tsx
-msgid "What do you most want Rakazo to help with?"
-msgstr "Rakazoに最も手伝ってほしいことは何ですか？"
+msgid "What do you most want {brandName} to help with?"
+msgstr "{brandName}に最も手伝ってほしいことは何ですか？"
 
 #: src/pages/shell/message-cards.tsx
 msgid "What do you want me on first?"

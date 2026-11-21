@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FakeSandboxProvider } from "@rakazo/adapters";
+import { asSystem } from "@rakazo/db";
 import { expect, it } from "vitest";
 import { sessionCookieHeader } from "../../../packages/testkit/src/index.js";
 import { createApp } from "./app.js";
@@ -27,32 +28,62 @@ it.skipIf(!databaseUrl).each([
     webOrigin: "http://127.0.0.1:5173",
     authUrl: "http://127.0.0.1:5173",
   });
+  const system = asSystem(handles.prisma);
+  let previousOwner: string | null | undefined;
   try {
-    const signup = await handles.app.request("/api/auth/sign-up/email", {
-      method: "POST",
-      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
-      body: JSON.stringify({
-        email: `host-choice-${fixture.sandboxProvider}-${fixture.nativeToken}@example.test`,
-        password: "test-password-123",
-        name: "Host tester",
-      }),
-    });
-    expect(signup.status).toBeLessThan(400);
-    const cookie = sessionCookieHeader(signup);
-    for (const procedure of ["me", "bootstrap"]) {
-      const response = await handles.app.request(`/rpc/${procedure}`, {
+    const signUp = async (role: string) => {
+      const signup = await handles.app.request("/api/auth/sign-up/email", {
         method: "POST",
-        headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:5173" },
-        body: JSON.stringify({ json: {} }),
+        headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+        body: JSON.stringify({
+          email: `host-choice-${role}-${fixture.sandboxProvider}-${fixture.nativeToken}@example.test`,
+          password: "test-password-123",
+          name: "Host tester",
+        }),
       });
-      expect(response.status).toBe(200);
-      const { json } = await response.json();
-      expect(procedure === "me" ? json : json.me).toMatchObject({
-        canChooseHostComputer: fixture.expected,
-        isDeploymentOwner: false,
-      });
+      expect(signup.status).toBeLessThan(400);
+      const { user } = (await signup.clone().json()) as { user: { id: string } };
+      return { userId: user.id, cookie: sessionCookieHeader(signup) };
+    };
+    const owner = await signUp("owner");
+    const member = await signUp("member");
+    // Manor keeps a deployment owner (the first sign-up); host choice must not depend on it.
+    previousOwner =
+      (await system.deploymentSettings.findUnique({ where: { id: "default" } }))?.ownerUserId ??
+      null;
+    await system.deploymentSettings.update({
+      where: { id: "default" },
+      data: { ownerUserId: owner.userId },
+    });
+    for (const [account, isDeploymentOwner] of [
+      [owner, true],
+      [member, false],
+    ] as const) {
+      for (const procedure of ["me", "bootstrap"]) {
+        const response = await handles.app.request(`/rpc/${procedure}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: account.cookie,
+            origin: "http://127.0.0.1:5173",
+          },
+          body: JSON.stringify({ json: {} }),
+        });
+        expect(response.status).toBe(200);
+        const { json } = await response.json();
+        expect(procedure === "me" ? json : json.me).toMatchObject({
+          canChooseHostComputer: fixture.expected,
+          isDeploymentOwner,
+        });
+      }
     }
   } finally {
+    if (previousOwner !== undefined) {
+      await system.deploymentSettings.update({
+        where: { id: "default" },
+        data: { ownerUserId: previousOwner },
+      });
+    }
     await handles.stop();
     await rm(dataDir, { recursive: true, force: true });
   }
