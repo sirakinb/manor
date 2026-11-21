@@ -144,7 +144,7 @@ export interface RouterDeps {
   memoryProviders: MemoryProviderResolver;
   home: AgentHomeStore;
   secrets: SecretStore;
-  /** Outbound email for report sending; absent when SMTP is not configured. */
+  /** Outbound email for report sending and plugin submission mail; absent when SMTP is not configured. */
   email?: TransactionalEmailProvider;
   /** Builds the property ledger for a workspace's Buildium credential. */
   propertyLedger?: PropertyLedgerFactory;
@@ -197,13 +197,16 @@ export interface RouterDeps {
   ) => Promise<void>;
   /** Present only when the deployment bills; self-hosted installs leave it unset. */
   billing?: BillingService;
+  onEmailError?: (error: unknown) => void;
   speechSummary?: VoiceDeps["speechSummary"];
   env: {
     ticketBoardEnabled?: boolean;
     navLinks?: NavLink[];
+    adminEmails?: string[];
     phoneCallsEnabled?: boolean;
     phoneCallRingSeconds?: number;
     maxUploadSizeBytes?: number;
+    maxAttachmentsPerMessage?: number;
     agentRuntime: string;
     teamChatJudgeProvider?: string;
     teamChatJudgeModel?: string;

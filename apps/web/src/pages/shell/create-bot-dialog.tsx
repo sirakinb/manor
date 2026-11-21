@@ -48,12 +48,10 @@ export interface CreateBotDialogInput {
 export function CreateBotDialog({
   onCancel,
   onCreate,
-  onImport,
   localComputer,
 }: {
   onCancel: () => void;
   onCreate: (input: CreateBotDialogInput) => Promise<void>;
-  onImport?: () => void;
   /** Manor: offers "This Mac" while the desktop app is sharing it. */
   localComputer?: LocalComputerLiveSession | null;
 }) {
@@ -174,18 +172,6 @@ export function CreateBotDialog({
             </label>
           ) : null}
           <DialogFooter>
-            {onImport ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="sm:me-auto"
-                disabled={submitting}
-                data-testid="create-bot-import"
-                onClick={onImport}
-              >
-                <Trans>Import</Trans>
-              </Button>
-            ) : null}
             <Button type="button" variant="outline" disabled={submitting} onClick={onCancel}>
               <Trans>Cancel</Trans>
             </Button>

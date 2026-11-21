@@ -9,7 +9,6 @@ import { InboxHeader } from "../components/inbox-header";
 
 const header = vi.hoisted(() => ({
   platform: { OS: "ios" },
-  alert: vi.fn(),
   push: vi.fn(),
 }));
 const { labelled } = vi.hoisted(() => ({
@@ -28,7 +27,6 @@ const { labelled } = vi.hoisted(() => ({
 }));
 
 vi.mock("react-native", () => ({
-  Alert: { alert: header.alert },
   // Manor's lockup draws its mark between the button rows.
   Image: () => null,
   Platform: header.platform,
@@ -65,6 +63,7 @@ vi.mock("expo-router", () => {
   return { useRouter: () => router };
 });
 vi.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0 }) }));
+vi.mock("./material-icons", () => ({ materialIcons: {} }));
 vi.mock("../components/native-symbol", () => ({ NativeSymbol: () => null }));
 vi.mock("./appearance", () => ({
   mobileTokens: () => ({}),
@@ -83,7 +82,6 @@ const runCreateAction = vi.fn();
 
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  header.alert.mockReset();
   header.push.mockReset();
   toggleActivityMode.mockReset();
   runCreateAction.mockReset();
@@ -130,17 +128,8 @@ it.each(["android", "ios"])("omits Artifacts from the %s fallback header", (plat
   expect(toggleActivityMode).toHaveBeenCalledOnce();
 });
 
-it("creates from the Android chooser alert", () => {
-  const control = renderHeader("android");
-  act(() => control("Create").click());
-  const [title, , buttons] = header.alert.mock.calls[0]!;
-  expect(title).toBe("Create");
-  for (const button of buttons) button.onPress();
-  expect(runCreateAction.mock.calls).toEqual([["bot"], ["group"], ["space"]]);
-});
-
-it("creates from the iOS menu", () => {
-  renderHeader("ios");
+it.each(["android", "ios"])("creates from the %s menu", (platform) => {
+  renderHeader(platform);
   for (const item of container.querySelectorAll("li")) act(() => item.click());
   expect(runCreateAction.mock.calls).toEqual([["bot"], ["group"], ["space"]]);
 });

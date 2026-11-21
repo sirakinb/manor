@@ -4,6 +4,8 @@
 
   const form = document.getElementById("setup");
   const serverUrl = document.getElementById("server-url");
+  const serverHeaders = document.getElementById("server-headers");
+  const serverHeadersSection = document.getElementById("server-headers-section");
   const panelNew = document.getElementById("panel-new");
   const panelExisting = document.getElementById("panel-existing");
   const stackSection = document.getElementById("stack");
@@ -78,8 +80,10 @@
   }
 
   /** A save in flight cannot be cancelled, so the choice it commits must not change under it. */
-  function lockMode(locked) {
+  function lockChoice(locked) {
     for (const input of form.querySelectorAll('input[name="mode"]')) input.disabled = locked;
+    serverUrl.disabled = locked;
+    serverHeaders.disabled = locked;
   }
 
   function syncPanels() {
@@ -178,18 +182,34 @@
     setBusy(!TERMINAL_PHASES.has(phase));
   }
 
-  async function save(mode, url) {
+  /** One "Name: value" per line; null when a line has no name. The main process validates the rest. */
+  function readHeaders() {
+    const headers = {};
+    for (const line of serverHeaders.value.split("\n")) {
+      if (line.trim() === "") continue;
+      const colon = line.indexOf(":");
+      if (colon <= 0) return null;
+      headers[line.slice(0, colon).trim()] = line.slice(colon + 1).trim();
+    }
+    return headers;
+  }
+
+  async function save(mode, url, headers) {
     const generation = ++requestGeneration;
+    // Locking the address blurs it; a failed save hands focus back so Enter can retry.
+    const focused = document.activeElement;
     setBusy(true);
-    lockMode(true);
+    lockChoice(true);
     setStatus("Connecting…");
     try {
-      const saved = await bridge.save({ mode, serverUrl: url });
+      const saved = await bridge.save({ mode, serverUrl: url, ...(headers ? { headers } : {}) });
       if (!saved.ok) setStatus(saved.error ?? "Could not save that address.", "error");
     } catch {
       setStatus("Could not save that address. Try again.", "error");
     } finally {
-      lockMode(false);
+      lockChoice(false);
+      if (focused instanceof HTMLElement && document.activeElement === document.body)
+        focused.focus();
       // A newer run may own the controls by now; only their owner unlocks them.
       if (generation === requestGeneration) setBusy(false);
     }
@@ -273,13 +293,18 @@
       setStatus("Enter a server address first.", "error");
       return null;
     }
+    const headers = readHeaders();
+    if (headers === null) {
+      setStatus("Invalid custom headers", "error");
+      return null;
+    }
 
     const generation = ++requestGeneration;
     activeCheck = generation;
     setBusy(true);
     setStatus("Checking…");
     try {
-      const result = await bridge.test(value);
+      const result = await bridge.test(value, headers);
       // The address or the mode changed under the test, so its result speaks for neither.
       if (generation !== requestGeneration) return result;
       if (result.ok) {
@@ -314,7 +339,7 @@
     }
   });
 
-  serverUrl.addEventListener("input", () => {
+  function retireCheck() {
     // An edited address invalidates the pending check; retire it and hand the controls back so
     // its late result changes nothing.
     if (activeCheck === 0) return;
@@ -322,7 +347,9 @@
     activeCheck = 0;
     setStatus("");
     setBusy(false);
-  });
+  }
+  serverUrl.addEventListener("input", retireCheck);
+  serverHeaders.addEventListener("input", retireCheck);
 
   checkButton.addEventListener("click", () => {
     void check();
@@ -351,7 +378,11 @@
     event.preventDefault();
     // Manor Cloud is the existing-server choice, prefilled with the hosted address.
     if (selectedMode() === "new") void runStack();
-    else void save("existing", serverUrl.value);
+    else {
+      const headers = readHeaders();
+      if (headers === null) setStatus("Invalid custom headers", "error");
+      else void save("existing", serverUrl.value, headers);
+    }
   });
 
   /** Pushed state keeps progress moving even when the OS throttles this window's timers. */
@@ -395,6 +426,12 @@
         const modeInput = document.querySelector(`input[name="mode"][value="${state.saved.mode}"]`);
         if (modeInput !== null) modeInput.checked = true;
         if (state.saved.mode === "existing") serverUrl.value = state.saved.serverUrl;
+        if (state.saved.mode === "existing" && state.saved.headers) {
+          serverHeaders.value = Object.entries(state.saved.headers)
+            .map(([name, value]) => `${name}: ${value}`)
+            .join("\n");
+          serverHeadersSection.open = true;
+        }
       }
       // A relaunch with the stack down starts it before this window opens; show that
       // attempt instead of the saved mode, and follow it while it is still running.

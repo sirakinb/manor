@@ -8,10 +8,11 @@ import type {
 } from "@rakazo/adapter-kit";
 import { dispatchBackgroundJob } from "@rakazo/adapter-kit";
 import type { Prisma, PrismaClient } from "@rakazo/db";
-import { isTooManyDatabaseConnections, runAsSystem } from "@rakazo/db";
+import { endTakeoverWaits, isTooManyDatabaseConnections, runAsSystem } from "@rakazo/db";
 import { getLogger, runCorrelatedJob } from "@rakazo/logging";
 import type { Pool } from "pg";
 import { RunExecutionHost } from "./run-execution.js";
+import { findRunRecoveryBlockers } from "./run-recovery.js";
 
 const RUN_READY_TOPIC = "runs:ready";
 const INTERACTIVE_QUEUE_WARNING_MS = 30_000;
@@ -371,26 +372,36 @@ export class RunWorkerHost implements JobWorkerHost {
       },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       take: batchSize,
-      select: { id: true, createdAt: true, botId: true, bot: { select: { computerId: true } } },
+      select: {
+        id: true,
+        createdAt: true,
+        botId: true,
+        status: true,
+        bot: { select: { computerId: true } },
+      },
     });
-    // Leave resource waits queued. Reclaiming them on every scan changes their
-    // age, hides stuck-work reminders, and produces false execution starts.
     // The executor still acquires the lease atomically to handle races here.
-    const leases = rows.length
-      ? await this.prisma.computerExecutionLease.findMany({
-          where: { botId: { in: rows.map((row) => row.botId) }, expiresAt: { gt: now } },
-          select: { computerId: true, botId: true, runId: true },
-        })
-      : [];
-    const runnable = rows.filter(
-      (row) =>
-        !leases.some(
-          (lease) =>
-            lease.botId === row.botId &&
-            lease.computerId === row.bot.computerId &&
-            lease.runId !== row.id,
-        ),
-    );
+    const blockers = await findRunRecoveryBlockers(this.prisma, rows, now);
+    const runnable = rows.filter((row) => !blockers.has(row.id));
+    // A takeover request holds its bot's computer. Chat work must not wait behind one the user
+    // has not acted on, so end it; the freed rows start on the next scan.
+    if (lane === "interactive") {
+      const holders = new Set(
+        rows.flatMap((row) => {
+          const holder = row.status === "queued" ? blockers.get(row.id) : undefined;
+          return holder ? [holder] : [];
+        }),
+      );
+      if (holders.size) {
+        const ended = await endTakeoverWaits(this.prisma, [...holders], this.realtime).catch(
+          (error) => {
+            getLogger().error("takeover wait release", error);
+            return 0;
+          },
+        );
+        if (ended) this.wake();
+      }
+    }
     for (const row of runnable) {
       if (this.stopping) break;
       this.starter.take(row.id);

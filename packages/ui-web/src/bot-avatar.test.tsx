@@ -173,6 +173,20 @@ describe("BotAvatar", () => {
     expect(html).toContain("rakazo-organic-avatar");
   });
 
+  // Manor: #8B5CF6 draws Manor's sprite, so the organic body is checked on a non-sprite colour.
+  it("morphs the organic body only while working", () => {
+    const morphing = (status: string) =>
+      [
+        ...renderToString(<BotAvatar color={ORGANIC_COLOR} status={status} />).matchAll(
+          /rakazo-organic-avatar-body-(idle|working)"[^>]*>(<animate)?/g,
+        ),
+      ]
+        .filter((match) => match[2])
+        .map((match) => match[1]);
+    expect(morphing("idle")).toEqual([]);
+    expect(morphing("running")).toEqual(["working"]);
+  });
+
   it("previews Manor's sprite when no studio shape is given on a sprite colour", () => {
     const html = renderToString(
       <BotShapePreview identity="maya" label="Shape 1" color="#8B5CF6" selected={false} />,

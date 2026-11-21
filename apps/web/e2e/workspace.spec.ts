@@ -1,7 +1,13 @@
 import { expect, test } from "@playwright/test";
 import type { ModelCatalogEntry } from "@rakazo/contracts";
 import { createDb } from "../../../packages/db/src/client";
-import { captureScreenshot, completeOnboarding, expandAdvancedSection, signup } from "./helpers";
+import {
+  captureScreenshot,
+  completeOnboarding,
+  expandAdvancedSection,
+  openBotPanelTab,
+  signup,
+} from "./helpers";
 
 /**
  * The Workspace place only exists for organizations with a connected
@@ -619,9 +625,9 @@ test("workspace appears once the organization has one and its map opens sections
     });
   });
   await page.goto(`/app/${selectedBotId}`);
-  await page.locator("main").getByRole("button", { name: "Operations", exact: true }).click();
+  // The bot panel's settings are its Advanced tab now, not a fold-out.
+  await openBotPanelTab(page, "Advanced");
   const botSettings = page.getByTestId("bot-settings");
-  await expandAdvancedSection(botSettings.getByTestId("bot-settings-advanced"));
   // No model of the user's own is connected, so every choice past the space default is
   // the deployment's. That list is long enough for the searchable picker.
   expect(deploymentModels).toBeGreaterThan(10);

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   AdapterContext,
+  CommandRequest,
   ComputerAction,
   ComputerActionRequest,
   ComputerInput,
@@ -19,6 +20,7 @@ import {
   desktopUrl,
   managedDesktopCommand,
   releaseDesktopCommand,
+  screenDisplayArgv,
   screenPorts,
   shellQuote,
   stopAllDesktopBrowsersCommand,
@@ -51,6 +53,25 @@ export interface LinuxDesktopHost {
   screenUrl(computer: ComputerRef, port: number, context: AdapterContext): Promise<string>;
 }
 
+/** Point a bot's commands at its own screen, as Docker computers do, unless the caller chose a display. */
+export function onBotScreen(
+  request: CommandRequest,
+  context: AdapterContext,
+  displayStart: number,
+): CommandRequest {
+  if (
+    !context.botId ||
+    !request.argv.length ||
+    Object.hasOwn(request.env ?? {}, "DISPLAY") ||
+    request.unsetEnv?.includes("DISPLAY")
+  )
+    return request;
+  return {
+    ...request,
+    argv: screenDisplayArgv(request.argv, screenSessionKey(context), displayStart),
+  };
+}
+
 /** Provider SDKs supply only command execution, workspace paths, and protected port URLs. */
 export class LinuxDesktop {
   constructor(private readonly host: LinuxDesktopHost) {}
@@ -59,7 +80,13 @@ export class LinuxDesktop {
     context.signal.throwIfAborted();
     const result = await this.host.run(computer, command, context);
     if (result.code === 75) throw new ComputerScreenUnavailableError();
-    if (result.code !== 0) throw new Error(result.stderr || "computer desktop operation failed");
+    if (result.code !== 0) {
+      if (result.stderr?.trim()) throw new Error(result.stderr);
+      const output = result.stdout.trim().split("\n").at(-1)?.slice(0, 300);
+      throw new Error("computer desktop operation failed", {
+        cause: new Error(output ? `exit ${result.code}: ${output}` : `exit ${result.code}`),
+      });
+    }
     return result.stdout;
   }
 
@@ -269,8 +296,8 @@ function isChromiumBrowser(application: string) {
 
 // Same 0.2s quick-failure window as rakazo-focus-or-launch. A GUI that stays
 // up is success; an immediate non-zero exit fails the focus before the old
-// window is raised.
-const FOCUS_URI_PROBE = [
+// window is raised or a new one is awaited.
+const FOCUS_LAUNCH_PROBE = [
   "import subprocess,sys",
   "try:",
   " code=subprocess.Popen(sys.argv[1:],start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).wait(timeout=0.2)",
@@ -293,15 +320,12 @@ function focusOrLaunchActionCommand(
   const binary = (action.application.split("/").pop() ?? "").replaceAll(/[^A-Za-z0-9_-]/g, "");
   const quotedApp = shellQuote(action.application);
   const quotedArg = action.uri === undefined ? "" : ` ${shellQuote(action.uri)}`;
-  const foreground = browser
+  // Like rakazo-focus-or-launch, the launch never adopts the app's lifetime: a GUI that stays
+  // up must not hold the command open, and one that exits at once with an error still fails.
+  const launch = browser
     ? `nohup ${browserLauncherPath(layout.displayNumber)} ${shellQuote(action.uri ?? "about:blank")} </dev/null >/tmp/rakazo/browser-open-${layout.displayNumber}.log 2>&1 &`
-    : `DISPLAY=${layout.display} ${quotedApp}${quotedArg}`;
-  // A GUI that stays in the foreground must not delay wmctrl -ia. A non-browser
-  // URI still has to surface a launcher that exits immediately.
-  const background = browser
-    ? foreground
-    : `DISPLAY=${layout.display} python3 -c ${shellQuote(FOCUS_URI_PROBE)} ${quotedApp}${quotedArg} || exit $?`;
-  if (!browser && !binary) return foreground;
+    : `DISPLAY=${layout.display} python3 -c ${shellQuote(FOCUS_LAUNCH_PROBE)} ${quotedApp}${quotedArg} || exit $?`;
+  if (!browser && !binary) return launch;
   const classCase = browser ? CHROME_WM_CLASSES : binary.toLowerCase();
   return [
     "wid=",
@@ -343,10 +367,10 @@ function focusOrLaunchActionCommand(
     "RAKAZO_WINDOWS",
     'if [ -z "$wid" ] && [ "$saw_profile" -eq 0 ]; then wid=$fallback; fi',
     'if [ -n "$wid" ]; then',
-    ...(action.uri !== undefined ? [`  ${background}`] : []),
+    ...(action.uri !== undefined ? [`  ${launch}`] : []),
     `  DISPLAY=${layout.display} wmctrl -ia "$wid"`,
     "else",
-    `  ${foreground}`,
+    `  ${launch}`,
     "fi",
   ].join("\n");
 }
@@ -403,6 +427,17 @@ export const PREPARE_LINUX_DESKTOP = [
   // A sandbox without root keeps working; its browser just shows the prompts.
   '  printf \'%s\\n\' "$policy" | $root sh -c \'mkdir -p "$1" && cat > "$1/rakazo-browser.json"\' sh "$dir" || echo "could not set browser policy in $dir" >&2',
   "done",
+].join("\n");
+
+/** Installs Google Chrome on images that ship without a browser. */
+export const INSTALL_LINUX_BROWSER = [
+  "if ! command -v google-chrome >/dev/null && ! command -v chromium >/dev/null; then",
+  '  if [ "$(id -u)" -eq 0 ]; then root=""; else root="sudo -n"; fi',
+  "  package=$(mktemp /tmp/rakazo-chrome-XXXXXX.deb)",
+  "  trap 'rm -f \"$package\"' EXIT",
+  '  curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o "$package"',
+  '  $root env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$package"',
+  "fi",
 ].join("\n");
 
 /** Fails unless every desktop tool is installed and a virtual display answers. */

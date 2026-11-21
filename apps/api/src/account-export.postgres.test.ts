@@ -126,7 +126,7 @@ describePostgres("account export (PostgreSQL)", () => {
       });
       await createThreadMessage(prisma, {
         threadId: thread.id,
-        role: "assistant",
+        role: "bot",
         botId: `mine-${suffix}`,
         blocks: [{ kind: "text", text: "Noted" }],
       });
@@ -348,6 +348,7 @@ describePostgres("account export (PostgreSQL)", () => {
     const actor: Actor = {
       userId: importer,
       spaceId: importerSpace,
+      organizationId: "org-1",
       email: `${importer}@rakazo.test`,
       isDeploymentOwner: false,
     };

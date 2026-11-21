@@ -10,7 +10,11 @@ import type {
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import { AssistantMessageEventStream } from "@earendil-works/pi-ai/utils/event-stream";
 import type { AgentRunRequest, ConnectorTool } from "@rakazo/adapter-kit";
-import { isRetryableProviderUnavailable, isTransientModelError } from "@rakazo/adapter-kit";
+import {
+  isModelCredentialRejected,
+  isRetryableProviderUnavailable,
+  isTransientModelError,
+} from "@rakazo/adapter-kit";
 import type { ModelBackupOutcome } from "@rakazo/core";
 import {
   abortableDelay,
@@ -31,6 +35,7 @@ import { assistantText, messageHasToolCall, sanitizeProviderError } from "./pi-r
 import {
   effectiveOutputReserve,
   MODEL_STREAM_TIMEOUT_MS,
+  operatorMaxTokens,
   resolveCompletionMaxTokens,
 } from "./pi-runtime-limits.js";
 import type { RuntimeModelTarget } from "./pi-runtime-models.js";
@@ -227,7 +232,6 @@ function fallbackIncompatibility(
   candidate: RuntimeModelTarget,
   context: TranscriptContext,
   options: ModelsSimpleStreamOptions | undefined,
-  requestedThinkingLevel: AgentRunRequest["model"]["thinkingLevel"],
   tools: readonly ConnectorTool[],
 ): string | undefined {
   // The backup's own context policy prunes on its first call; judge what it would send. Too
@@ -249,6 +253,7 @@ function fallbackIncompatibility(
     options?.maxTokens,
     candidate.model.reasoning,
     candidate.model.contextWindow,
+    operatorMaxTokens(candidate.model),
   );
   // Token counts are estimates and can differ by provider/tokenizer. Reserve a
   // small input-relative margin, not a fixed 4096 tokens that would exclude
@@ -269,12 +274,10 @@ function fallbackIncompatibility(
   ) {
     return "The request exceeds the backup model's image limit.";
   }
-  const reasoningLevel = options?.reasoning ?? requestedThinkingLevel;
-  const requiresReasoning =
-    (reasoningLevel !== undefined && reasoningLevel !== null && reasoningLevel !== "off") ||
-    (candidate.config.thinkingLevel !== undefined &&
-      candidate.config.thinkingLevel !== null &&
-      candidate.config.thinkingLevel !== "off");
+  // The primary's thinking level does not count: a backup without reasoning runs with thinking off.
+  const requiresReasoning = Boolean(
+    candidate.config.thinkingLevel && candidate.config.thinkingLevel !== "off",
+  );
   return requiresReasoning && !candidate.model.reasoning
     ? "The backup model does not support the requested thinking level."
     : undefined;
@@ -397,7 +400,6 @@ export function fallbackAwareModelStream(
           candidate,
           requestContext(true),
           options,
-          state.request.model.thinkingLevel,
           state.request.tools,
         );
         if (incompatibility) {
@@ -473,6 +475,7 @@ export function fallbackAwareModelStream(
         attemptOptions.maxTokens,
         sentTarget.model.reasoning,
         sentTarget.model.contextWindow,
+        operatorMaxTokens(sentTarget.model),
       );
       try {
         const apiKey = target.credentials?.accessToken ?? target.apiKey;
@@ -608,7 +611,9 @@ export function fallbackAwareModelStream(
               event.reason === "error" &&
               !signalAborted() &&
               state.isProviderFailure(event.error) &&
-              (requestLimitTooSmall || isRetryableProviderUnavailable(event.error))
+              (requestLimitTooSmall ||
+                isRetryableProviderUnavailable(event.error) ||
+                isModelCredentialRejected(event.error))
             ) {
               state.primaryFailure ??= sanitizeProviderError(
                 target.config.provider,
@@ -627,8 +632,8 @@ export function fallbackAwareModelStream(
                 restart = true;
                 break;
               }
-              // An exhausted quota or usage window can move to a backup but will not clear
-              // within the retry budget, so only transient failures retry the same model.
+              // An exhausted quota, usage window or rejected credential can move to a backup
+              // but will not clear within the retry budget, so only transient failures retry the same model.
               if (isTransientModelError(event.error)) {
                 firstRetryableError ??= event;
                 const idle = event.error.errorMessage === MODEL_STREAM_IDLE_TIMEOUT_MESSAGE;

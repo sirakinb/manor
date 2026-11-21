@@ -4,6 +4,7 @@ import type {
   ComputerStatus,
   Group,
   ProductEvent,
+  RoutineHistory,
   ThreadSnapshot,
 } from "@rakazo/contracts";
 import {
@@ -248,6 +249,18 @@ export function useThreadSync({
     return snap;
   }
 
+  /** An open run history that already lists the finished run shows its outcome without its poll. */
+  function refreshRoutineHistory(runId: string | null | undefined) {
+    if (!runId) return;
+    void queryClient.invalidateQueries({
+      queryKey: queries.routines.history.key(),
+      predicate: (query) =>
+        (query.state.data as { pages?: RoutineHistory[] } | undefined)?.pages?.some((page) =>
+          page.runs.some((run) => run.id === runId),
+        ) ?? false,
+    });
+  }
+
   async function loadOlderMessages() {
     const targetBotId = inGroup ? undefined : active?.id;
     const targetGroupId = inGroup ? groupId : undefined;
@@ -386,6 +399,7 @@ export function useThreadSync({
         } else if (isComputerStatusEvent(event)) {
           void refreshComputerScreen(active.id).catch(() => undefined);
         }
+        if (isRunTerminalEvent(event)) refreshRoutineHistory(event.runId);
       },
     });
     return () => {
@@ -464,6 +478,7 @@ export function useThreadSync({
           // waiting_input: reconcile ask cards if a stale post-send refresh raced SSE.
           void snapshotRefresh.invalidate().catch(() => undefined);
         }
+        if (isRunTerminalEvent(event)) refreshRoutineHistory(event.runId);
       },
     });
     return () => {

@@ -28,10 +28,16 @@ function jsonContains(value: unknown, needle: unknown): boolean {
   return value === needle;
 }
 
+type MessageQuery = { where?: { blocks?: { array_contains?: unknown } } };
+
 function fixture(blocks: unknown[]) {
   const tx = {
     message: {
-      findMany: vi.fn(async () => [{ id: "card-message", botId: "bot", blocks }]),
+      findMany: vi.fn(
+        async (_query: MessageQuery): Promise<unknown[]> => [
+          { id: "card-message", botId: "bot", blocks },
+        ],
+      ),
       update: vi.fn(),
     },
   };
@@ -46,6 +52,7 @@ function fixture(blocks: unknown[]) {
   const actor = {
     userId: "user",
     spaceId: "space",
+    organizationId: "org-1",
     email: "user@rakazo.test",
     isDeploymentOwner: true,
   };
@@ -260,13 +267,11 @@ describe("resolveMcpApprovalCards", () => {
       },
     ];
     const { deps, actor, tx } = fixture(blocks);
-    tx.message.findMany = vi.fn(
-      async (query: { where?: { blocks?: { array_contains?: unknown } } }) => {
-        const needle = query.where?.blocks?.array_contains;
-        if (needle === undefined) return [];
-        return rows.filter((row) => jsonContains(row.blocks, needle));
-      },
-    );
+    tx.message.findMany.mockImplementation(async (query) => {
+      const needle = query.where?.blocks?.array_contains;
+      if (needle === undefined) return [];
+      return rows.filter((row) => jsonContains(row.blocks, needle));
+    });
     await dismissMcpServerApprovals(deps, actor, "srv-a");
     expect(deps.prisma.thread.findMany).not.toHaveBeenCalled();
     expect(tx.message.findMany).toHaveBeenCalledWith({
@@ -298,7 +303,7 @@ describe("resolveMcpApprovalCards", () => {
   it("does not reset another bot's card in a shared group", async () => {
     const blocks = [{ kind: "mcp_approval", name: "A", serverId: "srv-a", status: "connected" }];
     const { deps, actor, tx } = fixture(blocks);
-    tx.message.findMany = vi.fn(async () => [{ id: "card-message", botId: "other-bot", blocks }]);
+    tx.message.findMany.mockResolvedValue([{ id: "card-message", botId: "other-bot", blocks }]);
     await revertConnectedMcpApprovals(deps, actor, {
       botId: "bot",
       serverId: "srv-a",
@@ -310,8 +315,8 @@ describe("resolveMcpApprovalCards", () => {
   it("does not repaint another bot's direct chat when the bot has left", async () => {
     const blocks = [{ kind: "mcp_approval", name: "A", serverId: "srv-a", status: "pending" }];
     const { deps, actor, tx } = fixture(blocks);
-    deps.prisma.thread.findMany = vi.fn(async () => []);
-    deps.prisma.bot.findFirst = vi.fn(async () => null);
+    vi.mocked(deps.prisma.thread.findMany).mockResolvedValue([]);
+    vi.mocked(deps.prisma.bot.findFirst).mockResolvedValue(null);
     await resolveMcpApprovalCards(deps, actor, {
       botId: "bot",
       serverId: "srv-a",
@@ -326,6 +331,7 @@ describe("queueMcpConnectedRun", () => {
   const actor = {
     userId: "user",
     spaceId: "space",
+    organizationId: "org-1",
     email: "user@rakazo.test",
     isDeploymentOwner: true,
   };

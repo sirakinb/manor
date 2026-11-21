@@ -73,7 +73,9 @@ describe("CRM integration contract", () => {
       createdAt: new Date("2026-08-27T12:00:00.000Z"),
       payload: { id: "contact_1" },
     };
-    const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+    const fetch = vi.fn(
+      async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }),
+    );
     const service = createCrmIntegrationService({
       prisma: {
         crmWebhookDelivery: {

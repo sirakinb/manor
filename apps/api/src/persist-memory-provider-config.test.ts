@@ -10,6 +10,7 @@ import {
 const actor = {
   userId: "user-1",
   spaceId: "ws-1",
+  organizationId: "org-1",
   email: "a@b.com",
   isDeploymentOwner: false,
 };

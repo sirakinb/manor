@@ -25,6 +25,8 @@ describe("canTakeScreenLease", () => {
     // leave the screen wedged behind a finished one until the supervisor restarted.
     expect(canTakeScreenLease("run-1:1", "run-2:1")).toBe(true);
     expect(canTakeScreenLease("run-2:2", "run-1:1")).toBe(true);
+    // Upstream orders fences across runs and refuses this one; Manor does not.
+    expect(canTakeScreenLease("run-1:2", "run-2:2")).toBe(true);
   });
 
   it("keeps an unfenced viewer from displacing a run's screen", () => {
@@ -47,5 +49,6 @@ describe("canReleaseScreenLease", () => {
 
   it("rejects a stale finalizer after a newer run reclaimed the screen", () => {
     expect(canReleaseScreenLease("run-2:2", "run-1:1")).toBe(false);
+    expect(canReleaseScreenLease("run-1:1", "run-2:5")).toBe(false);
   });
 });

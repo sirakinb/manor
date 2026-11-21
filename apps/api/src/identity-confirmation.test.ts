@@ -6,6 +6,7 @@ import { requireIdentityConfirmation } from "./identity-confirmation.js";
 const actor = {
   userId: "user-1",
   spaceId: "space-1",
+  organizationId: "org-1",
   email: "person@example.test",
   isDeploymentOwner: false,
 };
@@ -22,13 +23,14 @@ it("passes a session that recently confirmed its identity", async () => {
   });
 });
 
+// Without a session or actor the guard must refuse even if a confirmation lookup would pass.
 it.each([
-  ["an unconfirmed session", { actor, sessionId: "session-1" }],
-  ["a caller without a session", { actor }],
-  ["a signed-out caller", { actor: null, sessionId: "session-1" }],
-])("refuses %s with a stable code", async (_name, context) => {
+  ["an unconfirmed session", { actor, sessionId: "session-1" }, false],
+  ["a caller without a session", { actor }, true],
+  ["a signed-out caller", { actor: null, sessionId: "session-1" }, true],
+])("refuses %s with a stable code", async (_name, context, confirmed) => {
   const error = await requireIdentityConfirmation(
-    { hasRecentIdentityConfirmation: async () => false },
+    { hasRecentIdentityConfirmation: async () => confirmed },
     context,
   ).catch((caught: unknown) => caught);
   expect(error).toBeInstanceOf(ORPCError);

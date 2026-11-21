@@ -14,6 +14,7 @@ import { buildArchive, chunked, manifestFor } from "./account-import.test-suppor
 const actor: Actor = {
   userId: "user-1",
   spaceId: "space-1",
+  organizationId: "org-1",
   email: "ada@example.com",
   isDeploymentOwner: false,
 };

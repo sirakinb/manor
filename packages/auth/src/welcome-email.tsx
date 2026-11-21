@@ -2,8 +2,7 @@
 import type { TransactionalEmail } from "@rakazo/adapter-kit";
 import { ANDROID_APK_URL } from "@rakazo/contracts";
 import { displayName } from "@rakazo/core";
-import { lightTokens } from "@rakazo/ui-tokens";
-import { Hr, Link, Text } from "react-email";
+import { Link, Text } from "react-email";
 import { linkStyle, message } from "./email.js";
 
 // Manor: every app download lives on Manor's releases page.
@@ -27,16 +26,7 @@ export function welcomeEmail(
         .
       </Text>
       <Text>Have any questions? Reply to this email.</Text>
-      <Hr style={{ borderColor: lightTokens.border, marginTop: "32px" }} />
-      <Text style={{ color: lightTokens.mutedForeground, fontSize: "12px" }}>
-        <Link href={unsubscribeUrl} style={{ color: lightTokens.mutedForeground }}>
-          Unsubscribe
-        </Link>
-      </Text>
     </>,
-    {
-      "List-Unsubscribe": `<${unsubscribeUrl}>`,
-      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-    },
+    unsubscribeUrl,
   );
 }

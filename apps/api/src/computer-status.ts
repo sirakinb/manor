@@ -63,23 +63,26 @@ export function toComputerStatus(
   } | null,
   busyBotName: string | null = null,
 ): ComputerStatus {
-  const state = computer?.maintenanceId
-    ? "booting"
-    : computer?.state === "quarantined"
-      ? "error"
-      : computer?.state === "suspending"
-        ? "running"
-        : computer?.state === "stopped" ||
-            computer?.state === "booting" ||
-            computer?.state === "running" ||
-            computer?.state === "suspended" ||
-            computer?.state === "error"
-          ? computer.state
-          : "stopped";
-  const screen = computerScreenSize(computer?.kind);
   const kind = (computer?.kind ?? "fake") as ComputerStatus["kind"];
   const mode =
     computer?.scope === "dedicated" ? "dedicated" : computer?.scope === "local" ? "local" : "team";
+  const state =
+    kind === "none"
+      ? "stopped"
+      : computer?.maintenanceId
+        ? "booting"
+        : computer?.state === "quarantined"
+          ? "error"
+          : computer?.state === "suspending"
+            ? "running"
+            : computer?.state === "stopped" ||
+                computer?.state === "booting" ||
+                computer?.state === "running" ||
+                computer?.state === "suspended" ||
+                computer?.state === "error"
+              ? computer.state
+              : "stopped";
+  const screen = computerScreenSize(computer?.kind);
   return {
     botId,
     mode,

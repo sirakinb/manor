@@ -1,6 +1,7 @@
-import type { AgentRunRequest, SemanticMemoryProvider } from "@rakazo/adapter-kit";
+import type { AgentRunRequest, ComputerRef, SemanticMemoryProvider } from "@rakazo/adapter-kit";
 import {
   DEFAULT_CONTEXT_STRATEGY,
+  isModelCredentialRejected,
   runContinueJob,
   SandboxUnavailableError,
   SandboxUnresponsiveError,
@@ -31,7 +32,9 @@ import {
   userRunError,
   userTurnMessageForRun,
 } from "@rakazo/core";
+import type { ThreadEvents } from "@rakazo/db";
 import {
+  availableInSpace,
   effectiveMemoryScope,
   ensureComputerRecord,
   importWorkspaceKnowledge,
@@ -40,6 +43,7 @@ import {
   loadRunHistoryMessages,
   loadRunTurnCheckpoint,
   parseComputerMode,
+  RunHistoryWriteError,
   readRunTimingFields,
   recordUsage,
   settleReleasedTakeoverCards,
@@ -56,8 +60,10 @@ import {
   commandCredentialRedactions,
   loadBotCommandEnvironment,
   loadLoginPasswordRedactions,
+  loadRunLoginRedactions,
 } from "./bot-secrets.js";
 import { createBrowserProvider } from "./browser-provider-factory.js";
+import { partitionTools } from "./builtin-tool-bridge.js";
 import { agentConnectionTools, builtinAgentTools } from "./builtin-tools.js";
 import { botMayUseChannels } from "./channels.js";
 import { cloudAgentsEnabled } from "./cloud-agent-factory.js";
@@ -105,6 +111,7 @@ import {
   runModelChoice,
 } from "./model-selection.js";
 import { modelAcceptsImageInput } from "./model-vision.js";
+import { usesNativeShell } from "./native-shell.js";
 import { paymentWalletConnected } from "./payment-wallets.js";
 import { isRetiredModelCredentialError } from "./pi-oauth.js";
 import { loadPurchaseRedactions } from "./purchase-service.js";
@@ -136,6 +143,7 @@ import {
   createRunWorkspaceCheckpoint,
   failRunBeforeTurn,
   mayOpenModelStream,
+  providerOutageRetryDelay,
   RUN_SETUP_FAILURE_LIMIT,
   renewRunLease,
   requeueComputerRun,
@@ -144,11 +152,13 @@ import {
   startNextWaitingRun,
   writeComputerRunRequeue,
 } from "./run-lifecycle.js";
+import { withRunLease } from "./run-messages.js";
 import {
   cloudflareRunFields,
   deploymentKeyFor,
   isTerminalModelSetupError,
   modelCreditBillingEnabled,
+  resolveConnectedModelKey,
   resolveConnectedRunModel,
   resolveModelKey,
   resolveRunModel,
@@ -170,6 +180,7 @@ import {
   selectToolsForRoutingMode,
 } from "./run-tool-selection.js";
 import { applyTool } from "./run-tools.js";
+import { historyMyChatsAllowed } from "./run-tools-memory.js";
 import type { UserComputerState } from "./run-tools-user-computer.js";
 import { USER_COMPUTER_SHELL_TOOL, userComputerOwner } from "./run-tools-user-computer.js";
 import { createRunTrustLoaders } from "./run-trust.js";
@@ -203,27 +214,74 @@ import {
 } from "./thread-artifacts.js";
 import { loadAgentTicketContext } from "./ticket-context.js";
 import { appendToolCompletionAudit } from "./tool-completion-audit.js";
+import { toolResultFingerprint } from "./tool-loop.js";
 import { createWebProvider } from "./web-provider-factory.js";
 
 // Manor tests and callers import these from the executor.
 export { selectBuiltinToolsForRun, selectToolsForRoutingMode } from "./run-tool-selection.js";
 
-export function createRunExecutor(deps: ExecutorDeps) {
-  const contextStrategy = deps.contextStrategy ?? DEFAULT_CONTEXT_STRATEGY;
-  const web = deps.web ?? createWebProvider();
-  const mediaGeneration = deps.mediaGeneration ?? createMediaGenerationProvider();
-  const browser = deps.browser ?? createBrowserProvider(undefined, { sandbox: deps.sandbox });
-  const cloudAgent = deps.cloudAgent;
-  const resolveConnectedModel = resolveConnectedRunModel.bind(undefined, deps);
+/** Same reach as the MCP connector: usable servers assigned to the bot or shared with every bot. */
+async function verbatimMcpServersForRun(
+  prisma: ExecutorDeps["prisma"],
+  scope: { botId: string; spaceId: string; userId: string },
+) {
+  if (!prisma.mcpServer?.findMany) return undefined;
+  const servers = await prisma.mcpServer.findMany({
+    where: {
+      verbatimResults: true,
+      enabled: true,
+      ...availableInSpace(scope),
+      AND: [{ OR: [{ allBots: true }, { assignments: { some: { botId: scope.botId } } }] }],
+    },
+    select: { id: true, slug: true },
+  });
+  if (!servers?.length) return undefined;
+  return { ids: servers.map((server) => server.id), slugs: servers.map((server) => server.slug) };
+}
+
+export function createRunExecutor(executorDeps: ExecutorDeps) {
+  const contextStrategy = executorDeps.contextStrategy ?? DEFAULT_CONTEXT_STRATEGY;
+  const web = executorDeps.web ?? createWebProvider();
+  const mediaGeneration = executorDeps.mediaGeneration ?? createMediaGenerationProvider();
+  const browser =
+    executorDeps.browser ?? createBrowserProvider(undefined, { sandbox: executorDeps.sandbox });
+  const cloudAgent = executorDeps.cloudAgent;
+  const resolveConnectedModel = resolveConnectedRunModel.bind(undefined, executorDeps);
+
+  // Run-scoped connector state (installed MCP sessions) outlives one attempt
+  // but not its run, so the session side owns the lifetime: the connector ends
+  // it when this worker observes the run's end, and bounds the rest itself.
+  const endRunConnectorState = (runId: string) => executorDeps.connector?.endRun?.(runId);
+  // Every terminal outcome funnels through finalizeRun — completion, failure,
+  // the tool-loop stop and pre-turn failures — but only the attempt that still
+  // owns the run finalizes it. A fenced-out attempt must not end the run's
+  // state while a newer attempt of this run still needs it; whether it may end
+  // it depends on the run row, not on this attempt. A rejected finalizeRun left
+  // the run unfinished, so its state survives the retry.
+  const events: ThreadEvents = {
+    ...executorDeps.events,
+    finalizeRun: async (input) => {
+      const result = await executorDeps.events.finalizeRun(input);
+      if (result || (await runEndedForThisWorker(executorDeps.prisma, input))) {
+        endRunConnectorState(input.runId);
+      }
+      return result;
+    },
+  };
+  const baseDeps: ExecutorDeps = { ...executorDeps, events };
   return {
     resolveConnectedModel,
     contextStrategy,
-    resolveModel: resolveRunModel.bind(undefined, deps),
-    wakeRoutine: wakeRoutine.bind(undefined, deps),
-    notifyRoutineRetryAttemptsExhausted: notifyRoutineRetryAttemptsExhausted.bind(undefined, deps),
-    retryRoutineRun: retryRoutineRun.bind(undefined, deps),
+    resolveModel: resolveRunModel.bind(undefined, baseDeps),
+    wakeRoutine: wakeRoutine.bind(undefined, baseDeps),
+    notifyRoutineRetryAttemptsExhausted: notifyRoutineRetryAttemptsExhausted.bind(
+      undefined,
+      baseDeps,
+    ),
+    retryRoutineRun: retryRoutineRun.bind(undefined, baseDeps),
 
     async continueRun(runId: string, workerId: string, onRunStarted?: () => void) {
+      let deps = baseDeps;
       // A stopping process must not claim work it cannot finish. The row stays
       // queued or expired for a worker that is still running.
       if (deps.shutdownSignal?.aborted) return;
@@ -237,9 +295,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
         "space.id": run.spaceId,
         ...(run.userId ? { "user.id": run.userId } : {}),
       });
-      if (isTerminal(run.status as RunStatus)) return;
-      let { resumeCheckpoint, heldForTakeover, resumeHeldLease, takeoverResume } =
-        takeoverContinuePlan(run);
+      if (isTerminal(run.status as RunStatus)) {
+        // Finalized elsewhere (cancelled while waiting, another worker): this
+        // worker's run-scoped state for it may end now; until a next touch, the
+        // connector's own idle bound holds it.
+        endRunConnectorState(runId);
+        return;
+      }
+      let { resumeCheckpoint, heldForTakeover, takeoverResume } = takeoverContinuePlan(run);
 
       const fence = nextFence(run.leaseFence);
       const now = new Date();
@@ -317,17 +380,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
         computerId = team.id;
       }
       if (takeoverResume) {
-        await settleReleasedTakeoverCards(
-          deps.prisma,
-          {
-            spaceId: run.spaceId,
-            threadId: run.threadId,
-            botId: run.botId,
-            runId,
-            reason: takeoverResume.checkpoint,
-          },
-          (threadId, seq) => deps.events.notify(threadId, seq),
-        );
+        try {
+          await settleReleasedTakeoverCards(
+            deps.prisma,
+            {
+              spaceId: run.spaceId,
+              threadId: run.threadId,
+              botId: run.botId,
+              runId,
+              reason: takeoverResume.checkpoint,
+              lease: { owner: workerId, fence },
+            },
+            (threadId, seq) => deps.events.notify(threadId, seq),
+          );
+        } catch (error) {
+          // A newer claim owns the run and its takeover cards.
+          if (error instanceof RunHistoryWriteError) return;
+          throw error;
+        }
       }
       let computerLease: ComputerExecutionLease | null = null;
       try {
@@ -335,7 +405,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
           computerId,
           runId,
           botId: run.botId,
-          resumeHeldLease,
+          workerId,
+          runFence: fence,
         });
         if (!computerLease && leaseTarget.computer?.scope === "dedicated") {
           computerLease = await acquireDedicatedScreenLeaseFence(deps.prisma, {
@@ -394,6 +465,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
         throw error;
       }
 
+      // A newer claim of this run now rejects this attempt's history writes.
+      deps = withRunLease(deps, runId, { owner: workerId, fence });
       const lease: RunLeaseState = {
         valid: true,
         completed: false,
@@ -485,6 +558,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           initialBotCommandEnvironment,
           savedLoginPasswordRedactions,
           purchaseRedactions,
+          runLoginRedactions,
         ] = await Promise.all([
           deps.prisma.bot.findUniqueOrThrow({
             where: { id: run.botId },
@@ -537,6 +611,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           loadBotCommandEnvironment(deps.prisma, deps.secretStore, run),
           loadLoginPasswordRedactions(deps.prisma, deps.secretStore, run),
           deps.paymentWallet ? loadPurchaseRedactions(deps, run) : [],
+          loadRunLoginRedactions(deps.prisma, deps.secretStore, run, run.id),
         ]);
         const historySearchBeforeSeq =
           contextStrategy !== "current" && run.sourceMessageId
@@ -553,7 +628,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
         runSecrets.push(...commandCredentialRedactions(initialBotCommandEnvironment));
         // A login filled in an earlier run may still be on its page, and anything this run reads
         // or is given may contain it, so every run hides its saved passwords before the model runs.
-        runSecrets.push(...savedLoginPasswordRedactions, ...purchaseRedactions);
+        runSecrets.push(
+          ...savedLoginPasswordRedactions,
+          ...purchaseRedactions,
+          ...runLoginRedactions,
+        );
         const agentEnvironmentInstruction = formatAgentEnvironmentInstruction(
           initialBotCommandEnvironment,
         );
@@ -805,9 +884,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
             : undefined,
           defaults: { settings, deployment: runDeployment },
         });
-        const { credential, thinkingLevel } = selected;
-        const runModelProvider = selected.provider ?? runtimeFallback?.provider;
-        const runModelId = selected.id ?? runtimeFallback?.id;
+        const selectedProvider = selected.provider ?? runtimeFallback?.provider;
+        const selectedModelId = selected.id ?? runtimeFallback?.id;
         // A missing or refused connection of the user's own fails every scheduled run alike.
         const failRunBeforeModel = async (message: string, accountFailure = false) => {
           const failed = await failRunBeforeTurn(
@@ -832,41 +910,115 @@ export function createRunExecutor(deps: ExecutorDeps) {
           await failRunBeforeModel(PINNED_PROVIDER_NOT_CONNECTED, true);
           return;
         }
-        if (!runModelProvider || !runModelId) {
+        const modelAccessDenied = async () =>
+          (await modelCreditBillingEnabled(deps)) &&
+          !(await spaceHasModelAccess(deps.prisma, run.spaceId));
+        const scripted = deps.runtime.describe().capabilities.scripted;
+        let backupChoices: Promise<ModelRoleChoice[]> | undefined;
+        const loadBackups = () =>
+          (backupChoices ??= scripted
+            ? Promise.resolve([])
+            : effectiveModelRole(deps.prisma, run, "main", {
+                settings,
+                deployment: runDeployment,
+              }).then(
+                (role) => role.backups,
+                (error: unknown) => {
+                  getLogger().warn("Backup models could not be loaded", { runId, error });
+                  return [];
+                },
+              ));
+        // Backups that could not start here are not offered again once the model runs.
+        const backupsUnavailable = new Set<ModelRoleChoice>();
+        // A main model with no connection, or whose provider refused its sign-in, runs on the
+        // first backup that starts. A pinned run asked for its model and keeps it.
+        const startOnBackup = async () => {
+          if (run.modelPinned) return undefined;
+          for (const choice of await loadBackups()) {
+            try {
+              const backup = await resolveConnectedModelKey(
+                deps,
+                run,
+                choice.provider,
+                choice.modelId,
+                (values) => runSecrets.push(...values),
+                true,
+                choice.credentialId,
+              );
+              getLogger().warn("model.primary_unavailable.backup_used", {
+                runId,
+                "model.provider": choice.provider,
+                "model.id": choice.modelId,
+              });
+              return {
+                provider: choice.provider,
+                id: choice.modelId,
+                credential: backup.credential,
+                thinkingLevel: (choice.thinkingLevel ??
+                  null) as AgentRunRequest["model"]["thinkingLevel"],
+                resolved: backup.resolved,
+              };
+            } catch {
+              // Resolver errors can carry credential details, so only the outcome is kept.
+              backupsUnavailable.add(choice);
+            }
+          }
+          return undefined;
+        };
+        let start: Awaited<ReturnType<typeof startOnBackup>>;
+        let primaryFailure = { message: MISSING_MODEL_RUN_ERROR, accountFailure: true };
+        let retryPrimary: unknown;
+        if (selectedProvider && selectedModelId) {
+          if (await modelAccessDenied()) {
+            await failRunBeforeModel(MODEL_ACCESS_REQUIRED_RUN_ERROR, true);
+            return;
+          }
+          try {
+            start = {
+              provider: selectedProvider,
+              id: selectedModelId,
+              credential: selected.credential,
+              thinkingLevel: selected.thinkingLevel,
+              resolved: await resolveModelKey(
+                deps,
+                run.userId,
+                run.spaceId,
+                selected.credential,
+                selectedProvider,
+                selectedModelId,
+                (values) => runSecrets.push(...values),
+              ),
+            };
+          } catch (error) {
+            // An incompatible saved model or a dead (already retired) credential is a
+            // configuration error: record it on the run rather than retrying setup.
+            const terminal = isTerminalModelSetupError(error);
+            if (!terminal && !isModelCredentialRejected(error)) throw error;
+            primaryFailure = {
+              message: error instanceof Error ? error.message : "Connect the provider again.",
+              accountFailure:
+                error instanceof HostedModelCreditsRequiredError ||
+                isRetiredModelCredentialError(error),
+            };
+            if (!terminal) retryPrimary = error;
+          }
+        } else if (await modelAccessDenied()) {
           await failRunBeforeModel(MISSING_MODEL_RUN_ERROR, true);
           return;
         }
-        if (
-          (await modelCreditBillingEnabled(deps)) &&
-          !(await spaceHasModelAccess(deps.prisma, run.spaceId))
-        ) {
-          await failRunBeforeModel(MODEL_ACCESS_REQUIRED_RUN_ERROR, true);
+        start ??= await startOnBackup();
+        if (!start) {
+          if (retryPrimary) throw retryPrimary;
+          await failRunBeforeModel(primaryFailure.message, primaryFailure.accountFailure);
           return;
         }
-        // An incompatible saved model is a configuration error. Record it on the run.
-        // Leaving it for the setup catch would retry and replace the message.
-        let resolved: Awaited<ReturnType<typeof resolveModelKey>>;
-        try {
-          resolved = await resolveModelKey(
-            deps,
-            run.userId,
-            run.spaceId,
-            credential,
-            runModelProvider,
-            runModelId,
-            (values) => runSecrets.push(...values),
-          );
-        } catch (error) {
-          // A dead or account-switched credential is already deleted. Retrying
-          // setup would requeue the run and might fall back to another model.
-          if (!isTerminalModelSetupError(error)) throw error;
-          await failRunBeforeModel(
-            error instanceof Error ? error.message : "Connect the provider again.",
-            error instanceof HostedModelCreditsRequiredError ||
-              isRetiredModelCredentialError(error),
-          );
-          return;
-        }
+        const {
+          provider: runModelProvider,
+          id: runModelId,
+          credential,
+          thinkingLevel,
+          resolved,
+        } = start;
         runSecrets.push(...resolved.redact);
         // A pin stays as it was created. Unpinned runs still record the model they
         // used; modelPinned is what keeps that record from becoming the next choice.
@@ -1021,18 +1173,17 @@ export function createRunExecutor(deps: ExecutorDeps) {
             select: { status: true, checkpoint: true },
           });
           if (held) {
-            ({ resumeCheckpoint, heldForTakeover, resumeHeldLease, takeoverResume } =
-              refreshTakeoverContinuePlan(
-                { resumeCheckpoint, heldForTakeover, resumeHeldLease, takeoverResume },
-                held,
-              ));
+            ({ resumeCheckpoint, heldForTakeover, takeoverResume } = refreshTakeoverContinuePlan(
+              { resumeCheckpoint, heldForTakeover, takeoverResume },
+              held,
+            ));
           }
         }
         const sourceMessage =
           (run.trigger === "user" || run.trigger === "follow_up") && run.sourceMessageId
             ? await deps.prisma.message.findUnique({
                 where: { id: run.sourceMessageId },
-                select: { clientNonce: true, role: true, blocks: true },
+                select: { clientNonce: true, role: true, blocks: true, threadId: true },
               })
             : null;
         // Calls carry no schema flag: the sending client encodes them in the clientNonce.
@@ -1055,15 +1206,20 @@ export function createRunExecutor(deps: ExecutorDeps) {
           botUserId: bot.userId,
         });
         let userComputer: UserComputerState;
+        let userComputerScreen = false;
         if (
           userComputerOwnerId &&
           deps.userDevices &&
           !disabledBuiltinTools.has(USER_COMPUTER_SHELL_TOOL)
         ) {
-          if (await deps.userDevices.connected(userComputerOwnerId).catch(() => null))
+          const device = await deps.userDevices.connected(userComputerOwnerId).catch(() => null);
+          if (device) {
             userComputer = "connected";
+            // The macOS and Windows desktops fetch a screen driver; Linux has none yet.
+            userComputerScreen = device.platform === "darwin" || device.platform === "win32";
+          }
           // A chat that used the computer earlier may continue from another device after it closed.
-          else if (await deps.userDevices.hasDevice(userComputerOwnerId).catch(() => false))
+          else if (await deps.userDevices.pairedSince(userComputerOwnerId).catch(() => null))
             userComputer = "offline";
         }
         const builtins = [
@@ -1088,6 +1244,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             fleetManagement: bot.fleetManagement,
             followUpFromUser: sourceMessage?.role === "user",
             userComputer: userComputer === "connected",
+            userComputerScreen,
             // Messaging channels belong to one bot, so no other bot is offered the tool.
           })
             .filter((tool) => botMayUseChannels(bot.id) || tool.name !== "send_channel_message")
@@ -1160,13 +1317,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
           ? dockerComputerToolInstruction(computerKind, disabledBuiltinTools)
           : undefined;
         const hostEnvironment =
-          computerKind === "desktop"
+          computerKind && usesNativeShell(computerKind)
             ? await deps.sandbox
                 .environment?.(
                   {
                     id: storedComputer.providerRef ?? storedComputer.id,
                     botId: storedComputer.homeKey,
-                    kind: "desktop",
+                    kind: computerKind as ComputerRef["kind"],
                     providerRef: storedComputer.providerRef ?? "",
                   },
                   {
@@ -1176,10 +1333,16 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 )
                 .catch(() => undefined)
             : undefined;
+        const hostShell = hostEnvironment
+          ? `Home: ${JSON.stringify(hostEnvironment.home)}. Shell: ${JSON.stringify(hostEnvironment.shell)}. The shell tool executes commands with that shell. Use its native syntax, paths and installed tools; do not assume Linux or bash.`
+          : undefined;
+        // Manor: a turn pinned to plugins gets no host advice, since it has no computer.
         const hostInstruction =
-          hostEnvironment && computerToolsAvailable
-            ? `Commands run on the user's ${hostEnvironment.platform} computer with their account permissions. Home: ${JSON.stringify(hostEnvironment.home)}. Shell: ${JSON.stringify(hostEnvironment.shell)}. The shell tool executes commands with that shell. Use its native syntax, paths and installed tools; do not assume Linux or bash. Local files outside the bot workspace can be accessed through commands. App launching is available through OS commands; graphical screen control is unavailable.`
-            : undefined;
+          !hostEnvironment || !computerToolsAvailable
+            ? undefined
+            : computerKind === "wuying"
+              ? `Commands run on a Windows cloud computer. ${hostShell} Files outside the bot workspace can be accessed through commands. The screen shows the Windows desktop; use the graphical tools for apps without a command line.`
+              : `Commands run on the user's ${hostEnvironment.platform} computer with their account permissions. ${hostShell} Local files outside the bot workspace can be accessed through commands. App launching is available through OS commands; graphical screen control is unavailable.`;
         const computerInstruction = [
           // A turn pinned to plugins has no computer, so it gets no advice on when to use one.
           ...(computerToolsAvailable
@@ -1201,7 +1364,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
               : "This entire computer workspace is your private home. Relative file paths and shell working directories start at its root.";
 
         const reply = await createReplyState(deps, run, runSecrets);
-        const scripted = deps.runtime.describe().capabilities.scripted;
         const script = scripted ? inferScript(task.prompt, takeoverResume?.checkpoint) : undefined;
         const state: RunState = {
           lease,
@@ -1209,7 +1371,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           runningHelpers,
           reply,
           reasoning: createReasoningState(runSecrets),
-          approval: { pausePending: false, request: undefined, proposalInFlight: false },
+          approval: { pausePending: false, request: undefined },
           effects: {
             counts: new Map(),
             occurrences: [],
@@ -1220,7 +1382,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           },
           screen: { lastFrameId: undefined, unchangedVisualStreak: { count: 0 } },
           toolCallStreak: { key: undefined, count: 0 },
+          overLimitActionCalls: 0,
+          toolResults: new Map(),
           tainted: initiallyTainted,
+          // A resumed turn replaces this with the baseline its saved prompt was built from.
+          ownInstructionsBaseline: bot.instructions ?? "",
           earlierAttempt: undefined,
           handedOff: false,
           terminalCheckpointComplete: false,
@@ -1267,6 +1433,16 @@ export function createRunExecutor(deps: ExecutorDeps) {
             messagingChannelRun,
             channelId,
             historySearchBeforeSeq,
+            myChatsAllowed: historyMyChatsAllowed(
+              run,
+              sourceMessage,
+              messagingChannelRun ||
+                Boolean(
+                  channelId ||
+                    thread.externalConversationId ||
+                    messagingChannelId(sourceMessage?.blocks as MessageBlock[] | undefined),
+                ),
+            ),
             voiceCall,
             callEndRun,
             callClientNonce: callClientNonceForRun,
@@ -1356,7 +1532,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           : buildApprovalContinuation(
               approvedEffects,
               (request) => redactSecrets(JSON.stringify(request), runSecrets),
-              { exposedToolNames: new Set(tools.map((tool) => tool.name)) },
+              { exposedToolNames: new Set(partitionTools(tools).listed.map((tool) => tool.name)) },
             );
         const replyContext = await loadReplyContext(deps.prisma, thread.id, run.sourceMessageId);
         let userTimeZone: string | null | undefined;
@@ -1479,25 +1655,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return;
         }
 
-        let fallbackModels: ModelRoleChoice[] = [];
-        if (!scripted) {
-          try {
-            fallbackModels = (
-              await effectiveModelRole(deps.prisma, run, "main", {
-                settings,
-                deployment: runDeployment,
-              })
-            ).backups;
-          } catch (error) {
-            getLogger().warn("Backup models could not be loaded", { runId, error });
-          }
-        }
+        const verbatimMcpServers = await verbatimMcpServersForRun(deps.prisma, {
+          botId: bot.id,
+          spaceId: run.spaceId,
+          userId: run.userId,
+        });
         // The running model is not its own backup, unless another account serves it.
-        fallbackModels = fallbackModels.filter(
+        const fallbackModels = (await loadBackups()).filter(
           (candidate) =>
-            candidate.provider !== runModelProvider ||
-            candidate.modelId !== runModelId ||
-            (candidate.credentialId !== undefined && candidate.credentialId !== credential?.id),
+            !backupsUnavailable.has(candidate) &&
+            (candidate.provider !== runModelProvider ||
+              candidate.modelId !== runModelId ||
+              (candidate.credentialId !== undefined && candidate.credentialId !== credential?.id)),
         );
         const fallbackKey = (provider: string, modelId: string, credentialId?: string | null) =>
           JSON.stringify([provider, modelId, credentialId ?? null]);
@@ -1526,6 +1695,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           const runtimeEvents = deps.runtime.run(
             {
               botId: bot.id,
+              verbatimMcpServers,
               threadId: thread.id,
               runId,
               routineId: run.routineId,
@@ -1599,6 +1769,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 callObserver: resolved.callObserver,
                 ...cloudflareRunFields(resolved),
                 baseUrl: resolved.baseUrl,
+                apiProtocol: resolved.apiProtocol,
                 headers: resolved.headers,
                 allowPrivateEndpoint: resolved.allowPrivateEndpoint,
                 cacheCapabilities: resolved.cacheCapabilities,
@@ -1690,7 +1861,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   effects.restoredPending = undefined;
                 if (!completion.paused)
                   effects.pendingTurnCheckpoints.delete(completion.executionId);
-                return appendToolCompletionAudit(
+                const audited = appendToolCompletionAudit(
                   deps,
                   {
                     spaceId: run.spaceId,
@@ -1701,6 +1872,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   completion,
                   runSecrets,
                 );
+                state.toolResults.set(
+                  completion.executionId,
+                  toolResultFingerprint(completion.result, completion.error),
+                );
+                return audited;
               },
               claimSteering: (seenIds) =>
                 claimRunSteering(
@@ -1745,20 +1921,19 @@ export function createRunExecutor(deps: ExecutorDeps) {
         );
         // An outage at the computer provider is retried like any setup failure, but is not a
         // Rakazo bug to report.
-        if (
+        const providerOutage =
           setupError instanceof SandboxUnavailableError ||
-          setupError instanceof SandboxUnresponsiveError
-        ) {
+          setupError instanceof SandboxUnresponsiveError;
+        // A lost lease aborted setup on purpose; whatever that interrupted is not a failure.
+        if (providerOutage || !lease.valid) {
           getLogger().warn("run setup failed", { error: reportedSetupError });
         } else if (!computerBusy) {
           getLogger().error("run setup failed", reportedSetupError);
         }
+        const priorFailures = retryForever ? 0 : await setupFailureStreak(deps.prisma, runId);
         // The job reconciler re-enqueues a queued run whose job ran out of attempts, so a
         // setup that fails every time would retry forever. End the run instead.
-        if (
-          !retryForever &&
-          (await setupFailureStreak(deps.prisma, runId)) >= RUN_SETUP_FAILURE_LIMIT - 1
-        ) {
+        if (!retryForever && priorFailures >= RUN_SETUP_FAILURE_LIMIT - 1) {
           const bot = await deps.prisma.bot.findUnique({
             where: { id: run.botId },
             select: { name: true },
@@ -1772,6 +1947,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           );
           return;
         }
+        const retryDelay = providerOutage
+          ? providerOutageRetryDelay(priorFailures)
+          : computerRetryDelay(fence);
+        // One instant for the run and its wake-up job, so neither runs before the other.
+        const retryAt = new Date(Date.now() + retryDelay);
         const released = await writeComputerRunRequeue(
           deps,
           runId,
@@ -1780,6 +1960,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           resumeCheckpoint,
           heldForTakeover,
           retryForever ? null : "Run setup failed; retrying",
+          retryAt,
         );
         if (released) {
           await deps.prisma.attempt.update({
@@ -1793,7 +1974,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (retryForever || dispatchHandedOff) {
             await deps.jobs.enqueue({
               ...runContinueJob(runId),
-              availableAt: new Date(Date.now() + computerRetryDelay(fence)),
+              availableAt: retryAt,
             });
             return;
           }
@@ -1811,6 +1992,16 @@ export function createRunExecutor(deps: ExecutorDeps) {
         });
         detachShutdown?.();
         clearInterval(heartbeat);
+        // This attempt stopped working on the run. Whether it paused, lost the
+        // lease, was invalidated by the heartbeat or never finalised, the run
+        // row decides whether this worker's run-scoped state may end: a
+        // terminal run, or one another worker owns, never resumes here, while a
+        // paused or requeued run keeps its sessions for its next attempt. A
+        // successful finalisation already ended the state, and the terminal row
+        // this reads then only repeats that.
+        if (await runEndedForThisWorker(deps.prisma, { runId, leaseOwner: workerId })) {
+          endRunConnectorState(runId);
+        }
         if (!lease.retainComputer) {
           if (computerUse.screenRelease) {
             const releaseContext = computerUse.screenRelease.keepWarm
@@ -1845,4 +2036,26 @@ export function createRunExecutor(deps: ExecutorDeps) {
       }
     },
   };
+}
+
+/** Whether a run this attempt could not finalize is over for this worker: it
+ * reached a terminal state or another worker owns it, so its run-scoped state
+ * may end. A run re-claimed by this worker under a newer fence — recovered, or
+ * requeued after a pause — keeps its state for its next attempt. */
+async function runEndedForThisWorker(
+  prisma: ExecutorDeps["prisma"],
+  input: { runId: string; leaseOwner: string },
+): Promise<boolean> {
+  try {
+    const run = await prisma.run.findUnique({
+      where: { id: input.runId },
+      select: { status: true, leaseOwner: true },
+    });
+    if (!run) return true;
+    if (isTerminal(run.status as RunStatus)) return true;
+    return run.leaseOwner !== null && run.leaseOwner !== input.leaseOwner;
+  } catch {
+    // Unknown keeps the state; the connector's idle bound still ends it.
+    return false;
+  }
 }

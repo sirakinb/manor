@@ -42,9 +42,12 @@ the patch once an electron-builder release includes that fix.
 Windows signs through Azure Artifact Signing once it is configured, logging in
 with GitHub OIDC instead of a stored secret. Create a Public Trust certificate
 profile, then an app registration with the Artifact Signing Certificate Profile
-Signer role on the signing account and a federated credential for the subject
-`repo:elie222/rakazo:environment:desktop-release`. Create that
-`desktop-release` environment in the repository settings.
+Signer role on the signing account, and a `desktop-release` environment in the
+repository settings. Give the app registration a federated credential whose
+subject is exactly the one printed under "Federated token details" in the
+release's Azure login step. This repository's OIDC subject includes owner and
+repository IDs, so the plain `repo:<owner>/<repo>:environment:desktop-release`
+form does not match.
 
 | Secret | Value |
 | --- | --- |
@@ -73,16 +76,20 @@ gh secret set APPLE_API_KEY_P8 < AuthKey_XXXXXXXXXX.p8
 
 ## Cut a release
 
-1. Bump `version` in `apps/desktop/package.json` on `main`.
-2. Tag that commit `v<version>` and push the tag:
+Follow `.agents/skills/release/SKILL.md`: one release PR writes the
+`CHANGELOG.md` section from the pull requests merged since the last tag and
+bumps `version` in `apps/desktop/package.json`. Once it merges, tag the merge
+commit `v<version>` and push the tag.
 
 ```sh
 git tag v0.1.1
 git push origin v0.1.1
 ```
 
-The workflow refuses tags that do not match the desktop version, are not on
-`main`, or are not newer than the latest published release.
+The workflow refuses tags that do not match the desktop version, have no
+matching changelog section, are not on `main`, or are not newer than the latest
+published release. The release text is that changelog section followed by the
+merged pull requests.
 
 ## License review before publication
 

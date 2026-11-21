@@ -15,6 +15,7 @@ dbTests("own-key plan", () => {
   const actor: Actor = {
     userId,
     spaceId,
+    organizationId: "org-1",
     email: `byok-${stamp}@rakazo.test`,
     isDeploymentOwner: false,
   };

@@ -7,6 +7,7 @@ import { markThreadRead, markThreadUnreadFrom } from "./thread-target.js";
 const actor = {
   userId: "user-1",
   spaceId: "space-1",
+  organizationId: "org-1",
   email: "fixture@example.test",
   isDeploymentOwner: false,
 } satisfies Actor;

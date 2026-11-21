@@ -5,19 +5,47 @@ import { crossSpaceCommunicationAllowed } from "./cross-space-communication.js";
 const sender = {
   id: "sender",
   spaceId: "space-a",
+  organizationId: "org-1",
   crossSpaceCommunication: true,
   archivedAt: null,
 };
 const recipient = {
   id: "recipient",
   spaceId: "space-b",
+  organizationId: "org-1",
   crossSpaceCommunication: true,
   archivedAt: null,
 };
 
 describe("cross-space bot communication", () => {
   it.each([
-    { name: "both opted in", bots: [sender, recipient], allowed: true },
+    { name: "both opted in, same organization", bots: [sender, recipient], allowed: true },
+    {
+      name: "different organizations",
+      bots: [sender, { ...recipient, organizationId: "org-2" }],
+      allowed: false,
+    },
+    {
+      name: "a shared team space's bot and a member's personal-space bot in one organization",
+      bots: [
+        { ...sender, spaceId: "team-space" },
+        { ...recipient, spaceId: "personal-space" },
+      ],
+      allowed: true,
+    },
+    {
+      name: "a Space with no organization",
+      bots: [sender, { ...recipient, organizationId: null }],
+      allowed: false,
+    },
+    {
+      name: "neither Space has an organization",
+      bots: [
+        { ...sender, organizationId: null },
+        { ...recipient, organizationId: null },
+      ],
+      allowed: false,
+    },
     {
       name: "sender off",
       bots: [{ ...sender, crossSpaceCommunication: false }, recipient],
@@ -44,6 +72,14 @@ describe("cross-space bot communication", () => {
       bots: [
         { ...sender, crossSpaceCommunication: false },
         { ...recipient, spaceId: sender.spaceId, crossSpaceCommunication: false },
+      ],
+      allowed: true,
+    },
+    {
+      name: "same space, no organization",
+      bots: [
+        { ...sender, organizationId: null },
+        { ...recipient, spaceId: sender.spaceId, organizationId: null },
       ],
       allowed: true,
     },

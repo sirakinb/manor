@@ -17,6 +17,7 @@ import type {
   TransactionalEmailProvider,
 } from "@rakazo/adapter-kit";
 import {
+  SandboxAllowanceUsedError,
   SandboxDamagedError,
   SandboxRateLimitError,
   SandboxUnavailableError,
@@ -33,12 +34,14 @@ import type {
 } from "@rakazo/adapters";
 import {
   applyMessagingOutboundStatus,
+  auditLogConfig,
   ChatSdkMessagingSurface,
   CodexCatalogCache,
   ComposioConnector,
   contentKeyProviderFromEnv,
   createAgentHomeStore,
   createArtifactStore,
+  createAuditLogReconciler,
   createBackgroundJobHandlers,
   createBuildiumLedger,
   createCloudAgentConnection,
@@ -116,10 +119,15 @@ import {
 } from "@rakazo/auth";
 import { brandOrigins } from "@rakazo/brands";
 import type { Actor, AuthCapabilities } from "@rakazo/contracts";
-import { isLocalhostOrLoopbackIp, SERVER_BUILD_HEADER } from "@rakazo/contracts";
-import { signupPolicyFromEnv } from "@rakazo/core";
+import {
+  isLocalhostOrLoopbackIp,
+  PLUGIN_SUBMISSIONS_PATH,
+  SERVER_BUILD_HEADER,
+} from "@rakazo/contracts";
+import { encryptionKeyWarning, signupPolicyFromEnv } from "@rakazo/core";
 import type { Pool, PrismaClient } from "@rakazo/db";
 import {
+  configureProviderTransactionPool,
   createBoardEvents,
   createDb,
   createPool,
@@ -127,6 +135,7 @@ import {
   createThreadEvents,
   describeRowSecurity,
   IsolationError,
+  installAuditEventStore,
   installSecurityEventStore,
   ProviderTransactionBusyError,
   parsePositiveInteger,
@@ -147,7 +156,7 @@ import {
   installLogger,
   SERVICE_NAMES,
 } from "@rakazo/logging";
-import { requestLogging } from "@rakazo/logging/hono";
+import { markExpectedFailure, requestLogging } from "@rakazo/logging/hono";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { type Context, Hono, type Next } from "hono";
 import { cors } from "hono/cors";
@@ -157,6 +166,7 @@ import { mountAccountExportRoute } from "./account-export.js";
 import { mountAccountImportRoute } from "./account-import.js";
 import { mountAppAssociation, nativePasskeys, passkeyRpIdForRequest } from "./app-association.js";
 import { storeInboundAttachment } from "./artifacts.js";
+import { mountAuditExportRoute } from "./audit-export.js";
 import { createBillingService } from "./billing.js";
 import { mountBillingRoutes } from "./billing-webhook.js";
 import { mountChannelRoutes } from "./channels.js";
@@ -180,6 +190,7 @@ import { attachLocalComputerSocket, type LocalComputerUpgradeServer } from "./lo
 import { mountLocalComputerHost } from "./local-settings.js";
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
 import { marketingEmailRoutes, sendWelcomeEmail } from "./marketing-email.js";
+import { moveMcpArgsIntoSecrets } from "./mcp-args-migration.js";
 import { isOAuthPublicPath, mountMcpOAuthProvider } from "./mcp-oauth-provider.js";
 import {
   createMessagingInboundHandler,
@@ -189,11 +200,17 @@ import {
 import { createMessagingReceipts } from "./messaging-receipts.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
 import { monitoringRoutes } from "./monitoring.js";
+import { pluginSubmissionRoutes } from "./plugin-submissions.js";
 import {
   mountPublicFormRoutes,
   PUBLIC_FORM_PREFIX,
   publicFormAllowsOrigin,
 } from "./public-forms.js";
+import {
+  referralEmailsEnabled,
+  sendReferralEmails,
+  startReferralEmails,
+} from "./referral-email.js";
 import { mountApiRequestBodyLimits } from "./request-body-limit.js";
 import { createRouter } from "./router.js";
 import { mountScreenTarget } from "./screen-proxy.js";
@@ -302,10 +319,12 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
   const env = { ...loadEnv(process.env), ...envOverrides };
   const logger = loggerOverride ?? createServiceLogger({ service: SERVICE_NAMES.api });
   installLogger(logger);
+  const poolMax = parsePositiveInteger(process.env.DB_POOL_MAX, 4);
+  configureProviderTransactionPool(poolMax);
   const created = prismaOverride
     ? { prisma: prismaOverride, pool: undefined }
     : createDb(env.databaseUrl, {
-        poolMax: parsePositiveInteger(process.env.DB_POOL_MAX, 4),
+        poolMax,
         applicationName: "rakazo-api",
         keyProvider: contentKeyProviderFromEnv(),
         encryptContent: env.contentEncryption,
@@ -320,6 +339,8 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
   });
   const rowSecurity = rowSecurityWarning(await describeRowSecurity(prisma));
   if (rowSecurity) logger.warn(rowSecurity);
+  const weakEncryptionKey = encryptionKeyWarning(process.env);
+  if (weakEncryptionKey) logger.warn(weakEncryptionKey);
   const realtime =
     realtimeOverride ??
     (created.pool
@@ -334,6 +355,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     logger.warn("Secret storage degraded; encrypted credentials remain available");
   prisma = withSecretPersistence(prisma, secrets);
   installSecurityEventStore(prisma);
+  installAuditEventStore(prisma);
   const unreadableMasterKeys = await verifyContentKeys(prisma);
   if (unreadableMasterKeys.length)
     logger.error("Stored space keys need master keys that are not configured", undefined, {
@@ -399,7 +421,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
   const localComputerGateway = new DurableLocalComputerGateway(prisma, realtime);
   const sandbox: SandboxProvider =
     sandboxOverride ??
-    createRunSandbox(env.sandboxProvider, {
+    (await createRunSandbox(env.sandboxProvider, {
       ...sandboxProviderOptionsFromEnv(),
       supervisorUrl: env.sandboxSupervisorUrl,
       supervisorToken: env.sandboxSupervisorToken,
@@ -414,7 +436,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
       dataDir: env.dataDir,
       prisma,
       localComputer: new LocalSandboxProvider(prisma, localComputerGateway),
-    });
+    }));
   const crmIntegrationService = createCrmIntegrationService({ prisma, secrets });
   const mcpOAuth = new McpOAuthBroker(
     prisma,
@@ -473,6 +495,8 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     throw new Error("EMAIL_EMULATOR requires API_HOST to be a loopback host");
   }
   const email: TransactionalEmailProvider | undefined = configuredEmail ?? localEmailEmulator;
+  const onEmailError = (error: unknown) =>
+    getLogger().error("transactional email delivery failed", error);
   const stripeBilling = stripeBillingConfigFromEnv(env);
   const billingProvider: BillingProvider | undefined =
     billingOverride ?? (stripeBilling ? new StripeBillingProvider(stripeBilling) : undefined);
@@ -480,6 +504,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     ? createBillingService({
         prisma,
         provider: billingProvider,
+        sandbox,
         webOrigin: env.webOrigin,
         managedModelsAvailable: resolveDeploymentModel().configured,
       })
@@ -530,7 +555,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
           args.find((arg) => arg instanceof Error),
         ),
     },
-    onEmailError: (error) => getLogger().error("transactional email delivery failed", error),
+    onEmailError,
     afterSignIn:
       email && env.welcomeEmailEnabled
         ? (userId) =>
@@ -625,6 +650,13 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
       jobs,
       accessToken: env.expoAccessToken,
     });
+  const mcpArgsMove = moveMcpArgsIntoSecrets(prisma, secrets, { signal: shutdown.signal })
+    .then(({ moved }) => {
+      if (moved) getLogger().info("mcp server arguments encrypted", { count: moved });
+    })
+    .catch((error) => {
+      if (!shutdown.signal.aborted) getLogger().error("mcp server arguments move failed", error);
+    });
   // One provider instance so emulator launches and polls share the same Map.
   const cloudAgent = createCloudAgentConnection({
     CLOUD_AGENT_PROVIDER: env.cloudAgentProvider,
@@ -680,7 +712,6 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     webhookBaseUrl: env.apiUrl,
     secretHttp: remoteConnectors,
     mcpAllowPrivateEndpoint: env.mcpAllowPrivateEndpoint,
-    mcpStdio: { stdioEnabled: env.mcpStdioEnabled, allowedCommands: env.mcpStdioAllowedCommands },
     deploymentModelKey: env.deploymentModelKey,
     deploymentModelConfigured: env.deploymentModelConfigured,
     dataDir: env.dataDir,
@@ -749,10 +780,29 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
           prisma,
           securityEventRetentionDays(),
         ),
+        reconcileAuditLog: createAuditLogReconciler(prisma, auditLogConfig()),
         reconcileIdleComputers: createIdleComputerSweeper({ prisma, jobs }),
       })
     : undefined;
   reconciler?.start();
+  const stopReferralEmails =
+    email &&
+    referralEmailsEnabled({
+      referralEmailEnabled: env.referralEmailEnabled,
+      referralsEnabled: billing?.referralsEnabled,
+    })
+      ? startReferralEmails(
+          sendReferralEmails({
+            prisma,
+            email,
+            appUrl: new URL("/app", env.webOrigin).href,
+            origin: env.authUrl,
+            secret: env.authSecret,
+            onError: onEmailError,
+          }),
+          onEmailError,
+        )
+      : undefined;
 
   const router = createRouter({
     maintenance,
@@ -798,6 +848,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     // The scripted runtime never calls a provider, so neither does its connect.
     modelConnectionCheck: env.agentRuntime === "pi" ? verifyModelServesAgents : undefined,
     artifacts,
+    onEmailError,
     dataDir: env.dataDir,
     crmEvent: crmIntegrationService.emitWebhook,
     billing,
@@ -817,6 +868,9 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
       phoneCallRingSeconds: env.phoneCallRingSeconds,
       ticketBoardEnabled,
       navLinks: env.navLinks,
+      adminEmails: env.adminEmails,
+      maxUploadSizeBytes: env.maxUploadSizeBytes,
+      maxAttachmentsPerMessage: env.maxAttachmentsPerMessage,
       agentRuntime: env.agentRuntime,
       defaultProvider: env.defaultProvider,
       defaultModel: env.defaultModel,
@@ -843,7 +897,9 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
   app.use("*", requestLogging(logger));
   app.use("*", clientIpMiddleware(clientIp, env.clientIpHeader));
   const appCors = cors({
-    origin: (origin) => {
+    origin: (origin, c) => {
+      // Anyone may submit a plugin from any site; the endpoint reads no cookies.
+      if (c.req.path === PLUGIN_SUBMISSIONS_PATH) return "*";
       if (!origin) return env.webOrigin;
       return isTrustedOrigin(origin, env) ? origin : "";
     },
@@ -916,6 +972,17 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     ),
   );
   app.route("/", cspReportRoutes(requestClientIp));
+  app.route(
+    "/",
+    pluginSubmissionRoutes({
+      prisma,
+      email,
+      adminEmails: env.adminEmails,
+      webOrigin: env.webOrigin,
+      clientIp: requestClientIp,
+      onEmailError,
+    }),
+  );
   app.route("/", marketingEmailRoutes(prisma, env.authSecret));
   mountApiRequestBodyLimits(app, env.maxUploadSizeBytes);
   mountScreenTarget(app, prisma, env.screenProxySecret);
@@ -1024,16 +1091,11 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     });
   }
   if (messagingInstallations) {
-    app.get("/api/v1/messaging/install/slack/callback", async (c) => {
-      try {
-        await messagingInstallations.complete(
-          c.req.query("state") ?? "",
-          c.req.query("code") ?? "",
-        );
-        return c.redirect(new URL("/app?settings=messaging", env.webOrigin).toString());
-      } catch {
-        return c.text("Slack connection failed. Return to Manor and try again.", 400);
-      }
+    // Slack's registered redirect; the signed-in app finishes it so only the installer can.
+    app.get("/api/v1/messaging/install/slack/callback", (c) => {
+      const target = new URL("/messaging/slack/callback", env.webOrigin);
+      target.search = new URL(c.req.url).search;
+      return c.redirect(target.toString());
     });
   }
   app.use(
@@ -1070,6 +1132,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
   });
   mountChannelRoutes(app, { prisma, events, jobs });
   mountAccountExportRoute(app, { prisma, auth, artifacts, home });
+  mountAuditExportRoute(app, { prisma, sessionActor });
   mountVoiceHttpRoutes(app, { prisma, secrets, env }, async (c) => {
     const member = await sessionActor(c.req.raw);
     // Manor: voice in a shared team space runs as the space account.
@@ -1536,15 +1599,18 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
       await messaging?.shutdown?.();
       await teamChatBridge?.stop();
       await stopInstalledBridges?.();
+      await stopReferralEmails?.();
       await email?.drain?.();
       await reconciler?.stop();
       await oauthTokenUpgrade;
+      await mcpArgsMove;
       await runsStopped;
       await jobs.close();
       await secrets.close();
       await realtime.close();
       await mcp.close();
       await control?.close();
+      await installed.close();
       await prisma.$disconnect().catch(() => undefined);
       await created.pool?.end().catch(() => undefined);
       await ownedJobPool?.end().catch(() => undefined);
@@ -1675,11 +1741,13 @@ export function handleRpcError(
     getLogger().warn(`rpc ${path.join("/")} computer unavailable`, {
       reason: unavailable.cause instanceof Error ? unavailable.cause.message : undefined,
     });
+    markExpectedFailure();
     throw new ORPCError("SERVICE_UNAVAILABLE", { message: unavailable.message, cause: error });
   }
   // A provider kept another transaction busy past the wait; nothing failed, so the caller retries.
   if (error instanceof ProviderTransactionBusyError) {
     getLogger().warn(`rpc ${path.join("/")} provider transaction busy`);
+    markExpectedFailure();
     throw new ORPCError("SERVICE_UNAVAILABLE", { message: error.message, cause: error });
   }
   if (error instanceof SandboxRateLimitError) {
@@ -1687,6 +1755,11 @@ export function handleRpcError(
       reason: error.cause instanceof Error ? error.cause.message : undefined,
     });
     throw new ORPCError("TOO_MANY_REQUESTS", { message: error.message, cause: error });
+  }
+  // The organization spent this month's computer allowance; its message says so.
+  if (error instanceof SandboxAllowanceUsedError) {
+    getLogger().warn(`rpc ${path.join("/")} computer allowance used up`);
+    throw new ORPCError("FORBIDDEN", { message: error.message, cause: error });
   }
   // A retry cannot fix a damaged computer; its message tells the user to Recover it.
   if (error instanceof SandboxDamagedError) {
@@ -1698,13 +1771,16 @@ export function handleRpcError(
     getLogger().warn(`rpc ${path.join("/")} client disconnected`, {
       reason: error instanceof Error ? error.message : String(error),
     });
+    markExpectedFailure();
     return;
   }
   logUnexpectedRpcError(error, path);
 }
 
 export function logUnexpectedRpcError(error: unknown, path: readonly string[]): void {
-  if (error instanceof ORPCError) return;
+  // A procedure's own 5xx (a store it depends on is down) would otherwise reach the collector
+  // only as an anonymous failed request; report it under the procedure with its cause.
+  if (error instanceof ORPCError && error.status < 500) return;
   const where = `rpc ${path.join("/")} failed`;
   getLogger().error(where, error);
 }

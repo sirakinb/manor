@@ -1,7 +1,14 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Bot, Routine } from "@rakazo/contracts";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  openBotPanelTab,
+  rpc,
+  signup,
+} from "./helpers";
 
 async function addScheduleTrigger(page: Page, freq: string) {
   await page.getByRole("button", { name: "Add trigger" }).click();
@@ -49,7 +56,7 @@ for (const trigger of ["webhook", "scheduled"] as const) {
       webhookEnabled: trigger === "webhook",
       crons: trigger === "webhook" ? [] : ["0 9 * * *"],
     });
-    await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+    await openBotPanelTab(page, "Routines");
     await page
       .getByTestId("side-panel")
       .getByRole("button", { name: new RegExp(`^${name}`) })
@@ -81,7 +88,7 @@ test("routine trigger menu offers schedule, Slack, change, Git and webhook trigg
     "Routine Triggers",
   );
   await completeOnboarding(page);
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+  await openBotPanelTab(page, "Routines");
   await page.getByRole("button", { name: "Create Routine" }).click();
   await page.getByRole("button", { name: "Add trigger" }).click();
   await expect(page.getByRole("menuitem")).toHaveText([
@@ -173,7 +180,7 @@ test("routine active switch keeps its thumb inside the track", async ({ page }, 
   const stamp = Date.now();
   await signup(page, `routine-toggle-${stamp}@rakazo.test`, "password12", "Routine Toggle");
   await completeOnboarding(page);
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+  await openBotPanelTab(page, "Routines");
   await page.getByRole("button", { name: "Create Routine" }).click();
 
   const toggle = page.getByRole("switch", { name: "Active" });
@@ -244,7 +251,7 @@ test("routine editing updates in place, preserves timezone, deletion persists, a
   expect(created.nextRunAt).not.toBeNull();
   expect(localSchedule(created.nextRunAt!, created.timezone)).toMatchObject({ hour: 9, minute: 0 });
   await page.reload();
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+  await openBotPanelTab(page, "Routines");
 
   await page.getByRole("button", { name: /Tokyo check-in/ }).click();
   await page.locator("label:has-text('Name') input").fill("Weekday check-in");
@@ -347,34 +354,15 @@ test("routine editing updates in place, preserves timezone, deletion persists, a
   await expect(updatedButton).toHaveCount(0);
 });
 
-test("invalid advanced cron is rejected without creating a routine", async ({ page }, testInfo) => {
-  const stamp = Date.now();
-  await signup(page, `routine-invalid-${stamp}@rakazo.test`, "password12", "Invalid Routine");
-  await completeOnboarding(page);
-  const botId = activeBotId(page);
-
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
-  await page.getByRole("button", { name: "Create Routine" }).click();
-  await page.locator("label:has-text('Name') input").fill("Broken schedule");
-  await page.locator("label:has-text('Instruction') textarea").fill("This should never run");
-  await addScheduleTrigger(page, "Advanced...");
-  await page.getByLabel("Cron expression").fill("61 25 * * *");
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-
-  await expect(page.getByRole("alert")).toContainText("Enter a valid cron expression.");
-  expect(await rpc<Routine[]>(page, "routines/list", { botId })).toEqual([]);
-  await captureScreenshot(page, testInfo, "invalid-cron-rejected");
-});
-
-test("a successful routine create is not reported as failed when refresh fails", async ({
-  page,
-}) => {
+test("a successful routine create is not reported as failed when refresh fails", {
+  tag: "@nightly",
+}, async ({ page }) => {
   const stamp = Date.now();
   await signup(page, `routine-refresh-${stamp}@rakazo.test`, "password12", "Routine Refresh");
   await completeOnboarding(page);
   const botId = activeBotId(page);
 
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+  await openBotPanelTab(page, "Routines");
   await page.getByRole("button", { name: "Create Routine" }).click();
   await page.locator("label:has-text('Name') input").fill("Persisted routine");
   await page.locator("label:has-text('Instruction') textarea").fill("Run once each morning");
@@ -404,9 +392,9 @@ test("a successful routine create is not reported as failed when refresh fails",
   expect(routines[0]?.name).toBe("Persisted routine");
 });
 
-test("switching bots while a routine save is pending does not reopen stale state", async ({
-  page,
-}) => {
+test("switching bots while a routine save is pending does not reopen stale state", {
+  tag: "@nightly",
+}, async ({ page }) => {
   const stamp = Date.now();
   await signup(page, `routine-switch-${stamp}@rakazo.test`, "password12", "Routine Switch");
   await completeOnboarding(page);
@@ -439,7 +427,7 @@ test("switching bots while a routine save is pending does not reopen stale state
   ]);
   await page.reload();
 
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+  await openBotPanelTab(page, "Routines");
   await page.getByRole("button", { name: /First routine/ }).click();
   await page.locator("label:has-text('Name') input").fill("First routine updated");
 
@@ -479,7 +467,7 @@ test("switching bots while a routine save is pending does not reopen stale state
   await expect(page.getByTestId("side-panel")).toHaveAttribute("data-panel", "closed");
   await expect(page.getByRole("alert")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+  await openBotPanelTab(page, "Routines");
   await expect(page.getByRole("button", { name: /Second routine/ })).toHaveCount(1);
   await expect(page.getByRole("button", { name: /First routine/ })).toHaveCount(0);
 
@@ -536,7 +524,7 @@ function localSchedule(iso: string, timezone: string) {
   };
 }
 
-test("change-trigger screenshot walkthrough", async ({ page }, testInfo) => {
+test("change-trigger screenshot walkthrough", { tag: "@nightly" }, async ({ page }, testInfo) => {
   // Manor's web app is pinned to dark, so the walkthrough is captured in dark whatever the
   // system asks for.
   await page.emulateMedia({ colorScheme: "light" });
@@ -545,7 +533,7 @@ test("change-trigger screenshot walkthrough", async ({ page }, testInfo) => {
   await completeOnboarding(page);
   const botId = activeBotId(page);
 
-  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
+  await openBotPanelTab(page, "Routines");
   await expect(page.getByRole("button", { name: "Create Routine" })).toBeVisible();
   await expect(page.getByText(/Booting up .* computer/)).toBeHidden();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

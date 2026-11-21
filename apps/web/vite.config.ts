@@ -32,8 +32,8 @@ import { brandHostnames } from "../../packages/brands/src/index.ts";
 import { resolveScreenProxySecret } from "../../packages/core/src/secrets-guard.ts";
 import { createServiceLogger } from "../../packages/logging/src/env.ts";
 import { socialPreviewPlugin } from "./social-preview-plugin";
+import { apiProxy, DEVICE_SOCKET } from "./src/api-proxy.js";
 import { ASSET_ARCHIVE_DIR, archiveAssets } from "./src/asset-archive.js";
-import { appendForwardedFor } from "./src/forwarded-for.js";
 import { missingAssetMiddleware } from "./src/missing-asset.js";
 import {
   collectNovncHtml,
@@ -301,7 +301,13 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
 
   server.httpServer?.on("upgrade", async (req, socket, head) => {
     const path = novncRequestPath(req.url);
-    if (!path) return;
+    // Node drops its own socket error handler on upgrade, so a client reset with no listener
+    // crashes the server. Other upgrades belong to Vite's HMR or the API proxy, so only their
+    // errors are ignored.
+    if (!path) {
+      socket.on("error", () => {});
+      return;
+    }
     req.url = path;
     const connectionId = randomUUID();
     const startedAt = Date.now();
@@ -309,6 +315,16 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
       "screen.connection_id": connectionId,
       "screen.policy": screenPolicy(req.url),
     };
+    let closeInitiator: "client" | "upstream" | "revoked" | undefined;
+    // Listen before the access check; the close handler below tears down the upstream.
+    socket.on("error", (error) => {
+      screenLog.warn("screen.proxy.websocket_error", {
+        ...bindings,
+        "screen.side": "client",
+        "error.code": socketErrorCode(error),
+      });
+      closeInitiator ??= "client";
+    });
     const confirmedAt = performance.now();
     const target = await resolveNovncTarget(req.url, secret, api, (reason) => {
       screenLog.warn("screen.proxy.target_rejected", {
@@ -328,7 +344,6 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
         : net.connect(target.port, target.hostname);
     let upgraded = false;
     let closed = false;
-    let closeInitiator: "client" | "upstream" | "revoked" | undefined;
     const logClose = (side: "client" | "upstream") => {
       if (closed) return;
       closed = true;
@@ -448,15 +463,6 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
       });
       closeInitiator ??= "upstream";
       socket.destroy();
-    });
-    socket.on("error", (error) => {
-      screenLog.warn("screen.proxy.websocket_error", {
-        ...bindings,
-        "screen.side": "client",
-        "error.code": socketErrorCode(error),
-      });
-      closeInitiator ??= "client";
-      upstream.destroy();
     });
   });
 }
@@ -585,37 +591,6 @@ export default defineConfig(({ command, mode }) => {
   const buildId = command === "build" ? buildIdAt(new Date()) : "";
   const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, "../.."), "");
   const api = process.env.API_PROXY_TARGET ?? rootEnv.API_PROXY_TARGET ?? "http://127.0.0.1:3100";
-  const apiProxy = Object.fromEntries(
-    [
-      "/api",
-      "/rpc",
-      // Manor's OpenAI-compatible API and the CRM and Workspace MCP servers.
-      "/v1",
-      "^/mcp/(crm|workspace)(?:[/?]|$)",
-      // OAuth for MCP clients.
-      "^/(\\.well-known/oauth-|oauth/(register|token)(?:[/?]|$))",
-      // Share this Mac connects over a websocket.
-      "/local-computer",
-      // Native app domain association, served by the API from deployment settings.
-      "/.well-known/apple-app-site-association",
-      "/.well-known/assetlinks.json",
-    ].map((path) => [
-      path,
-      {
-        target: api,
-        // Manor keeps the browser's Host: the API picks the brand and client portal from it.
-        changeOrigin: false,
-        ws: path === "/local-computer",
-        // Append the hop this proxy saw, so the API never mistakes a caller's own header for its
-        // address. The API reads past this hop only when it is listed in TRUSTED_PROXIES.
-        configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            proxyReq.setHeader("x-forwarded-for", appendForwardedFor(req));
-          });
-        },
-      } satisfies ProxyOptions,
-    ]),
-  );
   const previewHost = process.env.RAKAZO_HOST ?? rootEnv.RAKAZO_HOST ?? "localhost";
   const allowedHosts = [
     ...new Set([
@@ -628,6 +603,28 @@ export default defineConfig(({ command, mode }) => {
       ...brandHostnames(),
     ]),
   ];
+  // Set by the server built from this config; reusing one config object for two servers would
+  // leave the last one's list.
+  let proxyHosts: readonly string[] | true = [];
+  const upstreamProxy = apiProxy(api, () => proxyHosts);
+  // Manor keeps the browser's Host: the API picks the brand and client portal from it.
+  const keepHost = (options: ProxyOptions | undefined): ProxyOptions => ({
+    ...options,
+    changeOrigin: false,
+  });
+  const manorApi = keepHost(upstreamProxy["/api"]);
+  const proxy: Record<string, ProxyOptions> = {
+    ...Object.fromEntries(
+      Object.entries(upstreamProxy).map(([key, options]) => [key, keepHost(options)]),
+    ),
+    // Manor's OpenAI-compatible API and the CRM and Workspace MCP servers.
+    "/v1": manorApi,
+    "^/mcp/(crm|workspace)(?:[/?]|$)": manorApi,
+    // OAuth for MCP clients.
+    "^/(\\.well-known/oauth-|oauth/(register|token)(?:[/?]|$))": manorApi,
+    // Share this Mac connects over a websocket, with the same host check as the device socket.
+    "/local-computer": keepHost(upstreamProxy[DEVICE_SOCKET]),
+  };
   const screenProxySecret = () =>
     resolveScreenProxySecret({
       ...process.env,
@@ -663,7 +660,20 @@ export default defineConfig(({ command, mode }) => {
     return frameSrc.length ? appContentSecurityPolicy({ ...cspExtensions, frameSrc }) : appPolicy;
   };
   return {
-    build: { sourcemap: true },
+    build: {
+      sourcemap: true,
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            // Shared chunks that build schemas run before the entry chunk's body, so the Zod
+            // config only lands in time when it ships inside Zod's own chunk.
+            groups: [
+              { name: "zod", test: /[\\/]node_modules[\\/]zod[\\/]|[\\/]src[\\/]zod-config\.ts$/ },
+            ],
+          },
+        },
+      },
+    },
     define: { "import.meta.env.RAKAZO_BUILD": JSON.stringify(buildId) },
     plugins: [
       {
@@ -757,6 +767,16 @@ export default defineConfig(({ command, mode }) => {
         },
       },
       {
+        // The hosts the running server allows, as Vite resolved them, for proxied upgrades.
+        name: "rakazo-api-proxy-hosts",
+        configureServer: (server) => {
+          proxyHosts = server.config.server.allowedHosts;
+        },
+        configurePreviewServer: (server) => {
+          proxyHosts = server.config.preview.allowedHosts;
+        },
+      },
+      {
         name: "rakazo-novnc-proxy",
         configureServer: (server) => attachNovncProxy(server, screenProxySecret(), api),
         configurePreviewServer: (server) => attachNovncProxy(server, screenProxySecret(), api),
@@ -772,13 +792,13 @@ export default defineConfig(({ command, mode }) => {
       port: webPort,
       strictPort: true,
       allowedHosts,
-      proxy: apiProxy,
+      proxy,
     },
     preview: {
       host: "0.0.0.0",
       port: Number(process.env.WEB_PORT ?? 5173),
       allowedHosts,
-      proxy: apiProxy,
+      proxy,
     },
   };
 });

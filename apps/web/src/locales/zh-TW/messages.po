@@ -43,6 +43,11 @@ msgstr ""
 msgid "{0, plural, one {# free month earned} other {# free months earned}}"
 msgstr "{0, plural, one {已獲得 # 個月免費} other {已獲得 # 個月免費}}"
 
+#. placeholder {0}: item.freeMonths
+#: src/pages/AdminAccessPage.tsx
+msgid "{0, plural, one {# free month} other {# free months}}"
+msgstr ""
+
 #. placeholder {0}: skills.length - shownSkills.length
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "{0, plural, one {# more} other {# more}}"
@@ -62,6 +67,11 @@ msgstr ""
 #. placeholder {0}: chosen.length
 #: src/components/integrations/space-availability.tsx
 msgid "{0, plural, one {# space} other {# spaces}}"
+msgstr ""
+
+#. placeholder {0}: server.health.toolCount
+#: src/pages/McpServersOverlay.tsx
+msgid "{0, plural, one {# tool} other {# tools}}"
 msgstr ""
 
 #. placeholder {0}: pinned.length
@@ -356,11 +366,6 @@ msgstr ""
 msgid "{0} will still respond to direct mentions."
 msgstr "直接提及 {0} 時，它仍會回應。"
 
-#. placeholder {0}: bot.name
-#: src/pages/shell/computer-panel.tsx
-msgid "{0}'s screen"
-msgstr "{0} 的螢幕"
-
 #. placeholder {0}: perDay.toFixed(perDay < 10 ? 1 : 0)
 #: src/pages/workspace/sections/VoiceSection.tsx
 msgid "{0}/day avg"
@@ -406,6 +411,10 @@ msgstr ""
 #: src/pages/crm/CrmHome.tsx
 msgid "{contactCount, plural, one {# contact} other {# contacts}}"
 msgstr ""
+
+#: src/pages/shell/message-view.tsx
+msgid "{count, plural, one {# message with {peer}} other {# messages with {peer}}}"
+msgstr "{count, plural, other {與{peer}的 # 則訊息}}"
 
 #: src/components/markdown-copy.tsx
 msgid "{count, plural, one {# row} other {# rows}}"
@@ -459,6 +468,10 @@ msgstr "{header}，第 {index} 欄"
 msgid "{hidden, plural, one {+# earlier step} other {+# earlier steps}}"
 msgstr "{hidden, plural, one {還有 # 個先前步驟} other {還有 # 個先前步驟}}"
 
+#: src/pages/model-settings/compatible-model-fields.tsx
+msgid "{hiddenSelectedCount, plural, one {# selected model is hidden by your search.} other {# selected models are hidden by your search.}}"
+msgstr ""
+
 #: src/pages/workspace/bits.tsx
 msgid "{hours}h"
 msgstr ""
@@ -482,6 +495,10 @@ msgstr "{minutes} 分鐘前"
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "{moved, plural, one {# bot now uses the space default.} other {# bots now use the space default.}}"
 msgstr "{moved, plural, one {# 個機器人已改用空間預設模型。} other {# 個機器人已改用空間預設模型。}}"
+
+#: src/components/integrations/plugin-marketplace.tsx
+msgid "{name} (same name as a built-in skill)"
+msgstr ""
 
 #: src/lib/activity-list-filters.ts
 msgid "{name} asked"
@@ -653,7 +670,6 @@ msgstr "{title}，{label}"
 msgid "{title}, saved as {savedAs}"
 msgstr "{title}，儲存為 {savedAs}"
 
-#: src/components/McpServerHealthLine.tsx
 #: src/components/ToolActivityDisclosure.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "{toolCount, plural, one {# tool} other {# tools}}"
@@ -687,12 +703,6 @@ msgstr ""
 #: src/pages/DocsView.tsx
 msgid "<0>record.*</0> events fire for custom module records; the payload's <1>data</1> carries the full object after the change."
 msgstr ""
-
-#. placeholder {0}: amount / 100
-#. placeholder {0}: status.byokPriceCents / 100
-#: src/components/ModelCredits.tsx
-msgid "${0} / month"
-msgstr "每月 ${0}"
 
 #: src/components/integrations/space-availability.tsx
 msgid "1 space"
@@ -828,6 +838,7 @@ msgstr ""
 #. placeholder {0}: group.spaceName
 #: src/components/FilesPanel.tsx
 #: src/pages/BotContextMenu.tsx
+#: src/pages/McpServersOverlay.tsx
 #: src/pages/shell/sidebar-roster.tsx
 msgid "Actions for {0}"
 msgstr "{0} 的操作"
@@ -872,7 +883,6 @@ msgstr ""
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/ScratchpadSection.tsx
-#: src/pages/shell/agent-import.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
 msgid "Add"
 msgstr "新增"
@@ -918,6 +928,10 @@ msgstr "請填寫 stdio 命令。"
 #: src/pages/shell/use-routine-editor.ts
 msgid "Add a trigger to run this routine."
 msgstr "新增觸發器以執行此例行任務。"
+
+#: src/lib/tts.ts
+msgid "Add a voice provider key and pick a voice in Voice settings."
+msgstr ""
 
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Add an address"
@@ -1020,10 +1034,6 @@ msgstr ""
 msgid "Add this authorization header, replacing the placeholder with your token:"
 msgstr ""
 
-#: src/pages/shell/agent-import.tsx
-msgid "Add to an existing bot"
-msgstr "新增到現有機器人"
-
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Add to routine"
 msgstr "加入例行任務"
@@ -1065,7 +1075,6 @@ msgstr ""
 msgid "Address after approving"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/ModelSettingsOverlay.tsx
@@ -1084,12 +1093,12 @@ msgstr "進階..."
 msgid "After you approve, your browser lands on a page that won't load. Copy that page's address and paste it here."
 msgstr ""
 
-#: src/pages/shell/chat-header.tsx
-msgid "Agent computer"
-msgstr "代理程式電腦"
-
 #: src/pages/AgentConnectionSetup.tsx
 msgid "Agent connection setup"
+msgstr ""
+
+#: src/components/AccountDataSettings.tsx
+msgid "Agent from another app"
 msgstr ""
 
 #: src/pages/workspace/sections/TeamSection.tsx
@@ -1100,10 +1109,6 @@ msgstr ""
 #: src/pages/shell/dialogs.tsx
 msgid "Agents, conversations, files, and connected accounts are shared."
 msgstr ""
-
-#: src/pages/McpServersOverlay.tsx
-msgid "Agents:"
-msgstr "代理程式："
 
 #. placeholder {0}: current.agreed
 #. placeholder {1}: current.compared
@@ -1135,15 +1140,15 @@ msgstr ""
 msgid "All"
 msgstr ""
 
-#. placeholder {0}: amount / 100
 #: src/components/ModelCredits.tsx
-msgid "All ${0} goes to model usage."
-msgstr "全部 ${0} 都用於模型用量。"
+msgid "All {credit} goes to model usage."
+msgstr "全部 {credit} 都用於模型用量。"
 
 #: src/pages/workspace/sections/LeasingSection.tsx
 msgid "All applications on record"
 msgstr ""
 
+#: src/components/integrations/agent-access.tsx
 #: src/components/VerificationComparison.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/shell/agent-import.tsx
@@ -1175,27 +1180,26 @@ msgstr "所有狀態"
 msgid "All time"
 msgstr "不限時間"
 
-#: src/components/ApprovalRulePreview.tsx
 #: src/components/ApprovalRulesSettings.tsx
 #: src/pages/OAuthAuthorize.tsx
 msgid "Allow"
 msgstr "允許"
+
+#: src/lib/dictation.ts
+msgid "Allow {brandName} to use Speech Recognition and the microphone in System Settings."
+msgstr ""
 
 #: src/pages/shell/bot-panel.tsx
 msgid "Allow cross-space bot communication"
 msgstr "允許跨空間機器人通訊"
 
 #: src/components/AskCard.tsx
-msgid "Allow for this chat"
+msgid "Allow in this space"
 msgstr ""
 
 #: src/components/AskCard.tsx
 msgid "Allow once"
 msgstr "允許一次"
-
-#: src/components/ApprovalRulePreview.tsx
-msgid "Allow rule"
-msgstr "允許規則"
 
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Allow writing"
@@ -1206,7 +1210,7 @@ msgid "Allowed"
 msgstr ""
 
 #: src/components/AskCard.tsx
-msgid "Allowed for this chat"
+msgid "Allowed in this space"
 msgstr ""
 
 #: src/components/AskCard.tsx
@@ -1302,6 +1306,10 @@ msgstr "已回答：{answer}"
 msgid "Anthropic API"
 msgstr "Anthropic API"
 
+#: src/pages/model-settings/compatible-model-fields.tsx
+msgid "Anthropic Messages"
+msgstr ""
+
 #: src/pages/Paywall.tsx
 msgid "Any model, with your own key"
 msgstr "使用自己的金鑰連接任何模型"
@@ -1332,10 +1340,6 @@ msgstr "API 金鑰標頭"
 msgid "API keys"
 msgstr "API 金鑰"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "API keys stay connected."
-msgstr "API 金鑰會保持連結。"
-
 #: src/pages/Shell.tsx
 msgid "App preview"
 msgstr ""
@@ -1343,6 +1347,10 @@ msgstr ""
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
 msgstr "外觀"
+
+#: src/pages/Shell.tsx
+msgid "Appearance: {label}"
+msgstr ""
 
 #: src/pages/workspace/sections/LeasingSection.tsx
 msgid "Application funnel"
@@ -1369,12 +1377,13 @@ msgstr "核准模型"
 msgid "Approval rate"
 msgstr ""
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 #: src/pages/SpaceSettingOverrides.tsx
 msgid "Approvals"
 msgstr "核准"
 
 #: src/pages/MessagingSettingsPanel.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/message-cards.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 msgid "Approve"
@@ -1388,9 +1397,14 @@ msgstr ""
 msgid "Approve this server to let your agent use its tools."
 msgstr "核准此伺服器，讓代理程式使用它的工具。"
 
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/workspace/sections/ReportsSection.tsx
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Approved"
+msgstr ""
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Approving…"
 msgstr ""
 
 #: src/components/integrations/plugin-marketplace.tsx
@@ -1457,9 +1471,9 @@ msgstr ""
 msgid "Ask in chat to repeat the task, including the schedule and timezone. For example: “Every weekday at 9am America/New_York, review the connected inquiry list and draft a summary of items needing a reply. Leave the replies as drafts.” Review the saved task in Routines and check its first run before relying on it."
 msgstr ""
 
-#: src/components/ApprovalRulePreview.tsx
-msgid "Ask rule"
-msgstr "審批規則"
+#: src/pages/shell/computer-panel.tsx
+msgid "Asleep"
+msgstr "休眠中"
 
 #: src/pages/workspace/sections/SettingsSection.tsx
 msgid "At"
@@ -1473,10 +1487,6 @@ msgstr "{0}"
 #: src/pages/RoutineSchedule.tsx
 msgid "at {timeSelect}"
 msgstr "{timeSelect}"
-
-#: src/pages/shell/composer.tsx
-msgid "Attach"
-msgstr "附加"
 
 #: src/pages/shell/composer.tsx
 msgid "Attach file"
@@ -1606,8 +1616,11 @@ msgstr ""
 
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
+#: src/pages/AdminAccessPage.tsx
+#: src/pages/AdminPluginsPage.tsx
 #: src/pages/Auth.tsx
 #: src/pages/Board.tsx
+#: src/pages/McpServersOverlay.tsx
 #: src/pages/NavLinkPage.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/RoutineEditor.tsx
@@ -1654,7 +1667,7 @@ msgstr ""
 msgid "Bill through Buildium"
 msgstr ""
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Billing"
 msgstr "帳務"
@@ -1672,14 +1685,9 @@ msgstr ""
 msgid "Bills to review"
 msgstr ""
 
-#: src/components/ApprovalRulePreview.tsx
 #: src/components/ApprovalRulesSettings.tsx
 msgid "Block"
 msgstr "封鎖"
-
-#: src/components/ApprovalRulePreview.tsx
-msgid "Block rule"
-msgstr "禁止規則"
 
 #: src/lib/ticket-status.ts
 msgid "Blocked"
@@ -1708,9 +1716,9 @@ msgstr "機器人"
 #: src/pages/IntegrationSetup.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/Shell.tsx
-#: src/pages/shell/agent-import.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 #: src/pages/shell/message-view.tsx
+#: src/pages/SpaceSearch.tsx
 msgid "Bot"
 msgstr "機器人"
 
@@ -1930,7 +1938,7 @@ msgstr "無法讀取影像"
 #: src/pages/OAuthAuthorize.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
-#: src/pages/shell/agent-import-undo.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/create-bot-dialog.tsx
 #: src/pages/shell/dialogs.tsx
 #: src/pages/SpaceSettingOverrides.tsx
@@ -1964,10 +1972,6 @@ msgstr "已取消"
 #: src/pages/ActivityList.tsx
 msgid "Cancelled"
 msgstr "已取消"
-
-#: src/components/ApprovalRulePreview.tsx
-msgid "Candidate rule"
-msgstr "候選規則"
 
 #: src/pages/Artifacts.tsx
 msgid "Card view"
@@ -2018,8 +2022,13 @@ msgstr ""
 msgid "Chart failed to render: {error}"
 msgstr "圖表渲染失敗：{error}"
 
+#: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Chat"
+msgstr ""
+
+#: src/pages/model-settings/compatible-model-fields.tsx
+msgid "Chat Completions"
 msgstr ""
 
 #: src/pages/shell/composer-mentions.tsx
@@ -2108,10 +2117,6 @@ msgstr "請檢視電子信箱"
 msgid "Checkbox"
 msgstr ""
 
-#: src/components/McpServerHealthLine.tsx
-msgid "Checked {checked}"
-msgstr "檢查於 {checked}"
-
 #: src/components/ApprovalRulesSettings.tsx
 msgid "Checker"
 msgstr ""
@@ -2137,10 +2142,6 @@ msgstr "正在檢查…"
 #: src/components/VerificationComparison.tsx
 msgid "Checks"
 msgstr ""
-
-#: src/pages/shell/agent-import.tsx
-msgid "Choose a bot"
-msgstr "選擇機器人"
 
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Choose a bot shape, color, or upload an image"
@@ -2359,10 +2360,6 @@ msgstr "驗證碼"
 msgid "Collapse {0}"
 msgstr "摺疊 {0}"
 
-#: src/pages/shell/message-view.tsx
-msgid "Collapse {label}"
-msgstr "摺疊 {label}"
-
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Color"
 msgstr "顏色"
@@ -2383,6 +2380,10 @@ msgstr "寬鬆"
 #: src/pages/RoutineEditor.tsx
 msgid "Command"
 msgstr "命令"
+
+#: src/pages/shell/command-palette.tsx
+msgid "Command menu"
+msgstr ""
 
 #: src/components/AskCard.tsx
 #: src/components/VaultSettings.tsx
@@ -2439,7 +2440,7 @@ msgstr "已完成"
 msgid "Completed and failed describe the agent’s reported outcome. Needs review, approved and rejected refer to review of that record; they do not authorize execution or undo work. External notes start pending review and cannot approve themselves."
 msgstr ""
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 #: src/pages/Shell.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/shell/message-view.tsx
@@ -2451,6 +2452,10 @@ msgstr "電腦"
 #: src/pages/shell/use-computer.tsx
 msgid "Computer failed to boot"
 msgstr "電腦啟動失敗"
+
+#: src/components/ModelCredits.tsx
+msgid "Computer hours left"
+msgstr "剩餘電腦時數"
 
 #: src/pages/shell/computer-overlay.tsx
 msgid "Computer is asleep"
@@ -2495,13 +2500,8 @@ msgstr "請在伺服器上設定外掛程式目錄，以連接應用程式。"
 msgid "Configured"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx
-msgid "Configured servers"
-msgstr "已設定的伺服器"
-
 #: src/pages/crm/CrmModuleSheet.tsx
 #: src/pages/KnowledgeSection.tsx
-#: src/pages/McpServersOverlay.tsx
 msgid "Confirm delete"
 msgstr "確認刪除"
 
@@ -2582,6 +2582,7 @@ msgid "Connect API key"
 msgstr "連線 API 金鑰"
 
 #: src/components/SidebarFooter.tsx
+#: src/pages/Shell.tsx
 msgid "Connect apps"
 msgstr "連接應用程式"
 
@@ -2702,6 +2703,7 @@ msgstr "包含可執行的程式碼"
 msgid "Context limit"
 msgstr "上下文長度限制"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -2843,6 +2845,10 @@ msgstr "無法新增 MCP 伺服器"
 msgid "Could not add skills"
 msgstr ""
 
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Could not approve plugin"
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
 msgstr "無法核准此伺服器"
@@ -2894,6 +2900,7 @@ msgstr "無法完成更新，請再試一次。"
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/pages/OAuthAuthorize.tsx
 #: src/pages/PluginsOverlay.tsx
+#: src/pages/SlackInstallCallback.tsx
 msgid "Could not connect"
 msgstr "無法連線"
 
@@ -3054,6 +3061,10 @@ msgstr ""
 msgid "Could not generate the webhook key"
 msgstr ""
 
+#: src/pages/AdminAccessPage.tsx
+msgid "Could not grant access"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Could not install connector"
 msgstr "無法安裝連接器"
@@ -3204,10 +3215,6 @@ msgstr ""
 msgid "Could not preview plugin"
 msgstr ""
 
-#: src/components/ApprovalRulePreview.tsx
-msgid "Could not preview rule"
-msgstr "無法預覽規則"
-
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "無法連線到模型伺服器。"
@@ -3232,6 +3239,10 @@ msgstr ""
 
 #: src/components/RunLogsPanel.tsx
 msgid "Could not refresh run logs. Try again."
+msgstr ""
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Could not reject plugin"
 msgstr ""
 
 #: src/components/ComputerDeviceSettings.tsx
@@ -3302,6 +3313,10 @@ msgstr "無法撤銷連線授權"
 
 #: src/pages/CrmApiAccessPanel.tsx
 msgid "Could not revoke credential"
+msgstr ""
+
+#: src/pages/AdminAccessPage.tsx
+msgid "Could not revoke grant"
 msgstr ""
 
 #: src/pages/workspace/AutomationsCard.tsx
@@ -3441,22 +3456,22 @@ msgstr "無法接管"
 msgid "Could not test MCP server"
 msgstr "無法測試 MCP 伺服器"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Could not undo the import"
-msgstr "無法復原匯入"
+#: src/lib/dictation.ts
+msgid "Could not transcribe that recording."
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 #: src/pages/workspace/AutomationsCard.tsx
 msgid "Could not update"
 msgstr "無法更新"
 
-#: src/pages/McpServersOverlay.tsx
-msgid "Could not update agent access"
-msgstr "無法更新代理程式的存取權限"
-
 #: src/components/ModelCredits.tsx
 msgid "Could not update billing"
 msgstr "無法更新帳務資訊"
+
+#: src/pages/McpServersOverlay.tsx
+msgid "Could not update bot access"
+msgstr ""
 
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Could not update computer"
@@ -3486,9 +3501,17 @@ msgstr ""
 msgid "Could not verify computer setup ({failureMessage}). Fix the connection, then check again."
 msgstr "無法驗證電腦設定（{failureMessage}）。請修復連線後再次檢查。"
 
+#: src/pages/AdminAccessPage.tsx
+msgid "Couldn't load grants"
+msgstr ""
+
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Couldn't load messaging settings"
 msgstr "無法載入訊息設定"
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Couldn't load submissions"
+msgstr ""
 
 #: src/pages/PaymentWalletSettingsPanel.tsx
 msgid "Couldn't load your wallet"
@@ -3581,7 +3604,6 @@ msgstr "憑證"
 msgid "Credential name"
 msgstr ""
 
-#: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Credential saved"
 msgstr "憑證已儲存"
@@ -3601,6 +3623,10 @@ msgstr "憑證：{names}"
 #: src/components/ModelCredits.tsx
 msgid "Credit amount"
 msgstr "額度金額"
+
+#: src/pages/AdminAccessPage.tsx
+msgid "Credits ($)"
+msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx
 msgid "CRM API access"
@@ -3633,10 +3659,6 @@ msgstr "Cron"
 #: src/pages/RoutineSchedule.tsx
 msgid "Cron expression"
 msgstr "Cron 表示式"
-
-#: src/components/ApprovalRulePreview.tsx
-msgid "Current"
-msgstr "目前"
 
 #: src/components/AccountAccess.tsx
 #: src/pages/AccountSettingsOverlay.tsx
@@ -3684,9 +3706,11 @@ msgid "Daily reach"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
+#: src/pages/Shell.tsx
 msgid "Dark"
 msgstr "深色"
 
+#: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Data"
 msgstr ""
@@ -3772,6 +3796,7 @@ msgstr "OpenClaw 預設內容"
 msgid "Default scope"
 msgstr "預設範圍"
 
+#: src/components/AccountAccess.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/PasskeySettings.tsx
 #: src/pages/Artifacts.tsx
@@ -3805,9 +3830,10 @@ msgid "Delete {0}"
 msgstr "刪除 {0}"
 
 #. placeholder {0}: bot.name
+#. placeholder {0}: deleting.name
 #. placeholder {0}: form.path
-#. placeholder {0}: item.name
 #: src/components/FilesPanel.tsx
+#: src/pages/McpServersOverlay.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Delete {0}?"
 msgstr "刪除 {0}？"
@@ -3931,6 +3957,18 @@ msgstr ""
 
 #: src/components/RunLogsPanel.tsx
 msgid "Diagnostics exclude prompts, credentials, tool inputs and outputs."
+msgstr ""
+
+#: src/lib/dictation.ts
+msgid "Dictation ended unexpectedly."
+msgstr ""
+
+#: src/lib/dictation.ts
+msgid "Dictation failed: {code}"
+msgstr ""
+
+#: src/lib/dictation.ts
+msgid "Dictation failed."
 msgstr ""
 
 #: src/pages/shell/bot-panel.tsx
@@ -4061,6 +4099,7 @@ msgstr "還沒有帳號？"
 #: src/pages/ActivityList.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 #: src/pages/shell/import-setup-card.tsx
+#: src/pages/shell/message-view.tsx
 msgid "Done"
 msgstr "完成"
 
@@ -4190,6 +4229,7 @@ msgstr "編輯資料"
 msgid "Edit report"
 msgstr ""
 
+#: src/pages/AdminAccessPage.tsx
 #: src/pages/Auth.tsx
 #: src/pages/crm/CrmContacts.tsx
 #: src/pages/crm/CrmContactsSheet.tsx
@@ -4272,6 +4312,10 @@ msgstr "何時參與… 忽略哪些內容…"
 msgid "Engagement rate"
 msgstr ""
 
+#: src/components/GitHubStarPrompt.tsx
+msgid "Enjoying {brandName}?"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Enter a password"
 msgstr "請輸入密碼"
@@ -4315,10 +4359,6 @@ msgstr "環境變數：{names}"
 msgid "Error"
 msgstr "錯誤"
 
-#: src/components/McpServerHealthLine.tsx
-msgid "Error details"
-msgstr "錯誤詳細資訊"
-
 #: src/components/VerificationComparison.tsx
 #: src/pages/DocsView.tsx
 msgid "Errors"
@@ -4360,6 +4400,10 @@ msgstr ""
 #: src/pages/RoutineSchedule.tsx
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "每 {intervalAmountSelect} {intervalUnitSelect}"
+
+#: src/lib/cron.ts
+msgid "Every {n} hours at :{minute}"
+msgstr "每 {n} 小時 {minute} 分"
 
 #: src/pages/DocsView.tsx
 msgid "Every <0>POST</0> that creates data accepts an <1>Idempotency-Key</1> header. Retrying with the same key returns the original result instead of repeating the write; reusing a key with a different payload fails with <2>409</2>."
@@ -4421,10 +4465,6 @@ msgstr "展開"
 msgid "Expand {0}"
 msgstr "展開 {0}"
 
-#: src/pages/shell/message-view.tsx
-msgid "Expand {label}"
-msgstr "展開 {label}"
-
 #: src/pages/Shell.tsx
 msgid "Expand computer"
 msgstr ""
@@ -4437,6 +4477,7 @@ msgstr "展開表格"
 msgid "expired"
 msgstr "已過期"
 
+#: src/components/AccountDataSettings.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Export"
 msgstr "匯出"
@@ -4538,6 +4579,7 @@ msgid "Fields to compare, e.g. id, modifiedTime (optional)"
 msgstr "要比較的欄位，例如 id, modifiedTime（選填）"
 
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/SpaceSearch.tsx
 msgid "File"
 msgstr "檔案"
 
@@ -4697,6 +4739,14 @@ msgstr ""
 msgid "Free"
 msgstr "免費"
 
+#: src/pages/AdminAccessPage.tsx
+msgid "Free access"
+msgstr ""
+
+#: src/pages/AdminAccessPage.tsx
+msgid "Free months"
+msgstr ""
+
 #: src/pages/shell/shell-sidebar.tsx
 msgid "Free plan ends {day}"
 msgstr "免費方案將於 {day} 結束"
@@ -4739,6 +4789,7 @@ msgstr "全螢幕"
 msgid "Gateway ID"
 msgstr "閘道器 ID"
 
+#: src/pages/settings-nav.ts
 #: src/pages/SettingsOverlay.tsx
 msgid "General"
 msgstr "一般"
@@ -4811,10 +4862,23 @@ msgstr ""
 msgid "Gmail notices match the CRM water bills sheet by address and due date. If that due date is not in CRM yet, the water job checks again each morning."
 msgstr ""
 
+#: src/pages/NotFound.tsx
+msgid "Go home"
+msgstr "返回首頁"
+
+#: src/pages/AdminAccessPage.tsx
+msgid "Grant"
+msgstr ""
+
+#: src/pages/AdminAccessPage.tsx
+msgid "Granting…"
+msgstr ""
+
 #: src/lib/identity-display.ts
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/shell/chat-header.tsx
 #: src/pages/shell/side-panel.tsx
+#: src/pages/SpaceSearch.tsx
 msgid "Group"
 msgstr "群組"
 
@@ -5027,24 +5091,18 @@ msgstr "圖片上傳區域"
 msgid "Images, PDFs and text files, up to {ATTACHMENT_MAX_COUNT}"
 msgstr ""
 
-#: src/pages/shell/composer.tsx
-#: src/pages/shell/create-bot-dialog.tsx
+#: src/components/AccountDataSettings.tsx
 msgid "Import"
 msgstr "匯入"
 
-#: src/pages/Onboarding.tsx
+#: src/components/AccountDataSettings.tsx
 #: src/pages/shell/agent-import.tsx
-#: src/pages/shell/message-cards.tsx
 msgid "Import an agent"
 msgstr "匯入代理程式"
 
 #: src/components/AccountDataSettings.tsx
 msgid "Import data"
 msgstr "匯入資料"
-
-#: src/pages/shell/composer.tsx
-msgid "Import this agent as a bot?"
-msgstr "要將此代理程式匯入為機器人嗎？"
 
 #: src/pages/AgentConnectionSetup.tsx
 msgid "In a macOS or Linux terminal, set your token. Replace the placeholder before running:"
@@ -5211,26 +5269,6 @@ msgstr "其中的機器人和群組會保留，並移出該分組。"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "它的對話、檔案和例行任務將被永久刪除。它建立的機器人仍留在清單中。"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its instructions changed since the import, so they stay."
-msgstr "匯入後指示已變更，因此保持不變。"
-
-#: src/lib/agent-import-errors.ts
-msgid "Its instructions changed. Review them, then try again."
-msgstr "其指示已變更。請檢查後再試一次。"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its instructions go back to before the import."
-msgstr "指示會還原為匯入前的內容。"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its model changed since the import, so it stays."
-msgstr "匯入後模型已變更，因此保持不變。"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its model goes back to before the import."
-msgstr "模型會還原為匯入前的設定。"
-
 #: src/pages/crm/CrmForms.tsx
 msgid "Join link"
 msgstr ""
@@ -5251,21 +5289,17 @@ msgstr "剛剛"
 msgid "Keep context and instructions reusable"
 msgstr ""
 
-#: src/pages/shell/agent-import.tsx
-msgid "Keep its instructions"
-msgstr "保留其指示"
-
 #: src/pages/shell/dialogs.tsx
 msgid "Keep memories"
 msgstr "保留記憶"
 
+#: src/pages/McpServersOverlay.tsx
+msgid "Keep tool results whole"
+msgstr ""
+
 #: src/pages/UserGuide.tsx
 msgid "Keep your business context organized"
 msgstr ""
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Kept"
-msgstr "已保留"
 
 #: src/pages/RoutineEditor.tsx
 msgid "key"
@@ -5404,8 +5438,13 @@ msgid "Lets bots save and recall facts by meaning, alongside MEMORY.md."
 msgstr "讓機器人在 MEMORY.md 之外，依語意儲存和回想事實。"
 
 #: src/pages/AccountSettingsOverlay.tsx
+#: src/pages/Shell.tsx
 msgid "Light"
 msgstr "淺色"
+
+#: src/pages/SpaceSearch.tsx
+msgid "Link"
+msgstr ""
 
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Link DMs"
@@ -5530,11 +5569,13 @@ msgstr "正在載入語音供應商…"
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
 #: src/components/PageLoading.tsx
+#: src/pages/AdminAccessPage.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/crm/CrmForms.tsx
 #: src/pages/crm/CrmView.tsx
 #: src/pages/IntegrationSetup.tsx
 #: src/pages/PeerMessagesOverlay.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/RoutineRunHistory.tsx
 #: src/pages/shell/transcript.tsx
 msgid "Loading…"
@@ -5781,7 +5822,7 @@ msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/MemorySettingsOverlay.tsx
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 #: src/pages/shell/agent-import.tsx
 msgid "Memory"
 msgstr "記憶"
@@ -5816,6 +5857,7 @@ msgstr "提及：{mentions}"
 
 #: src/pages/shell/chat-shared.ts
 #: src/pages/shell/composer.tsx
+#: src/pages/SpaceSearch.tsx
 msgid "Message"
 msgstr "訊息"
 
@@ -5852,11 +5894,12 @@ msgstr "訊息…"
 msgid "Messaged {peer}"
 msgstr "已發給 {peer}"
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 msgid "Messaging"
 msgstr "訊息"
 
 #: src/lib/call-session.ts
+#: src/lib/dictation.ts
 msgid "Microphone failed"
 msgstr "麥克風失敗"
 
@@ -5944,7 +5987,7 @@ msgid "Model options"
 msgstr "模型選項"
 
 #: src/pages/ModelSettingsOverlay.tsx
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 #: src/pages/SpaceSettingOverrides.tsx
 msgid "Models"
 msgstr "模型"
@@ -6084,7 +6127,6 @@ msgstr "名稱"
 msgid "Name the records and time period you want reviewed. For example: “Review these open inquiries, group them by next step, and cite the record for each recommendation.” Confirm that the agent can access the source, then check its findings against the records before applying changes."
 msgstr ""
 
-#: src/lib/agent-import-errors.ts
 #: src/pages/shell/agent-import.tsx
 msgid "Name this bot"
 msgstr "為這個機器人命名"
@@ -6109,6 +6151,11 @@ msgstr ""
 msgid "Needs an answer"
 msgstr "需要回覆"
 
+#: src/components/McpServerHealthLine.tsx
+#: src/lib/user-error.ts
+msgid "Needs an OAuth client ID"
+msgstr "需要 OAuth 用戶端 ID"
+
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Needs attention"
 msgstr ""
@@ -6127,6 +6174,7 @@ msgstr "需要接管"
 
 #: src/lib/roster-status.ts
 #: src/pages/shell/computer-overlay.tsx
+#: src/pages/shell/message-view.tsx
 msgid "Needs you"
 msgstr "需要你處理"
 
@@ -6143,7 +6191,6 @@ msgid "New"
 msgstr "新增"
 
 #: src/pages/Shell.tsx
-#: src/pages/shell/agent-import.tsx
 #: src/pages/shell/bot-picker.tsx
 #: src/pages/shell/create-bot-dialog.tsx
 msgid "New bot"
@@ -6185,6 +6232,7 @@ msgstr ""
 msgid "New group"
 msgstr "新增群組"
 
+#: src/pages/Shell.tsx
 #: src/pages/shell/bot-picker.tsx
 msgid "New group chat"
 msgstr "新增群組聊天"
@@ -6210,6 +6258,7 @@ msgstr "新密碼"
 msgid "New pipeline"
 msgstr ""
 
+#: src/pages/Shell.tsx
 #: src/pages/shell/bot-picker.tsx
 msgid "New private space"
 msgstr "新增私人空間"
@@ -6308,7 +6357,7 @@ msgstr ""
 msgid "No bills yet"
 msgstr ""
 
-#: src/pages/shell/command-palette.tsx
+#: src/components/integrations/agent-access.tsx
 msgid "No bots"
 msgstr "沒有機器人"
 
@@ -6389,19 +6438,12 @@ msgstr "此頁面沒有符合的成品。"
 msgid "No matching files"
 msgstr ""
 
+#: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
 msgid "No matching models"
 msgstr "沒有符合的模型"
-
-#: src/components/ApprovalRulePreview.tsx
-msgid "No matching rule"
-msgstr "未匹配規則"
-
-#: src/pages/McpServersOverlay.tsx
-msgid "No MCP servers yet."
-msgstr "還沒有 MCP 伺服器。"
 
 #: src/pages/GroupPanel.tsx
 msgid "No members yet"
@@ -6456,6 +6498,10 @@ msgstr "找不到遠端 MCP 伺服器"
 msgid "No rentals match"
 msgstr ""
 
+#: src/pages/RoutineRunHistory.tsx
+msgid "No reply"
+msgstr "未回覆"
+
 #: src/pages/UserGuide.tsx
 msgid "No reply: check that the selected model is connected and look for an error in chat."
 msgstr ""
@@ -6466,6 +6512,7 @@ msgstr ""
 
 #: src/pages/model-settings/providers-section.tsx
 #: src/pages/PluginsOverlay.tsx
+#: src/pages/shell/command-palette.tsx
 #: src/pages/SpaceSearch.tsx
 msgid "No results"
 msgstr "無結果"
@@ -6490,6 +6537,10 @@ msgstr ""
 #: src/pages/KnowledgeSection.tsx
 msgid "No skills yet"
 msgstr "尚無技能"
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "No submissions"
+msgstr ""
 
 #: src/pages/Board.tsx
 msgid "No tickets yet"
@@ -6519,7 +6570,7 @@ msgstr "一般"
 msgid "Not a valid skill"
 msgstr "不是有效的技能"
 
-#. placeholder {0}: notAdded.map((entry) => entry.name).join(", ")
+#. placeholder {0}: notAdded.join(", ")
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Not added: {0}"
 msgstr ""
@@ -6549,6 +6600,7 @@ msgstr "不在外掛程式目錄中"
 msgid "Not linked"
 msgstr ""
 
+#: src/components/GitHubStarPrompt.tsx
 #: src/pages/shell/message-cards.tsx
 msgid "Not now"
 msgstr "暫不"
@@ -6625,7 +6677,6 @@ msgstr "OAuth 客戶端 ID（選填）"
 msgid "OAuth client secret (optional)"
 msgstr "OAuth 客戶端金鑰（選填）"
 
-#: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "OAuth connected"
 msgstr "OAuth 已連線"
@@ -6634,7 +6685,6 @@ msgstr "OAuth 已連線"
 msgid "OAuth connection failed"
 msgstr "OAuth 連線失敗"
 
-#: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "OAuth expired"
 msgstr "OAuth 已過期"
@@ -6697,6 +6747,10 @@ msgstr "一次性"
 #: src/components/ModelCredits.tsx
 msgid "One-time purchase. Credits do not expire."
 msgstr "單次購買，額度不會到期。"
+
+#: src/pages/McpServersOverlay.tsx
+msgid "Only an admin can change a local MCP server."
+msgstr ""
 
 #: src/pages/shell/composer.tsx
 msgid "Only use connected plugins, never the computer"
@@ -6921,6 +6975,10 @@ msgstr ""
 msgid "Page {page} of {count}"
 msgstr "第 {page} 頁，共 {count} 頁"
 
+#: src/pages/NotFound.tsx
+msgid "Page not found"
+msgstr "找不到頁面"
+
 #: src/pages/DocsView.tsx
 msgid "Pagination"
 msgstr ""
@@ -7028,7 +7086,9 @@ msgstr ""
 msgid "PDF preview"
 msgstr ""
 
+#: src/pages/AdminAccessPage.tsx
 #: src/pages/MessagingSettingsPanel.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Pending"
 msgstr "待處理"
@@ -7157,6 +7217,10 @@ msgstr "外掛程式"
 msgid "Plugin GitHub URL"
 msgstr ""
 
+#: src/pages/AdminPluginsPage.tsx
+msgid "Plugin submissions"
+msgstr ""
+
 #: src/components/integrations/skills-dialog.tsx
 msgid "Plugins"
 msgstr ""
@@ -7226,8 +7290,6 @@ msgstr ""
 msgid "Preparing…"
 msgstr ""
 
-#: src/components/ApprovalRulePreview.tsx
-#: src/components/ApprovalRulesSettings.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/integrations/skills-dialog.tsx
 #: src/pages/PluginsOverlay.tsx
@@ -7324,6 +7386,10 @@ msgstr ""
 msgid "Protected input"
 msgstr "受保護的輸入"
 
+#: src/pages/model-settings/compatible-model-fields.tsx
+msgid "Protocol"
+msgstr ""
+
 #: src/pages/MemorySettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
@@ -7404,6 +7470,7 @@ msgstr ""
 msgid "Ready"
 msgstr "就緒"
 
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/workspace/sections/VoiceSection.tsx
 msgid "Reason"
 msgstr ""
@@ -7423,6 +7490,10 @@ msgstr "僅回想"
 
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Recaps, recipients and schedules"
+msgstr ""
+
+#: src/pages/AdminAccessPage.tsx
+msgid "Received"
 msgstr ""
 
 #: src/pages/ActivityList.tsx
@@ -7579,12 +7650,26 @@ msgstr ""
 msgid "Registration is closed"
 msgstr "註冊已關閉"
 
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Reject"
+msgstr ""
+
+#. placeholder {0}: rejecting?.name
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Reject {0}"
+msgstr ""
+
 #: src/pages/DocsView.tsx
 msgid "Reject deliveries whose timestamp is more than a few minutes old to block replays."
 msgstr ""
 
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Rejected"
+msgstr ""
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Rejecting…"
 msgstr ""
 
 #: src/pages/shell/computer-release-actions.tsx
@@ -7599,7 +7684,6 @@ msgstr "重新載入"
 msgid "Reload file"
 msgstr ""
 
-#: src/components/ApprovalRulePreview.tsx
 #: src/components/ApprovalRulesSettings.tsx
 #: src/components/BotCredentialsSettings.tsx
 #: src/components/integrations/plugin-marketplace.tsx
@@ -7667,11 +7751,6 @@ msgstr "移除標頭"
 msgid "Remove item"
 msgstr ""
 
-#. placeholder {0}: mention.name
-#: src/pages/shell/composer.tsx
-msgid "Remove mention {0}"
-msgstr "移除提及 {0}"
-
 #: src/pages/RoutineEditor.tsx
 msgid "Remove message trigger"
 msgstr "移除訊息觸發條件"
@@ -7701,10 +7780,6 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "Remove webhook"
 msgstr "移除 Webhook"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Removed"
-msgstr "已移除"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Removed, but list refresh failed"
@@ -7754,10 +7829,6 @@ msgstr "重新開啟"
 #: src/pages/model-settings/connection-controls.tsx
 msgid "Replace API key"
 msgstr "替換 API 金鑰"
-
-#: src/pages/shell/agent-import.tsx
-msgid "Replace its instructions"
-msgstr "取代其指示"
 
 #: src/pages/shell/composer-error.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
@@ -7874,6 +7945,10 @@ msgstr "調整面板大小"
 msgid "Resolution notes"
 msgstr ""
 
+#: src/pages/model-settings/compatible-model-fields.tsx
+msgid "Responses"
+msgstr ""
+
 #: src/components/DesktopUpdates.tsx
 msgid "Restart to update"
 msgstr "重新啟動以更新"
@@ -7910,11 +7985,13 @@ msgstr ""
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
 #: src/components/PasskeySettings.tsx
+#: src/pages/AdminAccessPage.tsx
 #: src/pages/Auth.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/DocsView.tsx
 #: src/pages/ModelRoleSettings.tsx
 #: src/pages/PluginsOverlay.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/SpaceSettingOverrides.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 #: src/pages/workspace/WorkspaceView.tsx
@@ -7931,6 +8008,7 @@ msgid "Retry screen"
 msgstr "重新連線螢幕"
 
 #: src/pages/McpOAuthCallback.tsx
+#: src/pages/SlackInstallCallback.tsx
 msgid "Return to {brandName}"
 msgstr "返回 {brandName}"
 
@@ -7960,10 +8038,15 @@ msgstr "請檢查供應商設定並重新測試。"
 msgid "Review the city bill amount, then post to the tenant ledger."
 msgstr ""
 
+#: src/pages/AdminAccessPage.tsx
 #: src/pages/CrmApiAccessPanel.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Revoke"
 msgstr "撤銷授權"
+
+#: src/pages/AdminAccessPage.tsx
+msgid "Revoked"
+msgstr ""
 
 #: src/pages/CrmApiAccessPanel.tsx
 msgid "Revoking…"
@@ -7984,11 +8067,12 @@ msgstr "輪換金鑰"
 #: src/lib/identity-display.ts
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/use-routine-editor.ts
+#: src/pages/SpaceSearch.tsx
 msgid "Routine"
 msgstr "例行任務"
 
-#: src/pages/RoutineEditor.tsx
 #: src/pages/shell/agent-import.tsx
+#: src/pages/shell/bot-panel.tsx
 msgid "Routines"
 msgstr "例行任務"
 
@@ -7999,6 +8083,10 @@ msgstr "在你離線時執行的例行任務"
 #: src/components/markdown-copy.tsx
 msgid "Row"
 msgstr "列"
+
+#: src/components/ApprovalRulesSettings.tsx
+msgid "Rules"
+msgstr ""
 
 #: src/components/RunLogsPanel.tsx
 msgid "Run"
@@ -8050,7 +8138,6 @@ msgstr "執行時間必須是將來的時間。"
 msgid "running"
 msgstr "執行中"
 
-#: src/components/McpServerHealthLine.tsx
 #: src/components/SubagentCard.tsx
 #: src/pages/ActivityList.tsx
 #: src/pages/RoutineEditor.tsx
@@ -8134,6 +8221,10 @@ msgid "Save the workspace and install current software."
 msgstr "儲存工作空間並安裝最新軟體。"
 
 #: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "儲存到保管庫"
+
+#: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/ExternalConversationSettings.tsx
 #: src/pages/workspace/sections/SettingsSection.tsx
@@ -8211,6 +8302,7 @@ msgstr ""
 msgid "Screen not connected"
 msgstr "螢幕未連線"
 
+#: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/providers-section.tsx
 #: src/pages/model-settings/role-model-picker.tsx
@@ -8237,8 +8329,8 @@ msgid "Search artifacts…"
 msgstr "搜尋成品…"
 
 #: src/pages/shell/command-palette.tsx
-msgid "Search bots and switch conversations"
-msgstr "搜尋機器人與切換對話"
+msgid "Search bots, actions, and settings"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Search by domain"
@@ -8264,6 +8356,7 @@ msgstr ""
 msgid "Search integrations.sh"
 msgstr "搜尋 integrations.sh"
 
+#: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/model-settings/model-picker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
 #: src/pages/shell/chat-model-picker.tsx
@@ -8447,6 +8540,14 @@ msgstr ""
 msgid "Settings"
 msgstr "設定"
 
+#: src/components/AskCard.tsx
+msgid "Settings updated"
+msgstr "設定已更新"
+
+#: src/pages/Shell.tsx
+msgid "Settings: {label}"
+msgstr ""
+
 #: src/pages/shell/composer-mentions.tsx
 msgid "Settings: General"
 msgstr "設定：一般"
@@ -8551,7 +8652,6 @@ msgid "Show bots"
 msgstr "顯示機器人"
 
 #: src/pages/Shell.tsx
-#: src/pages/shell/side-panel.tsx
 msgid "Show computer"
 msgstr "顯示電腦"
 
@@ -8591,10 +8691,6 @@ msgstr ""
 msgid "Show selected"
 msgstr "顯示已選取項目"
 
-#: src/pages/shell/side-panel.tsx
-msgid "Show settings"
-msgstr "顯示設定"
-
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Show tool activity"
 msgstr "顯示工具活動"
@@ -8629,6 +8725,7 @@ msgstr "登入"
 #: src/lib/passkeys.ts
 #: src/lib/user-error.ts
 #: src/pages/model-settings/connection-controls.tsx
+#: src/pages/model-settings/providers-section.tsx
 msgid "Sign in again"
 msgstr "重新登入"
 
@@ -8687,6 +8784,7 @@ msgstr "技能 {position}"
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
 #: src/components/SidebarFooter.tsx
+#: src/pages/Shell.tsx
 #: src/pages/shell/agent-import.tsx
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Skills"
@@ -8705,6 +8803,7 @@ msgstr "跳過"
 msgid "Skip or deploy key"
 msgstr "跳過或使用部署金鑰"
 
+#: src/pages/shell/message-view.tsx
 #: src/pages/workspace/sections/UtilitiesSection.tsx
 msgid "Skipped"
 msgstr ""
@@ -8816,10 +8915,6 @@ msgstr ""
 msgid "Speak"
 msgstr "朗讀"
 
-#: src/pages/VoiceSettingsOverlay.tsx
-msgid "Speak only"
-msgstr "僅朗讀"
-
 #: src/pages/shell/message-view.tsx
 msgid "Speak this reply"
 msgstr "朗讀這條回覆"
@@ -8836,6 +8931,10 @@ msgstr "語音模型"
 msgid "Split evenly across active leases"
 msgstr ""
 
+#: src/components/AccountAccess.tsx
+msgid "SSO"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO 暫時不可用，請重試。"
@@ -8847,6 +8946,10 @@ msgstr ""
 
 #: src/pages/crm/CrmPipelineBoard.tsx
 msgid "Stages, in order"
+msgstr ""
+
+#: src/components/GitHubStarPrompt.tsx
+msgid "Star on GitHub"
 msgstr ""
 
 #: src/pages/shell/computer-overlay.tsx
@@ -8972,15 +9075,18 @@ msgstr "子代理程式"
 msgid "Submit"
 msgstr "提交"
 
+#: src/pages/PluginsOverlay.tsx
+msgid "Submit a plugin"
+msgstr ""
+
 #: src/components/ModelCredits.tsx
 #: src/pages/Paywall.tsx
 msgid "Subscribe"
 msgstr "訂閱"
 
-#. placeholder {0}: status.byokPriceCents / 100
 #: src/components/ModelCredits.tsx
-msgid "Subscribe for ${0} / month"
-msgstr "以每月 ${0} 訂閱"
+msgid "Subscribe for {price} / month"
+msgstr "以每月 {price} 訂閱"
 
 #: src/components/ModelCredits.tsx
 msgid "Subscribe to {brandName} credits"
@@ -9030,10 +9136,6 @@ msgstr "支援思考"
 msgid "Switch"
 msgstr "切換"
 
-#: src/pages/shell/command-palette.tsx
-msgid "Switch bot"
-msgstr "切換機器人"
-
 #: src/components/FilesPanel.tsx
 msgid "Switch branch"
 msgstr ""
@@ -9056,6 +9158,7 @@ msgid "Synthesis"
 msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
+#: src/pages/Shell.tsx
 #: src/pages/workspace/sections/SystemSection.tsx
 #: src/pages/workspace/WorkspaceView.tsx
 msgid "System"
@@ -9153,16 +9256,15 @@ msgstr ""
 msgid "Test recipient"
 msgstr ""
 
-#: src/components/ApprovalRulePreview.tsx
-msgid "Test rule"
-msgstr "測試規則"
-
 #: src/pages/RoutineEditor.tsx
 msgid "Test run"
 msgstr "測試執行"
 
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Testing"
+msgstr ""
+
 #: src/components/ModelConnectionPreflightNotice.tsx
-#: src/pages/McpServersOverlay.tsx
 msgid "Testing…"
 msgstr "正在測試…"
 
@@ -9182,16 +9284,16 @@ msgstr ""
 msgid "the bot"
 msgstr ""
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "The bot and what its import added will be removed."
-msgstr "此機器人及其匯入新增的內容將被移除。"
-
 #: src/pages/shell/composer-error.tsx
 msgid "The bot can use the file but won't see the picture."
 msgstr "機器人可以使用這個檔案，但看不到圖片內容。"
 
 #: src/components/FilesPanel.tsx
 msgid "The bot is working. Editing is paused."
+msgstr ""
+
+#: src/lib/dictation.ts
+msgid "The browser keeps dropping the microphone. Start dictation again to retry."
 msgstr ""
 
 #: src/lib/model-connection-preflight.ts
@@ -9313,9 +9415,13 @@ msgstr ""
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 msgstr "此機器人執行在這臺電腦上，而不是 Linux 桌面。Shell 和檔案使用你的主目錄。"
 
-#: src/lib/agent-import-errors.ts
-msgid "This bot was not imported."
-msgstr "此機器人不是匯入的。"
+#: src/lib/dictation.ts
+msgid "This browser can't detect when you stop talking. Use Chrome, the desktop app, or hold-to-talk in the composer."
+msgstr ""
+
+#: src/lib/dictation.ts
+msgid "This browser has no on-device dictation. Connect a voice provider with transcription, or use Chrome / the desktop app."
+msgstr ""
 
 #: src/components/call/IncomingCall.tsx
 msgid "This call is no longer ringing."
@@ -9330,10 +9436,6 @@ msgstr "此操作無法復原。"
 #: src/pages/shell/dialogs.tsx
 msgid "This cannot be undone."
 msgstr "此操作無法復原。"
-
-#: src/pages/PeerMessagesOverlay.tsx
-msgid "This chat is view-only"
-msgstr "此對話為唯讀"
 
 #: src/pages/HostComputerPrompt.tsx
 msgid "this computer"
@@ -9373,10 +9475,6 @@ msgstr "此檔案不是有效的 UTF-8 文字。"
 #: src/pages/Shell.tsx
 msgid "this group"
 msgstr ""
-
-#: src/lib/agent-import-errors.ts
-msgid "This import changed. Try again."
-msgstr "此匯入已變更。請再試一次。"
 
 #: src/lib/agent-import-errors.ts
 msgid "This import was already used. Choose the files again."
@@ -9461,6 +9559,11 @@ msgstr "此伺服器未請求瀏覽器授權。"
 #: src/pages/McpServersOverlay.tsx
 msgid "This server is already connected. Disconnect it first to authorize again."
 msgstr "此伺服器已連線。請先中斷再重新授權。"
+
+#. js-lingui-explicit-id
+#: src/lib/run-error.ts
+msgid "This server's tool result does not fit the model. Turn off Keep tool results whole for that server, or choose another model."
+msgstr ""
 
 #: src/pages/model-settings/connection-controls.tsx
 msgid "This subscription sign-in is not available in {brandName} yet. Use a deployment credential or choose another provider."
@@ -9556,7 +9659,6 @@ msgstr "工具參數必須是 JSON 物件"
 msgid "Tool arguments must be JSON"
 msgstr "工具參數必須是 JSON"
 
-#: src/components/ApprovalRulePreview.tsx
 #: src/pages/RoutineEditor.tsx
 msgid "Tool name"
 msgstr "工具名稱"
@@ -9610,6 +9712,14 @@ msgstr "文字紀錄"
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Transcription model"
 msgstr "轉錄模型"
+
+#: src/lib/dictation.ts
+msgid "Transcription request timed out."
+msgstr ""
+
+#: src/lib/dictation.ts
+msgid "Transcription response is too large."
+msgstr ""
 
 #: src/pages/ExternalConversationSettings.tsx
 msgid "Treat like a person"
@@ -9700,14 +9810,6 @@ msgstr "未分配"
 #: src/components/AskCard.tsx
 msgid "Undo"
 msgstr "復原"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Undo import"
-msgstr "復原匯入"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Undo import?"
-msgstr "要復原匯入嗎？"
 
 #: src/pages/UserGuide.tsx
 msgid "Unexpected result: provide the missing source or a concrete correction. Check whether an action already happened before asking the agent to repeat it."
@@ -9815,7 +9917,7 @@ msgstr ""
 msgid "Updated {updated}"
 msgstr "更新於 {updated}"
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 msgid "Updates"
 msgstr "更新"
 
@@ -9866,7 +9968,7 @@ msgid "URLs must be HTTPS. The response includes the endpoint and its signing se
 msgstr ""
 
 #: src/components/SidebarFooter.tsx
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 msgid "Usage"
 msgstr "用量"
 
@@ -10019,7 +10121,7 @@ msgstr ""
 msgid "Value distribution"
 msgstr ""
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 #: src/pages/SpaceSettingOverrides.tsx
 #: src/pages/workspace/PipelineMap.tsx
 msgid "Vault"
@@ -10061,7 +10163,7 @@ msgstr ""
 msgid "View source"
 msgstr ""
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/SpaceSettingOverrides.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
@@ -10073,6 +10175,10 @@ msgstr "語音"
 
 #: src/pages/workspace/sections/ReportCreateCard.tsx
 msgid "Voice report"
+msgstr ""
+
+#: src/lib/tts.ts
+msgid "Voice request timed out."
 msgstr ""
 
 #: src/lib/model-connection-preflight.ts
@@ -10091,6 +10197,10 @@ msgstr "排隊等候…"
 msgid "Waiting…"
 msgstr "等待中…"
 
+#: src/pages/shell/computer-panel.tsx
+msgid "Wake"
+msgstr "喚醒"
+
 #: src/components/FilesPanel.tsx
 msgid "Wake computer"
 msgstr ""
@@ -10099,7 +10209,7 @@ msgstr ""
 msgid "Wake the computer to manage its files."
 msgstr ""
 
-#: src/pages/SettingsOverlay.tsx
+#: src/pages/settings-nav.ts
 msgid "Wallet"
 msgstr ""
 
@@ -10218,10 +10328,6 @@ msgstr ""
 msgid "What should this routine do each time it runs?"
 msgstr "每次執行時，這個例行任務應做什麼？"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "What the import added will be removed. The bot stays."
-msgstr "匯入新增的內容將被移除，機器人會保留。"
-
 #: src/pages/shell/bot-panel.tsx
 msgid "What this bot is for"
 msgstr "這個機器人是做什麼的"
@@ -10266,10 +10372,6 @@ msgstr "何時使用"
 #: src/pages/HostComputerPrompt.tsx
 msgid "Where should bots run?"
 msgstr "機器人應在哪裡執行？"
-
-#: src/pages/shell/agent-import.tsx
-msgid "Where to import"
-msgstr "匯入位置"
 
 #: src/pages/AgentConnectionSetup.tsx
 msgid "With {organizationName} selected, open Integrations → API & agent access → CRM API access. Create a token for this agent and copy it."
@@ -10393,6 +10495,10 @@ msgstr "你的 Anthropic"
 msgid "Your app must support Streamable HTTP and custom headers. Manor uses a token here; there is no browser sign-in step."
 msgstr ""
 
+#: src/components/AccountDataSettings.tsx
+msgid "Your data"
+msgstr ""
+
 #: src/pages/SpaceSettingOverrides.tsx
 msgid "Your defaults"
 msgstr "你的預設值"
@@ -10400,14 +10506,6 @@ msgstr "你的預設值"
 #: src/pages/Auth.tsx
 msgid "Your email address"
 msgstr "你的電子信箱"
-
-#: src/pages/Onboarding.tsx
-msgid "Your first bot already existed, so the agent was not imported."
-msgstr "你的第一個機器人已存在，因此未匯入該代理程式。"
-
-#: src/lib/agent-import-errors.ts
-msgid "Your first bot already exists."
-msgstr "你的第一個機器人已存在。"
 
 #: src/pages/UserGuide.tsx
 msgid "Your first useful task"

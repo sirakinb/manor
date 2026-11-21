@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { ChatMarkdown, LinkifiedText, withBlockMentions } from "@rakazo/chat-ui/web";
 import type {
@@ -6,11 +7,11 @@ import type {
   MessageReaction,
   ThreadMessage,
 } from "@rakazo/contracts";
-import type { ChildBotBlock } from "@rakazo/core";
+import type { ChildBotBlock, PeerExchange } from "@rakazo/core";
 import { isPeerReceiptBlocks, isSecretAskBlock } from "@rakazo/core";
 import { BotAvatar, Button, cn, resolvePersonaColorDef } from "@rakazo/ui-web";
 import { UserRound } from "lucide-react";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import {
   ActivityTimeline,
   groupNarrationBlocks,
@@ -49,8 +50,7 @@ export const MessageView = memo(function MessageView({
   onAnswer,
   onOpenBot,
   onOpenPeerMessages,
-  peerReplies,
-  onTogglePeerReplies,
+  peerExchange,
   speakerName,
   memberName,
   peerBot,
@@ -65,7 +65,6 @@ export const MessageView = memo(function MessageView({
   onSpeak,
   onOpenComputer,
   onOpenImportSetup,
-  onOpenImport,
   onReply,
   onMarkUnread,
   markedUnread = false,
@@ -83,12 +82,12 @@ export const MessageView = memo(function MessageView({
     text: string,
     fields?: LoginFieldInput[],
     dismiss?: boolean,
+    remember?: false,
   ) => Promise<void>;
   onOpenBot: (botId: string) => void;
   onOpenPeerMessages: (peer: { peerBotId: string; peerBotName: string }) => void;
-  /** Set on a received marker whose peer run has folded replies. */
-  peerReplies?: "collapsed" | "expanded";
-  onTogglePeerReplies: (markerId: string) => void;
+  /** The adjacent receipts represented by this peer line. */
+  peerExchange?: PeerExchange;
   speakerName?: string;
   memberName?: (botId: string | undefined) => string | undefined;
   peerBot: (
@@ -105,12 +104,10 @@ export const MessageView = memo(function MessageView({
   ) => void;
   voiceReady: boolean;
   speaking: boolean;
-  onSpeak: () => void;
+  onSpeak: (message: ThreadMessage) => void;
   onOpenComputer: (botId?: string) => void;
   /** Opens where an imported item's setup is finished. */
   onOpenImportSetup?: (target: ImportSetupTarget) => void;
-  /** Opens the agent importer (from Chief's first-run focus card). */
-  onOpenImport?: () => void;
   onReply: (message: ThreadMessage) => void;
   onMarkUnread: (message: ThreadMessage) => void;
   markedUnread?: boolean;
@@ -132,17 +129,21 @@ export const MessageView = memo(function MessageView({
         : message.blocks,
     [message.blocks, mentions],
   );
-  const renderMention = (id: string) => {
-    const block = mentions?.find((bot) => bot.botId === id);
-    return block ? (
-      <BotMention
-        block={block}
-        avatarSet={peerBot(id)?.avatarSet}
-        color={peerBot(id)?.color}
-        onOpenBot={onOpenBot}
-      />
-    ) : undefined;
-  };
+  const renderMention = useCallback(
+    (id: string) => {
+      const block = mentions?.find((bot) => bot.botId === id);
+      return block ? (
+        <BotMention
+          block={block}
+          avatarSet={peerBot(id)?.avatarSet}
+          color={peerBot(id)?.color}
+          onOpenBot={onOpenBot}
+        />
+      ) : undefined;
+    },
+    [mentions, onOpenBot, peerBot],
+  );
+  const speak = () => onSpeak(message);
   const replyBotId = message.replyPreview?.botId ?? replyParent?.botId;
   const speakerBot = message.botId ? peerBot?.(message.botId) : undefined;
   const speakerColorDef = useMemo(
@@ -268,7 +269,7 @@ export const MessageView = memo(function MessageView({
                   variant="text"
                   size="xs"
                   aria-label={speaking ? t`Stop speaking` : t`Speak this reply`}
-                  onClick={onSpeak}
+                  onClick={speak}
                   className="font-normal"
                 >
                   {speaking ? <Trans>Stop</Trans> : <Trans>Speak</Trans>}
@@ -308,28 +309,31 @@ export const MessageView = memo(function MessageView({
           }
           if (block.kind === "bot_message_sent" || block.kind === "bot_message_received") {
             const sent = block.kind === "bot_message_sent";
-            const peer = sent ? block.toBotName : block.fromBotName;
+            if (
+              i !==
+              blocks.findIndex(
+                (b) => b.kind === "bot_message_sent" || b.kind === "bot_message_received",
+              )
+            )
+              return null;
+            const peer = peerExchange?.peerBotName ?? (sent ? block.toBotName : block.fromBotName);
             const peerBotId = sent ? block.toBotId : block.fromBotId;
-            const label = sent ? t`Messaged ${peer}` : t`Message from ${peer}`;
+            const count = peerExchange?.count ?? 1;
+            const label =
+              count > 1
+                ? t`${plural(count, { one: `# message with ${peer}`, other: `# messages with ${peer}` })}`
+                : sent
+                  ? t`Messaged ${peer}`
+                  : t`Message from ${peer}`;
             return (
               <CollaborationMarker
                 key={i}
-                ariaLabel={label}
+                peerName={peer}
                 color={peerBot(peerBotId)?.color ?? FALLBACK_BOT_COLOR}
                 avatarSet={peerBot(peerBotId)?.avatarSet}
                 identity={peerBotId}
                 label={label}
                 onClick={() => onOpenPeerMessages({ peerBotId, peerBotName: peer })}
-                replies={
-                  !sent && peerReplies
-                    ? {
-                        expanded: peerReplies === "expanded",
-                        label:
-                          peerReplies === "expanded" ? t`Collapse ${label}` : t`Expand ${label}`,
-                        onToggle: () => onTogglePeerReplies(message.id),
-                      }
-                    : undefined
-                }
               />
             );
           }
@@ -432,15 +436,7 @@ export const MessageView = memo(function MessageView({
           if (block.kind === "choice") {
             const botId = "botId" in artifactTarget ? artifactTarget.botId : message.botId;
             if (!botId) return null;
-            return (
-              <ChoiceCard
-                key={i}
-                botId={botId}
-                block={block}
-                onBotChanged={onBotChanged}
-                onImportAgent={onOpenImport}
-              />
-            );
+            return <ChoiceCard key={i} botId={botId} block={block} onBotChanged={onBotChanged} />;
           }
           if (block.kind === "app_connect") {
             const botId = "botId" in artifactTarget ? artifactTarget.botId : message.botId;
@@ -553,7 +549,7 @@ export const MessageView = memo(function MessageView({
                       variant="text"
                       size="xs"
                       aria-label={speaking ? t`Stop speaking` : t`Speak this reply`}
-                      onClick={onSpeak}
+                      onClick={speak}
                       className="mt-2 font-normal"
                     >
                       {speaking ? <Trans>Stop</Trans> : <Trans>Speak</Trans>}
@@ -590,7 +586,9 @@ export const MessageView = memo(function MessageView({
                   block={block}
                   canAnswer={canAnswer}
                   canDismiss={canDismiss}
-                  onAnswer={(text, fields) => onAnswer(message, text, fields)}
+                  onAnswer={(text, fields, remember) =>
+                    onAnswer(message, text, fields, undefined, remember)
+                  }
                   onDismiss={() => onAnswer(message, "", undefined, true)}
                 />
                 {i === hoverAnchorIndex ? hoverActions : null}
@@ -659,7 +657,13 @@ export const MessageView = memo(function MessageView({
                           : "rounded-full bg-success/15 px-[11px] py-1 text-[13px] text-success"
                     }
                   >
-                    {block.state}
+                    {block.state === "Needs you"
+                      ? t`Needs you`
+                      : block.state === "Skipped"
+                        ? t`Skipped`
+                        : block.state === "Done"
+                          ? t`Done`
+                          : block.state}
                   </span>
                 </div>
                 <div className="my-2.5 text-[14.5px] leading-[1.5] text-foreground/75">

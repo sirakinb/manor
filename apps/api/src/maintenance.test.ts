@@ -45,7 +45,7 @@ describe("maintenance RPC authorization", () => {
             },
           },
         );
-        expect(response.status).toBe(actor ? 403 : 401);
+        expect(response?.status).toBe(actor ? 403 : 401);
         expect(read).not.toHaveBeenCalled();
       });
     }

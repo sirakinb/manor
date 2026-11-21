@@ -46,7 +46,13 @@ import { encryptStoredOAuthTokens, openIdToken, sealIdToken } from "./token-stor
 export { passwordResetEmail, signInCodeEmail, verificationEmail } from "./email.js";
 export type { OidcConfig } from "./oidc.js";
 export { passkeyRelyingParty } from "./passkey.js";
+export {
+  pluginSubmissionAdminEmail,
+  pluginSubmissionReceivedEmail,
+  pluginSubmissionReviewedEmail,
+} from "./plugin-submission-email.js";
 export { assertPortalAccess, requirePortalMembership } from "./portal.js";
+export { referralEmail } from "./referral-email.js";
 export { welcomeEmail } from "./welcome-email.js";
 
 export interface AuthEnv {
@@ -401,6 +407,12 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
             reauthStartedAt: Math.floor(Date.now() / 1_000),
           });
         }
+        if (
+          ctx.path === "/expo-authorization-proxy" &&
+          !(await discovery?.isAuthorizationURL(String(ctx.query?.authorizationURL ?? "")))
+        ) {
+          throw new APIError("BAD_REQUEST", { message: "Invalid authorizationURL" });
+        }
         for (const value of [ctx.body?.email, ctx.body?.newEmail]) {
           if (typeof value === "string" && isMessagingEmail(value)) {
             throw new APIError("BAD_REQUEST", { message: "Email is not available" });
@@ -461,7 +473,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
         } else if (policy) {
           requireEmailVerification = policy.allowlist.length > 0;
         }
-        const findSession = ctx.context.internalAdapter.findSession;
+        const { findSession, updateUser } = ctx.context.internalAdapter;
         // Return a request-local override; mutating the shared auth options
         // would leak a concurrent request's policy into another signup.
         return {
@@ -476,6 +488,17 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
                 : {}),
               internalAdapter: {
                 ...ctx.context.internalAdapter,
+                // Better Auth drops an unverified account's logins and sessions when a
+                // code proves the mailbox; credentials Rakazo stores elsewhere go too.
+                ...(ctx.path === CODE_SIGN_IN_PATH
+                  ? {
+                      updateUser: async (...args: Parameters<typeof updateUser>) => {
+                        if (args[1].emailVerified === true)
+                          await revokeUnprovenCredentials(prisma, args[0]);
+                        return updateUser(...args);
+                      },
+                    }
+                  : {}),
                 // Authorize at lookup: bearer conversion happens after before
                 // hooks, and auth mutations also read sessions through here.
                 findSession: async (token: string) => {
@@ -735,6 +758,19 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+
+async function revokeUnprovenCredentials(prisma: PrismaClient, userId: string) {
+  // Auth requests carry a database context, which a batch $transaction([...]) cannot.
+  await prisma.$transaction(async (tx) => {
+    await tx.passkey.deleteMany({ where: { userId } });
+    await tx.messagingIdentity.deleteMany({ where: { userId } });
+    await tx.messagingLinkCode.deleteMany({ where: { userId } });
+    await tx.userDevice.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  });
+}
 
 /**
  * Changing the password with revokeOtherSessions deletes every session, then signs the

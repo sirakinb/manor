@@ -135,8 +135,7 @@ describe("server image publish workflow", () => {
     expect(publish?.uses).toBe("./.github/workflows/publish-server-image.yml");
     expect(publish?.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/main'");
     expect(ci.jobs["deploy-production"]?.needs).toEqual([
-      "check",
-      "test",
+      "checks",
       "test-integration",
       "publish-server-image",
     ]);
@@ -161,9 +160,12 @@ describe("server image publish workflow", () => {
   });
 
   it("lets only the newest waiting main revision replace a queued one, never a running one", () => {
-    const locks = ["check", "test", "test-integration", "test-e2e", "publish-server-image"].map(
-      (name) => ci.jobs[name]?.concurrency,
-    );
+    const locks = [
+      "static-checks",
+      "unit-tests-shard",
+      "test-integration-shard",
+      "publish-server-image",
+    ].map((name) => ci.jobs[name]?.concurrency);
     expect(new Set(locks.map((lock) => lock?.group)).size).toBe(locks.length);
     for (const lock of locks) {
       expect(lock?.group).toMatch(/main/);
@@ -172,7 +174,12 @@ describe("server image publish workflow", () => {
     }
     // Release prerequisites start with their run, so they reach these locks in push order and an
     // older revision cannot replace a newer one that is already waiting.
-    for (const name of ["check", "test", "test-integration", "publish-server-image"]) {
+    for (const name of [
+      "static-checks",
+      "unit-tests-shard",
+      "test-integration-shard",
+      "publish-server-image",
+    ]) {
       expect(ci.jobs[name]?.needs, name).toBeUndefined();
     }
   });

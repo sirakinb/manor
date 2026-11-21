@@ -27,6 +27,7 @@ describe.skipIf(!enabled).sequential("items available across a user's spaces (Po
   const theirs = `avail-theirs-${suffix}`;
   const actorIn = (spaceId: string, userId = owner): Actor => ({
     spaceId,
+    organizationId: "org-1",
     userId,
     email: `${userId}@rakazo.test`,
     isDeploymentOwner: false,

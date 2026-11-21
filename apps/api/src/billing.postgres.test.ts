@@ -19,6 +19,7 @@ describePostgres("billing service (PostgreSQL)", () => {
   const owner: Actor = {
     userId: ownerId,
     spaceId,
+    organizationId: "org-1",
     email: `${ownerId}@rakazo.test`,
     isDeploymentOwner: false,
   };

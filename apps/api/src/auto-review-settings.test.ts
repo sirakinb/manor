@@ -7,6 +7,7 @@ import { createRouter } from "./router.js";
 const actor: Actor = {
   userId: "user-1",
   spaceId: "space-1",
+  organizationId: "org-1",
   email: "user@example.test",
   isDeploymentOwner: false,
 };

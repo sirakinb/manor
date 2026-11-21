@@ -28,10 +28,10 @@ export function sandboxKindForBot(envKind: string, computerHost: string | null |
   return envKind;
 }
 
-export function createRunSandbox(
+export async function createRunSandbox(
   kind: string,
   opts: SandboxProviderOptions & { prisma?: PrismaClient; localComputer?: SandboxProvider },
-): SandboxProvider {
+): Promise<SandboxProvider> {
   const local = opts.localComputer ?? new DisconnectedLocalSandboxProvider();
   if (kind === "desktop") {
     assertHostCommandsAllowed();
@@ -43,7 +43,7 @@ export function createRunSandbox(
       local,
     );
   }
-  const primary = createSandboxProvider(kind, {
+  const primary = await createSandboxProvider(kind, {
     ...opts,
     onUnsafeStop: opts.prisma
       ? async (providerRef) => {
@@ -167,7 +167,7 @@ export class LocalAwareSandbox implements SandboxProvider {
     return this.cloud.describe();
   }
 
-  private route(computer: ComputerRef) {
+  private route(computer: Pick<ComputerRef, "kind">) {
     return computer.kind === "local" ? this.local : this.cloud;
   }
 
@@ -320,7 +320,7 @@ export class HostAwareSandbox implements SandboxProvider {
     return this.isolated.describe();
   }
 
-  private route(computer: ComputerRef) {
+  private route(computer: Pick<ComputerRef, "kind">) {
     return computer.kind === "desktop" ? this.host : this.isolated;
   }
 
@@ -452,7 +452,7 @@ export class HostAwareSandbox implements SandboxProvider {
     return this.route(computer).snapshot(computer, context);
   }
 
-  billsWhileRunning(computer: ComputerRef): boolean {
+  billsWhileRunning(computer: Pick<ComputerRef, "kind">): boolean {
     return this.route(computer).billsWhileRunning?.(computer) ?? false;
   }
 

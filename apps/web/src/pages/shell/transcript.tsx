@@ -6,13 +6,14 @@ import type {
   MessageReaction,
   ThreadMessage,
 } from "@rakazo/contracts";
-import type { FoldedTranscript } from "@rakazo/core";
+import type { ChildBotBlock, FoldedTranscript } from "@rakazo/core";
 import {
   displayName,
   expandPeerReplies,
   groupVoiceChats,
   isPeerReceiptBlocks,
   liveActivityLine,
+  peerExchangeLines,
   projectBotMentions,
   projectMessageReactions,
   timeSeparatorIds,
@@ -37,6 +38,7 @@ import { ActiveBotGlyph } from "../../components/ai/CollaborationMarker";
 import { VoiceChatCard } from "../../components/call/VoiceChatCard";
 import type { ArtifactTarget } from "../../lib/artifact-open";
 import { quoteDraftForSelection } from "../../lib/quote-selection";
+import { TRANSCRIPT_CONTENT_PADDING } from "../../lib/transcript-layout";
 import { transcriptIsNearEnd, transcriptMovedDown } from "../../lib/transcript-scroll";
 import { TimeSeparator, UnreadDivider } from "./chat-context";
 import { isNarrationMessage } from "./chat-shared";
@@ -55,6 +57,7 @@ export const Transcript = memo(function Transcript({
   scrollRef,
   scrollRequest,
   onScrollRequestHandled,
+  followRequest,
   artifactTarget,
   transcript,
   olderCursor,
@@ -89,11 +92,12 @@ export const Transcript = memo(function Transcript({
   onSpeak,
   onOpenComputer,
   onOpenImportSetup,
-  onOpenImport,
 }: {
   scrollRef: RefObject<HTMLDivElement | null>;
   scrollRequest: { messageId: string; nonce: number } | null;
   onScrollRequestHandled: () => void;
+  /** Changes when you send: the view moves to the end and follows the reply. */
+  followRequest: number;
   artifactTarget: ArtifactTarget;
   transcript: FoldedTranscript<ThreadMessage>;
   olderCursor: number | null;
@@ -118,6 +122,7 @@ export const Transcript = memo(function Transcript({
     text: string,
     fields?: LoginFieldInput[],
     dismiss?: boolean,
+    remember?: false,
   ) => Promise<void>;
   onReply: (message: ThreadMessage) => void;
   onMarkUnread: (message: ThreadMessage) => void;
@@ -142,11 +147,11 @@ export const Transcript = memo(function Transcript({
   onSpeak: (message: ThreadMessage) => void;
   onOpenComputer: (botId?: string) => void;
   onOpenImportSetup?: (target: ImportSetupTarget) => void;
-  onOpenImport?: () => void;
 }) {
   const { t } = useLingui();
   const [atEnd, setAtEnd] = useState(true);
   const following = useRef(true);
+  const jumpScrolling = useRef(false);
   const autoScrolling = useRef(false);
   const lastScrollTop = useRef<number | null>(null);
   const autoScrollTimer = useRef<number | undefined>(undefined);
@@ -154,16 +159,6 @@ export const Transcript = memo(function Transcript({
   const [expandedPeerMarkers, setExpandedPeerMarkers] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
-  const togglePeerReplies = useCallback((markerId: string) => {
-    // Like a pointer press: a keyboard toggle must not snap the transcript to its end.
-    following.current = false;
-    autoScrolling.current = false;
-    setExpandedPeerMarkers((expanded) => {
-      const next = new Set(expanded);
-      if (!next.delete(markerId)) next.add(markerId);
-      return next;
-    });
-  }, []);
   // A jump to a folded reply expands its marker; the scroll effect below then finds the row.
   useLayoutEffect(() => {
     const markerId = scrollRequest && transcript.markerOf.get(scrollRequest.messageId);
@@ -180,17 +175,43 @@ export const Transcript = memo(function Transcript({
     () => new Map(messages.map((message) => [message.id, message])),
     [messages],
   );
-  const mentionView = useMemo(() => projectBotMentions(messages), [messages]);
+  const committedMentions = useRef(new Map<string, ChildBotBlock[]>());
+  const mentionView = useMemo(() => {
+    const view = projectBotMentions(messages);
+    for (const [id, mentions] of view.mentions) {
+      const previous = committedMentions.current.get(id);
+      if (
+        previous?.length === mentions.length &&
+        mentions.every((block, index) => block === previous[index])
+      ) {
+        view.mentions.set(id, previous);
+      }
+    }
+    return view;
+  }, [messages]);
+  // A progress tick rebuilds this view. The jump still reads the latest fold, without a new
+  // callback that would rerender every memoized message.
+  const mentionViewRef = useRef(mentionView);
+  useLayoutEffect(() => {
+    mentionViewRef.current = mentionView;
+    committedMentions.current = mentionView.mentions;
+  }, [mentionView]);
   const jumpToMessage = useCallback(
-    (messageId: string) => onJumpToMessage(mentionView.foldedInto.get(messageId) ?? messageId),
-    [mentionView, onJumpToMessage],
+    (messageId: string) =>
+      onJumpToMessage(mentionViewRef.current.foldedInto.get(messageId) ?? messageId),
+    [onJumpToMessage],
   );
   const reactionView = useMemo(
     () => projectMessageReactions(mentionView.visibleMessages),
     [mentionView],
   );
-  // Manor's ActivityTimeline shows every thought and tool step, so no message is hidden here.
-  const shownMessages = reactionView.visibleMessages;
+  // Manor's ActivityTimeline shows every thought and tool step, so no message is hidden for
+  // tool activity; bot-to-bot receipts still fold into one exchange line.
+  const visibleReceipts = reactionView.visibleMessages;
+  const exchanges = peerExchangeLines({ ...transcript, messages: visibleReceipts });
+  const shownMessages = visibleReceipts.filter(
+    (message) => !exchanges.lineOf.has(message.id) || exchanges.lines.has(message.id),
+  );
   const separatorIds = timeSeparatorIds(shownMessages);
   const unreadDividerId = unreadDividerMessageId(shownMessages, unreadAfterSeq, olderCursor);
   const workingLabel = liveActivityLine(messages) ?? t`Working…`;
@@ -243,6 +264,15 @@ export const Transcript = memo(function Transcript({
     });
   }, [messageById]);
 
+  // A click, selection or small nudge that ends near the end leaves the reader at the
+  // latest message, so new messages keep following; scrolling away beyond it does not.
+  const followIfNearEnd = useCallback(() => {
+    const element = scrollRef.current;
+    if (element && !jumpScrolling.current && transcriptIsNearEnd(element)) {
+      following.current = true;
+    }
+  }, [scrollRef]);
+
   // Keyboard and assistive-tech selections never reach a mouseup, so the pill
   // lifecycle listens on selectionchange; the mouse flag keeps it hidden while
   // a drag is still in flight.
@@ -254,6 +284,8 @@ export const Transcript = memo(function Transcript({
     };
     const onMouseUp = () => {
       selectingWithMouse.current = false;
+      // Clicks and selection drags end here even when released over the composer.
+      followIfNearEnd();
       evaluateSelection();
     };
     const onSelectionChange = () => {
@@ -279,7 +311,7 @@ export const Transcript = memo(function Transcript({
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("blur", onWindowBlur);
     };
-  }, [evaluateSelection]);
+  }, [evaluateSelection, followIfNearEnd]);
   const snapToEnd = useCallback(() => {
     const element = scrollRef.current;
     if (!element) return;
@@ -311,7 +343,6 @@ export const Transcript = memo(function Transcript({
   }, [scrollRef]);
 
   const scrolledJump = useRef<number | null>(null);
-  const jumpScrolling = useRef(false);
   const jumpScrollTimer = useRef<number | undefined>(undefined);
   const endJumpScroll = useCallback(() => {
     jumpScrolling.current = false;
@@ -328,7 +359,7 @@ export const Transcript = memo(function Transcript({
     if (!scrollRequest || scrolledJump.current === scrollRequest.nonce) return;
     const element = scrollRef.current;
     const row = element?.querySelector(
-      `[data-message-id="${CSS.escape(scrollRequest.messageId)}"]`,
+      `[data-message-id="${CSS.escape(exchanges.lineOf.get(scrollRequest.messageId) ?? scrollRequest.messageId)}"]`,
     );
     if (!element || !row) return;
     scrolledJump.current = scrollRequest.nonce;
@@ -352,11 +383,21 @@ export const Transcript = memo(function Transcript({
       { duration: 1200 },
     );
     onScrollRequestHandled();
-  }, [messages, scrollRequest, scrollRef, endJumpScroll, onScrollRequestHandled]);
+  }, [messages, scrollRequest, scrollRef, endJumpScroll, onScrollRequestHandled, exchanges.lineOf]);
+
+  const followedRequest = useRef(followRequest);
+  useLayoutEffect(() => {
+    if (followedRequest.current === followRequest) return;
+    followedRequest.current = followRequest;
+    snapToEnd();
+  }, [followRequest, snapToEnd]);
 
   useLayoutEffect(() => {
+    const element = scrollRef.current;
     if (following.current) snapToEnd();
-  }, [messages, running, snapToEnd]);
+    // Content can grow below a reader who is not following without any scroll event.
+    else if (element) setAtEnd(transcriptIsNearEnd(element));
+  }, [messages, running, scrollRef, snapToEnd]);
 
   useLayoutEffect(() => {
     const button = jumpButtonRef.current;
@@ -405,6 +446,7 @@ export const Transcript = memo(function Transcript({
           autoScrolling.current = false;
           following.current = false;
         }}
+        onScrollEnd={followIfNearEnd}
         onWheel={(event) => {
           if (event.deltaY < 0) {
             lastScrollTop.current = event.currentTarget.scrollTop;
@@ -433,7 +475,7 @@ export const Transcript = memo(function Transcript({
             following.current = false;
           }
         }}
-        className="rk-scroll isolate flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto scroll-pt-16 scroll-pb-7 px-4 pt-20 pb-12 md:px-[max(1.75rem,calc((100%_-_60rem)/2))] md:pt-[84px] md:pb-13"
+        className={`rk-scroll isolate flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto scroll-pt-16 scroll-pb-7 pt-20 pb-12 md:pt-[84px] md:pb-13 ${TRANSCRIPT_CONTENT_PADDING}`}
         style={
           userBubble
             ? ({
@@ -530,14 +572,7 @@ export const Transcript = memo(function Transcript({
                       canDismiss={dismissableAskIds.has(message.id)}
                       onOpenBot={onOpenBot}
                       onOpenPeerMessages={onOpenPeerMessages}
-                      peerReplies={
-                        transcript.folded.has(message.id)
-                          ? expandedPeerMarkers.has(message.id)
-                            ? "expanded"
-                            : "collapsed"
-                          : undefined
-                      }
-                      onTogglePeerReplies={togglePeerReplies}
+                      peerExchange={exchanges.lines.get(message.id)}
                       onAnswer={onAnswer}
                       speakerName={
                         peerReceipt
@@ -560,10 +595,9 @@ export const Transcript = memo(function Transcript({
                       onOpenPreview={onOpenPreview}
                       voiceReady={voiceReady}
                       speaking={speakingMessageId === message.id}
-                      onSpeak={() => onSpeak(message)}
+                      onSpeak={onSpeak}
                       onOpenComputer={onOpenComputer}
                       onOpenImportSetup={onOpenImportSetup}
-                      onOpenImport={onOpenImport}
                       onReply={onReply}
                       onMarkUnread={onMarkUnread}
                       onReact={onReact}

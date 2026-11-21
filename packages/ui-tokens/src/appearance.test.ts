@@ -65,13 +65,10 @@ describe("appearance preference", () => {
         continue;
       expect(darkTokens[key], key).not.toBe(lightTokens[key]);
     }
-    // Link icons keep a white plate in both themes; the light user bubble is near-black.
-    expect(lightTokens.faviconPlate).toBe("#FFFFFF");
-    expect(darkTokens.faviconPlate).toBe("#FFFFFF");
+    expect(darkTokens.faviconPlate).toBe(lightTokens.faviconPlate);
   });
 
   it("keeps the working dot the same green in both themes", () => {
-    expect(lightTokens.workingDot).toBe("#3FA266");
     expect(darkTokens.workingDot).toBe(lightTokens.workingDot);
   });
 

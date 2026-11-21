@@ -195,6 +195,11 @@ async function runWithModel(
     computer: {
       updateMany: vi.fn(async () => ({ count: 1 })),
       findUnique: vi.fn(async () => ({ scope: "dedicated" })),
+      findFirst: vi.fn(async () => ({
+        state: "running",
+        restorePending: false,
+        screenGeneration: 0,
+      })),
     },
     // Manor's run setup also reads the assigned computer, the organization's workspace
     // and the bot's stored logins.
@@ -208,7 +213,7 @@ async function runWithModel(
         async () => null,
       ),
     },
-    secret: { findFirst: vi.fn(async () => null) },
+    secret: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
     userModelCredential: { findFirst: vi.fn(async () => null) },
     userModelRoleChoice: {
       findMany: vi.fn(async ({ where }: { where: { role: string } }) => {

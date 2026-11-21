@@ -37,6 +37,7 @@ function fixture(catalog: unknown[]) {
   const actor = {
     userId: "user",
     spaceId: "space",
+    organizationId: "org-1",
     email: "user@rakazo.test",
     isDeploymentOwner: true,
   };
@@ -78,7 +79,7 @@ describe("promptFocus", () => {
     const run = {
       findFirst: vi.fn(async () => (options.introRun ? { id: "intro" } : null)),
     };
-    Object.assign(tx, { run, agentImport: { findFirst: vi.fn(async () => null) } });
+    Object.assign(tx, { run });
     return { deps, actor, run };
   }
 
@@ -133,7 +134,7 @@ it("does not trust a client's connected claim", async () => {
   const { deps, actor, tx } = fixture([
     { connectorId: "pipedream", slug: "slack", connected: false },
   ]);
-  deps.prisma.message = { findMany: vi.fn() } as never;
+  Object.assign(deps.prisma, { message: { findMany: vi.fn() } });
   await markAppConnected(deps, actor, "bot", "slack", "pipedream", "thread");
   expect(deps.prisma.message.findMany).not.toHaveBeenCalled();
   expect(tx.message.update).not.toHaveBeenCalled();
@@ -143,7 +144,7 @@ it("rejects a thread from another user or space before reading its messages", as
   const { deps, actor, tx } = fixture([
     { connectorId: "pipedream", slug: "slack", connected: true },
   ]);
-  deps.prisma.thread = { findFirst: vi.fn(async () => null) } as never;
+  Object.assign(deps.prisma, { thread: { findFirst: vi.fn(async () => null) } });
   await expect(
     markAppConnected(deps, actor, "bot", "slack", "pipedream", "other-thread"),
   ).rejects.toThrow();
@@ -157,17 +158,21 @@ it("updates an accessible group thread and emits its normal update event", async
   const { deps, actor, tx } = fixture([
     { connectorId: "pipedream", slug: "slack", connected: true },
   ]);
-  deps.prisma.thread = {
-    findFirst: vi.fn(async () => ({ id: "group-thread", groupId: "group" })),
-  } as never;
-  deps.prisma.chatGroup = {
-    findFirst: vi.fn(async () => ({
-      id: "group",
-      name: "Team",
-      thread: { id: "group-thread" },
-      members: ["bot", "peer"].map((id) => ({ bot: { id, name: id, runs: [] } })),
-    })),
-  } as never;
+  Object.assign(deps.prisma, {
+    thread: {
+      findFirst: vi.fn(async () => ({ id: "group-thread", groupId: "group" })),
+    },
+  });
+  Object.assign(deps.prisma, {
+    chatGroup: {
+      findFirst: vi.fn(async () => ({
+        id: "group",
+        name: "Team",
+        thread: { id: "group-thread" },
+        members: ["bot", "peer"].map((id) => ({ bot: { id, name: id, runs: [] } })),
+      })),
+    },
+  });
   tx.message.findMany = vi.fn(async () => [
     {
       id: "card",
@@ -204,10 +209,12 @@ it("rejects another user's group even in the same space", async () => {
   const { deps, actor, tx } = fixture([
     { connectorId: "pipedream", slug: "slack", connected: true },
   ]);
-  deps.prisma.thread = {
-    findFirst: vi.fn(async () => ({ id: "other-thread", groupId: "other-group" })),
-  } as never;
-  deps.prisma.chatGroup = { findFirst: vi.fn(async () => null) } as never;
+  Object.assign(deps.prisma, {
+    thread: {
+      findFirst: vi.fn(async () => ({ id: "other-thread", groupId: "other-group" })),
+    },
+  });
+  Object.assign(deps.prisma, { chatGroup: { findFirst: vi.fn(async () => null) } });
   await expect(
     markAppConnected(deps, actor, "bot", "slack", "pipedream", "other-thread"),
   ).rejects.toThrow();

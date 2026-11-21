@@ -17,6 +17,7 @@ describePostgres("artifact upload nonce (PostgreSQL)", () => {
   const actor: Actor = {
     userId,
     spaceId,
+    organizationId: "org-1",
     email: `${userId}@rakazo.test`,
     isDeploymentOwner: false,
   };

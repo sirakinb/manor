@@ -9,6 +9,7 @@ function fixture() {
   const actor = {
     userId: "user-1",
     spaceId: "space-1",
+    organizationId: "org-1",
     email: "fixture@example.test",
     isDeploymentOwner: false,
   } satisfies Actor;
@@ -72,6 +73,7 @@ function fixture() {
       }),
       { prefix: "/rpc", context: { actor: requestActor } },
     );
+    if (!response) throw new Error("no response");
     return { status: response.status, body: await response.json() };
   }
   return { actor, call, findBot, findMessages };

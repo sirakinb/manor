@@ -1,8 +1,9 @@
-import type { TelegramBotCredentials } from "@rakazo/adapters";
+import type { PhotonProjectCredentials, TelegramBotCredentials } from "@rakazo/adapters";
 import {
   boatApiKeyFromEnv,
   boatApiUrlFromEnv,
   mcpStdioOptionsFromEnv,
+  photonProjectsFromEnv,
   resolveCloudAgentProvider,
   resolveDeploymentModel,
   resolveSandboxProvider,
@@ -14,6 +15,7 @@ import type { MinimumClientBuilds, NavLink } from "@rakazo/contracts";
 import { parseMinimumClientBuilds, parseNavLinks } from "@rakazo/contracts";
 import { parseCrispWebsiteId } from "@rakazo/contracts/content-security-policy";
 import {
+  attachmentCountFromEnv,
   phoneCallSettings,
   resolveAuthSecret,
   resolveContentEncryption,
@@ -25,6 +27,9 @@ import {
 import { monitoringPseudonymSecret } from "@rakazo/logging";
 
 export { resolveCloudAgentProvider, resolveSandboxProvider } from "@rakazo/adapters";
+
+/** Where a local development stack serves the web client. */
+const DEFAULT_WEB_ORIGIN = "http://127.0.0.1:5173";
 
 export interface AppEnv {
   passwordAuth?: boolean;
@@ -62,10 +67,14 @@ export interface AppEnv {
   userDevicesEnabled: boolean;
   /** Operator menu links that frame a same-origin page (RAKAZO_NAV_LINKS). */
   navLinks?: NavLink[];
+  /** Verified accounts that review plugin submissions, add stdio MCP servers, and grant access
+   * (RAKAZO_ADMIN_EMAILS), lowercased. */
+  adminEmails: string[];
   phoneCallsEnabled: boolean;
   phoneCallRingSeconds: number;
   phoneCallCooldownMinutes: number;
   maxUploadSizeBytes: number;
+  maxAttachmentsPerMessage: number;
   /** Bot replies longer than this are read aloud as a summary; unset reads every reply in full. */
   voiceSummaryMinChars: number | undefined;
   sandboxSupervisorUrl: string;
@@ -107,6 +116,8 @@ export interface AppEnv {
   smtpUrl: string | undefined;
   emailProvider?: string;
   welcomeEmailEnabled?: boolean;
+  /** Manor: referral emails have their own switch (REFERRAL_EMAIL_ENABLED), off by default. */
+  referralEmailEnabled?: boolean;
   emailApiKey?: string;
   emailFrom: string | undefined;
   ingestionUrl: string | undefined;
@@ -134,6 +145,11 @@ export interface AppEnv {
   larkVerificationToken: string | undefined;
   larkEncryptKey: string | undefined;
   larkDomain: string | undefined;
+  photonProjectId: string | undefined;
+  photonProjectSecret: string | undefined;
+  photonWebhookSecret: string | undefined;
+  /** Extra named Photon projects (PHOTON_PROJECT_ID_<NAME>), each with its own number. */
+  photonProjects?: PhotonProjectCredentials[];
   /** Unknown chat senders auto-provision their own accounts when true. */
   messagingOpenSignup: boolean;
   /** Bot that owns team/external chat rooms on the messaging surface. */
@@ -207,6 +223,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
         }
       : undefined;
   const authSecret = resolveAuthSecret(source);
+  const webOrigin = resolveWebOrigin(source.WEB_ORIGIN, DEFAULT_WEB_ORIGIN, "WEB_ORIGIN");
   const sandboxProvider = resolveSandboxProvider(source);
   const cloudAgentProvider = resolveCloudAgentProvider(source);
   const deploymentModel = resolveDeploymentModel(source);
@@ -219,8 +236,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     realtimeDatabaseUrl: source.REALTIME_DATABASE_URL ?? required(source, "DATABASE_URL"),
     desktopStackToken: optional(source.RAKAZO_DESKTOP_STACK_TOKEN),
     authSecret,
-    authUrl: source.BETTER_AUTH_URL ?? source.WEB_ORIGIN ?? "http://127.0.0.1:5173",
-    webOrigin: source.WEB_ORIGIN ?? "http://127.0.0.1:5173",
+    authUrl: resolveWebOrigin(source.BETTER_AUTH_URL, webOrigin, "BETTER_AUTH_URL"),
+    webOrigin,
     passkeyAppleAppIds: list(source.PASSKEY_APPLE_APP_IDS),
     passkeyAndroidCertFingerprints: androidCertFingerprints(source.PASSKEY_ANDROID_CERT_SHA256),
     privacyPolicyUrl: optional(source.PRIVACY_POLICY_URL),
@@ -242,8 +259,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     ticketBoardEnabled: source.TICKET_BOARD_ENABLED === "true",
     userDevicesEnabled: source.USER_DEVICES_ENABLED !== "false",
     navLinks: parseNavLinks(source.RAKAZO_NAV_LINKS),
+    adminEmails: list(source.RAKAZO_ADMIN_EMAILS).map((email) => email.toLowerCase()),
     ...phoneCallSettings(source),
     maxUploadSizeBytes: uploadSizeFromEnv(source),
+    maxAttachmentsPerMessage: attachmentCountFromEnv(source),
     voiceSummaryMinChars: voiceSummaryMinCharsFromEnv(source.VOICE_SUMMARY_MIN_CHARS),
     sandboxSupervisorUrl: source.SANDBOX_SUPERVISOR_URL ?? "http://127.0.0.1:7091",
     sandboxSupervisorToken:
@@ -288,6 +307,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     ingestionSecret: optional(source.INGESTION_SECRET),
     emailReplyTo: optional(source.EMAIL_REPLY_TO),
     welcomeEmailEnabled: source.WELCOME_EMAIL_ENABLED === "true",
+    referralEmailEnabled: source.REFERRAL_EMAIL_ENABLED === "true",
     stripeSecretKey: optional(source.STRIPE_SECRET_KEY),
     stripeWebhookSecret: optional(source.STRIPE_WEBHOOK_SECRET),
     stripePriceId: optional(source.STRIPE_PRICE_ID),
@@ -308,6 +328,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     larkVerificationToken: optional(source.LARK_VERIFICATION_TOKEN),
     larkEncryptKey: optional(source.LARK_ENCRYPT_KEY),
     larkDomain: optional(source.LARK_DOMAIN),
+    photonProjectId: optional(source.PHOTON_PROJECT_ID),
+    photonProjectSecret: optional(source.PHOTON_PROJECT_SECRET),
+    photonWebhookSecret: optional(source.PHOTON_WEBHOOK_SECRET),
+    photonProjects: photonProjectsFromEnv(source),
     messagingOpenSignup: source.MESSAGING_OPEN_SIGNUP === "true",
     teamChatBotId: optional(source.TEAM_CHAT_BOT_ID) ?? optional(source.SLACK_RAKAZO_BOT_ID),
     teamChatJudgeProvider: optional(source.TEAM_CHAT_JUDGE_PROVIDER),
@@ -328,6 +352,22 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     browserMonitoring: browserMonitoringFromEnv(source),
     crispWebsiteId: parseCrispWebsiteId(source.CRISP_WEBSITE_ID),
   };
+}
+
+/**
+ * An origin used to build absolute links. Trailing slashes are dropped so
+ * `${webOrigin}/path` cannot produce `https://host//path`; providers reject a
+ * double-slash redirect URI as a mismatch against the one registered with them.
+ */
+function resolveWebOrigin(value: string | undefined, fallback: string, name: string): string {
+  const origin = (optional(value) ?? fallback).replace(/\/+$/, "");
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error();
+  } catch {
+    throw new Error(`${name} must be an absolute http(s) URL`);
+  }
+  return origin;
 }
 
 function required(source: NodeJS.ProcessEnv, key: string): string {

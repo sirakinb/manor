@@ -1,4 +1,4 @@
-import type { BackgroundJob } from "@rakazo/adapter-kit";
+import type { BackgroundJob, IngestionRunner } from "@rakazo/adapter-kit";
 import {
   EmailEmulator,
   EncryptedSecretStore,
@@ -722,7 +722,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
       prisma,
       secrets,
       email,
-      jobs: { enqueue, cancel: async () => {} },
+      jobs: { enqueue, cancel: async () => {}, close: async () => {} },
     });
     const input = {
       kind: "voice" as const,
@@ -754,7 +754,16 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
       });
       return { ok: true, recordsLoaded: 1 };
     });
-    const runner = { prisma, secrets, ingestion: { run } };
+    const ingestion: IngestionRunner = {
+      describe: () => ({
+        id: "ingestion-fake",
+        contractVersion: "1",
+        adapterVersion: "0.0.0",
+        capabilities: { pipelines: true },
+      }),
+      run,
+    };
+    const runner = { prisma, secrets, ingestion };
     await runWorkspaceReport(runner, row.id);
     await runWorkspaceReport(runner, row.id);
     expect(run).toHaveBeenCalledTimes(1);

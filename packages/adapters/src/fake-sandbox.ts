@@ -22,6 +22,7 @@ import {
   placeholderObservation,
   workspacePath,
 } from "./computer-support.js";
+import { FakeScreenServer } from "./fake-screen.js";
 import { FakeTerminalGateway } from "./fake-terminal.js";
 import { fakeWorkspaceFiles } from "./fake-workspace-files.js";
 import { sandboxCommandEnvironment } from "./sandbox-command-environment.js";
@@ -38,6 +39,7 @@ export interface FakeBox {
 export class FakeSandboxProvider implements SandboxProvider {
   readonly boxes = new Map<string, FakeBox>();
   private readonly terminals = new FakeTerminalGateway();
+  private readonly screenServer = new FakeScreenServer();
 
   describe() {
     return {
@@ -80,6 +82,10 @@ export class FakeSandboxProvider implements SandboxProvider {
       screenLeases: new Map(),
     });
     return ref;
+  }
+
+  async isRunning(computer: ComputerRef, _context: AdapterContext): Promise<boolean> {
+    return this.boxes.get(computer.id)?.running === true;
   }
 
   async prepare(_computer: ComputerRef, _context: AdapterContext): Promise<void> {}
@@ -137,8 +143,8 @@ export class FakeSandboxProvider implements SandboxProvider {
     const key = screenSessionKey(context);
     this.screenSlot(this.requiredBox(computer), key, context.screenLeaseId);
     return {
-      url: `fake://screen/${computer.id}/${key}`,
-      mimeType: "text/plain",
+      url: await this.screenServer.url(computer.id, key),
+      mimeType: "text/html",
       close: async () => undefined,
     };
   }
@@ -296,6 +302,11 @@ export class FakeSandboxProvider implements SandboxProvider {
   async destroy(computer: ComputerRef, _context: AdapterContext): Promise<void> {
     this.boxes.delete(computer.id);
     this.terminals.revoke(computer.id);
+  }
+
+  close() {
+    this.screenServer.close();
+    this.terminals.close();
   }
 
   private requiredBox(computer: ComputerRef): FakeBox {

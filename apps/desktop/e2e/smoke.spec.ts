@@ -36,6 +36,7 @@ test("launches with a narrow preload bridge and an isolated renderer", async () 
         localComputerKeys: desktop ? Object.keys(desktop.localComputer).sort() : [],
         passkeyRpIds: await desktop?.passkeys?.rpIds(),
         platform: desktop?.platform,
+        nativeWindowFrame: desktop?.nativeWindowFrame,
         state: await desktop?.window.state(),
         update: await desktop?.update.state(),
         localComputer: await desktop?.localComputer.status(),
@@ -52,9 +53,13 @@ test("launches with a narrow preload bridge and an isolated renderer", async () 
       "computer",
       "device",
       "localComputer",
+      "menu",
+      "monitoring",
+      "nativeWindowFrame",
       "oauth",
       "passkeys",
       "platform",
+      "settings",
       "update",
       "window",
     ]);
@@ -83,6 +88,7 @@ test("launches with a narrow preload bridge and an isolated renderer", async () 
       lastCommand: null,
     });
     expect(renderer.platform).toBe(process.platform);
+    expect(renderer.nativeWindowFrame).toBe(process.platform === "win32");
     expect(renderer.state).toEqual({ minimized: false, maximized: false, fullScreen: false });
     // An unpackaged run has no update feed, and that is reported as a state rather than an error.
     expect(renderer.update).toMatchObject({ phase: "unsupported", availableVersion: null });

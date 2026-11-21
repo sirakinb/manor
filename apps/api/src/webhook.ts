@@ -132,11 +132,13 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
       threadId = thread.id;
     }
 
+    // A payload id often names the resource, not the delivery, so only byte-identical retries collapse.
     const idempotencyKey =
       c.req.header("idempotency-key")?.trim() ||
       c.req.header("x-idempotency-key")?.trim() ||
-      (typeof payload.id === "string" ? payload.id.trim() : "") ||
-      (typeof payload.event_id === "string" ? payload.event_id.trim() : "") ||
+      c.req.header("webhook-id")?.trim() ||
+      c.req.header("svix-id")?.trim() ||
+      (typeof payload.id === "string" || typeof payload.event_id === "string" ? raw : "") ||
       undefined;
     // A per-routine delivery dedupes within its routine, not across the whole bot.
     const routineNonce =

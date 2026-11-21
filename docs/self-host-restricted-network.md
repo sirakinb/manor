@@ -15,9 +15,9 @@ These settings change downloads; model and remote-computer providers still need 
 When raw GitHub is unreachable, download the installer from your mirror:
 
 ```bash
-export RAKAZO_INSTALLER_URL=https://example.com/mirror/rakazo/infra/compose/install-images.sh
-export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/rakazo/infra/compose
-mkdir -p rakazo && cd rakazo &&
+export RAKAZO_INSTALLER_URL=https://example.com/mirror/manor/infra/compose/install-images.sh
+export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/manor/infra/compose
+mkdir -p manor && cd manor &&
 curl -fsSL -o install-images.sh "${RAKAZO_INSTALLER_URL}" &&
 bash install-images.sh --prepare-only
 ```
@@ -31,7 +31,7 @@ To mirror `docker-compose.images.yml` and `.env.images.example`, point the insta
 mirror of `infra/compose`:
 
 ```bash
-export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/rakazo/infra/compose
+export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/manor/infra/compose
 bash install-images.sh --prepare-only
 ```
 
@@ -64,7 +64,7 @@ startup path and print a warning when that flag is unavailable.
 To install restricted computer egress rules offline, also copy `restrict-computer-egress.sh`
 into the working directory. If that optional script is missing, the installer records open
 egress and warns instead of downloading it. An explicit `SANDBOX_COMPUTER_EGRESS` setting
-remains unchanged. See [restricted computer egress](./self-host.md#restricted-computer-egress)
+remains unchanged. See [restricted computer egress](./self-host-docker-computers.md#restricted-computer-egress)
 for host requirements.
 
 ## Container images
@@ -74,16 +74,16 @@ After `--prepare-only`, set image overrides in `.env`. For mirrored Postgres or 
 (keep `--local` if using pre-copied Compose files):
 
 ```env
-RAKAZO_IMAGE=registry.example.com/mirror/rakazo/app
+RAKAZO_IMAGE=registry.example.com/mirror/manor/app
 RAKAZO_IMAGE_TAG=edge
-RAKAZO_COMPUTER_IMAGE=registry.example.com/mirror/rakazo/computer
+RAKAZO_COMPUTER_IMAGE=registry.example.com/mirror/manor/computer
 RAKAZO_COMPUTER_IMAGE_TAG=edge
 POSTGRES_IMAGE=registry.example.com/library/postgres@sha256:<trusted-postgres-digest>
 BUSYBOX_IMAGE=registry.example.com/library/busybox@sha256:<trusted-busybox-digest>
 ```
 
 Mirror both app and computer images and pair their tags to the same published version. Arm64
-hosts need multi-architecture tags; see [published images and tags](./self-host.md#published-images-and-tags).
+hosts need multi-architecture tags; see [published images and tags](./self-host-upgrading.md#published-images-and-tags).
 Image overrides are defined in [docker-compose.images.yml](../infra/compose/docker-compose.images.yml).
 
 For Docker Hub images, you can instead merge `registry-mirrors` into the Docker daemon's existing
@@ -142,4 +142,4 @@ mirror tags. After startup, follow the health checks in [the setup prompt](../SE
 
 Once downloads work, continue with [published-image setup](./self-host.md#published-images-no-checkout).
 For hosts without external provider access, use local Docker computers and an operator-controlled
-model endpoint; see the [self-hosting guide](./self-host.md).
+model endpoint; see [local models](./self-host-models.md#local-models).

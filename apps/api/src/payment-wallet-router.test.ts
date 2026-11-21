@@ -14,6 +14,7 @@ type Row = Record<string, unknown>;
 
 const actor = {
   spaceId: "space-1",
+  organizationId: "org-1",
   userId: "user-1",
   email: "user@rakazo.test",
   isDeploymentOwner: false,

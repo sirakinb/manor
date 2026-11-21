@@ -274,7 +274,7 @@ describe("MCP OAuth provider", () => {
 
   it("completes the MCP SDK client's discovery, registration and code exchange", async () => {
     const { app, prisma } = setup();
-    const fetchFn = (url: string | URL, init?: RequestInit) => app.request(String(url), init);
+    const fetchFn = async (url: string | URL, init?: RequestInit) => app.request(String(url), init);
     const saved: Record<string, unknown> = {};
     let authorizationUrl: URL | undefined;
     const provider: OAuthClientProvider = {

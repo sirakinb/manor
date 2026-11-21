@@ -23,6 +23,7 @@ import { returnBotMessageOutcome } from "./bot-messages.js";
 import { reconcileCallRequests } from "./call-request.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
 import type { MaintenanceAdmission } from "./maintenance-control.js";
+import { findRunRecoveryBlockers } from "./run-recovery.js";
 import { reconcileStuckWork } from "./stuck-work.js";
 import { isLoopGuardStopText } from "./tool-loop.js";
 import { isUserProgressClientNonce } from "./user-progress.js";
@@ -132,6 +133,7 @@ export function createJobReconciler(
     reconcileModelCredits?: () => Promise<void>;
     reconcileRoutineRetryNotices?: () => Promise<void>;
     reconcileSecurityEventRetention?: () => Promise<void>;
+    reconcileAuditLog?: () => Promise<void>;
     reconcileHomeStorage?: () => Promise<void>;
     reconcileIdleComputers?: () => Promise<void>;
     reconcileDeadJobs?: () => Promise<void>;
@@ -191,6 +193,7 @@ export function createJobReconciler(
           deps.reconcileComputerUpdates,
           deps.reconcileRoutineRetryNotices,
           deps.reconcileSecurityEventRetention,
+          deps.reconcileAuditLog,
           deps.reconcileHomeStorage,
           deps.reconcileIdleComputers,
           deps.reconcileDeadJobs,
@@ -243,7 +246,13 @@ export function createJobReconciler(
           },
           orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
           take: batchSize,
-          select: { id: true, status: true, updatedAt: true },
+          select: {
+            id: true,
+            status: true,
+            updatedAt: true,
+            botId: true,
+            bot: { select: { computerId: true } },
+          },
         }),
         deps.prisma.messagingOutbound.findFirst({
           where: {
@@ -350,15 +359,18 @@ export function createJobReconciler(
       // A locked job whose worker died is never unlocked, so it is replaced: any lock
       // for a run whose lease expired, and for a queued run only a lock older than
       // a lease, since a live worker finishing a failed attempt still holds it.
+      const blockers = await findRunRecoveryBlockers(deps.prisma, runs, now);
       const abandonedQueuedLockAt = new Date(now.getTime() - ABANDONED_QUEUED_LOCK_MS);
       await publishAll([
-        ...runs.map((run) =>
-          deps.jobs.enqueue({
-            ...runContinueJob(run.id),
-            keepExisting: true,
-            replaceLockedBefore: run.status === "queued" ? abandonedQueuedLockAt : now,
-          }),
-        ),
+        ...runs
+          .filter((run) => !blockers.has(run.id))
+          .map((run) =>
+            deps.jobs.enqueue({
+              ...runContinueJob(run.id),
+              keepExisting: true,
+              replaceLockedBefore: run.status === "queued" ? abandonedQueuedLockAt : now,
+            }),
+          ),
         ...automations.flatMap((automation) =>
           automation.nextRunAt
             ? [deps.jobs.enqueue(workspaceAutomationWakeupJob(automation.id, automation.nextRunAt))]

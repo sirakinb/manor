@@ -65,7 +65,6 @@ test("settings offer no tool activity toggle", async ({ page }, testInfo) => {
   await page.goto(`${fixture}?view=settings`);
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
-  await settings.getByTestId("advanced-settings").locator("button[aria-expanded]").click();
   await expect(settings.getByText("Stream replies", { exact: true })).toBeVisible();
   await expect(settings.getByTestId("tool-activity-toggle")).toBeHidden();
   await expect(settings.getByText("Show tool activity", { exact: true })).toBeHidden();
@@ -103,7 +102,6 @@ test("the chat transcript always shows tool activity, whatever preference is sto
   await captureScreenshot(page, testInfo, "shell-activity-timeline");
 
   const settings = await openUserSettings(page);
-  await settings.getByTestId("advanced-settings").locator("button[aria-expanded]").click();
   await expect(settings.getByText("Stream replies", { exact: true })).toBeVisible();
   await expect(settings.getByTestId("tool-activity-toggle")).toBeHidden();
   await page.keyboard.press("Escape");

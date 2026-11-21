@@ -110,7 +110,13 @@ describe
             createdByUserId: userId,
           },
         });
-        actor = { spaceId, userId, email: `${userId}@example.test`, isDeploymentOwner: false };
+        actor = {
+          spaceId,
+          organizationId: "org-1",
+          userId,
+          email: `${userId}@example.test`,
+          isDeploymentOwner: false,
+        };
       }),
     );
     afterAll(() =>

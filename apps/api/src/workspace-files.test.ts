@@ -6,6 +6,7 @@ import { createRouter, type RouterDeps } from "./router.js";
 
 const actor: Actor = {
   spaceId: "space-1",
+  organizationId: "org-1",
   userId: "user-1",
   email: "user@rakazo.test",
   isDeploymentOwner: true,
@@ -61,6 +62,7 @@ async function setup({ running = false, foreign = false, mode = "team", asleep =
       }),
       { prefix: "/rpc", context: { actor } },
     );
+    if (!response) throw new Error("No RPC procedure matched");
     return response;
   };
   return { call, prisma, execute, sandbox };

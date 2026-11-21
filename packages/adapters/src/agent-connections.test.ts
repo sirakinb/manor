@@ -1,4 +1,5 @@
 import type { PrismaClient, ThreadEvents } from "@rakazo/db";
+import { RunHistoryWriteError } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import {
   connectAgent,
@@ -31,6 +32,8 @@ const targetIdentity = {
 function createDeps(
   overrides: {
     blockedBot?: "bot-1" | "bot-2";
+    /** Manor: the target bot's Space belongs to another organization. */
+    otherOrganization?: boolean;
     disabledInsideTx?: boolean;
     connection?: Record<string, unknown> | null;
     pendingConnection?: Record<string, unknown> | null;
@@ -39,12 +42,15 @@ function createDeps(
     connectionRevokedInsideTx?: boolean;
     /** Simulates a revoke landing after the in-transaction approval read. */
     connectionRevokedAfterReadInsideTx?: boolean;
+    /** A newer claim of the sending run holds this lease. */
+    runLease?: { leaseOwner: string; leaseFence: number };
   } = {},
 ) {
   const policyRows = () =>
     ["bot-1", "bot-2"].map((id) => ({
       id,
       spaceId: id === "bot-1" ? "ws-1" : "ws-2",
+      organizationId: id === "bot-2" && overrides.otherOrganization ? "org-2" : "org-1",
       crossSpaceCommunication: id !== overrides.blockedBot,
       archivedAt: null,
     }));
@@ -69,7 +75,7 @@ function createDeps(
         txCalls.runCreate.push(data);
         return { id: "run-wake", ...(data as object) };
       }),
-      findUnique: vi.fn(async () => ({ id: "run-1", status: "running" })),
+      findUnique: vi.fn(async () => ({ id: "run-1", status: "running", ...overrides.runLease })),
     },
     task: {
       create: vi.fn(async ({ data }: { data: unknown }) => {
@@ -373,6 +379,22 @@ describe("messageConnectedAgent", () => {
     expect(deps.enqueue).toHaveBeenCalled();
   });
 
+  it("does not deliver from an attempt a newer claim superseded", async () => {
+    const deps = createDeps({
+      connection: { id: "ac-1", requesterBotId: "bot-1", targetBotId: "bot-2", status: "approved" },
+      runLease: { leaseOwner: "worker-2", leaseFence: 2 },
+    });
+    await expect(
+      messageConnectedAgent(
+        { ...deps, runLease: { runId: run.id, owner: "worker-1", fence: 1 } },
+        run,
+        sender,
+        { address: "+15552222222", message: "results are in" },
+      ),
+    ).rejects.toBeInstanceOf(RunHistoryWriteError);
+    expect(deps.enqueue).not.toHaveBeenCalled();
+  });
+
   it("delivers repeated messages when each call has a distinct deliveryKey", async () => {
     const deps = createDeps({
       connection: { id: "ac-1", requesterBotId: "bot-1", targetBotId: "bot-2", status: "approved" },
@@ -586,6 +608,26 @@ describe("cross-space communication permission", () => {
       expect(deps.txCalls.runCreate).toHaveLength(0);
     },
   );
+  // Manor: one database hosts several organizations; a bot never reaches another one's bots.
+  it("refuses a bot in another organization with the same answer as an unknown address", async () => {
+    const deps = createDeps({ otherOrganization: true });
+    expect(await connectAgent(deps, run, sender, { address: targetIdentity.address })).toEqual({
+      ok: false,
+      error: "no agent can be reached at that address",
+    });
+    expect(deps.prisma.agentConnection.create).not.toHaveBeenCalled();
+    const connected = createDeps({
+      otherOrganization: true,
+      connection: { id: "ac-1", status: "approved" },
+    });
+    expect(
+      await messageConnectedAgent(connected, run, sender, {
+        address: targetIdentity.address,
+        message: "Private text",
+      }),
+    ).toEqual({ ok: false, error: "no agent can be reached at that address" });
+    expect(connected.txCalls.messageCreate).toHaveLength(0);
+  });
   it("checks permission again inside the request transaction", async () => {
     const deps = createDeps({ disabledInsideTx: true });
     expect(

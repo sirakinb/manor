@@ -58,3 +58,7 @@ __pycache__/
 # `git add -A` commit a whole second copy of the repo, and Biome refuses to run
 # against a nested root config.
 .claude/worktrees/
+
+# Wuying Web SDK vendor files; fetch with node scripts/wuying-web-sdk.mjs
+apps/web/public/wuying/WuyingWebSDK.js
+apps/web/public/wuying/sdk/

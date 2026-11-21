@@ -151,6 +151,8 @@ function fixture(runId = "run-1") {
     ),
   };
   const prisma = {
+    $transaction: vi.fn(async (write: (tx: unknown) => unknown) => write(prisma)),
+    $queryRaw: vi.fn(async () => []),
     user: { findUnique: vi.fn(async () => null) },
     run: {
       findUnique: vi.fn(async () => run),
@@ -203,6 +205,7 @@ function fixture(runId = "run-1") {
       })),
     },
     taughtSkill: { findMany: vi.fn(async () => []) },
+    secret: { findMany: vi.fn(async () => []) },
     vaultCredential: { findMany: vi.fn(async () => []) },
     agentSkill: { findMany: vi.fn(async () => []) },
     scratchpadItem: {
@@ -243,7 +246,6 @@ function fixture(runId = "run-1") {
     workspace: { findUnique: vi.fn(async () => null) },
     botCredential: { findMany: vi.fn(async () => []) },
     verificationCheck: { create: vi.fn(async () => ({})) },
-    $transaction: vi.fn(async (operations: Array<Promise<unknown>>) => Promise.all(operations)),
   };
   const pauseRunForInput = vi.fn(async () => {
     run.status = "waiting_input";
@@ -835,7 +837,7 @@ describe("mutating tool effect idempotency keys", () => {
 });
 
 describe("add_mcp_server", () => {
-  it("refuses a stdio server this deployment can't run", async () => {
+  it("never adds a local (stdio) server", async () => {
     const f = fixture();
     f.setCalls([
       {
@@ -847,6 +849,8 @@ describe("add_mcp_server", () => {
 
     await f.run();
 
-    expect(f.results[0]).toEqual({ error: "Stdio MCP servers aren't available here" });
+    expect(f.results[0]).toEqual({
+      error: "Bots can't add local (stdio) MCP servers. Ask an admin to add it in Settings.",
+    });
   });
 });

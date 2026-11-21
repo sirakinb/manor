@@ -29,7 +29,6 @@ function sourceRecords(): AccountExportRecord[] {
       type: "bot",
       id: "src-bot-child",
       name: "Scout",
-      title: "Researcher",
       description: "Finds things",
       instructions: "Be brief.",
       color: "#3EC5A8",
@@ -58,7 +57,6 @@ function sourceRecords(): AccountExportRecord[] {
       type: "bot",
       id: "src-bot-parent",
       name: "Chief",
-      title: "",
       description: "",
       instructions: "",
       color: "#F5A03C",
@@ -282,6 +280,7 @@ describePostgres("account import (PostgreSQL)", () => {
   const actor: Actor = {
     userId,
     spaceId: baseSpaceId,
+    organizationId: "org-1",
     email: `${userId}@rakazo.test`,
     isDeploymentOwner: false,
   };

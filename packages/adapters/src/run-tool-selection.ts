@@ -9,6 +9,7 @@ import { selectCloudAgentTools } from "./cloud-agent-tools-select.js";
 import { CRM_READ_ONLY_TOOL_NAMES } from "./crm-tools.js";
 import { selectMemoryTools } from "./memory-tools.js";
 import { filterImageReturningComputerTools } from "./model-vision.js";
+import { USER_COMPUTER_SCREEN_TOOLS } from "./run-tools-user-computer.js";
 import { filterBuiltinToolsForRun, filterBuiltinToolsForThread } from "./schedule-tools.js";
 import { WORKSPACE_READ_ONLY_TOOL_NAMES } from "./workspace-tools.js";
 
@@ -117,9 +118,11 @@ export function selectBuiltinToolsForRun(options: {
   followUpFromUser?: boolean;
   /** The person who started this run has their desktop connected (see userComputerOwner). */
   userComputer?: boolean;
+  /** That desktop can look at and drive its apps. */
+  userComputerScreen?: boolean;
 }) {
   const disabled = disabledBuiltinToolSet(options.disabledBuiltinTools);
-  const fleetToolsAllowed = isOwnerStartedRun(options.trigger, Boolean(options.followUpFromUser));
+  const ownerStartedRun = isOwnerStartedRun(options.trigger, Boolean(options.followUpFromUser));
   return selectCloudAgentTools(
     selectMemoryTools(
       filterBuiltinToolsForRun(
@@ -146,7 +149,8 @@ export function selectBuiltinToolsForRun(options: {
       !disabled.has(tool.name) &&
       (options.trigger !== "created" || CREATED_RUN_TOOL_NAMES.has(tool.name)) &&
       (!FLEET_TOOL_NAMES_SET.has(tool.name) ||
-        (Boolean(options.fleetManagement) && fleetToolsAllowed)) &&
+        (Boolean(options.fleetManagement) && ownerStartedRun)) &&
+      (ownerStartedRun || (tool.name !== "update_preferences" && tool.name !== "feedback")) &&
       (options.paymentWalletEnabled || !PURCHASE_TOOL_NAMES.has(tool.name)) &&
       (options.mediaImagesEnabled || tool.name !== "generate_image") &&
       (options.mediaVideoEnabled || tool.name !== "generate_video") &&
@@ -163,6 +167,8 @@ export function selectBuiltinToolsForRun(options: {
         ].includes(tool.name)) &&
       (options.voiceCall || tool.name !== "end_call") &&
       (options.userComputer || tool.name !== "user_computer_shell") &&
+      ((options.userComputer && options.userComputerScreen) ||
+        !USER_COMPUTER_SCREEN_TOOLS.has(tool.name)) &&
       // Already on a call, or reached through a messaging channel that cannot ring.
       ((options.phoneCallsEnabled &&
         !options.groupId &&

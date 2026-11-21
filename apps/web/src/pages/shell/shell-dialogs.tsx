@@ -12,8 +12,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Panel } from "../../lib/right-panel-state";
 import type { createSpaceRpc } from "../../lib/rpc";
 import { selectSpace } from "../../lib/rpc";
+import type { CommandPaletteAction } from "./command-palette";
 import { CommandPalette } from "./command-palette";
-import { isCommandPaletteHotkey } from "./command-palette-hotkey";
 import type { CreateBotDialogInput } from "./create-bot-dialog";
 import { CreateBotDialog } from "./create-bot-dialog";
 import {
@@ -52,15 +52,6 @@ export function useShellDialogs() {
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
   const [createBotOpen, setCreateBotOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (!isCommandPaletteHotkey(event)) return;
-      event.preventDefault();
-      setCommandPaletteOpen((open) => !open);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
   return {
     deleteTarget,
     setDeleteTarget,
@@ -107,10 +98,10 @@ export function ShellDialogs({
   openSpaceSettings,
   closeMobileSidebar,
   createBot,
-  onImportFromCreate,
   clearOpenThread,
   deleteRoutineDialogProps,
   localComputer,
+  paletteActions,
 }: {
   dialogs: ShellDialogsState;
   rpc: ReturnType<typeof createSpaceRpc>;
@@ -126,11 +117,11 @@ export function ShellDialogs({
   openSpaceSettings: (spaceId: string) => void;
   closeMobileSidebar: () => void;
   createBot: (input: CreateBotDialogInput) => Promise<void>;
-  onImportFromCreate: () => void;
   clearOpenThread: () => void;
   deleteRoutineDialogProps: ComponentProps<typeof DeleteItemDialog> | null;
   /** Manor: this Mac's live session, offered as a computer for the new bot. */
   localComputer?: ComponentProps<typeof CreateBotDialog>["localComputer"];
+  paletteActions: CommandPaletteAction[];
 }) {
   const { t } = useLingui();
   const {
@@ -312,6 +303,13 @@ export function ShellDialogs({
           closeMobileSidebar();
           navigate(`/app/${id}`);
         }}
+        actions={paletteActions.map((action) => ({
+          ...action,
+          onSelect: () => {
+            closeMobileSidebar();
+            action.onSelect();
+          },
+        }))}
       />
 
       {createBotOpen ? (
@@ -319,7 +317,6 @@ export function ShellDialogs({
           onCancel={() => setCreateBotOpen(false)}
           onCreate={createBot}
           localComputer={localComputer}
-          onImport={onImportFromCreate}
         />
       ) : null}
 

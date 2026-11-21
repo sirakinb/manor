@@ -18,6 +18,7 @@ describePostgres("space search with CONTENT_ENCRYPTION on and off (PostgreSQL)",
   const actor: Actor = {
     userId,
     spaceId,
+    organizationId: "org-1",
     email: `${userId}@rakazo.test`,
     isDeploymentOwner: false,
   };

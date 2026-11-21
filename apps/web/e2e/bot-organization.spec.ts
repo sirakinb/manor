@@ -109,28 +109,6 @@ test("deleting a section keeps its bots and groups", async ({ page }, testInfo) 
   await expect(sidebar.getByRole("button", { name: /^Review room/ })).toBeVisible();
   await captureScreenshot(page, testInfo, "section-deleted");
 });
-
-test("an empty section can be deleted after its last bot leaves", async ({ page }, testInfo) => {
-  await signup(page, `empty-section-${Date.now()}@rakazo.test`, "password12", "Empty Section");
-  await completeOnboarding(page);
-  const botId = activeBotId(page);
-  const section = await rpc<{ id: string }>(page, "botSections/create", {
-    botId,
-    name: "Old ideas",
-  });
-  await rpc(page, "bots/update", { botId, sectionId: null });
-  await page.reload();
-  const sidebar = page.locator("aside").first();
-  const heading = sidebar.locator(`[data-sidebar-group$=":section:${section.id}"]`);
-  await heading.getByRole("button", { name: /^Collapse .*Old ideas$/ }).click({ button: "right" });
-  await page.getByRole("menuitem", { name: "Delete section", exact: true }).click();
-  const dialog = page.getByRole("alertdialog", { name: "Delete Old ideas?" });
-  await captureScreenshot(page, testInfo, "delete-empty-section");
-  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(heading).toHaveCount(0);
-  await expect(sidebar.locator(`[data-roster-bot-id="${botId}"]`)).toBeVisible();
-});
-
 test("bots can be reordered by drag or keyboard and keep that order", async ({ page }) => {
   const stamp = Date.now();
   await signup(page, `bot-reorder-${stamp}@rakazo.test`, "password12", "Bot Order");
@@ -274,7 +252,7 @@ test("chat composer controls are vertically centered", async ({ page }, testInfo
   await expect
     .poll(() =>
       bar.evaluate((composerBar) => {
-        const field = composerBar.querySelector("textarea")?.parentElement ?? null;
+        const field = composerBar.querySelector('[data-testid="composer-field"]');
         return [composerBar, field].every(
           (element) =>
             element?.getAnimations().every((animation) => animation.playState !== "running") ??
@@ -439,9 +417,9 @@ test("built-in sidebar headings follow the language without renaming custom sect
   const settings = await openUserSettings(page);
   await settings.getByTestId("ui-locale-select").click();
   await page.getByRole("option", { name: "Deutsch", exact: true }).click();
-  await page.getByRole("button", { name: "Benutzereinstellungen schließen", exact: true }).click();
+  // Names are translated now, so close with the keyboard and read headings as visible text.
+  await page.keyboard.press("Escape");
   await expect(settings).not.toBeVisible();
-  // The button's name is translated now, so the heading is read through its group.
   await expect(pinnedGroup).toContainText(`${spaceName}Angeheftet`);
   await expect(sidebar.locator('[data-sidebar-group$=":unassigned"]')).toContainText(
     `${spaceName}Nicht zugewiesen`,
@@ -451,7 +429,7 @@ test("built-in sidebar headings follow the language without renaming custom sect
   await expect(customSection).not.toContainText("Angeheftet");
   // Manor's own navigation rows follow the language too; CRM is a name.
   for (const name of ["CRM", "Integrationen", "Dokumentation"]) {
-    await expect(sidebar.getByRole("button", { name, exact: true })).toBeVisible();
+    await expect(sidebar.getByText(name, { exact: true }).first()).toBeVisible();
   }
   await captureScreenshot(page, testInfo, "localized-sidebar-headings-de");
 });

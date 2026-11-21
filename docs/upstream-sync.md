@@ -15,7 +15,7 @@ previous stage. CI is the verification gate; the local stack is not run. Product
 deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
-Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`. In progress: `v0.3.6`.
+Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`. In progress: `v0.4.0`.
 
 ### How a stage is resolved
 
@@ -181,6 +181,13 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`. In progress: `v0.
   code needs a database restore.
 - Manor adds its own check `secrets_workspace_credential_scope_check` (Workspace
   credentials are never space-scoped) beside upstream's looser `secrets_scope_check`.
+- Cross-space communication between bots stays inside one organization:
+  `crossSpaceCommunicationAllowed` (`packages/db/src/cross-space-communication.ts`) allows
+  bots in different Spaces only when both Spaces share an organization and both bots
+  opted in. Upstream's default of on for new bots is kept.
+- Upstream's row-level security bypass key needs nothing in production: the owner login
+  bypasses the policies, and `rls_bypass_keys` stays empty without upstream's migrate
+  runner, so the plain bypass is still accepted.
 
 ### Deploy checklist for the staged sync
 
@@ -264,6 +271,17 @@ Things the one production deploy at the end must cover, collected as stages land
   data over. Count existing thumbs-ups on the backup first.
 - `20261120120000_mark_existing_users_verified` must run with the rest, or upstream's
   verification gate can refuse existing accounts.
+- `20261108120000_drop_pending_instructions_run` and `20261114120100_rls_bypass_key_required`
+  are marked deferred but apply at once under plain `prisma migrate deploy`, so stop the
+  API and worker before migrating.
+- `20261114120000_rls_bypass_key` creates the schema `rakazo_private`, so the owner login
+  needs CREATE on the database.
+- The API moves stdio MCP server arguments into encrypted secrets in the background on
+  every start, using the existing encryption key.
+- Keep `SANDBOX_COMPUTER_MOUNTS` unset in production: a mount reaches every organization's
+  bot computers.
+- `TICKET_BOARD_ENABLED` decides whether the ticket board shows.
+- The desktop release workflow now refuses a tag without a matching changelog section.
 
 ## Standing rules
 

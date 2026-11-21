@@ -19,7 +19,6 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@rakazo/ui-web";
-import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
 import {
   Table,
   TableBody,
@@ -30,7 +29,7 @@ import {
 } from "@rakazo/ui-web/components/ui/table";
 import type { RefObject } from "react";
 import { useId, useRef, useState, useSyncExternalStore } from "react";
-import { AccountAccess } from "../components/AccountAccess";
+import { AccountAccess, LinkSsoRow } from "../components/AccountAccess";
 import { AccountDataSettings } from "../components/AccountDataSettings";
 import { SuccessPop } from "../components/ai/primitives";
 import { ComputerDeviceSettings } from "../components/ComputerDeviceSettings";
@@ -87,6 +86,7 @@ export type SettingsGeneralProps = {
   onTimezoneChange?: (timezone: string) => Promise<void>;
   onAccountImported?: () => Promise<void>;
   onLocalComputerChanged?: () => void;
+  onImportAgent?: () => void;
 };
 
 export function GeneralSettingsPanels({
@@ -97,6 +97,7 @@ export function GeneralSettingsPanels({
   onTimezoneChange,
   onAccountImported,
   onLocalComputerChanged,
+  onImportAgent,
 }: SettingsGeneralProps) {
   const { t } = useLingui();
   const account = accountDisplay({ name, email }, t`You`);
@@ -173,6 +174,7 @@ export function GeneralSettingsPanels({
     accountSecurity?.hasPassword && accountSecurity.passwordChangeEnabled !== false,
   );
   const passkeysSupported = usePasskeysSupported();
+  const canLinkSso = Boolean(accountSecurity?.sso && !accountSecurity.ssoLinked);
   const [timezonePending, setTimezonePending] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const deviceTimezone = localTimezone();
@@ -250,6 +252,7 @@ export function GeneralSettingsPanels({
             onKeyDown={(event) => {
               if (event.key === "Escape") {
                 event.stopPropagation();
+                if (event.nativeEvent.isComposing || event.keyCode === 229) return;
                 if (!namePending) setEditingName(false);
               }
             }}
@@ -396,107 +399,99 @@ export function GeneralSettingsPanels({
         <SettingsGroup title={<Trans>Sidebar</Trans>}>{sidebarDensityRow}</SettingsGroup>
       ) : null}
 
-      <Disclosure
-        data-testid="advanced-settings"
-        className="group rounded-xl border border-border"
-        summary={<Trans>Advanced</Trans>}
-        summaryClassName="w-full flex items-center justify-between gap-4 px-4 py-3 text-[14px] text-foreground"
-      >
-        <div className="divide-y divide-border border-t border-border">
-          <SettingsRow
-            label={
-              <Label htmlFor={enterToSendId} className="text-[14px] font-normal text-foreground">
-                <Trans>Send with Enter</Trans>
-              </Label>
-            }
-            control={
-              <Switch
-                id={enterToSendId}
-                data-testid="composer-enter-to-send-toggle"
-                checked={enterToSend}
-                onCheckedChange={(checked) => setComposerEnterToSend(checked)}
-              />
-            }
-          />
-          <SettingsRow
-            label={
-              <Label htmlFor={streamRepliesId} className="text-[14px] font-normal text-foreground">
-                <Trans>Stream replies</Trans>
-              </Label>
-            }
-            control={
-              <Switch
-                id={streamRepliesId}
-                data-testid="response-streaming-toggle"
-                checked={streamReplies}
-                onCheckedChange={(checked) => {
-                  setStreamReplies(checked);
-                  setResponseStreamingPreference(checked ? "on" : "off");
-                }}
-              />
-            }
-          />
-          {/* Manor's activity timeline always shows tool steps, so this upstream toggle is hidden. */}
-          <div hidden>
-            <SettingsRow
-              label={
-                <Label
-                  htmlFor={showToolActivityId}
-                  className="text-[14px] font-normal text-foreground"
-                >
-                  <Trans>Show tool activity</Trans>
-                </Label>
-              }
-              control={
-                <Switch
-                  id={showToolActivityId}
-                  data-testid="tool-activity-toggle"
-                  checked={showToolActivity}
-                  onCheckedChange={(checked) => {
-                    setShowToolActivity(checked);
-                    setToolActivityPreference(checked ? "on" : "off");
-                  }}
-                />
-              }
+      <SettingsGroup title={<Trans>Chat</Trans>}>
+        <SettingsRow
+          label={
+            <Label htmlFor={enterToSendId} className="text-[14px] font-normal text-foreground">
+              <Trans>Send with Enter</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={enterToSendId}
+              data-testid="composer-enter-to-send-toggle"
+              checked={enterToSend}
+              onCheckedChange={(checked) => setComposerEnterToSend(checked)}
             />
-          </div>
+          }
+        />
+        <SettingsRow
+          label={
+            <Label htmlFor={streamRepliesId} className="text-[14px] font-normal text-foreground">
+              <Trans>Stream replies</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={streamRepliesId}
+              data-testid="response-streaming-toggle"
+              checked={streamReplies}
+              onCheckedChange={(checked) => {
+                setStreamReplies(checked);
+                setResponseStreamingPreference(checked ? "on" : "off");
+              }}
+            />
+          }
+        />
+        {/* Manor's activity timeline always shows tool steps, so this upstream toggle is hidden. */}
+        <div hidden>
           <SettingsRow
             label={
               <Label
-                htmlFor={loadRemoteImagesId}
+                htmlFor={showToolActivityId}
                 className="text-[14px] font-normal text-foreground"
               >
-                <Trans>Load web images automatically</Trans>
+                <Trans>Show tool activity</Trans>
               </Label>
             }
             control={
               <Switch
-                id={loadRemoteImagesId}
-                data-testid="remote-images-toggle"
-                checked={loadRemoteImages}
+                id={showToolActivityId}
+                data-testid="tool-activity-toggle"
+                checked={showToolActivity}
                 onCheckedChange={(checked) => {
-                  setLoadRemoteImages(checked);
-                  setRemoteImagesPreference(checked ? "on" : "off");
+                  setShowToolActivity(checked);
+                  setToolActivityPreference(checked ? "on" : "off");
                 }}
               />
             }
           />
         </div>
-      </Disclosure>
+        <SettingsRow
+          label={
+            <Label htmlFor={loadRemoteImagesId} className="text-[14px] font-normal text-foreground">
+              <Trans>Load web images automatically</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={loadRemoteImagesId}
+              data-testid="remote-images-toggle"
+              checked={loadRemoteImages}
+              onCheckedChange={(checked) => {
+                setLoadRemoteImages(checked);
+                setRemoteImagesPreference(checked ? "on" : "off");
+              }}
+            />
+          }
+        />
+      </SettingsGroup>
 
       <TrustedLinkSitesSettings />
       <ComputerDeviceSettings />
 
-      {showPassword || passkeysSupported ? (
+      {showPassword || passkeysSupported || canLinkSso ? (
         <SettingsGroup title={<Trans>Security</Trans>}>
           {showPassword ? <ChangePasswordRow email={email} /> : null}
+          {canLinkSso ? <LinkSsoRow /> : null}
           <PasskeySettings />
         </SettingsGroup>
       ) : null}
 
-      <AccountDataSettings onImported={onAccountImported} />
-
-      <AccountAccess onSecurity={setAccountSecurity} />
+      <SettingsGroup title={<Trans>Data</Trans>} data-testid="account-data">
+        <AccountDataSettings onImported={onAccountImported} onImportAgent={onImportAgent} />
+        <AccountAccess onSecurity={setAccountSecurity} />
+      </SettingsGroup>
     </div>
   );
 }
@@ -510,7 +505,10 @@ export function UsageSettingsPanel({
 }) {
   const { t, i18n } = useLingui();
   const count = new Intl.NumberFormat(i18n.locale);
-  const usd = new Intl.NumberFormat(i18n.locale, { style: "currency", currency: "USD" });
+  const usd = new Intl.NumberFormat(i18n.locale, {
+    style: "currency",
+    currency: "USD",
+  });
   const number = (value: number | null | undefined) => (value == null ? "—" : count.format(value));
   const cost = (value: number | null | undefined) =>
     value == null ? "—" : value > 0 && value < 0.01 ? `<${usd.format(0.01)}` : usd.format(value);
@@ -834,7 +832,10 @@ function UiLocalePicker({
       className="w-56 max-w-full"
       data-testid="ui-locale-select"
       aria-label={t`Language`}
-      options={UI_LOCALES.map((code) => ({ value: code, label: UI_LOCALE_LABELS[code] }))}
+      options={UI_LOCALES.map((code) => ({
+        value: code,
+        label: UI_LOCALE_LABELS[code],
+      }))}
       value={value}
       onValueChange={onChange}
     />

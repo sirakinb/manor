@@ -1,13 +1,16 @@
 import {
   deploymentModelRole,
+  findConnectedModelCredential,
   hasHostedModelCredits,
   hostCredentialSource,
   mcpStdioAvailable,
   resolveMemberMainModel,
+  selectConfiguredModel,
 } from "@rakazo/adapters";
 import type { Actor, Me } from "@rakazo/contracts";
-import { attachmentMaxBytes, canonicalPiProviderId } from "@rakazo/contracts";
+import { attachmentMaxBytes, attachmentMaxCount, canonicalPiProviderId } from "@rakazo/contracts";
 import { spaceResourceActor } from "@rakazo/db";
+import { isAdmin } from "../admins.js";
 import { localComputerLiveSession } from "../local-computer.js";
 import type { RouterDeps } from "../router.js";
 
@@ -23,7 +26,7 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
   // Manor: in a team space the person is the initiator; model setup is the space account's.
   const resourceActor = await spaceResourceActor(deps.prisma, actor);
   const personId = actor.initiatedByUserId ?? actor.userId;
-  const [user, setup] = await Promise.all([
+  const [user, setup, admin] = await Promise.all([
     deps.prisma.user.findUniqueOrThrow({
       where: { id: personId },
       select: {
@@ -34,18 +37,21 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
       },
     }),
     modelSetup(deps, resourceActor),
+    isAdmin(deps, actor),
   ]);
   return {
     ticketBoardEnabled: deps.env.ticketBoardEnabled === true,
     phoneCallsEnabled: deps.env.phoneCallsEnabled === true,
     navLinks: deps.env.navLinks ?? [],
     maxUploadSizeBytes: attachmentMaxBytes(deps.env),
+    maxAttachmentsPerMessage: attachmentMaxCount(deps.env),
     userId: personId,
     email: user.email,
     name: user.name,
     spaceId: actor.spaceId,
     // Manor keeps the deployment owner for the maintenance agent and release controller.
     isDeploymentOwner: actor.isDeploymentOwner,
+    isAdmin: admin,
     needsModel: setup.needsModel,
     defaultProvider: canonicalPiProviderId(setup.model?.provider ?? deps.env.defaultProvider),
     defaultModel: setup.model?.modelId ?? deps.env.defaultModel,
@@ -60,10 +66,12 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     canChooseHostComputer:
       Boolean(deps.env.desktopHostChoiceEnabled) && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
-    mcpStdioEnabled: mcpStdioAvailable({
-      stdioEnabled: deps.env.mcpStdioEnabled,
-      allowedCommands: deps.env.mcpStdioAllowedCommands,
-    }),
+    mcpStdioEnabled:
+      admin &&
+      mcpStdioAvailable({
+        stdioEnabled: deps.env.mcpStdioEnabled,
+        allowedCommands: deps.env.mcpStdioAllowedCommands,
+      }),
     avatarStyle: "organic",
     timezone: user.timezone ?? null,
     localComputer: await localComputerLiveSession(deps.prisma, actor),
@@ -100,9 +108,11 @@ export async function modelSetup(deps: RouterDeps, actor: Actor) {
       ? member
       : null;
   const funding = deps.billing ? await deps.billing.status(actor) : null;
+  // A balance keeps paying for the deployment model after switching to an own key.
+  const creditsAvailable = funding?.funding === "credits" || (funding?.balanceUsd ?? 0) > 0;
   const hasDeployment =
     Boolean(deps.env.deploymentModelConfigured) &&
-    (!funding?.creditPurchasesEnabled || funding.funding === "credits");
+    (!funding?.creditPurchasesEnabled || creditsAvailable);
   return {
     main,
     model:
@@ -113,9 +123,34 @@ export async function modelSetup(deps: RouterDeps, actor: Actor) {
       }).primary,
     settings,
     funding,
+    creditsAvailable,
     hasDeployment,
     needsModel: deps.env.agentRuntime !== "scripted" && !main && !hasDeployment,
   };
+}
+
+/** Whether every bot runs its own model on one of the member's connections, as a run selects it. */
+export async function botsRunOwnModels(deps: RouterDeps, actor: Actor, botIds: string[]) {
+  const bots = await deps.prisma.bot.findMany({
+    where: { id: { in: botIds }, userId: actor.userId, spaceId: actor.spaceId },
+    select: { modelProvider: true, modelId: true, thinkingLevel: true },
+  });
+  const credentials = await Promise.all(
+    bots.map(async (bot) => {
+      const overrideCredential = bot.modelProvider
+        ? await findConnectedModelCredential(
+            deps.prisma,
+            deps.secrets,
+            actor,
+            bot.modelProvider,
+            bot.modelId,
+          )
+        : null;
+      return selectConfiguredModel({ override: bot, overrideCredential, main: null, defaults: {} })
+        .credential;
+    }),
+  );
+  return credentials.every(Boolean);
 }
 
 export const THREAD_MESSAGE_PAGE_SIZE = 100;

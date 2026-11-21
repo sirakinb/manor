@@ -30,7 +30,7 @@ describe("host-aware sandbox", () => {
 
   it("never falls back to backend execution when the native connection is missing", async () => {
     const provision = vi.spyOn(DesktopSandboxProvider.prototype, "provision");
-    const sandbox = createRunSandbox("docker", {
+    const sandbox = await createRunSandbox("docker", {
       prisma: {
         deploymentSettings: { findUnique: vi.fn(async () => ({ computerHost: "this-mac" })) },
       } as unknown as PrismaClient,
@@ -70,7 +70,7 @@ describe("host-aware sandbox", () => {
     const pageBrowser = vi
       .spyOn(DockerSandboxProvider.prototype, "pageBrowser")
       .mockResolvedValue(result);
-    const sandbox = createRunSandbox("docker", {
+    const sandbox = await createRunSandbox("docker", {
       prisma: { deploymentSettings: { findUnique: vi.fn() } } as unknown as PrismaClient,
     });
     const browser = new ComputerBrowserProvider({ sandbox });
@@ -97,7 +97,7 @@ describe("host-aware sandbox", () => {
     const connectTerminal = vi
       .spyOn(FakeSandboxProvider.prototype, "connectTerminal")
       .mockResolvedValue({ url: "ws://terminal.test/session" });
-    const sandbox = createRunSandbox("fake", {});
+    const sandbox = await createRunSandbox("fake", {});
     const computer: ComputerRef = {
       id: "computer",
       providerRef: "computer",
@@ -109,12 +109,12 @@ describe("host-aware sandbox", () => {
       url: "ws://terminal.test/session",
     });
     expect(connectTerminal).toHaveBeenCalledWith(computer, { controlToken: "lease" }, ctx);
-    // The fake has no liveness check, so neither does its wrapper; Docker's comes through.
-    expect(sandbox.isRunning).toBeUndefined();
+    // The fake now has a liveness check (upstream), and the wrapper forwards it; so does Docker's.
+    expect(typeof sandbox.isRunning).toBe("function");
     const isRunning = vi
       .spyOn(DockerSandboxProvider.prototype, "isRunning")
       .mockResolvedValue(true);
-    const docker = createRunSandbox("docker", {
+    const docker = await createRunSandbox("docker", {
       prisma: {
         deploymentSettings: { findUnique: vi.fn().mockResolvedValue(null) },
       } as unknown as PrismaClient,
@@ -241,10 +241,10 @@ describe("host-aware sandbox", () => {
     await desktop.destroy(computer, ctx);
   });
 
-  it("never runs bot commands on a production backend host", () => {
+  it("never runs bot commands on a production backend host", async () => {
     vi.stubEnv("NODE_ENV", "production");
     try {
-      expect(() => createRunSandbox("desktop", {})).toThrow(
+      await expect(createRunSandbox("desktop", {})).rejects.toThrow(
         "SANDBOX_PROVIDER=desktop runs bot commands directly on this host",
       );
       // The desktop app's backend reaches this computer only through the authenticated bridge.

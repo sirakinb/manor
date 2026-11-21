@@ -8,8 +8,9 @@ import {
   isCloudflareAiGatewayProvider,
   isCloudflareModelProvider,
 } from "./cloudflare-ai-gateway.js";
-import { ThreadMessageSchema } from "./events.js";
-import { Id, MemoryScope, RunStatus, SandboxKind } from "./ids.js";
+import { MCP_OAUTH_CLIENT_REQUIRED } from "./connector-errors.js";
+import { BotSettingsValuesSchema, ThreadMessageSchema } from "./events.js";
+import { Id, MemoryScope, RunStatus, SandboxKind, ThinkingLevelSchema } from "./ids.js";
 import {
   McpHeadersSchema,
   McpRemoteEndpointSchema,
@@ -115,17 +116,6 @@ export const TimeZoneSchema = z
   .refine(isValidTimeZone, { message: "Unknown timezone" });
 export type AvatarStyle = z.infer<typeof AvatarStyleSchema>;
 
-export const ThinkingLevelSchema = z.enum([
-  "off",
-  "minimal",
-  "low",
-  "medium",
-  "high",
-  "xhigh",
-  "max",
-]);
-export type ThinkingLevel = z.infer<typeof ThinkingLevelSchema>;
-
 export { AGENT_SECRET_NAME_PATTERN };
 
 export const AgentSecretSchema = z.object({
@@ -182,7 +172,7 @@ export const BotSchema = z.object({
   teamChatAmbientEnabled: z.boolean(),
   teamChatRules: z.string(),
   crossSpaceCommunication: z.boolean().optional(),
-  fleetManagement: z.boolean().default(false),
+  fleetManagement: z.boolean().default(true),
   disabledBuiltinTools: z.array(z.string()).default([]),
   webhookConfigured: z.boolean(),
   /** Present when created with an idempotency key (e.g. onboarding:first). */
@@ -482,6 +472,8 @@ export const UpdateBotInput = z
     crossSpaceCommunication: z.boolean().optional(),
     fleetManagement: z.boolean().optional(),
     disabledBuiltinTools: DisabledBuiltinToolsSchema.optional(),
+    /** Write only while these settings still hold, as an undo does. */
+    expectedSettings: BotSettingsValuesSchema.optional(),
   })
   .superRefine((value, ctx) => {
     const providerProvided = value.modelProvider !== undefined;
@@ -884,12 +876,6 @@ export const ActionApprovalRuleSchema = z.object({
 });
 export type ActionApprovalRule = z.infer<typeof ActionApprovalRuleSchema>;
 
-export const ApprovalRulePreviewSchema = z.object({
-  before: z.enum(["always_allow", "require_approval", "deny", "default"]),
-  after: z.enum(["always_allow", "require_approval", "deny", "default"]),
-});
-export type ApprovalRulePreview = z.infer<typeof ApprovalRulePreviewSchema>;
-
 /** How much a space asks before acting; see VISION.md. */
 export const ApprovalModeSchema = z.enum(["never", "auto", "ask"]);
 export type ApprovalMode = z.infer<typeof ApprovalModeSchema>;
@@ -1082,6 +1068,8 @@ export const PluginPreviewSchema = z.object({
   skills: z.array(PluginPreviewSkillSchema),
   mcpServers: z.array(PluginPreviewMcpServerSchema),
   skipped: z.array(PluginPreviewSkippedSchema),
+  /** Skills left out because a built-in skill has the same name; clients released before it ignore it. */
+  builtinNames: z.array(z.string()).optional(),
 });
 export type PluginPreview = z.infer<typeof PluginPreviewSchema>;
 
@@ -1115,6 +1103,70 @@ export const PluginMarketplaceCatalogSchema = z.object({
 });
 export type PluginMarketplaceCatalog = z.infer<typeof PluginMarketplaceCatalogSchema>;
 
+export const PLUGIN_SUBMISSIONS_PATH = "/api/v1/plugin-submissions";
+export const SUBMIT_PLUGIN_URL = "https://rakazo.com/plugins/submit/";
+
+const HttpsUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .url()
+  .refine((value) => value.startsWith("https://"), "Use an https:// URL");
+
+export const PluginSubmissionInputSchema = z.object({
+  email: z.string().trim().max(254).email(),
+  name: z.string().trim().min(1).max(80),
+  website: HttpsUrlSchema.optional(),
+  logo: HttpsUrlSchema,
+  source: HttpsUrlSchema,
+  description: z.string().trim().min(1).max(2000),
+  testing: z.string().trim().min(1).max(4000),
+  tested: z.literal(true),
+});
+export type PluginSubmissionInput = z.infer<typeof PluginSubmissionInputSchema>;
+
+export const PluginSubmissionStatusSchema = z.enum(["pending", "approved", "rejected"]);
+export type PluginSubmissionStatus = z.infer<typeof PluginSubmissionStatusSchema>;
+
+export const PluginSubmissionSchema = PluginSubmissionInputSchema.omit({ tested: true }).extend({
+  id: z.string(),
+  website: z.string().nullable(),
+  status: PluginSubmissionStatusSchema,
+  reason: z.string().nullable(),
+  createdAt: z.string(),
+  reviewedAt: z.string().nullable(),
+});
+export type PluginSubmission = z.infer<typeof PluginSubmissionSchema>;
+
+export const PluginSubmissionReviewSchema = z.discriminatedUnion("decision", [
+  z.object({ id: Id, decision: z.literal("approve") }),
+  z.object({ id: Id, decision: z.literal("reject"), reason: z.string().trim().min(1).max(1000) }),
+]);
+export type PluginSubmissionReview = z.infer<typeof PluginSubmissionReviewSchema>;
+
+export const AccessGrantInputSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().max(254).email(),
+    creditCents: z.number().int().min(0).max(100_000).default(0),
+    freeMonths: z.number().int().min(0).max(12).default(0),
+  })
+  .refine((grant) => grant.creditCents > 0 || grant.freeMonths > 0, {
+    message: "Grant credits, free months, or both",
+  });
+export type AccessGrantInput = z.input<typeof AccessGrantInputSchema>;
+
+export const AccessGrantSchema = z.object({
+  id: Id,
+  email: z.string(),
+  creditCents: z.number().int(),
+  freeMonths: z.number().int(),
+  createdBy: z.string().nullable(),
+  status: z.enum(["pending", "applied", "revoked"]),
+  createdAt: z.string(),
+  appliedAt: z.string().nullable(),
+});
+export type AccessGrant = z.infer<typeof AccessGrantSchema>;
+
 export const IntegrationCatalogSurfaceSchema = z.object({
   kind: z.enum(["mcp", "openapi", "graphql", "cli"]),
   slug: z.string(),
@@ -1145,6 +1197,8 @@ const McpServerBaseInput = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().max(2000).default(""),
   enabled: z.boolean().default(true),
+  /** Keep this server's tool results whole instead of cutting them to fit context. Omitted keeps the stored value. */
+  verbatimResults: z.boolean().optional(),
   /** Update-only: drop the stored static credential (secret/env/headers).
    * OAuth state survives so a connected server stays connected. */
   clearCredential: z.boolean().optional(),
@@ -1200,6 +1254,7 @@ export const McpServerConfigInput = z.discriminatedUnion("transport", [
   McpServerBaseInput.extend({
     transport: z.literal("stdio"),
     command: z.string().min(1).max(512),
+    /** Update: send none to keep the stored arguments while the command is unchanged. */
     args: z.array(z.string().max(2048)).max(64).default([]),
     env: z
       .record(z.string().regex(/^[A-Z_][A-Z0-9_]*$/), z.string().max(4096))
@@ -1225,6 +1280,8 @@ export const McpServerHealthSchema = z.object({
   status: z.enum(["unknown", "installing", "ok", "error"]),
   /** Redacted, human-readable failure reason (stderr tail included for stdio). */
   message: z.string().nullable(),
+  /** A failure the user fixes in the server's settings, so clients can say how. */
+  code: z.enum([MCP_OAUTH_CLIENT_REQUIRED]).nullable().optional(),
   toolCount: z.number().int().nonnegative().nullable(),
   checkedAt: z.string().nullable(),
 });
@@ -1240,7 +1297,8 @@ export const McpServerSchema = z.object({
   transport: McpTransportSchema,
   endpoint: z.string().url().nullable(),
   command: z.string().nullable(),
-  args: z.array(z.string()),
+  /** Arguments are stored encrypted and never returned. */
+  hasArgs: z.boolean(),
   envKeys: z.array(z.string()),
   /** Env variables that receive a credential file's path instead of a value. */
   fileKeys: z.array(z.string()),
@@ -1251,8 +1309,12 @@ export const McpServerSchema = z.object({
   oauthClientId: z.string().nullable(),
   health: McpServerHealthSchema,
   enabled: z.boolean(),
+  /** Keep this server's tool results whole instead of cutting them to fit context. */
+  verbatimResults: z.boolean().default(false),
   revision: z.number().int().positive(),
   availability: SpaceAvailabilitySchema.optional(),
+  /** Every agent can use it; when false, only the agents assigned to it. */
+  allBots: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -1508,12 +1570,16 @@ export type ThreadSnapshot = z.infer<typeof ThreadSnapshotSchema>;
 /** Default maximum number of completion tokens for an OpenAI-compatible connection. */
 export const DEFAULT_MODEL_MAX_TOKENS = 4_096;
 
-export const MAX_MODEL_MAX_TOKENS = 131_072;
-
 /** Fallback context window for OpenAI-compatible connections that do not report a size (e.g. Ollama, LM Studio, vLLM). */
 export const DEFAULT_MODEL_CONTEXT_WINDOW = 262_144;
 
 export const MAX_MODEL_CONTEXT_WINDOW = 2_147_483_647;
+
+/**
+ * Output limits follow the model; the only fixed bound is the context ceiling, and a connection's
+ * limit must still leave room for input (`modelOutputLeavesInputRoom`).
+ */
+export const MAX_MODEL_MAX_TOKENS = MAX_MODEL_CONTEXT_WINDOW;
 export function parseModelMaxImagesPerPrompt(
   value: string,
   supportsImages = true,
@@ -1574,6 +1640,14 @@ export function modelOutputLeavesInputRoom(
   return typeof maxTokens !== "number" || contextWindow === undefined || maxTokens < contextWindow;
 }
 
+/** Wire protocol selected for one OpenAI-compatible connection. */
+export const ModelApiProtocolSchema = z.enum([
+  "chat-completions",
+  "responses",
+  "anthropic-messages",
+]);
+export type ModelApiProtocol = z.infer<typeof ModelApiProtocolSchema>;
+
 export const ModelCredentialSchema = z.object({
   /** Computed space preference order; credentials themselves remain newest first. */
   preferenceRank: z.number().int().nonnegative().optional(),
@@ -1585,6 +1659,7 @@ export const ModelCredentialSchema = z.object({
   isDefault: z.boolean(),
   headerNames: z.array(z.string()).optional(),
   baseUrl: z.string().optional(),
+  apiProtocol: ModelApiProtocolSchema.optional(),
   accountId: z.string().optional(),
   gatewayId: z.string().optional(),
   modelId: z.string().optional(),
@@ -1598,6 +1673,11 @@ export const ModelCredentialSchema = z.object({
   enabledModelIds: z.array(z.string()).optional(),
   /** Stored secret kind. Absent when the secret could not be read. */
   authKind: z.enum(["api_key", "oauth", "openai_compatible"]).optional(),
+  /**
+   * The subscription sign-in was rejected. The stored tokens are gone and the
+   * owner has to sign in again. Model choices on this connection are kept.
+   */
+  reconnectRequired: z.boolean().optional(),
 });
 export type ModelCredential = z.infer<typeof ModelCredentialSchema>;
 
@@ -1652,6 +1732,7 @@ export const ModelConnectInputSchema = z
     gatewayId: z.string().optional(),
     headers: ModelHeadersSchema.optional(),
     baseUrl: z.string().optional(),
+    apiProtocol: ModelApiProtocolSchema.optional(),
     label: z.string().optional(),
     /**
      * The connection this save updates; null adds another connection for the provider.
@@ -1806,6 +1887,7 @@ export const VoiceCatalogEntrySchema = z.object({
   name: z.string(),
   description: z.string(),
   transcribe: z.boolean(),
+  keyless: z.boolean().optional(),
 });
 export type VoiceCatalogEntry = z.infer<typeof VoiceCatalogEntrySchema>;
 
@@ -1974,6 +2056,7 @@ export type LocalDevice = z.infer<typeof LocalDeviceSchema>;
 
 export const MeSchema = z.object({
   maxUploadSizeBytes: z.number().int().positive().optional(),
+  maxAttachmentsPerMessage: z.number().int().positive().optional(),
   ticketBoardEnabled: z.boolean(),
   phoneCallsEnabled: z.boolean().default(false),
   /** Operator-configured menu links. Absent from older servers. */
@@ -1984,6 +2067,8 @@ export const MeSchema = z.object({
   spaceId: Id,
   /** Deprecated: app accounts never have server administrator privileges. Always false. */
   isDeploymentOwner: z.boolean(),
+  /** Listed in RAKAZO_ADMIN_EMAILS with a verified email: reviews plugins, adds stdio MCP servers, grants access. */
+  isAdmin: z.boolean().default(false),
   needsModel: z.boolean(),
   defaultProvider: z.string().nullable(),
   defaultModel: z.string().nullable(),
@@ -1994,7 +2079,7 @@ export const MeSchema = z.object({
   computerHost: z.enum(["docker", "this-mac"]).nullable(),
   canChooseHostComputer: z.boolean(),
   sandboxProvider: z.string(),
-  /** Whether this deployment runs stdio MCP servers. Absent from older servers. */
+  /** Whether this account can add stdio MCP servers here. Absent from older servers. */
   mcpStdioEnabled: z.boolean().default(false),
   avatarStyle: AvatarStyleSchema,
   localComputer: LocalComputerLiveSessionSchema,
@@ -2011,10 +2096,10 @@ export const MeSchema = z.object({
 });
 export type Me = z.infer<typeof MeSchema>;
 
-export const MODEL_CREDIT_AMOUNTS = [1000, 2000, 5000, 10000, 20000, 50000] as const;
+export const MODEL_CREDIT_AMOUNTS = [1000, 2000, 3000, 5000, 10000, 20000, 50000] as const;
 /** Monthly price in cents of running bots on your own model connection; `null` makes it free. */
 export const BYOK_MONTHLY_PRICE_CENTS: number | null = 1000;
-export const DEFAULT_MONTHLY_CREDIT_AMOUNT = 2000;
+export const DEFAULT_MONTHLY_CREDIT_AMOUNT = 3000;
 export const ModelCreditAmountSchema = z.union(
   MODEL_CREDIT_AMOUNTS.map((amount) => z.literal(amount)),
 );
@@ -2083,6 +2168,8 @@ export const BillingStatusSchema = z.object({
   currentPeriodEndsAt: z.string().nullable(),
   cancelAtPeriodEnd: z.boolean(),
   hasCustomer: z.boolean(),
+  /** Computer hours left this calendar month; absent when computers have no limit. */
+  computerHoursLeft: z.number().nonnegative().nullable().optional(),
   /** Present once the organization has subscribed: its invite link and free months earned. */
   referral: z
     .object({ url: z.string().url(), rewards: z.number().int().nonnegative() })

@@ -28,7 +28,15 @@ describe.skipIf(!enabled)("working bot visibility (PostgreSQL)", () => {
         { signupsEnabled: undefined, signupAllowlist: undefined },
       ),
     );
-    const actor: Actor = { ...identity, email: "fixture@example.test", isDeploymentOwner: false };
+    const { organizationId } = await runAsSystem("test fixture", () =>
+      prisma.space.findUniqueOrThrow({ where: { id: identity.spaceId } }),
+    );
+    const actor: Actor = {
+      ...identity,
+      organizationId,
+      email: "fixture@example.test",
+      isDeploymentOwner: false,
+    };
     try {
       await runAsTenant(actor, async () => {
         const repos = createRepos(prisma);

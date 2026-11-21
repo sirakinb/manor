@@ -1,10 +1,14 @@
-import type { Locator, Page, TestInfo } from "@playwright/test";
+import type { Locator, Page, Route, TestInfo } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { signupRequiresEmailVerification } from "@rakazo/core";
 
 export function isRealSandboxProvider(provider = process.env.SANDBOX_PROVIDER) {
   return (
-    provider === "e2b" || provider === "novita" || provider === "daytona" || provider === "boat"
+    provider === "e2b" ||
+    provider === "novita" ||
+    provider === "daytona" ||
+    provider === "boat" ||
+    provider === "boxd"
   );
 }
 
@@ -95,7 +99,6 @@ export async function signupThroughForm(
   await page.getByRole("button", { name: "Create account" }).click();
 }
 
-/** Open Advanced through its trigger, preserving an already-expanded section. */
 /** Opens Integrations' add menu and picks one of its custom sources. */
 export async function openIntegrationsAdd(page: Page, item: string) {
   const dialog = page.getByRole("dialog", { name: "Integrations", exact: true });
@@ -109,6 +112,20 @@ export async function expandAdvancedSection(section: Locator) {
   if ((await trigger.getAttribute("aria-expanded")) === "false") await trigger.click();
   await expect(trigger).toHaveAttribute("aria-expanded", "true");
   await waitForTransitions(section);
+}
+
+/** Opens the bot panel from the header pill and shows one tab, leaving an open routine editor. */
+export async function openBotPanelTab(page: Page, name: "Computer" | "Routines" | "Advanced") {
+  const pill = page.getByTestId("bot-settings-trigger");
+  const tab = page.getByTestId("bot-settings").getByRole("tab", { name, exact: true });
+  if (!(await tab.isVisible())) {
+    // The pill closes whatever else the sidebar shows, such as a restored routine editor.
+    if ((await pill.getAttribute("aria-expanded")) === "true") await pill.click();
+    await expect(pill).toHaveAttribute("aria-expanded", "false");
+    await pill.click();
+  }
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
 }
 
 /** Waits for fold-outs to settle before clicking or dragging their contents. */
@@ -350,4 +367,12 @@ export async function presentMainDeploymentDefault(page: Page, provider: string,
     body.json.deploymentPrimary = { provider, modelId };
     await route.fulfill({ response, json: body });
   });
+}
+
+export async function makeAdmin(route: Route, path: "me" | "bootstrap") {
+  const response = await route.fetch();
+  const body = (await response.json()) as { json?: Record<string, unknown> };
+  const me = path === "me" ? body.json : (body.json?.me as Record<string, unknown> | undefined);
+  if (me) me.isAdmin = true;
+  await route.fulfill({ response, json: body });
 }

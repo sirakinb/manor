@@ -215,6 +215,17 @@ function callUsesToolkit(call: ConnectorCall, toolkit: string): boolean {
   return slugs.some((slug) => typeof slug === "string" && composioSlugKey(slug).startsWith(prefix));
 }
 
+function accountIsPinned(
+  connectedAccounts: Record<string, string[]>,
+  tool: string,
+  account: string,
+): boolean {
+  const toolKey = composioSlugKey(tool);
+  return Object.entries(connectedAccounts).some(
+    ([toolkit, ids]) => toolKey.startsWith(`${composioSlugKey(toolkit)}_`) && ids.includes(account),
+  );
+}
+
 function dropboxFolderListCall(item: unknown): ComposioExecutionCall | undefined {
   if (!item || typeof item !== "object" || Array.isArray(item)) return undefined;
   const record = item as Record<string, unknown>;
@@ -397,7 +408,11 @@ export class ComposioConnector implements ComposioProvider {
   private async sessionForExecute(
     entityId: string,
     connections: ConnectedConnector[],
-  ): Promise<{ session?: ComposioSession; reconnect: string[] }> {
+  ): Promise<{
+    session?: ComposioSession;
+    reconnect: string[];
+    connectedAccounts: Record<string, string[]>;
+  }> {
     const requested = await this.canonicalizeToolkits(
       connections.map((connection) => connection.externalId),
     );
@@ -423,17 +438,21 @@ export class ComposioConnector implements ComposioProvider {
     }
     const reconnect = [...pinnedToolkits].filter((toolkit) => !accountIdsByToolkit.has(toolkit));
     const toolkits = requested.filter((toolkit) => !reconnect.includes(toolkit));
-    if (toolkits.length === 0) return { reconnect };
     const connectedAccounts: Record<string, string[]> = {};
     for (const [toolkit, ids] of accountIdsByToolkit) {
       connectedAccounts[toolkit] = [...ids].sort();
     }
+    if (toolkits.length === 0) return { reconnect, connectedAccounts };
     const key = executeSessionKey(toolkits, connectedAccounts);
     const composio = this.sdk();
     const existing = this.executeSessions.get(entityId);
     if (existing?.key === key) {
       try {
-        return { session: await composio.sessions.use(existing.sessionId), reconnect };
+        return {
+          session: await composio.sessions.use(existing.sessionId),
+          reconnect,
+          connectedAccounts,
+        };
       } catch {
         this.executeSessions.delete(entityId);
       }
@@ -460,7 +479,7 @@ export class ComposioConnector implements ComposioProvider {
         : {}),
     });
     this.executeSessions.set(entityId, { sessionId: session.sessionId, key });
-    return { session, reconnect };
+    return { session, reconnect, connectedAccounts };
   }
 
   async catalog(context: AdapterContext, query?: string): Promise<ConnectorCatalogItem[]> {
@@ -543,7 +562,7 @@ export class ComposioConnector implements ComposioProvider {
   async *execute(call: ConnectorCall, context: AdapterContext): AsyncIterable<ConnectorEvent> {
     const executed = [];
     try {
-      const { session, reconnect } = await this.sessionForExecute(
+      const { session, reconnect, connectedAccounts } = await this.sessionForExecute(
         composioEntityId(context.userId, context.spaceId),
         connectedComposioConnections(context),
       );
@@ -563,6 +582,16 @@ export class ComposioConnector implements ComposioProvider {
         return;
       }
       const planned = expandComposioMultiExecute(call.tool, call.args ?? {});
+      const unpinned = planned.find(
+        (item) => item.account && !accountIsPinned(connectedAccounts, item.tool, item.account),
+      );
+      if (unpinned) {
+        yield {
+          type: "error",
+          message: `The account requested for ${unpinned.tool} is not connected to this workspace.`,
+        };
+        return;
+      }
       for (const item of planned) {
         const result = await session.execute(
           item.tool,
@@ -845,6 +874,11 @@ export class ConnectorRegistry implements ConnectorProvider {
   managed(id: string): ManagedConnectorProvider | undefined {
     const provider = this.providers.get(id);
     return provider && isManagedConnectorProvider(provider) ? provider : undefined;
+  }
+
+  /** Release run-scoped state of every provider that keeps it. */
+  endRun(runId: string): void {
+    for (const provider of this.providers.values()) provider.endRun?.(runId);
   }
 
   describe() {

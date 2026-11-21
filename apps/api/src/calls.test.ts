@@ -6,6 +6,7 @@ import { createRouter } from "./router.js";
 
 const actor: Actor = {
   spaceId: "space-1",
+  organizationId: "org-1",
   userId: "user-1",
   email: "user@rakazo.test",
   isDeploymentOwner: true,
@@ -40,7 +41,7 @@ describe("call route gates", () => {
   it("requires authentication even when enabled", async () => {
     const client = createRouterClient(
       createRouter({ env: { phoneCallsEnabled: true } } as unknown as RouterDeps),
-      { context: {} },
+      { context: { actor: null } },
     );
     const input = { botId: "bot-1", callId: "call-1" };
     await expect(client.threads.answerCall(input)).rejects.toMatchObject({ code: "UNAUTHORIZED" });

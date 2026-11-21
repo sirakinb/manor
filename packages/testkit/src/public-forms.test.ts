@@ -6,7 +6,7 @@ import { InMemoryRealtimeFanout } from "@rakazo/adapters";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
 
-type App = { request: (input: string, init?: RequestInit) => Promise<Response> };
+type App = AppHandles["app"];
 type AppHandles = Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
 type Form = { id: string; slug: string; enabled: boolean; eventStartsAt: string | null };
 
