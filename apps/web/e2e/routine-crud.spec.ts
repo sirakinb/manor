@@ -71,7 +71,7 @@ for (const trigger of ["webhook", "scheduled"] as const) {
   });
 }
 
-test("routine trigger menu offers schedule, Slack, Git and webhook triggers", async ({
+test("routine trigger menu offers schedule, Slack, change, Git and webhook triggers", async ({
   page,
 }, testInfo) => {
   await signup(
@@ -87,6 +87,7 @@ test("routine trigger menu offers schedule, Slack, Git and webhook triggers", as
   await expect(page.getByRole("menuitem")).toHaveText([
     "On a schedule",
     "Slack message",
+    "When something changes",
     "Git event",
     "Webhook",
   ]);
@@ -590,6 +591,8 @@ test("a routine can run when something it watches changes", async ({ page }, tes
 });
 
 test("change-trigger screenshot walkthrough", async ({ page }, testInfo) => {
+  // Manor's web app is pinned to dark, so the walkthrough is captured in dark whatever the
+  // system asks for.
   await page.emulateMedia({ colorScheme: "light" });
   const stamp = Date.now();
   await signup(page, `routine-walkthrough-${stamp}@rakazo.test`, "password12", "Routine Watch");
@@ -599,7 +602,7 @@ test("change-trigger screenshot walkthrough", async ({ page }, testInfo) => {
   await page.getByTitle("Agent computer").click();
   await expect(page.getByRole("button", { name: "Create Routine" })).toBeVisible();
   await expect(page.getByText(/Booting up .* computer/)).toBeHidden();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await captureScreenshot(page, testInfo, "routine-watch-01-routines-list");
   await page.getByRole("button", { name: "Create Routine" }).click();
   await page.locator("label:has-text('Name') input").fill("Inbox watch");

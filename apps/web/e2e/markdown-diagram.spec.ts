@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { darkTokens, lightTokens } from "@rakazo/ui-tokens";
 import { captureScreenshot } from "./helpers";
 
 const fixture = "/e2e/fixtures/markdown-diagram.html";
@@ -62,21 +63,26 @@ test("a mermaid fence is drawn as a diagram in place of its code block", async (
 });
 
 test("diagrams follow the app theme", async ({ page }, testInfo) => {
-  // Diagram text is drawn in the theme's foreground token.
+  // Diagram text is drawn in the theme's foreground token. Manor's dark palette differs from
+  // upstream's, so the expected fills come from the shared tokens rather than fixed hex values.
+  // The app shell is pinned to dark; this fixture sets the page theme directly, so the light
+  // half still checks the shared component on a light page.
+  const darkFill = `fill:${darkTokens.foreground}`;
+  const lightFill = `fill:${lightTokens.foreground}`;
   await page.goto(fixture);
   await expectDrawn(page);
-  expect(await diagramMarkup(page)).toContain("fill:#ECECEE");
+  expect(await diagramMarkup(page)).toContain(darkFill);
 
   await page.goto(`${fixture}?theme=light`);
   await expectDrawn(page);
-  expect(await diagramMarkup(page)).toContain("fill:#1A1A1A");
+  expect(await diagramMarkup(page)).toContain(lightFill);
   await captureScreenshot(page, testInfo, "markdown-diagram-light");
 
   // Switching theme with the message open redraws it.
   await page.evaluate(() => {
     document.documentElement.dataset.theme = "dark";
   });
-  await expect.poll(() => diagramMarkup(page)).toContain("fill:#ECECEE");
+  await expect.poll(() => diagramMarkup(page)).toContain(darkFill);
 });
 
 test("a wide diagram scrolls on a phone instead of shrinking its text away", async ({

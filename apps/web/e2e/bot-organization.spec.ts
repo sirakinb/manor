@@ -82,9 +82,9 @@ test("deleting a section keeps its bots and groups", async ({ page }, testInfo) 
   await page.reload();
 
   const sidebar = page.locator("aside").first();
-  const sectionRows = sidebar.locator(`[data-sidebar-group="section:${section.id}"]`);
+  const sectionRows = sidebar.locator(`[data-sidebar-group$=":section:${section.id}"]`);
   await sectionRows
-    .getByRole("button", { name: "Collapse Projects", exact: true })
+    .getByRole("button", { name: /^Collapse .*Projects$/ })
     .click({ button: "right" });
   await page
     .getByRole("menu", { name: "Actions for Projects" })
@@ -114,10 +114,8 @@ test("an empty section can be deleted after its last bot leaves", async ({ page 
   await rpc(page, "bots/update", { botId, sectionId: null });
   await page.reload();
   const sidebar = page.locator("aside").first();
-  const heading = sidebar.locator(`[data-sidebar-group="section:${section.id}"]`);
-  await heading
-    .getByRole("button", { name: "Collapse Old ideas", exact: true })
-    .click({ button: "right" });
+  const heading = sidebar.locator(`[data-sidebar-group$=":section:${section.id}"]`);
+  await heading.getByRole("button", { name: /^Collapse .*Old ideas$/ }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Delete section", exact: true }).click();
   const dialog = page.getByRole("alertdialog", { name: "Delete Old ideas?" });
   await captureScreenshot(page, testInfo, "delete-empty-section");

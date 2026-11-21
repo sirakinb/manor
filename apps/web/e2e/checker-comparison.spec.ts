@@ -43,7 +43,7 @@ test("checker comparison shows both engines side by side and downloads a report"
   await page.getByTestId("user-menu-trigger").click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
-  await settings.getByText("Advanced", { exact: true }).click();
+  await settings.getByTestId("settings-nav-confirmations").click();
   await settings.getByTestId("open-checker-comparison").click();
 
   const comparison = page.getByTestId("checker-comparison");

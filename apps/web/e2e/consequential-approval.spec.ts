@@ -117,7 +117,7 @@ test("flagging unexpected actions offers a choice of checker", async ({ page }, 
 
   await openUserSettings(page);
   const settings = page.getByTestId("user-settings");
-  await settings.getByText("Advanced", { exact: true }).click();
+  await settings.getByTestId("settings-nav-confirmations").click();
   await expect(settings.getByTestId("auto-review-engine")).toHaveCount(0);
   // Controls reflect the saved setting, so click and wait for the server round trip.
   await settings.getByTestId("auto-review-toggle").click();
@@ -131,7 +131,7 @@ test("flagging unexpected actions offers a choice of checker", async ({ page }, 
 
   await settings.getByRole("button", { name: "Close user settings" }).click();
   await openUserSettings(page);
-  await page.getByTestId("user-settings").getByText("Advanced", { exact: true }).click();
+  await page.getByTestId("user-settings").getByTestId("settings-nav-confirmations").click();
   await expect(
     page.getByTestId("auto-review-engine").getByRole("radio", { name: "Jev" }),
   ).toBeChecked();
@@ -144,7 +144,7 @@ test("replies note statements their tool results do not support", async ({ page 
 
   await openUserSettings(page);
   const settings = page.getByTestId("user-settings");
-  await settings.getByText("Advanced", { exact: true }).click();
+  await settings.getByTestId("settings-nav-confirmations").click();
   await settings.getByTestId("answer-check-toggle").click();
   await expect(settings.getByTestId("answer-check-toggle")).toBeChecked();
   await settings.getByTestId("auto-review-engine").getByRole("radio", { name: "Jev" }).click();
