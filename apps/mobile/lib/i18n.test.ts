@@ -17,6 +17,7 @@ vi.mock("./ui-direction", () => ({
   applyMobileUiDirection: vi.fn(),
 }));
 
+/** Recursively collect source files used to validate mobile translation coverage. */
 function collectSourceFiles(dir: string): string[] {
   const files: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -56,26 +57,53 @@ describe("mobile i18n", () => {
       "3 次运行 · 12 个 token",
     );
     expect(t("Delete {name}?", { name: "Scout" })).toBe("要删除 Scout 吗？");
+
+    resetI18nForTests("ru");
+    expect(t("Account")).toBe("Аккаунт");
+    expect(t("Sign in to Rakazo")).toBe("Войти в Rakazo");
+    expect(t("New bot")).toBe("Новый бот");
+    expect(t("{runs} runs · {tokens} tokens", { runs: 3, tokens: 12 })).toBe(
+      "Запусков: 3 · токенов: 12",
+    );
+    expect(t("Delete {name}?", { name: "Scout" })).toBe("Удалить Scout?");
+
+    resetI18nForTests("de");
+    expect(t("Account")).toBe("Konto");
+    expect(t("Sign in to Rakazo")).toBe("Bei Rakazo anmelden");
+    expect(t("New bot")).toBe("Neuer Bot");
+    expect(t("{runs} runs · {tokens} tokens", { runs: 3, tokens: 12 })).toBe(
+      "3 Ausführungen · 12 Token",
+    );
+    expect(t("Delete {name}?", { name: "Scout" })).toBe("Scout löschen?");
   });
 
-  it("preserves interpolations in the Chinese catalog", async () => {
+  it("preserves interpolations in every non-English catalog", async () => {
     const { ZH_MESSAGES } = await import("./locales/zh");
-    const empty = Object.entries(ZH_MESSAGES).filter(([, value]) => !value.trim());
-    const interpolationMismatches = Object.entries(ZH_MESSAGES).filter(([id, value]) => {
-      const tokens = (message: string) =>
-        [...message.matchAll(/\{([A-Za-z0-9_]+)\}/g)].map((match) => match[1]).sort();
-      return JSON.stringify(tokens(id)) !== JSON.stringify(tokens(value));
-    });
-    expect(empty).toEqual([]);
-    expect(interpolationMismatches).toEqual([]);
+    const { RU_MESSAGES } = await import("./locales/ru");
+    const { DE_MESSAGES } = await import("./locales/de");
+    for (const messages of [ZH_MESSAGES, RU_MESSAGES, DE_MESSAGES]) {
+      const empty = Object.entries(messages).filter(([, value]) => !value.trim());
+      const interpolationMismatches = Object.entries(messages).filter(([id, value]) => {
+        const tokens = (message: string) =>
+          [...message.matchAll(/\{([A-Za-z0-9_]+)\}/g)].map((match) => match[1]).sort();
+        return JSON.stringify(tokens(id)) !== JSON.stringify(tokens(value));
+      });
+      expect(empty).toEqual([]);
+      expect(interpolationMismatches).toEqual([]);
+    }
   });
 
-  it("translates every mobile chrome t() id", async () => {
+  it("translates every mobile chrome t() id in every non-English catalog", async () => {
     const { ZH_MESSAGES } = await import("./locales/zh");
+    const { RU_MESSAGES } = await import("./locales/ru");
+    const { DE_MESSAGES } = await import("./locales/de");
     const { EMPTY_PLUGIN_CATALOG_MESSAGE, SLASH_ACTIONS } = await import("@rakazo/core");
-    const { OPENAI_COMPATIBLE_BASE_URL_HINT } = await import("@rakazo/contracts");
+    const { AI_DATA_DISCLOSURES, OPENAI_COMPATIBLE_BASE_URL_HINT } = await import(
+      "@rakazo/contracts"
+    );
     const mobileRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
     const ids = new Set<string>([
+      ...Object.values(AI_DATA_DISCLOSURES),
       EMPTY_PLUGIN_CATALOG_MESSAGE,
       OPENAI_COMPATIBLE_BASE_URL_HINT,
       ...SLASH_ACTIONS.map((action) => action.label),
@@ -83,6 +111,13 @@ describe("mobile i18n", () => {
       "Sign-up did not return a session",
       "{count} model",
       "{count} models",
+      // Labels the t() literal scan cannot see: built from maps or ternaries.
+      "System",
+      "Light",
+      "Dark",
+      "Allow once",
+      "Always allow",
+      "Deny",
     ]);
     for (const file of collectSourceFiles(mobileRoot)) {
       const source = readFileSync(file, "utf8");
@@ -90,8 +125,10 @@ describe("mobile i18n", () => {
         ids.add(JSON.parse(`"${match[1]}"`) as string);
       }
     }
-    const missing = [...ids].filter((id) => !ZH_MESSAGES[id]?.trim()).sort();
-    expect(missing).toEqual([]);
+    for (const messages of [ZH_MESSAGES, RU_MESSAGES, DE_MESSAGES]) {
+      const missing = [...ids].filter((id) => !messages[id]?.trim()).sort();
+      expect(missing).toEqual([]);
+    }
   });
 
   it("prefers the stored locale, then activates and persists a new choice", async () => {
@@ -112,6 +149,28 @@ describe("mobile i18n", () => {
     expect(applyMobileUiDirection).toHaveBeenCalledWith("en");
   });
 
+  it("normalizes a regional Russian stored locale before activation", async () => {
+    const { getItemAsync } = await import("expo-secure-store");
+    vi.mocked(getItemAsync).mockResolvedValue("ru-RU");
+    const { bootstrapI18n, dateLocaleForUi, getActiveUiLocale, t } = await import("./i18n");
+
+    await expect(bootstrapI18n()).resolves.toBe("ru");
+    expect(getActiveUiLocale()).toBe("ru");
+    expect(t("Language")).toBe("Язык");
+    expect(dateLocaleForUi()).toBe("ru");
+  });
+
+  it("normalizes a regional German stored locale before activation", async () => {
+    const { getItemAsync } = await import("expo-secure-store");
+    vi.mocked(getItemAsync).mockResolvedValue("de-CH");
+    const { bootstrapI18n, dateLocaleForUi, getActiveUiLocale, t } = await import("./i18n");
+
+    await expect(bootstrapI18n()).resolves.toBe("de");
+    expect(getActiveUiLocale()).toBe("de");
+    expect(t("Language")).toBe("Sprache");
+    expect(dateLocaleForUi()).toBe("de");
+  });
+
   it("keeps the last locale when rapid setUiLocale calls finish out of order", async () => {
     const { setItemAsync } = await import("expo-secure-store");
     const { applyMobileUiDirection } = await import("./ui-direction");
@@ -119,7 +178,7 @@ describe("mobile i18n", () => {
     resetI18nForTests("en");
 
     const gates = new Map<string, { release: () => void; wait: Promise<void> }>();
-    for (const locale of ["en", "zh-CN"] as const) {
+    for (const locale of ["en", "zh-CN", "ru", "de"] as const) {
       let release!: () => void;
       const wait = new Promise<void>((resolve) => {
         release = resolve;

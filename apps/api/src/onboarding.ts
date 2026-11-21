@@ -1,14 +1,13 @@
 import type { ConnectorRegistry } from "@rakazo/adapters";
 import type { Actor, MessageBlock } from "@rakazo/contracts";
 import { featuredConnectorProvidersMatch } from "@rakazo/core";
+import type { Prisma, PrismaClient, ThreadEvents } from "@rakazo/db";
 import {
   appendEventInTransaction,
   createThreadMessageInTransaction,
   IsolationError,
-  type Prisma,
-  type PrismaClient,
-  type ThreadEvents,
 } from "@rakazo/db";
+import { requireBotThread, updateBlocks } from "./bot-thread.js";
 
 /**
  * First-run conversational onboarding, seeded deterministically into the bot's
@@ -70,15 +69,6 @@ const APP_DESCRIPTIONS: Record<string, string> = {
   hackernews: "Search stories and discussions.",
 };
 
-async function requireBotThread(deps: OnboardingDeps, actor: Actor, botId: string) {
-  const bot = await deps.prisma.bot.findFirst({
-    where: { id: botId, spaceId: actor.spaceId, userId: actor.userId },
-    include: { thread: true },
-  });
-  if (!bot?.thread) throw new IsolationError();
-  return { bot, thread: bot.thread };
-}
-
 async function post(
   deps: OnboardingDeps,
   target: { spaceId: string; botId: string; threadId: string },
@@ -103,25 +93,6 @@ async function post(
   return committed.message.id;
 }
 
-async function updateBlocks(
-  deps: OnboardingDeps,
-  target: { spaceId: string; botId: string; threadId: string },
-  messageId: string,
-  blocks: MessageBlock[],
-): Promise<void> {
-  const event = await deps.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    await tx.message.update({ where: { id: messageId }, data: { blocks } });
-    return appendEventInTransaction(tx, {
-      spaceId: target.spaceId,
-      threadId: target.threadId,
-      botId: target.botId,
-      type: "thread.message.updated",
-      payload: { messageId, role: "bot", blocks },
-    });
-  });
-  await deps.events.notify(target.threadId, event.seq);
-}
-
 /** Sentinel answerId for a focus card the user dismissed without choosing. */
 export const FOCUS_DISMISSED_ANSWER_ID = "_dismissed";
 
@@ -133,24 +104,19 @@ export async function startOnboarding(
   const { bot, thread } = await requireBotThread(deps, actor, botId);
   const existing = await deps.prisma.message.count({ where: { threadId: thread.id } });
   if (existing > 0) return;
-  const user = await deps.prisma.user.findUnique({
-    where: { id: actor.userId },
-    select: { name: true },
-  });
-  const firstName = (user?.name ?? "there").split(/\s+/)[0];
+  // Fresh chats start empty (same as web). The focus card is posted later via
+  // promptFocus so non-first bots can wait ~10s for free typing, or skip if the
+  // user already engaged.
+  // Manor: a shared team space still opens with the note on what is shared.
   const space = await deps.prisma.space.findUniqueOrThrow({
     where: { id: actor.spaceId },
     select: { name: true, accountUserId: true },
   });
-  const target = { spaceId: actor.spaceId, botId: bot.id, threadId: thread.id };
-  // Greeting only. The focus card is posted later via promptFocus so non-first
-  // bots can wait ~10s for free typing, or skip if the user already engaged.
-  await post(deps, target, [
+  if (!space.accountUserId) return;
+  await post(deps, { spaceId: actor.spaceId, botId: bot.id, threadId: thread.id }, [
     {
       kind: "text",
-      text: space.accountUserId
-        ? `Welcome to ${space.name}. Agents, conversations, files, and connected accounts here are shared with everyone on your team. For private work, create a personal space from New space. Agents communicate within their own space.`
-        : `Hey ${firstName}. Fresh start on my side, so I’ll keep this short.`,
+      text: `Welcome to ${space.name}. Agents, conversations, files, and connected accounts here are shared with everyone on your team. For private work, create a personal space from New space. Agents communicate within their own space.`,
     },
   ]);
 }

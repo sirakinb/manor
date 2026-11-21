@@ -2,15 +2,16 @@ services:
   postgres:
     image: ${POSTGRES_IMAGE:-postgres:16}
     environment:
-      POSTGRES_USER: rakazo
-      POSTGRES_PASSWORD: rakazo
-      POSTGRES_DB: rakazo
-    ports:
-      - "127.0.0.1:5433:5432"
+      # USER/PASSWORD/DB apply only on first pgdata init. Keep existing values in
+      # .env, or ALTER ROLE / rename in place. Recreate pgdata only after backup
+      # (or when the volume is disposable); down -v deletes all DB state.
+      POSTGRES_USER: ${POSTGRES_USER:-rakazo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-rakazo}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rakazo"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rakazo} -d ${POSTGRES_DB:-rakazo}"]
       interval: 3s
       timeout: 5s
       retries: 20
@@ -32,6 +33,7 @@ services:
       SANDBOX_TEAM_SCREEN_LIMIT: ${SANDBOX_TEAM_SCREEN_LIMIT:-0}
       SANDBOX_SUPERVISOR_TOKEN: ${SANDBOX_SUPERVISOR_TOKEN:?Set SANDBOX_SUPERVISOR_TOKEN in .env}
       SANDBOX_SCREEN_NETWORK: isolated
+      SANDBOX_COMPUTER_EGRESS: ${SANDBOX_COMPUTER_EGRESS:-open}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-}
       AXIOM_TOKEN: ${AXIOM_TOKEN:-}
@@ -67,8 +69,23 @@ services:
     env_file:
       - ../../.env
     environment:
-      DATABASE_URL: postgres://rakazo:rakazo@postgres:5432/rakazo
+      SECRET_STORE: ${SECRET_STORE:-encrypted}
+      INFISICAL_URL: ${INFISICAL_URL:-}
+      INFISICAL_ALLOW_INSECURE_HTTP: ${INFISICAL_ALLOW_INSECURE_HTTP:-false}
+      INFISICAL_CLIENT_ID: ${INFISICAL_CLIENT_ID:-}
+      INFISICAL_CLIENT_SECRET: ${INFISICAL_CLIENT_SECRET:-}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:-}
+      INFISICAL_ENVIRONMENT: ${INFISICAL_ENVIRONMENT:-}
+      INFISICAL_FOLDER: ${INFISICAL_FOLDER:-}
+      DATABASE_URL: postgres://${POSTGRES_USER:-rakazo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-rakazo}
       API_HOST: "0.0.0.0"
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_NAME: ${OIDC_NAME:-SSO}
+      OIDC_SCOPES: ${OIDC_SCOPES:-openid email profile}
+      OIDC_ALLOW_SIGNUP_BYPASS: ${OIDC_ALLOW_SIGNUP_BYPASS:-false}
+      AUTH_PASSWORD_ENABLED: ${AUTH_PASSWORD_ENABLED:-true}
       DATA_DIR: /data
       SANDBOX_SUPERVISOR_URL: http://supervisor:7091
       WAKEUP_DRIVER: graphile
@@ -104,8 +121,20 @@ services:
     env_file:
       - ../../.env
     environment:
+      SECRET_STORE: ${SECRET_STORE:-encrypted}
+      INFISICAL_URL: ${INFISICAL_URL:-}
+      INFISICAL_ALLOW_INSECURE_HTTP: ${INFISICAL_ALLOW_INSECURE_HTTP:-false}
+      INFISICAL_CLIENT_ID: ${INFISICAL_CLIENT_ID:-}
+      INFISICAL_CLIENT_SECRET: ${INFISICAL_CLIENT_SECRET:-}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:-}
+      INFISICAL_ENVIRONMENT: ${INFISICAL_ENVIRONMENT:-}
+      INFISICAL_FOLDER: ${INFISICAL_FOLDER:-}
       BETTER_AUTH_SECRET: ""
-      DATABASE_URL: postgres://rakazo:rakazo@postgres:5432/rakazo
+      OIDC_ISSUER: ""
+      OIDC_CLIENT_ID: ""
+      OIDC_CLIENT_SECRET: ""
+      AUTH_PASSWORD_ENABLED: "true"
+      DATABASE_URL: postgres://${POSTGRES_USER:-rakazo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-rakazo}
       DATA_DIR: /data
       SANDBOX_SUPERVISOR_URL: http://supervisor:7091
       WAKEUP_DRIVER: graphile

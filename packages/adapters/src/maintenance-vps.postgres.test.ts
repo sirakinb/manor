@@ -97,7 +97,13 @@ describeDb("VPS maintenance orchestration", () => {
       runtime,
       control,
       revision,
-      model: { provider: "scripted", model: "scripted", key: undefined },
+      model: {
+        provider: "scripted",
+        model: "scripted",
+        key: undefined,
+        configured: false,
+        hostCredentials: false,
+      },
     });
     const service = createMaintenanceService(db.prisma, adapter);
     return { adapter, service, requests, runtime };

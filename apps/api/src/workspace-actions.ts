@@ -1,10 +1,14 @@
-import type { JobPublisher, PropertyLedger, TransactionalEmailProvider } from "@rakazo/adapter-kit";
+import type {
+  JobPublisher,
+  PropertyLedger,
+  SecretStore,
+  TransactionalEmailProvider,
+} from "@rakazo/adapter-kit";
 import {
   type BuildiumCredential,
   buildBuildiumChargePayload,
   createBuildiumLedger,
   deleteWorkspaceCredential,
-  type EncryptedSecretStore,
   listWorkspaceCredentials,
   loadWorkspaceCredential,
   parseBuildiumCredential,
@@ -68,7 +72,7 @@ export type PropertyLedgerFactory = (credential: BuildiumCredential) => Property
 
 export interface WorkspaceActionDeps {
   prisma: PrismaClient;
-  secrets: EncryptedSecretStore;
+  secrets: SecretStore;
   /** Builds the ledger for a workspace's Buildium credential; tests inject a fake. */
   propertyLedger?: PropertyLedgerFactory;
   /** Absent when the deployment has no outbound email configured. */

@@ -7,10 +7,12 @@ import type {
   MaintenanceAdapter,
   MessagingSurface,
   SandboxProvider,
+  SecretStore,
 } from "@rakazo/adapter-kit";
 import { messagingDeliverJob } from "@rakazo/adapter-kit";
 import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import type { CloudAgentConnection } from "./cloud-agent-factory.js";
 import { pollCloudAgent } from "./cloud-agent-poll.js";
 import { expireComputerControl } from "./computer-control.js";
 import { scheduleComputerSleep, sleepComputerIfIdle } from "./computer-idle.js";
@@ -21,7 +23,6 @@ import { createMaintenanceService } from "./maintenance.js";
 import type { MaintenanceAdmission } from "./maintenance-control.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-delivery.js";
-import type { EncryptedSecretStore } from "./secrets.js";
 import { expireTaughtSkillTeaching } from "./teaching-session.js";
 import { runWorkspaceAutomation } from "./workspace-automation-runner.js";
 import { runWorkspaceReport } from "./workspace-report-runner.js";
@@ -37,13 +38,14 @@ export function createBackgroundJobHandlers(deps: {
   events: ThreadEvents;
   workerId: string;
   runtime: AgentRuntime;
-  secretStore: EncryptedSecretStore;
+  secretStore: SecretStore;
   memoryProviders: MemoryProviderResolver;
   deploymentModelKey?: string;
+  deploymentModelConfigured?: boolean;
   messaging?: MessagingSurface;
   /** The ingestion service; absent when INGESTION_URL is not set. */
   ingestion?: IngestionRunner;
-  cloudAgent?: import("./cloud-agent-factory.js").CloudAgentConnection | null;
+  cloudAgent?: CloudAgentConnection | null;
 }): BackgroundJobHandlers {
   const deliverMessaging = async (runId?: string) => {
     if (!deps.messaging) return;
@@ -128,6 +130,9 @@ export function createBackgroundJobHandlers(deps: {
       );
     },
     "history.compact": async (payload) => {
+      // Retrieval policies use stored context without paid message-count compaction.
+      // Skip legacy backlog work after a policy change.
+      if (deps.executor.contextStrategy && deps.executor.contextStrategy !== "current") return;
       await compactHistory(
         {
           prisma: deps.prisma,
@@ -135,6 +140,7 @@ export function createBackgroundJobHandlers(deps: {
           jobs: deps.jobs,
           memoryProviders: deps.memoryProviders,
           deploymentModelKey: deps.deploymentModelKey,
+          deploymentModelConfigured: deps.deploymentModelConfigured,
           ...(deps.executor.resolveModel ? { resolveModel: deps.executor.resolveModel } : {}),
         },
         payload.threadId,

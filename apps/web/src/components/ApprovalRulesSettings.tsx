@@ -4,6 +4,7 @@ import type { ActionApprovalRule, ActionAutoReviewSettings } from "@rakazo/contr
 import { Button, Label, Switch } from "@rakazo/ui-web";
 import { lazy, Suspense, useEffect, useId, useState } from "react";
 import { rpc } from "../lib/rpc";
+import { errorText } from "../lib/user-error";
 
 const VerificationComparisonOverlay = lazy(() =>
   import("./VerificationComparison").then((module) => ({
@@ -53,7 +54,7 @@ export function ApprovalRulesSettings() {
       setRules(nextRules);
       setAutoReview(nextAutoReview);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not load approval rules`);
+      setError(errorText(err, t`Could not load approval rules`));
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export function ApprovalRulesSettings() {
       });
       setRules((current) => [...current, saved]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not save rule`);
+      setError(errorText(err, t`Could not save rule`));
     } finally {
       setSavingPreset(null);
     }
@@ -97,7 +98,7 @@ export function ApprovalRulesSettings() {
       await rpc.approvalRules.remove({ id });
       setRules((current) => current.filter((rule) => rule.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not remove rule`);
+      setError(errorText(err, t`Could not remove rule`));
     }
   }
 
@@ -113,7 +114,7 @@ export function ApprovalRulesSettings() {
     try {
       setAutoReview(await rpc.autoReview.set(patch));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not save Auto Review`);
+      setError(errorText(err, t`Could not save Auto Review`));
     } finally {
       setSavingAutoReview(false);
     }
@@ -127,12 +128,6 @@ export function ApprovalRulesSettings() {
       <h3 className="text-[15px] font-medium text-foreground">
         <Trans>Action confirmations</Trans>
       </h3>
-      <p className="mt-2 text-[13.5px] leading-[1.5] text-muted-foreground">
-        <Trans>
-          Bots act without asking by default. Add an exception only when you want to review a type
-          of action first.
-        </Trans>
-      </p>
       <div className="mt-4 flex flex-col items-start gap-2">
         <Button
           variant="outline"
@@ -235,11 +230,7 @@ export function ApprovalRulesSettings() {
         <p className="mt-4 text-[13px] text-muted-foreground">
           <Trans>Loading rules…</Trans>
         </p>
-      ) : rules.length === 0 ? (
-        <p className="mt-4 text-[13px] text-muted-foreground">
-          <Trans>No exceptions. Actions run automatically.</Trans>
-        </p>
-      ) : (
+      ) : rules.length > 0 ? (
         <ul className="mt-4 space-y-2">
           {rules.map((rule) => (
             <li
@@ -258,7 +249,7 @@ export function ApprovalRulesSettings() {
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
     </div>
   );
 }

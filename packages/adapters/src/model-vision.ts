@@ -2,6 +2,7 @@ import "./extra-openrouter-models.js";
 import type { Models } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { DEFAULT_OPENROUTER_MODEL_ID } from "./deployment-model.js";
+import { supplementPiModels } from "./pi-current-models.js";
 import { registerLocalProvider } from "./pi-local-provider.js";
 import {
   OPENAI_COMPATIBLE_PROVIDER_ID,
@@ -18,10 +19,43 @@ export const IMAGE_RETURNING_COMPUTER_TOOLS = new Set([
 
 export const MODEL_CANNOT_SEE_MESSAGE = "This bot's model cannot see; pick a vision-capable model.";
 
+/** Return whether a model id is explicitly enabled for image input on a connection. */
+export function modelIdSupportsImages(
+  modelIds: readonly string[] | undefined,
+  modelId: string | null | undefined,
+): boolean {
+  const normalizedModelId = modelId?.trim();
+  return Boolean(
+    normalizedModelId && modelIds?.some((candidate) => candidate.trim() === normalizedModelId),
+  );
+}
+
+/** Update the explicit per-model image capability without disturbing other model ids. */
+export function updateModelImageCapabilities(
+  modelIds: readonly string[] | undefined,
+  modelId: string | null | undefined,
+  supportsImages: boolean | undefined,
+): string[] {
+  const next = new Set(
+    (modelIds ?? [])
+      .map((candidate) => candidate.trim())
+      .filter((candidate) => candidate.length > 0),
+  );
+  const normalizedModelId = modelId?.trim();
+  if (normalizedModelId && supportsImages !== undefined) {
+    if (supportsImages) next.add(normalizedModelId);
+    else next.delete(normalizedModelId);
+  }
+  return [...next];
+}
+
 let catalogModelsCache: Models | undefined;
 
 export function catalogModels(): Models {
-  catalogModelsCache ??= registerOpenAiCompatibleCatalog(registerLocalProvider(builtinModels()));
+  // Same catalog the runtime calls, including models added ahead of the bundled library.
+  catalogModelsCache ??= registerOpenAiCompatibleCatalog(
+    registerLocalProvider(supplementPiModels(builtinModels())),
+  );
   return catalogModelsCache;
 }
 
@@ -48,11 +82,17 @@ export function resolveModelRefForVisionCheck(
  * Whether the selected model accepts image input, per the Pi model catalog's
  * declared `input` modalities. Unknown models are treated as text-only.
  * The `scripted` placeholder is resolved the same way Pi does (env default /
- * GPT-5.6 Luna fallback) before the catalog check.
+ * GPT-5.6 Luna fallback) before the catalog check. An explicit connection capability
+ * override is honored for OpenAI-compatible models.
  */
-export function modelAcceptsImageInput(provider: string, modelId: string): boolean {
+export function modelAcceptsImageInput(
+  provider: string,
+  modelId: string,
+  acceptsImages = false,
+): boolean {
   const resolved = resolveModelRefForVisionCheck(provider, modelId);
   if (!resolved.provider || !resolved.id) return false;
+  if (acceptsImages && resolved.provider === OPENAI_COMPATIBLE_PROVIDER_ID) return true;
 
   const models = catalogModels();
   let model = models.getModel(resolved.provider, resolved.id);

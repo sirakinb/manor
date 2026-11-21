@@ -1,16 +1,11 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { AvatarStyle } from "@rakazo/contracts";
-import { BotAvatar, Button, Field, FieldLabel, Input, Toggle } from "@rakazo/ui-web";
+import type { AccountSecurity, AvatarStyle } from "@rakazo/contracts";
+import { BotAvatar, Button, Field, FieldLabel, Input, Label, Switch, Toggle } from "@rakazo/ui-web";
 import { ChevronDown } from "lucide-react";
-import {
-  type KeyboardEvent as ReactKeyboardEvent,
-  type RefObject,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { AccountAccess } from "../components/AccountAccess";
 import { ApprovalRulesSettings } from "../components/ApprovalRulesSettings";
 import { SuccessPop } from "../components/ai/primitives";
 import { ComputersUnavailableHint } from "../components/ComputersUnavailableHint";
@@ -21,12 +16,26 @@ import { TeamMembers } from "../components/TeamMembers";
 import { authClient } from "../lib/auth";
 import { getActiveUiLocale, setUiLocale } from "../lib/i18n";
 import {
-  type AppearancePreference,
+  getRemoteImagesPreference,
+  setRemoteImagesPreference,
+} from "../lib/remote-images-preference";
+import {
+  getResponseStreamingPreference,
+  setResponseStreamingPreference,
+} from "../lib/response-streaming";
+import {
+  getToolActivityPreference,
+  setToolActivityPreference,
+} from "../lib/tool-activity-preference";
+import type { AppearancePreference } from "../lib/ui-appearance";
+import {
   getUiAppearancePreference,
   PINNED_APPEARANCE,
   setUiAppearance,
 } from "../lib/ui-appearance";
-import { UI_LOCALE_LABELS, UI_LOCALES, type UiLocale } from "../lib/ui-locale";
+import type { UiLocale } from "../lib/ui-locale";
+import { UI_LOCALE_LABELS, UI_LOCALES } from "../lib/ui-locale";
+import { authErrorText } from "../lib/user-error";
 
 export type SettingsGeneralProps = {
   email?: string | null;
@@ -50,11 +59,24 @@ export function GeneralSettingsPanels({
   isDeploymentOwner = false,
 }: SettingsGeneralProps) {
   const { t } = useLingui();
+  const [accountSecurity, setAccountSecurity] = useState<AccountSecurity | null>(null);
   const [locale, setLocale] = useState<UiLocale>(() => getActiveUiLocale());
   const localeRequestRef = useRef(0);
   const [appearance, setAppearance] = useState<AppearancePreference>(() =>
     getUiAppearancePreference(),
   );
+  const [streamReplies, setStreamReplies] = useState(
+    () => getResponseStreamingPreference() === "on",
+  );
+  const streamRepliesId = useId();
+  const [showToolActivity, setShowToolActivity] = useState(
+    () => getToolActivityPreference() === "on",
+  );
+  const showToolActivityId = useId();
+  const [loadRemoteImages, setLoadRemoteImages] = useState(
+    () => getRemoteImagesPreference() === "on",
+  );
+  const loadRemoteImagesId = useId();
   const [avatarPending, setAvatarPending] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
@@ -89,11 +111,14 @@ export function GeneralSettingsPanels({
         </h3>
         <p className="mt-3 text-[14px] text-foreground/75">{name}</p>
         {email ? <p className="mt-1 text-[13px] text-muted-foreground/70">{email}</p> : null}
+        <AccountAccess onSecurity={setAccountSecurity} />
       </section>
 
       <ShareThisMacSettings onSharingChange={onLocalComputerChanged} />
       <TeamMembers />
-      <ChangePasswordSection email={email} />
+      {accountSecurity?.hasPassword && accountSecurity.passwordChangeEnabled !== false ? (
+        <ChangePasswordSection email={email} />
+      ) : null}
 
       {messagingEnabled && onOpenMessaging ? (
         <section className="rounded-xl border border-border px-4 py-4">
@@ -131,7 +156,10 @@ export function GeneralSettingsPanels({
         <UiLocalePicker value={locale} onChange={chooseLocale} />
       </section>
 
-      <section className="rounded-xl border border-border px-4 py-4">
+      <section
+        className="rounded-xl border border-border px-4 py-4"
+        data-testid="avatar-style-select"
+      >
         <h3 className="text-[15px] font-medium text-foreground">
           <Trans>Avatars</Trans>
         </h3>
@@ -143,6 +171,7 @@ export function GeneralSettingsPanels({
               pressed={style === avatarStyle}
               disabled={avatarPending}
               onPressedChange={() => void chooseAvatarStyle(style)}
+              data-testid={`avatar-style-${style}`}
               className="h-auto justify-start gap-3 px-3.5 py-3 text-[14px] font-normal"
             >
               <BotAvatar
@@ -170,19 +199,66 @@ export function GeneralSettingsPanels({
 
       <details data-testid="advanced-settings" className="group rounded-xl border border-border">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 text-[14px] text-foreground/75">
-          <span>
-            <span className="block text-[15px] text-foreground">
-              <Trans>Advanced</Trans>
-            </span>
-            <span className="mt-1 block text-[12.5px] text-muted-foreground/80">
-              <Trans>Optional controls most people never need</Trans>
-            </span>
+          <span className="block text-[15px] text-foreground">
+            <Trans>Advanced</Trans>
           </span>
           <span aria-hidden="true" className="transition-transform group-open:rotate-90">
             ›
           </span>
         </summary>
         <div className="border-t border-border px-4 pb-5">
+          <div className="flex items-start gap-3 pt-5">
+            <Switch
+              id={streamRepliesId}
+              data-testid="response-streaming-toggle"
+              className="mt-0.5"
+              checked={streamReplies}
+              onCheckedChange={(checked) => {
+                setStreamReplies(checked);
+                setResponseStreamingPreference(checked ? "on" : "off");
+              }}
+            />
+            <Label htmlFor={streamRepliesId} className="text-[14px] font-normal text-foreground/75">
+              <Trans>Stream replies</Trans>
+            </Label>
+          </div>
+          {/* Manor's activity timeline always shows tool steps, so this upstream toggle is hidden. */}
+          <div hidden className="flex items-start gap-3 pt-4">
+            <Switch
+              id={showToolActivityId}
+              data-testid="tool-activity-toggle"
+              className="mt-0.5"
+              checked={showToolActivity}
+              onCheckedChange={(checked) => {
+                setShowToolActivity(checked);
+                setToolActivityPreference(checked ? "on" : "off");
+              }}
+            />
+            <Label
+              htmlFor={showToolActivityId}
+              className="text-[14px] font-normal text-foreground/75"
+            >
+              <Trans>Show tool activity</Trans>
+            </Label>
+          </div>
+          <div className="flex items-start gap-3 pt-4">
+            <Switch
+              id={loadRemoteImagesId}
+              data-testid="remote-images-toggle"
+              className="mt-0.5"
+              checked={loadRemoteImages}
+              onCheckedChange={(checked) => {
+                setLoadRemoteImages(checked);
+                setRemoteImagesPreference(checked ? "on" : "off");
+              }}
+            />
+            <Label
+              htmlFor={loadRemoteImagesId}
+              className="text-[14px] font-normal text-foreground/75"
+            >
+              <Trans>Load web images automatically</Trans>
+            </Label>
+          </div>
           <ApprovalRulesSettings />
         </div>
       </details>
@@ -194,7 +270,12 @@ export function UsageSettingsPanel({
   usage,
   panelRef,
 }: {
-  usage?: { runs: number; inputTokens: number; outputTokens: number } | null;
+  usage?: {
+    runs: number;
+    inputTokens: number | null;
+    outputTokens: number | null;
+    totalTokens?: number | null;
+  } | null;
   panelRef?: RefObject<HTMLDivElement | null>;
 }) {
   return (
@@ -210,7 +291,7 @@ export function UsageSettingsPanel({
       {usage ? (
         <p className="mt-3 text-[14px] text-foreground/75">
           <Trans>
-            {usage.runs} runs · {usage.inputTokens + usage.outputTokens} tokens
+            {usage.runs} runs · {usage.totalTokens ?? "—"} tokens
           </Trans>
         </p>
       ) : null}
@@ -221,7 +302,15 @@ export function UsageSettingsPanel({
   );
 }
 
-export function ComputerSettingsPanel() {
+export function ComputerSettingsPanel({
+  sandboxProvider,
+  onSandboxProviderChange,
+  onRecoveryDismissed,
+}: {
+  sandboxProvider?: string | null;
+  onSandboxProviderChange?: (sandboxProvider: string) => void;
+  onRecoveryDismissed?: () => void;
+}) {
   return (
     <div
       data-testid="computers-setup-settings"
@@ -230,7 +319,12 @@ export function ComputerSettingsPanel() {
       <h3 className="text-[15px] font-medium text-foreground">
         <Trans>Computers</Trans>
       </h3>
-      <ComputersUnavailableHint className="mt-3 text-[13px] leading-relaxed text-muted-foreground" />
+      <ComputersUnavailableHint
+        className="mt-3 text-[13px] leading-relaxed text-muted-foreground"
+        sandboxProvider={sandboxProvider}
+        onRecovered={onSandboxProviderChange}
+        onRecoveryDismissed={onRecoveryDismissed}
+      />
     </div>
   );
 }
@@ -273,7 +367,7 @@ function ChangePasswordSection({ email }: { email?: string | null }) {
         revokeOtherSessions: true,
       });
       if (result.error) {
-        setError(result.error.message ?? t`Could not change password`);
+        setError(authErrorText(result.error, t`Could not change password`));
         return;
       }
       setCurrentPassword("");

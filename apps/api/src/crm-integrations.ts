@@ -1,13 +1,13 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import type { SecretStore } from "@rakazo/adapter-kit";
 import {
   assertSafeRemoteUrl,
   CRM_READ_ONLY_TOOL_NAMES,
   createCrmWebhookEmitter,
   createSafeRemoteFetch,
   crmAgentTools,
-  type EncryptedSecretStore,
   executeCrmTool,
 } from "@rakazo/adapters";
 import {
@@ -312,7 +312,7 @@ function decodeCursor(value: string | undefined) {
 
 export function createCrmIntegrationService(deps: {
   prisma: PrismaClient;
-  secrets: EncryptedSecretStore;
+  secrets: SecretStore;
   fetch?: typeof fetch;
 }) {
   const { prisma, secrets } = deps;
@@ -764,7 +764,7 @@ export function createCrmIntegrationService(deps: {
         data: row.event.payload,
       });
       const timestamp = Math.floor(Date.now() / 1000).toString();
-      const secret = secrets.load(row.endpoint.signingSecret, row.endpoint.id);
+      const secret = await secrets.load(row.endpoint.signingSecret, row.endpoint.id);
       const signature = signCrmWebhook(secret, timestamp, body);
       try {
         const response = await webhookFetch(row.endpoint.url, {
@@ -893,7 +893,7 @@ export function mountCrmIntegrationRoutes(
   app: Hono,
   deps: {
     prisma: PrismaClient;
-    secrets: EncryptedSecretStore;
+    secrets: SecretStore;
     resolveActor: (request: Request) => Promise<Actor | null>;
     service?: CrmIntegrationService;
   },
@@ -1261,7 +1261,7 @@ export function mountCrmIntegrationRoutes(
         userId,
         signal: c.req.raw.signal,
       },
-      endpointId,
+      { recordId: endpointId },
     );
     const row = await deps.prisma.crmWebhookEndpoint.create({
       data: {

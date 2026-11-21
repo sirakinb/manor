@@ -1,6 +1,13 @@
+import {
+  createModels,
+  fauxAssistantMessage,
+  fauxProvider,
+  normalizeContext,
+} from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
-import { OPENAI_COMPATIBLE_PROVIDER_ID } from "@rakazo/contracts";
-import { describe, expect, it } from "vitest";
+import { ModelConnectInputSchema, OPENAI_COMPATIBLE_PROVIDER_ID } from "@rakazo/contracts";
+import { fetch as undiciFetch } from "undici";
+import { describe, expect, it, vi } from "vitest";
 import { buildModelConnectPlaintext } from "./model-connect.js";
 import { listPiCatalog } from "./pi-models.js";
 import { parseModelSecret, secretValuesToRedact, serializeModelSecret } from "./pi-oauth.js";
@@ -11,10 +18,87 @@ import {
   openAiCompatibleCatalogProvider,
   prepareOpenAiCompatibleConnect,
   probeOpenAiCompatibleModels,
+  registerOpenAiCompatibleCatalog,
   registerOpenAiCompatibleRuntime,
 } from "./pi-openai-compatible-provider.js";
 
 describe("model connect", () => {
+  it("round-trips generic cache capabilities and preserves them when rotating credentials", () => {
+    const cacheCapabilities = {
+      scope: "connection" as const,
+      retentionMode: "short" as const,
+      retentionMs: 300000,
+      minimumTokens: 1024,
+      inputCostPerMillion: 1,
+      readCostPerMillion: 0.1,
+      writeCostPerMillion: 1.25,
+    };
+    const encoded = buildModelConnectPlaintext({
+      provider: "fixture",
+      apiKey: "fake-api-key",
+      cacheCapabilities,
+    });
+    expect(parseModelSecret(encoded)).toMatchObject({
+      kind: "api_key",
+      cacheCapabilities,
+    });
+    const rotated = buildModelConnectPlaintext(
+      { provider: "fixture", apiKey: "fake-next-key" },
+      encoded,
+    );
+    expect(parseModelSecret(rotated)).toMatchObject({
+      kind: "api_key",
+      cacheCapabilities,
+    });
+    expect(
+      ModelConnectInputSchema.safeParse({
+        provider: "fixture",
+        apiKey: "fake-api-key",
+        cacheCapabilities: { ...cacheCapabilities, retentionMode: "forever" },
+      }).success,
+    ).toBe(false);
+  });
+  it("stores generic limits with hosted credentials and preserves them when rotating the key", () => {
+    const plaintext = buildModelConnectPlaintext({
+      provider: "openrouter",
+      apiKey: "fake-api-key",
+      contextWindow: 1000000,
+      maxTokens: 4096,
+    });
+    expect(parseModelSecret(plaintext)).toEqual({
+      kind: "api_key",
+      key: "fake-api-key",
+      contextWindow: 1000000,
+      maxTokens: 4096,
+    });
+    expect(
+      parseModelSecret(
+        buildModelConnectPlaintext({ provider: "openrouter", apiKey: "fake-new-key" }, plaintext),
+      ),
+    ).toEqual({
+      kind: "api_key",
+      key: "fake-new-key",
+      contextWindow: 1000000,
+      maxTokens: 4096,
+    });
+  });
+  it("rejects invalid configured limits at the shared contract", () => {
+    expect(
+      ModelConnectInputSchema.safeParse({
+        provider: "fixture",
+        apiKey: "fake-api-key",
+        contextWindow: 2048,
+        maxTokens: 2048,
+      }).success,
+    ).toBe(false);
+    expect(
+      ModelConnectInputSchema.safeParse({
+        provider: "fixture",
+        apiKey: "fake-api-key",
+        contextWindow: -1,
+      }).success,
+    ).toBe(false);
+  });
   it("serializes keyless openai-compatible credentials", () => {
     const plaintext = buildModelConnectPlaintext({
       provider: OPENAI_COMPATIBLE_PROVIDER_ID,
@@ -109,6 +193,81 @@ describe("model connect", () => {
 });
 
 describe("openai-compatible provider", () => {
+  it("leaves other providers untouched during catalog and runtime registration", () => {
+    const models = createModels();
+    const other = fauxProvider();
+    models.setProvider(other.provider);
+    const setProvider = vi.spyOn(models, "setProvider");
+
+    registerOpenAiCompatibleCatalog(models);
+    registerOpenAiCompatibleRuntime(models, {
+      modelId: "fixture-model",
+      baseUrl: "http://127.0.0.1:8000/v1",
+    });
+
+    expect(models.getProvider(other.provider.id)).toBe(other.provider);
+    expect(setProvider).toHaveBeenCalledTimes(4);
+    for (const [provider] of setProvider.mock.calls) {
+      expect(provider.id).toBe(OPENAI_COMPATIBLE_PROVIDER_ID);
+    }
+  });
+
+  it.each(["stream", "streamSimple"] as const)(
+    "guards transcripts after runtime registration through %s",
+    async (method) => {
+      const models = registerOpenAiCompatibleCatalog(createModels());
+      registerOpenAiCompatibleRuntime(models, {
+        modelId: "fixture-model",
+        baseUrl: "http://127.0.0.1:8000/v1",
+      });
+      const provider = models.getProvider(OPENAI_COMPATIBLE_PROVIDER_ID)!;
+      const model = models.getModel(OPENAI_COMPATIBLE_PROVIDER_ID, "fixture-model")!;
+      const context = normalizeContext({
+        messages: [
+          fauxAssistantMessage([
+            { type: "toolCall", id: "call_named", name: "list_tasks", arguments: {} },
+            { type: "toolCall", id: "call_nameless", name: "", arguments: {} },
+          ]),
+          ...["call_nameless", "call_named"].map((toolCallId) => ({
+            role: "toolResult" as const,
+            toolCallId,
+            toolName: "",
+            content: [{ type: "text" as const, text: "real result" }],
+            isError: false,
+            timestamp: 1,
+          })),
+        ],
+      });
+      let messages: unknown;
+      await provider[method](model, context, {
+        apiKey: "fake-api-key",
+        fetch: async (_input, init) => {
+          messages = JSON.parse(String(init?.body)).messages;
+          return new Response("data: [DONE]\n\n", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        },
+      }).result();
+
+      expect(messages).toEqual([
+        expect.objectContaining({
+          role: "assistant",
+          tool_calls: [
+            expect.objectContaining({
+              id: "call_named",
+              function: { name: "list_tasks", arguments: "{}" },
+            }),
+          ],
+        }),
+        expect.objectContaining({
+          role: "tool",
+          tool_call_id: "call_named",
+          content: "real result",
+        }),
+      ]);
+    },
+  );
+
   it("does not treat replaced Request Authorization as keyed for public http", async () => {
     const previous = process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC;
     process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC = "1";
@@ -126,6 +285,73 @@ describe("openai-compatible provider", () => {
       if (previous === undefined) delete process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC;
       else process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC = previous;
     }
+  });
+
+  it("drives the guarded dispatcher with a fetch from the same undici", async () => {
+    // See remote-mcp.test: failing inside the lookup proves the request was
+    // dispatched through the Agent rather than rejected by a mismatched fetch.
+    // Omitting fetch, passing the builtin, and passing a captured builtin must
+    // all use the package fetch that matches the Agent.
+    expect(undiciFetch).not.toBe(globalThis.fetch);
+    const captured = globalThis.fetch;
+    const previous = process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC;
+    process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC = "1";
+    try {
+      for (const injected of [undefined, globalThis.fetch, captured] as const) {
+        const safeFetch = createOpenAiCompatibleFetch(injected, async () => {
+          throw new Error("lookup reached");
+        });
+        await expect(safeFetch("https://models.example.test/v1/models")).rejects.toMatchObject({
+          cause: { message: "lookup reached" },
+        });
+      }
+    } finally {
+      if (previous === undefined) delete process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC;
+      else process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC = previous;
+    }
+  });
+
+  it("flattens a global Request so the package fetch can dispatch it", async () => {
+    // undici's fetch reads a foreign Request as "[object Request]"; reaching
+    // the lookup proves the request was dispatched with its URL instead.
+    const previous = process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC;
+    process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC = "1";
+    try {
+      const safeFetch = createOpenAiCompatibleFetch(undefined, async () => {
+        throw new Error("lookup reached");
+      });
+      const request = new Request("https://models.example.test/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model: "local" }),
+      });
+      await expect(safeFetch(request)).rejects.toMatchObject({
+        cause: { message: "lookup reached" },
+      });
+    } finally {
+      if (previous === undefined) delete process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC;
+      else process.env.RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC = previous;
+    }
+  });
+
+  it("carries a Request's method, headers and body through as init", async () => {
+    let seen: { url: string; init?: RequestInit } | undefined;
+    const safeFetch = createOpenAiCompatibleFetch(async (input, init) => {
+      seen = { url: String(input), init };
+      return new Response("{}", { status: 200 });
+    });
+    await safeFetch(
+      new Request("http://127.0.0.1:8000/v1/models", {
+        method: "POST",
+        headers: { "x-trace": "1" },
+        body: "payload",
+      }),
+      { headers: { "x-trace": "2" } },
+    );
+    expect(seen?.url).toBe("http://127.0.0.1:8000/v1/models");
+    expect(seen?.init?.method).toBe("POST");
+    expect(new Headers(seen?.init?.headers).get("x-trace")).toBe("2");
+    expect(Buffer.from(seen?.init?.body as ArrayBuffer).toString()).toBe("payload");
   });
 
   it("rejects public hostnames that resolve to private addresses", async () => {
@@ -180,10 +406,14 @@ describe("openai-compatible provider", () => {
     const models = registerOpenAiCompatibleRuntime(builtinModels(), {
       modelId: "rapid-mlx",
       baseUrl: "http://127.0.0.1:8000/v1",
+      maxTokens: 8192,
+      contextWindow: 65536,
     });
     const model = models.getModel(OPENAI_COMPATIBLE_PROVIDER_ID, "rapid-mlx");
     expect(model?.baseUrl).toBe("http://127.0.0.1:8000/v1");
     expect(model?.api).toBe("openai-completions");
+    expect(model?.maxTokens).toBe(8192);
+    expect(model?.contextWindow).toBe(65536);
   });
 
   it("probes /v1/models with mocked fetch", async () => {
@@ -198,7 +428,9 @@ describe("openai-compatible provider", () => {
 
   it("still accepts legacy models[] probe responses", async () => {
     const fetchImpl = async () =>
-      new Response(JSON.stringify({ models: [{ id: "legacy" }] }), { status: 200 });
+      new Response(JSON.stringify({ models: [{ id: "legacy" }] }), {
+        status: 200,
+      });
     await expect(
       probeOpenAiCompatibleModels({ baseUrl: "http://127.0.0.1:8000/v1" }, fetchImpl),
     ).resolves.toEqual(["legacy"]);

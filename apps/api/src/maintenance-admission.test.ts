@@ -2,6 +2,7 @@ import { createLogger, createTestSink, installLogger } from "@rakazo/logging";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { describe, expect, it, vi } from "vitest";
+import { healthRoutes } from "./health.js";
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
 
 describe("API maintenance admission", () => {
@@ -31,6 +32,21 @@ describe("API maintenance admission", () => {
     expect(enter).not.toHaveBeenCalled();
     expect((await app.request("/rpc/maintenance-escape", { method: "POST" })).status).toBe(503);
     expect((await app.request("/health")).status).toBe(200);
+  });
+  it("keeps diagnostics readable and readiness closed while the gate is closed", async () => {
+    const app = new Hono();
+    const enter = vi.fn().mockRejectedValue(new Error("closed"));
+    mountMaintenanceAdmission(app, { enter });
+    app.route(
+      "/",
+      healthRoutes(() => ({ revision: "abc123" })),
+    );
+    const details = await app.request("/internal/health");
+    expect(details.status).toBe(200);
+    await expect(details.json()).resolves.toEqual({ ok: true, revision: "abc123" });
+    expect(enter).not.toHaveBeenCalled();
+    expect((await app.request("/ready")).status).toBe(503);
+    expect(enter).toHaveBeenCalledOnce();
   });
   it("does not turn committed work into a retry when lease completion is uncertain", async () => {
     const app = new Hono();

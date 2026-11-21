@@ -1,5 +1,5 @@
+import type { JobPublisher, NotificationProvider } from "@rakazo/adapter-kit";
 import {
-  type JobPublisher,
   maintenanceAdvanceJob,
   messagingDeliverJob,
   routineWakeupJob,
@@ -7,6 +7,7 @@ import {
   workspaceAutomationWakeupJob,
 } from "@rakazo/adapter-kit";
 import type { MessageBlock } from "@rakazo/contracts";
+import { stuckWorkStatusMessages } from "@rakazo/core";
 import {
   migrateLegacyWaterSchedules,
   type Pool,
@@ -18,6 +19,8 @@ import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
 import type { MaintenanceAdmission } from "./maintenance-control.js";
+import { reconcileStuckWork } from "./stuck-work.js";
+import { isLoopGuardStopText } from "./tool-loop.js";
 import { isUserProgressClientNonce } from "./user-progress.js";
 
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -111,6 +114,7 @@ export function createJobReconciler(
     prisma: PrismaClient;
     jobs: JobPublisher;
     events?: ThreadEvents;
+    notifications?: NotificationProvider;
     leadership?: ReconciliationLeadership;
     admission?: MaintenanceAdmission;
     reconcileComputerUpdates?: () => Promise<void>;
@@ -122,6 +126,7 @@ export function createJobReconciler(
   const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
   let timer: ReturnType<typeof setInterval> | undefined;
   let reconciling: Promise<void> | undefined;
+  let stuckCursor: Cursor | undefined;
   let runCursor: Cursor | undefined;
   let routineCursor: Cursor | undefined;
   let controlCursor: ControlCursor | undefined;
@@ -156,6 +161,20 @@ export function createJobReconciler(
       for (const result of auxiliary) {
         if (result.status === "rejected")
           getLogger().error("auxiliary reconciliation", result.reason);
+      }
+
+      try {
+        stuckCursor = await reconcileStuckWork({
+          prisma: deps.prisma,
+          jobs: deps.jobs,
+          events: deps.events,
+          notifications: deps.notifications,
+          now,
+          batchSize,
+          cursor: stuckCursor,
+        });
+      } catch (error) {
+        getLogger().error("stuck work reconciliation", error);
       }
       controlScanDeadline ??= new Date(now.getTime() + CONTROL_LOOKAHEAD_MS);
       const runCursorFilter = runCursor
@@ -280,8 +299,11 @@ export function createJobReconciler(
         const outcomes = await deps.prisma.run.findMany({
           where: {
             trigger: "bot_message",
-            status: { in: ["completed", "failed"] },
             botOutcomeReturnedAt: null,
+            OR: [
+              { status: { in: ["completed", "failed"] } },
+              { status: "cancelled", error: { in: [...stuckWorkStatusMessages()] } },
+            ],
           },
           orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
           take: batchSize,
@@ -299,20 +321,28 @@ export function createJobReconciler(
         });
         await Promise.all(
           outcomes.map(async (run) => {
+            const stuckCancel = run.status === "cancelled";
             const transcript =
-              run.status === "failed"
+              run.status === "failed" || stuckCancel
                 ? { text: "", progressOnly: false }
                 : await botRunOutcomeText(deps.prisma, run.id);
-            const text =
-              run.status === "failed"
+            const text = stuckCancel
+              ? (run.error ?? "")
+              : run.status === "failed"
                 ? `Could not complete the delegated request: ${run.error ?? "unknown error"}`
                 : transcript.text ||
                   "The delegated bot completed its turn without a written summary.";
+            // Loop-guard stops complete without an error; their persisted final text
+            // is the only marker available when the executor's outcome delivery fails.
+            const loopGuardStop = isLoopGuardStopText(transcript.text);
             // Same stable delivery key as the executor path (auto-outcome:<runId>), so a
             // concurrent or earlier return is replayed instead of double-posted. Progress-only
             // transcripts (all mid-turn user-progress messages) return as status.
             const intent =
-              run.status === "failed" || !transcript.text.trim() || transcript.progressOnly
+              run.status === "failed" ||
+              stuckCancel ||
+              !transcript.text.trim() ||
+              transcript.progressOnly
                 ? "status"
                 : ("result" as const);
             const returned = await returnBotMessageOutcome(
@@ -321,6 +351,7 @@ export function createJobReconciler(
               { id: run.botId, name: run.bot.name },
               text,
               intent,
+              { forceUnread: run.status === "failed" || stuckCancel || loopGuardStop },
             ).catch((error) => {
               getLogger().error("bot message outcome reconciliation", error);
               return false;

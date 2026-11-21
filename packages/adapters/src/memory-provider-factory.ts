@@ -1,7 +1,17 @@
-import type { DurableMemoryScope, SemanticMemoryProvider } from "@rakazo/adapter-kit";
+import type { DurableMemoryScope, SecretStore, SemanticMemoryProvider } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
-import type { EncryptedSecretStore } from "./secrets.js";
 import {
+  classifySerenityConnectionSettings,
+  createSerenityProvider,
+  prepareSerenityConnection,
+  SERENITY_PROVIDER_ID,
+  serenityRequiresDeploymentOwner,
+} from "./serenity-memory-provider.js";
+
+export { MemoryProviderDeploymentOwnerRequiredError } from "./serenity-memory-provider.js";
+
+import {
+  assertSupermemoryLocalBaseUrl,
   createSupermemoryProvider,
   decodeLegacySupermemoryCredentials,
   prepareSupermemoryConnection,
@@ -13,6 +23,8 @@ export interface MemoryProviderConnectionInput {
   provider: string;
   settings: Record<string, string>;
   credentials: Record<string, string>;
+  /** When false, Serenity must not probe endpoints that classify as private. */
+  allowPrivateEndpoint?: boolean;
 }
 
 export interface PreparedMemoryProviderConnection {
@@ -32,9 +44,12 @@ export interface MemoryProviderResolver {
 
 interface MemoryProviderAdapter {
   requiresDeploymentOwner(settings: Record<string, string>): boolean;
+  /** Async trust classification (e.g. DNS) without probing credentials. */
+  classifySettings?(settings: Record<string, string>): Promise<Record<string, string>>;
   prepare(
     settings: Record<string, string>,
     credentials: Record<string, string>,
+    options?: { allowPrivateEndpoint?: boolean },
   ): Promise<{ settings: Record<string, string>; credentials: Record<string, string> }>;
   create(
     settings: Record<string, string>,
@@ -53,6 +68,19 @@ const MEMORY_PROVIDER_ADAPTERS: ReadonlyMap<string, MemoryProviderAdapter> = new
       decodeLegacyCredentials: decodeLegacySupermemoryCredentials,
     },
   ],
+  [
+    SERENITY_PROVIDER_ID,
+    {
+      requiresDeploymentOwner: serenityRequiresDeploymentOwner,
+      classifySettings: classifySerenityConnectionSettings,
+      prepare: (
+        settings: Record<string, string>,
+        credentials: Record<string, string>,
+        options?: { allowPrivateEndpoint?: boolean },
+      ) => prepareSerenityConnection(settings, credentials, undefined, options),
+      create: createSerenityProvider,
+    },
+  ],
 ]);
 
 function memoryProviderAdapter(provider: string): MemoryProviderAdapter {
@@ -69,12 +97,25 @@ export function memoryProviderRequiresDeploymentOwner(
   return memoryProviderAdapter(provider).requiresDeploymentOwner(settings);
 }
 
+/**
+ * Run provider-specific trust classification (DNS, etc.) without credentialed probes.
+ * Callers must authorize deployment-owner endpoints before prepare/probe.
+ */
+export async function classifyMemoryProviderSettings(
+  provider: string,
+  settings: Record<string, string>,
+): Promise<Record<string, string>> {
+  const adapter = memoryProviderAdapter(provider);
+  return adapter.classifySettings ? adapter.classifySettings(settings) : settings;
+}
+
 export async function prepareMemoryProviderConnection(
   input: MemoryProviderConnectionInput,
 ): Promise<PreparedMemoryProviderConnection> {
   const prepared = await memoryProviderAdapter(input.provider).prepare(
     input.settings,
     input.credentials,
+    { allowPrivateEndpoint: input.allowPrivateEndpoint },
   );
   return { provider: input.provider, ...prepared };
 }
@@ -111,7 +152,7 @@ function decodeCredentials(provider: string, plaintext: string): Record<string, 
 export class SpaceMemoryProviderResolver implements MemoryProviderResolver {
   constructor(
     private readonly prisma: Pick<PrismaClient, "spaceMemoryConfig" | "deploymentSettings">,
-    private readonly secrets: EncryptedSecretStore,
+    private readonly secrets: SecretStore,
   ) {}
 
   async resolve(spaceId: string): Promise<ConfiguredMemoryProvider | null> {
@@ -129,9 +170,16 @@ export class SpaceMemoryProviderResolver implements MemoryProviderResolver {
       // Also disable pre-existing local configurations authored outside the deployment boundary.
       if (!deployment?.ownerUserId || deployment.ownerUserId !== config.userId) return null;
     }
+    if (
+      config.provider === SUPERMEMORY_PROVIDER_ID &&
+      settings.mode === "local" &&
+      settings.baseUrl
+    ) {
+      await assertSupermemoryLocalBaseUrl(settings.baseUrl, { allowPrivateEndpoint: true });
+    }
     const credentials = decodeCredentials(
       config.provider,
-      this.secrets.load(config.secret.ciphertext, config.secret.id),
+      await this.secrets.load(config.secret.ciphertext, config.secret.id),
     );
     return {
       provider: createMemoryProvider(config.provider, settings, credentials),

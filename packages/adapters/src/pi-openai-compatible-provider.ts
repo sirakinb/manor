@@ -8,6 +8,7 @@ import {
   type ProviderStreams,
 } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
+import { DEFAULT_MODEL_CONTEXT_WINDOW, DEFAULT_MODEL_MAX_TOKENS } from "@rakazo/contracts";
 import { Agent } from "undici";
 import { declaredVisionModelIds, inputModalities } from "./model-modalities.js";
 import {
@@ -25,6 +26,8 @@ import {
   normalizeOpenAiCompatibleBaseUrl,
   OPENAI_COMPATIBLE_PROVIDER_ID,
 } from "./openai-compatible-url.js";
+import { guardToolCallNames } from "./pi-tool-call-guard.js";
+import { dispatcherFetch, fetchPairedWithDispatcher } from "./undici-fetch.js";
 
 export { OPENAI_COMPATIBLE_PROVIDER_ID };
 
@@ -38,11 +41,18 @@ export function openAiCompatibleVisionModelIds(): ReadonlySet<string> {
   return declaredVisionModelIds(OPENAI_COMPATIBLE_VISION_MODELS_ENV);
 }
 
-const DEFAULT_CONTEXT_WINDOW = 32_768;
-const DEFAULT_MAX_TOKENS = 4_096;
 const MAX_MODELS_RESPONSE_BYTES = 64 * 1024;
 const MAX_MODEL_IDS = 500;
+/** Pinned catalogs (OpenRouter is ~1 MiB). Custom server URLs stay on the tight caps. */
+const CATALOG_MAX_MODELS_RESPONSE_BYTES = 8 * 1024 * 1024;
+const CATALOG_MAX_MODEL_IDS = 8_000;
 const MAX_MODEL_ID_LENGTH = 256;
+
+function modelsProbeLimits(catalogProbe?: boolean): { maxBytes: number; maxModelIds: number } {
+  return catalogProbe
+    ? { maxBytes: CATALOG_MAX_MODELS_RESPONSE_BYTES, maxModelIds: CATALOG_MAX_MODEL_IDS }
+    : { maxBytes: MAX_MODELS_RESPONSE_BYTES, maxModelIds: MAX_MODEL_IDS };
+}
 
 const OPENAI_COMPAT_BASE = "http://127.0.0.1:1/v1";
 const resolveHostname: ResolveHostname = (hostname) =>
@@ -53,6 +63,8 @@ export function openAiCompatibleModel(
   baseUrl: string,
   reasoning = false,
   acceptsImages = false,
+  maxTokens = DEFAULT_MODEL_MAX_TOKENS,
+  contextWindow = DEFAULT_MODEL_CONTEXT_WINDOW,
 ): Model<"openai-completions"> {
   return {
     id,
@@ -69,19 +81,26 @@ export function openAiCompatibleModel(
     thinkingLevelMap: { off: "none" },
     input: inputModalities(acceptsImages),
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: DEFAULT_CONTEXT_WINDOW,
-    maxTokens: DEFAULT_MAX_TOKENS,
+    contextWindow,
+    maxTokens,
   };
 }
 
 function openAiCompatibleProvider(models: Model<"openai-completions">[]): Provider {
   const api = openAICompletionsApi();
-  const safeFetch = createOpenAiCompatibleFetch();
+  // Guard the fetch the caller supplied (the runtime's seam for tests) or the
+  // dispatcher-matched default; never the bare global.
   const safeApi: ProviderStreams = {
     stream: (model, context, options) =>
-      api.stream(model, context, { ...options, fetch: safeFetch }),
+      api.stream(model, context, {
+        ...options,
+        fetch: createOpenAiCompatibleFetch(options?.fetch),
+      }),
     streamSimple: (model, context, options) =>
-      api.streamSimple(model, context, { ...options, fetch: safeFetch }),
+      api.streamSimple(model, context, {
+        ...options,
+        fetch: createOpenAiCompatibleFetch(options?.fetch),
+      }),
   };
   return createProvider({
     id: OPENAI_COMPATIBLE_PROVIDER_ID,
@@ -150,23 +169,31 @@ function requestCarriesAuthorization(input: RequestInfo | URL, init?: RequestIni
 }
 
 export function createOpenAiCompatibleFetch(
-  baseFetch: typeof globalThis.fetch = globalThis.fetch,
+  baseFetch: typeof globalThis.fetch = dispatcherFetch,
   resolve: ResolveHostname = resolveHostname,
+  opts?: { allowPublic?: boolean },
 ): typeof globalThis.fetch {
   return async (input, init) => {
     const rawUrl = input instanceof Request ? input.url : String(input);
-    const url = assertAllowedOpenAiCompatibleRequestUrl(rawUrl);
+    const url = assertAllowedOpenAiCompatibleRequestUrl(rawUrl, {
+      allowPublic: opts?.allowPublic,
+    });
     if (requestCarriesAuthorization(input, init)) {
       assertHttpsForKeyedOpenAiCompatibleUrl(url, "present");
     }
     const hostname = url.hostname.replace(/^\[|\]$/g, "");
     const dispatcher =
       isIP(hostname) === 0
-        ? new Agent({ connect: { lookup: createOpenAiCompatibleLookup(url, resolve) } })
+        ? new Agent({
+            connect: { lookup: createOpenAiCompatibleLookup(url, resolve) },
+          })
         : undefined;
+    // Node's fetch rejects this package Agent. Pair them only when the
+    // dispatcher is attached; a caller-supplied fetch stays in charge.
+    const transport = dispatcher ? fetchPairedWithDispatcher(baseFetch) : baseFetch;
     try {
-      const response = await baseFetch(input instanceof Request ? input : url, {
-        ...init,
+      const response = await transport(url, {
+        ...(await requestInitFor(input, init)),
         redirect: "error",
         ...(dispatcher ? { dispatcher } : {}),
       } as RequestInit & { dispatcher?: Agent });
@@ -175,6 +202,23 @@ export function createOpenAiCompatibleFetch(
       await dispatcher?.close().catch(() => undefined);
       throw error;
     }
+  };
+}
+
+/** The base fetch comes from the undici package, which recognizes only its own
+ * Request class and reads a global Request as the string "[object Request]".
+ * Flatten Request inputs to a URL plus init, with init overriding the
+ * Request's fields the way fetch itself merges them. */
+async function requestInitFor(input: RequestInfo | URL, init?: RequestInit): Promise<RequestInit> {
+  if (!(input instanceof Request)) return init ?? {};
+  const request = new Request(input, init);
+  const body =
+    request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+  return {
+    method: request.method,
+    headers: request.headers,
+    body,
+    signal: request.signal,
   };
 }
 
@@ -254,23 +298,37 @@ export function openAiCompatibleCatalogProvider(): Provider {
 
 export function registerOpenAiCompatibleCatalog(models: MutableModels): MutableModels {
   models.setProvider(openAiCompatibleCatalogProvider());
-  return models;
+  return guardToolCallNames(models, OPENAI_COMPATIBLE_PROVIDER_ID);
 }
 
 /** Register a concrete model + base URL for an agent run. */
 export function registerOpenAiCompatibleRuntime(
   models: MutableModels,
-  opts: { modelId: string; baseUrl: string; reasoning?: boolean },
+  opts: {
+    modelId: string;
+    baseUrl: string;
+    reasoning?: boolean;
+    acceptsImages?: boolean;
+    maxTokens?: number;
+    contextWindow?: number;
+  },
 ): MutableModels {
   const baseUrl = normalizeOpenAiCompatibleBaseUrl(opts.baseUrl);
   const modelId = opts.modelId.trim();
-  const acceptsImages = openAiCompatibleVisionModelIds().has(modelId);
+  const acceptsImages = opts.acceptsImages || openAiCompatibleVisionModelIds().has(modelId);
   models.setProvider(
     openAiCompatibleProvider([
-      openAiCompatibleModel(modelId, baseUrl, opts.reasoning, acceptsImages),
+      openAiCompatibleModel(
+        modelId,
+        baseUrl,
+        opts.reasoning,
+        acceptsImages,
+        opts.maxTokens,
+        opts.contextWindow,
+      ),
     ]),
   );
-  return models;
+  return guardToolCallNames(models, OPENAI_COMPATIBLE_PROVIDER_ID);
 }
 
 export type OpenAiCompatibleConnectInput = {
@@ -305,7 +363,11 @@ export type OpenAiCompatibleModelsResponse = {
 /** Shared suffix: /models probe is optional when the user already knows a model id. */
 const OPENAI_COMPAT_PROBE_HAND_FILL_HINT = "You can still Connect with an explicit model id.";
 
-function probeModelIds(body: OpenAiCompatibleModelsResponse): string[] {
+function probeModelIds(
+  body: OpenAiCompatibleModelsResponse,
+  opts?: { catalogProbe?: boolean },
+): string[] {
+  const { maxModelIds } = modelsProbeLimits(opts?.catalogProbe);
   const entries = Array.isArray(body.data)
     ? body.data
     : Array.isArray(body.models)
@@ -320,7 +382,7 @@ function probeModelIds(body: OpenAiCompatibleModelsResponse): string[] {
   for (const entry of entries) {
     const id = typeof entry?.id === "string" ? entry.id.trim() : "";
     if (!id) continue;
-    if (id.length > MAX_MODEL_ID_LENGTH || ids.length >= MAX_MODEL_IDS) {
+    if (id.length > MAX_MODEL_ID_LENGTH || ids.length >= maxModelIds) {
       throw new Error("Model server returned too many or overly long model ids");
     }
     ids.push(id);
@@ -328,9 +390,13 @@ function probeModelIds(body: OpenAiCompatibleModelsResponse): string[] {
   return ids;
 }
 
-async function readBoundedJson(response: Response): Promise<OpenAiCompatibleModelsResponse> {
+async function readBoundedJson(
+  response: Response,
+  opts?: { catalogProbe?: boolean },
+): Promise<OpenAiCompatibleModelsResponse> {
+  const { maxBytes } = modelsProbeLimits(opts?.catalogProbe);
   const declaredSize = Number(response.headers.get("content-length") ?? 0);
-  if (declaredSize > MAX_MODELS_RESPONSE_BYTES) {
+  if (declaredSize > maxBytes) {
     await response.body?.cancel().catch(() => undefined);
     throw new Error(`Model server response is too large. ${OPENAI_COMPAT_PROBE_HAND_FILL_HINT}`);
   }
@@ -347,7 +413,7 @@ async function readBoundedJson(response: Response): Promise<OpenAiCompatibleMode
     const { done, value } = await reader.read();
     if (done) break;
     bytes += value.byteLength;
-    if (bytes > MAX_MODELS_RESPONSE_BYTES) {
+    if (bytes > maxBytes) {
       await reader.cancel().catch(() => undefined);
       throw new Error(`Model server response is too large. ${OPENAI_COMPAT_PROBE_HAND_FILL_HINT}`);
     }
@@ -363,10 +429,13 @@ async function readBoundedJson(response: Response): Promise<OpenAiCompatibleMode
 
 export async function probeOpenAiCompatibleModels(
   input: { baseUrl: string; apiKey?: string },
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl?: typeof fetch,
   signal?: AbortSignal,
+  opts?: { allowPublic?: boolean; catalogProbe?: boolean },
 ): Promise<string[]> {
-  const baseUrl = assertAllowedOpenAiCompatibleUrl(input.baseUrl);
+  const baseUrl = assertAllowedOpenAiCompatibleUrl(input.baseUrl, {
+    allowPublic: opts?.allowPublic,
+  });
   assertHttpsForKeyedOpenAiCompatibleUrl(baseUrl, input.apiKey);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5_000);
@@ -374,7 +443,7 @@ export async function probeOpenAiCompatibleModels(
   try {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (input.apiKey?.trim()) headers.Authorization = `Bearer ${input.apiKey.trim()}`;
-    const safeFetch = createOpenAiCompatibleFetch(fetchImpl);
+    const safeFetch = createOpenAiCompatibleFetch(fetchImpl, undefined, opts);
     const response = await safeFetch(new URL("models", `${baseUrl.href}/`).href, {
       headers,
       redirect: "error",
@@ -392,8 +461,8 @@ export async function probeOpenAiCompatibleModels(
         `Model server returned ${response.status}. ${OPENAI_COMPAT_PROBE_HAND_FILL_HINT}`,
       );
     }
-    const body = await readBoundedJson(response);
-    return probeModelIds(body);
+    const body = await readBoundedJson(response, opts);
+    return probeModelIds(body, opts);
   } catch (error) {
     const aborted =
       (error instanceof Error && error.name === "AbortError") ||

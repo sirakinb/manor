@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import type { createApp } from "../../../../apps/api/src/app.ts";
 import { startJevEmulator } from "./jev-emulator.js";
 import { runProcess } from "./process.js";
 
@@ -63,6 +64,7 @@ async function main() {
     process.env.WAKEUP_DRIVER = "memory";
     process.env.SANDBOX_PROVIDER = sandboxProvider;
     process.env.AGENT_RUNTIME = agentRuntime;
+    if (!integration) process.env.TICKET_BOARD_ENABLED = "true";
     // Playwright/E2E force the offline cloud-agent emulator; clear Cursor keys so cards never hit a live VM.
     process.env.CLOUD_AGENT_PROVIDER = "emulator";
     delete process.env.CURSOR_API_KEY;
@@ -93,6 +95,14 @@ async function main() {
     if (integration) {
       const suites = [
         "packages/testkit/src/pi-offline.postgres.test.ts",
+        "packages/testkit/src/usage-accounting.postgres.test.ts",
+        "packages/db/src/history-retrieval.postgres.test.ts",
+        "packages/testkit/src/history-retrieval.postgres.test.ts",
+        "packages/testkit/src/history-short-product.postgres.test.ts",
+        "packages/testkit/src/history-followup-product.postgres.test.ts",
+        "packages/testkit/src/history-search-continuation.postgres.test.ts",
+        "packages/testkit/src/history-product-loop.postgres.test.ts",
+        "packages/testkit/src/history-clarification.postgres.test.ts",
         "packages/testkit/src/computer-approval.postgres.test.ts",
         "packages/testkit/src/eval-history.postgres.test.ts",
         "packages/testkit/src/eval-customer-support.postgres.test.ts",
@@ -106,6 +116,8 @@ async function main() {
         "packages/testkit/src/bot-secrets.test.ts",
         "packages/db/src/space-membership.postgres.test.ts",
         "packages/db/src/messaging.postgres.test.ts",
+        "packages/db/src/billing.postgres.test.ts",
+        "apps/api/src/billing.postgres.test.ts",
         "packages/memory/src/commit.postgres.test.ts",
         "packages/adapters/src/wakeup.postgres.test.ts",
         "packages/adapters/src/realtime.postgres.test.ts",
@@ -314,9 +326,7 @@ async function main() {
   }
 }
 
-type AppHandles = Awaited<
-  ReturnType<typeof import("../../../../apps/api/src/app.ts")["createApp"]>
->;
+type AppHandles = Awaited<ReturnType<typeof createApp>>;
 
 async function managedComputers(handles: AppHandles) {
   if (!["e2b", "daytona", "box"].includes(sandboxProvider)) return [];

@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { Bot } from "@rakazo/contracts";
+import type { Bot, BotSection } from "@rakazo/contracts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,7 @@ import {
 } from "@rakazo/ui-web";
 import { Lock, Users } from "lucide-react";
 import { useId, useState } from "react";
+import { errorText } from "../../lib/user-error";
 
 /** Each dialog is mounted only while open, so `open` is always true and the
  * parent unmounts it from `onCancel`. Escape and backdrop presses are ignored
@@ -53,7 +54,7 @@ export function NewSpaceDialog({
     setSaving(true);
     setError(null);
     void onConfirm(trimmed, shared).catch((reason: unknown) => {
-      setError(reason instanceof Error ? reason.message : t`Could not create space`);
+      setError(errorText(reason, t`Could not create space`));
       setSaving(false);
     });
   };
@@ -121,6 +122,74 @@ export function NewSpaceDialog({
   );
 }
 
+export function RenameSpaceDialog({
+  space,
+  onCancel,
+  onConfirm,
+}: {
+  space: { name: string };
+  onCancel: () => void;
+  onConfirm: (name: string) => Promise<void>;
+}) {
+  const { t } = useLingui();
+  const nameId = useId();
+  const [name, setName] = useState(space.name);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const trimmed = name.trim();
+  const unchanged = trimmed === space.name;
+
+  return (
+    <Dialog open onOpenChange={closeUnlessBusy(saving, onCancel)}>
+      <DialogContent showCloseButton={false} aria-describedby={undefined}>
+        <form
+          className="contents"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!trimmed || saving || unchanged) return;
+            setSaving(true);
+            setError(null);
+            void onConfirm(trimmed).catch((err: unknown) => {
+              setError(
+                err instanceof Error && err.message.trim()
+                  ? err.message
+                  : t`Could not rename space`,
+              );
+              setSaving(false);
+            });
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Rename space</Trans>
+            </DialogTitle>
+          </DialogHeader>
+          <label htmlFor={nameId} className="block text-[13.5px] text-foreground/75">
+            <Trans>Name</Trans>
+            <Input
+              id={nameId}
+              maxLength={60}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="mt-2"
+              autoFocus
+            />
+          </label>
+          {error ? <p className="text-[13.5px] text-destructive">{error}</p> : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button type="submit" disabled={saving || !trimmed || unchanged}>
+              {saving ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function PickerInfoDialog({
   topic,
   onClose,
@@ -157,15 +226,9 @@ export function PickerInfoDialog({
           </DialogTitle>
           <DialogDescription>
             {topic === "group" ? (
-              <Trans>
-                One conversation with 2–6 of your bots in a shared thread. Name the group, pick its
-                members, and they all reply in the same chat.
-              </Trans>
+              <Trans>Shared chat with 2-6 bots. They all reply in the same thread.</Trans>
             ) : (
-              <Trans>
-                A separate, private workspace with its own bots and groups. Use spaces to keep
-                contexts apart, such as work and personal.
-              </Trans>
+              <Trans>Private workspace with its own bots and groups.</Trans>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -201,7 +264,7 @@ export function NewBotSectionDialog({
             setSaving(true);
             setError(null);
             void onConfirm(trimmed).catch((err: unknown) => {
-              setError(err instanceof Error ? err.message : t`Could not create section`);
+              setError(errorText(err, t`Could not create section`));
               setSaving(false);
             });
           }}
@@ -231,6 +294,70 @@ export function NewBotSectionDialog({
             </Button>
             <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? <Trans>Creating…</Trans> : <Trans>Create</Trans>}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function RenameBotSectionDialog({
+  section,
+  onCancel,
+  onConfirm,
+}: {
+  section: Pick<BotSection, "name">;
+  onCancel: () => void;
+  onConfirm: (name: string) => Promise<void>;
+}) {
+  const { t } = useLingui();
+  const nameId = useId();
+  const [name, setName] = useState(section.name);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const trimmed = name.trim();
+  const unchanged = trimmed === section.name;
+
+  return (
+    <Dialog open onOpenChange={closeUnlessBusy(saving, onCancel)}>
+      <DialogContent showCloseButton={false} aria-describedby={undefined}>
+        <form
+          className="contents"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!trimmed || saving || unchanged) return;
+            setSaving(true);
+            setError(null);
+            void onConfirm(trimmed).catch((err: unknown) => {
+              setError(errorText(err, t`Could not rename section`));
+              setSaving(false);
+            });
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Rename section</Trans>
+            </DialogTitle>
+          </DialogHeader>
+          <label htmlFor={nameId} className="block text-[13.5px] text-foreground/75">
+            <Trans>Name</Trans>
+            <Input
+              id={nameId}
+              maxLength={60}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="mt-2"
+              autoFocus
+            />
+          </label>
+          {error ? <p className="text-[13.5px] text-destructive">{error}</p> : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button type="submit" disabled={saving || !trimmed || unchanged}>
+              {saving ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
             </Button>
           </DialogFooter>
         </form>
@@ -278,7 +405,7 @@ export function ClearConversationDialog({
               setClearing(true);
               setError(null);
               void onConfirm().catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : t`Could not clear conversation`);
+                setError(errorText(err, t`Could not clear conversation`));
                 setClearing(false);
               });
             }}
@@ -368,7 +495,7 @@ export function DeleteBotDialog({
               setDeleting(true);
               setError(null);
               void onConfirm(deleteMemories).catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : t`Could not delete bot`);
+                setError(errorText(err, t`Could not delete bot`));
                 setDeleting(false);
               });
             }}
@@ -422,13 +549,14 @@ export function DeleteItemDialog({
               setError(null);
               void onConfirm().catch((err: unknown) => {
                 setError(
-                  err instanceof Error
-                    ? err.message
-                    : noun === "group"
+                  errorText(
+                    err,
+                    noun === "group"
                       ? t`Could not delete group`
                       : noun === "space"
                         ? t`Could not delete space`
                         : t`Could not delete routine`,
+                  ),
                 );
                 setDeleting(false);
               });

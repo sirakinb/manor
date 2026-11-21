@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { SecretStoreUnavailableError } from "@rakazo/adapter-kit";
 import { routineWebhookToken } from "@rakazo/adapters";
 import { hasValidBearerToken } from "@rakazo/core";
 import type { Context, Hono } from "hono";
@@ -12,6 +13,7 @@ import {
   loadWebhookTarget,
   parseWebhookPayload,
   WEBHOOK_MAX_BODY_BYTES,
+  type WebhookSecretCache,
 } from "./webhook-inbound.js";
 
 export {
@@ -42,6 +44,8 @@ export function webhookPath(botId: string): string {
 }
 
 export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
+  const secretCache: WebhookSecretCache = new Map();
+
   const receive = async (c: Context) => {
     const unauthorized = () => c.json({ error: "Unauthorized" }, 401);
     const routineId = c.req.param("routineId");
@@ -52,7 +56,15 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
       return c.json({ error: "Payload too large" }, 413);
     }
 
-    const target = await loadWebhookTarget(deps, c.req.param("botId") ?? "");
+    let target: Awaited<ReturnType<typeof loadWebhookTarget>>;
+    try {
+      target = await loadWebhookTarget(deps, secretCache, c.req.param("botId") ?? "");
+    } catch (error) {
+      if (error instanceof SecretStoreUnavailableError) {
+        return c.json({ error: "Service unavailable" }, 503);
+      }
+      throw error;
+    }
 
     // Senders like cal.com and form builders cannot set headers — they may
     // carry the secret as a ?token= query parameter instead.
@@ -85,7 +97,16 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
         webhookEnabled: true,
         ...(routineId ? { id: routineId } : {}),
       },
-      select: { id: true, name: true, prompt: true, threadId: true, userId: true },
+      select: {
+        id: true,
+        name: true,
+        prompt: true,
+        threadId: true,
+        userId: true,
+        modelProvider: true,
+        modelId: true,
+        thinkingLevel: true,
+      },
       orderBy: { updatedAt: "desc" },
       take: 5,
     });
@@ -169,5 +190,5 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
   app.post("/api/v1/bots/:botId/webhook", receive);
   app.post("/api/v1/bots/:botId/routines/:routineId/webhook", receive);
 
-  mountGithubWebhookRoute(app, deps);
+  mountGithubWebhookRoute(app, deps, secretCache);
 }

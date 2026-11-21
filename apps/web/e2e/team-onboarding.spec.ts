@@ -1,7 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { brandById } from "@rakazo/brands";
 import { provisionPortalTeam } from "../../../packages/auth/src/provision-team";
 import { createDb } from "../../../packages/db/src/index";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+
+// Both tests claim the "vibecodephilly" brand, and an organization's brand id is unique.
+// They share this file so they run one after the other: spec files run in parallel workers,
+// and side by side each test would find, rebrand or delete the other's organization.
 
 test("new organization starts with one shared space and teammates reuse its setup", async ({
   page,
@@ -50,13 +56,27 @@ test("new organization starts with one shared space and teammates reuse its setu
     expect(accountUserId).toBeTruthy();
     expect(await db.prisma.space.count({ where: { organizationId } })).toBe(1);
     await page.evaluate((id) => localStorage.setItem("rakazo:space-id", id), team.spaceId);
+    // Setup creates the first bot and opens its chat on its own. Hold that create so the
+    // sharing notice is on screen for as long as the assertions need it.
+    let releaseBotCreate: () => void = () => undefined;
+    const botCreateHeld = new Promise<void>((resolve) => {
+      releaseBotCreate = resolve;
+    });
+    await page.route("**/rpc/bots/create", async (route) => {
+      await botCreateHeld;
+      await route.continue();
+    });
     await page.goto("/onboarding");
     await expect(page.getByText("Example Team", { exact: true })).toBeVisible();
     await expect(
       page.getByText("Agents, conversations, files, and connected accounts are shared."),
     ).toBeVisible();
     await captureScreenshot(page, testInfo, "team-setup-sharing-boundary");
+    releaseBotCreate();
     await completeOnboarding(page);
+    await page.unroute("**/rpc/bots/create");
+    await page.waitForURL(/\/app\/[^/]+$/);
+    expect(await db.prisma.bot.count({ where: { spaceId: team.spaceId } })).toBe(1);
     await expect(page.getByText(/Welcome to Example Team/)).toBeVisible();
     await page.getByRole("button", { name: /Day-to-day work/ }).click();
     await expect(
@@ -77,5 +97,104 @@ test("new organization starts with one shared space and teammates reuse its setu
     await db.prisma.user.deleteMany({ where: { email: { in: [ownerEmail, peerEmail] } } });
     await db.prisma.$disconnect();
     await db.pool.end();
+  }
+});
+
+test("branded team shows active and last-seen members without exposing other organizations", async ({
+  page,
+}, testInfo) => {
+  const email = `team-${randomUUID()}@rakazo.test`;
+  await signup(page, email, "password12", "Team Tester");
+  await completeOnboarding(page);
+  const signupCookies = await page.context().cookies();
+  const { prisma, pool } = createDb(process.env.DATABASE_URL!);
+  const teammateId = randomUUID();
+  let organizationId: string | undefined;
+  try {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const membership = await prisma.member.findFirstOrThrow({ where: { userId: user.id } });
+    organizationId = membership.organizationId;
+    await prisma.organization.update({
+      where: { id: organizationId },
+      data: { brandId: "vibecodephilly", name: "Vibe Code Philly" },
+    });
+    await prisma.user.create({
+      data: {
+        id: teammateId,
+        email: `teammate-${teammateId}@rakazo.test`,
+        name: "Team Colleague",
+        lastSignedInAt: new Date("2026-09-01T12:00:00Z"),
+      },
+    });
+    await prisma.member.create({
+      data: {
+        id: randomUUID(),
+        organizationId,
+        userId: teammateId,
+        role: "member",
+        createdAt: new Date(),
+        lastActiveAt: new Date("2026-09-02T12:00:00Z"),
+      },
+    });
+    await page.route(/\/(?:api\/auth|rpc)\//, async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const response = await route.fetch({
+        url: new URL(`${url.pathname}${url.search}`, process.env.API_URL!).toString(),
+        headers: { ...request.headers(), host: brandById("vibecodephilly")!.hostnames[0]! },
+      });
+      await route.fulfill({ response });
+    });
+    await page.goto("/app?__brand=vibecodephilly");
+    // Fail here, not at the test timeout, when the branded shell does not load.
+    await expect(page.getByTestId("user-menu-trigger")).toBeVisible();
+    await page.getByTestId("user-menu-trigger").click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    const team = page.getByRole("region", { name: "Team", exact: true });
+    await expect(team.getByTestId("team-member")).toHaveCount(2);
+    await expect(team.getByText("Team Colleague", { exact: true })).toBeVisible();
+    await expect(team.getByText("Last active", { exact: false })).toBeVisible();
+    await expect(team.getByText("Last sign-in", { exact: false })).toHaveCount(2);
+    await expect(team.getByText("Active now", { exact: true })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-brand", "vibecodephilly");
+    await team.scrollIntoViewIfNeeded();
+    await captureScreenshot(page, testInfo, "vibecodephilly-team-presence");
+    await page.context().clearCookies();
+    await page.goto("/sign-in?__brand=vibecodephilly");
+    await expect(page.getByRole("img", { name: "Vibe Code Philly" })).toBeVisible();
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
+      "href",
+      "/brands/vibecodephilly/favicon.png",
+    );
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to Vibe Code Philly" })).toHaveClass(
+      "sr-only",
+    );
+    await captureScreenshot(page, testInfo, "vibecodephilly-sign-in");
+  } finally {
+    try {
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+      if (organizationId)
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: { brandId: null },
+        });
+      await prisma.user.deleteMany({ where: { id: teammateId } });
+      await page.context().addCookies(signupCookies);
+      const removed = await page.request.post("/api/auth/delete-user", {
+        data: { password: "password12" },
+        headers: { origin: new URL(page.url()).origin },
+      });
+      expect(removed.ok()).toBe(true);
+      expect(await prisma.user.findUnique({ where: { email } })).toBeNull();
+      if (organizationId)
+        expect(await prisma.organization.findUnique({ where: { id: organizationId } })).toBeNull();
+    } finally {
+      try {
+        await prisma.$disconnect();
+      } finally {
+        await pool.end();
+      }
+    }
   }
 });

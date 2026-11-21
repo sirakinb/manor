@@ -1,5 +1,5 @@
+import type { SecretStore } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
-import type { EncryptedSecretStore } from "./secrets.js";
 
 /**
  * Per-organization provider logins for the Workspace (Buildium, Zoho, ...).
@@ -50,7 +50,7 @@ export type WorkspaceCredentialSummary = {
 /** Field names only; values stay sealed. */
 export async function listWorkspaceCredentials(
   prisma: PrismaClient,
-  secrets: EncryptedSecretStore,
+  secrets: Pick<SecretStore, "load">,
   workspaceId: string,
 ): Promise<WorkspaceCredentialSummary[]> {
   const rows = await prisma.workspaceCredential.findMany({
@@ -58,20 +58,22 @@ export async function listWorkspaceCredentials(
     include: { secret: { select: { id: true, ciphertext: true } } },
     orderBy: { provider: "asc" },
   });
-  return rows.map((row) => ({
-    provider: row.provider,
-    label: row.label,
-    fields: Object.keys(
-      parseWorkspaceCredentialFields(secrets.load(row.secret.ciphertext, row.secret.id)),
-    ).sort(),
-    updatedAt: row.updatedAt,
-  }));
+  return Promise.all(
+    rows.map(async (row) => ({
+      provider: row.provider,
+      label: row.label,
+      fields: Object.keys(
+        parseWorkspaceCredentialFields(await secrets.load(row.secret.ciphertext, row.secret.id)),
+      ).sort(),
+      updatedAt: row.updatedAt,
+    })),
+  );
 }
 
 /** The decrypted fields for one provider, or null when nothing is stored. */
 export async function loadWorkspaceCredential(
   prisma: PrismaClient,
-  secrets: EncryptedSecretStore,
+  secrets: Pick<SecretStore, "load">,
   workspaceId: string,
   provider: string,
 ): Promise<WorkspaceCredentialFields | null> {
@@ -80,7 +82,7 @@ export async function loadWorkspaceCredential(
     include: { secret: { select: { id: true, ciphertext: true } } },
   });
   if (!row) return null;
-  return parseWorkspaceCredentialFields(secrets.load(row.secret.ciphertext, row.secret.id));
+  return parseWorkspaceCredentialFields(await secrets.load(row.secret.ciphertext, row.secret.id));
 }
 
 /**
@@ -89,7 +91,7 @@ export async function loadWorkspaceCredential(
  */
 export async function saveWorkspaceCredential(
   prisma: PrismaClient,
-  secrets: EncryptedSecretStore,
+  secrets: Pick<SecretStore, "load" | "put">,
   scope: WorkspaceCredentialScope,
   input: { provider: string; label?: string; fields: Record<string, string> },
 ): Promise<WorkspaceCredentialSummary> {
@@ -98,7 +100,9 @@ export async function saveWorkspaceCredential(
     include: { secret: { select: { id: true, ciphertext: true } } },
   });
   const current = existing
-    ? parseWorkspaceCredentialFields(secrets.load(existing.secret.ciphertext, existing.secret.id))
+    ? parseWorkspaceCredentialFields(
+        await secrets.load(existing.secret.ciphertext, existing.secret.id),
+      )
     : {};
   const merged = mergeWorkspaceCredentialFields(current, input.fields);
   const sealed = await secrets.put(JSON.stringify(merged), {

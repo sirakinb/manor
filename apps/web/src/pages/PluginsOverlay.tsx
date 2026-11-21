@@ -10,7 +10,6 @@ import {
   abortableDelay,
   buildFeaturedConnectorTiles,
   CONNECTION_CATALOG_PAGE_SIZE,
-  EMPTY_PLUGIN_CATALOG_MESSAGE,
   filterConnectionCatalogItems,
   humanizeToolName,
 } from "@rakazo/core";
@@ -33,9 +32,9 @@ import { ChevronDown, ChevronLeft, ChevronUp, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IntegrationSetup } from "../components/integrations/IntegrationSetup";
 import { authClient } from "../lib/auth";
-import { brandName } from "../lib/brand";
 import { optionalCatalogFeedProbe } from "../lib/optional-catalog-feed";
 import { rpc } from "../lib/rpc";
+import { errorText } from "../lib/user-error";
 import { CrmApiAccessPanel } from "./CrmApiAccessPanel";
 
 type SourceKind = "treg" | "executor" | "mcp" | "api" | "graphql";
@@ -147,9 +146,7 @@ export function PluginsOverlay({
 
   useEffect(() => {
     void refresh()
-      .catch((err: unknown) =>
-        setCatalogError(err instanceof Error ? err.message : t`Could not load integrations`),
-      )
+      .catch((err: unknown) => setCatalogError(errorText(err, t`Could not load integrations`)))
       .finally(() => setLoading(false));
     return () => connectionAttempt.current?.abort();
   }, []);
@@ -278,7 +275,7 @@ export function PluginsOverlay({
       await refresh().catch(() => undefined);
     } catch (err) {
       if (controller.signal.aborted) return;
-      setCatalogError(err instanceof Error ? err.message : t`Could not connect`);
+      setCatalogError(errorText(err, t`Could not connect`));
     } finally {
       if (connectionAttempt.current === controller) {
         connectionAttempt.current = null;
@@ -312,7 +309,7 @@ export function PluginsOverlay({
       await refresh().catch(() => undefined);
       setToolsTick((tick) => tick + 1);
     } catch (err) {
-      setCatalogError(err instanceof Error ? err.message : t`Could not revoke connection`);
+      setCatalogError(errorText(err, t`Could not revoke connection`));
     } finally {
       setPending(null);
     }
@@ -336,7 +333,7 @@ export function PluginsOverlay({
       await refresh().catch(() => undefined);
       closeDetail();
     } catch (err) {
-      setCatalogError(err instanceof Error ? err.message : t`Could not revoke connection`);
+      setCatalogError(errorText(err, t`Could not revoke connection`));
       await refresh().catch(() => undefined);
     } finally {
       setPending(null);
@@ -357,7 +354,7 @@ export function PluginsOverlay({
       );
       setLabelDrafts((current) => ({ ...current, [row.id]: updated.displayName }));
     } catch (err) {
-      setCatalogError(err instanceof Error ? err.message : t`Could not rename connection`);
+      setCatalogError(errorText(err, t`Could not rename connection`));
     } finally {
       setPending(null);
     }
@@ -384,7 +381,7 @@ export function PluginsOverlay({
       setCatalogFeedResults(response.results);
       setCatalogFeedSearched(true);
     } catch (err) {
-      setCatalogFeedError(err instanceof Error ? err.message : t`Could not search catalog`);
+      setCatalogFeedError(errorText(err, t`Could not search catalog`));
     } finally {
       setCatalogFeedPending(false);
     }
@@ -443,7 +440,7 @@ export function PluginsOverlay({
       setSourceKind(null);
       await refresh();
     } catch (err) {
-      setSourceError(err instanceof Error ? err.message : t`Could not install connector`);
+      setSourceError(errorText(err, t`Could not install connector`));
     } finally {
       setPending(null);
     }
@@ -456,7 +453,7 @@ export function PluginsOverlay({
       await rpc.capabilities.remove({ id: install.id });
       setSources((current) => current.filter((source) => source.id !== install.id));
     } catch (err) {
-      setSourceError(err instanceof Error ? err.message : t`Could not remove connector`);
+      setSourceError(errorText(err, t`Could not remove connector`));
     } finally {
       setPending(null);
     }
@@ -1000,10 +997,7 @@ export function PluginsOverlay({
                         />
                       ) : null}
                       <p className="text-xs leading-5 text-muted-foreground">
-                        <Trans>
-                          {brandName} verifies the source before saving it. Credentials are
-                          encrypted and are never returned to clients or exposed to the model.
-                        </Trans>
+                        <Trans>Credentials are encrypted and never sent to the model.</Trans>
                       </p>
                       {sourceHint ? (
                         <p className="text-xs leading-5 text-muted-foreground">{sourceHint}</p>
@@ -1107,9 +1101,7 @@ export function PluginsOverlay({
                 onDone={() => {
                   setSetupOpen(false);
                   void refresh().catch((err: unknown) =>
-                    setCatalogError(
-                      err instanceof Error ? err.message : t`Could not load integrations`,
-                    ),
+                    setCatalogError(errorText(err, t`Could not load integrations`)),
                   );
                 }}
               />
@@ -1131,7 +1123,7 @@ export function PluginsOverlay({
                 <div className="mb-6" data-testid="featured-connectors">
                   {!loading && catalog.length === 0 ? (
                     <p className="text-[13.5px] leading-6 text-muted-foreground/80">
-                      {EMPTY_PLUGIN_CATALOG_MESSAGE}
+                      <Trans>Configure a plugin catalog on the server to connect apps.</Trans>
                     </p>
                   ) : (
                     <div className="grid grid-cols-2 gap-2">

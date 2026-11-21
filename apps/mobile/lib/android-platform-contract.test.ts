@@ -26,11 +26,12 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("KeyboardAvoidingView");
     expect(thread).toContain('behavior="height"');
     expect(thread).toContain("useHeaderHeight");
-    expect(thread).toContain("keyboardVerticalOffset={headerHeight}");
+    expect(thread).toContain("keyboardVerticalOffset={0}");
     expect(thread).not.toContain("automaticOffset");
     expect(thread).not.toContain("KeyboardStickyView");
     expect(thread).toContain("useSafeAreaInsets");
-    expect(thread).toContain("Math.max(insets.bottom + 12, 24)");
+    expect(thread).toContain("useKeyboardState");
+    expect(thread).toContain("keyboardVisible ? 12 : Math.max(insets.bottom + 12, 24)");
   });
 
   it("requests live-update promotion and exposes its Android settings", () => {
@@ -93,6 +94,7 @@ describe("Android mobile platform contract", () => {
     expect(module).toContain('AsyncFunction("setOpenThread")');
     expect(live).toContain("setOpenNotificationThread");
     expect(thread).toContain("if (!navigation.isFocused() || !notificationThreadId) return");
+    expect(thread).toContain("    }, [botId, notificationThreadId]),\n  );");
     expect(service).toContain(
       "fun clearSession(context: Context) {\n      synchronized(sessionLock)",
     );
@@ -102,7 +104,11 @@ describe("Android mobile platform contract", () => {
     expect(service).toContain('putString("rakazo.spaceId", run.spaceId)');
     expect(thread).toContain("export default function ThreadRoute()");
     expect(thread).toContain("selectSpace(requestedSpaceId)");
-    expect(thread).toContain("routeMatchesSelectedSpace) return <Thread />");
+    expect(thread).toContain(
+      "threadSpaceSwitchResult(requestedSpaceId, switched, selectedSpaceId())",
+    );
+    expect(thread).toContain('t("Could not switch spaces")');
+    expect(service).toMatch(/&threadId=\$\{Uri\.encode\(run\.threadId\)\}/);
     expect(service).toContain('if (run.groupId != null) put("groupId", run.groupId)');
     expect(service).toContain('if (message.optString("runId") != run.runId) continue');
     expect(service).toContain('if (block.optString("kind") == "handoff") return null');
@@ -128,6 +134,71 @@ describe("Android mobile platform contract", () => {
     );
     expect(service).toContain('putString("rakazo.botId", run.botId)');
     expect(service).toMatch(/if \(working\.isEmpty\(\)\) \{[\s\S]*stop\(\)[\s\S]*return[\s\S]*\}/);
+  });
+
+  it("keeps markdown boundary checks portable to Android and preserves Unicode whitespace edges", () => {
+    const service = readFileSync(
+      resolve(
+        mobileRoot,
+        "modules/rakazo-notifications/android/src/main/java/com/rakazo/notifications/RakazoNotificationService.kt",
+      ),
+      "utf8",
+    );
+
+    // Desktop Java accepts (?U), so a JVM-only regex test would miss Android's
+    // ICU parser failure. Keep the exact native source under the Android
+    // contract test and exercise the equivalent boundary semantics here.
+    const slash = String.fromCharCode(92);
+    const quote = String.fromCharCode(34);
+    const unicodeWhiteSpaceClass = `${slash}${slash}p{Z}${slash}${slash}u0009-${slash}${slash}u000D${slash}${slash}u0085`;
+    expect(service).toContain(
+      `private val NON_SPACE_AT_END = Regex(${quote}[^${unicodeWhiteSpaceClass}]${slash}${slash}z${quote})`,
+    );
+    expect(service).toContain(
+      `private val NON_SPACE_AT_START = Regex(${quote}^[^${unicodeWhiteSpaceClass}]${quote})`,
+    );
+    expect(service).not.toMatch(/Regex\(\s*["']\(\?U\)/);
+
+    const javascriptUnicodeWhiteSpaceClass = `${slash}p{Separator}${slash}u0009-${slash}u000D${slash}u0085`;
+    const nonSpaceAtEnd = new RegExp(`[^${javascriptUnicodeWhiteSpaceClass}]$`, "u");
+    const nonSpaceAtStart = new RegExp(`^[^${javascriptUnicodeWhiteSpaceClass}]`, "u");
+    const unicodeWhiteSpace = [
+      "\u0009",
+      "\u000A",
+      "\u000B",
+      "\u000C",
+      "\u000D",
+      "\u0020",
+      "\u0085",
+      "\u00A0",
+      "\u1680",
+      "\u2000",
+      "\u2001",
+      "\u2002",
+      "\u2003",
+      "\u2004",
+      "\u2005",
+      "\u2006",
+      "\u2007",
+      "\u2008",
+      "\u2009",
+      "\u200A",
+      "\u2028",
+      "\u2029",
+      "\u202F",
+      "\u205F",
+      "\u3000",
+    ];
+
+    for (const whitespace of unicodeWhiteSpace) {
+      expect(nonSpaceAtEnd.test(`text${whitespace}`)).toBe(false);
+      expect(nonSpaceAtStart.test(`${whitespace}text`)).toBe(false);
+    }
+    expect(nonSpaceAtEnd.test("text")).toBe(true);
+    expect(nonSpaceAtStart.test("text")).toBe(true);
+    // Zero-width space is not in Unicode White_Space and must remain content.
+    expect(nonSpaceAtEnd.test("text\u200B")).toBe(true);
+    expect(nonSpaceAtStart.test("\u200Btext")).toBe(true);
   });
 
   it("centers the latest-message control and clears a thread's Android notifications when read", () => {
@@ -166,20 +237,28 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("inGroup && workingGroupBots.length > 0 ?");
     expect(thread).toContain("workingGroupBots.length - index");
     expect(thread).toContain("agents working");
+    // Visible chrome is avatar-only; copy stays on accessibilityLabel.
+    expect(thread).toMatch(
+      /accessibilityLabel=\{\s*workingGroupBots\.length === 1[\s\S]*agents working/,
+    );
+    expect(thread).not.toMatch(
+      /workingGroupBots\.length === 1\s*\?[\s\S]*<Text[^>]*>\s*\{t\("\{name\} is working"/,
+    );
   });
 
   it("keeps send and stop separate while steering active work", () => {
     const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
+    const composer = readFileSync(resolve(mobileRoot, "components/thread-composer.tsx"), "utf8");
     const stopStart = thread.indexOf("async function stop()");
     const stopSource = thread.slice(stopStart, thread.indexOf("const answerMessage", stopStart));
     expect(stopStart).toBeGreaterThan(-1);
-    expect(thread).toContain('accessibilityLabel={t("Send")}');
-    expect(thread).toContain('accessibilityLabel={t("Stop")}');
+    expect(composer).toContain('accessibilityLabel={t("Send")}');
+    expect(composer).toContain('accessibilityLabel={t("Stop")}');
     expect(thread).not.toContain("Messages sent now guide the next turn.");
     expect(thread).not.toContain("Steer ");
     expect(thread).not.toContain("steering message");
     expect(thread).toContain('t("Message {name}"');
-    expect(thread).toContain("const clientNonce = newClientNonce()");
+    expect(thread).toContain("feedback.sendAttempt({");
     expect(thread).toContain("Work stopped, but the thread could not refresh");
     expect(stopSource).toContain("const targetBotId = botId;");
     expect(stopSource).toContain("const targetGroupId = groupId;");
@@ -187,10 +266,52 @@ describe("Android mobile platform contract", () => {
       "targetGroupId ? { groupId: targetGroupId } : { botId: targetBotId! },",
     );
     expect(stopSource).toMatch(
-      /if \(isCurrentTarget\(targetBotId, targetGroupId\)\) \{\s*setError\(err instanceof Error \? err\.message : t\("Failed to stop work"\)\);/,
+      /if \(isCurrentTarget\(targetBotId, targetGroupId\)\) \{\s*Alert\.alert\(t\("Failed to stop work"\), errorText\(err, t\("Try again\."\)\)\);/,
     );
     expect(stopSource).toMatch(
       /if \(isCurrentTarget\(targetBotId, targetGroupId\)\) \{\s*(?:const detail = [^\n]+;\s*)?setError\(t\("Work stopped, but the thread could not refresh: \{detail\}", \{ detail \}\)\);/,
+    );
+  });
+
+  it("clears only the unchanged origin composer after delivery settles and preserves send errors", () => {
+    const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
+    const send = thread.slice(
+      thread.indexOf("async function send()"),
+      thread.indexOf("async function stop()"),
+    );
+    const firstDelivery = send.indexOf("await deliver(attempt, () => {");
+    expect(firstDelivery).toBeGreaterThan(-1);
+    expect(send.slice(0, firstDelivery)).not.toContain("composerRef.current?.reset()");
+    const clear = send.slice(firstDelivery, send.indexOf("async function deliver"));
+    expect(clear).toMatch(
+      /if \(originThreadKey !== \(activeGroupId.current \?\? activeBotId.current\)\) return;\s*const current = composerRef.current\?\.snapshot\(\);\s*if \(!current\) return;\s*const settled = settleComposer/,
+    );
+    expect(clear).toContain("settleComposer(submitted, current)");
+    expect(clear).toMatch(
+      /setPendingAttachments\(\(current\) =>\s*current.filter\(\(attachment\) => !submitted.attachmentIds.includes\(attachment.id\)\)/,
+    );
+    expect(clear).toMatch(
+      /if \(!settled.clearComposer\) return;\s*composerRef.current\?\.reset\(\)/,
+    );
+    expect(send).toMatch(/finally \{\s*onSettled\?\.\(\);/);
+    expect(send).toContain('attempt.error = errorText(err, t("Failed to send message"))');
+    expect(thread).toContain("onRetry={() => void deliver(attempt)}");
+  });
+
+  it("offers Voice settings when speaking has no configured provider", () => {
+    const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
+    const speaking = thread.slice(
+      thread.indexOf("void speakQueue(items)"),
+      thread.indexOf("async function startVoiceCall()"),
+    );
+    expect(speaking).toMatch(
+      /if \(!spoken\)\s*Alert\.alert\(t\("Could not speak"\), t\("Add a voice provider in Voice settings\."\), \[\s*\{ text: t\("Cancel"\), style: "cancel" \},\s*\{ text: t\("Open Voice"\), onPress: \(\) => router\.push\("\/voice"\) \},\s*\]\)/,
+    );
+    expect(speaking).toContain(
+      'Alert.alert(t("Could not speak"), errorText(err, t("Try again.")))',
+    );
+    expect(readFileSync(resolve(mobileRoot, "app/(settings)/voice.tsx"), "utf8")).toContain(
+      "export default",
     );
   });
 

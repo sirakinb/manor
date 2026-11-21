@@ -1,5 +1,11 @@
 import type { AvatarStyle } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES, avatarIdentitySeed, organicAvatarPath } from "@rakazo/core";
+import {
+  ACTIVE_RUN_STATUSES,
+  avatarIdentitySeed,
+  organicAvatarPath,
+  SHIPPED_BOT_AVATAR_CENTER,
+  SHIPPED_BOT_AVATAR_VIEWBOX,
+} from "@rakazo/core";
 import { memo, useEffect } from "react";
 import { Image, View } from "react-native";
 import Animated, {
@@ -12,8 +18,9 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { G, Path, Rect } from "react-native-svg";
+import Svg, { Ellipse, G, Path, Rect } from "react-native-svg";
 import { workingAvatarDuration, workingAvatarFrame } from "../lib/avatar-motion";
+import { mobileBotAvatarPresentation } from "../lib/bot-avatar";
 import { useI18n } from "../lib/i18n";
 import { useAvatarStyle } from "./avatar-style";
 import { NativeSymbol } from "./native-symbol";
@@ -56,52 +63,74 @@ export const BotAvatar = memo(function BotAvatar({
   if (sprite) {
     return <Image source={sprite} resizeMode="contain" style={{ width: size, height: size }} />;
   }
+  const parsed = mobileBotAvatarPresentation(color);
+  const fillColor = parsed.kind === "shape" || parsed.kind === "color" ? parsed.color : color;
   const visorW = Math.round(size * 0.68);
   const visorH = Math.round(size * 0.44);
   const eyeW = Math.max(3, Math.round(size * 0.11));
   const eyeH = Math.max(4, Math.round(size * 0.17));
   const gap = Math.max(3, Math.round(size * 0.11));
-  return (
-    <View style={{ width: size, height: size }}>
-      {style === "organic" ? (
-        <OrganicAvatar color={color} identity={identity} size={size} isWorking={isWorking} />
-      ) : (
+  const picture =
+    parsed.kind === "image" && parsed.imageUrl ? (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          overflow: "hidden",
+        }}
+      >
+        <Image source={{ uri: parsed.imageUrl }} style={{ width: size, height: size }} />
+      </View>
+    ) : parsed.kind === "shape" ? (
+      <ShippedShapeAvatar
+        color={parsed.color}
+        eyeColor={parsed.eyeColor}
+        shapePath={parsed.shapePath}
+        size={size}
+      />
+    ) : style === "organic" ? (
+      <OrganicAvatar color={fillColor} identity={identity} size={size} isWorking={isWorking} />
+    ) : (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: fillColor,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <View
           style={{
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: color,
+            width: visorW,
+            height: visorH,
+            borderRadius: Math.round(visorH * 0.52),
+            backgroundColor: "#0C0C0E",
+            flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
+            gap,
           }}
         >
-          <View
-            style={{
-              width: visorW,
-              height: visorH,
-              borderRadius: Math.round(visorH * 0.52),
-              backgroundColor: "#0C0C0E",
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap,
-            }}
-          >
-            {[0, 1].map((eye) => (
-              <View
-                key={eye}
-                style={{
-                  width: eyeW,
-                  height: eyeH,
-                  borderRadius: Math.max(2, Math.round(eyeW * 0.6)),
-                  backgroundColor: "#fff",
-                }}
-              />
-            ))}
-          </View>
+          {[0, 1].map((eye) => (
+            <View
+              key={eye}
+              style={{
+                width: eyeW,
+                height: eyeH,
+                borderRadius: Math.max(2, Math.round(eyeW * 0.6)),
+                backgroundColor: "#fff",
+              }}
+            />
+          ))}
         </View>
-      )}
+      </View>
+    );
+  return (
+    <View style={{ width: size, height: size }}>
+      {picture}
       {isWorking ? (
         <View
           accessibilityLabel={t("Working")}
@@ -146,6 +175,29 @@ export const BotAvatar = memo(function BotAvatar({
     </View>
   );
 });
+
+function ShippedShapeAvatar({
+  color,
+  eyeColor,
+  shapePath,
+  size,
+}: {
+  color: string;
+  eyeColor: string;
+  shapePath: string;
+  size: number;
+}) {
+  const center = SHIPPED_BOT_AVATAR_CENTER;
+  return (
+    <Svg width={size} height={size} viewBox={SHIPPED_BOT_AVATAR_VIEWBOX}>
+      <Path d={shapePath} fill={color} />
+      <G fill={eyeColor}>
+        <Ellipse cx={center - 29} cy={center - 8} rx={10} ry={7} />
+        <Ellipse cx={center + 29} cy={center - 8} rx={10} ry={7} />
+      </G>
+    </Svg>
+  );
+}
 
 function OrganicAvatar({
   color,

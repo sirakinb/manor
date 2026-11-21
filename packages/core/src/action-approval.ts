@@ -9,6 +9,8 @@ const APPROVAL_EXEMPT_TOOLS = new Set([
   "browser_act",
   "list_files",
   "read_file",
+  "read_history",
+  "search_history",
   "write_file",
   "shell",
   "open_path",
@@ -29,6 +31,7 @@ const APPROVAL_REQUIRED_BUILTIN_TOOLS = new Set([
   "archive_bot",
   "secret_request",
   "forget_secret",
+  "forget_memory",
   "cloud_agent_launch",
   "cloud_agent_reply",
   "cloud_agent_cancel",
@@ -50,6 +53,7 @@ const UNATTENDED_SAFE_BUILTIN_TOOLS = new Set([
   "recall_memory",
   "request_takeover",
   "run_subagent",
+  "task_catalog",
   "schedule_list",
   "scratchpad_list",
   "skill_read",
@@ -81,7 +85,13 @@ export function connectorKindFromToolName(toolName: string, connectorKinds: stri
   return (segment ?? toolName).toLowerCase();
 }
 
-export function connectorToolRequiresApproval(toolName: string): boolean {
+/**
+ * `readOnly` is the connector tool's declared effect (for installed APIs, derived from the stored
+ * HTTP method and read-only flag). A declared write always needs approval. A declared read never
+ * relaxes the name check: the provider chooses both the name and the hint.
+ */
+export function connectorToolRequiresApproval(toolName: string, readOnly?: boolean): boolean {
+  if (readOnly === false) return true;
   if (MUTATING_CONNECTOR_PATTERN.test(toolName)) return true;
   if (COMPOUND_CONNECTOR_ACTION_PATTERN.test(toolName)) return true;
   return !READ_ONLY_CONNECTOR_PATTERN.test(toolName);
@@ -90,13 +100,14 @@ export function connectorToolRequiresApproval(toolName: string): boolean {
 export function toolRequiresApproval(
   toolName: string,
   viaConnector: boolean,
+  readOnly?: boolean,
   options?: { computerKind?: string },
 ): boolean {
   if (options?.computerKind === "local" && isLocalComputerMutatingTool(toolName)) return true;
   if (APPROVAL_EXEMPT_TOOLS.has(toolName)) return false;
   if (toolRequiresExplicitApproval(toolName, options)) return true;
   if (APPROVAL_REQUIRED_BUILTIN_TOOLS.has(toolName)) return true;
-  if (viaConnector) return connectorToolRequiresApproval(toolName);
+  if (viaConnector) return connectorToolRequiresApproval(toolName, readOnly);
   return false;
 }
 
@@ -114,16 +125,22 @@ export function unattendedTriggerToolRequiresApproval(
   trigger: string,
   toolName: string,
   viaConnector: boolean,
+  readOnly?: boolean,
 ): boolean {
   if (trigger !== "webhook") return false;
   return viaConnector
-    ? connectorToolRequiresApproval(toolName)
+    ? connectorToolRequiresApproval(toolName, readOnly)
     : !UNATTENDED_SAFE_BUILTIN_TOOLS.has(toolName);
 }
 
-function categoryMatches(category: string, toolName: string, connectorKind: string): boolean {
+function categoryMatches(
+  category: string,
+  toolName: string,
+  connectorKind: string,
+  readOnly: boolean | undefined,
+): boolean {
   const normalized = category.toLowerCase();
-  const consequential = connectorToolRequiresApproval(toolName);
+  const consequential = connectorToolRequiresApproval(toolName, readOnly);
   if (normalized === "email") {
     if (EMAIL_CONNECTOR_SLUGS.has(connectorKind.toLowerCase())) return consequential;
     return consequential && /send.*mail|gmail_send|outlook_send/i.test(toolName);
@@ -135,7 +152,12 @@ function categoryMatches(category: string, toolName: string, connectorKind: stri
   return false;
 }
 
-function ruleMatches(rule: ActionApprovalRule, toolName: string, connectorKind: string): boolean {
+function ruleMatches(
+  rule: ActionApprovalRule,
+  toolName: string,
+  connectorKind: string,
+  readOnly: boolean | undefined,
+): boolean {
   const value = rule.matchValue.toLowerCase();
   switch (rule.matchKind) {
     case "tool":
@@ -143,7 +165,7 @@ function ruleMatches(rule: ActionApprovalRule, toolName: string, connectorKind: 
     case "connector":
       return connectorKind.toLowerCase() === value;
     case "category":
-      return categoryMatches(rule.matchValue, toolName, connectorKind);
+      return categoryMatches(rule.matchValue, toolName, connectorKind, readOnly);
     default:
       return false;
   }
@@ -174,11 +196,12 @@ export type ActionApprovalResolved = {
 export function resolveActionApprovalDetail(input: {
   toolName: string;
   connectorKind?: string;
+  readOnly?: boolean;
   rules: ActionApprovalRule[];
 }): ActionApprovalResolved {
   const connectorKind = input.connectorKind ?? connectorKindFromToolName(input.toolName);
   const matchingRules = input.rules.filter((rule) =>
-    ruleMatches(rule, input.toolName, connectorKind),
+    ruleMatches(rule, input.toolName, connectorKind, input.readOnly),
   );
   if (matchingRules.length === 0) {
     return { decision: "allow", source: "default", matchingRules };
@@ -195,6 +218,7 @@ export function resolveActionApprovalDetail(input: {
 export function resolveActionApproval(input: {
   toolName: string;
   connectorKind?: string;
+  readOnly?: boolean;
   rules: ActionApprovalRule[];
 }): "ask" | "allow" {
   return resolveActionApprovalDetail(input).decision;

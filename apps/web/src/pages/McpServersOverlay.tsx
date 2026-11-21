@@ -27,6 +27,7 @@ import { Check, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { connectMcpOauth, finishMcpOauthFromPaste, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
+import { errorText } from "../lib/user-error";
 
 function oauthStatusText(server: McpServer): string | null {
   if (server.oauthStatus === "connected") return t`OAuth connected`;
@@ -85,9 +86,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
   }
 
   useEffect(() => {
-    void refresh().catch((err: unknown) =>
-      setError(err instanceof Error ? err.message : t`Could not load MCP servers`),
-    );
+    void refresh().catch((err: unknown) => setError(errorText(err, t`Could not load MCP servers`)));
   }, []);
 
   useEffect(() => {
@@ -174,7 +173,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
       setArgs("");
       setSelectedBotIds([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not add MCP server`);
+      setError(errorText(err, t`Could not add MCP server`));
     } finally {
       setSaving(false);
     }
@@ -203,7 +202,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
       }
       setOauthPending((current) => (current === server.id ? null : current));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not start OAuth`);
+      setError(errorText(err, t`Could not start OAuth`));
       setOauthPending(null);
     }
   }
@@ -233,7 +232,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
       const updated = await rpc.mcp.assignments.replace({ botId, assignments: next });
       setBotAssignments((map) => ({ ...map, [botId]: updated }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not update agent access`);
+      setError(errorText(err, t`Could not update agent access`));
     }
   }
 
@@ -248,7 +247,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
       await rpc.mcp.servers.remove({ id: server.id });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not delete MCP server`);
+      setError(errorText(err, t`Could not delete MCP server`));
     }
   }
 
@@ -259,7 +258,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
       await rpc.mcp.oauth.disconnect({ serverId: server.id });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not disconnect OAuth`);
+      setError(errorText(err, t`Could not disconnect OAuth`));
     } finally {
       setOauthPending(null);
     }

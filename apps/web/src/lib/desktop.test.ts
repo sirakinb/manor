@@ -80,6 +80,19 @@ describe("window chrome", () => {
     expect(controls.length).toBeGreaterThan(0);
     for (const control of controls) expect(control).toContain("app-no-drag");
   });
+
+  it("moves window chrome into the conversation header when the bots sidebar is collapsed", () => {
+    const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../pages");
+    const shell = readFileSync(path.join(root, "Shell.tsx"), "utf8");
+    expect(shell).toContain("{botsSidebarCollapsed && desktopBridge() ? <WindowChrome /> : null}");
+  });
+
+  it("puts Electron window chrome on the artifacts page, which has no sidebar", () => {
+    const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../pages");
+    const artifacts = readFileSync(path.join(root, "Artifacts.tsx"), "utf8");
+    expect(artifacts).not.toContain("AppRail");
+    expect(artifacts).toContain("{desktopBridge() ? <WindowChrome /> : null}");
+  });
 });
 
 describe("captured OAuth callbacks", () => {

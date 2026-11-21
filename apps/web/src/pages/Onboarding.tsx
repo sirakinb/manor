@@ -1,33 +1,127 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import {
+  CLOUDFLARE_AI_GATEWAY_PROVIDER_ID,
+  cloudflareGatewayRouting,
+  DEFAULT_MODEL_CONTEXT_WINDOW,
+  DEFAULT_MODEL_MAX_TOKENS,
   type IntegrationSetupState,
+  MAX_MODEL_CONTEXT_WINDOW,
+  MAX_MODEL_MAX_TOKENS,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   openAiCompatibleConnectReady,
   openAiCompatibleProbeSuccessMessage,
+  parseModelContextWindow,
+  parseModelMaxImagesPerPrompt,
+  parseModelMaxTokens,
   type Space,
+  type ThinkingLevel,
 } from "@rakazo/contracts";
 import {
+  COMPATIBLE_THINKING_LEVELS,
+  clampCatalogThinkingLevel,
   createModelProbe,
-  featuredModelProviders,
   initialModelProbeState,
-  selectedProviderOutsideSearchResults,
+  pickCatalogModelId,
 } from "@rakazo/core";
 import {
   Button,
   Input,
   ModelThinkingOptions,
-  NativeSelect,
-  NativeSelectOption,
-  Textarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@rakazo/ui-web";
-import { Check } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IntegrationSetup } from "../components/integrations/IntegrationSetup";
-import { localizedProviderHint } from "../lib/localized-provider-hint";
+import {
+  ModelPreflightFeedback,
+  modelPreflightTestingLabel,
+} from "../components/ModelConnectionPreflightNotice";
+import { useCopyText } from "../lib/copy-text";
 import type { ModelCatalogEntry } from "../lib/model-auth";
+import { thinkingLevelLabel } from "../lib/model-catalog";
+import type { ModelPreflightFailure } from "../lib/model-connection-preflight";
+import {
+  classifyModelConnectionFailure,
+  loadStoredModelAuth,
+  modelPreflightSuccessMessage,
+  runModelConnectionPreflight,
+  unavailableSelectedModel,
+} from "../lib/model-connection-preflight";
 import { initialMe, rpc } from "../lib/rpc";
 import { useModelOAuthSignIn } from "../lib/use-model-oauth-signin";
+import { errorText } from "../lib/user-error";
+
+const CUSTOM_MODEL_OPTION = "__rakazo_custom_model__";
+const DEFAULT_THINKING_LEVEL_OPTION = "__rakazo_default_thinking__";
+const FIRST_BOT_NAME = "Chief";
+const FIRST_BOT_SPAWN_KEY = "onboarding:first";
+const FIRST_BOT_LOCK = "rakazo:onboarding-first-bot";
+
+/** Survives StrictMode remounts; concurrent first-bot creates share one in-flight attempt. */
+let firstBotEnsure: Promise<{ id: string }> | null = null;
+
+function findFirstBot(
+  bots: Array<{ id: string; name: string; spawnKey: string | null }>,
+): { id: string } | undefined {
+  const bySpawnKey = bots.find((bot) => bot.spawnKey === FIRST_BOT_SPAWN_KEY);
+  if (bySpawnKey) return { id: bySpawnKey.id };
+  // Legacy first-run Chief created before spawnKey was set.
+  const byName = bots.find((bot) => bot.name === FIRST_BOT_NAME);
+  return byName ? { id: byName.id } : undefined;
+}
+
+async function createOrReuseFirstBot(): Promise<{ id: string }> {
+  const existing = await rpc.bots.list();
+  const reuse = findFirstBot(existing);
+  if (reuse) return reuse;
+  try {
+    const created = await rpc.bots.create({
+      name: FIRST_BOT_NAME,
+      title: "",
+      description: "",
+      instructions: "",
+      notifyOnFinish: true,
+      spawnKey: FIRST_BOT_SPAWN_KEY,
+    });
+    return { id: created.id };
+  } catch (error) {
+    // Another tab won the unique (spaceId, spawnKey) race; reuse that bot only.
+    const afterConflict = await rpc.bots.list();
+    const winner = afterConflict.find((bot) => bot.spawnKey === FIRST_BOT_SPAWN_KEY);
+    if (winner) return { id: winner.id };
+    throw error;
+  }
+}
+
+async function withFirstBotLock<T>(run: () => Promise<T>): Promise<T> {
+  const locks = globalThis.navigator?.locks;
+  if (!locks?.request) return run();
+  return locks.request(FIRST_BOT_LOCK, run);
+}
+
+async function ensureFirstBot(): Promise<{ id: string }> {
+  if (firstBotEnsure) return firstBotEnsure;
+  // Web Lock serializes cross-tab creates; module promise covers same-tab StrictMode.
+  // spawnKey makes create idempotent when locks are unavailable.
+  // Clear after settle so a later empty-space visit re-lists instead of reusing a deleted id.
+  firstBotEnsure = withFirstBotLock(createOrReuseFirstBot).finally(() => {
+    firstBotEnsure = null;
+  });
+  return firstBotEnsure;
+}
+
+function providerLabel(entry: ModelCatalogEntry): string {
+  return entry.provider === "openai-codex" ? "ChatGPT" : (entry.providerName ?? entry.provider);
+}
+
+function nextStepAfterModel(needsIntegrationSetup: boolean): "integrations" | "bot" {
+  return needsIntegrationSetup ? "integrations" : "bot";
+}
 
 export function OnboardingPage() {
   const { t } = useLingui();
@@ -36,42 +130,67 @@ export function OnboardingPage() {
   const [step, setStep] = useState<"loading" | "model" | "integrations" | "bot">("loading");
   const [integrationSetup, setIntegrationSetup] = useState<IntegrationSetupState | null>(null);
   const needsIntegrationSetup = integrationSetup?.needsSetup ?? false;
-  const creatingBot = useRef(false);
-  const [creating, setCreating] = useState(false);
-  const createdBot = useRef<Awaited<ReturnType<typeof rpc.bots.create>> | null>(null);
   const [integrationServers, setIntegrationServers] = useState<string[]>([]);
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [space, setSpace] = useState<Space | null>(null);
-  const [query, setQuery] = useState("");
-  const [showAllProviders, setShowAllProviders] = useState(false);
   const [provider, setProvider] = useState("openrouter");
   const [modelId, setModelId] = useState("");
+  const modelIdRef = useRef(modelId);
+  modelIdRef.current = modelId;
   const [apiKey, setApiKey] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [gatewayId, setGatewayId] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [reasoning, setReasoning] = useState(false);
-  const [{ models: probeModels, baseUrl: probedBaseUrl, probing }, setProbe] =
-    useState(initialModelProbeState);
+  const [manualModelId, setManualModelId] = useState(false);
+  const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel | null>(null);
+  const [maxTokens, setMaxTokens] = useState(String(DEFAULT_MODEL_MAX_TOKENS));
+  const [contextWindow, setContextWindow] = useState(String(DEFAULT_MODEL_CONTEXT_WINDOW));
+  const [supportsImages, setSupportsImages] = useState(false);
+  const [maxImagesPerPrompt, setMaxImagesPerPrompt] = useState("");
+  const [{ models: probeModels, probing }, setProbe] = useState(initialModelProbeState);
   const [modelProbe] = useState(() => createModelProbe(setProbe));
   const resetOpenAiCompatibleProbe = modelProbe.reset;
-  const [name, setName] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const createStartedRef = useRef(false);
+  const deploymentDefaultModelRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [preflightTesting, setPreflightTesting] = useState(false);
+  const [preflightTarget, setPreflightTarget] = useState<
+    "api-key" | "sign-in" | "compatible" | null
+  >(null);
+  const [preflightSuccess, setPreflightSuccess] = useState<string | null>(null);
+  const [preflightFailure, setPreflightFailure] = useState<ModelPreflightFailure | null>(null);
+  const preflightRevisionRef = useRef(0);
+  const [codeCopied, copyOAuthCode] = useCopyText();
 
   const {
     oauth,
     pasteCode,
     setPasteCode,
     oauthPending,
+    popupBlocked,
     cancelOAuthAttempt,
     startSubscriptionSignIn,
     submitOAuthCode,
   } = useModelOAuthSignIn({
     onClearError: () => setError(null),
     onError: setError,
-    onFinished: () => {
-      setStep(needsIntegrationSetup ? "integrations" : "bot");
+    onFinished: async () => {
+      // OAuth connect ignores thinkingLevel; persist the staged catalog choice.
+      const level = clampCatalogThinkingLevel(
+        thinkingLevel,
+        catalog.find((entry) => entry.provider === provider && entry.id === modelId)
+          ?.thinkingLevels,
+      );
+      if (level && provider !== OPENAI_COMPATIBLE_PROVIDER_ID && modelId) {
+        try {
+          await rpc.models.setDefault({ provider, modelId, thinkingLevel: level as ThinkingLevel });
+        } catch {
+          // The connection itself succeeded; the effort stays adjustable in Models.
+        }
+      }
+      setStep(nextStepAfterModel(needsIntegrationSetup));
     },
   });
 
@@ -93,6 +212,7 @@ export function OnboardingPage() {
         }
         setIntegrationSetup(integrations);
         setCatalog(models);
+        deploymentDefaultModelRef.current = me.defaultModel;
         const preferred =
           models.find(
             (entry) => entry.provider === me.defaultProvider && entry.id === me.defaultModel,
@@ -122,38 +242,6 @@ export function OnboardingPage() {
     return [...seen.values()];
   }, [catalog]);
 
-  const filteredProviders = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return providers;
-    const matching = new Set(
-      catalog
-        .filter((entry) =>
-          `${entry.provider} ${entry.providerName ?? ""} ${entry.label} ${entry.id} ${entry.billing} ${entry.oauthLabel ?? ""}`
-            .toLowerCase()
-            .includes(q),
-        )
-        .map((entry) => entry.provider),
-    );
-    return providers.filter((entry) => matching.has(entry.provider));
-  }, [catalog, providers, query]);
-
-  const displayedProviders = useMemo(
-    () => (showAllProviders ? filteredProviders : featuredModelProviders(providers, provider)),
-    [filteredProviders, provider, providers, showAllProviders],
-  );
-
-  const selectedProviderOutsideResults = useMemo(
-    () =>
-      showAllProviders
-        ? selectedProviderOutsideSearchResults(filteredProviders, providers, provider)
-        : undefined,
-    [filteredProviders, provider, providers, showAllProviders],
-  );
-
-  const providerRows = selectedProviderOutsideResults
-    ? [selectedProviderOutsideResults, ...displayedProviders]
-    : displayedProviders;
-
   const modelsForProvider = useMemo(
     () => catalog.filter((entry) => entry.provider === provider),
     [catalog, provider],
@@ -161,25 +249,70 @@ export function OnboardingPage() {
 
   const selected = modelsForProvider.find((entry) => entry.id === modelId) ?? modelsForProvider[0];
   const isOpenAiCompatible = provider === OPENAI_COMPATIBLE_PROVIDER_ID;
+  const isCloudflareGateway = provider === CLOUDFLARE_AI_GATEWAY_PROVIDER_ID;
+  const cloudflareRoutingReady =
+    !isCloudflareGateway || cloudflareGatewayRouting({ accountId, gatewayId }) !== undefined;
+  // Effort levels for the staged catalog model — "off" stays out, matching the
+  // model settings and per-bot Thinking pickers.
+  const catalogThinkingLevels =
+    !isOpenAiCompatible && selected
+      ? (selected.thinkingLevels ?? []).filter((level) => level !== "off")
+      : [];
   const subscriptionSignIn = selected?.signIn !== undefined;
   const acceptsKey = selected?.auth !== "oauth";
   const signInLabel = selected?.oauthLabel ?? t`Sign in`;
   const openAiCompatibleReady = openAiCompatibleConnectReady({
     baseUrl,
     modelId,
-    probedBaseUrl,
   });
-
   const canSaveModel = Boolean(
     selected &&
       modelId.trim() &&
       !oauthPending &&
+      cloudflareRoutingReady &&
       (isOpenAiCompatible ? openAiCompatibleReady : acceptsKey && apiKey.trim()),
   );
+  const otherModelLabel = t`Other model…`;
+  // Base UI Select.Value only resolves labels when Root gets `items`.
+  const providerItems = useMemo(
+    () => providers.map((entry) => ({ value: entry.provider, label: providerLabel(entry) })),
+    [providers],
+  );
+  const modelItems = useMemo(
+    () => modelsForProvider.map((entry) => ({ value: entry.id, label: entry.label })),
+    [modelsForProvider],
+  );
+  const thinkingLevelItems = useMemo(
+    () => [
+      {
+        value: DEFAULT_THINKING_LEVEL_OPTION,
+        label: t`Default (${thinkingLevelLabel("medium")})`,
+      },
+      ...catalogThinkingLevels.map((level) => ({ value: level, label: thinkingLevelLabel(level) })),
+    ],
+    [catalogThinkingLevels, t],
+  );
+  const probeModelItems = useMemo(
+    () => [
+      ...probeModels.map((id) => ({ value: id, label: id })),
+      { value: CUSTOM_MODEL_OPTION, label: otherModelLabel },
+    ],
+    [otherModelLabel, probeModels],
+  );
+
+  function invalidatePreflight() {
+    preflightRevisionRef.current += 1;
+    setPreflightTesting(false);
+    setPreflightTarget(null);
+    setPreflightSuccess(null);
+    setPreflightFailure(null);
+  }
 
   function updateBaseUrl(nextBaseUrl: string) {
     setBaseUrl(nextBaseUrl);
+    // Keep Other model… mode across URL edits; only provider change clears it.
     resetOpenAiCompatibleProbe();
+    invalidatePreflight();
     setError(null);
     setNotice(null);
   }
@@ -187,23 +320,140 @@ export function OnboardingPage() {
   function updateApiKey(nextApiKey: string) {
     setApiKey(nextApiKey);
     resetOpenAiCompatibleProbe();
+    invalidatePreflight();
+  }
+
+  function selectProvider(nextProvider: string) {
+    if (nextProvider === provider) return;
+    cancelOAuthAttempt();
+    setProvider(nextProvider);
+    setApiKey("");
+    setAccountId("");
+    setGatewayId("");
+    setModelId(
+      nextProvider === OPENAI_COMPATIBLE_PROVIDER_ID
+        ? ""
+        : pickCatalogModelId(catalog, nextProvider, deploymentDefaultModelRef.current),
+    );
+    setBaseUrl("");
+    setReasoning(false);
+    setThinkingLevel(null);
+    setManualModelId(false);
+    setSupportsImages(false);
+    setMaxTokens(String(DEFAULT_MODEL_MAX_TOKENS));
+    setContextWindow(String(DEFAULT_MODEL_CONTEXT_WINDOW));
+    setMaxImagesPerPrompt("");
+    resetOpenAiCompatibleProbe();
+    invalidatePreflight();
+    setError(null);
+    setNotice(null);
+  }
+
+  function preflightStillCurrent(revision: number): boolean {
+    return revision === preflightRevisionRef.current;
   }
 
   async function probeServerModels() {
     if (!baseUrl.trim()) return;
+    const revision = preflightRevisionRef.current;
     setError(null);
     setNotice(null);
+    setPreflightSuccess(null);
+    setPreflightFailure(null);
+    setPreflightTarget("compatible");
     await modelProbe.probe({
       baseUrl,
       apiKey,
       request: rpc.models.probeOpenAiCompatible,
       onSuccess: (models) => {
-        setModelId((current) => current.trim() || models[0] || "");
+        if (!preflightStillCurrent(revision)) return;
+        const trimmed = modelIdRef.current.trim();
+        const next = trimmed || models[0] || "";
+        if (next !== trimmed) setThinkingLevel(null);
+        // Stay in manual entry across re-probes so a typed id that matches a
+        // discovered model cannot yank the freeform field back to the Select.
+        setManualModelId(
+          (wasManual) => wasManual || (Boolean(trimmed) && !models.includes(trimmed)),
+        );
+        setModelId(next);
+        const unavailable = unavailableSelectedModel(trimmed, models);
+        if (unavailable) {
+          setPreflightFailure(unavailable);
+          setNotice(null);
+          return;
+        }
+        setPreflightTarget(null);
+        setPreflightFailure(null);
         setNotice(openAiCompatibleProbeSuccessMessage(models.length));
       },
-      onError: (err) =>
-        setError(err instanceof Error ? err.message : t`Could not reach this model server`),
+      onError: (err) => {
+        if (!preflightStillCurrent(revision)) return;
+        setPreflightFailure(classifyModelConnectionFailure(err, { modelId }));
+        setNotice(null);
+      },
     });
+  }
+
+  async function testApiKeyConnection() {
+    if (!selected?.catalogProbe) return;
+    const revision = preflightRevisionRef.current;
+    setPreflightTarget("api-key");
+    setPreflightTesting(true);
+    setPreflightSuccess(null);
+    setPreflightFailure(null);
+    setError(null);
+    setNotice(null);
+    const result = await runModelConnectionPreflight({
+      authKind: "api-key",
+      provider: selected.provider,
+      apiKey,
+      modelId: selected.id,
+      catalogProbe: true,
+      probeCatalog: rpc.models.probeCatalog,
+    });
+    if (!preflightStillCurrent(revision)) return;
+    setPreflightTesting(false);
+    if (result.ok) {
+      setPreflightSuccess(modelPreflightSuccessMessage(result.discoveredModels.length));
+      return;
+    }
+    setPreflightFailure(result.failure);
+  }
+
+  async function testOAuthConnection() {
+    if (!selected) return;
+    const revision = preflightRevisionRef.current;
+    setPreflightTarget("sign-in");
+    setPreflightTesting(true);
+    setPreflightSuccess(null);
+    setPreflightFailure(null);
+    setError(null);
+    setNotice(null);
+    const stored = await loadStoredModelAuth(
+      selected.provider,
+      () => rpc.models.credentials(),
+      selected.id,
+    );
+    if (!preflightStillCurrent(revision)) return;
+    const result = await runModelConnectionPreflight({
+      authKind: "oauth",
+      provider: selected.provider,
+      ...stored,
+    });
+    if (!preflightStillCurrent(revision)) return;
+    setPreflightTesting(false);
+    if (result.ok) {
+      setPreflightSuccess(t`A subscription credential is stored securely.`);
+      return;
+    }
+    setPreflightFailure(result.failure);
+  }
+
+  function stagedThinkingLevel(): ThinkingLevel | null {
+    return clampCatalogThinkingLevel(
+      thinkingLevel,
+      isOpenAiCompatible ? (reasoning ? COMPATIBLE_THINKING_LEVELS : []) : selected?.thinkingLevels,
+    ) as ThinkingLevel | null;
   }
 
   async function saveModel() {
@@ -211,11 +461,41 @@ export function OnboardingPage() {
     setError(null);
     try {
       if (isOpenAiCompatible) {
+        const parsedMaxImagesPerPrompt = parseModelMaxImagesPerPrompt(
+          maxImagesPerPrompt,
+          supportsImages,
+        );
+        if (supportsImages && maxImagesPerPrompt.trim() && parsedMaxImagesPerPrompt === undefined) {
+          setError(t`Enter a whole number from 1 to 1000 for the image limit.`);
+          return;
+        }
+        const maxImagesPerPromptInput =
+          supportsImages && !maxImagesPerPrompt.trim() ? null : parsedMaxImagesPerPrompt;
+
+        const parsedMaxTokens = parseModelMaxTokens(maxTokens);
+        if (parsedMaxTokens === undefined) {
+          setError(
+            t`Enter a whole number from 1 to ${MAX_MODEL_MAX_TOKENS} for maximum output tokens.`,
+          );
+          return;
+        }
+        const parsedContextWindow = parseModelContextWindow(contextWindow);
+        if (parsedContextWindow === undefined) {
+          setError(
+            t`Enter a whole number from 1 to ${MAX_MODEL_CONTEXT_WINDOW} for the context limit.`,
+          );
+          return;
+        }
         await rpc.models.connect({
           provider,
           baseUrl: baseUrl.trim(),
           modelId: modelId.trim(),
           reasoning,
+          thinkingLevel: stagedThinkingLevel(),
+          maxTokens: parsedMaxTokens,
+          contextWindow: parsedContextWindow,
+          supportsImages,
+          maxImagesPerPrompt: maxImagesPerPromptInput,
           apiKey: apiKey.trim() || undefined,
           label: selected?.providerName ?? provider,
         });
@@ -223,40 +503,45 @@ export function OnboardingPage() {
         await rpc.models.connect({
           provider,
           apiKey,
+          ...(isCloudflareGateway
+            ? { accountId: accountId.trim(), gatewayId: gatewayId.trim() }
+            : {}),
           modelId,
+          thinkingLevel: stagedThinkingLevel(),
           label: selected?.providerName ?? provider,
         });
       }
-      setStep(needsIntegrationSetup ? "integrations" : "bot");
+      // Catalog providers keep the staged effort on the saved model preference;
+      // openai-compatible already stored its level inside the endpoint config.
+      const level = stagedThinkingLevel();
+      if (level && !isOpenAiCompatible && modelId) {
+        await rpc.models.setDefault({ provider, modelId, thinkingLevel: level });
+      }
+      setStep(nextStepAfterModel(needsIntegrationSetup));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not save model`);
+      setError(errorText(err, t`Could not save model`));
     }
   }
 
   function beginSelectedSubscriptionSignIn() {
+    if (!selected?.id) return;
     void startSubscriptionSignIn({
-      provider,
-      modelId,
-      label: selected?.providerName ?? provider,
+      provider: selected.provider,
+      modelId: selected.id,
+      thinkingLevel: clampCatalogThinkingLevel(
+        thinkingLevel,
+        selected.thinkingLevels,
+      ) as ThinkingLevel | null,
+      label: selected.providerName ?? selected.provider,
     });
   }
 
-  async function createBot() {
-    if (creatingBot.current) return;
-    creatingBot.current = true;
-    setCreating(true);
+  async function createFirstBot() {
+    if (createStartedRef.current) return;
+    createStartedRef.current = true;
     setError(null);
     try {
-      const bot =
-        createdBot.current ??
-        (await rpc.bots.create({
-          name: name.trim(),
-          title,
-          description,
-          instructions: description,
-          notifyOnFinish: true,
-        }));
-      createdBot.current = bot;
+      const bot = await ensureFirstBot();
       for (const serverId of integrationServers) {
         await rpc.mcp.assignments.approve({ botId: bot.id, serverId });
       }
@@ -271,26 +556,19 @@ export function OnboardingPage() {
       }
       navigate(`/app/${bot.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t`Could not create your bot`);
-    } finally {
-      creatingBot.current = false;
-      setCreating(false);
+      createStartedRef.current = false;
+      setError(errorText(err, t`Could not create your bot`));
     }
   }
+
+  useEffect(() => {
+    if (step !== "bot") return;
+    void createFirstBot();
+  }, [step]);
 
   return (
     <div className="min-h-full bg-background px-6 py-12">
       <div className="mx-auto w-full max-w-[560px]">
-        {step !== "loading" ? (
-          <Button
-            variant="link"
-            size="xs"
-            className="mb-6 px-0 text-muted-foreground"
-            onClick={() => navigate("/app")}
-          >
-            <Trans>Back to app</Trans>
-          </Button>
-        ) : null}
         {step !== "loading" && space?.shared ? (
           <div className="mb-6 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">{space.name}</p>
@@ -313,102 +591,30 @@ export function OnboardingPage() {
                 SuperGrok, paste an API key, or skip if this deployment already has one.
               </Trans>
             </p>
-            <div className="mt-8 flex items-center justify-between gap-4">
-              <p className="text-sm font-medium text-foreground">
+            <div className="mt-8 block text-sm font-medium text-foreground">
+              <span>
                 <Trans>Provider</Trans>
-              </p>
-              <Button
-                variant="link"
-                size="xs"
-                className="px-0 text-muted-foreground"
-                onClick={() => {
-                  setShowAllProviders((current) => !current);
-                  setQuery("");
+              </span>
+              <Select
+                value={provider}
+                onValueChange={(value) => {
+                  if (typeof value !== "string" || !value) return;
+                  selectProvider(value);
                 }}
+                items={providerItems}
               >
-                {showAllProviders ? (
-                  <Trans>Show popular providers</Trans>
-                ) : (
-                  <Trans>Show all providers</Trans>
-                )}
-              </Button>
+                <SelectTrigger aria-label={t`Provider`} className="mt-2 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.map((entry) => (
+                    <SelectItem key={entry.provider} value={entry.provider}>
+                      {providerLabel(entry)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            {showAllProviders ? (
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label={t`Search providers and models`}
-                placeholder={t`Search providers and models`}
-                className="mt-3"
-              />
-            ) : null}
-            <fieldset
-              aria-label={t`Model providers`}
-              className={`mt-3 overflow-y-auto rounded-xl border border-border ${
-                showAllProviders ? "max-h-64" : ""
-              }`}
-            >
-              {providerRows.map((entry) => {
-                const isSelected = entry.provider === provider;
-                const isOutsideSearchResults =
-                  entry.provider === selectedProviderOutsideResults?.provider;
-                return (
-                  <button
-                    key={entry.provider}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => {
-                      if (isSelected) return;
-                      cancelOAuthAttempt();
-                      setProvider(entry.provider);
-                      setModelId(
-                        entry.provider === OPENAI_COMPATIBLE_PROVIDER_ID
-                          ? ""
-                          : (catalog.find((item) => item.provider === entry.provider)?.id ?? ""),
-                      );
-                      setBaseUrl("");
-                      setReasoning(false);
-                      resetOpenAiCompatibleProbe();
-                      setError(null);
-                      setNotice(null);
-                    }}
-                    className={`flex min-h-11 w-full items-center gap-3 border-b border-border px-3.5 py-2.5 text-left last:border-0 ${
-                      isSelected ? "bg-muted" : "hover:bg-accent"
-                    }`}
-                  >
-                    <span className="flex min-w-0 flex-1 items-center gap-2">
-                      <span
-                        className={`truncate text-[15px] text-foreground ${isSelected ? "font-medium" : ""}`}
-                      >
-                        {entry.provider === "openai-codex"
-                          ? "ChatGPT"
-                          : (entry.providerName ?? entry.provider)}
-                      </span>
-                      {isOutsideSearchResults ? (
-                        <span className="shrink-0 text-[11px] text-muted-foreground">
-                          <Trans>Selected</Trans>
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="text-[12px] text-muted-foreground">
-                      {localizedProviderHint(entry)}
-                    </span>
-                    <span className="flex size-5 shrink-0 items-center justify-center" aria-hidden>
-                      {isSelected ? (
-                        <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <Check className="size-3" strokeWidth={2.5} />
-                        </span>
-                      ) : null}
-                    </span>
-                  </button>
-                );
-              })}
-              {displayedProviders.length === 0 ? (
-                <p className="px-3.5 py-6 text-center text-sm text-muted-foreground">
-                  <Trans>No providers found</Trans>
-                </p>
-              ) : null}
-            </fieldset>
             <div className="mt-6 block text-sm text-foreground">
               {isOpenAiCompatible ? (
                 <>
@@ -424,14 +630,6 @@ export function OnboardingPage() {
                       className="mt-2"
                     />
                   </label>
-                  <details className="mt-2 text-[13px] leading-[1.5] text-muted-foreground">
-                    <summary className="w-fit cursor-pointer select-none">
-                      <Trans>Setup help</Trans>
-                    </summary>
-                    <p className="mt-1">
-                      {t`Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed.`}
-                    </p>
-                  </details>
                   <div className="mt-3">
                     <Button
                       variant="outline"
@@ -440,42 +638,68 @@ export function OnboardingPage() {
                     >
                       {probing ? <Trans>Finding…</Trans> : <Trans>Find models</Trans>}
                     </Button>
+                    {preflightTarget === "compatible" ? (
+                      <ModelPreflightFeedback success={null} failure={preflightFailure} />
+                    ) : null}
                   </div>
                   <div className="mt-4 block">
                     <span className="font-medium">
                       <Trans>Model</Trans>
                     </span>
-                    {probeModels.length && probeModels.includes(modelId) ? (
-                      <NativeSelect
+                    {probeModels.length && !manualModelId ? (
+                      <Select
                         value={modelId}
-                        onChange={(e) => setModelId(e.target.value)}
-                        aria-label={t`Models from server`}
-                        className="mt-2 w-full"
+                        onValueChange={(value) => {
+                          if (typeof value !== "string") return;
+                          const next = value;
+                          invalidatePreflight();
+                          if (next === CUSTOM_MODEL_OPTION) {
+                            setManualModelId(true);
+                            setModelId("");
+                          } else {
+                            setManualModelId(false);
+                            setModelId(next);
+                          }
+                        }}
+                        items={probeModelItems}
                       >
-                        {probeModels.map((id) => (
-                          <NativeSelectOption key={id} value={id}>
-                            {id}
-                          </NativeSelectOption>
-                        ))}
-                        <NativeSelectOption value="">
-                          <Trans>Other model…</Trans>
-                        </NativeSelectOption>
-                      </NativeSelect>
+                        <SelectTrigger aria-label={t`Models from server`} className="mt-2 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {probeModels.map((id) => (
+                            <SelectItem key={id} value={id}>
+                              {id}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value={CUSTOM_MODEL_OPTION}>
+                            <Trans>Other model…</Trans>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     ) : (
                       <Input
                         value={modelId}
-                        onChange={(e) => setModelId(e.target.value)}
+                        onChange={(e) => {
+                          setManualModelId(true);
+                          setModelId(e.target.value);
+                          invalidatePreflight();
+                        }}
                         aria-label={t`Model id`}
                         placeholder="exact-model-id"
                         className="mt-2"
                       />
                     )}
-                    {probeModels.length && !probeModels.includes(modelId) ? (
+                    {probeModels.length && manualModelId ? (
                       <Button
                         variant="link"
                         size="xs"
                         className="mt-2 px-0 text-muted-foreground"
-                        onClick={() => setModelId(probeModels[0] ?? "")}
+                        onClick={() => {
+                          setManualModelId(false);
+                          setModelId(probeModels[0] ?? "");
+                          invalidatePreflight();
+                        }}
                       >
                         <Trans>Use a found model</Trans>
                       </Button>
@@ -483,9 +707,38 @@ export function OnboardingPage() {
                   </div>
                   <ModelThinkingOptions
                     reasoning={reasoning}
-                    onReasoningChange={setReasoning}
+                    onReasoningChange={(value) => {
+                      setReasoning(value);
+                      if (!value) setThinkingLevel(null);
+                    }}
                     advancedLabel={t`Advanced`}
                     thinkingLabel={t`Supports thinking`}
+                    thinkingLevel={thinkingLevel}
+                    onThinkingLevelChange={(value) =>
+                      setThinkingLevel(value as ThinkingLevel | null)
+                    }
+                    thinkingLevelOptions={[
+                      { value: "minimal", label: t`Minimal` },
+                      { value: "low", label: t`Low` },
+                      { value: "medium", label: t`Medium` },
+                      { value: "high", label: t`High` },
+                      { value: "xhigh", label: t`Extra high` },
+                      { value: "max", label: t`Max` },
+                    ]}
+                    thinkingLevelLabel={t`Reasoning effort`}
+                    thinkingLevelDefaultLabel={t`Default`}
+                    maxTokens={maxTokens}
+                    onMaxTokensChange={setMaxTokens}
+                    maxTokensLabel={t`Maximum output tokens`}
+                    contextWindow={contextWindow}
+                    onContextWindowChange={setContextWindow}
+                    contextWindowLabel={t`Context limit`}
+                    supportsImages={supportsImages}
+                    onSupportsImagesChange={setSupportsImages}
+                    imagesLabel={t`Supports images`}
+                    maxImagesPerPrompt={maxImagesPerPrompt}
+                    onMaxImagesPerPromptChange={setMaxImagesPerPrompt}
+                    maxImagesLabel={t`Maximum images per request`}
                   />
                 </>
               ) : (
@@ -493,21 +746,60 @@ export function OnboardingPage() {
                   <span className="font-medium">
                     <Trans>Model</Trans>
                   </span>
-                  <NativeSelect
+                  <Select
                     value={selected?.id ?? modelId}
-                    onChange={(e) => {
+                    onValueChange={(value) => {
+                      if (typeof value !== "string" || !value) return;
+                      if (value === modelId) return;
                       cancelOAuthAttempt();
-                      setModelId(e.target.value);
+                      setModelId(value);
+                      setThinkingLevel(null);
+                      invalidatePreflight();
                     }}
-                    aria-label={t`Model`}
-                    className="mt-2 w-full"
+                    items={modelItems}
                   >
-                    {modelsForProvider.map((entry) => (
-                      <NativeSelectOption key={`${entry.provider}:${entry.id}`} value={entry.id}>
-                        {entry.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                    <SelectTrigger aria-label={t`Model`} className="mt-2 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {modelsForProvider.map((entry) => (
+                        <SelectItem key={`${entry.provider}:${entry.id}`} value={entry.id}>
+                          {entry.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {catalogThinkingLevels.length ? (
+                    <div className="mt-4 block">
+                      <span className="font-medium">
+                        <Trans>Thinking</Trans>
+                      </span>
+                      <Select
+                        value={thinkingLevel ?? DEFAULT_THINKING_LEVEL_OPTION}
+                        onValueChange={(value) => {
+                          const next = String(value);
+                          setThinkingLevel(
+                            next === DEFAULT_THINKING_LEVEL_OPTION ? null : (next as ThinkingLevel),
+                          );
+                        }}
+                        items={thinkingLevelItems}
+                      >
+                        <SelectTrigger aria-label={t`Thinking`} className="mt-2 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={DEFAULT_THINKING_LEVEL_OPTION}>
+                            {t`Default (${thinkingLevelLabel("medium")})`}
+                          </SelectItem>
+                          {catalogThinkingLevels.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {thinkingLevelLabel(level)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
                 </>
               )}
             </div>
@@ -518,18 +810,33 @@ export function OnboardingPage() {
                     {oauth.mode === "auth-url" ? (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          <Trans>
-                            Finish signing in at{" "}
-                            <a
-                              href={oauth.verificationUri}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-foreground underline"
-                            >
-                              {new URL(oauth.verificationUri).hostname}
-                            </a>
-                            . The final page may not load; paste its URL or code here.
-                          </Trans>
+                          {popupBlocked ? (
+                            <Trans>
+                              Open{" "}
+                              <a
+                                href={oauth.verificationUri}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-foreground underline"
+                              >
+                                {new URL(oauth.verificationUri).hostname}
+                              </a>{" "}
+                              to finish signing in.
+                            </Trans>
+                          ) : (
+                            <Trans>
+                              Finish signing in at{" "}
+                              <a
+                                href={oauth.verificationUri}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-foreground underline"
+                              >
+                                {new URL(oauth.verificationUri).hostname}
+                              </a>
+                              . The final page may not load; paste its URL or code here.
+                            </Trans>
+                          )}
                         </p>
                         <div className="mt-3 flex items-center gap-2">
                           <Input
@@ -548,38 +855,131 @@ export function OnboardingPage() {
                           </Button>
                         </div>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          <Trans>Waiting for sign-in…</Trans>
+                          <Plural
+                            value={Math.ceil(oauth.expiresInSeconds / 60)}
+                            one="Waiting for sign-in — the link expires in about # minute."
+                            other="Waiting for sign-in — the link expires in about # minutes."
+                          />
                         </p>
                       </>
                     ) : (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          <Trans>
-                            Enter this code at{" "}
-                            <a
-                              href={oauth.verificationUri}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-foreground underline"
-                            >
-                              {oauth.verificationUri.replace(/^https:\/\//, "")}
-                            </a>
-                          </Trans>
+                          {popupBlocked ? (
+                            <Trans>
+                              Open{" "}
+                              <a
+                                href={oauth.verificationUri}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-foreground underline"
+                              >
+                                {oauth.verificationUri.replace(/^https:\/\//, "")}
+                              </a>{" "}
+                              and enter this code:
+                            </Trans>
+                          ) : (
+                            <Trans>
+                              A sign-in tab opened at{" "}
+                              <a
+                                href={oauth.verificationUri}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-foreground underline"
+                              >
+                                {oauth.verificationUri.replace(/^https:\/\//, "")}
+                              </a>
+                              . Enter this code there — this window keeps waiting:
+                            </Trans>
+                          )}
                         </p>
-                        <p className="mt-2 font-mono text-[22px] tracking-[0.2em] text-foreground">
-                          {oauth.userCode}
-                        </p>
+                        <div className="mt-2 flex items-center gap-3">
+                          <p className="font-mono text-[22px] tracking-[0.2em] text-foreground">
+                            {oauth.userCode}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyOAuthCode(oauth.userCode)}
+                          >
+                            {codeCopied ? (
+                              <Check size={14} strokeWidth={1.8} aria-hidden="true" />
+                            ) : (
+                              <Copy size={14} strokeWidth={1.8} aria-hidden="true" />
+                            )}
+                            {codeCopied ? <Trans>Copied</Trans> : <Trans>Copy</Trans>}
+                          </Button>
+                        </div>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          <Trans>Waiting for sign-in…</Trans>
+                          <Plural
+                            value={Math.ceil(oauth.expiresInSeconds / 60)}
+                            one="Waiting for sign-in — the code expires in about # minute."
+                            other="Waiting for sign-in — the code expires in about # minutes."
+                          />
                         </p>
                       </>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 -ml-2 text-muted-foreground"
+                      onClick={() => cancelOAuthAttempt()}
+                    >
+                      <Trans>Cancel</Trans>
+                    </Button>
                   </div>
                 ) : (
                   <Button disabled={oauthPending} onClick={() => beginSelectedSubscriptionSignIn()}>
                     {oauthPending ? <Trans>Starting…</Trans> : signInLabel}
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3"
+                  disabled={oauthPending || preflightTesting}
+                  onClick={() => void testOAuthConnection()}
+                >
+                  {modelPreflightTestingLabel(
+                    preflightTesting && preflightTarget === "sign-in",
+                    "sign-in",
+                  )}
+                </Button>
+                {preflightTarget === "sign-in" ? (
+                  <ModelPreflightFeedback success={preflightSuccess} failure={preflightFailure} />
+                ) : null}
+              </div>
+            ) : null}
+            {isCloudflareGateway && acceptsKey ? (
+              <div className="mt-4 grid gap-4">
+                <label
+                  htmlFor={`${fieldId}-account-id`}
+                  className="block text-sm font-medium text-foreground"
+                >
+                  <Trans>Account ID</Trans>
+                  <Input
+                    id={`${fieldId}-account-id`}
+                    value={accountId}
+                    onChange={(event) => setAccountId(event.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="mt-2"
+                  />
+                </label>
+                <label
+                  htmlFor={`${fieldId}-gateway-id`}
+                  className="block text-sm font-medium text-foreground"
+                >
+                  <Trans>Gateway ID</Trans>
+                  <Input
+                    id={`${fieldId}-gateway-id`}
+                    value={gatewayId}
+                    onChange={(event) => setGatewayId(event.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="mt-2"
+                  />
+                </label>
               </div>
             ) : null}
             {acceptsKey ? (
@@ -615,15 +1015,31 @@ export function OnboardingPage() {
                   />
                 </label>
               )
-            ) : subscriptionSignIn ? null : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                <Trans>
-                  This provider cannot paste a key here. Skip if this deployment already has
-                  credentials.
-                </Trans>
+            ) : null}
+            {acceptsKey && !isOpenAiCompatible && selected?.catalogProbe ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3"
+                  disabled={preflightTesting || apiKey.trim().length < 8}
+                  onClick={() => void testApiKeyConnection()}
+                >
+                  {modelPreflightTestingLabel(
+                    preflightTesting && preflightTarget === "api-key",
+                    "api-key",
+                  )}
+                </Button>
+                {preflightTarget === "api-key" ? (
+                  <ModelPreflightFeedback success={preflightSuccess} failure={preflightFailure} />
+                ) : null}
+              </>
+            ) : null}
+            {notice ? (
+              <p className="mt-3 text-sm text-success" role="status">
+                {notice}
               </p>
-            )}
-            {notice ? <p className="mt-3 text-sm text-success">{notice}</p> : null}
+            ) : null}
             {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
             <div className="mt-6 flex gap-3">
               <Button disabled={!canSaveModel} onClick={() => void saveModel()}>
@@ -644,54 +1060,18 @@ export function OnboardingPage() {
         ) : null}
         {step === "bot" ? (
           <div>
-            <h1 className="text-[32px] font-medium text-foreground">
-              <Trans>Create your first bot</Trans>
-            </h1>
-            <label htmlFor={`${fieldId}-name`} className="mt-8 block text-sm text-muted-foreground">
-              <Trans>Name</Trans>
-              <Input
-                id={`${fieldId}-name`}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t`Name this bot`}
-                className="mt-2"
-              />
-            </label>
-            <label
-              htmlFor={`${fieldId}-title`}
-              className="mt-4 block text-sm text-muted-foreground"
-            >
-              <Trans>Title</Trans>
-              <Input
-                id={`${fieldId}-title`}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t`Describe what this bot does`}
-                className="mt-2"
-              />
-            </label>
-            <label
-              htmlFor={`${fieldId}-description`}
-              className="mt-4 block text-sm text-muted-foreground"
-            >
-              <Trans>Description</Trans>
-              <Textarea
-                id={`${fieldId}-description`}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t`What this bot is for`}
-                rows={4}
-                className="mt-2"
-              />
-            </label>
-            {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
-            <Button
-              className="mt-6"
-              disabled={creating || !name.trim()}
-              onClick={() => void createBot()}
-            >
-              <Trans>Continue</Trans>
-            </Button>
+            {error ? (
+              <div>
+                <p className="text-sm text-destructive">{error}</p>
+                <Button className="mt-4" onClick={() => void createFirstBot()}>
+                  <Trans>Try again</Trans>
+                </Button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                <Trans>Opening chat…</Trans>
+              </p>
+            )}
           </div>
         ) : null}
       </div>

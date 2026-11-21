@@ -1,11 +1,15 @@
 <!-- Modified for Manor: project terminology and documentation guidance. -->
 # Self-hosting Manor
 
-The signed-in product is a long-running API, a Graphile Worker, Postgres, and a computer provider (Docker supervisor, E2B, Daytona, or Box). It is not a static site. The marketing site in `apps/www` can be hosted separately.
+The signed-in product is a long-running API, a Graphile Worker, Postgres, and a computer provider (Docker supervisor, E2B, Daytona, CreateOS, or Box). It is not a static site. The marketing site in `apps/www` can be hosted separately.
 
 ## Local (source checkout)
 
 Same as the README quick start: `.env` from `.env.example`, Postgres via Compose, `pnpm sandbox:build`, `pnpm dev`, then [http://127.0.0.1:5173](http://127.0.0.1:5173) (or `http://localhost:5173` — both loopback hosts are trusted). Electron: `pnpm --filter @rakazo/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), using port 45173 by default so it can run alongside `pnpm dev`. If that port is occupied, the app selects and remembers another loopback port. The managed API gets a Docker-assigned loopback port; all desktop traffic uses the web origin.
+
+For source development in WSL, keep the checkout and `data` directory in the Linux filesystem (for example, `~/manor`), and run `pnpm dev` as your normal user. The host-run supervisor matches bot container UID/GID to that user. If Docker Desktop container IPs are unreachable, set `SANDBOX_CONTROL_VIA_LOOPBACK=true` in `.env`; this publishes the token-protected control service on a random loopback port. Leave this unset for the Compose-hosted supervisor.
+
+Compose bot homes mount only their own subdirectory of the application volume using Docker volume semantics. Docker's internal volume paths are never used as host bind mounts.
 
 ## One-command VPS install
 
@@ -31,7 +35,7 @@ To run it without prompts (for example from an agent over SSH), set `MANOR_HOST`
 ## Published images (no checkout)
 
 Pull Postgres and `ghcr.io/sirakinb/manor/app` into any empty folder. No clone or image build.
-Requires Docker Engine, the Compose plugin, curl, and OpenSSL.
+Requires Docker Engine 26+ (API 1.45+ for bot home volume subpaths), the Compose plugin, curl, and OpenSSL.
 
 ```bash
 mkdir -p manor && cd manor &&
@@ -89,10 +93,18 @@ release keep Docker's default bridge names until the bot's computer is deleted a
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
 (from the app image, on the internal network only) and pulls `ghcr.io/sirakinb/manor/computer`.
 Signup and local Docker computers work without an E2B account. Optional remote providers: set
-`SANDBOX_PROVIDER` to `e2b`, `daytona`, or `box` and add the matching API key. The published-images
+`SANDBOX_PROVIDER` to `e2b`, `daytona`, `createos`, or `box` and add the matching API key. The published-images
 Compose stack requires `SANDBOX_SUPERVISOR_TOKEN` for every provider; leave it empty and `compose up` fails closed.
 
 Optional: set `OPENROUTER_API_KEY` or connect a model in the UI after signup.
+A provider that authenticates from the host needs no key: for Amazon Bedrock with an ECS task,
+IRSA or EC2 instance role, opt in with `PI_DEFAULT_CREDENTIALS=host` and set
+`PI_DEFAULT_PROVIDER=amazon-bedrock`, `PI_DEFAULT_MODEL` and `AWS_REGION`. With an instance
+role, also complete both steps in [Restricted computer egress](#restricted-computer-egress):
+`SANDBOX_COMPUTER_EGRESS=restricted` alone does not stop bot computers reading the role's
+credentials from the metadata endpoint.
+Auto Review uses that LLM checker by default. To use TypeSafe Jev instead, set
+`RAKAZO_AUTO_REVIEW_PROVIDER=jev` and `TYPESAFE_API_KEY`. Core still runs with neither.
 
 The example defaults to `edge` (main builds). Every publish is multi-arch (`amd64` + `arm64`), so
 arm64 hosts need no special tag. Do not assume `latest` is present until a stable release exists.
@@ -137,9 +149,61 @@ Docker computer topology:
 Set any of them to `0`, `none` or `unlimited` to remove that ceiling. A malformed value fails the
 supervisor at startup naming the variable, rather than surfacing later as a failed bot.
 
+### Restricted computer egress
+
+Docker computers have full outbound access by default — the public internet plus the Docker
+host's own addresses, the LAN, and link-local cloud metadata endpoints such as
+`169.254.169.254`. On a cloud VM that last path is instance-credential theft for anything a
+bot runs. Restricted mode keeps public internet egress (browsing, DNS, apt, git over SSH)
+while dropping computer traffic to every non-public destination and to the host itself.
+
+Manor already names every per-bot bridge `mnrc…`, whatever this flag says, and the
+[agent computer firewall](#agent-computer-firewall) above is the ruleset Manor deploys.
+`restrict-computer-egress.sh` is upstream's alternative. It matches `rakazo-c*` bridges, so it
+does not cover Manor's bridges until its `BRIDGE_PREFIX` is set to `mnrc`.
+
+It takes two parts, both opt-in:
+
+1. Set `SANDBOX_COMPUTER_EGRESS=restricted` in `.env` and recreate the supervisor. It then
+   replaces any computer network that still has a generic `br-*` bridge, so every one carries
+   the deterministic host bridge name.
+2. Apply the host ruleset once per Docker host:
+
+   ```bash
+   sudo bash infra/compose/restrict-computer-egress.sh
+   ```
+
+   On a no-checkout install, download it first:
+   `curl -fsSLO https://raw.githubusercontent.com/sirakinb/manor/main/infra/compose/restrict-computer-egress.sh`.
+   The script drops forwarded traffic from `rakazo-c*` bridges to all non-public IPv4/IPv6
+   destinations via the `DOCKER-USER` chain, adds an `INPUT` drop so computers cannot open
+   connections to the host (established replies to host-initiated control and screen
+   connections still flow), and installs a systemd oneshot so the rules return after a
+   reboot. `--print` shows the exact rules without changing anything; `--remove` uninstalls.
+
+Screen streaming is unaffected: the supervisor and web proxy join each computer's bridge,
+and the ruleset exempts traffic whose in- and out-interface are both `rakazo-c*` before
+any drop (that exemption is load-bearing on hosts where `br_netfilter` feeds bridged
+frames through `FORWARD`). Rules match interface names rather than subnets, so computer
+create/delete cycles need no firewall maintenance; deleting a computer removes its
+traffic from the match and nothing else. A computer provisioned before the flag flips
+is replaced on its next provision — resuming it on an unnamed bridge would bypass the
+restriction.
+
+To disable restricted egress, set `SANDBOX_COMPUTER_EGRESS=open`, recreate the
+supervisor, and run `sudo bash infra/compose/restrict-computer-egress.sh --remove`.
+The flag alone does not uninstall the host rules, which keep matching the still-named
+`rakazo-c*` bridges until removed.
+
+Do not enable restricted egress if computers must reach LAN services, an internal proxy,
+or endpoints bound to the host. Requires Linux Docker Engine with the iptables backend —
+Docker Desktop, rootless Docker, and `firewall-backend: nftables` are unsupported. The
+`SANDBOX_SCREEN_NETWORK=internal` topology shares one network instead of per-bot bridges,
+so the mode does not apply there.
+
 ## Docker Compose (single machine)
 
-1. Copy `.env.example` to `.env` and set `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, and `SCREEN_PROXY_SECRET` to independent long random strings (32+ characters; 64 hex for `ENCRYPTION_KEY`). Docker sandboxes also need a dedicated `SANDBOX_SUPERVISOR_TOKEN`. Keep existing `ENCRYPTION_KEY` values so stored credentials stay decryptable.
+1. Copy `.env.example` to `.env` and set `POSTGRES_PASSWORD` (`openssl rand -hex 16`), plus `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, and `SCREEN_PROXY_SECRET` to independent long random strings (32+ characters; 64 hex for `ENCRYPTION_KEY`). Docker sandboxes also need a dedicated `SANDBOX_SUPERVISOR_TOKEN`. Keep existing `ENCRYPTION_KEY` values so stored credentials stay decryptable.
 2. Set `OPENROUTER_API_KEY` (and `COMPOSIO_API_KEY` if you want Plugins).
 3. Build the computer image: `pnpm sandbox:build` (Compose also builds it via the `computer` service).
 4. `docker compose --env-file .env -f infra/compose/docker-compose.yml up --build`
@@ -149,7 +213,18 @@ On Windows, if an older clone with `core.autocrlf=true` leaves the computer pane
 
 Compose runs Postgres, the sandbox supervisor (Docker socket), API, worker, and a Vite preview of the web app. Bot computers are sibling containers (`rakazo/computer:local`) on separate per-bot networks; only the supervisor and screen proxy join each one. The API process does not get an unrestricted Docker socket; the supervisor owns the lifecycle.
 
-Postgres is published on **loopback only** (`127.0.0.1:5433` on the host). Do not expose that port on a public VPS. Change `POSTGRES_PASSWORD` and keep Postgres on an internal network when you deploy remotely.
+Postgres stays on the Compose network only (not published on the host), matching the images
+compose. Credentials come from `.env` (`POSTGRES_PASSWORD` is required). Prefer a URI-safe value
+(`openssl rand -hex 16`); characters such as `@ : / ? # %` break the interpolated `DATABASE_URL`
+inside Compose. Official Postgres images set user, password, and database only on first volume
+init, so an existing `pgdata` volume keeps its original identity: keep those values in `.env`, or
+change them in place with `ALTER ROLE` / rename. Recreate the volume only after a backup (or when
+the data is disposable); `docker compose down -v` deletes all Postgres state. For host-side clients
+(`pnpm db:migrate`, GUI tools),
+add `infra/compose/docker-compose.postgres-host.yml` so Postgres is published on loopback
+`127.0.0.1:5433`, or use
+`docker compose --env-file .env -f infra/compose/docker-compose.yml exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`.
+Do not publish Postgres on a public interface.
 
 The Docker supervisor is not published as its own image and is not exposed on the host. It runs from
 the app image, stays on the internal Compose network, and holds the Docker socket because access to
@@ -167,15 +242,88 @@ WEB_ORIGIN=https://app.example.com
 API_URL=https://app.example.com
 ```
 
-Cookies and CORS follow those origins. `SIGNUPS_ENABLED` / `SIGNUP_ALLOWLIST` seed the signup
-policy when the API starts for the first time. They are not reapplied on restart, so configure them
-before that first start.
+Cookies and CORS follow those origins. `SIGNUPS_ENABLED` seeds whether registration is open
+when the API starts for the first time and is not reapplied on restart. A non-empty
+`SIGNUP_ALLOWLIST` is applied on every API start, replacing the allowlist stored for the deployment.
+Leave it empty to keep that stored list.
 
-With a nonempty signup allowlist, users—including existing accounts—must verify their email to sign
-in. Configure SMTP below before enabling an allowlist or upgrading an allowlisted deployment.
+With a nonempty signup allowlist and SMTP configured, users—including existing accounts—must
+verify their email to sign in. On a fresh instance with no SMTP, the first allowlisted account
+can register without verification. That signup does not prove mailbox ownership, so create the
+account before exposing the service. Further accounts still need SMTP.
 
 For a public deployment, configure SMTP and an allowlist before the API's first start.
 Keep an installation without email on a trusted local network.
+
+### Optional OpenID Connect SSO
+
+SSO works with a self-hosted or hosted OpenID Connect provider. Leave its settings unset to
+keep password authentication alone. Configure all three credentials together on the API:
+
+```env
+OIDC_ISSUER=https://identity.example.com
+OIDC_CLIENT_ID=replace-with-client-id
+OIDC_CLIENT_SECRET=replace-with-client-secret
+OIDC_NAME=SSO
+OIDC_SCOPES=openid email profile
+AUTH_PASSWORD_ENABLED=true
+OIDC_ALLOW_SIGNUP_BYPASS=false
+```
+
+The issuer must be HTTPS and exactly match the discovery document's issuer. Manor loads
+`<issuer>/.well-known/openid-configuration`, verifies ID tokens against discovery JWKS with
+issuer, audience and nonce checks, and uses authorization codes with PKCE. Additional scopes
+may be space- or comma-separated; `openid email profile` are always requested. `OIDC_NAME`
+is the button label, defaulting to “SSO”. Secrets remain on the API; Compose clears the worker's
+OIDC credentials. The capabilities endpoint exposes only the label, discovery availability,
+and enabled authentication methods.
+
+Register this redirect URI at the provider (using your public `BETTER_AUTH_URL` origin):
+
+```text
+https://app.example.com/api/auth/callback/oidc
+```
+
+Web, Electron and mobile use the same provider redirect URI. Electron completes SSO in a
+sandboxed in-app popup sharing the app's session, then returns to the main window. Mobile completes the callback
+on the API, then returns to `rakazo://sign-in` (or `rakazo://account` for linking and reauthentication) through Better Auth's Expo authorization proxy
+and a native auth browser session. The `rakazo` app scheme is trusted by the auth server;
+never register a client secret in the mobile app. Mobile stores the resulting session with
+SecureStore, like password sign-in. Native builds need the Expo WebBrowser module.
+
+Provider emails are verified only when `email_verified` is the boolean `true`. False or missing
+claims stay unverified, including on subsequent sign-ins. Sign-in never links accounts by email.
+If an email belongs to another account, sign in to that existing account and choose **Link SSO**
+in account settings. Linking requires an authenticated session, a verified provider email and
+matching email addresses. The issuer and provider subject identify the linked account thereafter. Changing issuers does
+not reuse an old identity. Old-issuer links remain stored but do not count as linked to the
+current provider, so **Link SSO** becomes available again. Link the new identity from the
+existing signed-in account; authenticated-session, verified-email and matching-email checks
+still apply. Restoring the old issuer makes its existing links usable again.
+
+SSO signup follows closed registration and the deployment allowlist before creating an account.
+Allowlisted provider emails must be verified; the password signup's first-account exemption
+never upgrades an OIDC email. `OIDC_ALLOW_SIGNUP_BYPASS=true` explicitly admits IdP identities
+without applying the allowlist or its email-verification admission requirement. Enable it only
+when the IdP controls who may join this deployment. It does **not** reopen closed registration,
+and does not change email verification claims or linking rules. Existing admitted accounts can
+sign in while registration is closed.
+
+Set `AUTH_PASSWORD_ENABLED=false` for SSO-only operation. Password sign-in, signup, password
+reset and password mutation endpoints are disabled server-side, and sign-in forms are hidden.
+The API refuses to start in this mode unless all OIDC credentials are configured. It can still
+start while discovery is temporarily unavailable: the provider remains registered, sign-in
+returns a temporary error, and background retries recover without restarting. Discovery is lazy
+on first use, refreshed in the background, and failures back off up to one minute. Availability
+reflects discovery, not a guarantee that the provider's token endpoint is currently reachable.
+
+Account deletion keeps the existing password confirmation for password users. Users without a
+password may delete after a provider sign-in within five minutes; **Sign in again** starts a fresh
+provider round-trip bound to the signed-in account. Choosing a different identity cannot confirm
+deletion or create another account in that flow. A stale or borrowed session alone cannot authorize deletion. With transactional
+email configured, **Send deletion code** sends a single-use code to the account email, valid for ten
+minutes. Enter it in account settings to confirm deletion. Email-code requests are rate-limited;
+invalid, expired or wrong-account codes fail. No password needs to be created for deletion.
 
 ### Verification and password recovery email
 
@@ -207,6 +355,12 @@ loopback host. In `NODE_ENV=development`, captured messages are available from
 `http://127.0.0.1:3100/api/dev/emails` with cache disabled; the API logs only delivery
 metadata, never reset tokens. The inbox route is not registered in test, staging, or production.
 
+### Billing
+
+Billing stays off, with no paywall, unless `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and
+`STRIPE_PRICE_ID` are all set (see `.env.example`). Setting only some of them stops the API at
+startup.
+
 ### Logging
 
 Backend services write structured logs to stdout. `LOG_LEVEL` is `debug`, `info`, `warn`, `error`,
@@ -226,14 +380,17 @@ Optional:
 ```env
 SIGNUPS_ENABLED=true
 SIGNUP_ALLOWLIST=you@example.com,@company.com
-SANDBOX_PROVIDER=docker   # or none, e2b, daytona, box. Keep fake only for pnpm test.
+SANDBOX_PROVIDER=docker   # or none, e2b, daytona, createos, box. Keep fake only for pnpm test.
 AGENT_RUNTIME=pi          # Keep scripted only for pnpm test.
 WAKEUP_DRIVER=graphile
-SANDBOX_IDLE_MS=600000    # pause the bot computer after 10 minutes idle
+SANDBOX_IDLE_MS=600000    # pause or stop after 10 minutes idle; 0 disables idle sleep
+# Set 0 when self-hosting with Docker, where an idle computer costs nothing, to keep long-running apps and sessions up.
+# E2B, CreateOS and Box still apply their own timeouts.
 SANDBOX_COMMAND_TIMEOUT_MS=300000 # stop a shell command after 5 minutes
 MAX_TOOL_CALLS_PER_TURN=  # optional Pi turn tool-call fuse; unset/0 = unlimited
 E2B_API_KEY=              # when SANDBOX_PROVIDER=e2b
 DAYTONA_API_KEY=          # when SANDBOX_PROVIDER=daytona
+CREATEOS_SANDBOX_API_KEY= # when SANDBOX_PROVIDER=createos
 BOX_API_KEY=              # when SANDBOX_PROVIDER=box
 ```
 
@@ -252,6 +409,10 @@ RAKAZO_LOCAL_VISION_MODELS=qwen3-vl
 The loopback default is suitable when running Manor from a source checkout. From containers,
 prefer a stable LAN RFC1918 address (not Compose service DNS alone). On Docker Desktop,
 `host.docker.internal` also works.
+On Docker Desktop, a bot computer shell can often reach services bound to host `127.0.0.1`
+through that same hostname. Do not run sensitive unauthenticated services on loopback while
+bots run, or firewall / block that path. Linux does not get `host.docker.internal` the same
+way by default.
 Only configure an endpoint you control: prompts, attachments, and tool results sent to that model
 leave Manor through this URL. Leave `RAKAZO_LOCAL_MODELS` blank to disable the provider.
 
@@ -259,9 +420,16 @@ Each user can also connect their own OpenAI-compatible endpoint from **Connect a
 **Settings → Models** on web and mobile. Choose **OpenAI-compatible**, enter the server base URL
 (for example `http://127.0.0.1:8000/v1`), the exact model id, and an optional API key.
 Public hosts and ordinary hostnames need `RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC=1` and HTTPS.
-Literal private IP, loopback, and `host.docker.internal` targets do not. To mark user-connected
-openai-compatible model ids as vision-capable (so screenshot computer tools stay available), set
+Literal private IP, loopback, and `host.docker.internal` targets do not. If that endpoint's model
+accepts images, enable **Supports images** under **Advanced** when connecting so attachments and
+screenshot computer tools stay available. Existing connections default to disabled. For centrally
+managed endpoints, the deployment-wide fallback remains
 `RAKAZO_OPENAI_COMPATIBLE_VISION_MODELS=gpt4o-vision,llava`.
+
+Remote MCP servers and installed API / GraphQL connectors default to public HTTPS. The deployment
+owner can attach one on localhost, the same LAN, or a Docker network. Set
+`MCP_ALLOW_PRIVATE_ENDPOINT=true` on the API and worker to allow these for every user. Cloud
+metadata addresses stay blocked. Leave the flag unset on public installs.
 
 For servers that accept standard `reasoning_effort`, enable **Supports thinking** under
 **Advanced** when connecting. The setting is saved on the connection (no env var or restart).
@@ -285,7 +453,7 @@ The Electron desktop app is a client of the same API. Docker and E2B still apply
 - **Published images** (`docker-compose.images.yml`) default to `SANDBOX_PROVIDER=docker`. With
   the Manor image settings above, the local supervisor uses `ghcr.io/sirakinb/manor/computer`.
   No E2B account required.
-  Optional: set `e2b`, `daytona`, or `box` plus the matching API key for remote computers.
+  Optional: set `e2b`, `daytona`, `createos`, or `box` plus the matching API key for remote computers.
 - **Docker** is the quick-start default for published images and for a source checkout / full local
   Compose stack. Workspace bots share a persistent Team Computer by default; Private computers are
   optional. Keep the supervisor private, as the included Compose files do.
@@ -293,7 +461,11 @@ The Electron desktop app is a client of the same API. Docker and E2B still apply
   production deployments. Manor checkpoints the portable workspace and browser-profile directory to
   `DATA_DIR`; the E2B disk is a runtime cache, not the durable source of truth.
 - **Daytona** provides the same remote-computer contract through Daytona sandboxes. Configure
-  `DAYTONA_API_KEY` and optionally `DAYTONA_API_URL` / `DAYTONA_TARGET`.
+  `DAYTONA_API_KEY` and optionally `DAYTONA_API_URL` / `DAYTONA_TARGET` / `DAYTONA_SNAPSHOT`.
+- **CreateOS** provides the same remote-computer contract through CreateOS desktop sandboxes.
+  Configure `CREATEOS_SANDBOX_API_KEY` and optionally `CREATEOS_SANDBOX_BASE_URL`,
+  `CREATEOS_SANDBOX_SHAPE`, or `CREATEOS_SANDBOX_ROOTFS`. Manor defaults to
+  `https://api.sb.createos.sh`, `s-2vcpu-2gb`, and `desktop:1`.
 - **Box by ASCII** provides a managed Linux desktop through `BOX_API_KEY` and optionally
   `BOX_API_URL`. Manor always creates or resumes boxes with `noEnv: true`, keeps the portable
   workspace under `/home/user/rakazo-home`, and refreshes a two-hour TTL. Box uses the shared Linux
@@ -323,7 +495,9 @@ output directory of any failed run.
 
 `infra/compose/docker-compose.prod.yml` runs the hosted product with Postgres, the API, worker, web app,
 and automatic HTTPS through Caddy. It uses E2B for bot computers, so the VM never exposes a Docker
-supervisor or browser containers. The root-equivalent updater sidecar is an explicit opt-in profile.
+supervisor or browser containers — `infra/compose/docker-compose.prod.docker.yml` is the opt-in
+overlay that runs local Docker computers on the same stack (see below). The root-equivalent updater
+sidecar is an explicit opt-in profile.
 
 Before deploying to a new Ubuntu host, create and verify a key-only `deploy` account, then apply the
 idempotent host-hardening baseline. It disables SSH passwords and root login, rate-limits SSH, allows
@@ -391,7 +565,15 @@ curl --fail https://app.example.com/health
 registry serves, so the commands above build `api`, `worker`, and `web` from the checkout you just
 cloned. The opt-in command under [Updater sidecar](#updater-sidecar) builds `updater` when needed.
 
-Passing `GIT_SHA` is what makes `GET /health` report a `"revision"`; a locally built image has no
+The public `/health` only reports liveness. Runtime, sandbox, and revision details stay on the API
+port at `/internal/health`, which the edge does not route:
+
+```bash
+docker compose --env-file .env -f infra/compose/docker-compose.prod.yml exec api \
+  node -e "fetch('http://127.0.0.1:3100/internal/health').then(r=>r.text()).then(console.log)"
+```
+
+Passing `GIT_SHA` is what makes `/internal/health` report a `"revision"`; a locally built image has no
 other way to know its commit. Prebuilt images from the registry bake it in at publish time, so when
 you switch to a release tag you should leave `GIT_SHA` unset — a value in `.env` would override what
 the image already knows.
@@ -421,6 +603,67 @@ checkout's `.env` and production Compose file. If the stack was started with a c
 set the same `COMPOSE_PROJECT_NAME` in that file. For a manual run, export these variables instead.
 When updating an existing backup installation, reinstall both the script and service unit,
 then run `systemctl daemon-reload`.
+
+To deploy from CI, install `infra/compose/deploy-main.sh` as `/usr/local/sbin/rakazo-deploy-main`
+and give CI a key restricted to it in the deploy user's `authorized_keys`
+(`restrict,command="/usr/local/sbin/rakazo-deploy-main" ssh-ed25519 …`). It builds `origin/main`,
+restarts the stack, waits for `https://$RAKAZO_HOST/health`, and rolls back on failure. Build and
+start are time-limited so a stuck build fails the deploy instead of holding its lock; a deploy that
+finds the lock held exits non-zero. For a checkout outside `/srv/rakazo`, put
+`RAKAZO_DEPLOY_DIR=/absolute/path` in a root-owned `/etc/rakazo/deploy.env` readable by the
+deploy user.
+
+### Docker computers on the production stack
+
+Layer `infra/compose/docker-compose.prod.docker.yml` after the base file in every Compose
+invocation to run bot computers as local Docker containers instead of a remote provider:
+
+```bash
+# Pull only the pull-only dependency images (postgres, caddy, busybox);
+# --pull never fails when they are absent locally.
+docker compose --env-file .env \
+  -f infra/compose/docker-compose.prod.yml \
+  -f infra/compose/docker-compose.prod.docker.yml \
+  pull --ignore-buildable
+docker compose --env-file .env \
+  -f infra/compose/docker-compose.prod.yml \
+  -f infra/compose/docker-compose.prod.docker.yml \
+  up -d --build --wait --wait-timeout 300 --pull never
+```
+
+In this topology `api`, `worker`, `web`, `supervisor`, and `computer` always build
+from the checkout — `pull --ignore-buildable` only covers dependencies that have no
+`build` section. To deploy published app images instead of building, use the base
+file without the overlay. If `docker compose up --help` lacks `--wait-timeout`
+(older Compose), drop `--wait` and verify with `docker compose ... ps` instead;
+`--wait` alone can hang on one-shot services.
+
+The overlay adds the supervisor (app image, `user: root`, Docker socket), the one-shot `computer`
+image build and `data-init` ownership fix, points the API and worker at `http://supervisor:7091`,
+and makes `SANDBOX_PROVIDER=docker` the default. It needs a dedicated `SANDBOX_SUPERVISOR_TOKEN`
+in `.env`; `RAKAZO_COMPUTER_*` and the `SANDBOX_*` limits apply as documented in `.env.example`.
+Like the updater, the supervisor is root-equivalent on the host: it publishes no port, joins only
+the internal `app` network, and Caddy has no route to it. Bot computers are sibling containers on
+per-bot networks that only the supervisor and the `web` screen proxy join.
+
+When the `updater` profile is enabled too, give the sidecar the same file list and recreate set so
+updates do not leave the supervisor on the previous app image:
+
+```env
+RAKAZO_COMPOSE_FILE=infra/compose/docker-compose.prod.yml:infra/compose/docker-compose.prod.docker.yml
+RAKAZO_UPDATE_SERVICES=supervisor
+```
+
+The updater pulls and recreates services but cannot rebuild the `computer` stub image
+(`pull_policy: build` is not pullable). Rebuild it on the host when the computer image
+should change — for example after updating the checkout:
+
+```bash
+docker compose --env-file .env \
+  -f infra/compose/docker-compose.prod.yml \
+  -f infra/compose/docker-compose.prod.docker.yml \
+  build computer
+```
 
 ## Restore
 
@@ -681,8 +924,8 @@ shared filesystem; an object-storage adapter is not available yet.
 Use the same HTTPS origin for the web app, `/api`, `/rpc`, `/v1`, `/mcp`, and `/local-computer`;
 `/local-computer` must reach the API, not website HTML. Preserve the authenticated screen
 proxy routes. Choose a [computer provider](#choosing-a-computer-provider) appropriate to the
-service's trust boundary, and configure `SIGNUPS_ENABLED` and `SIGNUP_ALLOWLIST` before the API's
-first start.
+service's trust boundary. `SIGNUPS_ENABLED` applies on the API's first start. A non-empty
+`SIGNUP_ALLOWLIST` applies on every API start.
 The optional marketing site in `apps/www` can be hosted separately.
 
 ## Connect mobile clients

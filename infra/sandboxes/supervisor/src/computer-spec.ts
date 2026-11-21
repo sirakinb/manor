@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
+import path from "node:path";
 import { MAX_DESKTOP_DISPLAY, screenPorts } from "@rakazo/core/node/desktop-runtime";
+import type Docker from "dockerode";
 
 export const COMPUTER_IMAGE = process.env.RAKAZO_COMPUTER_IMAGE ?? "rakazo/computer:local";
 export const COMPUTER_UID = 1000;
@@ -20,6 +22,19 @@ export function resolveTeamScreenLimit(value = process.env.SANDBOX_TEAM_SCREEN_L
     );
   }
   return Math.min(limit, MAX_DESKTOP_DISPLAY);
+}
+
+export function resolveSpaceComputerLimit(
+  value = process.env.SANDBOX_MAX_COMPUTERS_PER_SPACE,
+): number {
+  if (value === undefined || value.trim() === "" || isUnlimited(value)) return 0;
+  const limit = Number(value);
+  if (!Number.isSafeInteger(limit) || limit < 1) {
+    throw new Error(
+      "SANDBOX_MAX_COMPUTERS_PER_SPACE must be a positive integer, or 0 for no configured cap",
+    );
+  }
+  return limit;
 }
 
 /**
@@ -98,10 +113,15 @@ function parsePidsLimit(name: string, raw: string): number {
   return value;
 }
 
+/** An unset variable and one present but blank both mean "use the default". */
+function envOrDefault(name: string, fallback: string): string {
+  const raw = process.env[name];
+  return raw === undefined || raw.trim() === "" ? fallback : raw;
+}
+
 /**
- * An environment value with blank treated as unset. Manor's VPS Compose file
- * passes these as `${VAR:-}`, which arrives as an empty string, and an empty
- * string must mean "use the default" rather than fail every computer.
+ * An environment value with blank treated as unset, for Manor's legacy names below.
+ * Manor's VPS Compose file passes these as `${VAR:-}`, which arrives as an empty string.
  */
 function envValue(name: string): string | undefined {
   const value = process.env[name]?.trim();
@@ -124,7 +144,7 @@ export function computerResourceLimits() {
       : parseMemoryBytes("RAKAZO_COMPUTER_MEMORY", memory ?? DEFAULT_COMPUTER_MEMORY);
   const nanoCpus = parseNanoCpus(
     "RAKAZO_COMPUTER_CPUS",
-    envValue("RAKAZO_COMPUTER_CPUS") ?? DEFAULT_COMPUTER_CPUS,
+    envOrDefault("RAKAZO_COMPUTER_CPUS", DEFAULT_COMPUTER_CPUS),
   );
   const pids = envValue("RAKAZO_COMPUTER_PIDS_LIMIT");
   const legacyPids = envValue("RAKAZO_COMPUTER_PIDS");
@@ -146,6 +166,75 @@ export function resolveScreenNetworkMode(value: string | undefined): ScreenNetwo
   if (!value || value === "published") return "published";
   if (value === "internal" || value === "isolated") return value;
   throw new Error(`Unsupported SANDBOX_SCREEN_NETWORK value: ${value}`);
+}
+
+/**
+ * Egress policy for per-bot computer networks. `open` is today's behaviour: full
+ * outbound access, including the host's bridge addresses, the LAN, and link-local
+ * cloud metadata endpoints. `restricted` keeps public internet egress but lets the
+ * operator drop everything else with one host-side iptables rule set — the
+ * supervisor gives each computer network a deterministic bridge interface name so
+ * the rules match by interface (`-i mnrc+` in Manor) instead of ephemeral subnets.
+ * Enforcement lives on the Docker host (infra/compose/restrict-computer-egress.sh);
+ * the flag only marks the networks. Supervisor capabilities stay unchanged.
+ */
+export type ComputerEgressMode = "open" | "restricted";
+
+export function resolveComputerEgressMode(
+  value = process.env.SANDBOX_COMPUTER_EGRESS,
+): ComputerEgressMode {
+  if (value === undefined || value.trim() === "" || value === "open") return "open";
+  if (value === "restricted") return "restricted";
+  throw new Error(`Unsupported SANDBOX_COMPUTER_EGRESS value: ${value}`);
+}
+
+/**
+ * Host bridge interface prefix for per-bot networks. A fixed prefix lets the host firewall match
+ * every computer network by interface (`mnrc+`) without knowing Docker's subnet choices.
+ * Manor's deployed firewall (infra/compose/harden-computer-egress.sh, COMPUTER_BRIDGE=mnrc) and
+ * every existing bot network use this prefix, so it replaces upstream's "rakazo-c". Upstream's
+ * infra/compose/restrict-computer-egress.sh matches "rakazo-c" and is an unused alternative here.
+ */
+export const COMPUTER_BRIDGE_PREFIX = "mnrc";
+
+/**
+ * Host bridge interface name for a computer network. Linux caps interface names
+ * at 15 bytes (IFNAMSIZ), so the prefix gets an 11-hex-char suffix derived from the
+ * same digest as the network name — deterministic across recreate, unique per bot.
+ */
+export function computerBridgeNameFor(botId: string) {
+  const hash = createHash("sha256").update(botId).digest("hex").slice(0, 11);
+  return `${COMPUTER_BRIDGE_PREFIX}${hash}`;
+}
+
+/**
+ * Owner label for this install's computer networks, which can share a Docker host
+ * with other installs that name theirs the same way. It is derived from where the
+ * computer homes live (see computerHomeStorage) and hashed to keep host paths out.
+ */
+export function computerNetworkOwnerFor(
+  dataDir: string,
+  info: Docker.ContainerInspectInfo | undefined,
+) {
+  const mount = info?.Mounts.find((entry) => entry.Destination === dataDir);
+  const root =
+    mount?.Type === "volume" ? `volume:${mount.Name}` : `path:${mount?.Source ?? dataDir}`;
+  return createHash("sha256").update(root).digest("hex").slice(0, 32);
+}
+
+/**
+ * docker.createNetwork payload for a bot's computer network. Manor names the bridge in every
+ * egress mode, not only `restricted`: its host firewall matches `mnrc+` interfaces whether or
+ * not SANDBOX_COMPUTER_EGRESS is set, and an unnamed bridge would fall outside those rules.
+ */
+export function computerNetworkCreateOptions(botId: string, owner: string) {
+  return {
+    Name: computerNetworkNameFor(botId),
+    Driver: "bridge",
+    CheckDuplicate: true,
+    Labels: { "rakazo.computerOwner": owner, "rakazo.botId": botId },
+    Options: { "com.docker.network.bridge.name": computerBridgeNameFor(botId) },
+  };
 }
 
 export function hostComputerUser(uid = process.getuid?.(), gid = process.getgid?.()): string {
@@ -183,12 +272,58 @@ export function computerPortBindings(publishControlPort = false) {
   return { ExposedPorts, PortBindings };
 }
 
+export function computerHomeStorage(
+  serviceHomePath: string,
+  dataDir: string,
+  info: Docker.ContainerInspectInfo | undefined,
+): { homePath: string; homeVolume?: { name: string; subpath: string } } {
+  const relative = path.relative(dataDir, serviceHomePath);
+  if (
+    !relative ||
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
+    throw new Error("computer home must be inside the data directory");
+  }
+  const mount = info?.Mounts.find((entry) => entry.Destination === dataDir);
+  if (mount?.Type === "volume") {
+    if (!mount.Name) throw new Error("computer data volume has no name");
+    return { homePath: serviceHomePath, homeVolume: { name: mount.Name, subpath: relative } };
+  }
+  return { homePath: mount?.Source ? path.join(mount.Source, relative) : serviceHomePath };
+}
+
+export function assertVolumeSubpathSupport(apiVersion: string) {
+  const match = /^(\d+)\.(\d+)$/.exec(apiVersion);
+  if (!match || Number(match[1]) < 1 || (Number(match[1]) === 1 && Number(match[2]) < 45)) {
+    throw new Error("Docker Engine 26+ (API 1.45+) is required for bot home volume subpaths");
+  }
+}
+
+export function homeVolumeMatches(
+  mounts: Docker.ContainerInspectInfo["HostConfig"]["Mounts"],
+  volume: { name: string; subpath: string },
+) {
+  return (
+    mounts?.some(
+      (mount) =>
+        mount.Target === "/home/rakazo" &&
+        mount.Type === "volume" &&
+        mount.Source === volume.name &&
+        mount.VolumeOptions?.Subpath === volume.subpath &&
+        !mount.ReadOnly,
+    ) ?? false
+  );
+}
+
 export interface ComputerCreateInput {
   name: string;
   image: string;
   botId: string;
   spaceId: string;
   homePath: string;
+  homeVolume?: { name: string; subpath: string };
   user?: string;
   controlToken?: string;
   networkMode?: string;
@@ -230,7 +365,23 @@ export function containerCreateOptions(input: ComputerCreateInput) {
     },
     ExposedPorts: ports.ExposedPorts,
     HostConfig: {
-      Binds: [`${input.homePath}:/home/rakazo`],
+      ...(input.homeVolume
+        ? {
+            Binds: undefined,
+            Mounts: [
+              {
+                Type: "volume" as const,
+                Source: input.homeVolume.name,
+                Target: "/home/rakazo",
+                // Docker makes Labels and DriverConfig optional; dockerode's types do not.
+                VolumeOptions: {
+                  NoCopy: true,
+                  Subpath: input.homeVolume.subpath,
+                } as Docker.MountSettings["VolumeOptions"],
+              },
+            ],
+          }
+        : { Binds: [`${input.homePath}:/home/rakazo`], Mounts: undefined }),
       PortBindings: ports.PortBindings,
       ShmSize: 256 * 1024 * 1024,
       CapDrop: ["ALL"],
@@ -262,18 +413,6 @@ export function computerNetworkNameFor(botId: string) {
   // name must stay stable so an existing computer can resume.
   const hash = createHash("sha256").update(botId).digest("hex").slice(0, 32);
   return `rakazo-computer-${sanitizeIdentifier(botId).slice(0, 32)}-${hash}`;
-}
-
-/**
- * Host bridge interface prefix for per-bot networks. A fixed prefix lets the host firewall match
- * every computer network by interface (`mnrc+`) without knowing Docker's subnet choices.
- */
-export const COMPUTER_BRIDGE_PREFIX = "mnrc";
-
-/** Linux caps interface names at 15 characters, so this is the prefix plus 11 hex characters. */
-export function computerBridgeNameFor(botId: string) {
-  const hash = createHash("sha256").update(botId).digest("hex").slice(0, 11);
-  return `${COMPUTER_BRIDGE_PREFIX}${hash}`;
 }
 
 /** Current and prior network names used by this PR, for delete cleanup. */

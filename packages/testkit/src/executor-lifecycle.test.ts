@@ -4,6 +4,8 @@ import path from "node:path";
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import { createThreadEvents, createThreadMessage, loadRunHistoryMessages } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { createApp } from "../../../apps/api/src/app.ts";
+import { discardBotIntroFromCreate } from "./discard-bot-intro.js";
 
 process.env.WAKEUP_DRIVER = "memory";
 process.env.SANDBOX_PROVIDER = "fake";
@@ -13,7 +15,7 @@ const hasDb = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABAS
 const describeIntegration = hasDb ? describe : describe.skip;
 
 describeIntegration("run executor lifecycle", () => {
-  let handles: Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts")["createApp"]>>;
+  let handles: Awaited<ReturnType<typeof createApp>>;
   const dataDir = mkdtempSync(path.join(tmpdir(), "rakazo-executor-lifecycle-"));
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -464,7 +466,11 @@ describeIntegration("run executor lifecycle", () => {
     } else {
       expect(recovered.continuationRunId).toBeNull();
     }
-    expect(await handles.prisma.run.count({ where: { botId: seeded.bot.id } })).toBe(fresh ? 3 : 2);
+    expect(
+      await handles.prisma.run.count({
+        where: { botId: seeded.bot.id, trigger: { not: "created" } },
+      }),
+    ).toBe(fresh ? 3 : 2);
     expect(
       await handles.prisma.run.count({ where: { botId: seeded.bot.id, status: "queued" } }),
     ).toBe(0);
@@ -502,7 +508,11 @@ describeIntegration("run executor lifecycle", () => {
       handles.prisma.run.findUniqueOrThrow({ where: { id: seeded.run.id } }),
     ).resolves.toMatchObject({ status: "cancelled" });
     expect(await handles.prisma.steeringMessage.count({ where: { botId: seeded.bot.id } })).toBe(0);
-    expect(await handles.prisma.run.count({ where: { threadId: seeded.thread.id } })).toBe(1);
+    expect(
+      await handles.prisma.run.count({
+        where: { threadId: seeded.thread.id, trigger: { not: "created" } },
+      }),
+    ).toBe(1);
   });
 
   it("turns a regular bot-thread send during active work into steering", async () => {
@@ -522,7 +532,11 @@ describeIntegration("run executor lifecycle", () => {
     await rpc(seeded.cookie, "threads/send", steeringInput);
     await rpc(seeded.cookie, "threads/send", steeringInput);
 
-    expect(await handles.prisma.run.count({ where: { threadId: seeded.thread.id } })).toBe(1);
+    expect(
+      await handles.prisma.run.count({
+        where: { threadId: seeded.thread.id, trigger: { not: "created" } },
+      }),
+    ).toBe(1);
     expect(
       await handles.prisma.message.count({
         where: { threadId: seeded.thread.id, clientNonce: steeringInput.clientNonce },
@@ -533,6 +547,36 @@ describeIntegration("run executor lifecycle", () => {
         where: { botId: seeded.bot.id, message: { threadId: seeded.thread.id } },
       }),
     ).resolves.toMatchObject({ runId: seeded.run.id, claimedAt: null });
+  });
+
+  it("turns a send during waiting takeover into steering", async () => {
+    const seeded = await seedRun("bot-steering-takeover", "keep working", {
+      status: "waiting_takeover",
+    });
+
+    const steeringInput = {
+      botId: seeded.bot.id,
+      text: "Skip that and tell me what you were going to check.",
+      clientNonce: `bot-steering-takeover-${stamp}`,
+    };
+    await rpc(seeded.cookie, "threads/send", steeringInput);
+    await rpc(seeded.cookie, "threads/send", steeringInput);
+
+    expect(
+      await handles.prisma.run.count({
+        where: { threadId: seeded.thread.id, trigger: { not: "created" } },
+      }),
+    ).toBe(1);
+    expect(
+      await handles.prisma.message.count({
+        where: { threadId: seeded.thread.id, clientNonce: steeringInput.clientNonce },
+      }),
+    ).toBe(1);
+    await expect(
+      handles.prisma.steeringMessage.findFirstOrThrow({
+        where: { botId: seeded.bot.id, message: { threadId: seeded.thread.id } },
+      }),
+    ).resolves.toMatchObject({ runId: seeded.run.id });
   });
 
   it("applies the same no-parallel-run rule to the targeted group member", async () => {
@@ -904,6 +948,6 @@ describeIntegration("run executor lifecycle", () => {
     if (!response.ok || payload.error) {
       throw new Error(payload.error?.message ?? `${procedure} failed (${response.status})`);
     }
-    return payload.json as T;
+    return discardBotIntroFromCreate(handles, cookie, procedure, payload.json as T);
   }
 });

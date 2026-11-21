@@ -7,6 +7,68 @@ without clobbering Manor's work. The visual companion lives in
 `changelog.html` for the running changelog — update the changelog after every
 notable change or sync).
 
+## Staged sync in progress (started 2026-11-20)
+
+Manor fell 26 upstream releases behind, so this sync lands one upstream release tag
+at a time. Each stage is a branch `sync/upstream-<tag>` and a draft PR stacked on the
+previous stage. CI is the verification gate; the local stack is not run. Production is
+deployed once, after every stage has landed and a rehearsal against a copy of
+production data has passed.
+
+Stages done: `v0.1.6`. In progress: `v0.2.0`.
+
+### How a stage is resolved
+
+1. Branch from the previous stage, `git merge --no-commit <tag>` with
+   `merge.conflictStyle=zdiff3`, `rerere.enabled`, and `merge.renameLimit=8000`.
+2. Mechanical files: identity docs (`README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
+   `CHANGELOG.md`, `SETUP_PROMPT.md`) and Manor icons take ours; `pnpm-lock.yaml`
+   and the message catalogs take theirs. After code is resolved, carry Manor's
+   existing translations back into the catalogs, then run `intl:extract`, then
+   `pnpm install`.
+3. Everything else is a hand union: Manor keeps every feature it has and gains
+   everything upstream added. Where both sides changed the same code for the same
+   purpose, upstream's structure is canonical and Manor's deliberate delta is
+   re-applied on top.
+4. Verify: `pnpm exec turbo run check --continue`, `pnpm lint`, `prisma validate`,
+   `pnpm exec turbo run test --continue`, then CI for Postgres journeys and Playwright.
+5. Rehearse the stage's migrations with `prisma migrate deploy` against the copy of
+   production data, and compare tenant row counts before and after.
+6. Compare every Manor-only file between the previous stage and this one. Anything
+   beyond an import path or logging change in CRM or Workspace code gets a review.
+
+### Decisions that hold for every stage
+
+- Intermediate behaviour never reaches users, so where Manor has no deliberate,
+  documented delta, upstream's behaviour is taken as is. This keeps later stages
+  mergeable. Manor-owned features stay exactly as they are.
+- Manor-owned features: the CRM (organization-scoped), the Workspace domain with its
+  `workspace.automation.run` and `workspace.report.generate` jobs and ingestion
+  runner, brands and portal restrictions, channel messaging, public forms, the MCP
+  OAuth server and `/mcp/crm`, `/mcp/workspace`, the release controller, the activity
+  timeline, the reply check, "This Mac" local computers and `LocalAwareSandbox`.
+- `components/beautiful-ui` is `components/ai`, as upstream renamed it. Manor's pill
+  button and the `--bui-*` variables live in `components/ai/manor-primitives.*`.
+- Brands set the accent family as plain colour values (`lib/brand-theme.ts`).
+  Surfaces are not tinted for any brand.
+- The web app is pinned to dark (`PINNED_APPEARANCE` in `lib/ui-appearance.ts`).
+  Manor's `--rk-*` skin has no light version.
+- Upstream's approval gate for webhook-triggered runs and its email verification
+  gate are adopted. `20261120120000_mark_existing_users_verified` marks existing
+  accounts verified; `provision-team.ts` creates verified users.
+- New code in the API, worker, adapters, db and supervisor logs through
+  `getLogger()`; `console.*` is a lint error there.
+- Product strings say Manor. Internal identifiers (`@rakazo/*`, `RAKAZO_*`) stay.
+- Manor's mobile screens stay in plain English where the mobile catalog test would
+  otherwise require a translation.
+- E2E specs must not import app modules that use the translation macro; Playwright
+  cannot load them.
+- Upstream tests whose fixtures lack models Manor's code reads (`spaceMember`,
+  `workspace`, `organization`, `localComputerSession`, `maintenanceJob`,
+  `workspaceAutomation`) get those added to the fixture; assertions are not weakened.
+- Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
+  and local sandbox tests (the temp directory is a symlink).
+
 ## Standing rules
 
 1. **Merge, never rebase.** Rebasing rewrites deployed history and re-fights

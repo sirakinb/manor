@@ -1,22 +1,23 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { readBoundedJsonResponse, signupRequiresEmailVerification } from "@rakazo/core";
+import { credentialIssue, signupRequiresEmailVerification } from "@rakazo/core";
 import { Button, Input, Label } from "@rakazo/ui-web";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ParticleWordmark } from "../components/ai/ParticleWordmark";
 import { BrandLogo } from "../components/BrandLogo";
 import { authClient } from "../lib/auth";
+import type { AuthCapabilities } from "../lib/auth-capabilities";
+import { fetchAuthCapabilities } from "../lib/auth-capabilities";
 import { brand, brandName } from "../lib/brand";
 import { signInReturnPath } from "../lib/return-path";
 import { clearSpaceSelection } from "../lib/rpc";
+import { runSsoFlow } from "../lib/sso-flow";
+import { authErrorText, credentialIssueText } from "../lib/user-error";
 
 type AuthMode = "in" | "up" | "forgot";
-type PasswordResetCapabilities = { passwordReset: boolean; resetUrl: string | null };
 
 const fieldClass = "mt-2 h-12 rounded-xl px-4 text-base md:text-base";
-const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
-const AUTH_CAPABILITIES_TIMEOUT_MS = 8_000;
-const MAX_AUTH_CAPABILITIES_RESPONSE_BYTES = 64 * 1024;
+export const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
 
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
@@ -26,12 +27,18 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const code = searchParams.get("error");
+    if (!code) return null;
+    return authErrorText({ code }, t`Could not continue`);
+  });
   const [pending, setPending] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   // Signup triggers a session refresh that remounts the anonymous auth page.
   const sent = resetSent || searchParams.get("verify") === "email";
-  const [reset, setReset] = useState<PasswordResetCapabilities | null>(null);
+  const [reset, setReset] = useState<AuthCapabilities | null>(null);
+  const [capabilityError, setCapabilityError] = useState(false);
+  const [capabilityAttempt, setCapabilityAttempt] = useState(0);
   const passwordFieldId = mode === "in" ? "current-password" : "new-password";
   const logoOnly = !sent && mode === "in" && brand.id !== "manor";
   const title = sent ? (
@@ -49,33 +56,33 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   );
 
   useEffect(() => {
-    if (mode === "up") return;
+    setReset(null);
+    setCapabilityError(false);
     let active = true;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), AUTH_CAPABILITIES_TIMEOUT_MS);
-    void fetch("/api/auth/capabilities", { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Could not load authentication capabilities");
-        return readBoundedJsonResponse<PasswordResetCapabilities>(
-          response,
-          MAX_AUTH_CAPABILITIES_RESPONSE_BYTES,
-          controller.signal,
-        );
-      })
+    void fetchAuthCapabilities()
       .then((capabilities) => {
         if (active) setReset(capabilities);
       })
-      .catch(() => undefined)
-      .finally(() => clearTimeout(timer));
+      .catch(() => {
+        if (active) setCapabilityError(true);
+      });
     return () => {
+      // Do not abort on unmount: a guard redirect that bounces through this
+      // page only mounts it for a render or two, and the cancelled fetch then
+      // surfaces as a failed request. `active` drops the result; the request
+      // keeps its own time bound.
       active = false;
-      clearTimeout(timer);
-      controller.abort();
     };
-  }, [mode]);
+  }, [mode, capabilityAttempt]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!reset?.passwordAuth) return;
+    const issue = credentialIssue({ email, password: mode === "forgot" ? undefined : password });
+    if (issue) {
+      setError(credentialIssueText(issue));
+      return;
+    }
     setPending(true);
     setError(null);
     try {
@@ -89,22 +96,23 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           redirectTo: reset.resetUrl,
         });
         if (result.error) {
-          setError(result.error.message ?? t`Could not send reset email`);
+          setError(authErrorText(result.error, t`Could not send reset email`));
           return;
         }
         setResetSent(true);
         return;
       }
+      const trimmedEmail = email.trim();
       const result =
         mode === "up"
           ? await authClient.signUp.email({
-              email,
+              email: trimmedEmail,
               password,
-              name: name || email.split("@")[0] || "User",
+              name: name || trimmedEmail.split("@")[0] || "User",
             })
-          : await authClient.signIn.email({ email, password });
+          : await authClient.signIn.email({ email: trimmedEmail, password });
       if (result.error) {
-        setError(result.error.message ?? t`Could not continue`);
+        setError(authErrorText(result.error, t`Could not continue`));
         return;
       }
       if (mode === "up" && signupRequiresEmailVerification(result.data)) {
@@ -119,6 +127,28 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
       setError(t`Could not reach the server`);
     } finally {
       setPending(false);
+    }
+  }
+
+  async function signInWithSso() {
+    setError(null);
+    try {
+      const result = await runSsoFlow(
+        (disableRedirect, callbackURL) =>
+          authClient.signIn.social({
+            disableRedirect,
+            provider: "oidc",
+            newUserCallbackURL: callbackURL("/onboarding"),
+            callbackURL: callbackURL(
+              searchParams.get("next") === "/integrations/setup" ? "/integrations/setup" : "/app",
+            ),
+            errorCallbackURL: callbackURL("/sign-in"),
+          }),
+        ["/app", "/onboarding", "/integrations/setup", "/sign-in"],
+      );
+      if (result.error) setError(authErrorText(result.error, t`Could not continue`));
+    } catch {
+      setError(t`Could not continue`);
     }
   }
 
@@ -158,6 +188,45 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
             <Link to="/sign-in" className="inline-block font-medium text-[#F1F0F3]">
               <Trans>Back to sign in</Trans>
             </Link>
+          </div>
+        ) : !reset?.passwordAuth ? (
+          <div
+            className={`flex w-full flex-col items-center text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}
+          >
+            {capabilityError ? (
+              <div role="alert" className="w-full text-center">
+                <p>
+                  <Trans>Could not load sign-in options</Trans>
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => setCapabilityAttempt((attempt) => attempt + 1)}
+                >
+                  <Trans>Retry</Trans>
+                </Button>
+              </div>
+            ) : !reset ? (
+              <p role="status">
+                <Trans>Loading…</Trans>
+              </p>
+            ) : null}
+            {reset?.sso && mode !== "forgot" ? (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void signInWithSso()}
+                className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)]"
+              >
+                <Trans>Continue with {reset.sso.name}</Trans>
+              </button>
+            ) : null}
+            {error ? (
+              <p role="alert" className="mt-3 text-sm text-[#EF4444]">
+                {error}
+              </p>
+            ) : null}
           </div>
         ) : (
           <>
@@ -278,6 +347,16 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 <Trans>Create account</Trans>
               )}
             </button>
+            {reset?.sso && mode !== "forgot" ? (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void signInWithSso()}
+                className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
+              >
+                <Trans>Continue with {reset.sso.name}</Trans>
+              </button>
+            ) : null}
             <p className="mt-[30px] text-[16px] text-[#8A8590]">
               {mode === "in" ? (
                 <>
@@ -305,6 +384,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     </div>
   );
 }
+
 export function PasswordResetPage() {
   const { t } = useLingui();
   const [params] = useSearchParams();
@@ -329,7 +409,7 @@ export function PasswordResetPage() {
     try {
       const result = await authClient.resetPassword({ newPassword: password, token });
       if (result.error) {
-        setError(result.error.message ?? t`Could not reset password`);
+        setError(authErrorText(result.error, t`Could not reset password`));
         return;
       }
       setComplete(true);
@@ -388,7 +468,7 @@ export function PasswordResetPage() {
   );
 }
 
-function AuthFrame({
+export function AuthFrame({
   title,
   onSubmit,
   children,

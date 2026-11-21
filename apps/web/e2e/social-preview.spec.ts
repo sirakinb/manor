@@ -44,6 +44,11 @@ test.describe("organization application bootstrap", () => {
     await page.route("**/*", async (route) => {
       const url = new URL(route.request().url());
       // This UI smoke test needs no running API or real account.
+      if (url.pathname === "/api/auth/capabilities") {
+        return route.fulfill({
+          json: { passwordAuth: true, sso: null, passwordReset: false, resetUrl: null },
+        });
+      }
       if (url.pathname.startsWith("/api/")) {
         return route.fulfill({ json: null });
       }

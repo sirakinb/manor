@@ -1,9 +1,16 @@
-import { expect, type Route, test } from "@playwright/test";
+import { expect, type Locator, type Page, type Route, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
-async function revealHoverRail(
-  row: import("@playwright/test").Locator,
-): Promise<import("@playwright/test").Locator> {
+/** Submit from the Send control so an in-flight prior send cannot swallow Enter. */
+async function sendComposerMessage(page: Page, composer: Locator, text: string) {
+  await composer.fill(text);
+  const send = page.getByRole("button", { name: "Send", exact: true });
+  await expect(send).toBeEnabled();
+  await send.click();
+  await expect(composer).toHaveValue("");
+}
+
+async function revealHoverRail(row: Locator): Promise<Locator> {
   const rail = row.getByTestId("message-hover-rail");
   await expect
     .poll(async () => {
@@ -19,11 +26,31 @@ async function revealHoverRail(
   return rail;
 }
 
+/** Touch drops the side gutter, so the bubble cap stays wider than the row minus 8rem. */
+async function expectNoTouchSideGutter(frame: Locator) {
+  const widths = await frame.evaluate((element) => {
+    const parentWidth = element.parentElement?.getBoundingClientRect().width ?? 0;
+    const maxWidth = getComputedStyle(element).maxWidth;
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const parsed = Number.parseFloat(maxWidth);
+    // Touch caps are percentages (84% / 88%). Resolve them against the parent
+    // before comparing with the pixel gutter.
+    const max = maxWidth.endsWith("%") ? (parsed / 100) * parentWidth : parsed;
+    return {
+      parentWidth,
+      max,
+      maxWidth,
+      gutter: 8 * rem,
+    };
+  });
+  expect(widths.parentWidth).toBeGreaterThan(widths.gutter);
+  expect(widths.max, `max-width ${widths.maxWidth}`).toBeGreaterThan(
+    widths.parentWidth - widths.gutter,
+  );
+}
+
 /** Park the pointer outside the message and blur focus so the rail returns to opacity-0. */
-async function expectRailAtRest(
-  page: import("@playwright/test").Page,
-  row: import("@playwright/test").Locator,
-) {
+async function expectRailAtRest(page: Page, row: Locator) {
   const rail = row.getByTestId("message-hover-rail");
   const box = await row.boundingBox();
   if (box) {
@@ -36,6 +63,7 @@ async function expectRailAtRest(
   });
   await expect(rail).toHaveCSS("opacity", "0");
   await expect(rail).toHaveCSS("pointer-events", "none");
+  await expect(row.getByTestId("message-hover-time")).toHaveCSS("opacity", "0");
 }
 
 test("message hover shows beside-bubble actions; reply links to parent", async ({
@@ -48,14 +76,31 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
 
   const transcript = page.getByTestId("transcript");
 
-  // Bot welcome (left bubble): rail hidden at rest, then beside on hover.
-  const botRow = transcript.locator(`[data-message-id]`).first();
+  // Empty start: no Fresh-start greeting. Answer the focus card so a plain
+  // bot text bubble exists for hover layout checks.
+  await expect(page.getByText("What do you want me on first?", { exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
+  await page.getByRole("button", { name: /Day-to-day work/ }).click();
+  const botText = page.getByText(/Got it\./);
+  await expect(botText).toBeVisible({ timeout: 20_000 });
+  const botRow = transcript.locator(`[data-message-id]`).filter({ has: botText }).first();
   await expect(botRow).toBeVisible();
   await expectRailAtRest(page, botRow);
   await captureScreenshot(page, testInfo, "message-actions-rest-desktop");
 
   const botRail = await revealHoverRail(botRow);
   const botToolbar = botRow.getByTestId("message-hover-actions");
+  const botTime = botRow.getByTestId("message-hover-time");
+  await expect(botTime).toHaveCSS("opacity", "1");
+  const botTimeBox = await botTime.boundingBox();
+  const botRowBox = await botRow.boundingBox();
+  expect(botTimeBox).not.toBeNull();
+  expect(botRowBox).not.toBeNull();
+  expect(
+    Math.abs(botTimeBox!.x + botTimeBox!.width - botRowBox!.x - botRowBox!.width),
+  ).toBeLessThan(2);
+
   await expect(botToolbar.getByRole("button", { name: "Reply" })).toBeVisible();
   await expect(botToolbar.getByRole("button", { name: "More" })).toBeVisible();
   // Measure a unique visible bubble, so an oversized wrapper cannot hide a gap.
@@ -82,8 +127,7 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
   const replyText = `hover-reply-${stamp}`;
   const composer = page.getByRole("combobox", { name: /^Message/ });
   await expect(composer).toBeVisible();
-  await composer.fill(parentText);
-  await composer.press("Enter");
+  await sendComposerMessage(page, composer, parentText);
 
   const parentRow = transcript.locator(`[data-message-id]`).filter({ hasText: parentText }).first();
   await expect(parentRow).toBeVisible({ timeout: 20_000 });
@@ -92,15 +136,15 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
   const toolbar = parentRow.getByTestId("message-hover-actions");
   await expect(toolbar.getByRole("button", { name: "Reply" })).toBeVisible();
   await expect(toolbar.getByRole("button", { name: "More" })).toBeVisible();
-  const thumbsUp = toolbar.getByRole("button", { name: "Add thumbs-up" });
-  await expect(thumbsUp).toBeVisible();
+  const react = toolbar.getByRole("button", { name: "React" });
+  await expect(react).toBeVisible();
   // Default reaction matches Reply/More: muted control color, not yellow.
   await expect
     .poll(async () => {
       const mutedColor = await toolbar
         .getByRole("button", { name: "More" })
         .evaluate((el) => getComputedStyle(el).color);
-      const reactionColor = await thumbsUp.evaluate((el) => getComputedStyle(el).color);
+      const reactionColor = await react.evaluate((el) => getComputedStyle(el).color);
       return reactionColor === mutedColor;
     })
     .toBe(true);
@@ -132,8 +176,7 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
 
   // Long user bubble: rail stays ~6px beside the bubble edge, not the full row width.
   const longText = `hover-long-${stamp}-${"x".repeat(220)}`;
-  await composer.fill(longText);
-  await composer.press("Enter");
+  await sendComposerMessage(page, composer, longText);
   const longRow = transcript
     .locator(`[data-message-id]`)
     .filter({ hasText: longText.slice(0, 40) })
@@ -149,16 +192,24 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
       return Math.abs(frameBox.x - (railBox.x + railBox.width));
     })
     .toBeLessThan(8);
+  await captureScreenshot(page, testInfo, "message-bubble-wide-desktop");
 
-  // Time is only visible after opening More.
-  await expect(page.getByTestId("message-hover-time")).toHaveCount(0);
+  // Time appears at the opposite row edge on hover, outside More.
   await revealHoverRail(parentRow);
+  const rowTime = parentRow.getByTestId("message-hover-time");
+  await expect(rowTime).toHaveCSS("opacity", "1");
+  await expect(rowTime).toHaveText(/\d/);
+  const timeBox = await rowTime.boundingBox();
+  const rowBox = await parentRow.boundingBox();
+  expect(timeBox).not.toBeNull();
+  expect(rowBox).not.toBeNull();
+  expect(Math.abs(timeBox!.x - rowBox!.x)).toBeLessThan(2);
   await toolbar.getByRole("button", { name: "More" }).click();
-  const moreTime = page.getByTestId("message-hover-time");
-  await expect(moreTime).toBeVisible();
-  await expect(moreTime).toHaveText(/\d/);
+  await expect(page.getByRole("menu")).toBeVisible();
+  await expect(page.getByRole("menu").locator("time")).toHaveCount(0);
   // Escape closes More and restores focus to the trigger so the rail stays up.
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(toolbar.getByRole("button", { name: "More" })).toBeFocused();
   await captureScreenshot(page, testInfo, "message-user-actions-hover-desktop");
   // Default transcript shot: rail at rest (no hover pin, mouse clear).
@@ -190,12 +241,25 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
   });
   await testInfo.attach("message-hover-toolbar", { contentType: "image/png", path: hoverPath });
 
-  await thumbsUp.click();
-  const reactionChip = parentRow
-    .getByRole("button", { name: "Remove thumbs-up" })
-    .filter({ hasText: "👍" });
-  await expect(reactionChip).toBeVisible();
-  await captureScreenshot(page, testInfo, "message-thumbs-up");
+  await react.click();
+  for (const emoji of ["👍", "👎", "❤️", "😂", "🎉", "😮"]) {
+    await expect(page.getByRole("button", { name: emoji, exact: true })).toBeVisible();
+  }
+  await captureScreenshot(page, testInfo, "message-reaction-picker");
+  await page.getByRole("button", { name: "❤️", exact: true }).click();
+  await expect(parentRow.getByTestId("message-reactions")).toHaveText("❤️");
+  await parentRow.hover();
+  await react.click();
+  await page.getByRole("button", { name: "👍", exact: true }).click();
+  await expect(parentRow.getByTestId("message-reactions")).toContainText("👍");
+  await parentRow.hover();
+  await react.click();
+  await page.getByRole("button", { name: "❤️", exact: true }).click();
+  await expect(parentRow.getByTestId("message-reactions")).toContainText("❤️ 2");
+  await captureScreenshot(page, testInfo, "message-multiple-reactions");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(parentRow.getByTestId("message-reactions")).toContainText("❤️ 2");
+  await expect(parentRow.getByTestId("message-reactions")).toContainText("👍");
 
   await parentRow.hover();
   await toolbar.getByRole("button", { name: "More" }).click();
@@ -209,10 +273,9 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
   await toolbar.getByRole("button", { name: "Reply" }).click();
   const replyChip = page.getByTestId("reply-chip");
   await expect(replyChip).toBeVisible();
-  await expect(replyChip).toContainText(/Replying to/);
+  await expect(replyChip).toContainText(parentText);
 
-  await composer.fill(replyText);
-  await composer.press("Enter");
+  await sendComposerMessage(page, composer, replyText);
   await expect(replyChip).toHaveCount(0);
 
   const replyRow = transcript.locator(`[data-message-id]`).filter({ hasText: replyText }).first();
@@ -220,6 +283,7 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
   const parentPreview = replyRow.getByTestId("reply-parent-preview");
   await expect(parentPreview).toBeVisible();
   await expect(parentPreview).toContainText(parentText);
+  await expect(transcript.getByTestId("time-separator").first()).toContainText(/Today/);
   await captureScreenshot(page, testInfo, "message-reply-thread");
 
   await parentPreview.click();
@@ -243,8 +307,7 @@ test("reply preview jumps to parent outside the loaded page", async ({ page }) =
   const replyText = `page-reply-${stamp}`;
   const composer = page.getByRole("combobox", { name: /^Message/ });
   await expect(composer).toBeVisible();
-  await composer.fill(parentText);
-  await composer.press("Enter");
+  await sendComposerMessage(page, composer, parentText);
 
   const transcript = page.getByTestId("transcript");
   const parentRow = transcript.locator(`[data-message-id]`).filter({ hasText: parentText }).first();
@@ -254,8 +317,7 @@ test("reply preview jumps to parent outside the loaded page", async ({ page }) =
 
   await parentRow.hover();
   await parentRow.getByRole("button", { name: "Reply" }).click();
-  await composer.fill(replyText);
-  await composer.press("Enter");
+  await sendComposerMessage(page, composer, replyText);
 
   const replyRow = transcript.locator(`[data-message-id]`).filter({ hasText: replyText }).first();
   await expect(replyRow).toBeVisible({ timeout: 20_000 });
@@ -311,12 +373,109 @@ test("reply preview jumps to parent outside the loaded page", async ({ page }) =
     .filter({ hasText: replyText })
     .getByTestId("reply-parent-preview");
   await expect(offlinePreview).toBeVisible();
-  await expect(offlinePreview).toHaveText("Earlier message");
+  await expect(offlinePreview).toContainText(parentText);
 
   await page.unroute(hydrateRpc, stripHydrate);
   await offlinePreview.click();
   await expect(page.locator(`[data-message-id="${parentId}"]`)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(`[data-message-id="${parentId}"]`)).toContainText(parentText);
+});
+
+test("hover time shows the date for a message from an earlier day", async ({ page }, testInfo) => {
+  const stamp = Date.now();
+  await signup(page, `hover-date-${stamp}@rakazo.test`, "password12", "Hover Date");
+  await completeOnboarding(page);
+
+  await expect(page.getByText("What do you want me on first?", { exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
+  await page.getByRole("button", { name: /Day-to-day work/ }).click();
+  const botText = page.getByText(/Got it\./);
+  await expect(botText).toBeVisible({ timeout: 20_000 });
+  const row = page
+    .getByTestId("transcript")
+    .locator("[data-message-id]")
+    .filter({ has: botText })
+    .first();
+  const messageId = await row.getAttribute("data-message-id");
+  if (!messageId) throw new Error("missing message id");
+
+  // Messages are created today, so rewrite createdAt or the hover label stays time-only.
+  const createdAt = await page.evaluate(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    date.setHours(15, 4, 0, 0);
+    return date.toISOString();
+  });
+  await page.evaluate(() => {
+    localStorage.setItem("rakazo.uiLocale", "en");
+  });
+
+  type HydrateMessage = { id?: string; createdAt?: string };
+  type HydrateBody = {
+    json?: {
+      messages?: HydrateMessage[];
+      thread?: { messages?: HydrateMessage[] };
+    };
+  };
+  const rewriteCreatedAt = (body: HydrateBody) => {
+    const messages = [...(body.json?.messages ?? []), ...(body.json?.thread?.messages ?? [])];
+    for (const message of messages) {
+      if (message.id === messageId) message.createdAt = createdAt;
+    }
+  };
+  const hydrateRpc = /\/rpc\/(bootstrap|threads\/get)(?:\?|$)/;
+  const rewriteHydrate = async (route: Route) => {
+    try {
+      const response = await route.fetch();
+      const body = (await response.json()) as HydrateBody;
+      rewriteCreatedAt(body);
+      await route.fulfill({
+        status: response.status(),
+        headers: response.headers(),
+        body: JSON.stringify(body),
+      });
+    } catch (error) {
+      if (/already handled|Target closed|Request context disposed/i.test(String(error))) return;
+      throw error;
+    }
+  };
+  await page.route(hydrateRpc, rewriteHydrate);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("combobox", { name: /^Message/ })).toBeVisible({ timeout: 20_000 });
+  const datedRow = page.locator(`[data-message-id="${messageId}"]`);
+  await expect(datedRow).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe("en");
+  await datedRow.scrollIntoViewIfNeeded();
+  await revealHoverRail(datedRow);
+
+  const time = datedRow.getByTestId("message-hover-time");
+  await expect(time).toHaveCSS("opacity", "1");
+  await expect(time).toHaveAttribute("datetime", createdAt);
+  const expected = await page.evaluate((iso) => {
+    const date = new Date(iso);
+    const now = new Date();
+    const locale = document.documentElement.lang || "en";
+    const sameYear = date.getFullYear() === now.getFullYear();
+    const parts = new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+      ...(sameYear ? {} : { year: "numeric" }),
+      hour: "numeric",
+      minute: "2-digit",
+    }).formatToParts(date);
+    return {
+      day: parts.find((item) => item.type === "day")?.value ?? "",
+      month: parts.find((item) => item.type === "month")?.value ?? "",
+    };
+  }, createdAt);
+  expect(expected.month).not.toBe("");
+  expect(expected.day).not.toBe("");
+  const month = expected.month.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const day = expected.day.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  await expect(time).toHaveText(new RegExp(`${month}\\s+${day}\\b`));
+  await captureScreenshot(page, testInfo, "message-hover-time-earlier-day");
 });
 
 test.describe("touch message actions", () => {
@@ -328,15 +487,64 @@ test.describe("touch message actions", () => {
     expect(
       await page.evaluate(() => matchMedia("(hover: hover) and (pointer: fine)").matches),
     ).toBe(false);
-    const row = page.getByTestId("transcript").locator("[data-message-id]").first();
+    await expect(page.getByText("What do you want me on first?", { exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
+    await page.getByRole("button", { name: /Day-to-day work/ }).click();
+    const botText = page.getByText(/Got it\./);
+    await expect(botText).toBeVisible({ timeout: 20_000 });
+    const row = page
+      .getByTestId("transcript")
+      .locator("[data-message-id]")
+      .filter({ has: botText })
+      .first();
     const rail = row.getByTestId("message-hover-rail");
     await expect(rail).toHaveCSS("opacity", "1");
-    await expect(rail.getByRole("button", { name: "Reply", exact: true })).toBeHidden();
+    await expect(rail.getByRole("button", { name: "Reply", exact: true })).toBeVisible();
+    // Touch puts the action row in-flow under the bubble, not beside it.
+    const botBubble = row.getByTestId("message-bot-bubble").first();
+    const bubbleBox = await botBubble.boundingBox();
+    const railBox = await rail.boundingBox();
+    expect(bubbleBox).not.toBeNull();
+    expect(railBox).not.toBeNull();
+    expect(railBox!.y).toBeGreaterThanOrEqual(bubbleBox!.y + bubbleBox!.height - 1);
+    expect(railBox!.x - bubbleBox!.x).toBeLessThan(8);
+    await expectNoTouchSideGutter(row.getByTestId("message-bubble-frame"));
+    await captureScreenshot(page, testInfo, "message-actions-touch-row");
+    await rail.getByRole("button", { name: "React", exact: true }).tap();
+    await expect(page.getByRole("button", { name: "🎉", exact: true })).toBeVisible();
+    await captureScreenshot(page, testInfo, "message-reaction-picker-touch");
+    await page.getByRole("button", { name: "🎉", exact: true }).tap();
+    await expect(row.getByTestId("message-reactions")).toHaveText("🎉");
+    await rail.getByRole("button", { name: "React", exact: true }).tap();
+    await page.getByRole("button", { name: "🎉", exact: true }).tap();
+    await expect(row.getByTestId("message-reactions")).toHaveText("🎉 2");
     await rail.getByRole("button", { name: "More" }).tap();
     await expect(page.getByRole("menuitem", { name: "Copy" })).toBeVisible();
-    await expect(page.getByTestId("message-hover-time")).toBeVisible();
+    const time = row.getByTestId("message-hover-time");
+    await expect(time).toHaveCSS("opacity", "1");
+    await expect(time).toHaveCSS("position", "static");
+    await expect(time).toHaveText(/\d/);
+    const timeBox = await time.boundingBox();
+    const openBubbleBox = await botBubble.boundingBox();
+    const openRailBox = await rail.boundingBox();
+    expect(timeBox).not.toBeNull();
+    expect(openBubbleBox).not.toBeNull();
+    expect(openRailBox).not.toBeNull();
+    // A date uses this same label. Under the actions it cannot cover the bubble.
+    expect(timeBox!.y).toBeGreaterThanOrEqual(openBubbleBox!.y + openBubbleBox!.height - 1);
+    expect(timeBox!.y).toBeGreaterThanOrEqual(openRailBox!.y + openRailBox!.height - 1);
+    await expect(page.getByRole("menu")).toBeVisible();
+    await expect(page.getByRole("menu").locator("time")).toHaveCount(0);
     await captureScreenshot(page, testInfo, "message-actions-touch-menu");
-    await page.getByRole("menuitem", { name: "Reply", exact: true }).tap();
+    await page.keyboard.press("Escape");
+    const composer = page.getByRole("combobox", { name: /^Message/ });
+    await sendComposerMessage(page, composer, `touch-width-${Date.now()}`);
+    const userRow = page.locator("[data-message-id]").filter({ hasText: "touch-width-" }).first();
+    await expect(userRow).toBeVisible({ timeout: 20_000 });
+    await expectNoTouchSideGutter(userRow.getByTestId("message-bubble-frame"));
+    await rail.scrollIntoViewIfNeeded();
+    await rail.getByRole("button", { name: "Reply", exact: true }).tap();
     await expect(page.getByRole("button", { name: "Cancel reply" })).toBeVisible();
   });
 });

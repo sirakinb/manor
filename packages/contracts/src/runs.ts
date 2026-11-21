@@ -1,6 +1,44 @@
 import * as z from "zod";
-import { RunSchema } from "./domain.js";
-import { Id, RunStatus } from "./ids.js";
+import { Id, IsoDate, RunStatus } from "./ids.js";
+
+export const RUN_TRIGGERS = [
+  "user",
+  "routine",
+  "resume",
+  "follow_up",
+  "reaction",
+  "call_end",
+  "spawn",
+  "skill",
+  "bot_message",
+  "webhook",
+  "messaging",
+  "cloud_agent",
+  "created",
+  "tickets",
+] as const;
+export const RunTriggerSchema = z.enum(RUN_TRIGGERS);
+export type RunTrigger = z.infer<typeof RunTriggerSchema>;
+
+export const RoutineRunSchema = z.object({
+  id: Id,
+  botId: Id,
+  groupId: Id.nullable(),
+  status: RunStatus,
+  createdAt: IsoDate,
+  startedAt: IsoDate.nullable(),
+  completedAt: IsoDate.nullable(),
+  messageId: Id.nullable(),
+});
+export type RoutineRun = z.infer<typeof RoutineRunSchema>;
+
+export const RoutineRunCursorSchema = z.object({ id: Id, createdAt: IsoDate });
+export type RoutineRunCursor = z.infer<typeof RoutineRunCursorSchema>;
+export const RoutineHistorySchema = z.object({
+  runs: z.array(RoutineRunSchema),
+  nextCursor: RoutineRunCursorSchema.nullable(),
+});
+export type RoutineHistory = z.infer<typeof RoutineHistorySchema>;
 
 export const RunFailureDiagnosticSchema = z.object({
   stage: z.enum(["model", "tool", "execution", "unknown"]),
@@ -21,28 +59,6 @@ export const RunFailureDiagnosticSchema = z.object({
 });
 export type RunFailureDiagnostic = z.infer<typeof RunFailureDiagnosticSchema>;
 
-export const RunDiagnosticsSchema = z.object({
-  run: RunSchema,
-  failure: RunFailureDiagnosticSchema.nullable(),
-  attempts: z.array(
-    z.object({ status: z.string(), startedAt: z.string(), finishedAt: z.string().nullable() }),
-  ),
-  events: z.array(
-    z.object({
-      id: Id,
-      seq: z.number().int(),
-      type: z.string(),
-      createdAt: z.string(),
-      tool: z.string().nullable(),
-      status: z.enum(["completed", "failed", "paused"]).nullable(),
-      durationMs: z.number().nonnegative().nullable(),
-    }),
-  ),
-  olderCursor: z.number().int().nullable(),
-});
-export type RunDiagnostics = z.infer<typeof RunDiagnosticsSchema>;
-export const BotRunHistorySchema = z.object({ runs: z.array(RunSchema) });
-
 export const RunActivityRowSchema = z.object({
   runId: Id,
   botId: Id,
@@ -51,19 +67,7 @@ export const RunActivityRowSchema = z.object({
   groupName: z.string().nullable(),
   threadId: Id,
   status: RunStatus,
-  trigger: z.enum([
-    "user",
-    "routine",
-    "resume",
-    "follow_up",
-    "reaction",
-    "spawn",
-    "skill",
-    "bot_message",
-    "webhook",
-    "messaging",
-    "cloud_agent",
-  ]),
+  trigger: RunTriggerSchema,
   notificationsEnabled: z.boolean(),
   promptSnippet: z.string(),
   updatedAt: z.string(),

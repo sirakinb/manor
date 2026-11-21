@@ -39,6 +39,8 @@ export type ColorTokens = {
   sidebarAccent: string;
   sidebarAccentForeground: string;
   link: string;
+  /** Backing behind a link's site icon. White in both themes so dark logos stay visible. */
+  faviconPlate: string;
   success: string;
   warning: string;
   overlay: string;
@@ -81,11 +83,12 @@ export const darkTokens = {
   sidebarAccent: "#232323",
   sidebarAccentForeground: "#F1F0F3",
   link: "#86B7FF",
+  faviconPlate: "#FFFFFF",
   success: "#4ECB71",
   warning: "#E9C46A",
-  overlay: "rgba(4, 4, 5, 0.62)",
-  scrollbar: "#2A2A2E",
-  scrollbarHover: "#414147",
+  overlay: "rgba(4, 4, 5, 0.72)",
+  scrollbar: "#1E2026",
+  scrollbarHover: "#2E313A",
 } as const satisfies ColorTokens;
 
 export const lightTokens = {
@@ -116,6 +119,7 @@ export const lightTokens = {
   sidebarAccent: "#FFFFFF",
   sidebarAccentForeground: "#1A1A1A",
   link: "#2563EB",
+  faviconPlate: "#FFFFFF",
   success: "#228B3B",
   warning: "#B7791F",
   overlay: "rgba(20, 20, 22, 0.45)",

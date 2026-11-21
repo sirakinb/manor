@@ -12,7 +12,13 @@ export function mountMaintenanceAdmission(
     const path = c.req.path;
     // Maintenance RPCs still perform authoritative owner authorization. Read-only
     // health/identity and release polling must work during a guarded rollout.
-    if (path === "/health" || path === "/rpc/me" || path.startsWith("/rpc/maintenance/"))
+    // /ready is not exempt: a closed gate is not ready.
+    if (
+      path === "/health" ||
+      path === "/internal/health" ||
+      path === "/rpc/me" ||
+      path.startsWith("/rpc/maintenance/")
+    )
       return next();
     let leave: () => Promise<void>;
     try {

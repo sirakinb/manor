@@ -25,7 +25,7 @@
     "@playwright/test": "1.63.0",
     "@rakazo/ui-tokens": "workspace:*",
     "@types/ws": "^8.18.1",
-    "electron": "44.2.0",
+    "electron": "44.3.0",
     "electron-builder": "26.15.3",
     "typescript": "7.0.2",
     "vitest": "4.1.11"

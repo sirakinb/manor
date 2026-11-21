@@ -1,6 +1,8 @@
 import type { RealtimeFanout } from "@rakazo/adapter-kit";
 import {
   type BotSecretDestination,
+  encodeLoginSecret,
+  LoginSecretValue,
   type MessageBlock,
   MessageBlock as MessageBlockSchema,
   type ProductEvent,
@@ -8,9 +10,12 @@ import {
 } from "@rakazo/contracts";
 import {
   blocksToAgentHistoryText,
+  callIdFromClientNonce,
   isApprovalAskBlock,
+  isConversationalRun,
   isSecretAskBlock,
   messagingChannelId,
+  resolveAskChoice,
   sanitizeJsonValue,
 } from "@rakazo/core";
 import { getLogger } from "@rakazo/logging";
@@ -19,6 +24,7 @@ import type { Prisma, PrismaClient } from "./client.js";
 import { expireComputerExecutionLeases } from "./computers.js";
 import {
   assertRunCanWriteHistory,
+  assertRunIsCancelled,
   createThreadMessageInTransaction,
   RunHistoryWriteError,
 } from "./messages.js";
@@ -35,6 +41,8 @@ export interface AppendEventInput {
   type: ProductEvent["type"];
   payload: Record<string, unknown>;
   runId?: string;
+  /** Terminal echo after the run is already cancelled. Every other event stays rejected. */
+  allowCancelledRun?: boolean;
 }
 
 export interface ThreadEvents {
@@ -182,6 +190,8 @@ export interface AnswerRunInput {
   messageId: string;
   answeredByUserId: string;
   answer: string;
+  /** Only for a login card; `answer` carries its password. */
+  username?: string;
 }
 
 export interface SendUserMessageInput {
@@ -203,6 +213,12 @@ export interface SendUserMessageInput {
   createRun?: boolean;
   /** When true, start a new run even if the bot is already busy (team-chat delivery). */
   allowParallelRun?: boolean;
+  /** Model every routine in an inbound delivery agreed on. */
+  modelPin?: {
+    modelProvider: string;
+    modelId: string;
+    thinkingLevel: string | null;
+  };
 }
 
 export interface SendUserMessageResult {
@@ -213,6 +229,11 @@ export interface SendUserMessageResult {
 }
 
 export interface RunSecretWriter {
+  withPrepared?<T>(
+    prisma: PrismaClient,
+    input: AnswerRunInput,
+    commit: (writer: RunSecretWriter) => Promise<T>,
+  ): Promise<T>;
   store(input: {
     botId: string;
     credential?: BotSecretDestination;
@@ -380,10 +401,13 @@ export async function sendUserMessage(
         clientNonce: input.clientNonce,
       });
       const createRun = input.createRun !== false;
+      // Include the creation intro. It has no tools, so it must not absorb the message, and a
+      // second run would overlap it on a dedicated computer. Pending steering waits for the
+      // continuation that starts when the intro finishes.
       // Manor: a routine wake always gets its own run, even while the bot is busy.
-      const busy =
+      const activeRuns =
         createRun && !input.allowParallelRun && !input.routineId
-          ? await tx.run.findFirst({
+          ? await tx.run.findMany({
               where: {
                 threadId: input.threadId,
                 botId: input.botId,
@@ -391,9 +415,12 @@ export async function sendUserMessage(
                   in: ["running", "queued", "leased", "waiting_input", "waiting_takeover"],
                 },
               },
-              select: { id: true, taskId: true },
+              select: { id: true, taskId: true, trigger: true },
             })
-          : null;
+          : [];
+      // Steer a conversational run when there is one; a routine, webhook, or intro turn only holds the queue.
+      const busy =
+        activeRuns.find((run) => isConversationalRun(run.trigger)) ?? activeRuns[0] ?? null;
       let task = null;
       let run = null;
       if (createRun && !busy) {
@@ -420,18 +447,36 @@ export async function sendUserMessage(
             routineId: input.routineId,
             clientNonce: input.clientNonce ? `send:${message.id}` : undefined,
             sourceMessageId: message.id,
+            ...(input.modelPin
+              ? {
+                  modelProvider: input.modelPin.modelProvider,
+                  modelId: input.modelPin.modelId,
+                  thinkingLevel: input.modelPin.thinkingLevel,
+                  modelPinned: true,
+                }
+              : {}),
           },
         });
         if (input.linkMessageToRun) {
           await tx.message.update({ where: { id: message.id }, data: { runId: run.id } });
         }
       } else if (createRun && busy) {
+        const held = !isConversationalRun(busy.trigger);
         await tx.steeringMessage.create({
           data: {
             messageId: message.id,
             botId: input.botId,
             userId: input.userId,
-            runId: busy.id,
+            // Keep messaging on the hold so the later run is mirrored back to that app.
+            runId: held ? null : busy.id,
+            ...(held && input.trigger === "messaging" ? { originTrigger: "messaging" } : {}),
+            ...(input.modelPin
+              ? {
+                  modelProvider: input.modelPin.modelProvider,
+                  modelId: input.modelPin.modelId,
+                  thinkingLevel: input.modelPin.thinkingLevel,
+                }
+              : {}),
           },
         });
         await tx.message.update({ where: { id: message.id }, data: { runId: busy.id } });
@@ -449,6 +494,9 @@ export async function sendUserMessage(
           ...(input.authorUserId
             ? { authorUserId: input.authorUserId, authorName: input.authorName }
             : {}),
+          // Carries the call id on the live event so a spoken turn groups into the
+          // call card immediately, instead of after a refetch reads the nonce.
+          callId: callIdFromClientNonce(message.clientNonce),
         },
       });
       return { message, task, run, busy, event };
@@ -488,22 +536,35 @@ export async function claimSteering(
       },
       select: { id: true, trigger: true, sourceMessage: { select: { blocks: true } } },
     });
-    if (!run) return [];
+    if (!run || run.trigger === "created") return [];
     const channelId =
       run.trigger === "messaging"
         ? messagingChannelId(run.sourceMessage?.blocks as MessageBlock[] | undefined)
         : undefined;
+    const directMessage = run.trigger === "messaging" && !channelId;
+    // Pending rows from another chat stay for their own continuation.
+    const pendingWhere = directMessage
+      ? { runId: null, originTrigger: "messaging" }
+      : channelId
+        ? { runId: null }
+        : { runId: null, originTrigger: null };
     const steering = await tx.steeringMessage.findMany({
       where: {
         botId: input.botId,
         id: input.seenIds.length ? { notIn: input.seenIds } : undefined,
-        OR: [{ runId: null }, { runId: input.runId }],
+        // A routine or webhook turn only takes steering addressed to it; pending user messages
+        // wait for the conversational continuation that starts once it finishes.
+        OR: isConversationalRun(run.trigger)
+          ? [pendingWhere, { runId: input.runId }]
+          : [{ runId: input.runId }],
         message: {
           threadId: input.threadId,
           // Private follow-ups remain unclaimed for the existing private continuation.
           ...(channelId
             ? { blocks: { array_contains: [{ kind: "channel_message", channelId }] } }
-            : {}),
+            : directMessage
+              ? { NOT: { blocks: { array_contains: [{ kind: "channel_message" }] } } }
+              : {}),
         },
       },
       include: { message: { select: { blocks: true, seq: true, authorName: true } } },
@@ -523,187 +584,249 @@ export async function claimSteering(
   });
 }
 
-export async function answerRunInput(
-  prisma: PrismaClient,
-  input: AnswerRunInput,
-  realtime?: RealtimeFanout,
-  runSecretWriter?: RunSecretWriter,
-): Promise<boolean> {
-  const committed = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // Thread row first, then run rows — the same order as clearThread and finalizeRun, so a
-    // concurrent clear cannot deadlock against this transaction.
-    await tx.$queryRaw`SELECT id FROM threads WHERE id = ${input.threadId} FOR UPDATE`;
-    const run = await tx.run.findFirst({
-      where: {
-        id: input.runId,
-        spaceId: input.spaceId,
-        threadId: input.threadId,
-        status: "waiting_input",
-      },
-      select: { botId: true, userId: true, checkpoint: true },
-    });
-    if (!run) return null;
-    const message = await tx.message.findFirst({
-      where: {
-        id: input.messageId,
-        threadId: input.threadId,
-        runId: input.runId,
-        role: "bot",
-      },
-    });
-    const parsed = MessageBlockSchema.array().safeParse(message?.blocks);
-    if (!message || !parsed.success) return null;
+async function findPendingAsk(
+  tx: Prisma.TransactionClient,
+  input: { threadId: string; runId: string },
+) {
+  const messages = await tx.message.findMany({
+    where: {
+      threadId: input.threadId,
+      runId: input.runId,
+      role: "bot",
+    },
+    orderBy: { seq: "desc" },
+    take: 50,
+    select: { id: true, blocks: true },
+  });
+  for (const message of messages) {
+    const parsed = MessageBlockSchema.array().safeParse(message.blocks);
+    if (!parsed.success) continue;
     const pendingAsk = parsed.data.find(
       (block) => block.kind === "ask" && block.status !== "answered",
     );
-    if (pendingAsk?.kind !== "ask") return null;
-    const approvalAsk = isApprovalAskBlock(pendingAsk);
-    const secretAsk = isSecretAskBlock(pendingAsk);
-    const choiceAsk = !approvalAsk && !secretAsk && Boolean(pendingAsk.actions?.length);
-    const selectedChoice = choiceAsk
-      ? pendingAsk.actions?.find((action) => action.id === input.answer)
-      : undefined;
-    if (choiceAsk && !selectedChoice) return null;
-    if (secretAsk && !runSecretWriter) return null;
-    if (secretAsk && pendingAsk.credential && run.userId !== input.answeredByUserId) return null;
-    let approvalEffect: { id: string; kind: string } | null = null;
-    let approvalUserId: string | null = null;
+    if (pendingAsk?.kind === "ask") return { messageId: message.id, pendingAsk };
+  }
+  return null;
+}
 
-    if (approvalAsk) {
-      if (!pendingAsk.actions?.some((action) => action.id === input.answer)) return null;
-      approvalEffect = await tx.externalEffect.findFirst({
-        where: {
-          id: pendingAsk.approvalEffectId,
-          spaceId: input.spaceId,
-          runId: input.runId,
-          status: "intended",
-        },
-      });
-      if (!approvalEffect) return null;
-      if (input.answer === "always") {
-        if (run.userId !== input.answeredByUserId) {
-          const member = await tx.spaceMember.findFirst({
-            where: {
-              spaceId: input.spaceId,
-              userId: input.answeredByUserId,
-              space: { accountUserId: run.userId },
-              member: { user: { isSpaceAccount: false } },
-            },
-            select: { id: true },
-          });
-          if (!member) return null;
-        }
-        approvalUserId = run.userId;
-      }
-    }
+async function commitAnswerRunInput(
+  tx: Prisma.TransactionClient,
+  input: AnswerRunInput,
+  runSecretWriter?: RunSecretWriter,
+): Promise<{ threadId: string; seq: number } | null> {
+  // Thread row first, then run rows — the same order as clearThread and finalizeRun, so a
+  // concurrent clear cannot deadlock against this transaction.
+  await tx.$queryRaw`SELECT id FROM threads WHERE id = ${input.threadId} FOR UPDATE`;
+  const run = await tx.run.findFirst({
+    where: {
+      id: input.runId,
+      spaceId: input.spaceId,
+      threadId: input.threadId,
+      status: "waiting_input",
+    },
+    select: { botId: true, userId: true, checkpoint: true },
+  });
+  if (!run) return null;
+  const message = await tx.message.findFirst({
+    where: {
+      id: input.messageId,
+      threadId: input.threadId,
+      runId: input.runId,
+      role: "bot",
+    },
+  });
+  const parsed = MessageBlockSchema.array().safeParse(message?.blocks);
+  if (!message || !parsed.success) return null;
+  const pendingAsk = parsed.data.find(
+    (block) => block.kind === "ask" && block.status !== "answered",
+  );
+  if (pendingAsk?.kind !== "ask") return null;
+  const approvalAsk = isApprovalAskBlock(pendingAsk);
+  const secretAsk = isSecretAskBlock(pendingAsk);
+  const choiceAsk = !approvalAsk && !secretAsk && Boolean(pendingAsk.actions?.length);
+  const selectedChoice = choiceAsk ? resolveAskChoice(input.answer, pendingAsk.actions) : undefined;
+  if (secretAsk && !runSecretWriter) return null;
+  if (secretAsk && pendingAsk.credential && run.userId !== input.answeredByUserId) return null;
+  const loginAsk = secretAsk && pendingAsk.credential?.auth.type === "login";
+  // A username belongs only to a login card, which cannot be saved without one.
+  if (loginAsk !== Boolean(input.username?.trim())) return null;
+  const login = loginAsk
+    ? LoginSecretValue.safeParse({ username: input.username!.trim(), password: input.answer })
+    : undefined;
+  if (login && !login.success) return null;
+  let approvalEffect: { id: string; kind: string } | null = null;
+  let approvalUserId: string | null = null;
 
-    const queued = await tx.run.updateMany({
+  if (approvalAsk) {
+    if (!pendingAsk.actions?.some((action) => action.id === input.answer)) return null;
+    approvalEffect = await tx.externalEffect.findFirst({
       where: {
-        id: input.runId,
+        id: pendingAsk.approvalEffectId,
         spaceId: input.spaceId,
-        threadId: input.threadId,
-        status: "waiting_input",
-      },
-      data: {
-        status: "queued",
-        ...(choiceAsk ? { checkpoint: null } : {}),
+        runId: input.runId,
+        status: "intended",
       },
     });
-    if (queued.count !== 1) return null;
-
-    if (approvalAsk) {
-      const allowed = input.answer === "allow" || input.answer === "always";
-      await tx.externalEffect.update({
-        where: { id: approvalEffect!.id },
-        data: { status: allowed ? "approved" : "denied" },
-      });
-      if (input.answer === "always") {
-        await tx.actionApprovalRule.upsert({
+    if (!approvalEffect) return null;
+    if (input.answer === "always") {
+      if (run.userId !== input.answeredByUserId) {
+        const member = await tx.spaceMember.findFirst({
           where: {
-            spaceId_createdByUserId_effect_matchKind_matchValue: {
-              spaceId: input.spaceId,
-              createdByUserId: approvalUserId!,
-              effect: "always_allow",
-              matchKind: "tool",
-              matchValue: approvalEffect!.kind,
-            },
+            spaceId: input.spaceId,
+            userId: input.answeredByUserId,
+            space: { accountUserId: run.userId },
+            member: { user: { isSpaceAccount: false } },
           },
-          create: {
+          select: { id: true },
+        });
+        if (!member) return null;
+      }
+      approvalUserId = run.userId;
+    }
+  }
+
+  const queued = await tx.run.updateMany({
+    where: {
+      id: input.runId,
+      spaceId: input.spaceId,
+      threadId: input.threadId,
+      status: "waiting_input",
+    },
+    data: {
+      status: "queued",
+      ...(choiceAsk ? { checkpoint: null } : {}),
+    },
+  });
+  if (queued.count !== 1) return null;
+
+  const recordedAnswer = secretAsk ? "" : (selectedChoice?.id ?? input.answer);
+
+  if (approvalAsk) {
+    const allowed = input.answer === "allow" || input.answer === "always";
+    await tx.externalEffect.update({
+      where: { id: approvalEffect!.id },
+      data: { status: allowed ? "approved" : "denied" },
+    });
+    if (input.answer === "always") {
+      await tx.actionApprovalRule.upsert({
+        where: {
+          spaceId_createdByUserId_effect_matchKind_matchValue: {
             spaceId: input.spaceId,
             createdByUserId: approvalUserId!,
             effect: "always_allow",
             matchKind: "tool",
             matchValue: approvalEffect!.kind,
           },
-          update: {},
-        });
-      }
-    } else if (secretAsk) {
-      await runSecretWriter!.store({
-        botId: run.botId,
-        credential: pendingAsk.credential,
-        runId: input.runId,
-        userId: run.userId,
-        spaceId: input.spaceId,
-        plaintext: input.answer,
-        tx,
-      });
-      await tx.externalEffect.updateMany({
-        where: {
-          runId: input.runId,
+        },
+        create: {
           spaceId: input.spaceId,
-          kind: "request_secret",
-          status: "intended",
+          createdByUserId: approvalUserId!,
+          effect: "always_allow",
+          matchKind: "tool",
+          matchValue: approvalEffect!.kind,
         },
-        data: {
-          status: "approved",
-          ...(pendingAsk.credential ? { result: { credentialSaved: pendingAsk.credential } } : {}),
-        },
+        update: {},
       });
-    } else {
-      const resumeLabel = selectedChoice
-        ? resumeChoiceLabel(selectedChoice, run.checkpoint)
-        : undefined;
-      const task = await tx.task.updateMany({
-        where: { runs: { some: { id: input.runId } } },
-        data: {
-          prompt: selectedChoice
-            ? `Selected choice ${selectedChoice.id}: ${resumeLabel}`
-            : input.answer,
-        },
-      });
-      if (task.count !== 1) throw new Error("Run task was not available to answer");
     }
-
-    const blocks = parsed.data.map((block) =>
-      block === pendingAsk
-        ? {
-            ...block,
-            status: "answered" as const,
-            answer: secretAsk ? "" : input.answer,
-          }
-        : block,
-    );
-    await tx.message.update({ where: { id: message.id }, data: { blocks } });
-    const updated = await appendEventInTransaction(tx, {
-      spaceId: input.spaceId,
-      threadId: input.threadId,
+  } else if (secretAsk) {
+    await runSecretWriter!.store({
       botId: run.botId,
-      type: "thread.message.updated",
+      credential: pendingAsk.credential,
       runId: input.runId,
-      payload: {
-        messageId: message.id,
-        role: "bot",
-        blocks,
-        answeredByUserId: input.answeredByUserId,
+      userId: run.userId,
+      spaceId: input.spaceId,
+      plaintext: login?.success ? encodeLoginSecret(login.data) : input.answer,
+      tx,
+    });
+    await tx.externalEffect.updateMany({
+      where: {
+        runId: input.runId,
+        spaceId: input.spaceId,
+        kind: "request_secret",
+        status: "intended",
+      },
+      data: {
+        status: "approved",
+        ...(pendingAsk.credential ? { result: { credentialSaved: pendingAsk.credential } } : {}),
       },
     });
-    return { threadId: updated.threadId, seq: updated.seq };
+  } else {
+    const resumeLabel = selectedChoice
+      ? resumeChoiceLabel(selectedChoice, run.checkpoint)
+      : undefined;
+    const task = await tx.task.updateMany({
+      where: { runs: { some: { id: input.runId } } },
+      data: {
+        prompt: selectedChoice
+          ? `Selected choice ${selectedChoice.id}: ${resumeLabel}`
+          : input.answer,
+      },
+    });
+    if (task.count !== 1) throw new Error("Run task was not available to answer");
+  }
+
+  const blocks = parsed.data.map((block) =>
+    block === pendingAsk
+      ? {
+          ...block,
+          status: "answered" as const,
+          answer: recordedAnswer,
+        }
+      : block,
+  );
+  await tx.message.update({ where: { id: message.id }, data: { blocks } });
+  const updated = await appendEventInTransaction(tx, {
+    spaceId: input.spaceId,
+    threadId: input.threadId,
+    botId: run.botId,
+    type: "thread.message.updated",
+    runId: input.runId,
+    payload: {
+      messageId: message.id,
+      role: "bot",
+      blocks,
+      answeredByUserId: input.answeredByUserId,
+    },
   });
+  return { threadId: updated.threadId, seq: updated.seq };
+}
+
+export async function answerRunInput(
+  prisma: PrismaClient,
+  input: AnswerRunInput,
+  realtime?: RealtimeFanout,
+  runSecretWriter?: RunSecretWriter,
+): Promise<boolean> {
+  const commit = (writer = runSecretWriter) =>
+    prisma.$transaction(async (tx: Prisma.TransactionClient) =>
+      commitAnswerRunInput(tx, input, writer),
+    );
+  const committed = runSecretWriter?.withPrepared
+    ? await runSecretWriter.withPrepared(prisma, input, commit)
+    : await commit();
 
   if (!committed) return false;
   await notifyRealtime(realtime, committed.threadId, committed.seq);
   return true;
+}
+
+/** Answer a waiting question ask with composer free-text. Approval and secret cards stay on the card path. */
+export async function answerWaitingRunWithTextInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    spaceId: string;
+    threadId: string;
+    runId: string;
+    answeredByUserId: string;
+    answer: string;
+  },
+): Promise<{ threadId: string; seq: number } | null> {
+  const answer = input.answer.trim();
+  if (!answer) return null;
+  const found = await findPendingAsk(tx, input);
+  if (!found) return null;
+  if (isApprovalAskBlock(found.pendingAsk) || isSecretAskBlock(found.pendingAsk)) return null;
+  return commitAnswerRunInput(tx, { ...input, messageId: found.messageId, answer });
 }
 
 export async function pauseRunForInput(
@@ -910,6 +1033,8 @@ export async function finalizeComputerControlRelease(
     });
     if (cleared.count !== 1) return null;
 
+    const checkpoint =
+      input.reason === "skipped" || input.reason === "expired" ? "takeover-skipped" : "takeover";
     const resumed = input.runId
       ? await tx.run.updateMany({
           where: {
@@ -920,14 +1045,25 @@ export async function finalizeComputerControlRelease(
           },
           data: {
             status: "queued",
-            checkpoint:
-              input.reason === "skipped" || input.reason === "expired"
-                ? "takeover-skipped"
-                : "takeover",
+            checkpoint,
           },
         })
       : { count: 0 };
-    const runId = resumed.count === 1 ? input.runId : null;
+    // A steered continue may already hold the run as leased/running. Stamp the
+    // checkpoint without stealing the lease so the worker can restore tools.
+    const stamped =
+      input.runId && resumed.count !== 1
+        ? await tx.run.updateMany({
+            where: {
+              id: input.runId,
+              spaceId: input.spaceId,
+              botId: input.botId,
+              status: { in: ["leased", "running"] },
+            },
+            data: { checkpoint },
+          })
+        : { count: 0 };
+    const runId = resumed.count === 1 || stamped.count === 1 ? input.runId : null;
 
     const bot = await tx.bot.findFirst({
       where: { id: input.botId, spaceId: input.spaceId },
@@ -961,8 +1097,9 @@ export async function appendEvent(
   input: AppendEventInput,
   realtime?: RealtimeFanout,
 ): Promise<ProductEvent> {
-  const event = await prisma.$transaction((tx: Prisma.TransactionClient) =>
-    appendEventInTransaction(tx, input),
+  // Concurrent writers in one thread (group members, bot messages) can deadlock on the thread row.
+  const event = await withTransactionRetry(() =>
+    prisma.$transaction((tx: Prisma.TransactionClient) => appendEventInTransaction(tx, input)),
   );
   const productEvent = mapProductEvent(event);
   await notifyRealtime(realtime, event.threadId, event.seq);
@@ -1117,15 +1254,16 @@ async function finalizeRunOnce(
         data: { runId: null },
       });
     }
-    const continuationRunId = await createSteeringContinuation(tx, input);
+    const continuationRunId = await createPendingSteeringRun(tx, input);
     await tx.bot.update({ where: { id: input.botId }, data: { updatedAt: now } });
     return { threadId: lastEvent.threadId, seq: lastEvent.seq, continuationRunId };
   });
 }
 
-async function createSteeringContinuation(
+/** Queue one follow-up when this bot still has unclaimed steering and no live run. */
+export async function createPendingSteeringRun(
   tx: Prisma.TransactionClient,
-  input: FinalizeRunBase,
+  input: { spaceId: string; threadId: string; botId: string },
 ): Promise<string | null> {
   const active = await tx.run.findFirst({
     where: {
@@ -1146,13 +1284,17 @@ async function createSteeringContinuation(
     orderBy: [{ message: { seq: "asc" } }, { id: "asc" }],
   });
   if (pending.length === 0) return null;
-  const last = pending.at(-1)!;
+  // One origin per continuation so a group channel and a direct chat are not answered together.
+  const origin = steeringOrigin(pending[0]!);
+  const batch = pending.filter((item) => steeringOrigin(item) === origin);
+  const source = batch.at(-1)!;
+  const modelPin = continuationModelPin(batch);
   const task = await tx.task.create({
     data: {
       spaceId: input.spaceId,
       botId: input.botId,
       threadId: input.threadId,
-      userId: pending[0]!.userId,
+      userId: batch[0]!.userId,
       prompt: "Respond to the user's steering context.",
       status: "queued",
     },
@@ -1163,18 +1305,52 @@ async function createSteeringContinuation(
       botId: input.botId,
       threadId: input.threadId,
       taskId: task.id,
-      userId: pending[0]!.userId,
+      userId: batch[0]!.userId,
       status: "queued",
-      trigger: "follow_up",
-      sourceMessageId: last.message.id,
-      initiatedByUserId: last.message.authorUserId,
+      trigger: origin === "app" ? "follow_up" : "messaging",
+      sourceMessageId: source.message.id,
+      initiatedByUserId: source.message.authorUserId,
+      ...(modelPin ?? {}),
     },
   });
   await tx.steeringMessage.updateMany({
-    where: { id: { in: pending.map((item) => item.id) }, runId: null },
+    where: { id: { in: batch.map((item) => item.id) }, runId: null },
     data: { runId: run.id, claimedAt: null },
   });
   return run.id;
+}
+
+function continuationModelPin(
+  batch: ReadonlyArray<{
+    modelProvider?: string | null;
+    modelId?: string | null;
+    thinkingLevel?: string | null;
+  }>,
+) {
+  const first = batch[0];
+  if (!first?.modelProvider || !first.modelId) return null;
+  const agreed = batch.every(
+    (item) =>
+      item.modelProvider === first.modelProvider &&
+      item.modelId === first.modelId &&
+      (item.thinkingLevel ?? null) === (first.thinkingLevel ?? null),
+  );
+  if (!agreed) return null;
+  return {
+    modelProvider: first.modelProvider,
+    modelId: first.modelId,
+    thinkingLevel: first.thinkingLevel ?? null,
+    modelPinned: true,
+  };
+}
+
+function steeringOrigin(item: {
+  originTrigger: string | null;
+  message: { blocks: unknown };
+}): string {
+  if (item.originTrigger !== "messaging") return "app";
+  const channelId = messagingChannelId(item.message.blocks as MessageBlock[] | undefined);
+  return channelId ? `channel:${channelId}` : "dm";
 }
 
 export async function appendEventInTransaction(
@@ -1186,7 +1362,13 @@ export async function appendEventInTransaction(
     data: { nextEventSeq: { increment: 1 } },
     select: { nextEventSeq: true },
   });
-  await assertRunCanWriteHistory(tx, input.runId);
+  // run.cancelled is appended after the run row already reads cancelled, so it
+  // asserts the terminal status where every other event needs a writable run.
+  if (input.type === "run.cancelled") {
+    await assertRunIsCancelled(tx, input.runId);
+  } else {
+    await assertRunCanWriteHistory(tx, input.runId, { allowCancelled: input.allowCancelledRun });
+  }
   // Unpaired UTF-16 surrogates (e.g. a split emoji high half) are invalid JSON for Postgres.
   const payload = sanitizeJsonValue(input.payload);
   return tx.event.create({

@@ -1,13 +1,23 @@
 import type {
   ActionReviewRequest,
-  AgentModelOAuthCredential,
+  AdapterContext,
+  AdapterDescriptor,
+  AgentRunModel,
   AgentRuntime,
+  AgentRuntimeEvent,
   AnswerCheckRequest,
+  AutoReviewCapabilities,
+  AutoReviewProvider,
+  AutoReviewRequest,
+  AutoReviewResult,
+  CacheCapabilities,
   ClaimVerdict,
   VerificationResult,
   Verifier,
 } from "@rakazo/adapter-kit";
-import { type AutoReviewJudgeDecision, redactSecrets } from "@rakazo/core";
+import type { AutoReviewJudgeDecision } from "@rakazo/core";
+import { redactSecrets } from "@rakazo/core";
+import { formatCurrentTimeInstruction } from "./current-time.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { catalogModels } from "./model-vision.js";
 import { LOCAL_PROVIDER_ID } from "./pi-local-provider.js";
@@ -25,14 +35,19 @@ export type AutoReviewChecker = {
   model: string;
 };
 
-export type AutoReviewJudgeResult = {
-  decision: AutoReviewJudgeDecision;
-  reason?: string;
-  model: string;
+/** The Auto Review verdict plus what the checker call cost, kept for comparison reports. */
+export type AutoReviewJudgeResult = AutoReviewResult & {
   latencyMs: number;
   inputTokens?: number;
   outputTokens?: number;
 };
+
+export type AutoReviewProviderKind = "llm" | "jev" | "scripted";
+
+export const JEV_AUTO_REVIEW_PROVIDER = "jev";
+export const SCRIPTED_AUTO_REVIEW_PROVIDER = "scripted";
+export const DEFAULT_JEV_MODEL = "jev-latest";
+export const DEFAULT_AUTO_REVIEW_MIN_CONFIDENCE = 0.5;
 
 function envFlag(env: NodeJS.ProcessEnv, name: string): boolean {
   const value = env[name]?.trim().toLowerCase();
@@ -68,6 +83,39 @@ export function autoReviewTimeoutMs(env: NodeJS.ProcessEnv = process.env): numbe
   return Math.floor(value);
 }
 
+/** TypeSafe Jev key. Optional; core Auto Review still uses the LLM checker without it. */
+export function typesafeApiKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const value = env.TYPESAFE_API_KEY?.trim();
+  return value || undefined;
+}
+
+export function autoReviewMinConfidence(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.RAKAZO_AUTO_REVIEW_MIN_CONFIDENCE?.trim();
+  if (!raw) return DEFAULT_AUTO_REVIEW_MIN_CONFIDENCE;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > 1) return DEFAULT_AUTO_REVIEW_MIN_CONFIDENCE;
+  return value;
+}
+
+function isVerifierKind(value: string | undefined): value is "jev" | "scripted" {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "jev" || normalized === "scripted";
+}
+
+/**
+ * `RAKAZO_AUTO_REVIEW_PROVIDER=jev` selects TypeSafe Jev when a key is present;
+ * otherwise the existing LLM checker. `scripted` is the offline test adapter.
+ * Any other value remains the LLM provider id (openrouter, anthropic, …).
+ */
+export function resolveAutoReviewProviderKind(
+  env: NodeJS.ProcessEnv = process.env,
+): AutoReviewProviderKind {
+  const requested = env.RAKAZO_AUTO_REVIEW_PROVIDER?.trim().toLowerCase();
+  if (requested === "jev") return typesafeApiKey(env) ? "jev" : "llm";
+  if (requested === "scripted" && env.AGENT_RUNTIME === "scripted") return "scripted";
+  return "llm";
+}
+
 /**
  * Prefer explicit env overrides, then local models, then PI_DEFAULT_*.
  * Returns null only when there is no model id to try.
@@ -75,9 +123,20 @@ export function autoReviewTimeoutMs(env: NodeJS.ProcessEnv = process.env): numbe
 export function resolveAutoReviewChecker(
   env: NodeJS.ProcessEnv = process.env,
 ): AutoReviewChecker | null {
+  const kind = resolveAutoReviewProviderKind(env);
+  if (kind === "jev") {
+    return {
+      provider: JEV_AUTO_REVIEW_PROVIDER,
+      model: env.RAKAZO_AUTO_REVIEW_MODEL?.trim() || DEFAULT_JEV_MODEL,
+    };
+  }
+  if (kind === "scripted") {
+    return { provider: SCRIPTED_AUTO_REVIEW_PROVIDER, model: "scripted" };
+  }
+
   const overrideProvider = env.RAKAZO_AUTO_REVIEW_PROVIDER?.trim();
   const overrideModel = env.RAKAZO_AUTO_REVIEW_MODEL?.trim();
-  if (overrideProvider && overrideModel) {
+  if (overrideProvider && overrideModel && !isVerifierKind(overrideProvider)) {
     return { provider: overrideProvider, model: overrideModel };
   }
 
@@ -102,11 +161,12 @@ export function isAutoReviewCheckerConfigured(input: {
   const env = input.env ?? process.env;
   const checker = resolveAutoReviewChecker(env);
   if (!checker) return false;
-  if (checker.provider === "scripted") return false;
+  if (checker.provider === JEV_AUTO_REVIEW_PROVIDER) return Boolean(typesafeApiKey(env));
+  if (checker.provider === SCRIPTED_AUTO_REVIEW_PROVIDER) return true;
   if (checker.provider === LOCAL_PROVIDER_ID) return localModelIds(env).length > 0;
 
   const deployment = resolveDeploymentModel(env);
-  if (checker.provider === deployment.provider && deployment.key) return true;
+  if (checker.provider === deployment.provider && deployment.configured) return true;
   if (env.OPENROUTER_API_KEY?.trim() && checker.provider === "openrouter") return true;
   if (env.ANTHROPIC_API_KEY?.trim() && checker.provider === "anthropic") return true;
   return Boolean(input.hasUserCredentialForProvider?.(checker.provider));
@@ -193,7 +253,7 @@ function escapePromptData(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
-function sanitizeReason(reason: string | undefined): string | undefined {
+export function sanitizeAutoReviewReason(reason: string | undefined): string | undefined {
   if (!reason) return undefined;
   const cleaned = reason
     .replace(/\u2014|\u2013/g, "-")
@@ -215,7 +275,8 @@ export function parseAutoReviewJudgeText(text: string): {
     if (parsed.decision === "pass" || parsed.decision === "ask") {
       return {
         decision: parsed.decision,
-        reason: typeof parsed.reason === "string" ? sanitizeReason(parsed.reason) : undefined,
+        reason:
+          typeof parsed.reason === "string" ? sanitizeAutoReviewReason(parsed.reason) : undefined,
       };
     }
   } catch {
@@ -224,9 +285,17 @@ export function parseAutoReviewJudgeText(text: string): {
   return { decision: "error" };
 }
 
-export function buildAutoReviewPrompt(input: ActionReviewRequest): string {
+/** Rules arrive pre-formatted from Manor's verifier contract, or as rows from Auto Review. */
+export function buildAutoReviewPrompt(input: ActionReviewRequest | AutoReviewRequest): string {
   const argsJson = truncate(JSON.stringify(input.args), MAX_ARGS_CHARS);
-  const rules = input.matchingRules.length === 0 ? "none" : input.matchingRules.join(", ");
+  const rules =
+    input.matchingRules.length === 0
+      ? "none"
+      : input.matchingRules
+          .map((rule) =>
+            typeof rule === "string" ? rule : `${rule.effect}:${rule.matchKind}:${rule.matchValue}`,
+          )
+          .join(", ");
   return [
     "Decide if this bot action is unexpected or dangerous relative to the user task.",
     'Reply with JSON only: {"decision":"pass"|"ask","reason":"one short sentence"}.',
@@ -246,15 +315,18 @@ export const CHECKER_INSTRUCTIONS =
   "You are a fast safety checker. Output strict JSON only. No tools. No markdown.";
 
 type CheckerCallInput = {
+  onUsage?: (event: Extract<AgentRuntimeEvent, { type: "usage" }>) => Promise<unknown>;
   runtime: AgentRuntime;
   checker: AutoReviewChecker;
   apiKey?: string;
+  accountId?: string;
+  gatewayId?: string;
   baseUrl?: string;
+  cacheCapabilities?: CacheCapabilities;
+  contextWindow?: number;
+  maxTokens?: number;
   reasoning?: boolean;
-  oauth?: {
-    credential: AgentModelOAuthCredential;
-    persist?: (credential: AgentModelOAuthCredential) => Promise<void>;
-  };
+  oauth?: AgentRunModel["oauth"];
   prompt: string;
   runId: string;
   spaceId: string;
@@ -262,6 +334,7 @@ type CheckerCallInput = {
   botId: string;
   threadId: string;
   timeoutMs?: number;
+  signal?: AbortSignal;
 };
 
 type CheckerCallResult = {
@@ -279,6 +352,9 @@ async function runCheckerCall(input: CheckerCallInput): Promise<CheckerCallResul
   const model = `${input.checker.provider}/${input.checker.model}`;
   const timeoutMs = input.timeoutMs ?? autoReviewTimeoutMs();
   const started = performance.now();
+  const signal = input.signal
+    ? AbortSignal.any([input.signal, AbortSignal.timeout(timeoutMs)])
+    : AbortSignal.timeout(timeoutMs);
   let text = "";
   let failed = false;
   let inputTokens: number | undefined;
@@ -295,15 +371,24 @@ async function runCheckerCall(input: CheckerCallInput): Promise<CheckerCallResul
         botId: input.botId,
         threadId: input.threadId,
         runId: `${input.runId}:auto-review`,
+        usageOperationKind: "setup",
+        onUsage: async (event) => {
+          await input.onUsage?.(event);
+        },
         prompt: input.prompt,
-        instructions: CHECKER_INSTRUCTIONS,
+        instructions: [formatCurrentTimeInstruction(), CHECKER_INSTRUCTIONS].join(" "),
         history: [],
         tools: [],
         model: {
           provider: input.checker.provider,
           id: input.checker.model,
           apiKey: input.oauth ? undefined : input.apiKey,
+          accountId: input.accountId,
+          gatewayId: input.gatewayId,
           baseUrl: input.baseUrl,
+          cacheCapabilities: input.cacheCapabilities,
+          contextWindow: input.contextWindow,
+          maxTokens: input.maxTokens,
           reasoning: input.reasoning,
           oauth: input.oauth,
         },
@@ -313,12 +398,13 @@ async function runCheckerCall(input: CheckerCallInput): Promise<CheckerCallResul
         traceId: `auto-review:${input.runId}`,
         spaceId: input.spaceId,
         userId: input.userId,
-        signal: AbortSignal.timeout(timeoutMs),
+        signal,
       },
     )) {
       if (event.type === "usage") {
-        inputTokens = (inputTokens ?? 0) + event.inputTokens;
-        outputTokens = (outputTokens ?? 0) + event.outputTokens;
+        inputTokens = (inputTokens ?? 0) + (event.inputTokens ?? 0);
+        outputTokens = (outputTokens ?? 0) + (event.outputTokens ?? 0);
+        if (!event.accounted) await input.onUsage?.(event);
       }
       if (
         event.type === "text" &&
@@ -391,7 +477,8 @@ export function parseAnswerCheckText(
         text: claim,
         supported: !unsupported.has(index + 1),
       })),
-      reason: typeof parsed.reason === "string" ? sanitizeReason(parsed.reason) : undefined,
+      reason:
+        typeof parsed.reason === "string" ? sanitizeAutoReviewReason(parsed.reason) : undefined,
     };
   } catch {
     return null;
@@ -431,6 +518,7 @@ export function createLlmVerifier(
         prompt: buildAutoReviewPrompt(request),
         spaceId: context.spaceId,
         userId: context.userId,
+        signal: context.signal,
       });
       return { ...judge, costUsd: cost(judge) };
     },
@@ -441,6 +529,7 @@ export function createLlmVerifier(
         spaceId: context.spaceId,
         userId: context.userId,
         timeoutMs: input.answerTimeoutMs ?? answerCheckTimeoutMs(),
+        signal: context.signal,
       });
       const parsed = text ? parseAnswerCheckText(text, request.claims) : null;
       if (!parsed) {
@@ -461,4 +550,47 @@ export function createLlmVerifier(
       };
     },
   };
+}
+
+export type LlmAutoReviewOptions = {
+  onUsage?: (event: Extract<AgentRuntimeEvent, { type: "usage" }>) => Promise<unknown>;
+  runtime: AgentRuntime;
+  checker: AutoReviewChecker;
+  apiKey?: string;
+  accountId?: string;
+  gatewayId?: string;
+  baseUrl?: string;
+  cacheCapabilities?: CacheCapabilities;
+  contextWindow?: number;
+  maxTokens?: number;
+  reasoning?: boolean;
+  oauth?: AgentRunModel["oauth"];
+  runId: string;
+  spaceId: string;
+  userId: string;
+  botId: string;
+  threadId: string;
+  timeoutMs?: number;
+};
+
+/** Existing JSON-text LLM checker, behind the same Auto Review interface as Jev. */
+export class LlmAutoReviewProvider implements AutoReviewProvider {
+  constructor(private readonly options: LlmAutoReviewOptions) {}
+
+  describe(): AdapterDescriptor<AutoReviewCapabilities> {
+    return {
+      id: "llm",
+      contractVersion: "1",
+      adapterVersion: "0.1.0",
+      capabilities: { offline: false, keyless: false },
+    };
+  }
+
+  review(request: AutoReviewRequest, context: AdapterContext): Promise<AutoReviewResult> {
+    return runAutoReviewJudge({
+      ...this.options,
+      prompt: buildAutoReviewPrompt(request),
+      signal: context.signal,
+    });
+  }
 }

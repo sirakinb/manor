@@ -82,8 +82,8 @@ describe("createRepos.listBots", () => {
 
     expect(bots.map((bot) => bot.preview)).toEqual(["Answer one", "Answer two"]);
     expect(prisma.run.findMany).toHaveBeenCalledExactlyOnceWith({
-      where: { id: { in: ["run-one", "run-two"] }, trigger: "bot_message" },
-      select: { id: true },
+      where: { id: { in: ["run-one", "run-two"] }, trigger: { in: ["bot_message", "tickets"] } },
+      select: { id: true, trigger: true },
     });
   });
 
@@ -127,8 +127,11 @@ describe("createRepos.listBots", () => {
     expect(bots[0]?.preview).toBe("Visible answer");
     expect(prisma.run.findMany).toHaveBeenCalledTimes(2);
     expect(prisma.run.findMany).toHaveBeenNthCalledWith(2, {
-      where: { id: { in: ["peer-old", "user-old"] }, trigger: "bot_message" },
-      select: { id: true },
+      where: {
+        id: { in: ["peer-old", "user-old"] },
+        trigger: { in: ["bot_message", "tickets"] },
+      },
+      select: { id: true, trigger: true },
     });
     expect(prisma.message.findMany).toHaveBeenCalledTimes(2);
   });
@@ -310,6 +313,7 @@ describe("createRepos.listSpaceBotsForSpaces", () => {
         pinned: true,
         sectionId: null,
         updatedAt: new Date("2026-08-20T00:00:00.000Z"),
+        parentBotId: null,
         thread: {
           unread: true,
           messages: [{ blocks: [{ kind: "text", text: "Waiting for a reply" }] }],
@@ -330,6 +334,7 @@ describe("createRepos.listSpaceBotsForSpaces", () => {
         pinned: true,
         sectionId: null,
         unread: true,
+        parentBotId: null,
         preview: "Waiting for a reply",
         status: "running",
         updatedAt: "2026-08-20T00:00:00.000Z",

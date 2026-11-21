@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { rm } from "node:fs/promises";
 import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import type {
+  AgentContextStrategy,
   AgentRuntime,
+  BillingProvider,
   JobPublisher,
   MaintenanceAdapter,
   ManagedConnectorProvider,
@@ -12,12 +13,17 @@ import type {
   SandboxProvider,
   TransactionalEmailProvider,
 } from "@rakazo/adapter-kit";
+import type {
+  ComposioProvider,
+  ConnectorRegistry,
+  DestinationEmulator,
+  RemoteConnectorDependencies,
+} from "@rakazo/adapters";
 import {
   applyMessagingOutboundStatus,
   ChatSdkMessagingSurface,
+  CodexCatalogCache,
   ComposioConnector,
-  type ComposioProvider,
-  type ConnectorRegistry,
   createBackgroundJobHandlers,
   createBuildiumLedger,
   createCloudAgentConnection,
@@ -28,13 +34,15 @@ import {
   createRunExecutor,
   createRunSandbox,
   createRunSecretWriter,
+  createSecretStore,
+  createTicketChangeNotifier,
   createWebProvider,
-  type DestinationEmulator,
   DurableLocalComputerGateway,
+  deletePushToken,
   destroyBot,
   EmailEmulator,
-  EncryptedSecretStore,
   ExpoPushProvider,
+  endSessionPushToken,
   GoogleFormsConnector,
   GraphileJobPublisher,
   InMemoryJobQueue,
@@ -59,49 +67,62 @@ import {
   PostgresRealtimeFanout,
   pipedreamConfigFromEnv,
   piSessionsRoot,
-  pushTokenPath,
-  type RemoteConnectorDependencies,
   reconcileCloudAgents,
   reconcileComputerUpdates,
   removePiUserSessions,
   ScriptedAgentRuntime,
   SmtpEmailProvider,
   SpaceMemoryProviderResolver,
+  StripeBillingProvider,
+  sandboxProviderOptionsFromEnv,
+  stripeBillingConfigFromEnv,
   toTeamChatInbound,
   VpsMaintenanceAdapter,
+  withSecretPersistence,
   ZohoCampaignsConnector,
 } from "@rakazo/adapters";
 import {
   assertPortalAccess,
-  blockedAuthPaths,
   createAuth,
+  isBlockedAuthPath,
+  loopbackTwinOrigins,
   requirePortalMembership,
 } from "@rakazo/auth";
 import { brandOrigins } from "@rakazo/brands";
-import { signupPolicyFromEnv } from "@rakazo/core";
+import type { Actor, AuthCapabilities } from "@rakazo/contracts";
+import { signupAllowlistBootUpdate, signupPolicyFromEnv } from "@rakazo/core";
+import type { Pool, PrismaClient } from "@rakazo/db";
 import {
+  createBoardEvents,
   createDb,
+  createPool,
   createThreadEvents,
-  type PrismaClient,
+  IsolationError,
+  parsePositiveInteger,
   provisionMessagingIdentity,
+  pushSessionExpiresAt,
   spaceResourceActor,
 } from "@rakazo/db";
+import type { Logger } from "@rakazo/logging";
 import {
   createServiceLogger,
   enrichLogContext,
   getLogger,
   installLogger,
-  type Logger,
   SERVICE_NAMES,
 } from "@rakazo/logging";
 import { requestLogging } from "@rakazo/logging/hono";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createBillingService } from "./billing.js";
+import { mountBillingRoutes } from "./billing-webhook.js";
 import { mountChannelRoutes } from "./channels.js";
 import { createCrmIntegrationService, mountCrmIntegrationRoutes } from "./crm-integrations.js";
-import { type AppEnv, loadEnv } from "./env.js";
+import type { AppEnv } from "./env.js";
+import { loadEnv } from "./env.js";
 import { createGoogleFormsTokenBroker } from "./google-forms-token-broker.js";
+import { healthRoutes } from "./health.js";
 import { attachLocalComputerSocket, type LocalComputerUpgradeServer } from "./local-computer.js";
 import { mountLocalSettings } from "./local-settings.js";
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
@@ -119,6 +140,7 @@ import {
 } from "./public-forms.js";
 import { mountApiRequestBodyLimits } from "./request-body-limit.js";
 import { createRouter } from "./router.js";
+import { mountScreenTarget } from "./screen-proxy.js";
 import { isDeferredReservationLost, TeamChatBridge } from "./team-chat-bridge.js";
 import { ModelTeamChatEngagementJudge } from "./team-chat-judge.js";
 import {
@@ -129,6 +151,19 @@ import {
 } from "./team-chat-startup.js";
 import { mountVoiceHttpRoutes } from "./voice.js";
 import { mountWebhookHttpRoutes } from "./webhook.js";
+
+/**
+ * Native clients always send the app scheme, including in Expo Go, so no
+ * exp:// origin is trusted: it would accept any Expo host as a redirect target.
+ * The loopback entries are the Expo web dev server.
+ */
+export const MOBILE_AUTH_ORIGINS = [
+  "rakazo://",
+  "http://localhost:8081",
+  "http://127.0.0.1:8081",
+  "http://localhost:19006",
+  "http://127.0.0.1:19006",
+];
 
 export interface AppHandles {
   app: Hono;
@@ -143,6 +178,8 @@ export interface AppHandles {
   executor: ReturnType<typeof createRunExecutor>;
   attachLocalComputer: (server: LocalComputerUpgradeServer) => () => void;
   runtime: AgentRuntime;
+  awaitIdle?: () => Promise<void>;
+  backgroundFailures?: () => Array<{ name: string; count: number }>;
   stop: () => Promise<void>;
 }
 
@@ -156,8 +193,11 @@ export async function createApp(
     pipedream?: ManagedConnectorProvider;
     messaging?: MessagingSurface;
     email?: TransactionalEmailProvider;
+    billing?: BillingProvider;
     remoteConnectors?: RemoteConnectorDependencies;
     logger?: Logger;
+    runtime?: AgentRuntime;
+    contextStrategy?: AgentContextStrategy;
   } = {},
 ): Promise<AppHandles> {
   const {
@@ -168,9 +208,12 @@ export async function createApp(
     pipedream: pipedreamOverride,
     messaging: messagingOverride,
     email: emailOverride,
+    billing: billingOverride,
     remoteConnectors,
     maintenance: maintenanceOverride,
     logger: loggerOverride,
+    runtime: runtimeOverride,
+    contextStrategy,
     ...envOverrides
   } = overrides;
   const env = { ...loadEnv(process.env), ...envOverrides };
@@ -178,9 +221,11 @@ export async function createApp(
   installLogger(logger);
   const created = prismaOverride
     ? { prisma: prismaOverride, pool: undefined }
-    : createDb(env.databaseUrl);
-  const { prisma } = created;
-  created.pool?.on("error", () => undefined);
+    : createDb(env.databaseUrl, {
+        poolMax: parsePositiveInteger(process.env.DB_POOL_MAX, 4),
+        applicationName: "rakazo-api",
+      });
+  let { prisma } = created;
   const realtime =
     realtimeOverride ??
     (created.pool
@@ -189,10 +234,16 @@ export async function createApp(
           publisher: created.pool,
         })
       : new InMemoryRealtimeFanout());
-  const secrets = new EncryptedSecretStore(env.encryptionKey);
+  const secrets = createSecretStore(env.encryptionKey, process.env, realtime);
+  await secrets.start();
+  if (secrets.describe().capabilities.degraded)
+    logger.warn("Secret storage degraded; encrypted credentials remain available");
+  prisma = withSecretPersistence(prisma, secrets);
   const events = createThreadEvents(prisma, realtime, {
     runSecretWriter: createRunSecretWriter(secrets),
   });
+  const ticketBoardEnabled = env.ticketBoardEnabled;
+  const boardEvents = createBoardEvents(realtime);
   const environmentSignupPolicy = signupPolicyFromEnv(env);
   const deploymentSettings = await prisma.deploymentSettings.upsert({
     where: { id: "default" },
@@ -207,7 +258,8 @@ export async function createApp(
   if (!deploymentSettings.signupPolicyInitialized) {
     // Older versions created this row with schema defaults even though auth
     // still enforced the environment policy. Copy that effective policy once
-    // so upgrades preserve behavior before Settings becomes authoritative.
+    // so upgrades preserve behavior. Later starts reapply a non-empty
+    // SIGNUP_ALLOWLIST; a blank value leaves the stored list alone.
     await prisma.deploymentSettings.updateMany({
       where: { id: "default", signupPolicyInitialized: false },
       data: {
@@ -216,15 +268,53 @@ export async function createApp(
         signupPolicyInitialized: true,
       },
     });
+  } else {
+    const signupAllowlist = signupAllowlistBootUpdate(
+      deploymentSettings.signupAllowlist,
+      env.signupAllowlist,
+      true,
+    );
+    if (signupAllowlist !== null) {
+      await prisma.deploymentSettings.update({
+        where: { id: "default" },
+        data: { signupAllowlist },
+      });
+      logger.info("applied SIGNUP_ALLOWLIST from the environment");
+    }
   }
 
   const jobKind = env.wakeupDriver;
   const inMemoryJobs = jobKind === "memory" ? new InMemoryJobQueue() : undefined;
-  const jobs = inMemoryJobs ?? new GraphileJobPublisher(env.databaseUrl);
+  // prismaOverride skips createDb, so there is no shared pool. The previous
+  // GraphileJobPublisher(databaseUrl) path opened its own connections; keep a
+  // bounded pool for that override path instead of passing undefined.
+  let ownedJobPool: Pool | undefined;
+  if (!inMemoryJobs && !created.pool) {
+    ownedJobPool = createPool(env.databaseUrl, {
+      poolMax: parsePositiveInteger(process.env.DB_POOL_MAX, 4),
+      applicationName: "rakazo-api-jobs",
+    });
+  }
+  const jobPool = created.pool ?? ownedJobPool;
+  const jobs = inMemoryJobs
+    ? inMemoryJobs
+    : new GraphileJobPublisher(
+        jobPool ??
+          (() => {
+            throw new Error("Graphile job publisher requires a PostgreSQL pool");
+          })(),
+      );
+  const ticketChanges = createTicketChangeNotifier({
+    boardEvents,
+    jobs,
+    prisma,
+    ticketBoardEnabled,
+  });
   const localComputerGateway = new DurableLocalComputerGateway(prisma, realtime);
   const sandbox: SandboxProvider =
     sandboxOverride ??
     createRunSandbox(env.sandboxProvider, {
+      ...sandboxProviderOptionsFromEnv(),
       supervisorUrl: env.sandboxSupervisorUrl,
       supervisorToken: env.sandboxSupervisorToken,
       e2bApiKey: env.e2bApiKey,
@@ -238,7 +328,12 @@ export async function createApp(
       localComputer: new LocalSandboxProvider(prisma, localComputerGateway),
     });
   const crmIntegrationService = createCrmIntegrationService({ prisma, secrets });
-  const mcpOAuth = new McpOAuthBroker(prisma, secrets, remoteConnectors);
+  const mcpOAuth = new McpOAuthBroker(
+    prisma,
+    secrets,
+    remoteConnectors,
+    env.mcpAllowPrivateEndpoint,
+  );
   const memoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
   const oauthLogins = new PiOAuthLogins();
   const home = new LocalAgentHomeStore(env.dataDir);
@@ -251,6 +346,8 @@ export async function createApp(
       stdioEnabled: env.mcpStdioEnabled,
       allowedCommands: env.mcpStdioAllowedCommands,
       network: remoteConnectors,
+      events,
+      allowPrivateEndpoint: env.mcpAllowPrivateEndpoint,
     },
     mcpOAuth,
   );
@@ -266,7 +363,7 @@ export async function createApp(
   const messaging =
     messagingOverride ??
     (isMessagingSurfaceEnabled(messagingPlatforms, {
-      deploymentModelKey: env.deploymentModelKey,
+      deploymentModelConfigured: env.deploymentModelConfigured,
       openSignup: env.messagingOpenSignup,
     })
       ? new ChatSdkMessagingSurface(messagingPlatforms)
@@ -287,7 +384,18 @@ export async function createApp(
     (env.smtpUrl
       ? new SmtpEmailProvider({ url: env.smtpUrl, from: env.emailFrom ?? "" })
       : localEmailEmulator);
-  const installed = new InstalledConnectorProvider(prisma, secrets, remoteConnectors);
+  const stripeBilling = stripeBillingConfigFromEnv(env);
+  const billingProvider: BillingProvider | undefined =
+    billingOverride ?? (stripeBilling ? new StripeBillingProvider(stripeBilling) : undefined);
+  const billing = billingProvider
+    ? createBillingService({ prisma, provider: billingProvider, webOrigin: env.webOrigin })
+    : undefined;
+  const installed = new InstalledConnectorProvider(
+    prisma,
+    secrets,
+    remoteConnectors,
+    env.mcpAllowPrivateEndpoint,
+  );
   const integrationSettings = new IntegrationProviderSettings(prisma, secrets, env.encryptionKey, {
     composio:
       composioOverride ??
@@ -297,6 +405,8 @@ export async function createApp(
     pipedream,
   });
   const auth = createAuth(prisma, {
+    passwordAuth: env.passwordAuth,
+    oidc: env.oidc,
     secret: env.authSecret,
     baseURL: env.authUrl,
     webOrigin: env.webOrigin,
@@ -306,17 +416,10 @@ export async function createApp(
     googleClientSecret: env.googleClientSecret,
     email,
     onEmailError: (error) => getLogger().error("transactional email delivery failed", error),
-    extraOrigins: [
-      ...brandOrigins(),
-      "rakazo://",
-      "exp://",
-      "exp://*",
-      "http://localhost:8081",
-      "http://127.0.0.1:8081",
-      "http://localhost:19006",
-      "http://127.0.0.1:19006",
-    ],
+    extraOrigins: [...brandOrigins(), ...MOBILE_AUTH_ORIGINS],
     beforeDeleteUser: async (userId) => {
+      // First, so a provider failure aborts deletion before anything is destroyed.
+      await billing?.cancelForDeletedUser(userId);
       const bots = await prisma.bot.findMany({
         where: { userId },
         select: { id: true, userId: true, spaceId: true, name: true, archivedAt: true },
@@ -339,7 +442,20 @@ export async function createApp(
         ),
       );
       await removePiUserSessions(env.dataDir, userId);
-      await rm(pushTokenPath(env.dataDir, userId), { force: true }).catch(() => undefined);
+      await deletePushToken(env.dataDir, userId).catch((error) =>
+        getLogger().error("push token removal failed", error),
+      );
+    },
+    // The session change already happened, so a token file failure must not fail sign-out.
+    afterDeleteSession: async (session) => {
+      await endSessionPushToken(env.dataDir, session.userId, session.id).catch((error) =>
+        getLogger().error("push token removal failed", error),
+      );
+    },
+    afterReplaceSession: async (previous, session) => {
+      await endSessionPushToken(env.dataDir, session.userId, previous.id, session.id).catch(
+        (error) => getLogger().error("push token session update failed", error),
+      );
     },
   });
   // The Google Forms token broker reads accounts through auth, so the connector stack is
@@ -362,11 +478,12 @@ export async function createApp(
   await connector.start();
   integrationSettings.warmDirectories();
   const runtime =
-    env.agentRuntime === "scripted"
+    runtimeOverride ??
+    (env.agentRuntime === "scripted"
       ? new ScriptedAgentRuntime()
       : new PiAgentRuntime({
           sessionRoot: env.piSessionRecording ? piSessionsRoot(env.dataDir) : undefined,
-        });
+        }));
   const control = maintenanceControlFromEnv();
   const admission = control
     ? new MaintenanceAdmission(control, process.env.HOSTNAME ?? "")
@@ -376,7 +493,9 @@ export async function createApp(
     (control
       ? new VpsMaintenanceAdapter({ prisma, runtime, control, revision: env.gitSha ?? "" })
       : undefined);
-  const notifications = new ExpoPushProvider(env.dataDir);
+  const notifications = new ExpoPushProvider(env.dataDir, (sessionId) =>
+    pushSessionExpiresAt(prisma, sessionId),
+  );
   // One provider instance so emulator launches and polls share the same Map.
   const cloudAgent = createCloudAgentConnection({
     CLOUD_AGENT_PROVIDER: env.cloudAgentProvider,
@@ -384,9 +503,14 @@ export async function createApp(
     CLOUD_AGENT_SPACE_ID: env.cloudAgentSpaceId,
   });
   const shutdown = new AbortController();
+  // One cache serves models.list, selection validation, and run-time model
+  // resolution alike, so a list call warms the run path in this process.
+  const codexCatalog = new CodexCatalogCache();
   const executor = createRunExecutor({
+    contextStrategy,
     prisma,
     runtime,
+    codexCatalog,
     sandbox,
     memory,
     memoryProviders,
@@ -409,16 +533,21 @@ export async function createApp(
       env.deploymentModelKey ?? "",
       env.composioApiKey ?? "",
       env.cursorApiKey ?? "",
+      process.env.TYPESAFE_API_KEY ?? "",
     ].filter(Boolean),
     secretStore: secrets,
     webhookBaseUrl: env.apiUrl,
     secretHttp: remoteConnectors,
+    mcpAllowPrivateEndpoint: env.mcpAllowPrivateEndpoint,
     deploymentModelKey: env.deploymentModelKey,
+    deploymentModelConfigured: env.deploymentModelConfigured,
     dataDir: env.dataDir,
     notifications,
     jobs,
     events,
     crmEvent: crmIntegrationService.emitWebhook,
+    onTicketChange: ticketChanges,
+    ticketBoardEnabled,
     messaging: messaging ? createMessagingContextLoader(prisma) : undefined,
     web: createWebProvider(),
     cloudAgent,
@@ -439,6 +568,7 @@ export async function createApp(
     secretStore: secrets,
     memoryProviders,
     deploymentModelKey: env.deploymentModelKey,
+    deploymentModelConfigured: env.deploymentModelConfigured,
     messaging,
     ingestion: ingestionRunnerFromEnv({
       INGESTION_URL: env.ingestionUrl,
@@ -454,6 +584,8 @@ export async function createApp(
         prisma,
         jobs,
         admission,
+        events,
+        notifications,
         reconcileCloudAgents: () => reconcileCloudAgents({ prisma, jobs, cloudAgent }),
         reconcileComputerUpdates: () => reconcileComputerUpdates({ prisma, jobs }),
       })
@@ -462,8 +594,12 @@ export async function createApp(
 
   const router = createRouter({
     maintenance,
+    cloudAgent,
+    codexCatalog,
     prisma,
     events,
+    ticketChanges,
+    boardEvents,
     auth,
     jobs,
     sandbox,
@@ -482,17 +618,23 @@ export async function createApp(
     artifacts,
     dataDir: env.dataDir,
     crmEvent: crmIntegrationService.emitWebhook,
+    billing,
     messaging: {
       enabled: Boolean(messaging),
       providers: messaging?.platforms().map((platform) => platform.provider) ?? [],
       openSignup: env.messagingOpenSignup,
     },
     env: {
+      ticketBoardEnabled,
       agentRuntime: env.agentRuntime,
       defaultProvider: env.defaultProvider,
       defaultModel: env.defaultModel,
-      deploymentModelKey: env.deploymentModelKey,
+      teamChatJudgeProvider: env.teamChatJudgeProvider,
+      teamChatJudgeModel: env.teamChatJudgeModel,
+      deploymentModelConfigured: env.deploymentModelConfigured,
+      deploymentModelHostCredentials: env.deploymentModelHostCredentials,
       webOrigin: env.webOrigin,
+      privacyPolicyUrl: env.privacyPolicyUrl,
       screenProxySecret: env.screenProxySecret,
       sandboxProvider: env.sandboxProvider,
       gitSha: env.gitSha,
@@ -500,6 +642,7 @@ export async function createApp(
       updaterToken: env.updaterToken,
       imageTag: env.imageTag,
       integrationsCatalogUrl: env.integrationsCatalogUrl,
+      mcpAllowPrivateEndpoint: env.mcpAllowPrivateEndpoint,
     },
   });
   const rpc = new RPCHandler(router, {
@@ -536,12 +679,19 @@ export async function createApp(
         : appCors(c, next),
   );
   mountMaintenanceAdmission(app, admission);
-  app.get("/api/auth/capabilities", (c) =>
-    c.json({
-      passwordReset: Boolean(email),
-      resetUrl: email ? new URL("/reset-password", env.webOrigin).href : null,
-    }),
-  );
+  app.get("/api/auth/capabilities", (c) => {
+    c.header("cache-control", "no-store");
+    return c.json({
+      sso: env.oidc
+        ? { name: env.oidc.name, availability: auth.ssoAvailability() ?? "checking" }
+        : null,
+      passwordAuth: env.passwordAuth !== false,
+      passwordReset: env.passwordAuth !== false && Boolean(email),
+      resetUrl:
+        env.passwordAuth !== false && email ? new URL("/reset-password", env.webOrigin).href : null,
+      billing: Boolean(billing),
+    } satisfies AuthCapabilities);
+  });
   if (localEmailEmulator && env.nodeEnv === "development") {
     app.get(
       "/api/dev/emails",
@@ -552,9 +702,10 @@ export async function createApp(
     );
   }
   mountApiRequestBodyLimits(app);
+  mountScreenTarget(app, prisma, env.screenProxySecret);
   app.on(["GET", "POST"], "/api/auth/*", async (c) => {
     const path = new URL(c.req.url).pathname.replace("/api/auth", "");
-    if (blockedAuthPaths.some((blocked) => path.startsWith(blocked))) {
+    if (isBlockedAuthPath(path)) {
       return c.json({ error: "Not available in version 1" }, 404);
     }
     if (
@@ -575,49 +726,71 @@ export async function createApp(
     return auth.handler(c.req.raw);
   });
   mountLocalSettings(app, { token: env.desktopStackToken, prisma, rpc });
-  mountPublicFormRoutes(app, { prisma, service: crmIntegrationService, email });
-  const resolveSessionActor = async (request: Request) => {
+  // Manor: the portal (brand) gate runs before membership, so every session route below
+  // resolves its actor through it. A refused portal is no actor, like a missing membership.
+  const requestSession = async (request: Request) => {
     const session = await auth.api.getSession({ headers: sessionHeaders(request) });
     if (!session?.user) return null;
-    return requirePortalMembership(prisma, session.user.id, request).catch(() => null);
+    const actor = await actorFromMembership(
+      requirePortalMembership(prisma, session.user.id, request),
+    );
+    return actor && { actor, sessionId: session.session.id };
   };
+  const sessionActor = async (request: Request) => (await requestSession(request))?.actor ?? null;
+  mountPublicFormRoutes(app, { prisma, service: crmIntegrationService, email });
   mountMcpOAuthProvider(app, {
     prisma,
-    resolveActor: resolveSessionActor,
+    resolveActor: sessionActor,
     publicOrigin: (request) => publicOrigin(request, env),
   });
   const crmIntegrations = mountCrmIntegrationRoutes(app, {
     prisma,
     secrets,
     service: crmIntegrationService,
-    resolveActor: resolveSessionActor,
+    resolveActor: sessionActor,
   });
   app.use("/rpc/*", async (c, next) => {
-    const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
-    const actor = session?.user
-      ? await requirePortalMembership(prisma, session.user.id, c.req.raw).catch(() => null)
-      : null;
+    const session = await requestSession(c.req.raw);
+    const actor = session?.actor ?? null;
     if (actor) {
       enrichLogContext({ "user.id": actor.userId, "space.id": actor.spaceId });
     }
     const { matched, response } = await rpc.handle(c.req.raw, {
       prefix: "/rpc",
-      context: { actor, signal: c.req.raw.signal },
+      context: {
+        actor,
+        sessionId: session?.sessionId,
+        signal: c.req.raw.signal,
+        // Same user in the same space, so leaving the space also ends a stream.
+        // A database failure rejects this check; only a missing membership is unauthorized.
+        stillAuthorized: async () => {
+          const current = await sessionActor(c.req.raw);
+          return Boolean(
+            actor && current?.userId === actor.userId && current.spaceId === actor.spaceId,
+          );
+        },
+      },
     });
     if (matched) return c.newResponse(response.body, response);
     await next();
   });
   mountChannelRoutes(app, { prisma, events, jobs });
   mountVoiceHttpRoutes(app, { prisma, secrets }, async (c) => {
-    const session = await auth.api.getSession({ headers: sessionHeaders(c.req.raw) });
-    if (!session?.user) return null;
-    const actor = await requirePortalMembership(prisma, session.user.id, c.req.raw)
-      .then((actor) => spaceResourceActor(prisma, actor))
-      .catch(() => null);
+    const member = await sessionActor(c.req.raw);
+    // Manor: voice in a shared team space runs as the space account.
+    const actor = member ? await actorFromMembership(spaceResourceActor(prisma, member)) : null;
     if (actor) enrichLogContext({ "user.id": actor.userId, "space.id": actor.spaceId });
     return actor;
   });
   mountWebhookHttpRoutes(app, { prisma, secrets, events, jobs });
+  if (billing && billingProvider) {
+    mountBillingRoutes(app, {
+      billing,
+      provider: billingProvider,
+      webOrigin: env.webOrigin,
+      authenticate: sessionActor,
+    });
+  }
   // Shared with stop so a shutdown during retry delays does not restart polling.
   let messagingStopped = false;
   let clearMessagingRetryDelay: (() => void) | undefined;
@@ -886,25 +1059,31 @@ export async function createApp(
     })();
   }
 
-  app.get("/health", async (c) => {
-    const ready = admission ? await admission.ready() : true;
-    return c.json(
-      {
-        ok: ready,
-        runtime: env.agentRuntime,
-        sandbox: env.sandboxProvider,
-        composio: Boolean(stack.composio),
-        pipedream: Boolean(pipedream),
-        messaging: Boolean(messaging),
-        email: email?.describe().id ?? null,
-        jobs: jobKind,
-        realtime: realtime.describe().id,
-        revision: env.gitSha ?? null,
-        maintenanceAdmission: Boolean(admission) && ready,
-      },
-      ready ? 200 : 503,
-    );
-  });
+  // Manor: the release controller probes /health for readiness and for the admission guard,
+  // so a guarded deployment answers both there. Details stay on /internal/health.
+  if (admission) {
+    app.get("/health", async (c) => {
+      const ready = await admission.ready();
+      return c.json({ ok: ready, maintenanceAdmission: ready }, ready ? 200 : 503);
+    });
+  }
+  app.route(
+    "/",
+    healthRoutes(() => ({
+      runtime: env.agentRuntime,
+      sandbox: env.sandboxProvider,
+      composio: Boolean(stack.composio),
+      pipedream: Boolean(pipedream),
+      messaging: Boolean(messaging),
+      email: email?.describe().id ?? null,
+      billing: billingProvider?.describe().id ?? null,
+      jobs: jobKind,
+      realtime: realtime.describe().id,
+      secrets: secrets.describe(),
+      degraded: secrets.describe().capabilities.degraded ?? false,
+      revision: env.gitSha ?? null,
+    })),
+  );
 
   return {
     app,
@@ -919,9 +1098,12 @@ export async function createApp(
     executor,
     attachLocalComputer: (server) => attachLocalComputerSocket(server, { prisma, realtime }),
     runtime,
+    awaitIdle: inMemoryJobs ? () => inMemoryJobs.awaitIdle() : undefined,
+    backgroundFailures: inMemoryJobs ? () => inMemoryJobs.failureCounts() : undefined,
     stop: async () => {
       // Abort in-flight continueRun boot waits before draining jobs so stop() cannot sit
       // on waitForComputerReady for the full boot-wait window during shared Postgres journeys.
+      auth.disposeOidcDiscovery();
       shutdown.abort();
       await crmIntegrations.stop();
       oauthLogins.abortAll();
@@ -942,28 +1124,31 @@ export async function createApp(
       await email?.drain?.();
       await reconciler?.stop();
       await jobs.close();
+      await secrets.close();
       await realtime.close();
       await connector.stop();
       await mcp.close();
       await control?.close();
       await prisma.$disconnect().catch(() => undefined);
       await created.pool?.end().catch(() => undefined);
+      await ownedJobPool?.end().catch(() => undefined);
       await logger.flush({ timeoutMs: 2_000 });
     },
   };
 }
 
-function isTrustedOrigin(origin: string, env: AppEnv) {
+export function isTrustedOrigin(
+  origin: string,
+  env: Pick<AppEnv, "webOrigin" | "apiUrl" | "authUrl">,
+) {
   if (!origin) return true;
-  if (origin === env.webOrigin || origin === env.apiUrl || origin === env.authUrl) return true;
-  if (origin.startsWith("rakazo://") || origin.startsWith("exp://")) return true;
-  if (brandOrigins().includes(origin)) return true;
-  try {
-    const host = new URL(origin).hostname;
-    return isLoopbackHost(host);
-  } catch {
-    return false;
-  }
+  if (origin.startsWith("rakazo://")) return true;
+  const allowed = new Set(
+    [env.webOrigin, env.apiUrl, env.authUrl, ...MOBILE_AUTH_ORIGINS, ...brandOrigins()].flatMap(
+      originVariants,
+    ),
+  );
+  return allowed.has(origin);
 }
 
 /** The origin a client used to reach this deployment, so each brand host advertises itself. */
@@ -978,6 +1163,48 @@ function publicOrigin(request: Request, env: AppEnv) {
 
 function isLoopbackHost(host: string): boolean {
   return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+}
+
+function originVariants(origin: string): string[] {
+  if (!origin || origin === "rakazo://") return [];
+  const variants = [origin, ...loopbackTwinOrigins(origin)];
+  try {
+    const url = new URL(origin);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      variants.push(url.origin);
+    }
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+      const v6 = new URL(origin);
+      v6.hostname = "[::1]";
+      variants.push(v6.origin);
+    }
+  } catch {
+    return variants;
+  }
+  return variants;
+}
+
+/**
+ * No membership is no actor, which the RPC layer answers as 401. A database
+ * failure, including the deployment-settings lookup, must stay a server error
+ * so a blip does not look like a rejected session.
+ */
+export async function actorFromMembership(membership: Promise<Actor>): Promise<Actor | null> {
+  try {
+    return await membership;
+  } catch (error) {
+    if (error instanceof IsolationError || isPortalRefusal(error)) return null;
+    throw error;
+  }
+}
+
+/** Manor: the portal gate in the auth package refuses the wrong brand's sign-in with a 403. */
+function isPortalRefusal(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.name === "APIError" &&
+    (error as { statusCode?: unknown }).statusCode === 403
+  );
 }
 
 function sessionHeaders(request: Request) {

@@ -156,18 +156,26 @@ export function probeFailureMessage(error: unknown): string {
  * Where the app window lands on a server. The root of a Manor server is the
  * marketing page, which offers nothing to sign in with; `/app` shows the shell
  * when a session exists and redirects to sign-in otherwise, so the renderer
- * readiness check always finds a real surface.
+ * readiness check always finds a real surface. Only a real http(s) origin has
+ * an `/app` route.
  */
 export function appEntryUrl(origin: string): string {
-  if (!servesBundledRenderer(origin)) return origin;
-  return new URL("/app", origin).toString();
+  try {
+    const { protocol } = new URL(origin);
+    if (protocol !== "http:" && protocol !== "https:") return origin;
+    return new URL("/app", origin).toString();
+  } catch {
+    return origin;
+  }
 }
 
-/** The bundled renderer only stands in for a real http(s) origin. */
-export function servesBundledRenderer(targetUrl: string): boolean {
+/** Packaged shell overlays its web bundle only on the managed loopback stack. */
+export function servesBundledRenderer(targetUrl: string, managedLocalStack: boolean): boolean {
   try {
-    const { protocol } = new URL(targetUrl);
-    return protocol === "http:" || protocol === "https:";
+    if (!managedLocalStack) return false;
+    const url = new URL(targetUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    return isLoopbackHost(url.hostname);
   } catch {
     return false;
   }
@@ -187,8 +195,13 @@ export function sessionPartitionForServerUrl(targetUrl: string): string | null {
 
 /** External pages are opened by the OS, never in a privileged Electron child window. */
 export function safeExternalUrl(targetUrl: string): string | null {
-  if (!servesBundledRenderer(targetUrl)) return null;
-  return new URL(targetUrl).toString();
+  try {
+    const url = new URL(targetUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 export function isRakazoHealth(value: unknown): boolean {

@@ -1,5 +1,5 @@
+import type { SecretStore } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
-import type { EncryptedSecretStore } from "./secrets.js";
 import { generateTotp, normalizeTotpSecret, totpSecondsRemaining } from "./totp.js";
 
 export const BOT_CREDENTIAL_SECRET_KIND = "bot-credential";
@@ -40,7 +40,7 @@ export function parseBotCredentialSecret(plaintext: string): BotCredentialSecret
 
 export async function loadBotCredentialSecret(
   prisma: PrismaClient,
-  secrets: EncryptedSecretStore,
+  secrets: Pick<SecretStore, "load">,
   scope: { spaceId: string; userId: string },
   secretId: string | null,
 ): Promise<BotCredentialSecret> {
@@ -50,7 +50,7 @@ export async function loadBotCredentialSecret(
     select: { id: true, ciphertext: true },
   });
   if (!row) return {};
-  return parseBotCredentialSecret(secrets.load(row.ciphertext, row.id));
+  return parseBotCredentialSecret(await secrets.load(row.ciphertext, row.id));
 }
 
 /** Case-insensitive match on id or label; a unique substring match on label also works. */

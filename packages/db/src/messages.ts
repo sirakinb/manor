@@ -1,5 +1,6 @@
 import type { MessageBlock } from "@rakazo/contracts";
 import type { Prisma, PrismaClient } from "./client.js";
+import { withTransactionRetry } from "./transaction-retry.js";
 
 /** Group turns use channel inputs and their own outputs, never private thread history. */
 export function loadRunHistoryMessages(
@@ -25,7 +26,20 @@ export function loadRunHistoryMessages(
     },
     orderBy: { seq: "desc" },
     take: limit,
-    select: { id: true, seq: true, role: true, runId: true, blocks: true, authorName: true },
+    select: {
+      id: true,
+      threadId: true,
+      seq: true,
+      role: true,
+      botId: true,
+      runId: true,
+      blocks: true,
+      authorName: true,
+      createdAt: true,
+      replyToMessageId: true,
+      replyQuote: true,
+      replyTo: { select: { id: true, threadId: true, role: true, botId: true, blocks: true } },
+    },
   });
 }
 
@@ -37,14 +51,19 @@ export interface CreateThreadMessageInput {
   blocks: MessageBlock[];
   botId?: string;
   replyToMessageId?: string;
+  replyQuote?: string;
   runId?: string;
   clientNonce?: string;
   markUnread?: boolean;
+  /** Terminal echo after the run is already cancelled. Every other write stays rejected. */
+  allowCancelledRun?: boolean;
 }
 
 export async function createThreadMessage(prisma: PrismaClient, input: CreateThreadMessageInput) {
-  return prisma.$transaction((tx: Prisma.TransactionClient) =>
-    createThreadMessageInTransaction(tx, input),
+  return withTransactionRetry(() =>
+    prisma.$transaction((tx: Prisma.TransactionClient) =>
+      createThreadMessageInTransaction(tx, input),
+    ),
   );
 }
 
@@ -60,7 +79,7 @@ export async function createThreadMessageInTransaction(
     },
     select: { nextMessageSeq: true },
   });
-  await assertRunCanWriteHistory(tx, input.runId);
+  await assertRunCanWriteHistory(tx, input.runId, { allowCancelled: input.allowCancelledRun });
   return tx.message.create({
     data: {
       threadId: input.threadId,
@@ -71,6 +90,7 @@ export async function createThreadMessageInTransaction(
       blocks: input.blocks as Prisma.InputJsonValue,
       botId: input.botId,
       replyToMessageId: input.replyToMessageId,
+      replyQuote: input.replyQuote,
       runId: input.runId,
       clientNonce: input.clientNonce,
     },
@@ -87,14 +107,35 @@ export class RunHistoryWriteError extends Error {
 export async function assertRunCanWriteHistory(
   tx: Prisma.TransactionClient,
   runId?: string,
+  options?: { allowCancelled?: boolean },
 ): Promise<{ status: string; startedAt: Date | null } | undefined> {
   if (!runId) return;
   const run = await tx.run.findUnique({
     where: { id: runId },
     select: { status: true, startedAt: true },
   });
-  if (!run || run.status === "cancelled") {
+  if (!run || (run.status === "cancelled" && !options?.allowCancelled)) {
     throw new RunHistoryWriteError();
   }
   return run;
+}
+
+/**
+ * run.cancelled is recorded by the path that cancelled the run, after the row
+ * already reads cancelled — where the liveness assert above would reject it.
+ * The event must name its run (clients key off it) and the row must already be
+ * cancelled, so it can never announce a cancellation nothing committed.
+ */
+export async function assertRunIsCancelled(
+  tx: Prisma.TransactionClient,
+  runId?: string,
+): Promise<void> {
+  if (!runId) throw new RunHistoryWriteError();
+  const run = await tx.run.findUnique({
+    where: { id: runId },
+    select: { status: true },
+  });
+  if (run?.status !== "cancelled") {
+    throw new RunHistoryWriteError();
+  }
 }

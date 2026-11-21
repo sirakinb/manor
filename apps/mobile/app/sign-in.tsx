@@ -1,13 +1,13 @@
 import type { IntegrationSetupState } from "@rakazo/contracts";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { credentialIssue } from "@rakazo/core";
+import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AccessibilityInfo,
   Image,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -18,20 +18,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { NativeActionButton } from "../components/native-action-button";
+import type { PasswordResetCapabilities } from "../lib/api";
 import {
-  apiBaseWarning,
   currentApiBase,
-  defaultApiBase,
   displayApiHost,
   loadSessionToken,
-  normalizeApiBase,
-  type PasswordResetCapabilities,
   passwordResetCapabilities,
-  probeApiBase,
   requestPasswordReset,
-  resetApiBase,
   rpc,
-  saveApiBase,
   signIn,
   signUp,
   usesCustomApiBase,
@@ -39,6 +34,8 @@ import {
 import type { AuthMode } from "../lib/auth-routing";
 import { useI18n } from "../lib/i18n";
 import { brandType, manor } from "../lib/native";
+import { continueWithSso } from "../lib/sso";
+import { credentialIssueText, errorText } from "../lib/user-error";
 
 export default function SignIn() {
   const { t } = useI18n();
@@ -54,9 +51,16 @@ export default function SignIn() {
   const [ready, setReady] = useState(false);
   const [hasSession, setHasSession] = useState(false);
   const [apiBase, setApiBase] = useState(() => currentApiBase());
-  const [serverOpen, setServerOpen] = useState(false);
   const [reset, setReset] = useState<PasswordResetCapabilities | null>(null);
+  const [capabilityError, setCapabilityError] = useState(false);
+  const [capabilityAttempt, setCapabilityAttempt] = useState(0);
   const [resetSent, setResetSent] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setApiBase(currentApiBase());
+    }, []),
+  );
 
   useEffect(() => {
     void loadSessionToken().then((token) => {
@@ -68,15 +72,18 @@ export default function SignIn() {
   useEffect(() => {
     let active = true;
     setReset(null);
+    setCapabilityError(false);
     void passwordResetCapabilities()
       .then((capabilities) => {
         if (active) setReset(capabilities);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setCapabilityError(true);
+      });
     return () => {
       active = false;
     };
-  }, [apiBase]);
+  }, [apiBase, capabilityAttempt]);
 
   useEffect(() => {
     if (resetSent) AccessibilityInfo.announceForAccessibility(t("Check your email"));
@@ -92,7 +99,12 @@ export default function SignIn() {
   if (hasSession) return <Redirect href="/" />;
 
   async function submit() {
-    if (pending) return;
+    if (pending || !reset?.passwordAuth) return;
+    const issue = credentialIssue({ email, password: mode === "forgot" ? undefined : password });
+    if (issue) {
+      setError(credentialIssueText(issue));
+      return;
+    }
     setPending(true);
     setError(null);
     try {
@@ -124,7 +136,19 @@ export default function SignIn() {
           : null;
       router.replace(setup?.needsSetup ? "/integration-setup" : "/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Could not continue"));
+      setError(errorText(err, t("Could not continue")));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function sso() {
+    setPending(true);
+    setError(null);
+    try {
+      if (await continueWithSso()) router.replace("/");
+    } catch (err) {
+      setError(errorText(err, t("Could not continue")));
     } finally {
       setPending(false);
     }
@@ -158,7 +182,7 @@ export default function SignIn() {
                 accessibilityLabel="Manor"
                 accessibilityHint="Double tap and hold to choose a custom server"
                 delayLongPress={600}
-                onLongPress={() => setServerOpen(true)}
+                onLongPress={() => router.push("/server")}
                 style={{ alignItems: "center", marginBottom: 34 }}
               >
                 <Image
@@ -184,7 +208,7 @@ export default function SignIn() {
                         textAlign: "center",
                       }}
                     >
-                      {t("If an account exists for that address, we sent a password reset link.")}
+                      If an account exists for that address, we sent a password reset link.
                     </Text>
                   ) : null}
                   <Pressable
@@ -202,107 +226,148 @@ export default function SignIn() {
                 </View>
               ) : (
                 <>
-                  {mode === "up" ? (
-                    <TextInput
-                      autoComplete="name"
-                      placeholder={t("Name")}
-                      placeholderTextColor={manor.muted2}
-                      keyboardAppearance="dark"
-                      value={name}
-                      onChangeText={setName}
-                      style={[styles.field, { marginBottom: 12 }]}
-                    />
-                  ) : null}
-                  <TextInput
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    keyboardAppearance="dark"
-                    placeholder={t("Email")}
-                    placeholderTextColor={manor.muted2}
-                    value={email}
-                    onChangeText={setEmail}
-                    style={styles.field}
-                  />
-                  {mode !== "forgot" ? (
-                    <TextInput
-                      placeholder={t("Password")}
-                      placeholderTextColor={manor.muted2}
-                      keyboardAppearance="dark"
-                      autoComplete={mode === "in" ? "current-password" : "new-password"}
-                      returnKeyType="go"
-                      secureTextEntry
-                      value={password}
-                      onChangeText={setPassword}
-                      onSubmitEditing={() => void submit()}
-                      style={[styles.field, { marginTop: 12 }]}
-                    />
-                  ) : null}
-                  {error ? (
-                    <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text>
-                  ) : null}
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => void submit()}
-                    disabled={pending}
-                    style={({ pressed }) => [
-                      styles.submit,
-                      pressed && { backgroundColor: manor.accent },
-                    ]}
-                  >
-                    <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
-                      {pending
-                        ? t("Working…")
-                        : mode === "in"
-                          ? "Continue with email"
-                          : mode === "up"
-                            ? t("Sign up")
-                            : t("Send reset link")}
+                  {capabilityError ? (
+                    <View accessibilityRole="alert">
+                      <Text style={{ color: manor.danger }}>
+                        {t("Could not load sign-in options")}
+                      </Text>
+                      <NativeActionButton
+                        label={t("Retry")}
+                        onPress={() => setCapabilityAttempt((value) => value + 1)}
+                      />
+                    </View>
+                  ) : !reset ? (
+                    <Text style={{ color: manor.muted, textAlign: "center", marginTop: 16 }}>
+                      {t("Loading…")}
                     </Text>
-                  </Pressable>
-                  {mode === "in" && reset?.passwordReset && reset.resetUrl ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      hitSlop={8}
-                      onPress={() => {
-                        setMode("forgot");
-                        setError(null);
-                      }}
-                      style={{ alignSelf: "center", marginTop: 16 }}
-                    >
-                      <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
-                        {t("Forgot password?")}
-                      </Text>
-                    </Pressable>
                   ) : null}
-                  {mode !== "forgot" ? (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginTop: 24,
-                      }}
-                    >
-                      <Text style={{ color: manor.muted2, fontSize: 15 }}>
-                        {mode === "in"
-                          ? t("Don’t have an account?")
-                          : t("Already have an account?")}
-                      </Text>
+                  {reset?.sso && !reset.passwordAuth && mode !== "forgot" ? (
+                    <NativeActionButton
+                      label={t("Continue with {name}", { name: reset.sso.name })}
+                      disabled={pending}
+                      onPress={() => void sso()}
+                      style={{ marginTop: 16 }}
+                    />
+                  ) : null}
+                  {error && !reset?.passwordAuth ? (
+                    <Text accessibilityRole="alert" style={{ color: manor.danger, marginTop: 12 }}>
+                      {error}
+                    </Text>
+                  ) : null}
+                  {reset?.passwordAuth ? (
+                    <>
+                      {mode === "up" ? (
+                        <TextInput
+                          autoComplete="name"
+                          placeholder={t("Name")}
+                          placeholderTextColor={manor.muted2}
+                          keyboardAppearance="dark"
+                          value={name}
+                          onChangeText={setName}
+                          style={[styles.field, { marginBottom: 12 }]}
+                        />
+                      ) : null}
+                      <TextInput
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        keyboardType="email-address"
+                        keyboardAppearance="dark"
+                        placeholder={t("Email")}
+                        placeholderTextColor={manor.muted2}
+                        value={email}
+                        onChangeText={setEmail}
+                        style={styles.field}
+                      />
+                      {mode !== "forgot" ? (
+                        <TextInput
+                          placeholder={t("Password")}
+                          placeholderTextColor={manor.muted2}
+                          keyboardAppearance="dark"
+                          autoComplete={mode === "in" ? "current-password" : "new-password"}
+                          returnKeyType="go"
+                          secureTextEntry
+                          value={password}
+                          onChangeText={setPassword}
+                          onSubmitEditing={() => void submit()}
+                          style={[styles.field, { marginTop: 12 }]}
+                        />
+                      ) : null}
+                      {error ? (
+                        <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text>
+                      ) : null}
                       <Pressable
                         accessibilityRole="button"
-                        hitSlop={8}
-                        onPress={() => {
-                          setMode((current) => (current === "in" ? "up" : "in"));
-                          setError(null);
-                        }}
-                        style={{ marginLeft: 5 }}
+                        onPress={() => void submit()}
+                        disabled={pending}
+                        style={({ pressed }) => [
+                          styles.submit,
+                          pressed && { backgroundColor: manor.accent },
+                        ]}
                       >
-                        <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
-                          {mode === "in" ? t("Sign up") : t("Sign in")}
+                        <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
+                          {pending
+                            ? t("Working…")
+                            : mode === "in"
+                              ? "Continue with email"
+                              : mode === "up"
+                                ? t("Sign up")
+                                : t("Send reset link")}
                         </Text>
                       </Pressable>
-                    </View>
+                      {reset.sso && mode !== "forgot" ? (
+                        <NativeActionButton
+                          label={t("Continue with {name}", { name: reset.sso.name })}
+                          prominence="quiet"
+                          disabled={pending}
+                          onPress={() => void sso()}
+                          style={{ alignSelf: "center", marginTop: 16 }}
+                        />
+                      ) : null}
+                      {mode === "in" && reset?.passwordReset && reset.resetUrl ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          hitSlop={8}
+                          onPress={() => {
+                            setMode("forgot");
+                            setError(null);
+                          }}
+                          style={{ alignSelf: "center", marginTop: 16 }}
+                        >
+                          <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
+                            {t("Forgot password?")}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                      {mode !== "forgot" ? (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            marginTop: 24,
+                          }}
+                        >
+                          <Text style={{ color: manor.muted2, fontSize: 15 }}>
+                            {mode === "in"
+                              ? t("Don’t have an account?")
+                              : t("Already have an account?")}
+                          </Text>
+                          <Pressable
+                            accessibilityRole="button"
+                            hitSlop={8}
+                            onPress={() => {
+                              setMode((current) => (current === "in" ? "up" : "in"));
+                              setError(null);
+                            }}
+                            style={{ marginLeft: 5 }}
+                          >
+                            <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
+                              {mode === "in" ? t("Sign up") : t("Sign in")}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : null}
+                    </>
                   ) : null}
                 </>
               )}
@@ -312,7 +377,7 @@ export default function SignIn() {
                 accessibilityRole="button"
                 accessibilityLabel={t("Custom server {host}", { host: displayApiHost(apiBase) })}
                 hitSlop={12}
-                onPress={() => setServerOpen(true)}
+                onPress={() => router.push("/server")}
                 style={{
                   alignItems: "center",
                   paddingHorizontal: 24,
@@ -329,146 +394,7 @@ export default function SignIn() {
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      <ServerSheet
-        visible={serverOpen}
-        current={apiBase}
-        onClose={() => setServerOpen(false)}
-        onSaved={(url) => {
-          setApiBase(url);
-          setServerOpen(false);
-        }}
-      />
     </SafeAreaView>
-  );
-}
-
-function ServerSheet({
-  visible,
-  current,
-  onClose,
-  onSaved,
-}: {
-  visible: boolean;
-  current: string;
-  onClose: () => void;
-  onSaved: (url: string) => void;
-}) {
-  const { t } = useI18n();
-  const [draft, setDraft] = useState(current);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    if (!visible) return;
-    setDraft(current);
-    setError(null);
-    setPending(false);
-  }, [visible, current]);
-
-  const parsedDraft = normalizeApiBase(draft);
-  const warning = parsedDraft.ok ? apiBaseWarning(parsedDraft.url) : null;
-
-  async function save() {
-    setPending(true);
-    setError(null);
-    try {
-      const probed = await probeApiBase(draft);
-      if (!probed.ok) {
-        setError(probed.error);
-        return;
-      }
-      const saved = await saveApiBase(probed.url);
-      if (!saved.ok) {
-        setError(saved.error);
-        return;
-      }
-      onSaved(saved.url);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function restoreDefault() {
-    setPending(true);
-    setError(null);
-    try {
-      const saved = await resetApiBase();
-      if (!saved.ok) {
-        setError(saved.error);
-        return;
-      }
-      onSaved(saved.url);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: manor.page }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <SafeAreaView style={{ flex: 1, paddingHorizontal: 24, paddingTop: 12 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Text style={{ color: manor.muted, fontSize: 17 }}>{t("Cancel")}</Text>
-            </Pressable>
-            <Text style={{ color: manor.ink, fontSize: 17, fontWeight: "600" }}>{t("Server")}</Text>
-            <Pressable onPress={() => void save()} disabled={pending} hitSlop={8}>
-              <Text style={{ color: manor.accent, fontSize: 17, fontWeight: "600" }}>
-                {pending ? t("Checking…") : t("Save")}
-              </Text>
-            </Pressable>
-          </View>
-          <Text style={{ color: manor.muted, marginTop: 28, fontSize: 15, lineHeight: 22 }}>
-            Enter your Manor server address.
-          </Text>
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="off"
-            keyboardType="url"
-            textContentType="URL"
-            returnKeyType="go"
-            onSubmitEditing={() => void save()}
-            placeholder={defaultApiBase()}
-            placeholderTextColor={manor.muted2}
-            keyboardAppearance="dark"
-            value={draft}
-            onChangeText={(value) => {
-              setDraft(value);
-              setError(null);
-            }}
-            style={[styles.field, { marginTop: 20, fontSize: 16 }]}
-          />
-          {warning ? (
-            <Text style={{ color: manor.muted2, marginTop: 12, fontSize: 13 }}>{warning}</Text>
-          ) : null}
-          {error ? <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text> : null}
-          {usesCustomApiBase(current) || draft.trim() !== current ? (
-            <Pressable
-              onPress={() => void restoreDefault()}
-              disabled={pending}
-              style={{ marginTop: 28, alignItems: "center" }}
-            >
-              <Text style={{ color: manor.muted, fontSize: 15 }}>{t("Use default server")}</Text>
-            </Pressable>
-          ) : null}
-        </SafeAreaView>
-      </KeyboardAvoidingView>
-    </Modal>
   );
 }
 
