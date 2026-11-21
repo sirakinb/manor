@@ -127,7 +127,7 @@ export function ShellSidePanel({
               {manorTitle ? (
                 manorTitle
               ) : !active && panel !== "settings" ? (
-                <span className="text-[13.5px] text-muted-foreground">
+                <span className="text-body text-muted-foreground">
                   <Trans>Group</Trans>
                 </span>
               ) : null}

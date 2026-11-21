@@ -11,7 +11,9 @@ import {
   memberName,
   newClientId,
   newestPageCards,
+  otherAuthor,
   displayName as safeDisplayName,
+  workingRoutineName,
 } from "@rakazo/core";
 import { useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
@@ -197,7 +199,11 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
     JSON.stringify([userId, sessionEpoch, botId, groupId, requestedThreadId]),
     mentionBots,
   );
-  const attachments = useThreadAttachments({ botId, groupId, readOnly, uploadConfig });
+  const draftScope = useMemo(
+    () => composerDraftScope(userId, botId, groupId),
+    [userId, botId, groupId],
+  );
+  const attachments = useThreadAttachments({ botId, groupId, readOnly, uploadConfig, draftScope });
   const { setPendingAttachments, setAttachmentNotice } = attachments;
   const pendingAttachmentCount = attachments.activePendingAttachments.length;
   const workspaceAttachmentHandled = useRef<string | null>(null);
@@ -257,10 +263,6 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
     setPendingAttachments,
     setAttachmentNotice,
   ]);
-  const draftScope = useMemo(
-    () => composerDraftScope(userId, botId, groupId),
-    [userId, botId, groupId],
-  );
   const echoed = useMemo(
     () =>
       snap && (snap.groupId ?? snap.botId) === threadKey
@@ -327,6 +329,7 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
     (message) => message.id.startsWith("progress:") && liveMessageComposing(message.blocks),
   );
   const activityLine = liveActivityLine(snap?.messages ?? []);
+  const workingRoutine = workingRoutineName(snap?.activeRuns ?? (snap?.run ? [snap.run] : []));
   const userBubble = useMemo(
     () =>
       !inGroup && currentBot ? chatUserBubbleColors(currentBot.color, currentBot.id) : undefined,
@@ -347,7 +350,6 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
   // A bot waiting on the user (an ask card, a computer takeover) can still be stopped, but its
   // card is the state: no typing dots under it.
   const workingGroupBots = activeGroupBots.filter((bot) => isRunWorking(bot.status));
-  const working = inGroup ? activeGroupBots.length > 0 : isActiveStatus(currentBotStatus);
 
   const speakFinishedReplyRef = useAutoSpeakReply({
     botId,
@@ -408,7 +410,9 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
     messageId,
     readOnly,
     foreground,
+    focused,
     sessionEpoch,
+    userId,
     activeBotId,
     activeGroupId,
     readVisibleTarget,
@@ -588,7 +592,10 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
         composing: composingBots.split(",").includes(bot.id),
       }))}
       atBottom={!scroll.state.detached}
-      label={activityLine ?? t("Working…")}
+      label={
+        activityLine ??
+        (workingRoutine ? t("Running {name}…", { name: workingRoutine }) : t("Working…"))
+      }
     />
   );
 
@@ -670,7 +677,9 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
             replyTarget={replyTarget}
             replyAuthor={
               replyTarget?.role === "user"
-                ? (channelMessageSender(replyTarget.blocks) ?? t("You"))
+                ? (otherAuthor(replyTarget.author, userId)?.name ??
+                  channelMessageSender(replyTarget.blocks) ??
+                  t("You"))
                 : (memberName(snap?.members, replyTarget?.botId) ?? displayName ?? t("Bot"))
             }
             replyQuote={replyQuote}
@@ -702,13 +711,11 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
               )}
               botId={botId}
               onCall={onCall}
-              working={working}
-              sending={composer.sending || attachments.shareImporting}
+              sending={attachments.shareImporting}
               styles={styles}
               attachActions={attachments.attachActions}
               attachFrom={attachments.attachFrom}
               send={composer.send}
-              stop={composer.stop}
               startVoiceCall={startVoiceCall}
               onSlashAction={composer.runSlashAction}
               onEmptied={composer.composerEmptied}
@@ -720,6 +727,7 @@ export function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId:
         ) : null}
         <RunErrorSheet
           details={detailsOpen ? runError : null}
+          summary={normalizedRunError?.summary}
           onClose={() => setDetailsOpen(false)}
           action={runErrorAction}
         />

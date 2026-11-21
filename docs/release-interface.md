@@ -30,13 +30,13 @@ long work runs asynchronously. Poll `GET /v1/operations/<requestId>`.
 `GET /v1/deployment` reports the accepted image and any pending recovery phase.
 `GET /health` returns liveness only. All other routes require bearer auth.
 
-| Action | Input | Who |
-| --- | --- | --- |
-| prepare | revision: full 40-character Git commit | developer or owner |
-| approve | releaseId, manifestHash | owner |
-| deploy | releaseId, manifestHash | developer or owner, after approval |
-| rollback | releaseId, manifestHash | owner, approved retained candidate |
-| recover | no additional fields | owner |
+| Action   | Input                                  | Who                                |
+| -------- | -------------------------------------- | ---------------------------------- |
+| prepare  | revision: full 40-character Git commit | developer or owner                 |
+| approve  | releaseId, manifestHash                | owner                              |
+| deploy   | releaseId, manifestHash                | developer or owner, after approval |
+| rollback | releaseId, manifestHash                | owner, approved retained candidate |
+| recover  | no additional fields                   | owner                              |
 
 A release has `releaseId`, `revision`, `imageId`, `manifestHash`,
 `policyHash`, `state`, `approved`, and timestamps. Its manifest includes
@@ -114,7 +114,6 @@ warnings. It cannot serve this protocol unchanged: its lock/history are
 in-memory, its fork flow selects a moving branch, it trusts checkout Compose,
 and it does not implement approvals, backup receipts or admission closure.
 Do not run both executors against the same deployment.
-
 
 ## Private application bridge
 

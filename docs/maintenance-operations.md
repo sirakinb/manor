@@ -14,21 +14,21 @@ The operator-owned policy retains all fields described in the
 [release foundation](../infra/updater/vps/README.md). Connected maintenance additionally
 requires these fixed values. Never derive paths, images or service names from a job.
 
-| Policy | Purpose |
-| --- | --- |
-| `controlSocket`, `applicationGroup` | Private socket, accessible only to the trusted API/worker group |
-| `workspaceStateDir`, `gateStateDir` | Private durable workspace/admission state outside source |
-| `workspaceTokenFile`, `applicationTokenFile`, `operatorTokenFile` | Distinct private credentials, alongside existing owner/developer tokens |
-| `gatePort`, `maintenanceUrl`, `maintenanceTokenFile` | Loopback admission adapter; maintenance token is the operator credential |
-| `producerServices`, `computerNetwork` | Exact production writers and dedicated computer network |
-| `databaseContainer`, `databaseUser`, `databaseName` | Operator-selected production database to back up |
-| `postgresImage`, `backupImage` | Immutable trusted PostgreSQL and archive utility image IDs |
-| `backupTimeoutSeconds` | Backup request budget, shared by dump, restore and archive stages; defaults to 600 seconds |
-| `dataVolume` | Existing application storage volume, never a candidate-selected mount |
-| `productionAdmission: true` | Require guarded health and verified backup before switching |
-| `compatibilityPolicy: unchanged-schema-and-toolchain-v1` | Permit only compatible application changes |
-| `unguardedBootstrapImage` | Optional exact pre-integration rollback image; health may lack admission only for this operator-reviewed image |
-| `schemaCompatibleRevisions` | Explicitly reviewed bootstrap revisions, including their rollback compatibility |
+| Policy                                                            | Purpose                                                                                                        |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `controlSocket`, `applicationGroup`                               | Private socket, accessible only to the trusted API/worker group                                                |
+| `workspaceStateDir`, `gateStateDir`                               | Private durable workspace/admission state outside source                                                       |
+| `workspaceTokenFile`, `applicationTokenFile`, `operatorTokenFile` | Distinct private credentials, alongside existing owner/developer tokens                                        |
+| `gatePort`, `maintenanceUrl`, `maintenanceTokenFile`              | Loopback admission adapter; maintenance token is the operator credential                                       |
+| `producerServices`, `computerNetwork`                             | Exact production writers and dedicated computer network                                                        |
+| `databaseContainer`, `databaseUser`, `databaseName`               | Operator-selected production database to back up                                                               |
+| `postgresImage`, `backupImage`                                    | Immutable trusted PostgreSQL and archive utility image IDs                                                     |
+| `backupTimeoutSeconds`                                            | Backup request budget, shared by dump, restore and archive stages; defaults to 600 seconds                     |
+| `dataVolume`                                                      | Existing application storage volume, never a candidate-selected mount                                          |
+| `productionAdmission: true`                                       | Require guarded health and verified backup before switching                                                    |
+| `compatibilityPolicy: unchanged-schema-and-toolchain-v1`          | Permit only compatible application changes                                                                     |
+| `unguardedBootstrapImage`                                         | Optional exact pre-integration rollback image; health may lack admission only for this operator-reviewed image |
+| `schemaCompatibleRevisions`                                       | Explicitly reviewed bootstrap revisions, including their rollback compatibility                                |
 
 Private token files must be operator-owned regular files with mode 0600. Configure
 the socket directory as root-owned and mount it read-only into API/worker through

@@ -16,11 +16,13 @@ import {
   DELEGATED_EMPTY_NOTICE,
   emptyDelegatedToolTurnShouldFail,
   longWorkProgressGuidance,
+  messagesModeReplyGuidance,
   REACTION_SILENT_REPLY_GUIDANCE,
   ROUTINE_SILENT_REPLY_GUIDANCE,
   runAllowsSilentEmpty,
   runPromotesMidTurnNarration,
   runReplyGuidance,
+  runReplyMode,
   TICKET_SILENT_REPLY_GUIDANCE,
 } from "./run-replies.js";
 import { handoffEndedTurn } from "./run-turn.js";
@@ -289,6 +291,11 @@ describe("background ticket runs", () => {
     expect(runSendsFinishNotification("user")).toBe(true);
     expect(runReplyGuidance("tickets")).toBe(TICKET_SILENT_REPLY_GUIDANCE);
     expect(runReplyGuidance("tickets")).toContain("ticket_comment");
+  });
+
+  it("sends no finish notice for a background helper; the turn passing on its result does", () => {
+    expect(runSendsFinishNotification("helper")).toBe(false);
+    expect(runSendsFinishNotification("helper_result")).toBe(true);
   });
 
   // Manor's activity timeline renders tool steps, so a tool-only ticket final keeps them.
@@ -605,6 +612,29 @@ describe("runReplyGuidance", () => {
     expect(runReplyGuidance("user")).toBe(longWorkProgressGuidance());
     expect(runReplyGuidance("user")).toContain("message_user");
     expect(runReplyGuidance("messaging")).toBe(longWorkProgressGuidance());
+  });
+});
+
+describe("runReplyMode", () => {
+  it("uses messages mode only on runs a person waits on, while message_user is offered", () => {
+    expect(runReplyMode("user", "messages")).toBe("messages");
+    expect(runReplyMode("messaging", "messages")).toBe("messages");
+    expect(runReplyMode("user", "chat")).toBe("chat");
+    for (const trigger of ["routine", "reaction", "bot_message", "tickets", "created", "webhook"])
+      expect(runReplyMode(trigger, "messages")).toBe("chat");
+    expect(runReplyMode("user", "messages", new Set(["message_user"]))).toBe("chat");
+  });
+
+  it("keeps a background helper in chat mode, since it cannot message the person", () => {
+    expect(runReplyMode("helper", "messages")).toBe("chat");
+    expect(runReplyMode("helper_result", "messages")).toBe("messages");
+  });
+
+  it("gives each mode its own guidance", () => {
+    expect(runReplyGuidance("user", "chat")).toBe(longWorkProgressGuidance());
+    expect(runReplyGuidance("user", "messages")).toBe(messagesModeReplyGuidance());
+    expect(messagesModeReplyGuidance()).toContain("private and never shown");
+    expect(messagesModeReplyGuidance()).toContain("message_user");
   });
 });
 

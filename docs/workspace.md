@@ -35,14 +35,14 @@ All models are prefixed `Workspace` and mapped to `workspace_*` tables. They
 mirror the source schema one-to-one so the export/import is a column
 rename, not a remodel:
 
-| Channel   | Tables |
-| --------- | ------ |
-| voice     | `workspace_voice_calls`, `workspace_voice_transcripts`, `workspace_voice_call_analyses`, `workspace_reports` |
-| email     | `workspace_email_campaigns`, `workspace_email_campaign_links` |
-| social    | `workspace_instagram_daily`, `workspace_instagram_media`, `workspace_instagram_stats` |
+| Channel   | Tables                                                                                                                                              |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| voice     | `workspace_voice_calls`, `workspace_voice_transcripts`, `workspace_voice_call_analyses`, `workspace_reports`                                        |
+| email     | `workspace_email_campaigns`, `workspace_email_campaign_links`                                                                                       |
+| social    | `workspace_instagram_daily`, `workspace_instagram_media`, `workspace_instagram_stats`                                                               |
 | leasing   | `workspace_buildium_applications`, `_leases`, `_properties`, `_listings`, `_units`, `_files`, `workspace_rema_listings`, `workspace_sheet_listings` |
-| utilities | `workspace_utility_properties`, `workspace_water_bills`, `workspace_water_bill_charge_posts` |
-| shared    | `workspace_sources`, `workspace_sync_runs`, `workspace_activities`, `workspace_skills`, `workspace_context` |
+| utilities | `workspace_utility_properties`, `workspace_water_bills`, `workspace_water_bill_charge_posts`                                                        |
+| shared    | `workspace_sources`, `workspace_sync_runs`, `workspace_activities`, `workspace_skills`, `workspace_context`                                         |
 
 Conventions: source ids are kept as `source*Id` columns with a
 `(workspaceId, sourceId)` unique so re-imports upsert; calendar values are
@@ -212,15 +212,15 @@ from the registry in `packages/db/src/workspace-automations.ts` the first
 time `workspace.automations.list` runs for a workspace (idempotent; existing
 rows keep their schedule and enabled flag):
 
-| Key | Pipeline | Cadence | Credential | Source row |
-| --- | --- | --- | --- | --- |
-| voice | zoho-agent-logs | every 10 min | zoho-crm | Zoho CRM |
-| email | zoho-campaigns | daily 09:00 | zoho-campaigns | Zoho Campaigns |
-| instagram | instagram | hourly | instagram | Instagram |
-| buildium | buildium | daily 06:00 | buildium | Buildium |
-| listings | listings | daily 06:30 | none | Listings (`config`: `remaUrl`, `sheetId`) |
-| water | water | Mon 08:00 + 08:00 on the 26th-29th | gmail | Gmail |
-| recap | recap | hourly (self-gated) | openrouter | none |
+| Key       | Pipeline        | Cadence                            | Credential     | Source row                                |
+| --------- | --------------- | ---------------------------------- | -------------- | ----------------------------------------- |
+| voice     | zoho-agent-logs | every 10 min                       | zoho-crm       | Zoho CRM                                  |
+| email     | zoho-campaigns  | daily 09:00                        | zoho-campaigns | Zoho Campaigns                            |
+| instagram | instagram       | hourly                             | instagram      | Instagram                                 |
+| buildium  | buildium        | daily 06:00                        | buildium       | Buildium                                  |
+| listings  | listings        | daily 06:30                        | none           | Listings (`config`: `remaUrl`, `sheetId`) |
+| water     | water           | Mon 08:00 + 08:00 on the 26th-29th | gmail          | Gmail                                     |
+| recap     | recap           | hourly (self-gated)                | openrouter     | none                                      |
 
 Times are in the automation's timezone (default America/New_York). Crons
 reuse the routine cron helpers and are validated strictly on update.
@@ -353,10 +353,10 @@ fields and an empty string clears one; each save seals a fresh secret and
 drops the old ciphertext. Set and remove are for owners and admins. What each
 write path needs:
 
-| Action | Needs |
-| --- | --- |
-| Post water charges | `buildium` credential with `clientId` and `clientSecret`; `waterGlAccountId` in settings |
-| Send reports | Deployment outbound email: `SMTP_URL` and `EMAIL_FROM` (the same provider account emails use); without them `reports.send` returns "Email sending is not configured" |
+| Action             | Needs                                                                                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Post water charges | `buildium` credential with `clientId` and `clientSecret`; `waterGlAccountId` in settings                                                                             |
+| Send reports       | Deployment outbound email: `SMTP_URL` and `EMAIL_FROM` (the same provider account emails use); without them `reports.send` returns "Email sending is not configured" |
 
 Integrations → Zoho Campaigns is a first-party connector (not Composio). It
 reuses the same `zoho-campaigns` workspace credential as ingest. When that

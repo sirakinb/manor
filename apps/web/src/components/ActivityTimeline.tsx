@@ -96,7 +96,7 @@ export function ActivityTimeline({
                     {note && !shownProse?.has(note) ? (
                       <div
                         data-testid="tool-step-note"
-                        className="pb-1 text-[13px] leading-5 text-muted-foreground"
+                        className="pb-1 text-body-sm leading-5 text-muted-foreground"
                         dir="auto"
                       >
                         <ChatMarkdown>{note}</ChatMarkdown>

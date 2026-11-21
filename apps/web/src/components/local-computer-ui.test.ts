@@ -14,8 +14,8 @@ describe("local computer UI surfaces", () => {
     const share = read("ShareThisMacSettings.tsx");
     const settings = read("../pages/AccountSettingsOverlay.tsx");
     const prompt = read("../pages/HostComputerPrompt.tsx");
-    // The computer mode picker moved with the bot forms into the shell's bot panel.
-    const picker = read("../pages/shell/bot-panel.tsx");
+    // The computer mode picker moved with the bot settings groups into their own module.
+    const picker = read("../pages/shell/bot-settings-sections.tsx");
     const shell = read("../pages/Shell.tsx");
     // The computer screen's empty states moved out of Shell into the shell's computer view.
     const computerView = read("../pages/shell/computer-view.tsx");

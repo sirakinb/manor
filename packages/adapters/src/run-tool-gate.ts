@@ -1,7 +1,7 @@
 import type { AgentToolExecutionObserver, ConnectorCall, ToolBatch } from "@rakazo/adapter-kit";
-import { runContinueJob } from "@rakazo/adapter-kit";
 import {
   applyJudgeDecision,
+  BACKGROUND_HELPER_TRIGGER,
   batchActions,
   connectorKindFromToolName,
   connectorReadRequiresApproval,
@@ -25,7 +25,6 @@ import { normalizedHttpUrl, urlSite } from "@rakazo/core/egress";
 import { approvalEffectKey, toolEffectIdempotencyKey } from "@rakazo/core/node/approval-effect-key";
 import type { AuditEventInput } from "@rakazo/db";
 import { recordAuditEvent, runSecretKind } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
 import type { FleetCardSummary } from "./approval-ask.js";
 import { buildApprovalAskBlock, MAX_FETCH_URL_LENGTH } from "./approval-ask.js";
 import {
@@ -39,6 +38,7 @@ import { redactToolArgsForReview } from "./auto-review.js";
 import { RAKAZO_DOCS_URLS } from "./builtin-skills.js";
 import { CATALOG_LOAD, CATALOG_SEARCH } from "./lazy-tool-catalog.js";
 import { paidRequestEffect } from "./paid-request.js";
+import type { PurchaseApproval } from "./purchase-gate.js";
 import { PURCHASE_CHECKED_TOOLS, purchaseApprovalOf } from "./purchase-gate.js";
 import type { RunContext } from "./run-context.js";
 import {
@@ -55,26 +55,30 @@ import {
   recordEffect,
   uncertainEffectError,
 } from "./run-effects.js";
-import { renewRunLease } from "./run-lifecycle.js";
+import { enqueueSteeringContinuation, renewRunLease } from "./run-lifecycle.js";
 import { notifyRun } from "./run-notifications.js";
 import { resolveCompletedSecretLeftover } from "./run-secret.js";
 import type { ToolRequest } from "./run-tool-request.js";
 import { BUILTIN_AGENT_TOOL_NAMES, READ_ONLY_AGENT_TOOLS } from "./run-tool-selection.js";
 import { callMediaTool } from "./run-tools-files.js";
+import { callPaidService } from "./run-tools-integrations.js";
 import { USER_COMPUTER_TOOLS, userComputerGate } from "./run-tools-user-computer.js";
 import { connectorTrustKeys } from "./run-trust.js";
 import { watchFromTool } from "./schedule-tools.js";
+import { pagePaymentPrecheck, paysWithWallet } from "./spending-gate.js";
 import { argumentGiven } from "./update-bot-patch.js";
 import type { VerificationEngineId } from "./verification-engines.js";
 
 export type AppliedEffect = Awaited<ReturnType<typeof recordEffect>>;
 
+const WEBHOOK_RUN_ASK_REASON =
+  "Asked because a webhook started this run. Always allow doesn't skip this.";
+
 type ApprovalCard = {
   reviewReason: string | undefined;
   summary: FleetCardSummary | undefined;
   batch: ToolBatch | undefined;
-  /** Manor: a mandatory approval on This Mac can only be allowed once. */
-  allowOnceOnly?: boolean;
+  onceOnly: boolean;
 };
 
 /** A tool call that passed its approval gate, as tool handlers receive it. */
@@ -91,6 +95,11 @@ export interface ToolCall {
   readonly nextApprovedTool: string | undefined;
   /** A gated call that policy or the reviewer allowed without asking. */
   readonly bypassApproval: boolean;
+  /**
+   * The approved payment this call presses, counted against the user's spending limit just before
+   * the press: the handler records it then, so a call that stops earlier never uses the room.
+   */
+  readonly spend: PurchaseApproval | undefined;
   /** This call moved its effect to executing. request_secret can hand the claim back. */
   claimedEffect: boolean;
   /** Store the result on the effect; false when it could not be stored. */
@@ -167,6 +176,21 @@ export async function gateToolCall(
           declaredReadOnlyFor(toolName),
         ),
       ));
+  // A background helper only reads, whatever the approval mode or rules: a connector call
+  // runs only when every action it names is declared read-only.
+  if (
+    run.trigger === BACKGROUND_HELPER_TRIGGER &&
+    viaConnector &&
+    !catalogControlRead &&
+    (unidentifiedAction ||
+      approvalToolNames.some((toolName) => declaredReadOnlyFor(toolName) !== true))
+  ) {
+    return {
+      result: {
+        error: `${name} can change something, and a background helper may only read. Don't retry; say in your result what the bot should do.`,
+      },
+    };
+  }
   const connectorProviders = ctx.tools.connectedPlugins.map((plugin) => plugin.provider);
   const connectorKind = connectorKindFromToolName(approvalName, connectorProviders);
   // paid_request with only a purchase id sends the request its approval already named.
@@ -241,12 +265,9 @@ export async function gateToolCall(
   const { purchase, cardUse } = request;
   // Typing a saved card is approved like a purchase: every time, by a person.
   const paying = Boolean(purchase) || Boolean(cardUse);
-  // Manor: changing a page shared by link changes what people outside the space see.
-  const editsSharedPage = name === "save_page" && (await savesSharedPage(ctx, args));
   const requiresApprovalByDefault =
     request.heldForApproval ||
     paying ||
-    editsSharedPage ||
     commandWatch ||
     requiresUnattendedApproval ||
     siteGate === "new" ||
@@ -259,17 +280,29 @@ export async function gateToolCall(
       ));
   // A gated read still fails closed when its review errors, and keeps its approval key.
   const gated = requiresApprovalByDefault || connectorReadGated;
-  const requiresMandatoryApproval =
+  // These ask in every run, whatever started it.
+  const mandatoryInAnyRun =
     paying ||
     commandWatch ||
     scheduleNamesNewSite ||
-    requiresUnattendedApproval ||
     toolRequiresExplicitApproval(name, { computerKind: ctx.computer.kind });
+  const requiresMandatoryApproval = mandatoryInAnyRun || requiresUnattendedApproval;
+  // No allow rule skips these, and without them the tool needs no approval, so "Always allow"
+  // on their card would save a rule that never takes effect.
+  const asksEveryTime =
+    (commandWatch || scheduleNamesNewSite) && !toolRequiresApproval(name, viaConnector);
+  const mode = await ctx.trust.loadApprovalMode();
+  // Manor: upstream's holdSharedPageSave holds a save to a page shared by link for approval,
+  // except in Never ask; there it is refused when the run could have been steered.
+  const editsSharedPage =
+    name === "save_page" && mode === "never" && (await savesSharedPage(ctx, args));
   // Never ask runs everything else: only another owner's connection could have been steered into it.
   // Manor: so could a change on This Mac, the owner's own laptop, which Never ask refused before.
+  // Manor: so could a shared page save or a paid service call, which spends the deployment's money.
+  const refusedWhenSteered = editsSharedPage || name === "service_call";
   const guardedInNeverAsk =
     name === "respond_agent_connection" ||
-    editsSharedPage ||
+    refusedWhenSteered ||
     (ctx.computer.kind === "local" && isLocalComputerMutatingTool(name));
   const resolvedRules = resolveActionApprovalForTools({
     tools: approvalToolNames.map((toolName) => ({
@@ -289,7 +322,6 @@ export async function gateToolCall(
     unidentifiedAction && resolvedRules.decision === "allow"
       ? { ...resolvedRules, decision: "ask" as const }
       : resolvedRules;
-  const mode = await ctx.trust.loadApprovalMode();
   const reviewable = mode === "auto" && !requiresMandatoryApproval;
   // Manor: action reviews run on the verification engines (see run-verification.ts).
   const verification = reviewable ? await ctx.verification.loadSetup() : undefined;
@@ -312,8 +344,9 @@ export async function gateToolCall(
         newDestination: siteGate === "new",
         purchase: paying,
       });
-  // Manor: Never ask still refuses a shared page change that outside content could have asked for.
-  const plan = editsSharedPage && steerable && gatePlan === "allow" ? "deny" : gatePlan;
+  // Manor: Never ask still refuses a shared page change or a paid service call that someone other
+  // than the owner could have asked for.
+  const plan = refusedWhenSteered && steerable && gatePlan === "allow" ? "deny" : gatePlan;
   // Nobody is there to approve a purchase a webhook run reaches.
   if (paying && run.trigger === "webhook" && plan !== "deny") {
     await auditToolCall(ctx, name, "denied", { reason: "purchase_unattended" });
@@ -336,6 +369,23 @@ export async function gateToolCall(
             : `${name} needs the owner's approval because it could have been asked for by someone else, and this space never asks. Don't retry; tell the user.`,
       },
     };
+  }
+  // A pay click counts against the user's spending limit, unless it pays with a wallet purchase,
+  // which was counted when it was requested. One the limit refuses is refused before the card; the
+  // handler counts it for good just before the press.
+  const spends = purchase && !paysWithWallet(args) ? purchase : undefined;
+  if (spends && nextApprovedTool !== name) {
+    const spender = {
+      userId: run.userId,
+      spaceId: run.spaceId,
+      botId: ctx.bot.id,
+      threadId: ctx.thread.id,
+    };
+    const refused = await pagePaymentPrecheck(deps.prisma, spender, spends);
+    if (refused) {
+      await auditToolCall(ctx, name, "denied", { reason: "spending_limit" });
+      return { result: { error: refused } };
+    }
   }
   let reviewReason: string | undefined;
   let gateDecision: "ask" | "allow" = plan === "ask" ? "ask" : "allow";
@@ -482,6 +532,20 @@ export async function gateToolCall(
   }
 
   const needsApproval = gateDecision === "ask";
+  // Nobody sees a background helper's thread, so a card there would wait forever.
+  if (needsApproval && run.trigger === BACKGROUND_HELPER_TRIGGER) {
+    if (applied) {
+      await deps.prisma.externalEffect.updateMany({
+        where: { id: applied.effect.id, status: "intended" },
+        data: { status: "denied" },
+      });
+    }
+    return {
+      result: {
+        error: `${name} needs the owner's approval, and a background helper cannot ask. Don't retry; say in your result what the bot should ask for.`,
+      },
+    };
+  }
   const call = createToolCall(ctx, {
     name,
     args,
@@ -492,14 +556,25 @@ export async function gateToolCall(
     applied,
     nextApprovedTool,
     bypassApproval: gateDecision === "allow" && gated,
+    spend: spends,
   });
+  // Only when the webhook overrode the owner's Always allow; cards every run shows say nothing.
+  const webhookForcedAsk =
+    requiresUnattendedApproval &&
+    !mandatoryInAnyRun &&
+    !request.heldForApproval &&
+    siteGate !== "new" &&
+    !unidentifiedAction &&
+    approvalResolved.source === "always_allow";
   const card = {
-    reviewReason: editsSharedPage
-      ? [SHARED_PAGE_CARD_NOTE, reviewReason].filter(Boolean).join("\n")
-      : reviewReason,
+    reviewReason: webhookForcedAsk ? WEBHOOK_RUN_ASK_REASON : reviewReason,
     summary: request.fleetSummary,
     batch: connectorTool?.batch,
-    allowOnceOnly: requiresMandatoryApproval && ctx.computer.kind === "local",
+    // Manor: a mandatory approval on This Mac can only be allowed once.
+    onceOnly:
+      asksEveryTime ||
+      webhookForcedAsk ||
+      (requiresMandatoryApproval && ctx.computer.kind === "local"),
   };
 
   if (applied?.duplicate) {
@@ -580,9 +655,10 @@ export async function gateToolCall(
   return { call };
 }
 
-const SHARED_PAGE_CARD_NOTE = "This page is shared by link: anyone with the link sees the change.";
-
-/** Manor: a save_page call that changes a page currently shared by link. Reads ask nothing. */
+/**
+ * Manor: a save_page call that changes a page currently shared by link, the same pages
+ * upstream's holdSharedPageSave holds outside Never ask. Reads ask nothing.
+ */
 async function savesSharedPage(ctx: RunContext, args: Record<string, unknown>) {
   const changes = ["source", "edits", "title"].some((key) =>
     key === "edits" && Array.isArray(args.edits) ? args.edits.length > 0 : argumentGiven(args[key]),
@@ -592,7 +668,7 @@ async function savesSharedPage(ctx: RunContext, args: Record<string, unknown>) {
     where: { id: String(args.pageId), spaceId: ctx.run.spaceId, userId: ctx.run.userId },
     select: { visibility: true },
   });
-  return Boolean(page && page.visibility !== "private");
+  return page?.visibility === "link";
 }
 
 /** A bot's consequential tool call, recorded in its organization's audit log. */
@@ -681,6 +757,16 @@ async function settleToolUncertainty(
     )
       return recovered;
   }
+  if (call.name === "service_call") {
+    const recovered = await callPaidService(ctx, call).catch(() => undefined);
+    // Only an answer the provider settled carries a cost; anything else stays uncertain.
+    if (
+      recovered &&
+      "cost_usd" in recovered &&
+      (await completeEffect(ctx.deps, effectId, "executing", recovered))
+    )
+      return recovered;
+  }
   return settleUncertainEffect(ctx.deps.prisma, effectId, toolName, call.args);
 }
 
@@ -729,11 +815,7 @@ async function showApprovalCard(ctx: RunContext, call: ToolCall, card: ApprovalC
   if (!paused) {
     throw new Error("Could not pause this run for approval; try sending again.");
   }
-  if (paused.continuationRunId) {
-    await deps.jobs
-      .enqueue(runContinueJob(paused.continuationRunId))
-      .catch((error) => getLogger().error("steering continuation enqueue", error));
-  }
+  await enqueueSteeringContinuation(deps, paused.continuationRunId);
   await notifyRun(deps, run, {
     kind: "help",
     title: `${displayName(bot.name, "Bot")} needs approval`,

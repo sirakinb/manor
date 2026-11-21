@@ -6,8 +6,7 @@ import type { WorkspaceRepos } from "./workspace.js";
 import { createWorkspaceRepos } from "./workspace.js";
 
 const databaseUrl = process.env.DATABASE_URL;
-const describePostgres =
-  process.env.VERIFY_DATABASE && databaseUrl ? describe.sequential : describe.skip;
+const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
 // Pinned at test start (not a fixed date) because default `updatedAt` columns
 // carry the wall clock, and the pipe rollup compares the two.

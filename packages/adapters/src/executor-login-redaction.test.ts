@@ -95,6 +95,8 @@ async function runAfterFill(
     yield { type: "done" as const, text: reply };
   });
   const prisma = {
+    space: { findUnique: vi.fn(async () => null) },
+    spaceMember: { findUnique: async () => ({ id: "member-1", organizationId: "organization-1" }) },
     $transaction: vi.fn(async (write: (tx: unknown) => unknown) => write(prisma)),
     $queryRaw: vi.fn(async () => []),
     run: {
@@ -128,7 +130,6 @@ async function runAfterFill(
       findMany: vi.fn(async () => []),
     },
     // Manor's run setup also reads the organization's workspace.
-    spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "organization-1" })) },
     workspace: { findUnique: vi.fn(async () => null) },
     attempt: {
       create: vi.fn(async () => ({ id: "attempt-1" })),

@@ -187,8 +187,11 @@ describe("server request headers", () => {
 describe("startup target", () => {
   const saved = { mode: "existing", serverUrl: "https://rakazo.example.com" } as const;
 
-  it("runs setup on a first launch", () => {
+  it("runs setup on a first launch without a bundled server", () => {
+    // Manor opens its hosted server through `bundledUrl` (see "bundled server"); there is no
+    // upstream cloud address.
     expect(resolveStartupTarget({})).toEqual({ kind: "setup" });
+    expect(resolveStartupTarget({ saved: null })).toEqual({ kind: "setup" });
   });
 
   it("opens the saved instance on later launches", () => {

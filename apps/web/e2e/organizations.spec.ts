@@ -8,8 +8,9 @@ type OrganizationList = {
 };
 
 test.afterEach(async ({ page }) => {
-  // Finish intercepted responses before the browser context is disposed.
-  await page.unrouteAll({ behavior: "wait" });
+  // Not "wait": a handler whose fulfill() lost a race to the route teardown never settles,
+  // and "wait" would then hang the test to its timeout.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 function selectedSpace(page: Page) {

@@ -40,9 +40,7 @@ import type { RouterDeps } from "./router.js";
 import { createRouter } from "./router.js";
 
 const describePostgres =
-  process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
-    ? describe.sequential
-    : describe.skip;
+  process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL ? describe : describe.skip;
 
 describePostgres("chat replies during screen takeover (PostgreSQL)", () => {
   let db: ReturnType<typeof createDb>;
@@ -95,7 +93,14 @@ describePostgres("chat replies during screen takeover (PostgreSQL)", () => {
       data: { id, organizationId: id, userId: id, role: "owner", createdAt: new Date() },
     });
     await system.spaceMember.create({
-      data: { id, spaceId: id, organizationId: id, userId: id, createdAt: new Date() },
+      data: {
+        id,
+        spaceId: id,
+        organizationId: id,
+        userId: id,
+        role: "owner",
+        createdAt: new Date(),
+      },
     });
     const computer = await system.computer.create({
       data: { spaceId: id, userId: id, scopeKey: id, homeKey: id, kind: "fake", state: "running" },

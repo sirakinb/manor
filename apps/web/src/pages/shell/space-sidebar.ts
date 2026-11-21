@@ -1,4 +1,4 @@
-import { groupBotsForSidebar } from "@rakazo/core";
+import { chatSnoozed, chatWoke, groupBotsForSidebar } from "@rakazo/core";
 
 type SidebarChat = {
   id: string;
@@ -6,12 +6,13 @@ type SidebarChat = {
   preview?: string | null;
   pinned: boolean;
   sectionId: string | null;
+  snoozedUntil?: string | null;
 };
 
 type SidebarSpace<TBot extends SidebarChat, TGroup extends SidebarChat> = {
   id: string;
   name: string;
-  /** A team space: every member of the organization can open it. */
+  /** Manor: a team space, which every member of the organization can open. */
   shared?: boolean;
   canRename?: boolean;
   canDelete?: boolean;
@@ -43,18 +44,20 @@ export function sidebarGroupsForSpaces<TBot extends SidebarChat, TGroup extends 
   spaces: readonly SidebarSpace<TBot, TGroup>[],
   query: string,
   labels?: { pinned: string; unassigned: string },
+  now = Date.now(),
   options: { alwaysNameSpaces?: boolean } = {},
 ) {
   const needle = query.toLowerCase();
   // Manor names the space on every header; upstream only does once there are several.
   const showSpaceNames = options.alwaysNameSpaces === true || spaces.length > 1;
+  // Search still finds a snoozed chat; the list itself leaves it out until it wakes.
+  const listed = (chat: SidebarChat) =>
+    needle
+      ? `${chat.name} ${chat.preview ?? ""}`.toLowerCase().includes(needle)
+      : !chatSnoozed(chat, now);
   return spaces.flatMap((space) => {
-    const visibleBots = space.bots.filter((bot) =>
-      `${bot.name} ${bot.preview ?? ""}`.toLowerCase().includes(needle),
-    );
-    const visibleGroups = space.groups.filter((group) =>
-      `${group.name} ${group.preview ?? ""}`.toLowerCase().includes(needle),
-    );
+    const visibleBots = space.bots.filter(listed);
+    const visibleGroups = space.groups.filter(listed);
     const grouped = groupBotsForSidebar(
       [
         ...visibleBots.map((chat) => ({ kind: "bot" as const, chat })),
@@ -64,6 +67,7 @@ export function sidebarGroupsForSpaces<TBot extends SidebarChat, TGroup extends 
         id: item.chat.id,
         pinned: item.chat.pinned,
         sectionId: item.chat.sectionId,
+        woke: chatWoke(item.chat, now),
       })),
       space.botSections,
       { labels },

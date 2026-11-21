@@ -99,6 +99,9 @@ async function requestSecretWith(origin: string, extra: Record<string, unknown> 
   });
   const prisma = recordingPrisma(
     {
+      spaceMember: {
+        findUnique: async () => ({ id: "member-1", organizationId: "organization-1" }),
+      },
       run: {
         findUnique: async () => run,
         findUniqueOrThrow: async () => run,
@@ -125,7 +128,6 @@ async function requestSecretWith(origin: string, extra: Record<string, unknown> 
         findMany: async () => [],
       },
       // Manor's run setup also reads the organization's workspace.
-      spaceMember: { findUnique: async () => ({ organizationId: "organization-1" }) },
       attempt: {
         create: async () => ({ id: "attempt-1" }),
         updateMany: async () => ({ count: 1 }),

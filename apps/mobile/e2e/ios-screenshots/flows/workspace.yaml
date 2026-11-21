@@ -19,6 +19,13 @@ name: Workspace
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: 02-approval-rules
+- openLink: "rakazo:///approval-rule-add"
+- extendedWaitUntil:
+    visible: "Browser act"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02b-add-approval-rule
 - openLink: "rakazo:///vault"
 - extendedWaitUntil:
     visible: ".*deploy_token.*"
@@ -59,3 +66,4 @@ name: Workspace
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: 09-space-settings
+# Manor: space sharing is off, so the Members sheet is not captured (see the catalog test).

@@ -6,9 +6,9 @@ import { ComposioConnector, FakeComposioClient } from "@rakazo/adapters";
 import type { Bot, Me, Space, SpaceNavigation, ThreadSnapshot } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import {
+  PERSON_MEMBER,
   requireMembership,
   shareUnstartedSpace,
-  spaceNotificationRecipients,
   spaceResourceActor,
 } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -17,7 +17,7 @@ import { asSystem } from "./system-db.js";
 
 const withDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
-    ? describe.sequential
+    ? describe // Vitest 5 runs a suite's tests in order unless told otherwise.
     : describe.skip;
 type Handles = Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
 
@@ -275,25 +275,23 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
   });
 
   it("rejects stale access after a member is removed", async () => {
-    expect(
+    // The people a team space's notices reach: its person members, never the shared account.
+    const notified = async () =>
       new Set(
-        await spaceNotificationRecipients(handles.prisma, {
-          spaceId: team.id,
-          userId: accountUserId,
-        }),
-      ),
-    ).toEqual(new Set([owner.userId, peer.userId]));
+        (
+          await db.spaceMember.findMany({
+            where: { spaceId: team.id, ...PERSON_MEMBER },
+            select: { userId: true },
+          })
+        ).map((member) => member.userId),
+      );
+    expect(await notified()).toEqual(new Set([owner.userId, peer.userId]));
     const actor = await requireMembership(handles.prisma, peer.userId, team.id);
     await db.spaceMember.delete({
       where: { spaceId_userId: { spaceId: team.id, userId: peer.userId } },
     });
     await expect(spaceResourceActor(handles.prisma, actor)).rejects.toThrow();
-    expect(
-      await spaceNotificationRecipients(handles.prisma, {
-        spaceId: team.id,
-        userId: accountUserId,
-      }),
-    ).toEqual([owner.userId]);
+    expect(await notified()).toEqual(new Set([owner.userId]));
     expect(
       (await raw(peerCookie, "threads/get", { botId: bot.id }, team.id)).status,
     ).toBeGreaterThanOrEqual(400);

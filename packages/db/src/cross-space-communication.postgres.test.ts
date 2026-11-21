@@ -6,8 +6,7 @@ import { crossSpaceCommunicationAllowed } from "./cross-space-communication.js";
 import { asSystem, runAsSystem } from "./row-security.js";
 
 const databaseUrl = process.env.DATABASE_URL;
-const describePostgres =
-  process.env.VERIFY_DATABASE && databaseUrl ? describe.sequential : describe.skip;
+const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
 describePostgres("cross-space communication stays in one organization (PostgreSQL)", () => {
   const tag = randomUUID().slice(0, 8);

@@ -127,7 +127,8 @@ export function serializeSetup(setup: DesktopSetup): string {
 }
 
 /**
- * Decides between the first-run setup window and the app window. An explicit
+ * Decides between the setup window and the app window. A first launch opens Manor's
+ * hosted server; other servers are a choice made from setup later. An explicit
  * `RAKAZO_WEB_URL` still wins over saved configuration so test and performance
  * harnesses can point the shell anywhere without touching a user's real setup.
  */
@@ -146,6 +147,7 @@ export function resolveStartupTarget(input: {
   if (input.saved != null) {
     const saved = parseSetupInput(input.saved);
     if (saved !== null) return { kind: "app", url: saved.serverUrl, source: "saved" };
+    return { kind: "setup" };
   }
   const bundled = input.bundledUrl ? normalizeServerUrl(input.bundledUrl) : null;
   if (bundled !== null) return { kind: "app", url: bundled, source: "bundled" };

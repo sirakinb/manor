@@ -1,6 +1,8 @@
-import type { MessageBlock } from "@rakazo/contracts";
+import type { MessageAuthor, MessageBlock } from "@rakazo/contracts";
+import { displayName } from "@rakazo/core";
 import type { Prisma, PrismaClient } from "./client.js";
-import { withTransactionRetry } from "./transaction-retry.js";
+import { markThreadUnreadForMembers } from "./thread-reads.js";
+import { THREAD_LOCK_TRANSACTION_OPTIONS, withTransactionRetry } from "./transaction-retry.js";
 
 /**
  * Group turns use channel inputs and their own outputs, never private thread history.
@@ -39,6 +41,7 @@ export function loadRunHistoryMessages(
       runId: true,
       blocks: true,
       authorName: true,
+      authorUserId: true,
       createdAt: true,
       replyToMessageId: true,
       replyQuote: true,
@@ -61,7 +64,9 @@ export function isPartialReplyClientNonce(clientNonce: string | null | undefined
 export interface CreateThreadMessageInput {
   threadId: string;
   role: "user" | "bot" | "system";
+  /** The signed-in person who wrote a user message; null when the sender is not a known user. */
   authorUserId?: string;
+  /** Manor: the author's name when written, shown and prefixed in history in a team space. */
   authorName?: string;
   blocks: MessageBlock[];
   botId?: string;
@@ -78,8 +83,9 @@ export interface CreateThreadMessageInput {
 
 export async function createThreadMessage(prisma: PrismaClient, input: CreateThreadMessageInput) {
   return withTransactionRetry(() =>
-    prisma.$transaction((tx: Prisma.TransactionClient) =>
-      createThreadMessageInTransaction(tx, input),
+    prisma.$transaction(
+      (tx: Prisma.TransactionClient) => createThreadMessageInTransaction(tx, input),
+      THREAD_LOCK_TRANSACTION_OPTIONS,
     ),
   );
 }
@@ -90,16 +96,22 @@ export async function createThreadMessageInTransaction(
 ) {
   const thread = await tx.thread.update({
     where: { id: input.threadId },
-    data: {
-      nextMessageSeq: { increment: 1 },
-      unread: (input.markUnread ?? input.role === "bot") ? true : undefined,
-    },
-    select: { nextMessageSeq: true },
+    data: { nextMessageSeq: { increment: 1 } },
+    select: { nextMessageSeq: true, spaceId: true },
   });
   await assertRunCanWriteHistory(tx, input.runId, {
     allowCancelled: input.allowCancelledRun,
     lease: input.lease,
   });
+  // A bot's message is new to everyone in the Space; a person's is new to everyone else.
+  if (input.markUnread ?? (input.role === "bot" || input.authorUserId !== undefined)) {
+    await markThreadUnreadForMembers(tx, {
+      threadId: input.threadId,
+      spaceId: thread.spaceId,
+      seq: thread.nextMessageSeq - 1,
+      exceptUserId: input.authorUserId,
+    });
+  }
   return tx.message.create({
     data: {
       threadId: input.threadId,
@@ -115,6 +127,33 @@ export async function createThreadMessageInTransaction(
       clientNonce: input.clientNonce,
     },
   });
+}
+
+/**
+ * One lookup for every author on a page: the person who wrote each message, named through
+ * `displayName`. A deleted account has no author, and (Manor) neither has a team space's shared
+ * account, which never writes as a person.
+ */
+export async function loadMessageAuthors(
+  db: Pick<Prisma.TransactionClient, "user">,
+  userIds: Iterable<string | null | undefined>,
+): Promise<Map<string, MessageAuthor>> {
+  const ids = [...new Set(userIds)].filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return new Map();
+  const users = await db.user.findMany({
+    where: { id: { in: ids }, isSpaceAccount: false },
+    select: { id: true, name: true },
+  });
+  return new Map(
+    users.map((user) => [user.id, { id: user.id, name: displayName(user.name, "Member") }]),
+  );
+}
+
+export async function loadMessageAuthor(
+  db: Pick<Prisma.TransactionClient, "user">,
+  userId: string | null | undefined,
+): Promise<MessageAuthor | undefined> {
+  return userId ? (await loadMessageAuthors(db, [userId])).get(userId) : undefined;
 }
 
 export class RunHistoryWriteError extends Error {

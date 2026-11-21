@@ -55,9 +55,12 @@ describe("built-in tool bridge", () => {
       "web_search",
       "write_file",
     ]);
-    // request_secret carries the card and contact kinds; update_bot carries instructions paging.
+    // request_secret carries the card and contact kinds; update_bot carries instructions paging;
+    // the history tools point at files from earlier messages; a watch says it takes no other timing;
+    // read_file takes a line range; ask_user carries the content being decided about;
+    // search_history lists earlier tool work by kind without a keyword.
     // Manor: schedule_create also offers a webhook trigger on every branch (about 3 KB more).
-    expect(definitionBytes(listed)).toBeLessThanOrEqual(35_100);
+    expect(definitionBytes(listed)).toBeLessThanOrEqual(35_800);
     expect(deferred.map((tool) => tool.name)).toEqual(
       expect.arrayContaining(["render_plot", "create_space", "generate_secret", "scratchpad_add"]),
     );

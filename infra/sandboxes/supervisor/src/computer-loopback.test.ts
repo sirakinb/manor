@@ -461,6 +461,33 @@ describe("provisioning network rollback", () => {
     expect(mocks.docker.createContainer).not.toHaveBeenCalled();
   });
 
+  // Manor keeps per-bot networks IPv4-only (COMPUTER_NETWORK_IPV6) until its host firewall
+  // covers IPv6, so the dual-stack attempt and its fallback never happen.
+  it("creates an IPv4-only computer network without a dual-stack attempt", async () => {
+    fixture();
+    mocks.docker.createNetwork.mockResolvedValueOnce({});
+    const response = await provision();
+    expect(response.status).toBe(200);
+    expect(mocks.docker.createNetwork).toHaveBeenCalledTimes(1);
+    expect(mocks.docker.createNetwork.mock.calls[0]?.[0]).not.toHaveProperty("EnableIPv6");
+  });
+
+  it("removes the IPv4-fallback network when the container fails to start", async () => {
+    const { container } = fixture();
+    const fallbackNetwork = { remove: vi.fn().mockResolvedValue(undefined) };
+    mocks.docker.createNetwork
+      .mockRejectedValueOnce(
+        new Error(
+          "could not find an available, non-overlapping IPv6 address pool among the defaults to assign to the network",
+        ),
+      )
+      .mockResolvedValueOnce(fallbackNetwork);
+    container.start.mockRejectedValue(new Error("start failed"));
+    const response = await provision();
+    expect(response.status).toBe(500);
+    expect(fallbackNetwork.remove).toHaveBeenCalledOnce();
+  });
+
   it("does not remove an existing network after failed creation", async () => {
     const { network } = fixture();
     mocks.docker.createNetwork.mockRejectedValue(new Error("network already exists"));
@@ -2312,7 +2339,7 @@ describe("computer network reclaim", () => {
 
   describe("on startup", () => {
     async function reclaim() {
-      const { reclaimIdleComputerNetworks } = await import("./index.js");
+      const { reclaimIdleComputerNetworks } = await import("./networks.js");
       return reclaimIdleComputerNetworks();
     }
 
@@ -2469,6 +2496,110 @@ describe("computer network reclaim", () => {
         expectReconnected(existing, network);
       },
     );
+
+    it("recreates a reclaimed network IPv4-only and rejoins the computer", async () => {
+      const { existing } = stoppedComputer({});
+      const network = botNetwork();
+      network.inspect.mockRejectedValue(
+        Object.assign(new Error("no such network"), { statusCode: 404 }),
+      );
+      mocks.docker.getNetwork.mockReturnValue(network);
+      mocks.docker.createNetwork.mockResolvedValueOnce({ remove: vi.fn() });
+
+      const response = await provision();
+      expect(await response.json()).toMatchObject({ id: "existing", resumed: true });
+      expect(mocks.docker.createNetwork).toHaveBeenCalledTimes(1);
+      expect(mocks.docker.createNetwork.mock.calls[0]?.[0]).not.toHaveProperty("EnableIPv6");
+      expectReconnected(existing, network);
+    });
+
+    it("keeps a stopped computer's IPv4-only network on resume instead of recreating it", async () => {
+      const existing = {
+        id: "existing",
+        inspect: vi.fn().mockResolvedValue({
+          Image: "image",
+          Config: {
+            User: hostComputerUser(),
+            Labels: { "rakazo.managed": "true", "rakazo.botId": "bot", "rakazo.spaceId": "space" },
+          },
+          HostConfig: { NetworkMode: botNet, PortBindings: {} },
+          State: { Running: false },
+          NetworkSettings: { Networks: { [botNet]: { NetworkID: "net-v4" } } },
+        }),
+        start: vi.fn().mockResolvedValue(undefined),
+        remove: vi.fn().mockResolvedValue(undefined),
+      };
+      const network = {
+        inspect: vi.fn().mockResolvedValue({ Id: "net-v4", EnableIPv6: false }),
+        connect: vi.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn().mockResolvedValue(undefined),
+        remove: vi.fn().mockResolvedValue(undefined),
+      };
+      mocks.docker.getImage.mockReturnValue({
+        inspect: vi.fn().mockResolvedValue({ Id: "image" }),
+      });
+      mocks.docker.getContainer.mockReturnValue(existing);
+      mocks.docker.getNetwork.mockReturnValue(network);
+      mocks.docker.listContainers.mockResolvedValue([{ Id: existing.id }]);
+
+      const response = await provision();
+      expect(await response.json()).toMatchObject({ id: "existing", resumed: true, started: true });
+      expect(network.remove).not.toHaveBeenCalled();
+      expect(mocks.docker.createNetwork).not.toHaveBeenCalled();
+      expect(existing.start).toHaveBeenCalledOnce();
+    });
+
+    it("leaves a stopped computer on its IPv4-only network without a cleanup", async () => {
+      // Upstream hands an IPv4-only network back on resume to retry IPv6, and rejoins the
+      // computer when that cleanup half fails. Manor's networks are IPv4-only by design
+      // (COMPUTER_NETWORK_IPV6), so the resume touches neither.
+      let detached = false;
+      const existing = {
+        id: "existing",
+        inspect: vi.fn(() =>
+          Promise.resolve({
+            Image: "image",
+            Config: {
+              User: hostComputerUser(),
+              Labels: {
+                "rakazo.managed": "true",
+                "rakazo.botId": "bot",
+                "rakazo.spaceId": "space",
+              },
+            },
+            HostConfig: { NetworkMode: botNet, PortBindings: {} },
+            State: { Running: false },
+            NetworkSettings: {
+              Networks: detached ? {} : { [botNet]: { NetworkID: "net-v4" } },
+            },
+          }),
+        ),
+        start: vi.fn().mockResolvedValue(undefined),
+        remove: vi.fn().mockResolvedValue(undefined),
+      };
+      const network = {
+        inspect: vi.fn().mockResolvedValue({ Id: "net-v4", EnableIPv6: false }),
+        connect: vi.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn(async ({ Container }: { Container: string }) => {
+          if (Container === existing.id) detached = true;
+        }),
+        remove: vi.fn().mockRejectedValue(new Error("network has active endpoints elsewhere")),
+      };
+      mocks.docker.getImage.mockReturnValue({
+        inspect: vi.fn().mockResolvedValue({ Id: "image" }),
+      });
+      mocks.docker.getContainer.mockReturnValue(existing);
+      mocks.docker.getNetwork.mockReturnValue(network);
+      mocks.docker.listContainers.mockResolvedValue([{ Id: existing.id }]);
+      mocks.docker.createNetwork.mockResolvedValue({ remove: vi.fn() });
+
+      const response = await provision();
+      expect(await response.json()).toMatchObject({ id: "existing", resumed: true, started: true });
+      expect(network.remove).not.toHaveBeenCalled();
+      expect(network.disconnect).not.toHaveBeenCalled();
+      expect(network.connect).not.toHaveBeenCalled();
+      expect(existing.start).toHaveBeenCalledOnce();
+    });
 
     it.each([
       ["removed", Object.assign(new Error("no such network"), { statusCode: 404 })],

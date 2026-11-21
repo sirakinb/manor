@@ -35,6 +35,7 @@ import type {
   RemoteConnectorDependencies,
   TicketChangeNotifier,
   verifyModelServesAgents,
+  WorkActivities,
 } from "@rakazo/adapters";
 import {
   BOT_CREDENTIAL_SECRET_KIND,
@@ -97,6 +98,7 @@ import { accountRoutes } from "./routes/account.js";
 import { availabilityRoutes } from "./routes/availability.js";
 import { boardsRoutes } from "./routes/boards.js";
 import { botsRoutes } from "./routes/bots.js";
+import { capabilitiesRoutes } from "./routes/capabilities.js";
 import { computerRoutes } from "./routes/computer.js";
 import { computerProviderRoutes } from "./routes/computer-provider.js";
 import { connectionsRoutes } from "./routes/connections.js";
@@ -107,12 +109,14 @@ import { mcpRoutes } from "./routes/mcp.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
+import { onboardingRoutes } from "./routes/onboarding.js";
 import { organizationsRoutes } from "./routes/organizations.js";
 import { pagesRoutes } from "./routes/pages.js";
 import { paymentWalletRoutes } from "./routes/payment-wallet.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { computerContext } from "./routes/shared.js";
 import { spacesRoutes } from "./routes/spaces.js";
+import { spendingLimitRoutes } from "./routes/spending-limit.js";
 import { threadsRoutes } from "./routes/threads.js";
 import { getRunDiagnostics, listBotRunHistory } from "./runs.js";
 import { addPreviewProxyCapability } from "./screen-proxy.js";
@@ -131,7 +135,11 @@ export interface RouterDeps {
   maintenance?: MaintenanceAdapter;
   /** Manor: tests only; production uses `ORGANIZATION_CHANGES_AVAILABLE`. */
   organizationChangesAvailable?: boolean;
+  /** Manor: tests only; production uses `SPACE_SHARING_AVAILABLE`. */
+  spaceSharingAvailable?: boolean;
   pushTokens: PushTokenStore;
+  /** Absent when the deployment cannot update a phone's live status card. */
+  workActivities?: Pick<WorkActivities, "register" | "registerStarts">;
   /** Stops a call's ring on the owner's other devices once it is settled. */
   notifications?: NotificationProvider;
   analytics?: ProductAnalytics;
@@ -205,6 +213,8 @@ export interface RouterDeps {
   onEmailError?: (error: unknown) => void;
   speechSummary?: VoiceDeps["speechSummary"];
   env: {
+    /** Domain of bots' email addresses; unset when this server receives no email. */
+    inboundEmailDomain?: string;
     ticketBoardEnabled?: boolean;
     navLinks?: NavLink[];
     adminEmails?: string[];
@@ -227,6 +237,7 @@ export interface RouterDeps {
     integrationsCatalogUrl?: string;
     mcpAllowPrivateEndpoint?: boolean;
     desktopHostChoiceEnabled?: boolean;
+    computerSettingsEnabled?: boolean;
     mcpStdioEnabled?: boolean;
     mcpStdioAllowedCommands?: string[];
   };
@@ -250,13 +261,16 @@ export function createRouter(deps: RouterDeps) {
     ...memoryRoutes(ctx),
     ...routinesRoutes(ctx),
     ...boardsRoutes(ctx),
+    ...capabilitiesRoutes(ctx),
     ...mcpRoutes(ctx),
+    ...onboardingRoutes(ctx),
     ...availabilityRoutes(ctx),
     ...connectionsRoutes(ctx),
     ...messagingRoutes(ctx),
     ...content,
     ...pagesRoutes(ctx),
     ...paymentWalletRoutes(ctx),
+    ...spendingLimitRoutes(ctx),
     // Manor-owned areas, and Manor's procedures inside upstream's computer and runs groups.
     ...manorRoutes(ctx, { computer: computer.computer, runs: content.runs }),
   });

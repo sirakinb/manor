@@ -70,7 +70,7 @@ And because the computers live in the cloud, **your agents keep working after yo
 
 **Hire by writing a charter.** A role, its responsibilities, its boundaries — the same brief you'd give a new hire on day one. Agents that must ask about everything are useless; agents that never ask are dangerous. The charter is where you draw that line once, instead of worrying about it every day.
 
-**Show it the work — once.** Open an agent's computer, hit *Teach a task*, and walk through the workflow while it watches. It saves what you did as a named skill. Attach a schedule, and something you used to grind through every week now happens every night without you.
+**Show it the work — once.** Open an agent's computer, hit _Teach a task_, and walk through the workflow while it watches. It saves what you did as a named skill. Attach a schedule, and something you used to grind through every week now happens every night without you.
 
 **Let them build the team.** Agents can hire other agents. A coordinator can spin up a specialist for a lane of work, hand it a charter, and manage it — which is the moment one assistant quietly becomes a company.
 

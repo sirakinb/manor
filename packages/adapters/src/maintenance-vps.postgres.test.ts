@@ -8,9 +8,7 @@ import { VpsMaintenanceAdapter } from "./maintenance-vps.js";
 import { ScriptedAgentRuntime } from "./scripted-runtime.js";
 
 const describeDb =
-  process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
-    ? describe.sequential
-    : describe.skip;
+  process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL ? describe : describe.skip;
 describeDb("VPS maintenance orchestration", () => {
   let db: ReturnType<typeof createDb>;
   const owner = randomUUID();

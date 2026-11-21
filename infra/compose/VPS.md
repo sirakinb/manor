@@ -35,6 +35,7 @@ Cloudflare (manor.pentridgemedia.com, proxied CNAME -> tunnel)
    `manor.pentridgemedia.com` → service `http://web:5173`. Put the tunnel
    token in `.env.vps` as `CLOUDFLARE_TUNNEL_TOKEN`.
 4. Build and start:
+
    ```sh
    docker compose --env-file .env.vps -f infra/compose/docker-compose.vps.yml up -d --build
    ```

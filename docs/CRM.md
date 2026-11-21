@@ -70,7 +70,7 @@ added when teams need them).
 
 Bots as CRM operators: `crm_search`, `crm_create_contact`, `crm_move_deal`
 connector tools so "Scout, log everyone who replied this week as Qualified"
-just works. This is the reason the CRM is *in* Manor rather than beside it —
+just works. This is the reason the CRM is _in_ Manor rather than beside it —
 the schema above is shaped so those tools bolt on without migration.
 
 ## Risks

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import type { Server, ServerResponse } from "node:http";
 import { createServer } from "node:http";
@@ -8,6 +9,7 @@ import { promisify } from "node:util";
 import type { ElectronApplication, Page } from "@playwright/test";
 import { _electron as electron, expect, test } from "@playwright/test";
 import type { RakazoDesktop } from "@rakazo/contracts";
+import { shownWindow } from "./shown-window.js";
 
 const APP_MARKER = "Existing Rakazo instance ready";
 /** Outlasts the shell's 20s wait for a mounted app before it rejects the server. */
@@ -84,7 +86,7 @@ test.afterEach(async () => {
 });
 
 function launch(extraEnv: Record<string, string> = {}) {
-  const env = {
+  const env: Record<string, string | undefined> = {
     ...process.env,
     RAKAZO_PERFORMANCE_USER_DATA: userData,
     // The hosted-server shortcut would skip setup; tests opt into it explicitly.
@@ -92,12 +94,21 @@ function launch(extraEnv: Record<string, string> = {}) {
   };
   // A stale RAKAZO_WEB_URL from the developer's shell would bypass setup entirely.
   delete env.RAKAZO_WEB_URL;
+  // A first launch opens Manor's hosted server; these specs stay offline and start in setup
+  // instead, except the one that opts into the hosted-server shortcut.
+  if (
+    !extraEnv.RAKAZO_WEB_URL &&
+    !extraEnv.MANOR_BUNDLED_SERVER_URL &&
+    !existsSync(path.join(userData, "setup.json"))
+  ) {
+    env.RAKAZO_FORCE_SETUP = "1";
+  }
   const executablePath = process.env.RAKAZO_E2E_EXECUTABLE;
   return electron.launch({
     ...(executablePath ? { executablePath: path.resolve(executablePath) } : {}),
     args: executablePath ? [] : ["."],
     cwd: path.resolve(import.meta.dirname, ".."),
-    env: { ...env, ...extraEnv },
+    env: { ...env, ...extraEnv } as Record<string, string>,
   });
 }
 
@@ -132,7 +143,8 @@ async function setupScreenshot(launched: ElectronApplication, page: Page, name: 
   }
 }
 
-test("first run offers Rakazo Cloud first, with local and existing instances", async () => {
+// The macOS screenshot workflow selects this test by its title.
+test("setup offers Rakazo Cloud first, with local and existing instances", async () => {
   app = await launch();
   if (process.env.RAKAZO_E2E_EXECUTABLE) {
     expect(await app.evaluate(({ app }) => app.isPackaged)).toBe(true);
@@ -291,7 +303,7 @@ test("Continue verifies and remembers the instance so setup does not run again",
   await app.close();
 
   app = await launch();
-  const relaunched = await app.firstWindow();
+  const relaunched = await shownWindow(app);
   await expect(relaunched.getByText(APP_MARKER)).toBeVisible();
   await expect(relaunched.locator("#setup")).toHaveCount(0);
 });
@@ -620,7 +632,7 @@ test("an unreachable saved server falls back to setup with a recovery message", 
 
 test("the native application menu can reopen setup without exposing setup IPC to the server", async () => {
   app = await launch({ RAKAZO_WEB_URL: serverUrl });
-  const appWindow = await app.firstWindow();
+  const appWindow = await shownWindow(app);
   await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
 
   const setupPromise = app.waitForEvent("window");
@@ -676,13 +688,13 @@ test("servers on the same host but different ports do not share login cookies", 
 
   try {
     app = await launch({ RAKAZO_WEB_URL: `http://127.0.0.1:${firstAddress.port}` });
-    const firstWindow = await app.firstWindow();
+    const firstWindow = await shownWindow(app);
     await expect(firstWindow.getByText("Cookie stored")).toBeVisible();
     await expect.poll(() => firstWindow.evaluate(() => document.cookie)).toContain("fake-one");
     await app.close();
 
     app = await launch({ RAKAZO_WEB_URL: `http://127.0.0.1:${secondAddress.port}` });
-    const secondWindow = await app.firstWindow();
+    const secondWindow = await shownWindow(app);
     await expect(secondWindow.getByText("Cookies: none")).toBeVisible();
   } finally {
     await app?.close();
@@ -700,7 +712,7 @@ test("servers on the same host but different ports do not share login cookies", 
 
 test("setup IPC is not reachable from the connected app window", async () => {
   app = await launch({ RAKAZO_WEB_URL: serverUrl });
-  const appWindow = await app.firstWindow();
+  const appWindow = await shownWindow(app);
   await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
 
   const exposed = await appWindow.evaluate(() =>
@@ -722,19 +734,19 @@ test("the app window stays on its server when a link redirects to another site",
   const openSignIn = (page: Page) =>
     page.evaluate(
       (url) =>
-        (window as typeof window & { rakazoDesktop: RakazoDesktop }).rakazoDesktop.oauth
-          .open(url)
-          .then(
-            () => "opened",
-            (error: Error) => error.message,
-          ),
+        (window as typeof window & { rakazoDesktop: RakazoDesktop }).rakazoDesktop.oauth.open!(
+          url,
+        ).then(
+          () => "opened",
+          (error: Error) => error.message,
+        ),
       signInUrl,
     );
 
   try {
     const launched = await launch({ RAKAZO_WEB_URL: serverUrl });
     app = launched;
-    const appWindow = await launched.firstWindow();
+    const appWindow = await shownWindow(launched);
     await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
     await launched.evaluate(({ shell }) => {
       const opened: string[] = [];
@@ -802,7 +814,7 @@ for (const failure of ["load", "save"] as const) {
     );
     const initialRequests = monitoringRequests;
     app = await launch();
-    const previous = await app.firstWindow();
+    const previous = await shownWindow(app);
     await expect(previous.getByText(APP_MARKER)).toBeVisible();
     await expect.poll(() => monitoringRequests).toBeGreaterThan(initialRequests);
     const connectedRequests = monitoringRequests;
@@ -844,6 +856,7 @@ for (const failure of ["load", "save"] as const) {
       // A cookie event on the original session must still refresh that server's identity.
       const beforeCookie = monitoringRequests;
       await previous.evaluate(() => {
+        // biome-ignore lint/suspicious/noDocumentCookie: the page sets a cookie to raise a cookie event.
         document.cookie = `monitoring-test=${Date.now()}; path=/`;
       });
       await expect.poll(() => monitoringRequests).toBeGreaterThan(beforeCookie);

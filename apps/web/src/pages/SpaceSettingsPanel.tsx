@@ -2,21 +2,29 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button, Input } from "@rakazo/ui-web";
 import { useEffect, useId, useState } from "react";
 import { SettingsGroup, SettingsRow } from "../components/SettingsRows";
+import { SpaceMembersSettings } from "../components/SpaceMembersSettings";
+import { SPACE_SHARING } from "../lib/space-sharing";
 import { SpaceSettingOverrides } from "./SpaceSettingOverrides";
 import type { SettingsSpace } from "./shell/dialogs";
 import { DeleteSpaceDialog } from "./shell/dialogs";
 
-/** One space's page: its name, the account settings it customizes, and deletion for its owner. */
+/**
+ * One space's page: its name, its members, the account settings it customizes, and deletion for
+ * its owner.
+ */
 export function SpaceSettingsPanel({
   space,
   onRename,
   onDelete,
+  onLeft,
   onClose,
   onBusyChange,
 }: {
   space: SettingsSpace;
   onRename: (name: string) => Promise<void>;
   onDelete: () => Promise<void>;
+  /** After leaving, with the space the server moved this person to. */
+  onLeft: (activeSpaceId: string) => void;
   onClose: () => void;
   onBusyChange?: (busy: boolean) => void;
 }) {
@@ -94,13 +102,15 @@ export function SpaceSettingsPanel({
             }
           >
             {error ? (
-              <p role="alert" className="pt-2 text-[12.5px] text-destructive">
+              <p role="alert" className="pt-2 text-body-sm text-destructive">
                 {error}
               </p>
             ) : null}
           </SettingsRow>
         </SettingsGroup>
       ) : null}
+      {/* Manor: a team space's people show in Settings > Team members; invite links are off. */}
+      {SPACE_SHARING ? <SpaceMembersSettings space={space} onLeft={onLeft} /> : null}
       <SpaceSettingOverrides onClose={onClose} onBusyChange={setOverridesBusy} />
       {space.canDelete ? (
         <Button

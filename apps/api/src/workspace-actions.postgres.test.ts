@@ -12,8 +12,7 @@ import type { WorkspaceActions } from "./workspace-actions.js";
 import { createWorkspaceActions, WorkspaceActionError } from "./workspace-actions.js";
 
 const databaseUrl = process.env.DATABASE_URL;
-const describePostgres =
-  process.env.VERIFY_DATABASE && databaseUrl ? describe.sequential : describe.skip;
+const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
 const NOW = new Date("2026-09-05T15:00:00Z");
 const dayAfter = (days: number) =>

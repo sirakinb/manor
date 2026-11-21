@@ -15,7 +15,7 @@ process.env.SANDBOX_PROVIDER = "fake";
 process.env.AGENT_RUNTIME = "scripted";
 const describeDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
-    ? describe.sequential
+    ? describe // Vitest 5 runs a suite's tests in order unless told otherwise.
     : describe.skip;
 
 describeDb("external workspace handoff", () => {

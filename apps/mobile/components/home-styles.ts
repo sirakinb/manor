@@ -36,8 +36,6 @@ export function createHomeStyles() {
       flexDirection: "row",
       alignItems: "center",
       padding: 2,
-      borderRadius: 22,
-      backgroundColor: native.fillPressed,
     },
     lockup: {
       position: "absolute",
@@ -63,12 +61,15 @@ export function createHomeStyles() {
       // Tracking is applied on the right of every glyph, including the last.
       marginRight: -4.8,
     },
-    circleButton: {
+    headerCircle: {
       width: 44,
       height: 44,
-      borderRadius: 22,
       alignItems: "center",
       justifyContent: "center",
+    },
+    // Where Liquid Glass is unavailable.
+    headerFill: {
+      borderRadius: 22,
       backgroundColor: native.fillPressed,
     },
     headerButton: {
@@ -266,8 +267,6 @@ export function createHomeStyles() {
       paddingBottom: 4,
     },
     activitySection: {
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: native.fillPressed,
       marginBottom: 4,
       paddingBottom: 4,
     },

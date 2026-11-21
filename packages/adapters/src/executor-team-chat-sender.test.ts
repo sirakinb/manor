@@ -54,7 +54,10 @@ async function teamChatRun(input: {
     leaseFence: 0,
   };
   const prisma = {
+    $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
+    space: { findUnique: vi.fn(async () => null) },
     $queryRaw: vi.fn(async () => []),
+    spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1", organizationId: "org-1" })) },
     user: { findUnique: vi.fn(async () => null) },
     run: {
       findUnique: vi.fn(async () => run),
@@ -131,7 +134,6 @@ async function teamChatRun(input: {
     secret: { findMany: vi.fn(async () => []) },
     vaultCredential: { findMany: vi.fn(async () => []) },
     // Manor's run setup also reads the organization's workspace.
-    spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
     workspace: { findUnique: vi.fn(async () => null) },
     botCredential: { findMany: vi.fn(async () => []) },
     agentSkill: {

@@ -15,7 +15,7 @@ import { createApp } from "./app.js";
 import { loadEnv } from "./env.js";
 import { LOCAL_COMPUTER_SOCKET_PATH } from "./local-computer.js";
 
-const logger = createRootLogger(SERVICE_NAMES.api);
+const logger = await createRootLogger(SERVICE_NAMES.api);
 
 try {
   const env = loadEnv();

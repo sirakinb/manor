@@ -142,6 +142,7 @@ async function runTool(
     (["name", "origin"] as const).every((key) => !(key in where) || row[key] === where[key]);
   const prisma = recordingPrisma(
     {
+      spaceMember: { findUnique: async () => ({ id: "member-1", organizationId: "org-1" }) },
       run: {
         findUnique: async () => run,
         findUniqueOrThrow: async () => run,
@@ -191,7 +192,6 @@ async function runTool(
           vault.filter((row) => inVault(row, where)),
       },
       // Manor's run setup also reads the organization's workspace.
-      spaceMember: { findUnique: async () => ({ organizationId: "org-1" }) },
       secret: {
         findFirst: async ({ where }: { where: Record<string, unknown> }) =>
           secrets.find((row) => matches(row, where)) ?? null,

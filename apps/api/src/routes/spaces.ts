@@ -2,22 +2,36 @@ import { ORPCError } from "@orpc/server";
 import type { Actor, SpaceNavigation } from "@rakazo/contracts";
 import type { createGroupRepos, createRepos, PrismaClient } from "@rakazo/db";
 import {
+  acceptSpaceInvite,
   CannotDeleteDefaultSpaceError,
   CannotDeleteLastSpaceError,
   CannotDeleteSpaceAsNonOwnerError,
+  CannotRemoveSpaceOwnerError,
   CannotRenameSpaceAsNonOwnerError,
+  cancelSpaceInvites,
   createExternalConversationRepos,
   createSpaceForMember,
+  createSpaceInvite,
+  fallbackSpaceForMember,
   InvalidSpaceNameError,
   IsolationError,
+  isOwnerRole,
+  leaveSpace,
+  listSpaceMembers,
+  previewSpaceInvite,
   recordAuditEvent,
+  removeSpaceMember,
   renameSpaceForMember,
   runAsSystem,
   runAsTenant,
   SPACE_DELETION_CLAIM_TIMEOUT_MS,
   SpaceDeletionInProgressError,
+  SpaceInviteLimitError,
+  SpaceInviteNotFoundError,
   SpaceLimitError,
+  SpaceMemberNotFoundError,
   SpaceNotFoundError,
+  SpaceOwnerCannotLeaveError,
   setSpaceSettingOverride,
   spaceResourceActor,
   spaceSettingOverrides,
@@ -26,9 +40,37 @@ import { otherSpaceOfBot } from "../bot-space.js";
 import type { RouterDeps } from "../router.js";
 import { listRoutinesDto } from "../routines.js";
 import { deleteSpaceWithContent } from "../space-deletion.js";
-import { resolveThreadTarget, threadSnapshot } from "../thread-target.js";
+import { afterSpaceDeparture } from "../space-departure.js";
+import {
+  assertNotTeamSpace,
+  assertSpaceSharingAvailable,
+  SPACE_SHARING_AVAILABLE,
+} from "../space-sharing-availability.js";
+import { threadSnapshot } from "../thread-snapshot.js";
+import { resolveThreadTarget } from "../thread-target.js";
 import type { RouterContext } from "./context.js";
 import { meDto } from "./shared.js";
+
+function mapSpaceMemberError(error: unknown): never {
+  if (
+    error instanceof SpaceInviteNotFoundError ||
+    error instanceof SpaceMemberNotFoundError ||
+    error instanceof SpaceNotFoundError
+  ) {
+    throw new ORPCError("NOT_FOUND", { message: error.message });
+  }
+  if (
+    error instanceof CannotRemoveSpaceOwnerError ||
+    error instanceof SpaceOwnerCannotLeaveError ||
+    error instanceof SpaceInviteLimitError
+  ) {
+    throw new ORPCError("BAD_REQUEST", { message: error.message });
+  }
+  if (error instanceof SpaceDeletionInProgressError) {
+    throw new ORPCError("CONFLICT", { message: error.message });
+  }
+  throw error;
+}
 
 /**
  * Runs `fn` scoped to another of the actor's Spaces. Membership is checked first,
@@ -50,6 +92,17 @@ async function asMemberOf<T>(
 
 export function spacesRoutes(ctx: RouterContext) {
   const { deps, repos, groupRepos, authed, spaceAuthed } = ctx;
+  // Manor: upstream's invite-link sharing runs as the signed-in person (`authed`), and only
+  // with sharing lifted and outside a team space (`space-sharing-availability.ts`).
+  const sharing = authed.use(async ({ next }) => {
+    assertSpaceSharingAvailable(deps.spaceSharingAvailable ?? SPACE_SHARING_AVAILABLE);
+    return next();
+  });
+  const asSharingMemberOf = <T>(actor: Actor, spaceId: string, fn: () => Promise<T>) =>
+    asMemberOf(deps.prisma, actor, spaceId, async () => {
+      await assertNotTeamSpace(deps.prisma, spaceId);
+      return fn();
+    });
   return {
     // Manor: a shared team space acts as one account, so its overrides are the account's.
     spaceSettings: {
@@ -193,6 +246,121 @@ export function spacesRoutes(ctx: RouterContext) {
           }
         }),
       ),
+      members: {
+        list: sharing.spaces.members.list.handler(({ context, input }) =>
+          asSharingMemberOf(context.actor, input.spaceId, () =>
+            listSpaceMembers(deps.prisma, {
+              spaceId: input.spaceId,
+              userId: context.actor.userId,
+            }).catch(mapSpaceMemberError),
+          ),
+        ),
+        remove: sharing.spaces.members.remove.handler(({ context, input }) =>
+          asSharingMemberOf(context.actor, input.spaceId, async () => {
+            const departure = await removeSpaceMember(deps.prisma, {
+              spaceId: input.spaceId,
+              userId: context.actor.userId,
+              memberUserId: input.userId,
+            }).catch(mapSpaceMemberError);
+            await recordAuditEvent({
+              action: "space.member.removed",
+              actor: { type: "user", id: context.actor.userId },
+              spaceId: input.spaceId,
+              target: { type: "user", id: input.userId },
+            });
+            await afterSpaceDeparture(
+              deps,
+              { spaceId: input.spaceId, userId: context.actor.userId },
+              departure,
+            );
+            return { ok: true as const };
+          }),
+        ),
+        leave: sharing.spaces.members.leave.handler(({ context, input }) =>
+          asSharingMemberOf(context.actor, input.spaceId, async () => {
+            const departure = await leaveSpace(deps.prisma, {
+              spaceId: input.spaceId,
+              userId: context.actor.userId,
+            }).catch(mapSpaceMemberError);
+            await recordAuditEvent({
+              action: "space.member.left",
+              actor: { type: "user", id: context.actor.userId },
+              spaceId: input.spaceId,
+            });
+            await afterSpaceDeparture(
+              deps,
+              { spaceId: input.spaceId, userId: context.actor.userId },
+              departure,
+            );
+            const activeSpaceId =
+              input.spaceId === context.actor.spaceId
+                ? await fallbackSpaceForMember(deps.prisma, context.actor.userId)
+                : context.actor.spaceId;
+            if (!activeSpaceId) throw new ORPCError("NOT_FOUND");
+            return { ok: true as const, activeSpaceId };
+          }),
+        ),
+      },
+      invites: {
+        create: sharing.spaces.invites.create.handler(({ context, input }) =>
+          asSharingMemberOf(context.actor, input.spaceId, async () => {
+            const invite = await createSpaceInvite(deps.prisma, {
+              spaceId: input.spaceId,
+              userId: context.actor.userId,
+            }).catch(mapSpaceMemberError);
+            await recordAuditEvent({
+              action: "space.invite.created",
+              actor: { type: "user", id: context.actor.userId },
+              spaceId: input.spaceId,
+            });
+            return {
+              url: new URL(`/invite/${invite.token}`, deps.env.webOrigin).toString(),
+              expiresAt: invite.expiresAt.toISOString(),
+            };
+          }),
+        ),
+        // The invitee is not a member yet, so these look the Space up by the link alone.
+        preview: sharing.spaces.invites.preview.handler(({ context, input }) =>
+          previewSpaceInvite(deps.prisma, {
+            token: input.token,
+            userId: context.actor.userId,
+          }).catch(mapSpaceMemberError),
+        ),
+        accept: sharing.spaces.invites.accept.handler(async ({ context, input }) => {
+          // Manor: nobody joins a team space by link, even one invited before it became one.
+          const invited = await previewSpaceInvite(deps.prisma, {
+            token: input.token,
+            userId: context.actor.userId,
+          }).catch(mapSpaceMemberError);
+          await assertNotTeamSpace(deps.prisma, invited.spaceId);
+          const accepted = await acceptSpaceInvite(deps.prisma, {
+            token: input.token,
+            userId: context.actor.userId,
+          }).catch(mapSpaceMemberError);
+          if (accepted.joined) {
+            await recordAuditEvent({
+              action: "space.member.joined",
+              actor: { type: "user", id: context.actor.userId },
+              spaceId: accepted.spaceId,
+            });
+          }
+          return { spaceId: accepted.spaceId };
+        }),
+        cancel: sharing.spaces.invites.cancel.handler(({ context, input }) =>
+          asSharingMemberOf(context.actor, input.spaceId, async () => {
+            await cancelSpaceInvites(deps.prisma, {
+              spaceId: input.spaceId,
+              userId: context.actor.userId,
+            }).catch(mapSpaceMemberError);
+            await recordAuditEvent({
+              action: "space.invites.cancelled",
+              actor: { type: "user", id: context.actor.userId },
+              spaceId: input.spaceId,
+            });
+            return { ok: true as const };
+          }),
+        ),
+      },
     },
     bootstrap: authed.bootstrap.handler(async ({ context, input }) => {
       const actor = await spaceResourceActor(deps.prisma, context.actor);
@@ -212,7 +380,7 @@ export function spacesRoutes(ctx: RouterContext) {
       const [thread, routines] = active
         ? await Promise.all([
             resolveThreadTarget(deps.prisma, actor, { botId: active.id }).then((target) =>
-              threadSnapshot(deps, target),
+              threadSnapshot(deps, target, actor.userId),
             ),
             listRoutinesDto(deps, actor, active.id),
           ])
@@ -252,7 +420,9 @@ async function memberSpaceNavigation(
   repos: ReturnType<typeof createRepos>,
   groupRepos: ReturnType<typeof createGroupRepos>,
 ): Promise<SpaceNavigation> {
-  // Manor: every product surface lists spaces only within the resolved organization.
+  // Manor: every product surface lists spaces only within the resolved organization. Upstream
+  // also lists guest Spaces from another organization, which only its invite links create; those
+  // are off (`space-sharing-availability.ts`) and a session acts only in its portal's organization.
   const memberships = await deps.prisma.spaceMember.findMany({
     where: { userId: actor.userId, organizationId: actor.organizationId },
     select: {
@@ -266,36 +436,32 @@ async function memberSpaceNavigation(
           accountUserId: true,
           deletingAt: true,
           organization: { select: { name: true } },
+          _count: { select: { memberships: true } },
         },
       },
     },
     orderBy: { createdAt: "asc" },
   });
-  const currentActor = await spaceResourceActor(deps.prisma, actor);
   const spaceIds = memberships.map((membership) => membership.spaceId);
-  const externalConversationRepos = createExternalConversationRepos(deps.prisma);
-  // Manor: batch by account so personal and team spaces never borrow each other's scope.
-  const accounts = new Map<string, string[]>();
-  for (const membership of memberships) {
-    const userId = membership.space.accountUserId ?? actor.userId;
-    accounts.set(userId, [...(accounts.get(userId) ?? []), membership.spaceId]);
-  }
-  const inactive = await Promise.all(
-    [...accounts].map(async ([userId, accountSpaceIds]) => {
-      const scope = { ...actor, userId };
-      const inactiveIds = accountSpaceIds.filter((id) => id !== actor.spaceId);
-      const [bots, groups, sections, conversations] = await Promise.all([
-        repos.listSpaceBotsForSpaces(scope, inactiveIds),
-        groupRepos.listSpaceGroupsForSpaces(scope, inactiveIds),
-        repos.listBotSectionsForSpaces(scope, accountSpaceIds),
-        externalConversationRepos.listForSpaces(scope, accountSpaceIds),
-      ]);
-      return { bots, groups, sections, conversations };
-    }),
-  );
-  const [currentBots, currentGroups, contentBots, contentGroups] = await Promise.all([
-    repos.listBots(currentActor),
-    groupRepos.listGroups(currentActor),
+  const inactiveSpaceIds = spaceIds.filter((spaceId) => spaceId !== actor.spaceId);
+  // Manor: these routes run as the signed-in person (`authed`), never as a team space's shared
+  // account, so each teammate gets their own unread and snooze state (`thread_reads`).
+  const [
+    currentBots,
+    currentGroups,
+    inactiveBots,
+    inactiveGroups,
+    botSections,
+    externalConversations,
+    contentBots,
+    contentGroups,
+  ] = await Promise.all([
+    repos.listBots(actor),
+    groupRepos.listGroups(actor),
+    repos.listSpaceBotsForSpaces(inactiveSpaceIds, actor.userId),
+    groupRepos.listSpaceGroupsForSpaces(inactiveSpaceIds, actor.userId),
+    repos.listBotSectionsForSpaces(spaceIds),
+    createExternalConversationRepos(deps.prisma).listForSpaces(spaceIds, actor.userId),
     // Active-only navigation lists miss archived content in other spaces; count any
     // bot/group in the actor's spaces (including another member's) so a shared
     // non-empty space cannot look empty for onboarding redirects.
@@ -310,10 +476,6 @@ async function memberSpaceNavigation(
       distinct: ["spaceId"],
     }),
   ]);
-  const inactiveBots = inactive.flatMap((entry) => entry.bots);
-  const inactiveGroups = inactive.flatMap((entry) => entry.groups);
-  const botSections = inactive.flatMap((entry) => entry.sections);
-  const externalConversations = inactive.flatMap((entry) => entry.conversations);
   const botCounts = new Map(contentBots.map((row) => [row.spaceId, row._count._all]));
   const spacesWithContent = new Set([
     ...contentBots.map((row) => row.spaceId),
@@ -343,18 +505,22 @@ async function memberSpaceNavigation(
     spaces: memberships.map((membership) => {
       const spaceBots = botsFor(membership.spaceId);
       const spaceGroups = groupsFor(membership.spaceId);
+      const owner = isOwnerRole(membership.role);
       return {
         id: membership.spaceId,
         name: membership.space.name,
-        isDefault: membership.space.isDefault,
-        shared: Boolean(membership.space.accountUserId),
+        // Another person's default Space is not this member's default. Manor: a team space is
+        // the same Space for every teammate.
+        isDefault: membership.space.isDefault && (owner || Boolean(membership.space.accountUserId)),
         organizationId: membership.organizationId,
         organizationName: membership.space.organization.name,
         hasContent: spacesWithContent.has(membership.spaceId),
+        // Manor: a team space (one shared account) is shared too.
+        shared: Boolean(membership.space.accountUserId) || membership.space._count.memberships > 1,
         botCount: botCounts.get(membership.spaceId) ?? 0,
-        canRename: membership.role === "owner" && membership.space.deletingAt === null,
+        canRename: owner && membership.space.deletingAt === null,
         canDelete:
-          membership.role === "owner" &&
+          owner &&
           !membership.space.isDefault &&
           memberships.length > 1 &&
           (membership.space.deletingAt === null || membership.space.deletingAt < staleClaimBefore),
@@ -370,6 +536,7 @@ async function memberSpaceNavigation(
           pinned: bot.pinned,
           sectionId: bot.sectionId,
           unread: bot.unread,
+          snoozedUntil: bot.snoozedUntil,
           preview: bot.preview,
           status: bot.status,
           threadStatus: bot.threadStatus,
@@ -385,6 +552,7 @@ async function memberSpaceNavigation(
           members: group.members,
           preview: group.preview,
           unread: group.unread,
+          snoozedUntil: group.snoozedUntil,
           updatedAt: group.updatedAt,
         })),
         externalConversations: externalConversations.filter(

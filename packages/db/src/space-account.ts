@@ -77,23 +77,6 @@ export async function sharedMessageAuthor(prisma: PrismaClient, actor: Actor) {
   return { authorUserId: actor.initiatedByUserId, authorName: user.name };
 }
 
-export async function spaceNotificationRecipients(
-  prisma: PrismaClient,
-  scope: { spaceId: string; userId: string },
-): Promise<string[]> {
-  const space = await prisma.space.findUniqueOrThrow({
-    where: { id: scope.spaceId },
-    select: { accountUserId: true },
-  });
-  if (!space.accountUserId) return [scope.userId];
-  if (space.accountUserId !== scope.userId) return [];
-  const members = await prisma.spaceMember.findMany({
-    where: { spaceId: scope.spaceId, member: { user: { isSpaceAccount: false } } },
-    select: { userId: true },
-  });
-  return members.map((member) => member.userId);
-}
-
 /** Operator migration for an unstarted space. Existing live accounts require a provider migration. */
 export async function shareUnstartedSpace(prisma: PrismaClient, spaceId: string) {
   // An operator runs this with no request: it reassigns every member's rows in the space

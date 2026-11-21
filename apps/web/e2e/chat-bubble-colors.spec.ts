@@ -32,7 +32,17 @@ test("colored user bubbles keep white text on Manor's dark theme", async ({ page
   expect(colored.foreground).toBe("#FFFFFF");
   await expect(bubble).toHaveCSS("color", rgb(colored.foreground));
   await expect(bubble).toHaveCSS("background-color", rgb(colored.background));
+  // The send button stays quiet on an empty draft...
+  const send = page.getByRole("button", { name: "Send", exact: true });
+  await expect(send).toBeDisabled();
+  await expect(send).not.toHaveCSS("background-color", rgb(colored.background));
   await captureScreenshot(page, testInfo, "chat-bubble-white-text-dark");
+  // ...and wears the bubble's color once there is something to send.
+  await composer.fill("And the week after.");
+  await expect(send).toHaveCSS("background-color", rgb(colored.background));
+  await expect(send).toHaveCSS("color", rgb(colored.foreground));
+  await captureScreenshot(page, testInfo, "chat-send-button-bot-color-dark");
+  await composer.fill("");
 
   // A bot with no bubble colour keeps Manor's neutral bubble from the tokens.
   await rpc(page, "bots/update", { botId, color: "#FFFFFF" });

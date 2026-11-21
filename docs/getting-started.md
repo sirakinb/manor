@@ -86,12 +86,12 @@ agent.
 
 On the VPS:
 
-| Command | What it does |
-| --- | --- |
-| `manor update` | Install the latest release |
-| `manor status` | Show what's running |
+| Command          | What it does                                      |
+| ---------------- | ------------------------------------------------- |
+| `manor update`   | Install the latest release                        |
+| `manor status`   | Show what's running                               |
 | `manor logs api` | Recent logs (also `web`, `worker`, `cloudflared`) |
-| `manor restart` | Restart after editing settings |
+| `manor restart`  | Restart after editing settings                    |
 
 Settings live in `/opt/manor/.env`. To let more people create accounts, add their emails to
 `SIGNUP_ALLOWLIST` (comma-separated), then run `manor restart`. Inviting teammates into your

@@ -77,7 +77,7 @@ describe("workspace file API", () => {
     expect(execute).not.toHaveBeenCalled();
     expect(prisma.bot.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ id: "bot-1", spaceId: "space-1", userId: "user-1" }),
+        where: expect.objectContaining({ id: "bot-1", spaceId: "space-1" }),
       }),
     );
   });

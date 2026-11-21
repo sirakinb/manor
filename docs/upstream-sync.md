@@ -16,7 +16,7 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`, `v0.7.0`. In progress: `v0.8.0`.
+`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`. In progress: `v0.9.0`.
 
 ### How a stage is resolved
 
@@ -26,13 +26,16 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
    `CHANGELOG.md`, `SETUP_PROMPT.md`) and Manor icons take ours; `pnpm-lock.yaml`
    and the message catalogs take theirs. After code is resolved, carry Manor's
    existing translations back into the catalogs, then run `intl:extract`, then
-   `pnpm install`.
+   `pnpm install`. The catalogs stay committed. From `v0.9.0` (upstream's #3717) no CI
+   check compares them with the code and production builds extract a template first,
+   so a missing string shows in English; the stage step above is what keeps Manor's
+   translations. Never commit `apps/web/src/locales/messages.pot` (it is gitignored).
 3. Everything else is a hand union: Manor keeps every feature it has and gains
    everything upstream added. Where both sides changed the same code for the same
    purpose, upstream's structure is canonical and Manor's deliberate delta is
    re-applied on top.
-4. Verify: `pnpm --filter @rakazo/web intl:extract` leaves the catalogs unchanged (CI's
-   lint job fails otherwise, so re-run it after any late string change),
+4. Verify: re-run `pnpm --filter @rakazo/web intl:extract` after any late string change
+   and commit the catalog result (no CI job catches a stale catalog any more),
    `pnpm exec turbo run check --continue`, `pnpm lint`, `prisma validate`,
    `pnpm exec turbo run test --continue`, then CI for Postgres journeys and Playwright.
 5. Rehearse the stage's migrations with `prisma migrate deploy` against the copy of
@@ -246,6 +249,33 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   features, and both stay. Upstream's switch for the bundled server needs
   `RAKAZO_DESKTOP_STACK_TOKEN`, which production leaves unset.
 
+- Team spaces (from `v0.9.0`, beside upstream's shared spaces #1935). Manor's team space keeps
+  its shared-account model: people act as the space account (`space.accountUserId`), which owns
+  the bots, routines, runs, connections and approval rules. The helpers live in
+  `packages/db/src/team-space.ts`: `isTeamSpace`, `assertNotTeamSpace` (upstream's invite, join,
+  leave, removal and hand-over refuse a team space's shared account), `actsForRunUser` (a person
+  in the team space answers and steers the account's runs) and `PERSON_MEMBER` (the shared account
+  is never listed, counted as a person, made an owner or marked unread). Per-member unread, snooze
+  and message authors use the signed-in person (`initiatedByUserId ?? userId`, `readerUserId`).
+  A team space's Team Computer belongs to the shared account (`teamComputerUserId`). A person who
+  leaves or is deactivated out of a team space loses only their membership and their own rows;
+  nothing is handed over or paused.
+- Upstream's sharing of a space by invite link is off: `SPACE_SHARING_AVAILABLE` in
+  `apps/api/src/space-sharing-availability.ts` refuses the procedures with
+  `SPACE_SHARING_UNAVAILABLE`, and `SPACE_SHARING` in `apps/web/src/lib/space-sharing.ts` and
+  `apps/mobile/lib/space-sharing.ts` hides the controls; upstream's code and tests stay and run
+  with the flag lifted. Lifting it needs `assertPortalAccess` to admit a person invited from
+  another organization (a guest) into that one space, and invite links kept away from team
+  spaces, which the data layer already refuses.
+- Message authors use upstream's `author` object everywhere; Manor's stored `authorName` stays
+  only for the `[name]` prefix in a bot's history.
+- Upstream's approval for a bot saving a page shared by link replaces Manor's; Manor keeps only the
+  Never-ask refusal of a steerable run's own instruction change.
+- `20261129120000_shared_spaces` is the one upstream migration Manor edits: it adds
+  `messages."authorUserId"`, which Manor's `20260911001000_shared_space_accounts` already created
+  with the same nullable `TEXT` definition, so Manor's copy says `ADD COLUMN IF NOT EXISTS`. A
+  later upstream change to that file must keep the guard, or every Manor database fails the deploy.
+
 ### Decisions made during the sync
 
 - Multi-organization switching stays off (decided 2026-11-21). With it on, any signed-in
@@ -383,6 +413,36 @@ Things the one production deploy at the end must cover, collected as stages land
 - The iOS share extension needs the bundle id `com.pentridgemedia.manor.expo-sharing-extension`
   and the app group `group.com.pentridgemedia.manor` registered before the next iOS build.
 - The desktop app is on Electron 45 (45.2.2 from `v0.8.0`).
+- `v0.9.0` deferred drops apply at once under plain `prisma migrate deploy`:
+  `20261126120100_drop_message_history_search_idx`, `20261202120100_drop_thread_unread` (drops
+  `threads.unread` and `threads."lastReadSeq"`) and `20261209120100_drop_message_history_search_files_idx`.
+  Stop the API and worker first; going back to the old release needs a database restore.
+- `20261202120000_thread_reads` locks `threads` (share row exclusive) while it copies each unread
+  chat into every member's read state, so chat writes wait for it.
+- `v0.9.0` indexes that build outside a transaction (concurrently):
+  `20261126120000_external_effects_kind_status_updated_at_idx_concurrent`,
+  `20261126120000_message_history_search_with_files`,
+  `20261202120100_threads_helper_bot_id_idx_concurrent`,
+  `20261202120200_runs_helper_outcome_pending_idx_concurrent`,
+  `20261207120100_runs_user_status_idx_concurrent`,
+  `20261208120000_billing_audit_amount_idx_concurrent`,
+  `20261209120000_message_history_search_with_steps` and `20261210120000_message_tool_work_idx`,
+  plus the two concurrent index drops above. On failure drop any invalid index
+  (`DROP INDEX CONCURRENTLY IF EXISTS "<name>"`), run
+  `prisma migrate resolve --rolled-back <migration>`, then deploy again.
+- Leave these unset in production: bot email (`INBOUND_EMAIL_DOMAIN`, `INBOUND_EMAIL_SECRET`,
+  `INBOUND_EMAIL_RELAY_ARC_DOMAIN`), paid data services (`PAID_SERVICES_PROVIDER` stays
+  `disabled`, no `PAID_SERVICES_API_KEY`), SCIM (`SCIM_BEARER_TOKEN`) and extra sign-in origins
+  (`RAKAZO_EXTRA_AUTH_ORIGINS`).
+- `COMPUTER_SETTINGS_ENABLED` must be set for Settings to offer the deployment-wide computer
+  provider choice; unset, the provider comes from `SANDBOX_PROVIDER` only.
+- The release toolchain image can no longer be made by installing dev dependencies into the slim
+  release image: build it from the Dockerfile's build stage.
+- Node 24.15 or newer is required.
+- Upstream's new automation workflows stay off because their repository variables stay unset:
+  issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR
+  screenshots (`FLY_PREVIEW_ORG`) and the translation catalog sync (`CATALOG_SYNC_ENABLED`). The
+  Google Play release runs only when started by hand or called by another workflow.
 
 ## Standing rules
 
@@ -415,14 +475,14 @@ git merge upstream/main                   # resolve by the policy table below
 
 ## Conflict policy, by category
 
-| Category | Examples | Policy |
-|---|---|---|
-| Our contributions returning home | Claude Pro/Max OAuth (`pi-oauth.ts`, upstream #106) | **Ours is canonical.** Diff against upstream's landed copy; absorb only genuine improvements. |
-| Backport duplicates | fixes we cherry-picked that upstream later merged | Take **upstream** canonical, re-apply any deliberate Manor deltas. |
-| Manor identity | `README.md`, `Shell.tsx`, `Onboarding.tsx`, mobile skin | Keep **Manor's** look and branding, weave in upstream's new logic. |
-| High-care files | `router.ts`, `schema.prisma`, `app.ts`, `voice.ts` | Hand-union: keep both sides' routes/models/wiring. |
-| Mechanical | `pnpm-lock.yaml` | Take upstream, then `pnpm install` and commit the delta. |
-| Generated catalogs | `apps/web/src/locales/*/messages.po` | Conflicts are only `#:` line refs. Take upstream, then **carry Manor's `msgstr` values over from `ORIG_HEAD`** before `intl:extract` — `--theirs` alone silently drops ~270 Manor-only translations per locale. |
+| Category                         | Examples                                                | Policy                                                                                                                                                                                                          |
+| -------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Our contributions returning home | Claude Pro/Max OAuth (`pi-oauth.ts`, upstream #106)     | **Ours is canonical.** Diff against upstream's landed copy; absorb only genuine improvements.                                                                                                                   |
+| Backport duplicates              | fixes we cherry-picked that upstream later merged       | Take **upstream** canonical, re-apply any deliberate Manor deltas.                                                                                                                                              |
+| Manor identity                   | `README.md`, `Shell.tsx`, `Onboarding.tsx`, mobile skin | Keep **Manor's** look and branding, weave in upstream's new logic.                                                                                                                                              |
+| High-care files                  | `router.ts`, `schema.prisma`, `app.ts`, `voice.ts`      | Hand-union: keep both sides' routes/models/wiring.                                                                                                                                                              |
+| Mechanical                       | `pnpm-lock.yaml`                                        | Take upstream, then `pnpm install` and commit the delta.                                                                                                                                                        |
+| Generated catalogs               | `apps/web/src/locales/*/messages.po`                    | Conflicts are only `#:` line refs. Take upstream, then **carry Manor's `msgstr` values over from `ORIG_HEAD`** before `intl:extract` — `--theirs` alone silently drops ~270 Manor-only translations per locale. |
 
 Known Manor deltas to preserve through any resolution:
 

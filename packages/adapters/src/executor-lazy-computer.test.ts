@@ -109,7 +109,10 @@ async function runRoutine(
     yield { type: "done" as const, text: "Inbox is clear." };
   });
   const prisma = {
-    spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
+    $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
+    $queryRaw: vi.fn(async () => []),
+    space: { findUnique: vi.fn(async () => null) },
+    spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1", organizationId: "org-1" })) },
     workspace: { findUnique: vi.fn(async () => null) },
     run: {
       findUnique: vi.fn(async () => run),

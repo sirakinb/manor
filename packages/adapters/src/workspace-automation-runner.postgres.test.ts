@@ -8,8 +8,7 @@ import { runWorkspaceAutomation } from "./workspace-automation-runner.js";
 import { saveWorkspaceCredential } from "./workspace-credentials.js";
 
 const databaseUrl = process.env.DATABASE_URL;
-const describePostgres =
-  process.env.VERIFY_DATABASE && databaseUrl ? describe.sequential : describe.skip;
+const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
 const NOW = new Date("2026-09-04T12:40:00Z");
 

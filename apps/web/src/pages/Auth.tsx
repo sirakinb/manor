@@ -16,20 +16,26 @@ import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
 import { brand, brandName } from "../lib/brand";
+import { desktopBridge } from "../lib/desktop";
 import { clearSpaceSelection } from "../lib/rpc";
+import { newAccountDestination, signInNext } from "../lib/sign-in-next";
 import { runSsoFlow } from "../lib/sso-flow";
 import { authErrorText, credentialIssueText } from "../lib/user-error";
 import { WindowChrome } from "./WindowChrome";
 
 type AuthMode = "in" | "up" | "forgot";
 
-const fieldClass = "mt-2 h-12 rounded-xl px-4 text-base md:text-base";
+// off-scale: 16px below md stops iOS Safari zooming into a focused field.
+const fieldClass = "mt-2 h-12 rounded-xl px-4 text-[16px]/6 md:text-body-lg";
 const CODE_LENGTH = 6;
-export const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
+export const submitClass = "mt-3 h-12 w-full rounded-xl text-body-lg";
 
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
   const [searchParams, setSearchParams] = useSearchParams();
+  const next = signInNext(searchParams.get("next"));
+  // Switching between sign-in and sign-up keeps where the person was going.
+  const nextQuery = next ? `?next=${encodeURIComponent(next)}` : "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -160,7 +166,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         return;
       }
       if (mode === "up" && signupRequiresEmailVerification(result.data)) {
-        setSearchParams({ verify: "email" });
+        setSearchParams({ verify: "email", ...(next ? { next } : {}) });
         return;
       }
       enterApp();
@@ -218,13 +224,11 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           authClient.signIn.social({
             disableRedirect,
             provider: "oidc",
-            newUserCallbackURL: callbackURL("/onboarding"),
-            callbackURL: callbackURL(
-              searchParams.get("next") === "/integrations/setup" ? "/integrations/setup" : "/app",
-            ),
+            newUserCallbackURL: callbackURL(newAccountDestination(next)),
+            callbackURL: callbackURL(next ?? "/app"),
             errorCallbackURL: callbackURL("/sign-in"),
           }),
-        ["/app", "/onboarding", "/integrations/setup", "/sign-in"],
+        ["/app", "/onboarding", "/integrations/setup", "/sign-in", ...(next ? [next] : [])],
       );
       if (result.error) setError(authErrorText(result.error, t`Could not continue`));
     } catch {
@@ -278,7 +282,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   </Trans>
                 </p>
               ) : null}
-              <Link to="/sign-in" className="inline-block font-medium text-[#F1F0F3]">
+              <Link to={`/sign-in${nextQuery}`} className="inline-block font-medium text-[#F1F0F3]">
                 <Trans>Back to sign in</Trans>
               </Link>
             </div>
@@ -351,7 +355,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                         <InputOTPSlot
                           key={index}
                           index={index}
-                          className="size-12 text-lg first:rounded-l-xl last:rounded-r-xl"
+                          className="size-12 text-heading3 first:rounded-l-xl last:rounded-r-xl"
                         />
                       ))}
                     </InputOTPGroup>
@@ -521,19 +525,19 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   {mode === "in" ? (
                     <>
                       <Trans>Don’t have an account?</Trans>{" "}
-                      <Link to="/sign-up" className="font-medium text-[#F1F0F3]">
+                      <Link to={`/sign-up${nextQuery}`} className="font-medium text-[#F1F0F3]">
                         <Trans>Sign up</Trans>
                       </Link>
                     </>
                   ) : mode === "up" ? (
                     <>
                       <Trans>Already have an account?</Trans>{" "}
-                      <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
+                      <Link to={`/sign-in${nextQuery}`} className="font-medium text-[#F1F0F3]">
                         <Trans>Sign in</Trans>
                       </Link>
                     </>
                   ) : (
-                    <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
+                    <Link to={`/sign-in${nextQuery}`} className="font-medium text-[#F1F0F3]">
                       <Trans>Back to sign in</Trans>
                     </Link>
                   )}
@@ -543,6 +547,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           )}
         </form>
       </div>
+      <ChangeServerButton />
     </div>
   );
 }
@@ -586,7 +591,7 @@ export function PasswordResetPage() {
     <AuthFrame onSubmit={submit} title={<Trans>Choose a new password</Trans>}>
       {complete ? (
         <div role="status" className="w-full text-center">
-          <p className="text-lg">
+          <p className="text-heading3">
             <Trans>Password updated</Trans>
           </p>
           <Link to="/sign-in" className="mt-6 inline-block font-medium">
@@ -609,7 +614,7 @@ export function PasswordResetPage() {
             className="mt-4"
           />
           {error ? (
-            <p role="alert" className="mt-3 w-full text-sm text-destructive">
+            <p role="alert" className="mt-3 w-full text-body text-destructive">
               {error}
             </p>
           ) : null}
@@ -644,7 +649,7 @@ export function AuthFrame({
       className="flex min-h-full flex-col bg-background text-foreground"
       data-rakazo-surface="auth"
     >
-      <div className="app-drag flex gap-2 px-5 py-[18px]">
+      <div className="app-drag flex items-center gap-2 px-5 py-[18px]">
         <WindowChrome />
       </div>
       <div className="flex flex-1 items-center justify-center px-6 pb-16">
@@ -658,12 +663,29 @@ export function AuthFrame({
                   : "h-[74px] w-[74px]"
             }
           />
-          <h1 aria-live="polite" className="mb-9 mt-7 text-4xl font-medium tracking-tight">
+          <h1
+            aria-live="polite"
+            className="mb-9 mt-7 text-balance text-center text-4xl font-medium tracking-tight"
+          >
             {title}
           </h1>
           {children}
         </form>
       </div>
+      <ChangeServerButton />
+    </div>
+  );
+}
+
+/** The desktop app can point at another server from any signed-out page. */
+function ChangeServerButton() {
+  const server = desktopBridge()?.server;
+  if (!server) return null;
+  return (
+    <div className="flex justify-center pb-6">
+      <Button type="button" variant="text" size="sm" onClick={() => void server.change()}>
+        <Trans>Change server</Trans>
+      </Button>
     </div>
   );
 }

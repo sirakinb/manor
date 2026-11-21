@@ -7,6 +7,8 @@ import {
   screenPorts,
 } from "@rakazo/core/node/desktop-runtime";
 import type Docker from "dockerode";
+import type { ComputerLocale } from "./computer-locale.js";
+import { computerLocaleEnv } from "./computer-locale.js";
 
 /**
  * The computer image. RAKAZO_COMPUTER_IMAGE_TAG is appended the way Compose does, so a
@@ -30,6 +32,7 @@ export const COMPUTER_IMAGE = resolveComputerImage();
 /** The files from infra/sandboxes/computer the supervisor sends when it builds the image locally. */
 export const COMPUTER_IMAGE_CONTEXT_FILES = [
   "Dockerfile",
+  "apt-security.sh",
   "start.sh",
   "user-env.sh",
   "control.py",
@@ -470,15 +473,55 @@ export function computerNetworkOwnerFor(
 }
 
 /**
- * docker.createNetwork payload for a bot's computer network. Manor names the bridge in every
- * egress mode, not only `restricted`: its host firewall matches `mnrc+` interfaces whether or
- * not SANDBOX_COMPUTER_EGRESS is set, and an unnamed bridge would fall outside those rules.
+ * Whether a network-create failure means this daemon may be unable to create
+ * dual-stack networks: every capability error the daemon emits names IPv6 or
+ * ip6tables ("could not find an available, non-overlapping IPv6 address pool…",
+ * "Unable to enable IPv6 addresses on bridge…", "ip6tables is missing", "IPv6
+ * global forwarding is disabled"), and the exact wording changes between
+ * releases, so match broadly. A transient error that happens to name ip6tables
+ * falls back too, but the fallback is bounded: a stop gives the network back
+ * (reclaimComputerNetwork) and the next start creates it again, retrying IPv6.
+ * Every other error surfaces, so a transient failure fails loudly and retries.
  */
-export function computerNetworkCreateOptions(botId: string, owner: string) {
+export function isIpv6NetworkUnavailable(error: unknown): boolean {
+  return /ipv6|ip6tables/i.test(String(error));
+}
+
+/**
+ * IPv6 for computer networks, open egress only: Docker 27+ allocates each network
+ * its own ULA /64 when no subnet is given and, with ip6tables on by default,
+ * masquerades outbound traffic through the host's IPv6 address. A ULA source keeps
+ * IPv4 preferred for dual-stack names (RFC 6724), so only IPv6-only destinations
+ * move to IPv6. Restricted egress stays IPv4-only: the host ruleset and the
+ * startup probe (egress-probe.ts) enforce and verify IPv4 only. Daemons that
+ * cannot create the dual-stack network (Docker 26, Docker-in-Docker without
+ * ip6_tables, IPv6 off in the kernel) get the same network without IPv6 from
+ * the caller's fallback, so a computer start never fails on this.
+ *
+ * Manor names the bridge in every egress mode, not only `restricted`: its host firewall matches
+ * `mnrc+` interfaces whether or not SANDBOX_COMPUTER_EGRESS is set, and an unnamed bridge would
+ * fall outside those rules.
+ */
+/**
+ * Manor: per-bot computer networks stay IPv4-only. Manor's host firewall
+ * (infra/compose/harden-computer-egress.sh) writes iptables rules only, so an IPv6 path would let a
+ * computer reach the host and private IPv6 networks around it. Turn this on only after that script
+ * also writes the matching ip6tables rules. Production pins one computer network
+ * (RAKAZO_COMPUTER_NETWORK) and never creates these networks.
+ */
+export const COMPUTER_NETWORK_IPV6 = false;
+
+export function computerNetworkCreateOptions(
+  botId: string,
+  owner: string,
+  egress: ComputerEgressMode = "open",
+  ipv6 = true,
+) {
   return {
     Name: computerNetworkNameFor(botId),
     Driver: "bridge",
     CheckDuplicate: true,
+    ...(COMPUTER_NETWORK_IPV6 && ipv6 && egress === "open" ? { EnableIPv6: true } : {}),
     Labels: { "rakazo.computerOwner": owner, "rakazo.botId": botId },
     Options: { "com.docker.network.bridge.name": computerBridgeNameFor(botId) },
   };
@@ -597,6 +640,7 @@ export interface ComputerCreateInput {
   publishControlPort?: boolean;
   dns?: string[];
   mounts?: ComputerMount[];
+  locale?: ComputerLocale;
 }
 
 interface PointerInput {
@@ -628,6 +672,7 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       "NPM_CONFIG_PREFIX=/home/rakazo/.local",
       "PIP_USER=1",
       ...(input.controlToken ? [`RAKAZO_COMPUTER_CONTROL_TOKEN=${input.controlToken}`] : []),
+      ...computerLocaleEnv(input.locale),
     ],
     Labels: {
       "rakazo.managed": "true",

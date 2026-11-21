@@ -37,7 +37,13 @@ function executorFixture(
     leaseFence: 0,
   };
   const prisma = {
-    user: { findUnique: vi.fn<() => Promise<{ timezone: string } | null>>(async () => null) },
+    $queryRaw: vi.fn(async () => []),
+    space: { findUnique: vi.fn(async () => null) },
+    user: {
+      findUnique: vi.fn<
+        (args: { select?: Record<string, boolean> }) => Promise<{ timezone: string } | null>
+      >(async () => null),
+    },
     run: {
       findUnique: async () => run,
       findUniqueOrThrow: async () => run,
@@ -64,7 +70,7 @@ function executorFixture(
       updateMany: async () => ({ count: 1 }),
     },
     // Manor's run setup also reads the organization's workspace and the bot's stored logins.
-    spaceMember: { findUnique: async () => ({ organizationId: "organization" }) },
+    spaceMember: { findUnique: async () => ({ id: "member-1", organizationId: "organization" }) },
     workspace: { findUnique: async () => null },
     botCredential: { findMany: async () => [] },
     thread: { findUniqueOrThrow: async () => ({ id: "thread", groupId: null }) },
@@ -162,11 +168,12 @@ describe("Parallel through the ordinary bot caller", () => {
       },
     } as unknown as AgentRuntime;
     const fixture = executorFixture(runtime);
-    if (state === "failure") {
-      fixture.prisma.user.findUnique.mockRejectedValueOnce(new Error("lookup unavailable"));
-    } else if (state === "saved") {
-      fixture.prisma.user.findUnique.mockResolvedValueOnce({ timezone: "Pacific/Auckland" });
-    }
+    // Only the timezone lookup varies; the run's account is always active.
+    fixture.prisma.user.findUnique.mockImplementation(async ({ select }) => {
+      if (!select?.timezone) return null;
+      if (state === "failure") throw new Error("lookup unavailable");
+      return state === "saved" ? { timezone: "Pacific/Auckland" } : null;
+    });
     await fixture.execute();
     expect(prompt).toContain(state === "saved" ? "(Pacific/Auckland)" : "Current date and time:");
     expect(prompt).toContain("(UTC)");

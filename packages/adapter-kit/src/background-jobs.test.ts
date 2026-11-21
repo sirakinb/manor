@@ -25,9 +25,11 @@ function handlers(): BackgroundJobHandlers {
     "history.compact": vi.fn(async () => undefined),
     "messaging.deliver": vi.fn(async () => undefined),
     "workspace.automation.run": vi.fn(async () => undefined),
+    "messaging.progress": vi.fn(async () => undefined),
     "messaging.credential-cleanup": vi.fn(async () => undefined),
     "cloud_agent.poll": vi.fn(async () => undefined),
     "purchase.poll": vi.fn(async () => undefined),
+    "media.poll": vi.fn(async () => undefined),
     "push.receipt": vi.fn(async () => undefined),
   };
 }

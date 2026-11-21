@@ -20,9 +20,7 @@ const executeWorkspaceTool: typeof executeAsRun = (deps, owner, name, args) =>
   runAsTenant(owner, () => executeAsRun(deps, owner, name, args));
 
 const suite =
-  process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
-    ? describe.sequential
-    : describe.skip;
+  process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL ? describe : describe.skip;
 suite("workspace agents and knowledge (PostgreSQL)", () => {
   const stamp = randomUUID();
   const org = `wa-org-${stamp}`;

@@ -293,7 +293,14 @@ services:
       - ALL
     pids_limit: 128
     mem_limit: 128m
-    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.vps}"]
+    command:
+      [
+        "tunnel",
+        "--no-autoupdate",
+        "run",
+        "--token",
+        "${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.vps}",
+      ]
     networks:
       - app
     depends_on:

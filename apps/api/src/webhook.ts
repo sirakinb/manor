@@ -16,6 +16,7 @@ import {
   loadWebhookTarget,
   parseWebhookPayload,
   WEBHOOK_MAX_BODY_BYTES,
+  webhookDeliveryResponse,
 } from "./webhook-inbound.js";
 
 export {
@@ -88,13 +89,12 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
       return unauthorized();
     }
 
-    const payload = parseWebhookPayload(raw, c.req.header("content-type"));
-    const eventPrompt = formatWebhookPrompt(payload);
-
     const webhookRoutines = await deps.prisma.routine.findMany({
       where: {
         botId: target.bot.id,
         spaceId: target.bot.spaceId,
+        // The delivery runs as the bot's creator, so only their own routines may ride on it.
+        userId: target.bot.userId,
         active: true,
         webhookEnabled: true,
         ...(routineId ? { id: routineId } : {}),
@@ -112,10 +112,15 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
       orderBy: { updatedAt: "desc" },
       take: 5,
     });
-
-    if (routineId && webhookRoutines.length === 0) {
-      return c.json({ error: "Active webhook routine not found" }, 404);
+    if (webhookRoutines.length === 0) {
+      // Manor: a per-routine endpoint names one routine, so a missing one is not found.
+      if (routineId) return c.json({ error: "Active webhook routine not found" }, 404);
+      return c.json({ ok: true, ignored: true });
     }
+
+    const payload = parseWebhookPayload(raw, c.req.header("content-type"));
+    const eventPrompt = formatWebhookPrompt(payload);
+
     const routine = routineId ? webhookRoutines[0] : undefined;
     let threadId = target.threadId;
     if (routine?.threadId && routine.threadId !== threadId) {
@@ -149,7 +154,7 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
         : undefined;
 
     let dispatchFailed = false;
-    const delivered = await deliverWebhookEvent(
+    const delivery = deliverWebhookEvent(
       {
         events: {
           sendUserMessage: (input) =>
@@ -181,6 +186,13 @@ export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
         idempotencyKey,
       },
     );
+    // A Space being deleted refuses new work with a conflict, as upstream's response helper does.
+    let delivered: Awaited<typeof delivery>;
+    try {
+      delivered = await delivery;
+    } catch (error) {
+      return webhookDeliveryResponse(c, Promise.reject(error));
+    }
 
     // The message is stored; a sender that retries with the same event ID is deduplicated.
     if (dispatchFailed) {

@@ -12,7 +12,7 @@ Manor can already create a team. A bot can hire another bot with `spawn_bot`,
 give it a charter, and archive it later. Team Computers let several bots work at
 once on their own screens.
 
-What it cannot do is let them *talk*. Every thread belongs to exactly one bot, so
+What it cannot do is let them _talk_. Every thread belongs to exactly one bot, so
 coordination has to route through a person: you read what one bot produced, then
 paste it to the next. The team exists; the room does not.
 
@@ -35,7 +35,7 @@ You:    Find 40 property managers in Westchester, then draft outreach.
 You:    Send the eight, hold the two.
 ```
 
-Three properties matter: you gave an *objective*, the handoff happened without
+Three properties matter: you gave an _objective_, the handoff happened without
 you, and you were consulted only where judgment was needed.
 
 ## The shape of the change
@@ -44,10 +44,10 @@ The run model is already closer than it looks. `Run` carries `botId` **and**
 `threadId` as separate columns, so several bots having runs against one thread is
 already representable. Two things block it:
 
-| Blocker | Today | Needed |
-|---|---|---|
-| `Thread.botId` | `String @unique` — one thread per bot | nullable, non-unique; a room has participants instead |
-| `Message` author | `role` only ("user" / "bot") | `authorBotId` so a room can attribute each message |
+| Blocker          | Today                                 | Needed                                                |
+| ---------------- | ------------------------------------- | ----------------------------------------------------- |
+| `Thread.botId`   | `String @unique` — one thread per bot | nullable, non-unique; a room has participants instead |
+| `Message` author | `role` only ("user" / "bot")          | `authorBotId` so a room can attribute each message    |
 
 Everything else — events, runs, attempts, the realtime stream, message paging —
 works unchanged, because those are keyed on `threadId`.

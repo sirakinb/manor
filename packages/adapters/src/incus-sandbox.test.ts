@@ -404,6 +404,10 @@ describe("IncusSandboxProvider", () => {
     expect((create!.body as { config: Record<string, string> }).config["oci.entrypoint"]).toBe(
       `setpriv --no-new-privs -- ${imageCommand.join(" ")}`,
     );
+    // The start command's uid and gid are set on the instance, not inherited from
+    // the image's `USER`: a custom image without one starts as unprivileged anyway.
+    expect((create!.body as { config: Record<string, string> }).config["oci.uid"]).toBe("1000");
+    expect((create!.body as { config: Record<string, string> }).config["oci.gid"]).toBe("1000");
     // Only image paths and settings reach the instance environment.
     const environment = Object.entries((create!.body as { config: Record<string, string> }).config)
       .filter(([key]) => key.startsWith("environment."))
@@ -427,7 +431,7 @@ describe("IncusSandboxProvider", () => {
     const fake = new FakeIncus();
     await providerFor(fake).provision({ botId: "bot-a", homePath: "/unused" }, context);
     expect(fake.requests.find((entry) => entry.method === "POST")?.body).toMatchObject({
-      source: { server: "https://ghcr.io", alias: "elie222/rakazo/computer:edge" },
+      source: { server: "https://ghcr.io", alias: "sirakinb/manor/computer:edge" },
       config: { "limits.cpu": "2", "limits.memory": "2GiB", "limits.processes": "2048" },
     });
   });

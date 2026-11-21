@@ -155,6 +155,8 @@ async function executorHarness(server: ReturnType<typeof statefulMcpServer>) {
   });
   const events: AppendEventInput[] = [];
   const prisma = {
+    space: { findUnique: vi.fn(async () => null) },
+    spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1", organizationId: "org-1" })) },
     user: { findUnique: vi.fn(async () => null) },
     run: {
       findUnique: vi.fn(async () => run),
@@ -225,7 +227,6 @@ async function executorHarness(server: ReturnType<typeof statefulMcpServer>) {
     },
     // Manor's run setup also reads the assigned computer, the organization's workspace
     // and the bot's stored logins.
-    spaceMember: { findUnique: vi.fn(async () => ({ organizationId: "org-1" })) },
     workspace: { findUnique: vi.fn(async () => null) },
     botCredential: { findMany: vi.fn(async () => []) },
     connection: { findMany: vi.fn(async () => []) },

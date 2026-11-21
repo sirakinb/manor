@@ -9,7 +9,7 @@ const enabled = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATAB
 
 // Manor: pages are on the space tier, so a team space's members reach what its bots saved under
 // the shared account, and nobody outside the space reaches it.
-describe.skipIf(!enabled).sequential("pages in a shared team space (PostgreSQL)", () => {
+describe.skipIf(!enabled)("pages in a shared team space (PostgreSQL)", () => {
   let db: ReturnType<typeof createDb>;
   let prisma: PrismaClient;
   const suffix = randomUUID().slice(0, 8);

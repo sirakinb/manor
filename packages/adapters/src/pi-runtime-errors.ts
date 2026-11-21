@@ -5,6 +5,7 @@ import {
   TransientModelError,
 } from "@rakazo/adapter-kit";
 import type { RunFailureDiagnostic } from "@rakazo/contracts";
+import { OPENAI_COMPATIBLE_PROVIDER_ID } from "@rakazo/contracts";
 import {
   MODEL_OUTPUT_LIMIT_ERROR,
   normalizeRunError,
@@ -12,6 +13,7 @@ import {
   RunExecutionError,
   runFailureSummary,
 } from "@rakazo/core";
+import { LOCAL_PROVIDER_ID } from "./pi-local-provider-id.js";
 import { terminalOAuthRefreshErrorMarker } from "./pi-oauth.js";
 import { isOpenCodeProvider } from "./pi-runtime-stream.js";
 
@@ -95,13 +97,20 @@ function looksLikeOpenCodeSessionError(message: string): boolean {
 }
 
 /**
+ * Endpoints the user or operator runs and configures; a deployment-funded model never uses them.
+ */
+const OWN_ENDPOINT_PROVIDERS = new Set([OPENAI_COMPATIBLE_PROVIDER_ID, LOCAL_PROVIDER_ID]);
+
+/**
  * One classification for retries, reporting and the run error view. A failure the view
  * attributes to the user's provider account, key, plan or model choice, or to the model's own
  * unusable output, is not a server fault. Anything it cannot place stays a plain error.
+ * `provider` served `error`; `primaryProvider` served the first model of a fallback chain.
  */
 export function modelFailure(
   error: string,
   message: string,
+  { provider, primaryProvider }: { provider: string; primaryProvider: string },
   diagnostic?: RunFailureDiagnostic,
 ): Error {
   // When every model failed, the run is only as clear as its least explained failure: an
@@ -110,10 +119,12 @@ export function modelFailure(
   const fallback = parseModelFallbackFailure(message);
   const failures = fallback
     ? [
-        fallback.primaryError,
-        ...fallback.backups.filter((item) => item.status === "failed").map((item) => item.reason),
-      ].map((part) => modelFailureClass(part, part))
-    : [modelFailureClass(error, message)];
+        modelFailureClass(fallback.primaryError, fallback.primaryError, primaryProvider),
+        ...fallback.backups
+          .filter((item) => item.status === "failed")
+          .map((item) => modelFailureClass(item.reason, item.reason, item.provider)),
+      ]
+    : [modelFailureClass(error, message, provider)];
   const Failure = MODEL_FAILURE_RANK[Math.max(...failures)] ?? Error;
   if (!diagnostic) return new Failure(message);
   // Manor reports a categorized outage or server fault by its summary ("Model request timed
@@ -139,8 +150,8 @@ export function withDiagnostic<E extends Error>(error: E, diagnostic: RunFailure
 /** Least to most severe; a server fault (plain Error) is last. */
 const MODEL_FAILURE_RANK = [TransientModelError, ModelOutputError, ModelAccountError, Error];
 
-function modelFailureClass(error: string, message: string): number {
-  const { kind } = normalizeRunError(message);
+function modelFailureClass(error: string, message: string, provider: string): number {
+  const { kind, recovery, status } = normalizeRunError(message);
   // Output diagnostics can quote generated text that looks like a timeout.
   if (kind === "output") return MODEL_FAILURE_RANK.indexOf(ModelOutputError);
   // OpenCode drops chat sessions on its side; the next send opens a new one.
@@ -149,7 +160,11 @@ function modelFailureClass(error: string, message: string): number {
   // A refresh token the provider no longer accepts; the credential is already retired.
   if (terminalOAuthRefreshErrorMarker(message))
     return MODEL_FAILURE_RANK.indexOf(ModelAccountError);
-  if (kind) return MODEL_FAILURE_RANK.indexOf(ModelAccountError);
+  if (kind || recovery) return MODEL_FAILURE_RANK.indexOf(ModelAccountError);
+  // The user's own endpoint refused a request its model or settings cannot take. On a named
+  // provider the same rejection more likely means Rakazo built the request wrong.
+  if ((status === 400 || status === 422) && OWN_ENDPOINT_PROVIDERS.has(provider))
+    return MODEL_FAILURE_RANK.indexOf(ModelAccountError);
   return MODEL_FAILURE_RANK.indexOf(Error);
 }
 

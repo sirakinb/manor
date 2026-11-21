@@ -177,11 +177,11 @@ function fixture(
           historyCompactedUpToSeq: null,
         }),
       },
-      // Manor imports its organization's Workspace knowledge before a run; this owner's
-      // organization has none (`workspace` falls back to an empty table).
       spaceMember: {
         ...empty,
-        findUnique: async () => ({ organizationId: "fixture-organization" }),
+        // Manor imports its organization's Workspace knowledge before a run; this owner's
+        // organization has none (`workspace` falls back to an empty table).
+        findUnique: async () => ({ id: "member-1", organizationId: "fixture-organization" }),
       },
       deploymentSettings: {
         findUnique: async () => ({
@@ -205,6 +205,7 @@ function fixture(
         findFirst: async () => ({ id: "fixture-key", ciphertext: "fixture-ciphertext" }),
       },
       $queryRaw: async () => [],
+      $executeRaw: async () => 0,
       $transaction: async (action: (tx: unknown) => Promise<unknown>) => action(prisma),
       externalEffect: {
         ...empty,

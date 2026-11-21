@@ -5,6 +5,8 @@ Run the API, worker, web app, database and bot computers on a machine you contro
 
 The signed-in product is a long-running API, a Graphile Worker, Postgres, and a computer provider (Docker supervisor, E2B, Daytona, CreateOS, or Boat). It is not a static site. The marketing site in `apps/www` can be hosted separately.
 
+English | [简体中文](./zh-CN/self-host.md)
+
 ## What you need
 
 - Docker Engine 26 or newer with the Compose plugin, curl and OpenSSL. Nothing else is needed for
@@ -58,6 +60,8 @@ bash install-images.sh --local
 The `RAKAZO_` configuration keys are retained compatibility identifiers. If an existing installation
 uses another image namespace, review its data and upgrade compatibility before switching images.
 Flags may be combined in either order: `--prepare-only`, `--local`.
+When `RAKAZO_IMAGE_TAG` is a release such as `v0.8.0`, the installer downloads the Compose files
+from that release instead of `main`.
 
 ### Cloudflare Tunnel
 
@@ -117,6 +121,10 @@ there. Vite preview same-origin-proxies `/api` and `/rpc`, so do not expose `:31
 `BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL` to that same HTTPS origin, and set
 `RAKAZO_HOST` to its hostname (for example, `app.example.com`). Cookies and CORS follow those
 origins.
+
+To also reach the web app by other hostnames (a LAN IP or a tailnet name, for example), list
+them comma-separated in `RAKAZO_ALLOWED_HOSTS`. Vite preview rejects any other `Host` header, and
+the computer screen then stays blank.
 
 ```Caddyfile
 app.example.com {
@@ -178,6 +186,8 @@ Compose bot homes mount only their own subdirectory of the application volume us
   voice.
 - [Tools and integrations](./self-host-integrations.md): web search, memory, MCP servers,
   messaging apps, cloud coding agents and payments.
+- [Bot email addresses](./self-host-inbound-email.md): an address for each bot, so mail you
+  forward or CC to it starts its routines.
 - [Computer providers](./self-host-sandbox-providers.md) and
   [Docker computers](./self-host-docker-computers.md): where bot computers run and how they are
   limited.

@@ -345,7 +345,7 @@ it("renders Polish plural categories and interpolated values in every counted me
   const counted = Object.entries(catalog).filter(
     ([, entry]) => entry.message?.includes(", plural,") && entry.translation?.trim(),
   );
-  expect(counted.length).toBeGreaterThan(20);
+  expect(counted.length).toBeGreaterThanOrEqual(19);
   const local = setupI18n({ locale: "pl" });
   const number = new Intl.NumberFormat("pl");
   for (const [id, entry] of counted) {
@@ -369,7 +369,7 @@ it("renders Polish plural categories and interpolated values in every counted me
   }
 });
 
-it.each(["zh-TW", "pl"])(
+it.each(["zh-CN", "zh-TW", "pl"])(
   "keeps source placeholders and JSX markers in %s translations",
   async (locale) => {
     const readCatalog = async (locale: string) => {

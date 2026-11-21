@@ -106,6 +106,7 @@ function Host({ messages, running = false }: { messages: ThreadMessage[]; runnin
       onAddRoutine={quote}
       voiceReady={false}
       speakingMessageId={null}
+      callHoldsSpeaker={false}
       onSpeak={reply}
       onOpenComputer={reply}
     />

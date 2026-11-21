@@ -38,18 +38,18 @@ each admitted job. Account for the complete build peak, not idle memory.
 
 Defaults deliberately fit one small workspace:
 
-| Resource | Limit |
-| --- | --- |
-| Workspaces | one |
-| Workspace source, Git, synthetic database and storage | 256 MiB ext4 loop filesystem |
-| Workspace memory / CPU / process count | 256 MiB / one CPU / 128 |
-| Synthetic Postgres memory / CPU | 128 MiB / one-quarter CPU |
-| Build writable filesystem | 3 GiB ext4 loop filesystem |
-| Build memory / CPU / process count | at most 1 GiB / one CPU / 128 |
-| Heavy jobs | one host-wide file lock |
-| Source and final artifact archive | 128 MiB each |
-| Test command output | 1 MiB |
-| Container logs | two files of at most 1 MiB each |
+| Resource                                              | Limit                           |
+| ----------------------------------------------------- | ------------------------------- |
+| Workspaces                                            | one                             |
+| Workspace source, Git, synthetic database and storage | 256 MiB ext4 loop filesystem    |
+| Workspace memory / CPU / process count                | 256 MiB / one CPU / 128         |
+| Synthetic Postgres memory / CPU                       | 128 MiB / one-quarter CPU       |
+| Build writable filesystem                             | 3 GiB ext4 loop filesystem      |
+| Build memory / CPU / process count                    | at most 1 GiB / one CPU / 128   |
+| Heavy jobs                                            | one host-wide file lock         |
+| Source and final artifact archive                     | 128 MiB each                    |
+| Test command output                                   | 1 MiB                           |
+| Container logs                                        | two files of at most 1 MiB each |
 
 Build scratch is removed after preparation, including on failure and restart.
 Retained release images, workspace source and database snapshots are not

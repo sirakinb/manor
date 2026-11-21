@@ -22,11 +22,11 @@ Authorization: Bearer manor_your_token_here
 
 Scopes:
 
-| Scope             | Grants                                                    |
-| ----------------- | --------------------------------------------------------- |
-| `crm:read`        | Read contacts, pipelines, deals, modules, records          |
-| `crm:write`       | Create/update contacts, deals, modules, records            |
-| `webhooks:manage` | Register, list, and delete webhook endpoints               |
+| Scope             | Grants                                            |
+| ----------------- | ------------------------------------------------- |
+| `crm:read`        | Read contacts, pipelines, deals, modules, records |
+| `crm:write`       | Create/update contacts, deals, modules, records   |
+| `webhooks:manage` | Register, list, and delete webhook endpoints      |
 
 Every credential is bound to one workspace; all results are scoped to it.
 Revoke a credential from the same panel to cut off that agent instantly.
@@ -63,13 +63,13 @@ connectors, ChatGPT connectors — take the endpoint URL alone. An unauthenticat
 request returns `401` with `WWW-Authenticate: Bearer resource_metadata=…`, and
 the client discovers the rest:
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /.well-known/oauth-protected-resource/mcp/crm` (or `/mcp/workspace`) | Resource metadata |
-| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
-| `POST /oauth/register` | Dynamic client registration |
-| `GET /oauth/authorize` | Sign-in and consent: choose the space and scopes |
-| `POST /oauth/token` | `authorization_code` (PKCE `S256` required) and `refresh_token` |
+| Endpoint                                                                  | Purpose                                                         |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `GET /.well-known/oauth-protected-resource/mcp/crm` (or `/mcp/workspace`) | Resource metadata                                               |
+| `GET /.well-known/oauth-authorization-server`                             | Authorization server metadata                                   |
+| `POST /oauth/register`                                                    | Dynamic client registration                                     |
+| `GET /oauth/authorize`                                                    | Sign-in and consent: choose the space and scopes                |
+| `POST /oauth/token`                                                       | `authorization_code` (PKCE `S256` required) and `refresh_token` |
 
 Each approval creates a credential in Integrations → API & agent access, named
 after the client. Access tokens last an hour; refresh tokens rotate on use and
@@ -79,19 +79,19 @@ last 30 days. Revoking the credential disconnects the client.
 
 Read tools need `crm:read`; the rest need `crm:write`.
 
-| Tool                | What it does                                                                                             |
-| ------------------- | -------------------------------------------------------------------------------------------------------- |
-| `crm_overview`      | Pipelines with stages, per-stage deal counts/values, totals, deals, recent contacts, tags. Call first.    |
-| `crm_find_contacts` | Search contacts by name, company, email, or phone; returns contacts with their deals.                     |
-| `crm_upsert_contact`| Create a contact, or update one by `contact_id`. `tags` replaces the tag list.                            |
-| `crm_create_deal`   | Open a deal; pipeline/stage matched by name, contact linked by id or name lookup.                         |
-| `crm_update_deal`   | Change title, value, linked contact, or mark won/lost via `status`.                                       |
-| `crm_move_deal`     | Move a deal to another stage by name (case-insensitive).                                                  |
-| `crm_list_modules`  | List custom modules (user-defined sheets) with fields, types, select options, record counts.              |
-| `crm_create_module` | Create a module with typed fields: text, number, date, checkbox, select, email, phone, url.               |
-| `crm_list_records`  | Page through a module's records; module by name or id, values keyed by field label, cursor to continue.   |
-| `crm_upsert_record` | Create a record, or update one by `record_id`. `values` maps field labels (or ids) to values; null clears.|
-| `crm_delete_record` | Delete a record.                                                                                          |
+| Tool                 | What it does                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `crm_overview`       | Pipelines with stages, per-stage deal counts/values, totals, deals, recent contacts, tags. Call first.     |
+| `crm_find_contacts`  | Search contacts by name, company, email, or phone; returns contacts with their deals.                      |
+| `crm_upsert_contact` | Create a contact, or update one by `contact_id`. `tags` replaces the tag list.                             |
+| `crm_create_deal`    | Open a deal; pipeline/stage matched by name, contact linked by id or name lookup.                          |
+| `crm_update_deal`    | Change title, value, linked contact, or mark won/lost via `status`.                                        |
+| `crm_move_deal`      | Move a deal to another stage by name (case-insensitive).                                                   |
+| `crm_list_modules`   | List custom modules (user-defined sheets) with fields, types, select options, record counts.               |
+| `crm_create_module`  | Create a module with typed fields: text, number, date, checkbox, select, email, phone, url.                |
+| `crm_list_records`   | Page through a module's records; module by name or id, values keyed by field label, cursor to continue.    |
+| `crm_upsert_record`  | Create a record, or update one by `record_id`. `values` maps field labels (or ids) to values; null clears. |
+| `crm_delete_record`  | Delete a record.                                                                                           |
 
 Values are validated per field type on the server: numbers accept `"1,450"`,
 checkboxes accept `true`/`"true"`, select values match options
@@ -103,23 +103,23 @@ field — the same rules the Manor UI enforces, because it is the same code path
 Base: `https://your-manor-host/v1`. The machine-readable spec is at
 `GET /v1/openapi.json` (no auth required).
 
-| Method   | Path                          | Scope             | Notes                                            |
-| -------- | ----------------------------- | ----------------- | ------------------------------------------------ |
-| GET      | `/crm/contacts`               | `crm:read`        | `updated_after` filter, cursor pagination        |
-| POST     | `/crm/contacts/upsert`        | `crm:write`       | Idempotency-Key supported                        |
-| GET      | `/crm/contacts/:id`           | `crm:read`        |                                                  |
-| GET      | `/crm/pipelines`              | `crm:read`        |                                                  |
-| GET      | `/crm/deals`                  | `crm:read`        |                                                  |
-| POST     | `/crm/deals`                  | `crm:write`       | Idempotency-Key supported                        |
-| PATCH    | `/crm/deals/:id`              | `crm:write`       |                                                  |
-| POST     | `/crm/deals/:id/move`         | `crm:write`       |                                                  |
-| GET      | `/crm/modules`                | `crm:read`        |                                                  |
-| POST     | `/crm/modules`                | `crm:write`       | Name + typed fields; Idempotency-Key supported   |
-| GET      | `/crm/modules/:id/records`    | `crm:read`        | Cursor pagination (`cursor`, `limit` ≤ 200)      |
-| POST     | `/crm/modules/:id/records`    | `crm:write`       | Idempotency-Key supported                        |
-| PATCH    | `/crm/records/:id`            | `crm:write`       | Partial update; null clears a field              |
-| DELETE   | `/crm/records/:id`            | `crm:write`       |                                                  |
-| GET/POST | `/webhooks`, DELETE `/webhooks/:id` | `webhooks:manage` | See below                                  |
+| Method   | Path                                | Scope             | Notes                                          |
+| -------- | ----------------------------------- | ----------------- | ---------------------------------------------- |
+| GET      | `/crm/contacts`                     | `crm:read`        | `updated_after` filter, cursor pagination      |
+| POST     | `/crm/contacts/upsert`              | `crm:write`       | Idempotency-Key supported                      |
+| GET      | `/crm/contacts/:id`                 | `crm:read`        |                                                |
+| GET      | `/crm/pipelines`                    | `crm:read`        |                                                |
+| GET      | `/crm/deals`                        | `crm:read`        |                                                |
+| POST     | `/crm/deals`                        | `crm:write`       | Idempotency-Key supported                      |
+| PATCH    | `/crm/deals/:id`                    | `crm:write`       |                                                |
+| POST     | `/crm/deals/:id/move`               | `crm:write`       |                                                |
+| GET      | `/crm/modules`                      | `crm:read`        |                                                |
+| POST     | `/crm/modules`                      | `crm:write`       | Name + typed fields; Idempotency-Key supported |
+| GET      | `/crm/modules/:id/records`          | `crm:read`        | Cursor pagination (`cursor`, `limit` ≤ 200)    |
+| POST     | `/crm/modules/:id/records`          | `crm:write`       | Idempotency-Key supported                      |
+| PATCH    | `/crm/records/:id`                  | `crm:write`       | Partial update; null clears a field            |
+| DELETE   | `/crm/records/:id`                  | `crm:write`       |                                                |
+| GET/POST | `/webhooks`, DELETE `/webhooks/:id` | `webhooks:manage` | See below                                      |
 
 Conventions:
 

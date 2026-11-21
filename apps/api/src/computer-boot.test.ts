@@ -7,9 +7,9 @@ import type { Actor } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import { Prisma } from "@rakazo/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { handleRpcError } from "./app.js";
 import type { RouterDeps } from "./router.js";
 import { createRouter } from "./router.js";
+import { handleRpcError } from "./rpc-errors.js";
 
 const lifecycle = vi.hoisted(() => ({
   realAcquire: undefined as typeof Adapters.acquireComputerExecutionLease | undefined,
@@ -98,6 +98,7 @@ describe("computer boot", () => {
       run: { findUnique: vi.fn().mockResolvedValue({ status: "running" }) },
     };
     const prisma = {
+      spaceMember: { count: vi.fn(async () => 1) },
       ...tx,
       bot: { findFirst: vi.fn().mockResolvedValue(stoppedBot) },
       $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
@@ -132,6 +133,7 @@ describe("computer boot", () => {
       .mockResolvedValueOnce(null);
     lifecycle.provisionComputer.mockRejectedValue(new Error("stop after the lease"));
     const prisma = {
+      spaceMember: { count: vi.fn(async () => 1) },
       bot: { findFirst: vi.fn().mockResolvedValue(stoppedBot) },
       computerExecutionLease: {
         findUnique: vi.fn().mockResolvedValue({
@@ -156,6 +158,7 @@ describe("computer boot", () => {
   it("still refuses a boot while the run is going", async () => {
     lifecycle.acquireComputerExecutionLease.mockRejectedValue(new ComputerBusyError());
     const prisma = {
+      spaceMember: { count: vi.fn(async () => 1) },
       bot: { findFirst: vi.fn().mockResolvedValue(stoppedBot) },
       computerExecutionLease: {
         findUnique: vi.fn().mockResolvedValue({
@@ -181,6 +184,7 @@ describe("computer boot", () => {
       }),
     );
     const prisma = {
+      spaceMember: { count: vi.fn(async () => 1) },
       bot: {
         findFirst: vi.fn().mockResolvedValue({
           ...stoppedBot,
@@ -199,6 +203,7 @@ describe("computer boot", () => {
   it("tells the user to recover a computer that stays damaged after its automatic recovery", async () => {
     lifecycle.provisionComputer.mockRejectedValue(new SandboxDamagedError());
     const prisma = {
+      spaceMember: { count: vi.fn(async () => 1) },
       bot: { findFirst: vi.fn().mockResolvedValue(stoppedBot) },
     } as unknown as PrismaClient;
 
@@ -222,6 +227,7 @@ describe("computer stop", () => {
       controlLeaseId: null,
     };
     const prisma = {
+      spaceMember: { count: vi.fn(async () => 1) },
       bot: { findFirst: vi.fn().mockResolvedValue({ ...stoppedBot, computer }) },
       computer: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),

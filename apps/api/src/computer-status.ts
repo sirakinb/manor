@@ -1,11 +1,13 @@
 import {
+  computerScreenSize,
   computerSupportsTerminal,
   computerSupportsUpdate,
   DISK_WARNING_PERCENT,
   diskUsedPercent,
+  holdsUserControl,
 } from "@rakazo/adapters";
 import type { ComputerStatus } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES, computerScreenSize } from "@rakazo/core";
+import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 
 /** Mirrors computer.takeover: an execution lease blocks user control unless a takeover is pending. */
@@ -68,9 +70,16 @@ export function toComputerStatus(
     diskUsedBytes?: bigint | null;
     diskFreeBytes?: bigint | null;
     diskDismissedPercent?: number | null;
+    controlUserId?: string | null;
+    userId?: string | null;
   } | null,
   busyBotName: string | null = null,
+  shared = false,
+  viewerId?: string,
 ): ComputerStatus {
+  const controlledByOther = Boolean(
+    viewerId && computer?.controlHolder === "user" && !holdsUserControl(computer, viewerId),
+  );
   const kind = (computer?.kind ?? "fake") as ComputerStatus["kind"];
   const mode =
     computer?.scope === "dedicated" ? "dedicated" : computer?.scope === "local" ? "local" : "team";
@@ -98,6 +107,8 @@ export function toComputerStatus(
     diskPercent > (computer?.diskDismissedPercent ?? 0);
   return {
     botId,
+    ...(shared ? { shared } : {}),
+    ...(controlledByOther ? { controlledByOther } : {}),
     mode,
     kind,
     state,

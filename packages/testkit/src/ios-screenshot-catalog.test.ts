@@ -20,6 +20,8 @@ const UNCOVERED: Record<string, string> = {
   maintenance: "Manor screen: redirects to the inbox",
   "run-logs": "Manor screen: needs a finished run with diagnostics",
   "new-organization": "unreachable in Manor: each portal has one organization, so none is created",
+  "space-members":
+    "off in Manor: space sharing is off, so the route returns to the inbox; Team members in Settings shows a team",
 };
 
 /** Route names under app/, without route groups, layouts, or Expo Router hooks. */
