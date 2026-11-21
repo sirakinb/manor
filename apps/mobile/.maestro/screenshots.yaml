@@ -89,13 +89,17 @@ tags:
 
 - openLink: "manor:///account"
 - extendedWaitUntil:
-    visible: "Change password"
+    visible: "General"
     timeout: 10000
 - takeScreenshot: "10-account"
+- openLink: "manor:///profile"
+- extendedWaitUntil:
+    visible: "Change password"
+    timeout: 10000
 - tapOn: "Change password"
 - assertVisible: "Current password"
 - takeScreenshot: "10b-change-password"
-- back
+- openLink: "manor:///general"
 - scrollUntilVisible:
     element: "Notification settings"
     direction: DOWN
@@ -243,7 +247,7 @@ tags:
 - takeScreenshot: "21-routine"
 
 # Verify saved appearance changes on already-mounted screens and modal routes.
-- openLink: "manor:///account"
+- openLink: "manor:///general"
 - extendedWaitUntil:
     visible: "Dark"
     timeout: 10000
@@ -282,7 +286,7 @@ tags:
 - assertVisible: "Delete group"
 - takeScreenshot: "28-group-settings-dark"
 
-- openLink: "manor:///account"
+- openLink: "manor:///general"
 - tapOn: "Light"
 - openLink: "manor:///thread?botId=${RAKAZO_SCREENSHOT_BOT_ID}&name=Researcher"
 - assertVisible: "The fixture workspace is ready."

@@ -24,7 +24,10 @@ rm -rf "$updater_home"
 gh secret set GH_DEPENDENCY_UPDATES_PAT
 ```
 
-Use that login only for this serialized workflow. Codex refreshes the cache;
+The screenshot workflow also uses this login. Both workflows share the
+`codex-subscription` concurrency group so refreshes cannot race. Claude runs do not
+acquire that shared lock. Both lock users set `queue: max` to retain pending
+runs instead of replacing the previous pending entry. Codex refreshes the cache;
 the workflow writes it back to the secret even after an update failure. If
 authentication is revoked or refresh fails, repeat the login and replace the
 secret. No OpenAI API key is used, so requests use the Codex subscription.
@@ -40,22 +43,75 @@ Automation that needs a token Manor has not set up stays off behind a repository
 skips instead of failing or acting with the default token. Set the variable only after its
 secrets exist.
 
-| Workflow                                                                   | Runs on                                               | Needs                                                                         | Turned on by                             |
-| -------------------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------- |
-| `ci.yml`                                                                   | pull requests, pushes to `main`                       | `EXPO_TOKEN` for mobile updates; production deploy secrets                    | always on                                |
-| `playwright.yml`                                                           | called by `ci.yml` and the nightly run                | S3 settings only to publish reports                                           | always on                                |
-| `nightly-verification.yml`                                                 | nightly, manual                                       | S3 settings                                                                   | `S3_BUCKET` variable                     |
-| `publish-playwright-report.yml`                                            | after `ci`                                            | S3 settings                                                                   | `S3_BUCKET` variable                     |
-| `publish-server-image.yml`                                                 | called by `ci.yml` on `main`                          | workflow token                                                                | always on                                |
-| `vps-release.yml`                                                          | pull requests touching the release controller, manual | none                                                                          | always on                                |
-| `release-desktop.yml`                                                      | release tags                                          | signing secrets, `DESKTOP_RELEASE_TOKEN`                                      | fails early without signing settings     |
-| `release-mobile.yml`, `release-android-apk.yml`, `release-google-play.yml` | manual                                                | Expo and store credentials                                                    | manual only                              |
-| `computer-replay.yml`, `desktop-macos-screenshot.yml`                      | pull requests touching their paths                    | none                                                                          | always on                                |
-| `mobile-android-screenshots.yml`, `topology-verification.yml`              | manual                                                | S3 settings for screenshots                                                   | manual only                              |
-| `review-bot.yml`                                                           | comments from Qodo or CodeRabbit on pull requests     | workflow token (labels only)                                                  | acts only when those review apps comment |
-| `issue-triage.yml`                                                         | new issues                                            | `CLAUDE_CODE_OAUTH_TOKEN`                                                     | `ISSUE_TRIAGE_ENABLED=true`              |
-| `translation-catalogs.yml`                                                 | pushes to `main` touching web sources                 | `GH_DEPENDENCY_UPDATES_PAT`                                                   | `CATALOG_SYNC_ENABLED=true`              |
-| `weekly-dependencies.yml`                                                  | Tuesdays, manual                                      | `CODEX_SUBSCRIPTION_AUTH`, `GH_DEPENDENCY_UPDATES_PAT`                        | `WEEKLY_DEPENDENCIES_ENABLED=true`       |
-| `model-catalog-bump.yml`                                                   | Mondays, manual                                       | `GH_DEPENDENCY_UPDATES_PAT`                                                   | `MODEL_CATALOG_BUMP_ENABLED=true`        |
-| `preview-build.yml`                                                        | pull requests touching app code                       | none                                                                          | `FLY_PREVIEW_ORG` variable               |
-| `preview-deploy.yml`, `preview-cleanup.yml`                                | after a preview build; closed pull requests, daily    | `FLY_PREVIEW_TOKEN`, Fly variables, `CLAUDE_CODE_OAUTH_TOKEN` for screenshots | skip without `FLY_PREVIEW_TOKEN`         |
+| Workflow                                                                   | Runs on                                                     | Needs                                                                         | Turned on by                               |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------ |
+| `ci.yml`                                                                   | pull requests, pushes to `main`                             | `EXPO_TOKEN` for mobile updates; production deploy secrets                    | always on                                  |
+| `playwright.yml`                                                           | called by `ci.yml` and the nightly run                      | S3 settings only to publish reports                                           | always on                                  |
+| `nightly-verification.yml`                                                 | nightly, manual                                             | S3 settings                                                                   | `S3_BUCKET` variable                       |
+| `publish-playwright-report.yml`                                            | after `ci`                                                  | S3 settings                                                                   | `S3_BUCKET` variable                       |
+| `publish-server-image.yml`                                                 | called by `ci.yml` on `main`                                | workflow token                                                                | always on                                  |
+| `vps-release.yml`                                                          | pull requests touching the release controller, manual       | none                                                                          | always on                                  |
+| `release-desktop.yml`                                                      | release tags                                                | signing secrets, `DESKTOP_RELEASE_TOKEN`                                      | fails early without signing settings       |
+| `release-mobile.yml`, `release-android-apk.yml`, `release-google-play.yml` | manual                                                      | Expo and store credentials                                                    | manual only                                |
+| `computer-replay.yml`, `desktop-macos-screenshot.yml`                      | pull requests touching their paths                          | none                                                                          | always on                                  |
+| `mobile-android-screenshots.yml`, `topology-verification.yml`              | manual                                                      | S3 settings for screenshots                                                   | manual only                                |
+| `review-bot.yml`                                                           | comments from Qodo or CodeRabbit on pull requests           | workflow token (labels only)                                                  | acts only when those review apps comment   |
+| `issue-triage.yml`                                                         | new issues                                                  | `CLAUDE_CODE_OAUTH_TOKEN`                                                     | `ISSUE_TRIAGE_ENABLED=true`                |
+| `translation-catalogs.yml`                                                 | pushes to `main` touching web sources                       | `GH_DEPENDENCY_UPDATES_PAT`                                                   | `CATALOG_SYNC_ENABLED=true`                |
+| `weekly-dependencies.yml`                                                  | Tuesdays, manual                                            | `CODEX_SUBSCRIPTION_AUTH`, `GH_DEPENDENCY_UPDATES_PAT`                        | `WEEKLY_DEPENDENCIES_ENABLED=true`         |
+| `model-catalog-bump.yml`                                                   | Mondays, manual                                             | `GH_DEPENDENCY_UPDATES_PAT`                                                   | `MODEL_CATALOG_BUMP_ENABLED=true`          |
+| `preview-build.yml`                                                        | pull requests touching app code                             | none                                                                          | `FLY_PREVIEW_ORG` variable                 |
+| `preview-deploy.yml`, `preview-cleanup.yml`                                | after a preview build; closed pull requests, daily          | `FLY_PREVIEW_TOKEN`, Fly variables, `CLAUDE_CODE_OAUTH_TOKEN` for screenshots | skip without `FLY_PREVIEW_TOKEN`           |
+| `pr-screenshots.yml`                                                       | called by a preview deploy and Playwright report publishing | `CODEX_SUBSCRIPTION_AUTH` or `CLAUDE_CODE_OAUTH_TOKEN`                        | needs a preview deployment and `S3_BUCKET` |
+
+## PR screenshot agent
+
+`pr-screenshots.yml` defaults to Codex with the subscription login above. Set the
+repository Actions variable `PR_SCREENSHOT_AGENT` to `claude` to switch back;
+`codex` selects Codex. Claude uses `CLAUDE_CODE_OAUTH_TOKEN`. The optional
+`PR_SCREENSHOT_MODEL` variable overrides the selected agent's model; leave it
+unset to use Codex's default or the workflow's Claude default.
+
+Both agents use the same prompt, browser allowlist, output contract and publishing
+validation. Codex has shell, local image reading, image generation, web search and
+subagents disabled, a read-only filesystem, and an explicit deny on its login
+folder. Codex runs as an unprivileged user with a clean environment, separate
+from both the runner and browser. Its only sudo permission launches a root-owned,
+argument-free wrapper for the isolated browser; it cannot run arbitrary commands
+as another user. Browser tools also run with a clean environment. Neither
+agent receives the GitHub secret-write token. Failed Codex runs print only a
+bounded, credential-filtered set of error lines; private transcripts are deleted.
+
+Runs skip the LLM for non-web changes, obsolete commits, and commits with a
+trusted completed-assessment artifact. Otherwise the agent inspects existing PR images and
+the current commit's published E2E gallery before capturing missing views. Images
+alone do not prove coverage; that decision stays with the model.
+
+Preview deployment and E2E publication each call the shared screenshot workflow.
+The first caller exits if the other source is still running; the second starts
+the agent. No runner polls or sleeps. Readiness requires the trusted deployment
+comment for that exact PR and full commit SHA, plus a trusted E2E completion
+artifact retained for 90 days. A different PR's deployment cannot authorize a
+capture. The result-reading job must succeed before E2E completion is recorded;
+cancelled or unapproved CI cannot authorize an assessment. Failed or skipped E2E
+publication still starts the agent, which captures from the preview; a failed preview deployment never starts it.
+Calls for the same PR and commit are serialized through publishing and recheck a trusted
+completion artifact. Successful assessments are cached even when E2E images cover
+the change and no new capture is needed, so simultaneous events cannot duplicate
+the model call. PR description markers never authorize skipping an assessment.
+Every requested image must pass publication validation before completion can be
+recorded. Retries retain current-commit agent images and append missing views,
+so publishing does not remove images used to establish coverage.
+
+Publication skips description updates when the resulting content is unchanged.
+
+Each caller uses the same checked discovery helper and fans out across the
+current pull requests found through the source owner and branch, including forks. The queued agent rechecks the PR head before
+preparing a browser or restoring a login. Retention deduplicates image URLs and
+rejects merged sets beyond the publication limit. The gallery, publisher and
+Python reader share the commit-marker template in the testkit.
+
+Publication serializes across commits of each PR and rechecks the head after
+uploads. Every matching PR receives the immutable E2E run gallery link; the
+primary PR retains the existing stable gallery. No-op updates preserve author
+line endings, including descriptions saved in the GitHub web editor.

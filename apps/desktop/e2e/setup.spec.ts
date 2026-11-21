@@ -152,9 +152,9 @@ test("setup offers Rakazo Cloud first, with local and existing instances", async
   const setup = await app.firstWindow();
 
   await expect(setup.getByRole("heading", { name: "Welcome to Manor" })).toBeVisible();
-  await expect(setup.getByText("Choose which server this app should use.")).toBeVisible();
-  await expect(setup.getByText("Manor Cloud")).toBeVisible();
-  await expect(setup.getByText("This computer")).toBeVisible();
+  await expect(setup.getByText("Choose where Manor runs.")).toBeVisible();
+  await expect(setup.getByText("Manor Cloud", { exact: true })).toBeVisible();
+  await expect(setup.getByText("This computer", { exact: true })).toBeVisible();
   await expect(setup.locator(".card")).toHaveCount(0);
 
   // The hosted server is the default; "This computer" has the app run the stack itself.

@@ -476,7 +476,7 @@ function SpaceShell() {
     return true;
   }
   const openSpaceChatRef = useRef<(spaceId: string, path: string) => void>(() => {});
-  useSpaceBootstrap({
+  const rosterSignals = useSpaceBootstrap({
     rpc,
     roster,
     thread,
@@ -505,6 +505,7 @@ function SpaceShell() {
       },
       meId: userId,
       groupsRef,
+      roster: rosterSignals,
     },
   );
   const { speakingMessageId, speakMessage, callHoldsSpeaker } = useReadAloud({
@@ -1512,6 +1513,7 @@ function SpaceShell() {
                   callHoldsSpeaker={callHoldsSpeaker}
                   onSpeak={speakMessage}
                   onOpenComputer={computerControls.onOpenComputer}
+                  onReleaseComputer={computerControls.onReleaseComputer}
                   onOpenImportSetup={openImportSetup}
                   rpc={rpc}
                 />

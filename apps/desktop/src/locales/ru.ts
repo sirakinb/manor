@@ -80,8 +80,7 @@ export const RU_MESSAGES: Record<string, string> = {
   "Set up Manor": "Настройка Manor",
   "Quit Manor": "Завершить Manor",
   "Welcome to Manor": "Добро пожаловать в Manor",
-  "Choose which server this app should use.":
-    "Выберите, какой сервер будет использовать это приложение.",
+  "Choose where Manor runs.": "Выберите, где будет работать Manor.",
   Instance: "Экземпляр",
   "This computer": "Этот компьютер",
   "Technical details": "Технические подробности",
@@ -91,7 +90,6 @@ export const RU_MESSAGES: Record<string, string> = {
   "Name: value": "Имя: значение",
   "Check connection": "Проверить подключение",
   Continue: "Продолжить",
-  "Check again": "Проверить снова",
   Retry: "Повторить",
   "Getting ready…": "Подготовка…",
   "Downloading Manor…": "Загрузка Manor…",
@@ -150,15 +148,12 @@ export const RU_MESSAGES: Record<string, string> = {
     "Подключение установлено, но настройку не удалось сохранить для следующего запуска. Нажмите «Продолжить» ещё раз.",
   "The app-managed Manor services are not ready. Retry setup.":
     "Службы Manor, которыми управляет приложение, не готовы. Повторите настройку.",
-  "Docker is not installed on this computer.": "Docker не установлен на этом компьютере.",
   "Docker is installed, but Docker Compose is missing. Install Docker Desktop or the docker-compose-plugin.":
     "Docker установлен, но Docker Compose отсутствует. Установите Docker Desktop или docker-compose-plugin.",
   "Could not check Docker Compose. Check the output below, then retry.":
     "Не удалось проверить Docker Compose. Посмотрите вывод ниже и повторите попытку.",
-  "Docker is installed but not running. Start Docker, then check again.":
-    "Docker установлен, но не запущен. Запустите Docker и проверьте снова.",
-  "This user cannot access Docker. Add it to the docker group (sudo usermod -aG docker $USER), sign out and back in, then check again.":
-    "У этого пользователя нет доступа к Docker. Добавьте его в группу docker (sudo usermod -aG docker $USER), выйдите из системы, войдите снова и проверьте ещё раз.",
+  "This user cannot access Docker. Add it to the docker group (sudo usermod -aG docker $USER), then sign out and back in.":
+    "У этого пользователя нет доступа к Docker. Добавьте его в группу docker (sudo usermod -aG docker $USER), затем выйдите из системы и войдите снова.",
   "The start was interrupted. Retry to continue.":
     "Запуск прерван. Повторите попытку, чтобы продолжить.",
   "Images for {tag} are not published yet. Try again in a few minutes.":
@@ -203,4 +198,35 @@ export const RU_MESSAGES: Record<string, string> = {
   "Chat Details": "Сведения о чате",
   Help: "Справка",
   "Keyboard Shortcuts": "Сочетания клавиш",
+  "Downloading Manor failed. Check the internet connection, then retry.":
+    "Не удалось загрузить Manor. Проверьте подключение к интернету и повторите попытку.",
+  "Could not move your data from Docker. Check the output below, then retry.":
+    "Не удалось перенести данные из Docker. Посмотрите вывод ниже и повторите попытку.",
+  "The computer runtime already running is too old. Update or quit it, then retry.":
+    "Уже запущенная среда выполнения компьютеров слишком старая. Обновите или закройте её, затем повторите попытку.",
+  "Your Manor data is in a different computer runtime. Quit the one running, then retry.":
+    "Ваши данные Manor находятся в другой среде выполнения компьютеров. Закройте запущенную среду, затем повторите попытку.",
+  "Run Manor without Docker?": "Запускать Manor без Docker?",
+  "Your bots and data move over. Docker is stopped, not removed.":
+    "Ваши боты и данные будут перенесены. Docker будет остановлен, но не удалён.",
+  Move: "Перенести",
+  "Keep Docker": "Оставить Docker",
+  "Nothing to install.": "Ничего не нужно устанавливать.",
+  "Your data stays on this computer.": "Ваши данные остаются на этом компьютере.",
+  "Manor needs Docker Desktop to run on this computer.":
+    "Чтобы Manor работал на этом компьютере, нужен Docker Desktop.",
+  "Manor needs Docker to run on this computer.":
+    "Чтобы Manor работал на этом компьютере, нужен Docker.",
+  "Docker Desktop is a free app that runs Manor in the background. Install it and open it once.":
+    "Docker Desktop — бесплатное приложение, которое запускает Manor в фоне. Установите и один раз откройте его.",
+  "Install Docker Engine and start it.": "Установите Docker Engine и запустите его.",
+  "Download Docker Desktop": "Скачать Docker Desktop",
+  "Install Docker": "Установить Docker",
+  "Docker is installed but not running. Open it to continue.":
+    "Docker установлен, но не запущен. Откройте его, чтобы продолжить.",
+  "Starting {app}…": "Запуск {app}…",
+  "Waiting for Docker Desktop…": "Ожидание Docker Desktop…",
+  "Waiting for Docker…": "Ожидание Docker…",
+  "Docker is installed but not running. Start the Docker service to continue.":
+    "Docker установлен, но не запущен. Запустите службу Docker, чтобы продолжить.",
 };

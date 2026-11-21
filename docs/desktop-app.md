@@ -14,8 +14,10 @@ The first time it opens, the app asks which server to use:
 - **Manor Cloud**: connect to a Manor server. The **Server address** is prefilled with Manor's
   hosted address; change it to use a server you or your team already run, then choose
   **Check connection**.
-- **This computer**: run your own Manor locally in Docker. If Docker isn't installed, the app links
-  to Docker Desktop, OrbStack and Docker Engine. Everything, including your bots' computers, then
+- **This computer**: run your own Manor locally in Docker. If Docker isn't installed, the app offers
+  the Docker Desktop download (Docker Engine on Linux) and carries on by itself once Docker is
+  installed and open; if Docker is installed but stopped, the app opens it. Everything, including
+  your bots' computers, then
   runs on your machine. It is yours alone: once you create your account, it accepts no other.
 
 To switch later, use **Change Server…** in the app menu (Cmd+Shift+K, or Ctrl+Shift+K on

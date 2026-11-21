@@ -12,6 +12,7 @@ import {
   isLocalComputerMutatingTool,
   newSiteOutcome,
   outboundSiteGate,
+  outsideRunToolRequiresApproval,
   planActionGate,
   redactSecrets,
   repeatsDeniedAction,
@@ -19,7 +20,6 @@ import {
   SITE_SENDING_TOOLS,
   toolRequiresApproval,
   toolRequiresExplicitApproval,
-  unattendedTriggerToolRequiresApproval,
 } from "@rakazo/core";
 import { normalizedHttpUrl, urlSite } from "@rakazo/core/egress";
 import { approvalEffectKey, toolEffectIdempotencyKey } from "@rakazo/core/node/approval-effect-key";
@@ -71,9 +71,6 @@ import { argumentGiven } from "./update-bot-patch.js";
 import type { VerificationEngineId } from "./verification-engines.js";
 
 export type AppliedEffect = Awaited<ReturnType<typeof recordEffect>>;
-
-const WEBHOOK_RUN_ASK_REASON =
-  "Asked because a webhook started this run. Always allow doesn't skip this.";
 
 type ApprovalCard = {
   reviewReason: string | undefined;
@@ -166,17 +163,6 @@ export async function gateToolCall(
     toolName === approvalName || toolName === name || declaredReadOnly === false
       ? declaredReadOnly
       : ctx.tools.connector.get(toolName)?.readOnly;
-  const requiresUnattendedApproval =
-    !catalogControlRead &&
-    ((unidentifiedAction && run.trigger === "webhook") ||
-      approvalToolNames.some((toolName) =>
-        unattendedTriggerToolRequiresApproval(
-          run.trigger,
-          toolName,
-          viaConnector,
-          declaredReadOnlyFor(toolName),
-        ),
-      ));
   // A background helper only reads, whatever the approval mode or rules: a connector call
   // runs only when every action it names is declared read-only.
   if (
@@ -195,10 +181,14 @@ export async function gateToolCall(
   }
   const connectorProviders = ctx.tools.connectedPlugins.map((plugin) => plugin.provider);
   const connectorKind = connectorKindFromToolName(approvalName, connectorProviders);
+  const watch = name === "schedule_create" ? watchFromTool(args.watch) : undefined;
+  const httpWatch = watch?.kind === "http";
   // paid_request with only a purchase id sends the request its approval already named.
   const sendsToSite =
-    SITE_SENDING_TOOLS.has(name) && (name === "web_fetch" || args.url !== undefined);
-  const fetchUrl = sendsToSite ? normalizedHttpUrl(String(args.url ?? "")) : undefined;
+    httpWatch || (SITE_SENDING_TOOLS.has(name) && (name === "web_fetch" || args.url !== undefined));
+  const fetchUrl = sendsToSite
+    ? normalizedHttpUrl(String(httpWatch ? watch.url : (args.url ?? "")))
+    : undefined;
   const fetchSite = fetchUrl ? urlSite(fetchUrl) : undefined;
   if (sendsToSite && !fetchSite)
     return { result: refusal("fetch_url_invalid", "url must be an http(s) URL") };
@@ -211,7 +201,7 @@ export async function gateToolCall(
     };
   // The card, the stored effect and the request all use the URL the gate checked.
   if (fetchUrl) {
-    args = { ...args, url: fetchUrl };
+    args = httpWatch ? { ...args, watch: { ...watch, url: fetchUrl } } : { ...args, url: fetchUrl };
     effectRequest = name === "paid_request" ? paidRequestEffect(args) : args;
   }
   const connectorTrusts = connectorTrustKeys(
@@ -231,7 +221,6 @@ export async function gateToolCall(
           rules: await ctx.trust.loadApprovalRules(),
         })
       : "allow";
-  const watch = name === "schedule_create" ? watchFromTool(args.watch) : undefined;
   // A tool watch repeats its read unattended, so it passes the read check that call would now.
   const watchedTool = watch?.kind === "tool" ? watch.tool : undefined;
   const readTrusts = watchedTool
@@ -257,9 +246,9 @@ export async function gateToolCall(
         .loadTrustedConnectors()
         .then((trusted) => readTrusts.every((trust) => trusted.has(trust))),
     });
-  // This schedules unattended shell execution; require a person to approve
-  // the command once, rather than letting an allow rule or reviewer schedule it.
-  const commandWatch = watch?.kind === "command";
+  // Unattended shell execution or repeated HTTP requests need a person's approval once;
+  // neither an allow rule nor an automatic reviewer may create them.
+  const unattendedWatch = watch?.kind === "command" || httpWatch;
   // A routine's prompt counts as the owner's words when it runs, so the sites it names are
   // ones its runs may fetch. Once outside content entered this run, a routine naming a
   // site this run was not given needs a person: a reviewer would judge it on this run's
@@ -276,29 +265,29 @@ export async function gateToolCall(
   const requiresApprovalByDefault =
     request.heldForApproval ||
     paying ||
-    commandWatch ||
-    requiresUnattendedApproval ||
+    unattendedWatch ||
     siteGate === "new" ||
     unidentifiedAction ||
     (!catalogControlRead &&
-      approvalToolNames.some((toolName) =>
-        toolRequiresApproval(toolName, viaConnector, declaredReadOnlyFor(toolName), {
-          computerKind: ctx.computer.kind,
-        }),
+      approvalToolNames.some(
+        (toolName) =>
+          toolRequiresApproval(toolName, viaConnector, declaredReadOnlyFor(toolName), {
+            computerKind: ctx.computer.kind,
+          }) ||
+          (!viaConnector && outsideRunToolRequiresApproval(run.trigger, toolName)),
       ));
   // A gated read still fails closed when its review errors, and keeps its approval key.
   const gated = requiresApprovalByDefault || connectorReadGated;
   // These ask in every run, whatever started it.
   const mandatoryInAnyRun =
     paying ||
-    commandWatch ||
+    unattendedWatch ||
     scheduleNamesNewSite ||
     toolRequiresExplicitApproval(name, { computerKind: ctx.computer.kind });
-  const requiresMandatoryApproval = mandatoryInAnyRun || requiresUnattendedApproval;
   // No allow rule skips these, and without them the tool needs no approval, so "Always allow"
   // on their card would save a rule that never takes effect.
   const asksEveryTime =
-    (commandWatch || scheduleNamesNewSite) && !toolRequiresApproval(name, viaConnector);
+    (unattendedWatch || scheduleNamesNewSite) && !toolRequiresApproval(name, viaConnector);
   const mode = await ctx.trust.loadApprovalMode();
   // Manor: upstream's holdSharedPageSave holds a save to a page shared by link for approval,
   // except in Never ask; there it is refused when the run could have been steered.
@@ -330,7 +319,7 @@ export async function gateToolCall(
     unidentifiedAction && resolvedRules.decision === "allow"
       ? { ...resolvedRules, decision: "ask" as const }
       : resolvedRules;
-  const reviewable = mode === "auto" && !requiresMandatoryApproval;
+  const reviewable = mode === "auto" && !mandatoryInAnyRun;
   // Manor: action reviews run on the verification engines (see run-verification.ts).
   const verification = reviewable ? await ctx.verification.loadSetup() : undefined;
   const engines: ToolReview["engines"] = verification?.reviewsActions ? verification.engines : {};
@@ -344,7 +333,7 @@ export async function gateToolCall(
     : planActionGate({
         resolved: approvalResolved,
         mode,
-        mandatory: requiresMandatoryApproval,
+        mandatory: mandatoryInAnyRun,
         steerable,
         consequential: requiresApprovalByDefault,
         reviewOnly: connectorReadGated,
@@ -570,23 +559,12 @@ export async function gateToolCall(
     bypassApproval: gateDecision === "allow" && gated,
     spend: spends,
   });
-  // Only when the webhook overrode the owner's Always allow; cards every run shows say nothing.
-  const webhookForcedAsk =
-    requiresUnattendedApproval &&
-    !mandatoryInAnyRun &&
-    !request.heldForApproval &&
-    siteGate !== "new" &&
-    !unidentifiedAction &&
-    approvalResolved.source === "always_allow";
   const card = {
-    reviewReason: webhookForcedAsk ? WEBHOOK_RUN_ASK_REASON : reviewReason,
+    reviewReason,
     summary: request.fleetSummary,
     batch: connectorTool?.batch,
     // Manor: a mandatory approval on This Mac can only be allowed once.
-    onceOnly:
-      asksEveryTime ||
-      webhookForcedAsk ||
-      (requiresMandatoryApproval && ctx.computer.kind === "local"),
+    onceOnly: asksEveryTime || (mandatoryInAnyRun && ctx.computer.kind === "local"),
   };
 
   if (applied?.duplicate) {
@@ -857,7 +835,12 @@ async function reviewSubject(ctx: RunContext, review: ToolReview) {
         toolName: name,
         connectorKind,
         args: redactToolArgsForReview(args, ctx.secrets),
-        userTask: redactSecrets(ctx.task.prompt, ctx.secrets),
+        // A webhook run's task prompt carries the delivery, which someone else wrote, so the
+        // checker gets only the owner's routine (reviewToolCall asks a person when there is none).
+        userTask: redactSecrets(
+          ctx.run.trigger === "webhook" ? await ctx.trust.loadOwnerWords() : ctx.task.prompt,
+          ctx.secrets,
+        ),
         botDescription,
       };
 }
@@ -887,6 +870,9 @@ async function reviewToolCall(
   const { deps, context } = ctx;
   const { primary: primaryEngine, shadow: shadowEngine } = review.engines;
   if (!primaryEngine) return;
+  // With no routine to judge a webhook run against, a person decides.
+  if (ctx.run.trigger === "webhook" && !(await ctx.trust.loadOwnerWords()).trim())
+    return { reason: undefined, decision: "ask" };
   // The shadow only feeds comparison, so it must never delay the selected verdict.
   const shadowReview = shadowEngine ? reviewWith(ctx, review, shadowEngine) : undefined;
   const primary = await reviewWith(ctx, review, primaryEngine);

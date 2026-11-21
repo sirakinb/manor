@@ -34,6 +34,8 @@ const SPRITES: Record<string, string> = {
   "#3FB6AE": "/sprites/sprite-teal.png",
   "#A78BFA": "/sprites/sprite-lavender.png",
   "#F08040": "/sprites/sprite-orange.png",
+  // Upstream's Forge Orange, the colour a new account's first bot gets.
+  "#FF781C": "/sprites/sprite-orange.png",
   "#E0524D": "/sprites/sprite-red.png",
   "#5B8DEF": "/sprites/sprite-blue.png",
 };

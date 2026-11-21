@@ -3,7 +3,8 @@ import { parseBotAvatarValue } from "./bot-avatar.js";
 /**
  * Manor: the stored plain colours a bot is drawn as one of Manor's sprites on, when it has no
  * uploaded image and no chosen shape. Upstream's brighter Executive Violet (`#A97EFE`, the
- * default colour) draws the same purple sprite as the earlier `#8B5CF6`.
+ * default colour) draws the same purple sprite as the earlier `#8B5CF6`, and upstream's Forge
+ * Orange (`#FF781C`, the colour a new account's first bot gets) draws the orange sprite.
  */
 export const MANOR_SPRITE_COLORS = [
   "#8B5CF6",
@@ -12,6 +13,7 @@ export const MANOR_SPRITE_COLORS = [
   "#3FB6AE",
   "#A78BFA",
   "#F08040",
+  "#FF781C",
   "#E0524D",
   "#5B8DEF",
 ] as const;

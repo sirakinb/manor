@@ -91,6 +91,7 @@ function renderView(
         callHoldsSpeaker={false}
         onSpeak={vi.fn()}
         onOpenComputer={vi.fn()}
+        onReleaseComputer={vi.fn()}
         onReply={vi.fn()}
         onMarkUnread={vi.fn()}
         onReact={vi.fn()}
@@ -224,6 +225,7 @@ it("keeps an edit made after a save when the saved status arrives late", async (
         callHoldsSpeaker={false}
         onSpeak={vi.fn()}
         onOpenComputer={vi.fn()}
+        onReleaseComputer={vi.fn()}
         onReply={vi.fn()}
         onMarkUnread={vi.fn()}
         onReact={vi.fn()}

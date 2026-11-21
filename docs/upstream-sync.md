@@ -16,7 +16,7 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`. In progress: `v0.10.0`.
+`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`. In progress: `v0.11.0`.
 
 ### How a stage is resolved
 
@@ -330,6 +330,22 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   per-bot saved logins. Folding Manor's into the vault would need a data migration with
   the encryption key and would lose live 2FA codes and notes, which the vault lacks, for
   no gain to a tenant. Revisit only if upstream's vault gains both.
+- A new account's first bot draws Manor's orange sprite (decided 2026-11-21, `v0.11.0`):
+  upstream gives it Forge Orange (`#FF781C`), which joined Manor's sprite colours for the
+  same reason upstream's default violet did. A bot whose orange came from the colour picker
+  carries a chosen shape and keeps upstream's avatar.
+- Webhook and email runs follow the owner's approval mode and Always allow rules, as upstream
+  has it from `v0.11.0`, instead of always asking. Manor's own refusals still come first: in
+  Never ask a This Mac command, a save to a page shared by link and `service_call` are refused,
+  a This Mac command is allowed once only, and routine and webhook runs cannot create schedules
+  (which also covers upstream's HTTP watch). The checker judges such a run against the owner's
+  routine, never the delivery text; with no routine a person decides.
+- The release toolchain image has its own stage in `infra/compose/Dockerfile` (`toolchain`),
+  because upstream's `build` stage now ends without installed dependencies. The default image
+  build does not make it.
+- The Apple silicon server bundle for the desktop's Docker-free option is published with the
+  desktop release in Manor's desktop releases repository; the file keeps upstream's internal
+  name.
 
 ### Deploy checklist for the staged sync
 
@@ -563,7 +579,16 @@ Things the one production deploy at the end must cover, collected as stages land
 - `COMPUTER_SETTINGS_ENABLED` must be set for Settings to offer the deployment-wide computer
   provider choice; unset, the provider comes from `SANDBOX_PROVIDER` only.
 - The release toolchain image can no longer be made by installing dev dependencies into the slim
-  release image: build it from the Dockerfile's build stage.
+  release image: build it with `docker build --target toolchain -f infra/compose/Dockerfile .`
+  (network access needed for the install). It holds the lockfile and every dependency a build
+  needs, and no source.
+- From `v0.11.0` a replaced API finishes its requests for up to 20 seconds when it is stopped,
+  and clients spread their reconnects; give the API container a stop timeout of at least that.
+- From `v0.11.0` webhook and email runs follow the owner's approval mode instead of always
+  asking. Before the deploy, read each tenant's mode and Always allow rules on the copy and say
+  which routines started by a webhook will now act without a card.
+- Microsoft Teams messaging (`TEAMS_APP_ID`, `TEAMS_APP_PASSWORD`, `TEAMS_APP_TENANT_ID`) stays
+  unset.
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR

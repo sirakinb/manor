@@ -105,6 +105,7 @@ export function FixtureTranscript({
         speakingMessageId={null}
         onSpeak={noop}
         onOpenComputer={noop}
+        onReleaseComputer={async () => {}}
       />
     </main>
   );

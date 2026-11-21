@@ -5,6 +5,7 @@ describe("drawsManorSprite", () => {
   it("is true for a plain sprite colour in any case, including upstream's brighter violet", () => {
     expect(drawsManorSprite("#8B5CF6")).toBe(true);
     expect(drawsManorSprite("#a97efe")).toBe(true);
+    expect(drawsManorSprite("#FF781C")).toBe(true);
   });
 
   it("is false for other colours, chosen shapes and uploaded images", () => {

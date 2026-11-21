@@ -124,6 +124,8 @@ const SPRITES: Record<string, number> = {
   "#3FB6AE": require("../assets/sprites/sprite-teal.png"),
   "#A78BFA": require("../assets/sprites/sprite-lavender.png"),
   "#F08040": require("../assets/sprites/sprite-orange.png"),
+  // Upstream's Forge Orange, the colour a new account's first bot gets.
+  "#FF781C": require("../assets/sprites/sprite-orange.png"),
   "#E0524D": require("../assets/sprites/sprite-red.png"),
   "#5B8DEF": require("../assets/sprites/sprite-blue.png"),
 };

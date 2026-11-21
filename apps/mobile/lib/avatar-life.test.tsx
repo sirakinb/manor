@@ -108,6 +108,7 @@ vi.mock("./native", () => ({
   useMobileTokens: () => ({
     mutedForeground: "#888",
     background: "#FFF",
+    foreground: "#111",
     workingDot: "#3FA266",
     secondary: "#EEE",
   }),
@@ -153,7 +154,8 @@ describe("avatar motion on mobile", () => {
 
   it.each([
     ["a shipped shape", SHAPE],
-    ["an organic avatar", "#FF781C"],
+    // Manor: orange draws a Manor sprite, so the organic case uses a colour that does not.
+    ["an organic avatar", "#FFAF38"],
   ] as const)("plays %s's working clips in the inbox while its bot works", (_, color) => {
     render(<BotAvatar color={color} identity="bot-1" size={62} status="running" motion="lazy" />);
     expect(clockStarted()).toBe(true);
@@ -356,7 +358,7 @@ describe("activity mark", () => {
   const render = (node: ReactNode) => act(() => root.render(node));
   const bots = [
     { id: "bot-a", color: SHAPE, status: "running" },
-    { id: "bot-b", color: "#FF781C", status: "running" },
+    { id: "bot-b", color: "#FFAF38", status: "running" },
   ];
   const grewIn = () => motion.springs.some(([, config]) => config === MARK_SPRING);
 
@@ -373,7 +375,7 @@ describe("activity mark", () => {
     const shown = () => container.querySelector("[data-fill]")?.getAttribute("data-fill");
     expect(shown()).toBe("#2A92FE");
     act(() => vi.advanceTimersByTime(2000));
-    expect(shown()).toBe("#FF781C");
+    expect(shown()).toBe("#FFAF38");
   });
 
   it("stops cycling members and pulsing photo dots on a covered screen, and resumes on return", () => {
