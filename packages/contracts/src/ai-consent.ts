@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { SettingsScopeSchema } from "./settings-scope.js";
 
 export const AI_DISCLOSURE_VERSION = "2026-09-14";
 // Manor is operated by Pentridge Media, so the default points at its policy, not upstream's.
@@ -20,6 +21,8 @@ export const AiConsentQuerySchema = z
     groupId: z.string().optional(),
     routineId: z.string().optional(),
     uses: z.array(AiDataUseSchema).optional(),
+    /** Which copy of the member's settings names the recipients; omitted means the one that applies. */
+    settingsScope: SettingsScopeSchema.optional(),
   })
   .default({});
 export type AiConsentQuery = z.infer<typeof AiConsentQuerySchema>;

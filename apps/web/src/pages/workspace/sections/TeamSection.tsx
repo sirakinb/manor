@@ -16,6 +16,9 @@ import { Card, CLICKABLE_TEXT, Empty, ErrorLine, formatDateTime, PageHeader } fr
 const KnowledgeSection = lazy(() =>
   import("../../KnowledgeSection").then((module) => ({ default: module.KnowledgeSection })),
 );
+const AgentSkills = lazy(() =>
+  import("../../KnowledgeSection").then((module) => ({ default: module.AgentSkills })),
+);
 const SpaceMemorySection = lazy(() =>
   import("../../KnowledgeSection").then((module) => ({ default: module.SpaceMemorySection })),
 );
@@ -73,8 +76,8 @@ export function TeamSection({
                   <BotAvatar identity={bot.id} color={bot.color} size={40} status={bot.status} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-medium text-[#ECECEE]">{bot.name}</p>
-                    {bot.title ? (
-                      <p className="mt-1 text-[12px] text-[#85858A]">{bot.title}</p>
+                    {bot.description ? (
+                      <p className="mt-1 truncate text-[12px] text-[#85858A]">{bot.description}</p>
                     ) : null}
                   </div>
                   <button
@@ -107,15 +110,22 @@ export function TeamSection({
             </ul>
           )}
           {knowledgeBotId ? (
-            <div id="workspace-bot-knowledge" className="mt-4 border-t border-[#25282B] pt-2">
+            <div
+              id="workspace-bot-knowledge"
+              data-testid="bot-knowledge"
+              className="mt-4 border-t border-[#25282B] pt-2"
+            >
               <ErrorBoundary fallback={<SectionLoadFailed />}>
                 <Suspense fallback={null}>
-                  {/* Upstream split the bot's knowledge into memory and a separate skills
-                      section; the team panel shows both, with the space's shared memory. */}
+                  {/* The bot's memory, then the space's skills (upstream keeps skills per person
+                      in a space, managed in the Skills dialog), then the shared memory. */}
                   <KnowledgeSection key={knowledgeBotId} botId={knowledgeBotId} />
-                  <div className="mt-6">
-                    <KnowledgeSection botId={knowledgeBotId} skillsOnly />
-                  </div>
+                  <section className="mt-6">
+                    <h3 className="mb-2 text-[13px] font-medium text-[#ECECEE]">
+                      <Trans>Skills</Trans>
+                    </h3>
+                    <AgentSkills />
+                  </section>
                   <div className="mt-6">
                     <SpaceMemorySection />
                   </div>

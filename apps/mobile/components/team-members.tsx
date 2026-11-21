@@ -13,7 +13,7 @@ export function TeamMembers() {
       if (pending || AppState.currentState !== "active") return;
       pending = true;
       try {
-        const next = await rpc<TeamMember[]>("team/list");
+        const next = await rpc("team/list");
         if (!disposed) {
           setMembers(next);
           setFailed(false);

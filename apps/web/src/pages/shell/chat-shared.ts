@@ -1,6 +1,6 @@
 import { t } from "@lingui/core/macro";
 import type { ThreadMessage } from "@rakazo/contracts";
-import { plainTextFromMarkdown, replyAttachment } from "@rakazo/core";
+import { previewMessageText as previewText } from "@rakazo/core";
 
 export type PendingAttachment = {
   id: string;
@@ -30,20 +30,5 @@ export function isNarrationMessage(message: Pick<ThreadMessage, "role" | "blocks
   );
 }
 export function previewMessageText(message: ThreadMessage): string {
-  const text = message.blocks
-    .map((block) => {
-      if (block.kind === "channel_message") return block.text;
-      if (block.kind === "text") {
-        // Bot text is Markdown; user text is already plain.
-        return message.role === "bot" ? plainTextFromMarkdown(block.text) : block.text;
-      }
-      return "";
-    })
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  if (text) return text;
-  const attachment = replyAttachment(message.blocks);
-  if (attachment) return attachment.kind === "image" ? t`Photo` : attachment.name || t`Attachment`;
-  return t`Message`;
+  return previewText(message, { photo: t`Photo`, attachment: t`Attachment`, message: t`Message` });
 }

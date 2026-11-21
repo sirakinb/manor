@@ -1,4 +1,3 @@
-import type { Space } from "@rakazo/contracts";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -26,7 +25,7 @@ export default function NewSpace() {
     setPending(true);
     setError(null);
     try {
-      const space = await rpc<Space>("spaces/create", { name: trimmed, shared });
+      const space = await rpc("spaces/create", { name: trimmed, shared });
       if (!(await selectSpace(space.id))) {
         Alert.alert(t("Space created"), t("It could not be opened. Try again from the sidebar."));
         router.dismissAll();

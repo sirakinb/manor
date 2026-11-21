@@ -141,7 +141,6 @@ test("bots can be reordered by drag or keyboard and keep that order", async ({ p
   const chiefId = activeBotId(page);
   const alpha = await rpc<{ id: string }>(page, "bots/create", {
     name: "Alpha",
-    title: "",
     description: "",
     instructions: "",
     notifyOnFinish: true,
@@ -149,7 +148,6 @@ test("bots can be reordered by drag or keyboard and keep that order", async ({ p
   });
   const beta = await rpc<{ id: string }>(page, "bots/create", {
     name: "Beta",
-    title: "",
     description: "",
     instructions: "",
     notifyOnFinish: true,
@@ -327,7 +325,6 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
   const chiefId = activeBotId(page);
   const partner = await rpc<{ id: string }>(page, "bots/create", {
     name: "Partner",
-    title: "",
     description: "",
     instructions: "",
     notifyOnFinish: true,
@@ -430,22 +427,26 @@ test("built-in sidebar headings follow the language without renaming custom sect
   await dialog.getByRole("button", { name: "Create", exact: true }).click();
   await bot.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Pin", exact: true }).click();
-  // Manor names the space on every header and qualifies group keys with the space.
+  // Manor names the space on every header and qualifies group keys with the space. The space
+  // and the group are laid out side by side ("PersonalPinned"); the button's name joins them
+  // with a comma ("Collapse Personal, Pinned").
   const pinnedGroup = sidebar.locator('[data-sidebar-group$=":pinned"]');
-  const pinnedTitle = await pinnedGroup.getByRole("button", { name: /^Collapse / }).textContent();
-  const spaceName = pinnedTitle?.match(/^(.+) · Pinned$/)?.[1];
+  const pinnedToggle = pinnedGroup.getByRole("button", { name: /^Collapse .+, Pinned$/ });
+  const pinnedLabel = await pinnedToggle.getAttribute("aria-label");
+  const spaceName = pinnedLabel?.match(/^Collapse (.+), Pinned$/)?.[1];
   expect(spaceName).toBeTruthy();
   const settings = await openUserSettings(page);
   await settings.getByTestId("ui-locale-select").click();
   await page.getByRole("option", { name: "Deutsch", exact: true }).click();
   await page.getByRole("button", { name: "Benutzereinstellungen schließen", exact: true }).click();
   await expect(settings).not.toBeVisible();
-  await expect(pinnedGroup).toContainText(`${spaceName} · Angeheftet`);
+  await expect(pinnedToggle).toHaveText(`${spaceName}Pinned`);
+  await expect(pinnedGroup).toContainText(`${spaceName}Angeheftet`);
   await expect(sidebar.locator('[data-sidebar-group$=":unassigned"]')).toContainText(
-    `${spaceName} · Nicht zugewiesen`,
+    `${spaceName}Nicht zugewiesen`,
   );
   const customSection = sidebar.locator('[data-sidebar-group*=":section:"]');
-  await expect(customSection).toContainText(`${spaceName} · Pinned`);
+  await expect(customSection).toContainText(`${spaceName}Pinned`);
   await expect(customSection).not.toContainText("Angeheftet");
   // Manor's own navigation rows follow the language too; CRM is a name.
   for (const name of ["CRM", "Integrationen", "Dokumentation"]) {

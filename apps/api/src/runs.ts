@@ -13,6 +13,7 @@ import {
   diagnoseRunFailure,
   displayName,
   runFailureSummary,
+  truncatePlainText,
 } from "@rakazo/core";
 import { createRepos, IsolationError, type Prisma, type PrismaClient } from "@rakazo/db";
 
@@ -163,7 +164,7 @@ const TERMINAL_STATUSES = ["completed", "failed", "cancelled"] as const;
 function promptSnippet(prompt: string, max = 120): string {
   const oneLine = prompt.replace(/\s+/g, " ").trim();
   if (oneLine.length <= max) return oneLine;
-  return `${oneLine.slice(0, max - 1)}…`;
+  return `${truncatePlainText(oneLine, max - 1)}…`;
 }
 
 export function activityPreview(

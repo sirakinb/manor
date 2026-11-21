@@ -62,9 +62,7 @@ test.describe("organization application bootstrap", () => {
     });
     await page.goto("/sign-in?__brand=vibecodephilly");
     await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Continue with email", exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
   });
 });
 

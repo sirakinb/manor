@@ -153,7 +153,6 @@ describePostgres("group sidebar previews (PostgreSQL)", () => {
     return runAsTenant(who, async () => {
       const created = await createRepos(prisma).createBot(who, {
         name,
-        title: "",
         description: "",
         instructions: "",
         notifyOnFinish: true,

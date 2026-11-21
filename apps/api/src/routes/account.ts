@@ -1,6 +1,5 @@
 import { ORPCError } from "@orpc/server";
 import {
-  deploymentAutoReviewDefault,
   effectiveModelRole,
   hasHostedModelCredits,
   isAutoReviewCheckerConfigured,
@@ -12,18 +11,32 @@ import {
   planVerificationEngines,
   VERIFICATION_ENGINE_LABELS,
 } from "@rakazo/adapters";
-import type { ActionApprovalRule, Actor, Me } from "@rakazo/contracts";
+import type { ActionApprovalRule, Actor, Me, SettingsScope } from "@rakazo/contracts";
 import {
+  approvalModeFromPreference,
+  approvalPreferenceFromMode,
+  previewActionApprovalRule,
+} from "@rakazo/core";
+import { urlSite } from "@rakazo/core/egress";
+import {
+  findAutoReviewPreference,
   findDefaultVoiceCredential,
   findModelCredential,
   findModelCredentialById,
+  listApprovalRules,
+  listVoicePreferences,
+  lockSpaceSettings,
   newestVoiceCredentialOrder,
   Prisma,
+  removeApprovalRule,
   saveApprovalRule,
-  selectSpaceVoicePreference,
+  saveAutoReviewPreference,
+  selectVoicePreference,
+  voicePreferenceTarget,
 } from "@rakazo/db";
 import { aiConsentStatus, allowAiConsent } from "../ai-consent.js";
 import type { BillingService } from "../billing.js";
+import { firstModelConnectAnalytics } from "../model-connect-analytics.js";
 import type { RouterDeps } from "../router.js";
 import { withSerializableRetry } from "../serializable-retry.js";
 import {
@@ -73,9 +86,14 @@ export function accountRoutes(ctx: RouterContext) {
     health: os.health.handler(async () => ({ ok: true as const, version: "0.1.0" })),
     me: authed.me.handler(async ({ context }): Promise<Me> => meDto(deps, context.actor)),
     billing: {
-      selectFunding: authed.billing.selectFunding.handler(async ({ context, input }) =>
-        requireBilling(deps).selectFunding(context.actor, input.funding),
-      ),
+      selectFunding: authed.billing.selectFunding.handler(async ({ context, input }) => {
+        const billing = requireBilling(deps);
+        if (input.funding === "credits") {
+          const record = await firstModelConnectAnalytics(deps, context.actor, "credits");
+          record(undefined, { name: "model_connect_started" });
+        }
+        return billing.selectFunding(context.actor, input.funding, input.client);
+      }),
       purchaseCredits: authed.billing.purchaseCredits.handler(async ({ context, input }) =>
         requireBilling(deps).purchaseCredits(context.actor, input),
       ),
@@ -85,12 +103,21 @@ export function accountRoutes(ctx: RouterContext) {
       status: authed.billing.status.handler(async ({ context }) =>
         requireBilling(deps).status(context.actor),
       ),
-      checkout: authed.billing.checkout.handler(async ({ context }) =>
-        requireBilling(deps).checkout(context.actor),
+      refresh: authed.billing.refresh.handler(async ({ context }) => {
+        const billing = requireBilling(deps);
+        await billing.syncForActor(context.actor);
+        return billing.status(context.actor);
+      }),
+      checkout: authed.billing.checkout.handler(async ({ context, input }) =>
+        requireBilling(deps).checkout(context.actor, input?.client),
       ),
-      portal: authed.billing.portal.handler(async ({ context }) =>
-        requireBilling(deps).portal(context.actor),
+      portal: authed.billing.portal.handler(async ({ context, input }) =>
+        requireBilling(deps).portal(context.actor, input?.client),
       ),
+      claimReferral: authed.billing.claimReferral.handler(async ({ context, input }) => {
+        await requireBilling(deps).claimReferral(context.actor, input.code);
+        return { ok: true as const };
+      }),
     },
     preferences: {
       update: authed.preferences.update.handler(async ({ context, input }): Promise<Me> => {
@@ -138,54 +165,66 @@ export function accountRoutes(ctx: RouterContext) {
       }),
     },
     approvalRules: {
-      list: spaceAuthed.approvalRules.list.handler(async ({ context }) => {
-        const rows = await deps.prisma.actionApprovalRule.findMany({
-          where: {
-            spaceId: context.actor.spaceId,
-            createdByUserId: context.actor.userId,
-          },
-          orderBy: { createdAt: "asc" },
+      preview: spaceAuthed.approvalRules.preview.handler(async ({ context, input }) => {
+        const rules = (await listApprovalRules(deps.prisma, context.actor, input.scope)).map(
+          approvalRuleDto,
+        );
+        const rule = rules.find((entry) => entry.id === input.id);
+        if (!rule) throw new ORPCError("NOT_FOUND");
+        if (rule.matchKind === "category" && input.effect !== "remove")
+          throw new ORPCError("BAD_REQUEST");
+        return previewActionApprovalRule(rules, rule, input.effect, {
+          ...input.sample,
+          site: input.sample.site?.toLowerCase(),
         });
-        return rows.map((row) => ({
-          id: row.id,
-          effect: row.effect as "always_allow" | "require_approval",
-          matchKind: row.matchKind as ActionApprovalRule["matchKind"],
-          matchValue: row.matchValue,
-          createdAt: row.createdAt.toISOString(),
-        }));
+      }),
+      list: spaceAuthed.approvalRules.list.handler(async ({ context, input }) => {
+        const rows = await listApprovalRules(deps.prisma, context.actor, input?.scope);
+        return rows.map(approvalRuleDto);
       }),
       set: spaceAuthed.approvalRules.set.handler(async ({ context, input }) => {
-        const row = await deps.prisma.$transaction((tx) =>
-          saveApprovalRule(tx, {
-            spaceId: context.actor.spaceId,
-            createdByUserId: context.actor.userId,
-            effect: input.effect,
-            matchKind: input.matchKind,
-            matchValue: input.matchValue,
-          }),
+        const { scope, ...rule } = input;
+        return approvalRuleDto(
+          await deps.prisma.$transaction((tx) => saveApprovalRule(tx, context.actor, rule, scope)),
         );
-        return {
-          id: row.id,
-          effect: row.effect as "always_allow" | "require_approval",
-          matchKind: row.matchKind as ActionApprovalRule["matchKind"],
-          matchValue: row.matchValue,
-          createdAt: row.createdAt.toISOString(),
-        };
       }),
       remove: spaceAuthed.approvalRules.remove.handler(async ({ context, input }) => {
-        await deps.prisma.actionApprovalRule.deleteMany({
-          where: {
-            id: input.id,
-            spaceId: context.actor.spaceId,
-            createdByUserId: context.actor.userId,
-          },
+        await deps.prisma.$transaction((tx) =>
+          removeApprovalRule(tx, context.actor, input.id, input.scope),
+        );
+        return { ok: true as const };
+      }),
+    },
+    // The user's own list for the external-link prompt, kept apart from approval rules: a
+    // trusted link site never lets a bot fetch, and a site rule never skips the prompt.
+    trustedLinkSites: {
+      list: authed.trustedLinkSites.list.handler(async ({ context }) => {
+        const rows = await deps.prisma.trustedLinkSite.findMany({
+          where: { userId: context.actor.userId },
+          orderBy: { site: "asc" },
+        });
+        return rows.map((row) => row.site);
+      }),
+      trust: authed.trustedLinkSites.trust.handler(async ({ context, input }) => {
+        // The server names the site, so the list only ever holds sites.
+        const site = urlSite(input.url);
+        if (!site) throw new ORPCError("BAD_REQUEST", { message: "Not a web link." });
+        await deps.prisma.trustedLinkSite.createMany({
+          data: { userId: context.actor.userId, site },
+          skipDuplicates: true,
+        });
+        return { site };
+      }),
+      remove: authed.trustedLinkSites.remove.handler(async ({ context, input }) => {
+        await deps.prisma.trustedLinkSite.deleteMany({
+          where: { userId: context.actor.userId, site: input.site },
         });
         return { ok: true as const };
       }),
     },
     autoReview: {
-      get: spaceAuthed.autoReview.get.handler(async ({ context }) => {
-        return loadAutoReviewSettings(deps, context.actor);
+      get: spaceAuthed.autoReview.get.handler(async ({ context, input }) => {
+        return loadAutoReviewSettings(deps, context.actor, input?.scope);
       }),
       set: spaceAuthed.autoReview.set.handler(async ({ context, input }) => {
         // Manor: answer checking and the checker engine are saved with upstream's settings.
@@ -197,23 +236,40 @@ export function accountRoutes(ctx: RouterContext) {
           ...(input.engine === undefined ? {} : { engine: input.engine }),
           ...(input.compare === undefined ? {} : { compare: input.compare }),
         };
-        await deps.prisma.actionAutoReviewPreference.upsert({
-          where: {
-            spaceId_userId: {
+        const modeUpdate = input.mode
+          ? approvalPreferenceFromMode(input.mode)
+          : {
+              ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+              ...(input.skipApprovals === undefined ? {} : { skipApprovals: input.skipApprovals }),
+            };
+        await deps.prisma.$transaction(async (tx) => {
+          // A save that names no mode leaves the mode, and whether a row exists, alone.
+          if (Object.keys(modeUpdate).length > 0) {
+            await saveAutoReviewPreference(
+              tx,
+              context.actor,
+              modeUpdate,
+              AUTO_REVIEW_UNSAVED,
+              input.scope,
+            );
+          }
+          // Manor: the reply check stays on this Space's row, where runs read it; the account
+          // copy has no columns for it. A new row reads as the unsaved default.
+          if (Object.keys(manorUpdate).length === 0) return;
+          await tx.actionAutoReviewPreference.upsert({
+            where: {
+              spaceId_userId: { spaceId: context.actor.spaceId, userId: context.actor.userId },
+            },
+            create: {
               spaceId: context.actor.spaceId,
               userId: context.actor.userId,
+              ...AUTO_REVIEW_UNSAVED,
+              ...manorUpdate,
             },
-          },
-          create: {
-            spaceId: context.actor.spaceId,
-            userId: context.actor.userId,
-            enabled: input.enabled ?? deploymentAutoReviewDefault(process.env),
-            skipApprovals: input.skipApprovals ?? false,
-            ...manorUpdate,
-          },
-          update: { enabled: input.enabled, skipApprovals: input.skipApprovals, ...manorUpdate },
+            update: manorUpdate,
+          });
         });
-        return loadAutoReviewSettings(deps, context.actor);
+        return loadAutoReviewSettings(deps, context.actor, input.scope);
       }),
     },
     notifications: {
@@ -237,23 +293,22 @@ export function accountRoutes(ctx: RouterContext) {
       catalog: spaceAuthed.voice.catalog.handler(async () =>
         listVoiceCatalog({ allowPrivateEndpoint: deps.env?.mcpAllowPrivateEndpoint }),
       ),
-      status: spaceAuthed.voice.status.handler(async ({ context }) => {
-        const cred = await findDefaultVoiceCredential(deps.prisma, context.actor);
+      status: spaceAuthed.voice.status.handler(async ({ context, input }) => {
+        const cred = await findDefaultVoiceCredential(deps.prisma, context.actor, input?.scope);
         return toVoiceStatus(cred);
       }),
-      credentials: spaceAuthed.voice.credentials.handler(async ({ context }) => {
-        const rows = await deps.prisma.userVoiceCredential.findMany({
-          where: { userId: context.actor.userId },
-          include: {
-            preferences: {
-              where: { userId: context.actor.userId, spaceId: context.actor.spaceId },
-            },
-          },
-          orderBy: newestVoiceCredentialOrder,
-        });
+      credentials: spaceAuthed.voice.credentials.handler(async ({ context, input }) => {
+        const target = await voicePreferenceTarget(deps.prisma, context.actor, input?.scope);
+        const [rows, preferences] = await Promise.all([
+          deps.prisma.userVoiceCredential.findMany({
+            where: { userId: context.actor.userId },
+            orderBy: newestVoiceCredentialOrder,
+          }),
+          listVoicePreferences(deps.prisma, target),
+        ]);
         return Promise.all(
           rows.map(async (row) => {
-            const preference = row.preferences[0];
+            const preference = preferences.find((saved) => saved.credentialId === row.id);
             return toVoiceCredential({
               ...row,
               isDefault: preference?.isDefault ?? false,
@@ -273,6 +328,7 @@ export function accountRoutes(ctx: RouterContext) {
           baseUrl: input.baseUrl,
           ttsModel: input.ttsModel,
           sttModel: input.sttModel,
+          scope: input.scope,
           signal: context.signal,
         }),
       ),
@@ -283,27 +339,19 @@ export function accountRoutes(ctx: RouterContext) {
         const cred = await withSerializableRetry(() =>
           deps.prisma.$transaction(
             async (tx) => {
+              await lockSpaceSettings(tx, context.actor);
+              const target = await voicePreferenceTarget(tx, context.actor, input.scope);
               const found = input.provider
                 ? await tx.userVoiceCredential.findFirst({
                     where: { userId: context.actor.userId, provider: input.provider },
                     orderBy: newestVoiceCredentialOrder,
                   })
-                : (
-                    await tx.spaceVoicePreference.findFirst({
-                      where: {
-                        userId: context.actor.userId,
-                        spaceId: context.actor.spaceId,
-                        isDefault: true,
-                      },
-                      include: { credential: true },
-                      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-                    })
-                  )?.credential;
+                : await findDefaultVoiceCredential(tx, context.actor, target.scope);
               if (!found) {
                 throw new ORPCError("BAD_REQUEST", { message: "Connect a voice provider first." });
               }
               // Picking a voice also makes its provider the one speak/transcribe use.
-              await selectSpaceVoicePreference(tx, context.actor, found.id, input.voiceId);
+              await selectVoicePreference(tx, target, found.id, input.voiceId);
               return { ...found, voiceId: input.voiceId, isDefault: true };
             },
             { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -315,13 +363,10 @@ export function accountRoutes(ctx: RouterContext) {
         updateVoiceSpeechModel(deps, context.actor, input),
       ),
       voices: spaceAuthed.voice.voices.handler(async ({ context, input }) => {
-        const loaded = await loadDefaultVoiceCredential(deps, context.actor);
-        if (!loaded) return [];
-        const providerId = input.provider ?? loaded.cred.provider;
-        const row =
-          providerId === loaded.cred.provider
-            ? loaded
-            : await loadVoiceCredential(deps, context.actor, providerId);
+        // A named provider lists its voices even before the copy has a default voice.
+        const row = input.provider
+          ? await loadVoiceCredential(deps, context.actor, input.provider, input.scope)
+          : await loadDefaultVoiceCredential(deps, context.actor, input.scope);
         if (!row) return [];
         return (await voiceProviderFor(deps, context.actor, row.cred.provider)).listVoices(
           row.apiKey,
@@ -329,30 +374,53 @@ export function accountRoutes(ctx: RouterContext) {
         );
       }),
       prepare: spaceAuthed.voice.prepare.handler(async ({ context, input }) =>
-        prepareVoice(deps, context.actor, input),
+        prepareVoice(deps, context.actor, { ...input, signal: context.signal }),
       ),
     },
   };
 }
 
-async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
-  const [role, preference] = await Promise.all([
-    effectiveModelRole(deps.prisma, actor, "approval", { env: process.env }),
+function approvalRuleDto(row: {
+  id: string;
+  effect: string;
+  matchKind: string;
+  matchValue: string;
+  createdAt: Date;
+}): ActionApprovalRule {
+  return {
+    id: row.id,
+    effect: row.effect as ActionApprovalRule["effect"],
+    matchKind: row.matchKind as ActionApprovalRule["matchKind"],
+    matchValue: row.matchValue,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/** What an account with no saved auto-review row reads as; a first save fills the rest from it. */
+const AUTO_REVIEW_UNSAVED = { enabled: true, skipApprovals: false } as const;
+
+async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor, scope?: SettingsScope) {
+  const [role, preference, replyCheck] = await Promise.all([
+    // The account page judges the account's approval model; a Space, the one that applies there.
+    effectiveModelRole(
+      deps.prisma,
+      actor,
+      "approval",
+      { env: process.env },
+      scope === "account" ? "account" : undefined,
+    ),
+    findAutoReviewPreference(deps.prisma, actor, scope),
+    // Manor: the reply check is read from this Space's row, as runs read it.
     deps.prisma.actionAutoReviewPreference.findUnique({
       where: { spaceId_userId: { spaceId: actor.spaceId, userId: actor.userId } },
-      select: {
-        enabled: true,
-        skipApprovals: true,
-        checkAnswers: true,
-        engine: true,
-        compare: true,
-      },
+      select: { checkAnswers: true, engine: true, compare: true },
     }),
   ]);
-  const settings = {
-    enabled: preference?.enabled ?? deploymentAutoReviewDefault(process.env),
-    skipApprovals: preference?.skipApprovals ?? false,
+  const stored = {
+    enabled: preference?.enabled ?? AUTO_REVIEW_UNSAVED.enabled,
+    skipApprovals: preference?.skipApprovals ?? AUTO_REVIEW_UNSAVED.skipApprovals,
   };
+  const settings = { ...stored, mode: approvalModeFromPreference(stored) };
   // Manor: the LLM checker's availability decides that engine; the reply-check engines
   // and their settings ride on top.
   const withEngines = (llmAvailable: boolean) => {
@@ -360,15 +428,15 @@ async function loadAutoReviewSettings(deps: RouterDeps, actor: Actor) {
       [LLM_ENGINE]: llmAvailable,
       [JEV_ENGINE]: Boolean(jevVerifierFromEnv(process.env)),
     };
-    const engine = isVerificationEngineId(preference?.engine) ? preference.engine : LLM_ENGINE;
+    const engine = isVerificationEngineId(replyCheck?.engine) ? replyCheck.engine : LLM_ENGINE;
     return {
       ...settings,
-      checkAnswers: preference?.checkAnswers ?? false,
+      checkAnswers: replyCheck?.checkAnswers ?? false,
       checkerAvailable: Boolean(
         planVerificationEngines({ selected: engine, compare: false, available }).primary,
       ),
       engine,
-      compare: preference?.compare ?? false,
+      compare: replyCheck?.compare ?? false,
       // The LLM checker is always offered; other engines only when the deployment configures them.
       engines: ([LLM_ENGINE, JEV_ENGINE] as const)
         .filter((id) => id === LLM_ENGINE || available[id])

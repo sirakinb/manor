@@ -113,9 +113,10 @@ test("two teammates use the same agent and conversation while personal spaces st
     await captureScreenshot(page, testInfo, "shared-agent-owner-view");
     await captureScreenshot(peerPage, testInfo, "shared-agent-teammate-view");
     await peerPage.getByRole("button", { name: "Integrations", exact: true }).click();
-    await expect(
-      peerPage.getByText("Team projects · Shared with your team", { exact: true }),
-    ).toBeVisible();
+    // The space name and its access sit side by side, without a separator.
+    await expect(peerPage.getByTestId("integrations-space")).toHaveText(
+      "Team projectsShared with your team",
+    );
     // The featured tiles and the full catalog both list Gmail; a connected tile reads "Added".
     const gmailRow = peerPage
       .getByTestId("featured-connectors")

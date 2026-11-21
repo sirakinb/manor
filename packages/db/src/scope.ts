@@ -33,7 +33,13 @@ export async function requireMembership(
       ...(requestedSpaceId ? { spaceId: requestedSpaceId } : {}),
     },
     orderBy: [{ space: { isDefault: "desc" } }, { createdAt: "asc" }, { id: "asc" }],
-    include: { member: { include: { user: true } }, space: { select: { accountUserId: true } } },
+    select: {
+      userId: true,
+      spaceId: true,
+      organizationId: true,
+      member: { select: { user: { select: { email: true } } } },
+      space: { select: { accountUserId: true } },
+    },
   });
   if (!membership) {
     throw new IsolationError("No personal space");

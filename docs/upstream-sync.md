@@ -15,7 +15,7 @@ previous stage. CI is the verification gate; the local stack is not run. Product
 deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
-Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`. In progress: `v0.3.5`.
+Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`. In progress: `v0.3.6`.
 
 ### How a stage is resolved
 
@@ -145,6 +145,42 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`. In progress: `v0.3.5`.
 - The Android live notification icon (`ic_rakazo_notification`) is Manor's mark.
 - Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
   and local sandbox tests (the temp directory is a symlink).
+- From `v0.3.6` the run executor, the web shell and the mobile inbox and chat are
+  upstream's split modules. Manor's changes live inside them (`run-turn.ts`,
+  `run-tool-gate.ts`, `run-tool-selection.ts`, `run-instructions.ts`, `pages/shell/*`,
+  `components/thread/*`); Manor-only code sits in its own files beside them
+  (`run-tools-manor.ts`, `run-verification.ts`, `run-reasoning.ts`,
+  `pages/shell/place-routes.ts`, `components/manor-lockup.tsx`). Such modules arrive
+  without conflicts, so a resolver whose file was split owns the new modules too.
+- Approvals: the mode (never, auto, ask) is upstream's, stored in upstream's
+  account-or-space scope and decided in one place per run (`run-trust.ts`). Manor's
+  checker choice, compare and reply check stay on the space row and survive a space's
+  override being turned on or off. Manor's `llm` checker goes through upstream's
+  reviewer path, so upstream's backup reviewers apply. There is no separate Manor
+  switch for auto review.
+- Saved logins: upstream's vault (per account or space, `request_secret`,
+  `fill_secret`) and Manor's per-bot saved logins (`use_credential`, with a 2FA seed
+  and notes the vault lacks) are different things and both stay. No upstream
+  migration touches `bot_credentials`. The bot's instructions say which tool goes
+  with which.
+- Account deletion is refused (`account-deletion-guard.ts`) for a shared-space
+  account, for anyone in an organization with other members, and for a sole member
+  whose organization has a Workspace, CRM data or public forms. Without the guard,
+  deleting one person removed credentials and webhooks the organization relies on.
+  Upstream's account export omits Manor's tables; an import only creates new private
+  spaces.
+- The bot label (`bots.title`) is gone, following upstream. Manor's Workspace team
+  panel shows the bot's description instead.
+- Upstream's "Rakazo" avatar set draws upstream's mark, so Manor does not offer it
+  on web or mobile; a bot that carries it still draws.
+- Text a bot writes before a tool step is a note on that step; Manor's activity
+  timeline shows it under the step.
+- Production starts with plain `prisma migrate deploy`, not upstream's
+  `pnpm db:migrate` runner, so a migration marked `-- deferred` applies at once.
+  That is fine for one deploy from the old release; after it, going back to the old
+  code needs a database restore.
+- Manor adds its own check `secrets_workspace_credential_scope_check` (Workspace
+  credentials are never space-scoped) beside upstream's looser `secrets_scope_check`.
 
 ### Deploy checklist for the staged sync
 
@@ -164,6 +200,24 @@ Things the one production deploy at the end must cover, collected as stages land
   every existing account keeps its stored style.
 - Webhook-triggered runs pause for owner approval on tools outside upstream's
   read-only list until a stage brings upstream's reworked approval settings.
+- Approval mode: an account with no saved preference now defaults to Auto. Production
+  never set `RAKAZO_AUTO_REVIEW`, so every account asked a person;
+  `20261121130000_manor_keep_ask_for_existing_accounts` writes an explicit Ask row
+  for every existing account so nothing changes for them. Accounts created later get
+  Auto. `RAKAZO_AUTO_REVIEW` is no longer read.
+- `20261103120000_drop_dead_bot_and_referral_columns` drops `bots.title` without
+  copying it. Eight bots had a label at the time of the rehearsal copy; note them
+  from the backup if anyone wants them back as descriptions.
+- `20261025200000_account_settings` moves model, voice and approval settings to the
+  account (each member's oldest space wins; a space that differs gets an override).
+  Compare each tenant's effective model and voice before and after on the copy.
+- The vault migrations copy upstream's `bot_secrets` and `agent_secrets`; production
+  had none of either, so nothing is copied.
+- The app image moves to Node 24, so the release toolchain image must be rebuilt.
+- New optional settings reach the API and worker through the environment file:
+  `WELCOME_EMAIL_ENABLED` (leave off unless the welcome email has been read),
+  `USER_DEVICES_ENABLED`, `RAKAZO_NAV_LINKS`, `VOICE_SUMMARY_MIN_CHARS`,
+  `NOVITA_API_KEY`. Upstream sets `RAYON_NUM_THREADS=4` on the web container.
 - A running Docker computer is reused on start instead of being set up again.
 - Sign-up policy is read only from the environment from `v0.3.5` on, and the API
   writes it into `deployment_settings` on every start. Production's stored allowlist

@@ -1,4 +1,4 @@
-import type { ComputerMode, LocalComputerLiveSession } from "@rakazo/contracts";
+import type { ComputerMode } from "@rakazo/contracts";
 import { BOT_COMPUTER_MODES } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -26,7 +26,7 @@ export function ComputerModePicker({
     let cancelled = false;
     async function refresh() {
       try {
-        const session = await rpc<LocalComputerLiveSession>("localComputer/session");
+        const session = await rpc("localComputer/session");
         if (!cancelled) setConnected(session.connected);
       } catch {
         if (!cancelled) setConnected(false);

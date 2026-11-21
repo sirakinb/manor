@@ -5,6 +5,10 @@ export type Panel =
   | "create-group"
   | "group-settings"
   | "import-agent"
+  // Manor's app preview, files and run-log panels: session-only, never saved for a chat.
+  | "preview"
+  | "files"
+  | "logs"
   | null;
 export type RightPanelState = { panel: Panel; routineId?: string };
 
@@ -47,6 +51,8 @@ export function readRightPanelState(key: string): RightPanelState {
 export function writeRightPanelState(key: string, panel: Panel, routineId?: string) {
   // Keep the last durable preference while create-group or an import is open.
   if (panel === "create-group" || panel === "import-agent") return;
+  // Manor's preview, files and run-log panels are session-only, like the create flows.
+  if (panel === "preview" || panel === "files" || panel === "logs") return;
   try {
     localStorage.setItem(
       key,

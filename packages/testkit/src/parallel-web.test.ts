@@ -3,7 +3,7 @@ import { createRunExecutor, createWebProvider, PiAgentRuntime } from "@rakazo/ad
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type * as ComputerLifecycle from "../../adapters/src/computer-lifecycle.js";
 import { parallelMcpFixture } from "../../adapters/src/parallel-web.test-support.js";
-import { resolveRuntimeModel } from "../../adapters/src/pi-runtime.js";
+import { resolveRuntimeModel } from "../../adapters/src/pi-runtime-models.js";
 import { startModelEmulator } from "./model-emulator.js";
 
 vi.mock("../../adapters/src/computer-lifecycle.js", async (original) => ({
@@ -76,19 +76,23 @@ function executorFixture(
       }),
     },
     connection: { findMany: async () => [] },
-    spaceModelPreference: { findFirst: async () => null },
-    spaceModelRoleChoice: { findMany: async () => [] },
+    chatGroup: { findMany: async () => [] },
+    userModelPreference: { findFirst: async () => null },
+    spaceSettingOverride: { findUnique: vi.fn(async () => null) },
+    userModelRoleChoice: { findMany: async () => [] },
     userModelCredential: { findFirst: async () => null },
     deploymentSettings: {
       findUnique: async () => ({ defaultModelProvider: "scripted", defaultModelId: "scripted" }),
     },
     taughtSkill: { findMany: async () => [] },
     agentSecret: { findMany: async () => [] },
-    botSecret: { findMany: async () => [] },
+    vaultCredential: { findMany: async () => [] },
     agentSkill: { findMany: async () => [] },
     scratchpadItem: { findMany: async () => [] },
-    actionApprovalRule: { findMany: async () => [] },
-    actionAutoReviewPreference: { findUnique: async () => ({ enabled: false }) },
+    userActionApprovalRule: { findMany: async () => [] },
+    userActionAutoReviewPreference: { findUnique: async () => ({ enabled: false }) },
+    // Manor's reply check reads its settings from the space's Auto Review row.
+    actionAutoReviewPreference: { findUnique: async () => null },
     externalEffect: { findMany: async () => [] },
     usageRecord: { createMany: async () => ({ count: 1 }) },
     modelCreditEntry: { findUnique: async () => null },
@@ -202,7 +206,7 @@ describe("Parallel through the ordinary bot caller", () => {
                 request.messages.findLast((message) => message.role === "tool"),
               );
               expect(result).toContain("Page text");
-              expect(result).toContain("[Content truncated]");
+              expect(result).toContain("[Content truncated;");
               expect(result).not.toContain("Invalid Parallel MCP response");
               expect(result.length).toBeLessThan(1_000);
             },

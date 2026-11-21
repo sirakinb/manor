@@ -51,10 +51,12 @@ export type MemoryScope = z.infer<typeof MemoryScope>;
 export const SandboxKind = z.enum([
   "docker",
   "e2b",
+  "novita",
   "daytona",
   "createos",
   "boat",
   "railway",
+  "kubernetes",
   "desktop",
   "local",
   "fake",

@@ -55,6 +55,13 @@ export interface RakazoDesktopLocalComputer {
   onChange: (listener: (status: RakazoDesktopLocalComputerStatus) => void) => () => void;
 }
 
+export interface RakazoDesktopDevice {
+  /** Null until paired. */
+  deviceId: string | null;
+  name: string;
+  allowed: boolean;
+}
+
 export interface RakazoDesktop {
   /** Optional for compatibility with older desktop releases. */
   badge?: {
@@ -66,6 +73,13 @@ export interface RakazoDesktop {
     requestAccess: () => Promise<boolean>;
     revokeAccess: () => Promise<void>;
     onConfigure: (listener: () => void) => () => void;
+  };
+  /** Optional for compatibility with older desktop releases. */
+  device?: {
+    /** Null when the app shows its own local server. */
+    state: () => Promise<RakazoDesktopDevice | null>;
+    /** Turning it on asks with a native prompt the page cannot answer. */
+    setAllowed: (allowed: boolean) => Promise<RakazoDesktopDevice | null>;
   };
   /** Optional for compatibility with older desktop releases. */
   passkeys?: {

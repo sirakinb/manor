@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { displayName } from "@rakazo/core";
-import { bootstrapUserSpace, type SignupPolicyEnv } from "./bootstrap-user.js";
+import type { SignupPolicyEnv } from "./bootstrap-user.js";
+import { bootstrapUserSpace } from "./bootstrap-user.js";
 import type { PrismaClient } from "./client.js";
 import { createRepos } from "./repos.js";
 
@@ -117,7 +118,6 @@ export async function provisionMessagingIdentity(
       },
       {
         name: "Assistant",
-        title: "",
         description: `Personal agent for ${address} (${provider}), auto-created on first message.`,
         instructions:
           "You are the owner's personal agent. The owner reaches you over chat; " +
@@ -144,8 +144,7 @@ export async function provisionMessagingIdentity(
       },
     });
   } catch {
-    // A concurrent first-inbound won the (provider, address) race; report its
-    // result.
+    // A concurrent first-inbound won the (provider, address) race; report its result.
     const winner = await prisma.messagingIdentity.findUnique({ where });
     if (!winner) {
       throw new Error(`messaging identity for ${provider}:${address} vanished after create failed`);

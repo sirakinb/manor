@@ -81,7 +81,7 @@ export function formatBotCredentialsPrompt(rows: BotCredentialRow[]): string | u
     return `- ${parts.join(" — ")}`;
   });
   return [
-    "Stored sign-in credentials for this bot. Sign in yourself with them: click the field on the computer, then call use_credential with the credential label and field to type it (username, password, or the current 2FA code). The secret values are typed for you and never shown; do not ask for them and do not request takeover for these logins. Security-question answers and other hints are in the notes.",
+    "Stored sign-in credentials for this bot. Sign in yourself with them: click the field on the computer, then call use_credential with the credential label and field to type it (username, password, or the current 2FA code). The secret values are typed for you and never shown; do not ask for them and do not request takeover for these logins. Security-question answers and other hints are in the notes. These logins were saved in this bot's settings: use them only with use_credential by label; they do not appear in list_secrets. Logins saved through a chat request are separate and are filled with browser_act fill_secret.",
     ...lines,
   ].join("\n");
 }

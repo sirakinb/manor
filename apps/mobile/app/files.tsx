@@ -83,7 +83,7 @@ export default function Files() {
     let active = true;
     const refresh = async () => {
       try {
-        const status = await rpc<ComputerStatus>("computer/status", { botId });
+        const status = await rpc("computer/status", { botId });
         if (active) setComputer(status);
       } catch (error) {
         if (active) controller.error(error);
@@ -275,7 +275,7 @@ export default function Files() {
         <Action
           label="Wake computer"
           onPress={() =>
-            void rpc<ComputerStatus>("computer/boot", { botId }, { timeoutMs: 90_000 })
+            void rpc("computer/boot", { botId }, { timeoutMs: 90_000 })
               .then(setComputer)
               .catch(controller.error)
           }

@@ -3,7 +3,7 @@ import { complete } from "@earendil-works/pi-ai/compat";
 import { describe, expect, it, vi } from "vitest";
 import { modelAcceptsImageInput } from "./model-vision.js";
 import { listPiCatalog } from "./pi-models.js";
-import { modelsForRequest } from "./pi-runtime.js";
+import { modelsForRequest } from "./pi-runtime-models.js";
 
 const requestedModels = [
   ["anthropic", "claude-fable-5-1", "Claude Fable 5.1", "anthropic-messages"],

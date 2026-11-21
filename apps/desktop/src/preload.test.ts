@@ -34,6 +34,7 @@ describe("desktop preload bridge", () => {
     expect(Object.keys(bridge).sort()).toEqual([
       "badge",
       "computer",
+      "device",
       "localComputer",
       "oauth",
       "passkeys",
@@ -60,6 +61,9 @@ describe("desktop preload bridge", () => {
     await bridge.badge!.set(7);
     expect(invoke).toHaveBeenCalledWith("desktop.badge.set", 7);
 
+    await bridge.device?.state();
+    await bridge.device?.setAllowed(true);
+    expect(invoke).toHaveBeenCalledWith("desktop.device.setAllowed", true);
     await bridge.oauth.open?.("https://provider.example.com/authorize");
     await bridge.oauth.cancel?.("https://provider.example.com/authorize");
     await bridge.passkeys?.rpIds();
@@ -73,6 +77,8 @@ describe("desktop preload bridge", () => {
     await bridge.update.install();
     expect(invoke.mock.calls.map(([channel]) => channel)).toEqual([
       "desktop.badge.set",
+      "desktop.device.state",
+      "desktop.device.setAllowed",
       "desktop.oauth.open",
       "desktop.oauth.cancel",
       "desktop.passkeys.rpIds",

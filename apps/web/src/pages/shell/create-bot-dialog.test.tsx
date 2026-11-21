@@ -76,6 +76,26 @@ describe("CreateBotDialog", () => {
     expect(button("Create").disabled).toBe(false);
   });
 
+  it("defaults new bots to the Original set with the family the preview draws", async () => {
+    const onCreate = vi.fn(async (_input: CreateBotDialogInput) => undefined);
+    await render(onCreate);
+    // Manor does not offer upstream's logo set, so there is no set to choose.
+    expect([...document.querySelectorAll("button")].some((b) => b.textContent === "Rakazo")).toBe(
+      false,
+    );
+    const family = Number(
+      document.querySelector(".rakazo-organic-avatar")?.getAttribute("data-shape-family"),
+    );
+    await typeName("Scout");
+    await click(button("Create"));
+    expect(onCreate.mock.lastCall?.[0]).toMatchObject({
+      name: "Scout",
+      avatarSet: "organic",
+      avatarFamily: family,
+    });
+    expect(onCreate.mock.lastCall?.[0]).not.toHaveProperty("id");
+  });
+
   it("sends the organic family the preview draws", async () => {
     const onCreate = vi.fn(async (_input: CreateBotDialogInput) => undefined);
     await render(onCreate);
@@ -89,6 +109,7 @@ describe("CreateBotDialog", () => {
       name: "Scout",
       color: "#10B981",
       avatarFamily: family,
+      avatarSet: "organic",
     });
     expect(family).toBe(ORGANIC_AVATAR_LOOKS[1]);
   });
@@ -100,7 +121,11 @@ describe("CreateBotDialog", () => {
     await click(button("wedge"));
     await typeName("Scout");
     await click(button("Create"));
-    expect(onCreate).toHaveBeenCalledWith({ name: "Scout", color: "#F97316::shape_1" });
+    expect(onCreate).toHaveBeenCalledWith({
+      name: "Scout",
+      color: "#F97316::shape_1",
+      avatarSet: "organic",
+    });
   });
 
   it("shows the error and stays open when creating fails", async () => {

@@ -1,6 +1,8 @@
 import { createHmac } from "node:crypto";
+import { APIError } from "better-auth/api";
 import { describe, expect, it, vi } from "vitest";
 import {
+  accountDeletionRefusal,
   assertSignupAllowed,
   authRateLimitOptions,
   buildTrustedOrigins,
@@ -176,6 +178,25 @@ describe("auth policy", () => {
   });
 });
 
+describe("accountDeletionRefusal", () => {
+  it("turns a refused deletion into a bad request that keeps its reason", () => {
+    const refused = Object.assign(new Error("Ask the organization's owner first."), {
+      code: "ACCOUNT_DELETION_REFUSED",
+    });
+    const mapped = accountDeletionRefusal(refused);
+    expect(mapped).toBeInstanceOf(APIError);
+    expect(mapped).toMatchObject({
+      status: "BAD_REQUEST",
+      body: { message: "Ask the organization's owner first.", code: "ACCOUNT_DELETION_REFUSED" },
+    });
+  });
+
+  it("passes any other error through unchanged", () => {
+    const other = new Error("database down");
+    expect(accountDeletionRefusal(other)).toBe(other);
+  });
+});
+
 describe("authRateLimitOptions", () => {
   it("caps credential routes at 10 attempts per 15 minutes in a shared table", () => {
     expect(authRateLimitOptions("production")).toEqual({
@@ -183,6 +204,8 @@ describe("authRateLimitOptions", () => {
       storage: "database",
       customRules: {
         "/request-account-deletion": { window: 600, max: 3 },
+        "/request-identity-code": { window: 600, max: 3 },
+        "/confirm-identity": { window: 15 * 60, max: 10 },
         "/sign-in/email": { window: 15 * 60, max: 10 },
         "/sign-up/email": { window: 15 * 60, max: 10 },
         "/request-password-reset": { window: 15 * 60, max: 10 },

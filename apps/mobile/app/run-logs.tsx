@@ -1,4 +1,3 @@
-import type { Run, RunDiagnostics } from "@rakazo/contracts";
 import { RunLogsController } from "@rakazo/core";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -10,8 +9,8 @@ export default function RunLogs() {
   const controller = useMemo(
     () =>
       new RunLogsController(botId, {
-        history: (input) => rpc<{ runs: Run[] }>("runs/history", input),
-        diagnostics: (input) => rpc<RunDiagnostics>("runs/diagnostics", input),
+        history: (input) => rpc("runs/history", input),
+        diagnostics: (input) => rpc("runs/diagnostics", input),
       }),
     [botId],
   );

@@ -4,6 +4,7 @@ import { captureScreenshot, completeOnboarding, openUserSettings, signup } from 
 
 const fixture = "/e2e/fixtures/tool-activity.html";
 const REPLY_TEXT = "Tuesday at 2 pm is free.";
+const NOTE_TEXT = "Anna is free all Tuesday afternoon.";
 const STORAGE_KEY = "rakazo.showToolActivity";
 
 const viewports = [
@@ -40,8 +41,11 @@ for (const stored of [null, "off", "on"] as const) {
         await expect(transcript.getByTestId("tool-activity")).toHaveCount(0);
         if (phase === "done") {
           await expect(page.getByTestId("message-bot-bubble")).toContainText(REPLY_TEXT);
+          // What the bot wrote before a step shows once, as a quiet note under that step.
+          await expect(transcript.getByTestId("tool-step-note")).toHaveText(NOTE_TEXT);
         } else {
           await expect(transcript.getByTestId("live-status")).toBeVisible();
+          await expect(transcript.getByTestId("tool-step-note")).toHaveCount(0);
         }
         await expect(page.locator("body")).toHaveJSProperty("scrollWidth", viewport.width);
         await captureScreenshot(

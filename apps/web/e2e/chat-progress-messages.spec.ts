@@ -29,7 +29,6 @@ test("chat shows mid-turn progress without Working…", async ({ page }, testInf
         await expect(bubbles.nth(1)).toHaveText(state.reply);
         await expect(page.getByTestId("live-status")).toHaveCount(0);
       }
-      // The mid-turn update is a normal message you can reply to.
       await expect(
         page.locator('[data-message-id="bot-progress"]').getByTestId("message-hover-actions"),
       ).toHaveCount(1);

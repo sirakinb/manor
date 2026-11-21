@@ -1,0 +1,207 @@
+import {
+  disabledBuiltinToolSet,
+  FLEET_TOOL_NAMES,
+  FLEET_WRITE_TOOL_NAMES,
+} from "@rakazo/contracts";
+import { isBackgroundRunTrigger, isOwnerStartedRun } from "@rakazo/core";
+import { builtinAgentTools } from "./builtin-tools.js";
+import { selectCloudAgentTools } from "./cloud-agent-tools-select.js";
+import { CRM_READ_ONLY_TOOL_NAMES } from "./crm-tools.js";
+import { selectMemoryTools } from "./memory-tools.js";
+import { filterImageReturningComputerTools } from "./model-vision.js";
+import { filterBuiltinToolsForRun, filterBuiltinToolsForThread } from "./schedule-tools.js";
+import { WORKSPACE_READ_ONLY_TOOL_NAMES } from "./workspace-tools.js";
+
+export const READ_ONLY_AGENT_TOOLS = new Set([
+  "computer_observe",
+  "list_files",
+  "list_fleet",
+  "read_file",
+  "read_history",
+  "search_history",
+  "request_takeover",
+  "run_subagent",
+  "task_catalog",
+  "recall_memory",
+  "schedule_list",
+  "scratchpad_list",
+  "board_tickets",
+  "ticket_get",
+  "skill_read",
+  ...CRM_READ_ONLY_TOOL_NAMES,
+  ...WORKSPACE_READ_ONLY_TOOL_NAMES,
+  "web_search",
+  "web_fetch",
+  "browser_snapshot",
+  "list_secrets",
+  "cloud_agent_status",
+  "purchase_status",
+]);
+
+/** Offered only to a user who connected a wallet. */
+const PURCHASE_TOOL_NAMES = new Set(["request_purchase", "purchase_status", "paid_request"]);
+
+export const BUILTIN_AGENT_TOOL_NAMES = new Set(builtinAgentTools.map((tool) => tool.name));
+
+/**
+ * The actual "use the computer/VM" surface, as opposed to the rest of the
+ * builtin toolset (memory, scratchpad, scheduling, skills, subagents, bot
+ * management) which stays available no matter which side toolRoutingMode pins.
+ */
+const COMPUTER_SURFACE_TOOL_NAMES = new Set([
+  "routine_prepare_webhook",
+  "computer_observe",
+  "computer_act",
+  "list_files",
+  "read_file",
+  "write_file",
+  "attach_file",
+  "shell",
+  "open_path",
+  "launch_app",
+  "use_credential",
+  "share_preview",
+]);
+
+/** Filters the offered tool list per a run's toolRoutingMode ("vm" / "plugins" / auto). */
+export function selectToolsForRoutingMode<T extends { name: string }>(
+  options: { computerToolsAvailable: boolean; pluginToolsAvailable: boolean },
+  builtins: T[],
+  connectorTools: T[],
+): T[] {
+  return [
+    ...(options.computerToolsAvailable
+      ? builtins
+      : builtins.filter((tool) => !COMPUTER_SURFACE_TOOL_NAMES.has(tool.name))),
+    ...(options.pluginToolsAvailable ? connectorTools : []),
+  ];
+}
+
+const FLEET_TOOL_NAMES_SET: ReadonlySet<string> = new Set(FLEET_TOOL_NAMES);
+
+export const FLEET_WRITE_TOOL_NAMES_SET: ReadonlySet<string> = new Set(FLEET_WRITE_TOOL_NAMES);
+
+/**
+ * The creation intro asks what the bot is for and records the answer on its own profile.
+ * It must not act (shell, computer, scheduling, spawning another bot, ...) before the user
+ * has said what it is for. Answering its question resumes it as the user's turn, with
+ * every tool (see commitAnswerRunInput).
+ */
+const CREATED_RUN_TOOL_NAMES = new Set(["ask_user", "update_bot"]);
+
+export function selectBuiltinToolsForRun(options: {
+  ticketBoardEnabled?: boolean;
+  phoneCallsEnabled?: boolean;
+  historyRetrievalEnabled?: boolean;
+  graphicalToolsAllowed: boolean;
+  /** Page browser tools need a graphical computer (Chrome), not model vision. */
+  pageBrowserAllowed?: boolean;
+  groupId: string | null;
+  trigger: string;
+  semanticMemoryEnabled: boolean;
+  workspaceEnabled?: boolean;
+  /** The configured provider can forget individual facts. */
+  semanticMemoryForgets?: boolean;
+  cloudAgentEnabled?: boolean;
+  /** The run's user connected a payment wallet. */
+  paymentWalletEnabled?: boolean;
+  mediaImagesEnabled?: boolean;
+  mediaVideoEnabled?: boolean;
+  messagingChannelRun: boolean;
+  /** Hanging up is only offered to a turn the caller spoke on a live call. */
+  voiceCall?: boolean;
+  /** Built-in names this bot turned off. Unknown names are ignored. */
+  disabledBuiltinTools?: readonly string[];
+  fleetManagement?: boolean;
+  /** A follow-up run whose source message the user wrote. */
+  followUpFromUser?: boolean;
+  /** The person who started this run has their desktop connected (see userComputerOwner). */
+  userComputer?: boolean;
+}) {
+  const disabled = disabledBuiltinToolSet(options.disabledBuiltinTools);
+  const fleetToolsAllowed = isOwnerStartedRun(options.trigger, Boolean(options.followUpFromUser));
+  return selectCloudAgentTools(
+    selectMemoryTools(
+      filterBuiltinToolsForRun(
+        filterBuiltinToolsForThread(
+          filterPageBrowserTools(
+            filterImageReturningComputerTools(
+              builtinAgentTools.filter(
+                (tool) => options.workspaceEnabled || !tool.name.startsWith("workspace_"),
+              ),
+              options.graphicalToolsAllowed,
+            ),
+            options.pageBrowserAllowed ?? options.graphicalToolsAllowed,
+          ),
+          options.groupId,
+        ),
+        options.trigger,
+      ),
+      options.semanticMemoryEnabled,
+      Boolean(options.semanticMemoryForgets),
+    ),
+    Boolean(options.cloudAgentEnabled),
+  ).filter(
+    (tool) =>
+      !disabled.has(tool.name) &&
+      (options.trigger !== "created" || CREATED_RUN_TOOL_NAMES.has(tool.name)) &&
+      (!FLEET_TOOL_NAMES_SET.has(tool.name) ||
+        (Boolean(options.fleetManagement) && fleetToolsAllowed)) &&
+      (options.paymentWalletEnabled || !PURCHASE_TOOL_NAMES.has(tool.name)) &&
+      (options.mediaImagesEnabled || tool.name !== "generate_image") &&
+      (options.mediaVideoEnabled || tool.name !== "generate_video") &&
+      (options.ticketBoardEnabled ||
+        (tool.name !== "board_tickets" && !tool.name.startsWith("ticket_"))) &&
+      (!isBackgroundRunTrigger(options.trigger) ||
+        ![
+          "message_user",
+          "message_bot",
+          "handoff_to_bot",
+          "message_agent",
+          "generate_image",
+          "generate_video",
+        ].includes(tool.name)) &&
+      (options.voiceCall || tool.name !== "end_call") &&
+      (options.userComputer || tool.name !== "user_computer_shell") &&
+      // Already on a call, or reached through a messaging channel that cannot ring.
+      ((options.phoneCallsEnabled &&
+        !options.groupId &&
+        !options.voiceCall &&
+        !options.messagingChannelRun &&
+        !isBackgroundRunTrigger(options.trigger)) ||
+        tool.name !== "call_user") &&
+      (options.historyRetrievalEnabled ||
+        !["search_history", "read_history"].includes(tool.name)) &&
+      (!options.messagingChannelRun ||
+        (![
+          "remember",
+          "save_shared_memory",
+          "save_memory",
+          "recall_memory",
+          "forget_memory",
+          "task_catalog",
+          "board_tickets",
+        ].includes(tool.name) &&
+          !tool.name.startsWith("scratchpad_") &&
+          !tool.name.startsWith("ticket_"))),
+  );
+}
+
+export const PAGE_BROWSER_TOOL_NAMES = new Set([
+  "browser_navigate",
+  "browser_snapshot",
+  "browser_act",
+]);
+
+export function filterPageBrowserTools<T extends { name: string }>(
+  tools: T[],
+  pageBrowserAllowed: boolean,
+): T[] {
+  if (pageBrowserAllowed) return tools;
+  return tools.filter((tool) => !PAGE_BROWSER_TOOL_NAMES.has(tool.name));
+}
+
+/** The fleet tools this run was offered, the same decision as tool selection. */
+export function offeredFleetTools(tools: readonly { name: string }[]): string[] {
+  return tools.map((tool) => tool.name).filter((name) => FLEET_TOOL_NAMES_SET.has(name));
+}

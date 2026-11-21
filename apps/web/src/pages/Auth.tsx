@@ -45,12 +45,12 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [reset, setReset] = useState<AuthCapabilities | null>(null);
   const [capabilityError, setCapabilityError] = useState(false);
   const [capabilityAttempt, setCapabilityAttempt] = useState(0);
-  const [method, setMethod] = useState<"code" | "password">("code");
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
   const useCode = Boolean(reset?.passwordAuth && reset.emailCode) && mode !== "forgot";
-  const codeMode = useCode && method === "code";
-  const codeStep = codeMode && codeSent;
+  // A blank password asks for an emailed code, so code-only accounts need no toggle.
+  const codeMode = useCode && !password;
+  const codeStep = useCode && codeSent;
   const passwordFieldId = mode === "in" ? "current-password" : "new-password";
   const logoOnly = !sent && !codeStep && mode === "in" && brand.id !== "manor";
   const title =
@@ -194,8 +194,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     setPending(true);
   }
 
-  function chooseMethod(next: "code" | "password") {
-    setMethod(next);
+  function leaveCodeStep() {
     setCodeSent(false);
     setCode("");
     setError(null);
@@ -355,7 +354,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 />
               </label>
             )}
-            {mode !== "forgot" && !codeMode ? (
+            {mode !== "forgot" && !codeStep ? (
               <div className="mt-4 w-full text-[16px] text-[#8A8590]">
                 <label htmlFor={passwordFieldId}>
                   <Trans>Password</Trans>
@@ -369,7 +368,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t`Password`}
                     type={showPassword ? "text" : "password"}
-                    required
+                    required={!useCode}
                     minLength={mode === "up" ? MIN_PASSWORD_LENGTH : undefined}
                     maxLength={MAX_PASSWORD_LENGTH}
                     className="w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] py-[17px] pl-[18px] pr-[52px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
@@ -440,7 +439,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
               ) : codeMode ? (
                 <Trans>Continue</Trans>
               ) : mode === "in" ? (
-                <Trans>Continue with email</Trans>
+                <Trans>Sign in</Trans>
               ) : mode === "forgot" ? (
                 <Trans>Send reset link</Trans>
               ) : (
@@ -455,20 +454,14 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 onError={setError}
               />
             ) : null}
-            {useCode ? (
+            {codeStep ? (
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => chooseMethod(codeMode && !codeStep ? "password" : "code")}
+                onClick={leaveCodeStep}
                 className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
               >
-                {codeStep ? (
-                  <Trans>Back</Trans>
-                ) : codeMode ? (
-                  <Trans>Use password</Trans>
-                ) : (
-                  <Trans>Use email code</Trans>
-                )}
+                <Trans>Back</Trans>
               </button>
             ) : null}
             {reset?.sso && mode !== "forgot" && !codeStep ? (

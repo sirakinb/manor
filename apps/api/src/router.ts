@@ -8,6 +8,7 @@ import type {
   JobPublisher,
   MaintenanceAdapter,
   MemoryStore,
+  PaymentWalletProvider,
   ProductAnalytics,
   SandboxProvider,
   SecretStore,
@@ -26,10 +27,13 @@ import type {
   MemoryProviderResolver,
   MessagingInstallations,
   PiOAuthLogins,
+  PluginRepoFetcher,
+  PluginTextReader,
   ProviderCatalogCache,
   PushTokenStore,
   RemoteConnectorDependencies,
   TicketChangeNotifier,
+  verifyModelServesAgents,
 } from "@rakazo/adapters";
 import {
   BOT_CREDENTIAL_SECRET_KIND,
@@ -50,7 +54,7 @@ import {
   WorkspaceFileError,
 } from "@rakazo/adapters";
 import type { Auth } from "@rakazo/auth";
-import type { Actor } from "@rakazo/contracts";
+import type { Actor, NavLink } from "@rakazo/contracts";
 import { workspaceOperationMutates } from "@rakazo/contracts";
 import type { VerificationCheckInput } from "@rakazo/core";
 import {
@@ -89,6 +93,7 @@ import {
   stopLocalComputerSessions,
 } from "./local-computer.js";
 import { accountRoutes } from "./routes/account.js";
+import { availabilityRoutes } from "./routes/availability.js";
 import { boardsRoutes } from "./routes/boards.js";
 import { botsRoutes } from "./routes/bots.js";
 import { computerRoutes } from "./routes/computer.js";
@@ -100,12 +105,14 @@ import { mcpRoutes } from "./routes/mcp.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
+import { paymentWalletRoutes } from "./routes/payment-wallet.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { computerContext } from "./routes/shared.js";
 import { spacesRoutes } from "./routes/spaces.js";
 import { threadsRoutes } from "./routes/threads.js";
 import { getRunDiagnostics, listBotRunHistory } from "./runs.js";
 import { addPreviewProxyCapability } from "./screen-proxy.js";
+import type { VoiceDeps } from "./voice.js";
 import { workspaceAccess } from "./workspace-access.js";
 import {
   createWorkspaceActions,
@@ -124,6 +131,8 @@ export interface RouterDeps {
   pushTokens: PushTokenStore;
   analytics?: ProductAnalytics;
   cloudAgent?: CloudAgentConnection | null;
+  /** The deployment's wallet provider; absent hides purchases. */
+  paymentWallet?: PaymentWalletProvider | null;
   prisma: PrismaClient;
   events: ThreadEvents;
   boardEvents: BoardEvents;
@@ -145,14 +154,11 @@ export interface RouterDeps {
   providerCatalog?: ProviderCatalogCache;
   /** HTTP transport for model connection checks and catalog probes. */
   modelConnectionFetch?: typeof fetch;
+  /** One real request proving a newly keyed model can serve agents; absent skips it. */
+  modelConnectionCheck?: typeof verifyModelServesAgents;
   /** Site icons for links; defaults to the per-process cache that fetches them. */
   favicons?: FaviconResolver;
-  /**
-   * Detached refresh for a stored credential whose bearer expired — the live
-   * catalog path calls it instead of refreshing inline. Defaults to the
-   * runtime's locked `kickModelCredentialRefresh`; injectable for tests so a
-   * catalog read never reaches the real OAuth refresh endpoint.
-   */
+  /** Detached refresh for an expired bearer, so the live catalog never refreshes inline. */
   refreshExpiredModelCredential?: (
     scope: { userId: string; spaceId: string },
     secretId: string,
@@ -161,19 +167,21 @@ export interface RouterDeps {
   integrationSettings?: IntegrationProviderSettings;
   composio?: ComposioProvider;
   mcpOAuth?: McpOAuthBroker;
-  /**
-   * The API process's MCP connector, used to launch/list an MCP server once so its health
-   * is visible (`mcp.servers.test` and the probe after create/update/OAuth). Without it
-   * servers are simply never probed from here.
-   */
+  /** Probes MCP server health; without it servers are never probed from here. */
   mcp?: Pick<McpConnector, "probe">;
   connectors: ConnectorRegistry;
   remoteConnectors?: RemoteConnectorDependencies;
+  pluginRepoFetcher?: PluginRepoFetcher;
+  pluginMarketplaceRead?: PluginTextReader;
   artifacts: ArtifactStore;
   dataDir: string;
-  /** Present when the external messaging surface is enabled. */
   messagingInstallations?: MessagingInstallations;
-  messaging?: { enabled: boolean; providers: string[]; openSignup: boolean };
+  messaging?: {
+    enabled: boolean;
+    providers: string[];
+    addresses: Record<string, string>;
+    openSignup: boolean;
+  };
   crmEvent?: (
     organizationId: string,
     type:
@@ -189,8 +197,10 @@ export interface RouterDeps {
   ) => Promise<void>;
   /** Present only when the deployment bills; self-hosted installs leave it unset. */
   billing?: BillingService;
+  speechSummary?: VoiceDeps["speechSummary"];
   env: {
     ticketBoardEnabled?: boolean;
+    navLinks?: NavLink[];
     phoneCallsEnabled?: boolean;
     phoneCallRingSeconds?: number;
     maxUploadSizeBytes?: number;
@@ -209,7 +219,6 @@ export interface RouterDeps {
     integrationsCatalogUrl?: string;
     mcpAllowPrivateEndpoint?: boolean;
     desktopHostChoiceEnabled?: boolean;
-    /** Whether MCP stdio servers can run, and the commands they may launch. */
     mcpStdioEnabled?: boolean;
     mcpStdioAllowedCommands?: string[];
   };
@@ -232,9 +241,11 @@ export function createRouter(deps: RouterDeps) {
     ...routinesRoutes(ctx),
     ...boardsRoutes(ctx),
     ...mcpRoutes(ctx),
+    ...availabilityRoutes(ctx),
     ...connectionsRoutes(ctx),
     ...messagingRoutes(ctx),
     ...content,
+    ...paymentWalletRoutes(ctx),
     // Manor-owned areas, and Manor's procedures inside upstream's computer and runs groups.
     ...manorRoutes(ctx, { computer: computer.computer, runs: content.runs }),
   });

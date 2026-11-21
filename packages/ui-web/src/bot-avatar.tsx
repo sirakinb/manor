@@ -1,4 +1,5 @@
-import type { BotColorDef } from "@rakazo/core";
+import type { BotAvatarSet } from "@rakazo/contracts";
+import type { BotColorDef, LogoAvatarActivity } from "@rakazo/core";
 import {
   ACTIVE_RUN_STATUSES,
   avatarIdentitySeed,
@@ -14,9 +15,11 @@ import {
   shippedBotAvatarShapePath,
 } from "@rakazo/core";
 import { darkTokens } from "@rakazo/ui-tokens";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { memo, useId, useMemo, useSyncExternalStore } from "react";
+import { useBotAvatarActivity } from "./bot-avatar-activity.js";
 import { cn } from "./lib/utils.js";
+import { LogoAvatar } from "./logo-avatar.js";
 import "./styles.css";
 
 const SPRITES: Record<string, string> = {
@@ -82,6 +85,8 @@ export function defaultBotAvatarValue(rawColor: string): string {
 
 export interface BotAvatarProps {
   color: string;
+  avatarSet?: BotAvatarSet;
+  activity?: LogoAvatarActivity;
   size?: number;
   status?: string;
   identity?: string;
@@ -90,6 +95,8 @@ export interface BotAvatarProps {
 
 export const BotAvatar = memo(function BotAvatar({
   color,
+  avatarSet,
+  activity,
   size = 36,
   status,
   identity = "",
@@ -118,7 +125,7 @@ export const BotAvatar = memo(function BotAvatar({
         </div>
         {isWorking ? (
           <svg
-            className="rakazo-bot-avatar-ring rakazo-bot-avatar-ring-working absolute z-10 pointer-events-none"
+            className="rakazo-bot-avatar-ring rakazo-bot-avatar-ring-working absolute pointer-events-none"
             style={{
               inset: -4,
               width: size + 8,
@@ -167,6 +174,19 @@ export const BotAvatar = memo(function BotAvatar({
     );
   }
 
+  if (parsed.shapeIndex === undefined && avatarSet === "rakazo") {
+    const Avatar = activity === undefined ? LiveLogoAvatar : LogoAvatar;
+    return (
+      <Avatar
+        avatarValue={color ? colorDef.hex : undefined}
+        identity={effectiveId}
+        size={size}
+        activity={activity}
+        status={status}
+        className={className}
+      />
+    );
+  }
   if (parsed.shapeIndex === undefined) {
     return (
       <OrganicAvatar
@@ -291,6 +311,15 @@ function WorkingRing({ size, color, gradId }: { size: number; color: string; gra
       </defs>
     </svg>
   );
+}
+
+/** Only live Rakazo consumers subscribe to public activity updates. */
+function LiveLogoAvatar({
+  status,
+  ...props
+}: ComponentProps<typeof LogoAvatar> & { status?: string }) {
+  const activity = useBotAvatarActivity(props.identity ?? "", status);
+  return <LogoAvatar {...props} activity={activity} />;
 }
 
 function OrganicAvatar({

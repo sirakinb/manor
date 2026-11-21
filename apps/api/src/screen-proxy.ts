@@ -1,11 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { hasActiveComputerControl } from "@rakazo/adapters";
-import type { ScreenCapabilityScope } from "@rakazo/core/node/screen-capability";
-import {
-  issueScreenCapability,
-  openScreenCapability,
-  SCREEN_TARGET_ENDPOINT,
-} from "@rakazo/core/node/screen-capability";
+import { openScreenCapability, SCREEN_TARGET_ENDPOINT } from "@rakazo/core/node/screen-capability";
 import type { PrismaClient } from "@rakazo/db";
 import { runAsSystem } from "@rakazo/db";
 import type { Hono } from "hono";
@@ -15,21 +10,6 @@ import { requestBodyLimit } from "./request-body-limit.js";
 const PREVIEW_PROXY_TTL_MS = 60 * 60_000;
 const PREVIEW_PROXY_PREFIX = "/preview";
 const PREVIEW_POLICY = "app";
-
-export function addScreenProxyCapability(
-  url: string,
-  secret: string,
-  origin: string,
-  scope: ScreenCapabilityScope,
-  now = Date.now(),
-  headers?: Record<string, string>,
-) {
-  // Local/desktop providers return non-http schemes (e.g. desktop://). Those never
-  // traverse the web proxy, so seal only http(s) upstream URLs.
-  const protocol = new URL(url).protocol;
-  if (protocol !== "http:" && protocol !== "https:") return url;
-  return issueScreenCapability(url, secret, origin, scope, now, headers);
-}
 
 export function mountScreenTarget(app: Hono, prisma: PrismaClient, secret: string) {
   app.post(SCREEN_TARGET_ENDPOINT, requestBodyLimit(16 * 1024), async (c) => {

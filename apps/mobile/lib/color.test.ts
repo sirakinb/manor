@@ -1,6 +1,6 @@
 import { darkTokens, lightTokens } from "@rakazo/ui-tokens";
 import { describe, expect, it } from "vitest";
-import { transparentColor } from "./color.js";
+import { translucentColor, transparentColor } from "./color.js";
 
 describe("transparentColor", () => {
   it("keeps the hue of six-digit backgrounds", () => {
@@ -22,5 +22,17 @@ describe("transparentColor", () => {
 
   it("stays a valid color when the source format is unknown", () => {
     expect(transparentColor("oklch(0.2 0.02 260)")).toBe("transparent");
+  });
+});
+
+describe("translucentColor", () => {
+  it("gives the label grey at iOS's tertiary 30% in both themes", () => {
+    expect(translucentColor(lightTokens.mutedForeground, 0.3)).toBe("rgba(60, 60, 67, 0.3)");
+    // Manor's dark palette has its own muted grey.
+    expect(translucentColor(darkTokens.mutedForeground, 0.3)).toBe("rgba(138, 135, 146, 0.3)");
+  });
+
+  it("leaves a colour it can't read as it was", () => {
+    expect(translucentColor("oklch(0.2 0.02 260)", 0.3)).toBe("oklch(0.2 0.02 260)");
   });
 });

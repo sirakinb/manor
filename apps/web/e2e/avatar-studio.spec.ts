@@ -21,6 +21,9 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   await expect(studio.getByRole("tab", { name: "Upload", exact: true })).toBeVisible();
   await expect(studio.getByTestId("avatar-studio-bot-tab")).toBeVisible();
 
+  // Manor offers no icon set choice: upstream's logo ("Rakazo") set draws upstream's mark.
+  await expect(studio.getByRole("tab", { name: "Rakazo", exact: true })).toHaveCount(0);
+  await expect(studio.getByRole("tab", { name: "Original", exact: true })).toHaveCount(0);
   const defaultLook = studio.getByTestId("avatar-studio-default");
   const wedge = studio.getByRole("button", { name: "wedge", exact: true });
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
@@ -66,7 +69,7 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
 
   await captureScreenshot(page, testInfo, "avatar-studio-bot-tab");
 
-  // An uploaded image replaces the sprite; the studio closes once the image is applied.
+  // An uploaded image replaces the drawn avatar; the studio closes once the image is applied.
   await studio.getByRole("tab", { name: "Upload", exact: true }).click();
   await studio
     .locator('input[type="file"]')

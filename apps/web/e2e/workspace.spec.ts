@@ -634,7 +634,7 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(modelOptions).toHaveCount(deploymentModels + 1);
   await expect(modelOptions.filter({ hasText: "Space default" })).toHaveCount(1);
   await expect(
-    page.locator('[data-slot="command-list"]').getByRole("option", { name: /^OpenRouter · / }),
+    page.locator('[data-slot="command-list"]').getByRole("option", { name: / \(OpenRouter\)$/ }),
   ).toHaveCount(deploymentModels);
   await captureScreenshot(page, testInfo, "workspace-openrouter-model-choices");
 });

@@ -22,11 +22,9 @@ export default function Crm() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const next = await rpc<CrmOverview>("crm/overview");
+      const next = await rpc("crm/overview");
       // A first visit gets a ready board instead of an empty screen.
-      setOverview(
-        next.pipelines.length === 0 ? await rpc<CrmOverview>("crm/pipelines/seed") : next,
-      );
+      setOverview(next.pipelines.length === 0 ? await rpc("crm/pipelines/seed") : next);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load the CRM");
     }

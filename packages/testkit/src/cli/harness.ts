@@ -2,11 +2,12 @@ import { execSync } from "node:child_process";
 import { globSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { createApp } from "@rakazo/api/app";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
-import type { createApp } from "../../../../apps/api/src/app.ts";
 import { createModelConnectionFixtureFetch } from "../model-connection-fixture.js";
+import { PluginMarketplaceFixture } from "../plugin-marketplace-fixture.js";
 import { startJevEmulator } from "./jev-emulator.js";
+import { startPostgres } from "./postgres.js";
 import { runProcess } from "./process.js";
 
 loadRootEnv();
@@ -27,8 +28,8 @@ const agentRuntime = runtimeArg?.slice("--runtime=".length) ?? "scripted";
 if (Number(integration) + Number(e2e) !== 1) {
   throw new Error("Pass exactly one of --integration or --e2e");
 }
-if (!["fake", "e2b", "daytona", "boat"].includes(sandboxProvider)) {
-  throw new Error('Sandbox must be "fake", "e2b", "daytona", or "boat"');
+if (!["fake", "e2b", "novita", "daytona", "boat"].includes(sandboxProvider)) {
+  throw new Error('Sandbox must be "fake", "e2b", "novita", "daytona", or "boat"');
 }
 if (integration && sandboxProvider !== "fake") {
   throw new Error("Integration tests only support the fake sandbox");
@@ -38,6 +39,9 @@ if (agentRuntime !== "pi" && agentRuntime !== "scripted") {
 }
 if (sandboxProvider === "e2b" && !process.env.E2B_API_KEY) {
   throw new Error("E2B_API_KEY is required when --sandbox=e2b");
+}
+if (sandboxProvider === "novita" && !process.env.NOVITA_API_KEY) {
+  throw new Error("NOVITA_API_KEY is required when --sandbox=novita");
 }
 if (sandboxProvider === "daytona" && !process.env.DAYTONA_API_KEY) {
   throw new Error("DAYTONA_API_KEY is required when --sandbox=daytona");
@@ -53,9 +57,7 @@ async function main() {
   // HARNESS_DATABASE_URL points at an externally managed empty database and
   // skips testcontainers — for machines where Docker is unavailable.
   const externalDatabaseUrl = process.env.HARNESS_DATABASE_URL;
-  const container = externalDatabaseUrl
-    ? null
-    : await new PostgreSqlContainer("postgres:18-alpine").start();
+  const container = externalDatabaseUrl ? null : await startPostgres();
   try {
     // Migrations run as the container superuser and the e2e API connects as the
     // runtime login, so row-level security is enforced as in a deployment.
@@ -80,6 +82,11 @@ async function main() {
     if (!integration) {
       process.env.TICKET_BOARD_ENABLED = "true";
       process.env.PHONE_CALLS_ENABLED = "true";
+      // The offline wallet, so Settings shows Wallet and sign-in completes without a provider.
+      process.env.PAYMENT_WALLET_PROVIDER = "emulator";
+      process.env.RAKAZO_NAV_LINKS = JSON.stringify([
+        { id: "clients", label: "Clients", path: "/ext/clients/" },
+      ]);
     }
     // Playwright/E2E force the offline cloud-agent emulator; clear Cursor keys so cards never hit a live VM.
     process.env.CLOUD_AGENT_PROVIDER = "emulator";
@@ -101,6 +108,11 @@ async function main() {
     process.env.SIGNUP_ALLOWLIST = "";
     // Model and speech fixtures listen on loopback, and most test accounts are not the owner.
     process.env.MCP_ALLOW_PRIVATE_ENDPOINT = "true";
+    if (!integration) {
+      // The scripted bot registers a stdio server, and the MCP settings offer stdio.
+      process.env.MCP_STDIO_ENABLED = "true";
+      process.env.MCP_STDIO_ALLOWED_COMMANDS = "echo";
+    }
     process.env.CI = "1";
 
     execSync("pnpm --filter @rakazo/db generate", { stdio: "inherit", env: process.env });
@@ -199,16 +211,18 @@ async function main() {
         PipedreamConnector,
         ThirdPartyConnectorEmulator,
         TestMaintenanceAdapter,
+        UserDeviceEmulator,
       },
       { createApp },
       { drainUnscopedDatabaseAccess },
     ] = await Promise.all([
       import("@rakazo/adapters"),
-      import("../../../../apps/api/src/app.ts"),
+      import("@rakazo/api/app"),
       import("@rakazo/db"),
     ]);
     const { serve } = await import("@hono/node-server");
     const thirdParties = new ThirdPartyConnectorEmulator();
+    const marketplace = new PluginMarketplaceFixture(thirdParties.fetch);
     const pipedream = new PipedreamConnector(
       {
         clientId: "fake-client-id",
@@ -220,6 +234,8 @@ async function main() {
       { fetch: thirdParties.fetch, resolveHostname: thirdParties.resolveHostname },
     );
     const email = new EmailEmulator();
+    // Scripted runs only: a real model would see a computer it could use in every spec.
+    const userDevices = agentRuntime === "scripted" ? new UserDeviceEmulator() : undefined;
     const handles = await createApp({
       maintenance: new TestMaintenanceAdapter(),
       databaseUrl,
@@ -230,10 +246,13 @@ async function main() {
       pipedream,
       email,
       remoteConnectors: {
-        fetch: thirdParties.fetch,
+        fetch: marketplace.fetch,
         resolveHostname: thirdParties.resolveHostname,
       },
+      pluginRepoFetcher: marketplace.repo,
+      pluginMarketplaceRead: marketplace.index,
       integrationsCatalogUrl: "https://catalog.example.test/",
+      userDevices,
     });
     let activeRequests = 0;
     const requestWaiters = new Set<() => void>();
@@ -241,6 +260,11 @@ async function main() {
       fetch: async (request) => {
         if (new URL(request.url).pathname === "/__e2e/emails") {
           return Response.json(email.sent, { headers: { "cache-control": "no-store" } });
+        }
+        if (new URL(request.url).pathname === "/__e2e/user-device-requests") {
+          return Response.json(userDevices?.requests ?? [], {
+            headers: { "cache-control": "no-store" },
+          });
         }
         activeRequests += 1;
         try {
@@ -322,7 +346,7 @@ async function main() {
               {
                 id: computer.providerRef!,
                 botId: computer.homeKey,
-                kind: computer.kind as "e2b" | "daytona" | "boat",
+                kind: computer.kind as "e2b" | "novita" | "daytona" | "boat",
                 providerRef: computer.providerRef!,
               },
               {
@@ -354,7 +378,7 @@ async function main() {
 type AppHandles = Awaited<ReturnType<typeof createApp>>;
 
 async function managedComputers(handles: AppHandles) {
-  if (!["e2b", "daytona", "boat"].includes(sandboxProvider)) return [];
+  if (!["e2b", "novita", "daytona", "boat"].includes(sandboxProvider)) return [];
   return handles.prisma.computer.findMany({
     where: { providerRef: { not: null } },
     select: { homeKey: true, kind: true, providerRef: true, userId: true, spaceId: true },

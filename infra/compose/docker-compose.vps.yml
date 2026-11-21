@@ -115,6 +115,9 @@ services:
       - ../../.env.vps
     environment:
       NODE_ENV: production
+      # Every other setting in .env.vps (WELCOME_EMAIL_ENABLED, EMAIL_REPLY_TO, RAKAZO_NAV_LINKS,
+      # VOICE_SUMMARY_MIN_CHARS, USER_DEVICES_ENABLED, NOVITA_API_KEY, SANDBOX_TEMPLATE, ...)
+      # arrives through env_file, so leaving one out of .env.vps keeps it unset.
       # Sibling containers reach the API over the compose network, so it must
       # not bind loopback-only inside its own namespace.
       API_HOST: "0.0.0.0"
@@ -266,6 +269,9 @@ services:
       RAKAZO_CSP_CONNECT_SRC: ${RAKAZO_CSP_CONNECT_SRC:-}
       # Manor: brand portal pages frame app previews from this primary origin.
       WEB_ORIGIN: ${WEB_ORIGIN:-}
+      # vite preview bundles its config with Rolldown, which starts one thread per host CPU.
+      # Upstream fixes it at 4 so pids_limit holds on many-core hosts; empty keeps the default.
+      RAYON_NUM_THREADS: ${RAYON_NUM_THREADS:-}
     expose:
       - "5173"
     networks:

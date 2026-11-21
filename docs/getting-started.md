@@ -50,9 +50,10 @@ Start with one small task you do every week.
 
 - **Its computer:** each agent has its own browser and terminal. Open **Agent computer** to watch
   it work, or click **Take control** to step in.
-- **Approvals:** before a consequential action, the agent asks. Choose **Allow once**, **Always
-  allow this tool**, or **Deny**. Set what needs approval in **Settings** → **Advanced** →
-  **Action confirmations**.
+- **Approvals:** before a change, the agent asks. Choose **Allow once**, **Always allow this
+  tool**, or **Deny**. In **Settings** → **Approvals**, pick **Ask** (ask before any change),
+  **Auto** (an approval model passes what fits your request), or **Never ask**, and manage the
+  tools and sites on the allow and block lists.
 - **Website logins:** add them in the agent's settings under **Sign-in credentials** instead of
   pasting passwords into chat.
 

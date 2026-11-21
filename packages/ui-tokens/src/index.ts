@@ -281,6 +281,9 @@ export const typeScale = {
  */
 export const MAX_FONT_SCALE = 23 / typeScale.body.fontSize;
 
+/** The ink of a drawn bot's eyes, the same on every body colour and in both themes. */
+export const botEyeColor = "#101014";
+
 // Manor sprite family: purple, yellow, teal, lavender, orange, red, blue.
 // Hexes must match the SPRITES map in ui-web/bot-avatar.tsx.
 export const botColors = [

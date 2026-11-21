@@ -1,8 +1,8 @@
-import type { AdapterContext } from "@rakazo/adapter-kit";
 import {
   deploymentModelRole,
   hasHostedModelCredits,
   hostCredentialSource,
+  mcpStdioAvailable,
   resolveMemberMainModel,
 } from "@rakazo/adapters";
 import type { Actor, Me } from "@rakazo/contracts";
@@ -11,16 +11,7 @@ import { spaceResourceActor } from "@rakazo/db";
 import { localComputerLiveSession } from "../local-computer.js";
 import type { RouterDeps } from "../router.js";
 
-export function computerContext(actor: Actor, botId: string, operationId: string): AdapterContext {
-  return {
-    operationId,
-    traceId: operationId,
-    spaceId: actor.spaceId,
-    userId: actor.userId,
-    botId,
-    signal: new AbortController().signal,
-  };
-}
+export { createAdapterContext as computerContext } from "@rakazo/adapter-kit";
 
 function hostCredentials(active: boolean, provider: string) {
   return active
@@ -35,13 +26,19 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
   const [user, setup] = await Promise.all([
     deps.prisma.user.findUniqueOrThrow({
       where: { id: personId },
-      include: { signupSurvey: { select: { userId: true } } },
+      select: {
+        email: true,
+        name: true,
+        timezone: true,
+        signupSurvey: { select: { userId: true } },
+      },
     }),
     modelSetup(deps, resourceActor),
   ]);
   return {
     ticketBoardEnabled: deps.env.ticketBoardEnabled === true,
     phoneCallsEnabled: deps.env.phoneCallsEnabled === true,
+    navLinks: deps.env.navLinks ?? [],
     maxUploadSizeBytes: attachmentMaxBytes(deps.env),
     userId: personId,
     email: user.email,
@@ -63,12 +60,19 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     canChooseHostComputer:
       Boolean(deps.env.desktopHostChoiceEnabled) && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
+    mcpStdioEnabled: mcpStdioAvailable({
+      stdioEnabled: deps.env.mcpStdioEnabled,
+      allowedCommands: deps.env.mcpStdioAllowedCommands,
+    }),
     avatarStyle: "organic",
     timezone: user.timezone ?? null,
     localComputer: await localComputerLiveSession(deps.prisma, actor),
     billingEnabled: Boolean(deps.billing),
     // Only billing deployments ask; self-hosted installs never see the survey.
     needsSignupSurvey: Boolean(deps.billing) && !user.signupSurvey,
+    paymentWalletProvider: deps.paymentWallet
+      ? { id: deps.paymentWallet.describe().id, name: deps.paymentWallet.displayName }
+      : null,
   };
 }
 
@@ -108,6 +112,8 @@ export async function modelSetup(deps: RouterDeps, actor: Actor) {
         deployment: { provider: deps.env.defaultProvider, model: deps.env.defaultModel },
       }).primary,
     settings,
+    funding,
+    hasDeployment,
     needsModel: deps.env.agentRuntime !== "scripted" && !main && !hasDeployment,
   };
 }
