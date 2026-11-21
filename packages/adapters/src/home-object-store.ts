@@ -226,6 +226,9 @@ export class ObjectAgentHomeStore extends LocalAgentHomeStore {
    * only copy. Never call it for a Docker computer, which works directly in the copy.
    */
   async evictCache(botId: string, { idleBefore }: { idleBefore?: number } = {}): Promise<boolean> {
+    // Manor's local store holds the bot's lock for a whole export (see LocalAgentHomeStore),
+    // so a copy being read is refused before queuing on that lock, not after the export ends.
+    if (this.readers.has(botId)) return false;
     return this.withBotWrite(botId, async () => {
       if (this.readers.has(botId)) return false;
       if (idleBefore !== undefined) {

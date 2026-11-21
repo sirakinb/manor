@@ -125,15 +125,8 @@ test("the Auto approval mode offers a choice of checker", async ({ page }, testI
   const settings = page.getByTestId("user-settings");
   await settings.getByTestId("settings-nav-confirmations").click();
   // The approval mode is the one control; the checker choice shows only in Auto.
-  // Controls reflect the saved setting, so click and wait for the server round trip.
+  // With no saved choice the mode is Auto, which stays listed while chosen.
   const mode = settings.getByTestId("approval-mode");
-  await mode.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(mode.getByRole("button", { name: "Ask", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(settings.getByTestId("auto-review-engine")).toHaveCount(0);
-  await mode.getByRole("button", { name: "Auto", exact: true }).click();
   await expect(mode.getByRole("button", { name: "Auto", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",

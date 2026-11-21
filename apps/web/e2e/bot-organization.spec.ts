@@ -435,12 +435,13 @@ test("built-in sidebar headings follow the language without renaming custom sect
   const pinnedLabel = await pinnedToggle.getAttribute("aria-label");
   const spaceName = pinnedLabel?.match(/^Collapse (.+), Pinned$/)?.[1];
   expect(spaceName).toBeTruthy();
+  await expect(pinnedToggle).toHaveText(`${spaceName}Pinned`);
   const settings = await openUserSettings(page);
   await settings.getByTestId("ui-locale-select").click();
   await page.getByRole("option", { name: "Deutsch", exact: true }).click();
   await page.getByRole("button", { name: "Benutzereinstellungen schließen", exact: true }).click();
   await expect(settings).not.toBeVisible();
-  await expect(pinnedToggle).toHaveText(`${spaceName}Pinned`);
+  // The button's name is translated now, so the heading is read through its group.
   await expect(pinnedGroup).toContainText(`${spaceName}Angeheftet`);
   await expect(sidebar.locator('[data-sidebar-group$=":unassigned"]')).toContainText(
     `${spaceName}Nicht zugewiesen`,

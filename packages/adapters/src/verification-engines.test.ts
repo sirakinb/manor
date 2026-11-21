@@ -37,6 +37,16 @@ describe("planVerificationEngines", () => {
       }),
     ).toEqual({});
   });
+
+  it("never substitutes Jev for an unavailable LLM checker the member did not change", () => {
+    expect(
+      planVerificationEngines({
+        selected: LLM_ENGINE,
+        compare: false,
+        available: { [LLM_ENGINE]: false, [JEV_ENGINE]: true },
+      }),
+    ).toEqual({});
+  });
 });
 
 describe("jevVerifierFromEnv", () => {

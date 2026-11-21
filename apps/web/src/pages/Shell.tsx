@@ -1482,7 +1482,11 @@ function SpaceShell() {
               ) : active ? (
                 <span className="flex gap-1.5">
                   <Trans>Computer</Trans>
-                  <span>{computer?.state ?? active.status}</span>
+                  {/* A failure is the panel's own to explain (and may already be retrying), so
+                      the title never repeats a raw "error" state. */}
+                  {(computer?.state ?? active.status) === "error" ? null : (
+                    <span>{computer?.state ?? active.status}</span>
+                  )}
                 </span>
               ) : null}
             </span>

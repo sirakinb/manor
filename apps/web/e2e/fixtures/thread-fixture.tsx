@@ -48,14 +48,14 @@ export function reduceThreadEvents(events: Partial<ProductEvent>[]): ThreadSnaps
 export function FixtureTranscript({
   messages,
   running,
-  showToolActivity,
   header,
   answerableAskIds = NO_IDS,
   bots = [BOT],
 }: {
   messages: readonly ThreadMessage[];
   running: boolean;
-  showToolActivity: boolean;
+  /** Upstream's tool-activity preference; Manor's timeline always shows steps, so it is ignored. */
+  showToolActivity?: boolean;
   header?: ReactNode;
   /** Messages whose ask cards take answers; the rest render as no longer active. */
   answerableAskIds?: Set<string>;
@@ -77,7 +77,6 @@ export function FixtureTranscript({
         onScrollRequestHandled={noop}
         artifactTarget={{ botId: BOT.botId }}
         transcript={transcript}
-        showToolActivity={showToolActivity}
         olderCursor={null}
         unreadAfterSeq={null}
         loadingOlder={false}

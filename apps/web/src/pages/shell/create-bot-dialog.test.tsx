@@ -83,9 +83,13 @@ describe("CreateBotDialog", () => {
     expect([...document.querySelectorAll("button")].some((b) => b.textContent === "Rakazo")).toBe(
       false,
     );
-    const family = Number(
-      document.querySelector(".rakazo-organic-avatar")?.getAttribute("data-shape-family"),
-    );
+    // The starting colour is random, and on one of Manor's sprite colours the preview draws the
+    // sprite instead of the organic body, so pick a colour that is not a sprite first.
+    await click(button("Color #10B981"));
+    const preview = document.querySelector(".rakazo-organic-avatar");
+    expect(preview).not.toBeNull();
+    const family = Number(preview!.getAttribute("data-shape-family"));
+    expect(Number.isInteger(family)).toBe(true);
     await typeName("Scout");
     await click(button("Create"));
     expect(onCreate.mock.lastCall?.[0]).toMatchObject({

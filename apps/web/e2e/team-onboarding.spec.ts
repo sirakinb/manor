@@ -84,10 +84,12 @@ test("new organization starts with one shared space and teammates reuse its setu
     await page.unroute("**/rpc/bots/create");
     await page.waitForURL(/\/app\/[^/]+$/);
     expect(await db.prisma.bot.count({ where: { spaceId: team.spaceId } })).toBe(1);
-    await expect(page.getByText(/Welcome to Example Team/)).toBeVisible();
+    // The sidebar row previews the latest message too, so read the chat itself.
+    const transcript = page.getByTestId("transcript");
+    await expect(transcript.getByText(/Welcome to Example Team/)).toBeVisible();
     await page.getByRole("button", { name: /Day-to-day work/ }).click();
     await expect(
-      page.getByText(/Accounts connected here can be used by everyone on your team/),
+      transcript.getByText(/Accounts connected here can be used by everyone on your team/),
     ).toBeVisible();
     await captureScreenshot(page, testInfo, "shared-account-onboarding");
     const sharedBotUrl = page.url();

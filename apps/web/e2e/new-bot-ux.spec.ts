@@ -44,10 +44,8 @@ test("create opens dialog, then empty chat; picker lists bots; sidebar collapses
   await expect(create).toBeDisabled();
 
   await name.fill("New Bot");
-  await expect(createDialog.getByRole("tab", { name: "Original", exact: true })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
+  // Manor offers no icon set choice, so the dialog has no set tabs.
+  await expect(createDialog.getByRole("tablist", { name: "Icon set" })).toHaveCount(0);
   const wedge = createDialog.getByRole("button", { name: "wedge", exact: true });
   await wedge.click();
   await createDialog.getByRole("button", { name: "Color #10B981", exact: true }).click();
