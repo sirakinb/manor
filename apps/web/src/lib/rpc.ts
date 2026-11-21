@@ -76,7 +76,36 @@ const link = new RPCLink<RpcClientContext>({
   },
 });
 
-export const rpc: ContractRouterClient<AppContract, RpcClientContext> = createORPCClient(link);
+export type RpcClient = ContractRouterClient<AppContract, RpcClientContext>;
+
+export const rpc: RpcClient = createORPCClient(link);
+
+/** Keep late async follow-up requests in the shell's original auth boundary. */
+export function createSpaceRpc(spaceId: string | null): typeof rpc {
+  return createORPCClient({
+    call: (path, input, options) =>
+      link.call(path, input, {
+        ...options,
+        // A call that names its own space (e.g. renaming another space's section) keeps it.
+        context: {
+          ...options.context,
+          spaceId: options.context.spaceId === undefined ? spaceId : options.context.spaceId,
+        },
+      }),
+  });
+}
+
+const spaceClients = new Map<string, RpcClient>();
+
+/** Reuse a client for settings without changing the selected space. */
+export function rpcForSpace(spaceId: string): RpcClient {
+  let client = spaceClients.get(spaceId);
+  if (!client) {
+    client = createSpaceRpc(spaceId);
+    spaceClients.set(spaceId, client);
+  }
+  return client;
+}
 
 /** Recover a stale saved selection only while opening the app, never replay a mutation. */
 export async function recoverInitialSpace(error: unknown, previousSpaceId: string | null) {

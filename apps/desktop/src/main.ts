@@ -25,6 +25,7 @@ import {
 } from "./auto-update.js";
 import { openBrowserAuth } from "./browser-auth.js";
 import { DOCKER_INSTALL_LINKS, isDesktopSetupLink, runDocker } from "./docker-cli.js";
+import { prepareHostComputer } from "./host-computer.js";
 import { createLocalComputerSession } from "./local-computer-session.js";
 import { requestLocalSettings } from "./local-settings.js";
 import {
@@ -74,6 +75,7 @@ const PERFORMANCE_USER_DATA = process.env.RAKAZO_PERFORMANCE_USER_DATA;
 /** Test hook: where the app-managed stack answers. Mode `new` still requires loopback. */
 const LOCAL_WEB_URL = process.env.RAKAZO_LOCAL_WEB_URL?.trim() || DEFAULT_LOCAL_WEB_URL;
 const PROBE_TIMEOUT_MS = 8_000;
+const APP_DOCUMENT_READY_TIMEOUT_MS = 20_000;
 const DESKTOP_STACK_PROBE_PATH = "/.well-known/rakazo-desktop-stack";
 const DESKTOP_STACK_TOKEN_HEADER = "x-rakazo-desktop-stack-token";
 let mainWindow: BrowserWindow | null = null;
@@ -118,6 +120,8 @@ const desktopUpdater = new DesktopUpdateController(
 let launchUpdateCheckScheduled = false;
 let stopLocalComputerShare: () => Promise<unknown> = async () => undefined;
 let localStack: LocalStackController;
+let hostComputer: Awaited<ReturnType<typeof prepareHostComputer>> | undefined;
+let requestingComputerAccess = false;
 
 markOnce("rk:main:module-evaluated");
 if (PERFORMANCE_USER_DATA) {
@@ -464,7 +468,7 @@ function loadAppUrl(win: BrowserWindow, url: string): Promise<AppDocumentState> 
 async function waitForMountedAppDocument(
   contents: Electron.WebContents,
 ): Promise<AppDocumentState> {
-  const deadline = Date.now() + 8_000;
+  const deadline = Date.now() + APP_DOCUMENT_READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (contents.isCrashed()) throw new Error("Renderer stopped after load.");
     const state = (await contents.executeJavaScript(APP_DOCUMENT_STATE_SCRIPT)) as
@@ -669,6 +673,21 @@ async function showLocalSettings() {
 }
 
 function installApplicationMenu() {
+  const computerAccess: Electron.MenuItemConstructorOptions = {
+    label: "Computer Access…",
+    visible: currentSetup?.mode === "new",
+    click: () => mainWindow?.webContents.send("desktop.computer.configure"),
+  };
+  const revokeComputerAccess: Electron.MenuItemConstructorOptions = {
+    label: "Revoke Local Computer Access",
+    visible: hostComputer?.isEnabled() === true,
+    click: () => {
+      void hostComputer
+        ?.revoke()
+        .finally(() => installApplicationMenu())
+        .catch(() => undefined);
+    },
+  };
   const localSettings: Electron.MenuItemConstructorOptions = {
     id: "local-server-settings",
     label: "Local Server Settings…",
@@ -688,7 +707,11 @@ function installApplicationMenu() {
     label: "Stop Local Stack",
     // The stack keeps running after quit (bots are always on); this is the explicit off switch.
     click: () => {
-      if (currentSetup?.mode === "new") void localStack.stop();
+      if (currentSetup?.mode === "new") {
+        hostComputer?.activate(false);
+        installApplicationMenu();
+        void localStack.stop();
+      }
     },
   };
   const template: Electron.MenuItemConstructorOptions[] =
@@ -700,6 +723,8 @@ function installApplicationMenu() {
               { role: "about" },
               { type: "separator" },
               localSettings,
+              computerAccess,
+              revokeComputerAccess,
               changeServer,
               stopStack,
               { type: "separator" },
@@ -718,6 +743,8 @@ function installApplicationMenu() {
             label: "File",
             submenu: [
               localSettings,
+              computerAccess,
+              revokeComputerAccess,
               changeServer,
               stopStack,
               { type: "separator" },
@@ -830,6 +857,7 @@ function openFailureDetail(error: unknown): string {
 }
 
 async function openAppOnce(targetUrl: string, switching: boolean) {
+  hostComputer?.activate(currentSetup?.mode === "new" && targetUrl === localStack.webUrl());
   const target = await resolveSessionForTarget(targetUrl);
   const previous = mainWindow;
   let win: BrowserWindow | null = null;
@@ -871,8 +899,19 @@ async function openAppOnce(targetUrl: string, switching: boolean) {
   }
 }
 
+function syncHostComputerAccess() {
+  hostComputer?.activate(
+    currentSetup?.mode === "new" &&
+      mainWindow !== null &&
+      !mainWindow.isDestroyed() &&
+      appWindowTargets.get(mainWindow) === localStack.webUrl(),
+  );
+  installApplicationMenu();
+}
+
 /** Drop the previous app window after the new server is opened and persisted. */
 function commitPendingAppSwitch() {
+  syncHostComputerAccess();
   const previous = pendingPreviousWindow;
   pendingPreviousWindow = null;
   if (previous !== null && !previous.isDestroyed() && previous !== mainWindow) previous.destroy();
@@ -894,6 +933,7 @@ function abandonPendingAppSwitch(
     mainWindow = previous;
     currentSetup = previousSetup;
     currentTargetUrl = previousUrl;
+    syncHostComputerAccess();
     // If setup was already closed (e.g. during a slow write), make the restored
     // session visible — otherwise macOS can be left with no shown window.
     if (setupWindow === null || setupWindow.isDestroyed()) {
@@ -983,7 +1023,13 @@ function bundledServerUrl(): string | null {
 app.whenReady().then(async () => {
   installSessionPermissions(session.defaultSession, permissionTarget);
   const userDataDir = app.getPath("userData");
+  try {
+    hostComputer = await prepareHostComputer(userDataDir);
+  } catch {
+    /* Local access fails closed; Docker remains available. */
+  }
   localStack = new LocalStackController({
+    hostComputer: hostComputer?.connection,
     platform: process.platform,
     env: process.env,
     exists: existsSync,
@@ -1110,6 +1156,47 @@ app.whenReady().then(async () => {
       );
     },
   );
+  const isManagedComputerRequest = (event: Electron.IpcMainInvokeEvent) =>
+    fromMainWindow(event) &&
+    event.senderFrame === event.sender.mainFrame &&
+    currentSetup?.mode === "new" &&
+    appWindowTargets.get(mainWindow!) === localStack.webUrl() &&
+    safeOrigin(event.senderFrame.url) === safeOrigin(localStack.webUrl());
+  ipcMain.handle("desktop.computer.requestAccess", async (event) => {
+    if (!isManagedComputerRequest(event) || !hostComputer)
+      throw new Error("Local computer access requires an app-managed local instance.");
+    if (requestingComputerAccess) return false;
+    requestingComputerAccess = true;
+    try {
+      if (!(await localStack.matchesDesiredStack()) || !isManagedComputerRequest(event))
+        return false;
+      if (hostComputer.isEnabled()) return true;
+      const result = await dialog.showMessageBox(mainWindow!, {
+        type: "warning",
+        title: "Allow local computer access?",
+        message: "Allow bots to use this computer?",
+        detail:
+          "Bots on this local instance can run commands, read and change files, and launch apps with your account’s permissions. You can revoke access from the app menu.",
+        buttons: ["Cancel", "Allow"],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      });
+      if (result.response !== 1 || !isManagedComputerRequest(event)) return false;
+      hostComputer.activate(true);
+      await hostComputer.grant();
+      installApplicationMenu();
+      return hostComputer.isEnabled();
+    } finally {
+      requestingComputerAccess = false;
+    }
+  });
+  ipcMain.handle("desktop.computer.revokeAccess", async (event) => {
+    if (isManagedComputerRequest(event)) {
+      await hostComputer?.revoke();
+      installApplicationMenu();
+    }
+  });
   ipcMain.handle("desktop.platform", () => process.platform);
   ipcMain.handle("desktop.window.close", (event) => {
     windowFrom(event)?.close();
@@ -1238,6 +1325,7 @@ app.whenReady().then(async () => {
       const opened = await appOpener.open(openSetup.serverUrl, { switching: true });
       if (!opened) {
         currentSetup = previousSetup;
+        syncHostComputerAccess();
         return {
           ok: false,
           error: "Could not open that server. The previous instance was left unchanged.",
@@ -1391,5 +1479,7 @@ app.on("before-quit", () => {
   clearTimeout(warmWindowTimer);
   void stopLocalComputerShare();
   // Containers keep running; only an in-flight pull/up is cut short.
+  hostComputer?.activate(false);
+  void hostComputer?.close();
   localStack?.abort();
 });

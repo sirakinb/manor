@@ -528,6 +528,17 @@ export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, "../.."), "");
   const api = process.env.API_PROXY_TARGET ?? rootEnv.API_PROXY_TARGET ?? "http://127.0.0.1:3100";
   const previewHost = process.env.RAKAZO_HOST ?? rootEnv.RAKAZO_HOST ?? "localhost";
+  const allowedHosts = [
+    ...new Set([
+      previewHost,
+      ...(process.env.RAKAZO_ALLOWED_HOSTS ?? rootEnv.RAKAZO_ALLOWED_HOSTS ?? "")
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+      // Client brand hostnames are served by the same app.
+      ...brandHostnames(),
+    ]),
+  ];
   const screenProxySecret = () =>
     resolveScreenProxySecret({
       ...process.env,
@@ -595,10 +606,10 @@ export default defineConfig(({ mode }) => {
       },
     ],
     server: {
-      host: "127.0.0.1",
-      allowedHosts: brandHostnames(),
+      host: process.env.RAKAZO_DEV_HOST ?? rootEnv.RAKAZO_DEV_HOST ?? "127.0.0.1",
       port: webPort,
       strictPort: true,
+      allowedHosts,
       proxy: {
         "/api": { target: api, changeOrigin: false },
         "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },
@@ -614,7 +625,7 @@ export default defineConfig(({ mode }) => {
     preview: {
       host: "0.0.0.0",
       port: Number(process.env.WEB_PORT ?? 5173),
-      allowedHosts: [...new Set([previewHost, ...brandHostnames()])],
+      allowedHosts,
       proxy: {
         "/api": { target: api, changeOrigin: false },
         "^/mcp/(crm|workspace)(?:[/?]|$)": { target: api, changeOrigin: false },

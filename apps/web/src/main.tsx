@@ -6,6 +6,7 @@ import { DesktopUpdatesProvider } from "./components/DesktopUpdates";
 import { I18nBootstrap } from "./components/I18nBootstrap";
 import { applyUiDirection } from "./lib/apply-ui-direction";
 import { applyBrand } from "./lib/brand";
+import { reportCaughtReactError, startMonitoring } from "./lib/monitoring";
 import { markAfterPaint, markOnce } from "./lib/performance";
 import { installPreloadRecovery } from "./lib/preload-recovery";
 import { applyUiAppearance, watchSystemAppearance } from "./lib/ui-appearance";
@@ -13,6 +14,7 @@ import { resolveUiLocale } from "./lib/ui-locale";
 import "./styles.css";
 
 markOnce("rk:renderer:module-evaluated");
+void startMonitoring();
 installPreloadRecovery();
 applyUiDirection(resolveUiLocale());
 applyUiAppearance();
@@ -32,7 +34,7 @@ function AppearanceSync() {
   return null;
 }
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById("root")!, { onCaughtError: reportCaughtReactError }).render(
   <StrictMode>
     <PerformanceProbe />
     <AppearanceSync />

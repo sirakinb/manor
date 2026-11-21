@@ -29,6 +29,26 @@ import {
 } from "./index.js";
 
 describe("contracts", () => {
+  it("bounds the count and length of compatible model selections", () => {
+    const input = {
+      provider: "openai-compatible",
+      baseUrl: "http://localhost:8000/v1",
+      modelId: "default",
+    };
+    expect(
+      ModelConnectInputSchema.safeParse({ ...input, enabledModelIds: ["x".repeat(512)] }).success,
+    ).toBe(true);
+    expect(
+      ModelConnectInputSchema.safeParse({ ...input, enabledModelIds: ["x".repeat(513)] }).success,
+    ).toBe(false);
+    expect(
+      ModelConnectInputSchema.safeParse({
+        ...input,
+        enabledModelIds: Array.from({ length: 501 }, (_, i) => `model-${i}`),
+      }).success,
+    ).toBe(false);
+  });
+
   it("accepts structured live activity progress", () => {
     expect(MessageBlock.parse({ kind: "progress", text: "Using browser", activity: true })).toEqual(
       { kind: "progress", text: "Using browser", activity: true },
@@ -239,6 +259,15 @@ describe("contracts", () => {
     }
   });
 
+  it("accepts fleetManagement on bot updates and rejects non-boolean values", () => {
+    expect(UpdateBotInput.parse({ botId: "bot-1", fleetManagement: true }).fleetManagement).toBe(
+      true,
+    );
+    expect(UpdateBotInput.safeParse({ botId: "bot-1", fleetManagement: "yes" }).success).toBe(
+      false,
+    );
+  });
+
   it("accepts the same title limit when creating and updating bots", () => {
     const title = "T".repeat(BOT_TITLE_MAX_LENGTH);
     expect(CreateBotInput.safeParse({ name: "Chief", title }).success).toBe(true);
@@ -285,6 +314,13 @@ describe("contracts", () => {
     expect(
       UpdateGroupInput.safeParse({ groupId: "group-1", botIds: ["bot-1", "bot-1"] }).success,
     ).toBe(false);
+  });
+
+  it.each([1, 2, 10, 11])("enforces group member bounds for %i bots", (count) => {
+    const botIds = Array.from({ length: count }, (_, index) => `bot-${index}`);
+    const accepted = count >= 2 && count <= 10;
+    expect(CreateGroupInput.safeParse({ name: "Draft team", botIds }).success).toBe(accepted);
+    expect(UpdateGroupInput.safeParse({ groupId: "group-1", botIds }).success).toBe(accepted);
   });
 
   it("keeps model OAuth start results mode-specific", () => {

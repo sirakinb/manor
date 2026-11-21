@@ -11,9 +11,13 @@ import type {
   SandboxProvider,
   ScreenRequest,
   TerminalRequest,
+  WorkspaceDirectoryRequest,
 } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
+import { cancelComputerRunWork } from "./computer-idle.js";
+import { manageComputerWorkspaceDirectories } from "./computer-workspace.js";
 import { DesktopSandboxProvider } from "./desktop-sandbox.js";
+import { HostComputerSandbox } from "./host-computer-sandbox.js";
 import { DisconnectedLocalSandboxProvider } from "./local-sandbox.js";
 import { createSandboxProvider, type SandboxProviderOptions } from "./sandbox-factory.js";
 
@@ -41,10 +45,7 @@ export function createRunSandbox(
   return new LocalAwareSandbox(
     new HostAwareSandbox(
       primary,
-      new DesktopSandboxProvider({
-        root: opts.dataDir,
-        hostRoots: [homedir()],
-      }),
+      new HostComputerSandbox(opts.hostComputerUrl ?? "", opts.hostComputerToken ?? ""),
       async () => {
         const settings = await opts.prisma!.deploymentSettings.findUnique({
           where: { id: "default" },
@@ -79,12 +80,27 @@ export class LocalAwareSandbox implements SandboxProvider {
   // check for the method itself (an absent `connectTerminal` means "no terminal").
   readonly connectTerminal?: SandboxProvider["connectTerminal"];
   readonly isRunning?: SandboxProvider["isRunning"];
+  readonly billsWhileRunning?: SandboxProvider["billsWhileRunning"];
+  readonly environment?: SandboxProvider["environment"];
+  /** Local computers are provisioned only by explicit kind, so this reports the cloud side. */
+  readonly provisionKind?: SandboxProvider["provisionKind"];
 
   constructor(
     /** The provider behind every non-local computer. Tests observe it directly. */
     readonly cloud: SandboxProvider,
     private readonly local: SandboxProvider,
   ) {
+    if (cloud.billsWhileRunning || local.billsWhileRunning) {
+      this.billsWhileRunning = (computer) =>
+        this.route(computer).billsWhileRunning?.(computer) ?? false;
+    }
+    if (cloud.environment || local.environment) {
+      this.environment = async (computer, context) =>
+        this.route(computer).environment?.(computer, context);
+    }
+    if (cloud.provisionKind) {
+      this.provisionKind = () => cloud.provisionKind!();
+    }
     if (cloud.connectTerminal || local.connectTerminal) {
       this.connectTerminal = (computer, request, context) => {
         const provider = this.route(computer);
@@ -143,6 +159,20 @@ export class LocalAwareSandbox implements SandboxProvider {
     context: AdapterContext,
   ): AsyncIterable<ProcessEvent> {
     yield* this.route(computer).execute(computer, request, context);
+  }
+
+  // Both fall back to plain commands when the routed provider has no native version,
+  // exactly as a caller would against the provider itself.
+  workspaceDirectories(
+    computer: ComputerRef,
+    request: WorkspaceDirectoryRequest,
+    context: AdapterContext,
+  ) {
+    return manageComputerWorkspaceDirectories(this.route(computer), computer, request, context);
+  }
+
+  cancelRunWork(computer: ComputerRef, computerId: string, runId: string, context: AdapterContext) {
+    return cancelComputerRunWork(this.route(computer), computer, computerId, runId, context);
   }
 
   connectScreen(computer: ComputerRef, request: ScreenRequest, context: AdapterContext) {
@@ -259,6 +289,11 @@ export class HostAwareSandbox implements SandboxProvider {
     return computer.kind === "desktop" ? this.host : this.isolated;
   }
 
+  async provisionKind() {
+    const provider = (await this.hostEnabled()) ? this.host : this.isolated;
+    return provider.describe().id as ComputerRef["kind"];
+  }
+
   async provision(
     request: {
       botId: string;
@@ -285,6 +320,11 @@ export class HostAwareSandbox implements SandboxProvider {
     return provider.isRunning?.(computer, context) ?? false;
   }
 
+  async environment(computer: ComputerRef, context: AdapterContext) {
+    const provider = this.route(computer);
+    return provider.environment?.(computer, context);
+  }
+
   prepare(computer: ComputerRef, context: AdapterContext) {
     return this.route(computer).prepare(computer, context);
   }
@@ -294,7 +334,21 @@ export class HostAwareSandbox implements SandboxProvider {
     request: CommandRequest,
     context: AdapterContext,
   ): AsyncIterable<ProcessEvent> {
+    if (computer.kind === "desktop" && !(await this.hostEnabled()))
+      throw new Error("Local computer access is disabled");
     yield* this.route(computer).execute(computer, request, context);
+  }
+
+  workspaceDirectories(
+    computer: ComputerRef,
+    request: WorkspaceDirectoryRequest,
+    context: AdapterContext,
+  ) {
+    return manageComputerWorkspaceDirectories(this.route(computer), computer, request, context);
+  }
+
+  cancelRunWork(computer: ComputerRef, computerId: string, runId: string, context: AdapterContext) {
+    return cancelComputerRunWork(this.route(computer), computer, computerId, runId, context);
   }
 
   connectScreen(computer: ComputerRef, request: ScreenRequest, context: AdapterContext) {
@@ -357,6 +411,10 @@ export class HostAwareSandbox implements SandboxProvider {
 
   snapshot(computer: ComputerRef, context: AdapterContext) {
     return this.route(computer).snapshot(computer, context);
+  }
+
+  billsWhileRunning(computer: ComputerRef): boolean {
+    return this.route(computer).billsWhileRunning?.(computer) ?? false;
   }
 
   keepAlive(computer: ComputerRef) {

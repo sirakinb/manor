@@ -1,6 +1,6 @@
 vi.mock("./ai-consent", () => ({ promptAiConsent: vi.fn() }));
 
-import { withLiveStreamingProgress } from "@rakazo/core";
+import { isServerUnreachable, withLiveStreamingProgress } from "@rakazo/core";
 import * as SecureStore from "expo-secure-store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { promptAiConsent } from "./ai-consent";
@@ -10,12 +10,14 @@ import {
   applyMobileThreadEvent,
   authHeaders,
   blockText,
+  captureApiRequestContext,
   changePassword,
   currentApiBase,
   deleteAccount,
   fetchAccountSecurity,
   IDLE_TIMEOUT_MS,
   initialMe,
+  isServerReachable,
   loadApiBase,
   MAX_MOBILE_AUTH_RESPONSE_BYTES,
   MAX_MOBILE_RPC_RESPONSE_BYTES,
@@ -35,6 +37,7 @@ import {
   signIn,
   signOut,
   signUp,
+  subscribeServerReachable,
   subscribeSessionRejected,
   subscribeThread,
 } from "./api.js";
@@ -51,6 +54,8 @@ import {
   saveSessionToken,
   snapshotSessionToken,
 } from "./session.js";
+import type { UnsentDisk } from "./thread-feedback.js";
+import { configureUnsentSends } from "./thread-feedback.js";
 
 vi.mock("expo-secure-store", () => ({
   getItemAsync: vi.fn(),
@@ -61,6 +66,7 @@ vi.mock("./live-notifications.js", () => ({
   resumeLiveNotifications: vi.fn(async () => undefined),
   stopLiveNotifications: vi.fn(async () => undefined),
 }));
+vi.mock("./network-cache.js", () => ({ clearNetworkCache: vi.fn() }));
 
 afterEach(() => {
   vi.useRealTimers();
@@ -68,6 +74,16 @@ afterEach(() => {
 });
 
 describe("mobile API authentication", () => {
+  it("does not send a captured old bearer after the session changes", async () => {
+    await saveSessionToken("fake-session-a");
+    const context = await captureApiRequestContext();
+    await saveSessionToken("fake-session-b");
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await expect(rpc("bots/list", {}, { requestContext: context })).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   beforeEach(async () => {
     vi.restoreAllMocks();
     vi.mocked(SecureStore.getItemAsync).mockReset();
@@ -106,6 +122,77 @@ describe("mobile API authentication", () => {
     await selectSpace("");
   });
 
+  describe.each([signIn, signUp])("email auth errors", (authenticate) => {
+    it.each([
+      [429, "", "Too many attempts. Try again in a few minutes."],
+      [
+        500,
+        "<html>Internal Server Error</html>",
+        "The server had a problem. Try again in a moment.",
+      ],
+      [400, "not json", "The server had a problem. Try again in a moment."],
+      [200, "not json", "The server had a problem. Try again in a moment."],
+      [500, "{}", "The server had a problem. Try again in a moment."],
+      [503, "{}", "Could not reach the server"],
+      [502, "<html>Bad gateway</html>", "Could not reach the server"],
+      [504, "{}", "Could not reach the server"],
+      [403, '{"code":"PASSWORD_AUTH_DISABLED"}', "Password sign-in is turned off on this server"],
+      [403, '{"message":"Registration is closed"}', "Registration is closed"],
+      [
+        422,
+        '{"message":"User already exists. Use another email."}',
+        "User already exists. Use another email.",
+      ],
+      [
+        429,
+        '{"message":"Please wait before signing in again"}',
+        "Please wait before signing in again",
+      ],
+      [500, '{"message":"DatabaseException"}', "The server had a problem. Try again in a moment."],
+      [400, "{}", "Could not continue"],
+    ])("maps HTTP %s with body %s", async (status, body, message) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(body, { status })),
+      );
+      await expect(authenticate("new@example.test", "password", "New User")).rejects.toThrow(
+        message,
+      );
+      expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
+    });
+
+    it("maps network failures", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Network request failed")));
+      await expect(authenticate("new@example.test", "password", "New User")).rejects.toThrow(
+        "Could not reach the server",
+      );
+    });
+
+    it.each(["save", "clear"])("explains device storage failures during %s", async (step) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse({ token: "fake-token" })),
+      );
+      const failure = new Error("SecureStoreException: storage unavailable");
+      if (step === "clear") vi.mocked(SecureStore.deleteItemAsync).mockRejectedValue(failure);
+      vi.mocked(SecureStore.setItemAsync).mockRejectedValue(failure);
+      await expect(authenticate("new@example.test", "password", "New User")).rejects.toThrow(
+        "Could not save your sign-in on this device. Try again.",
+      );
+    });
+
+    it("preserves human storage error messages", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse({ token: "fake-token" })),
+      );
+      vi.mocked(SecureStore.setItemAsync).mockRejectedValue(new Error("Device storage is full"));
+      await expect(authenticate("new@example.test", "password", "New User")).rejects.toThrow(
+        "Device storage is full",
+      );
+    });
+  });
+
   it("persists a successful sign-in token and sends the native origin", async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ token: "session-token" }));
     vi.stubGlobal("fetch", fetchMock);
@@ -122,6 +209,24 @@ describe("mobile API authentication", () => {
     );
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith("rakazo.session_token", "session-token");
     expect(resumeLiveNotifications).not.toHaveBeenCalled();
+  });
+
+  it("deletes unsent messages left on disk when a new account signs in", async () => {
+    const clear = vi.fn();
+    configureUnsentSends({
+      request: rpc,
+      serverReachable: () => true,
+      scope: () => null,
+      disk: { clear, save: vi.fn() } as unknown as UnsentDisk,
+      errorText: String,
+      notDelivered: vi.fn(),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ token: "session-token" })),
+    );
+    await signIn("ada@example.com", "correct horse");
+    expect(clear).toHaveBeenCalledOnce();
   });
 
   it("creates an account and persists its session token", async () => {
@@ -606,6 +711,62 @@ describe("mobile API authentication", () => {
     await expect(pending).resolves.toEqual({ ok: true });
   });
 
+  it("publishes only reachability transitions and preserves transport causes", async () => {
+    const changed = vi.fn();
+    const unsubscribe = subscribeServerReachable(changed);
+    vi.mocked(SecureStore.getItemAsync).mockResolvedValue("session-token");
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError("Network request failed"))
+        .mockResolvedValueOnce(rpcErrorResponse(404, "NOT_FOUND", "Bot does not exist")),
+    );
+    try {
+      expect(isServerUnreachable(await rpc("bots/list").catch((error) => error))).toBe(true);
+      expect(isServerReachable()).toBe(false);
+      await expect(rpc("bots/get")).rejects.toThrow("Bot does not exist");
+      expect(isServerReachable()).toBe(true);
+      expect(changed).toHaveBeenCalledTimes(2);
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it("counts an rpc timeout as unreachable and a reopened live connection as reachable again", async () => {
+    vi.useFakeTimers();
+    vi.mocked(SecureStore.getItemAsync).mockResolvedValue("session-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_input: unknown, init?: { signal?: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () =>
+              reject(new Error("fetch failed: FetchRequestCanceledException")),
+            );
+          }),
+      ),
+    );
+    const pending = rpc("threads/get", { botId: "bot" }).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(8_000);
+    expect(isServerUnreachable(await pending)).toBe(true);
+    expect(isServerReachable()).toBe(false);
+
+    const reachableAgain = vi.fn();
+    const unsubscribe = subscribeServerReachable(reachableAgain);
+    try {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(new ReadableStream({ start: (c) => c.close() }))),
+      );
+      await subscribeThread({ botId: "bot" }, -1, vi.fn(), new AbortController().signal);
+      expect(isServerReachable()).toBe(true);
+      expect(reachableAgain).toHaveBeenCalledOnce();
+    } finally {
+      unsubscribe();
+    }
+  });
+
   it("clears the local session even when the sign-out request fails", async () => {
     vi.mocked(SecureStore.getItemAsync).mockResolvedValue("session-token");
     vi.stubGlobal(
@@ -631,6 +792,21 @@ describe("mobile API authentication", () => {
       "http://127.0.0.1:3100/rpc/notifications/unregisterPush",
       "http://127.0.0.1:3100/api/auth/sign-out",
     ]);
+  });
+
+  it("sends sign-out with a JSON body so the server ends the session", async () => {
+    vi.mocked(SecureStore.getItemAsync).mockResolvedValue("session-token");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ json: null }))
+      .mockResolvedValueOnce(jsonResponse({ success: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await signOut();
+
+    const [, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(init.headers).toMatchObject({ "content-type": "application/json" });
+    expect(init.body).toBe("{}");
   });
 
   it("continues sign-out when push unregistration times out", async () => {
@@ -995,7 +1171,7 @@ describe("mobile API authentication", () => {
     );
 
     await expect(signIn("ada@example.com", "correct horse")).rejects.toThrow(
-      "Could not clear the previous space",
+      "Could not save your sign-in on this device. Try again.",
     );
     expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith(
       "rakazo.session_token",
@@ -2852,6 +3028,60 @@ describe("mobile thread event reduction", () => {
     expect(waiting?.activeRuns?.[0]?.status).toBe("waiting_takeover");
     expect(waiting?.messages.some((message) => message.id.startsWith("progress:"))).toBe(false);
     expect(waiting?.cursor).toBe(10);
+
+    const released = applyMobileThreadEvent(
+      {
+        ...initial,
+        run: { id: "run-1", status: "waiting_takeover" },
+        activeRuns: [
+          { id: "run-1", status: "waiting_takeover" },
+          { id: "run-2", status: "waiting_takeover" },
+        ],
+      },
+      {
+        type: "computer.takeover.released",
+        runId: "run-1",
+        seq: 11,
+      },
+    );
+    expect(released?.run?.status).toBe("queued");
+    expect(released?.activeRuns).toEqual([
+      { id: "run-1", status: "queued" },
+      { id: "run-2", status: "waiting_takeover" },
+    ]);
+    expect(released?.cursor).toBe(11);
+
+    const running = applyMobileThreadEvent(
+      {
+        ...snapshot(),
+        run: { id: "run-1", status: "running" },
+        activeRuns: [{ id: "run-1", status: "running" }],
+      },
+      { type: "computer.takeover.released", runId: "run-1", seq: 12 },
+    );
+    expect(running?.run?.status).toBe("running");
+    expect(running?.activeRuns?.[0]?.status).toBe("running");
+  });
+
+  it("lets a newer refresh replace waiting_takeover with queued", () => {
+    const waiting: MobileSnapshot = {
+      ...snapshot(),
+      cursor: 10,
+      run: { id: "run-1", status: "waiting_takeover" },
+      activeRuns: [{ id: "run-1", status: "waiting_takeover" }],
+    };
+    const refreshed: MobileSnapshot = {
+      ...snapshot(),
+      cursor: 12,
+      run: { id: "run-1", status: "queued" },
+      activeRuns: [{ id: "run-1", status: "queued" }],
+    };
+
+    const next = mergeMobileSnapshot(waiting, refreshed);
+
+    expect(next.cursor).toBe(12);
+    expect(next.run?.status).toBe("queued");
+    expect(next.activeRuns?.[0]?.status).toBe("queued");
   });
 
   it("inserts a peer takeover run that was absent from the open snapshot", () => {
@@ -3159,6 +3389,18 @@ it.each([502, 429])("localizes non-JSON deletion-code HTTP %s", async (status) =
     vi.fn(async () => new Response("<html>Gateway error</html>", { status })),
   );
   await expect(requestAccountDeletionCode()).rejects.toThrow("Could not continue");
+});
+
+it("sends the deletion-code request with a JSON body", async () => {
+  const fetchMock = vi.fn(async () => jsonResponse({ status: true }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  await requestAccountDeletionCode();
+
+  const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+  expect(url).toBe("http://127.0.0.1:3100/api/auth/request-account-deletion");
+  expect(init.headers).toMatchObject({ "content-type": "application/json" });
+  expect(init.body).toBe("{}");
 });
 
 it("localizes non-JSON successful account-security responses", async () => {

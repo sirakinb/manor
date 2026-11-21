@@ -19,7 +19,10 @@ test("a failed routine has persistent diagnostics after its banner is dismissed"
   const { runId } = await rpc<{ runId: string }>(page, "routines/testRun", {
     routineId: routine.id,
   });
-  await expect(page.getByTestId("composer-error")).toContainText("Scripted run failure");
+  // The banner shows a plain summary; the raw failure sits behind its Details disclosure.
+  await expect(page.getByTestId("composer-error")).toContainText(
+    "The model provider returned an error.",
+  );
   await page.getByRole("button", { name: "View logs", exact: true }).click();
   const logs = page.getByTestId("run-logs");
   await expect(logs.getByTestId("run-log-status")).toHaveText("failed");

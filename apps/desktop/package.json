@@ -2,12 +2,15 @@
   "name": "@rakazo/desktop",
   "productName": "Manor",
   "version": "0.2.5",
+  "author": {
+    "name": "Manor"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
     "dev": "pnpm build && electron .",
-    "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "build": "pnpm check && node scripts/build.mjs && node scripts/copy-static.mjs",
     "pack": "pnpm --filter @rakazo/web build && pnpm build && electron-builder --mac --win --linux",
     "pack:dir": "pnpm --filter @rakazo/web build && pnpm build && electron-builder --dir",
     "check": "tsc --noEmit -p tsconfig.json",
@@ -19,16 +22,19 @@
     "@rakazo/contracts": "workspace:*",
     "@rakazo/core": "workspace:*",
     "electron-updater": "6.8.9",
+    "koffi": "3.3.3",
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.1",
+    "@rakazo/adapters": "workspace:*",
     "@rakazo/ui-tokens": "workspace:*",
     "@types/ws": "^8.18.1",
-    "electron": "44.3.0",
+    "electron": "44.9.0",
     "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
     "typescript": "7.0.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "build": {
     "appId": "com.pentridgemedia.manor",
@@ -55,6 +61,7 @@
       }
     ],
     "extraMetadata": {
+      "name": "manor",
       "main": "dist/main.js"
     },
     "mac": {

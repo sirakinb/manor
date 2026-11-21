@@ -10,6 +10,7 @@ import {
 } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { bootstrapUserSpace } from "@rakazo/db";
+import type { BetterAuthOptions } from "better-auth";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import {
@@ -19,14 +20,9 @@ import {
   getOAuthState,
 } from "better-auth/api";
 import { bearer, organization } from "better-auth/plugins";
-import {
-  accountSecurity,
-  OIDC_FRESH_AGE,
-  oidcProofKey,
-  sessionForAuthHook,
-} from "./account-security.js";
+import { accountSecurity, oidcProofKey, sessionForAuthHook } from "./account-security.js";
 import type { OidcConfig } from "./oidc.js";
-import { oidcDiscovery } from "./oidc.js";
+import { isCurrentOidcAccount, oidcDiscovery } from "./oidc.js";
 import { assertPortalAccess, portalBrandId } from "./portal.js";
 
 export type { OidcConfig } from "./oidc.js";
@@ -44,6 +40,7 @@ export interface AuthEnv {
   googleClientSecret?: string;
   extraOrigins?: string[];
   email?: TransactionalEmailProvider;
+  logger?: BetterAuthOptions["logger"];
   onEmailError?: (error: unknown) => void;
   beforeDeleteUser?: (userId: string) => Promise<void>;
   /** Runs when a session row is deleted. Delivery also drops a token whose session is missing or expired. */
@@ -281,6 +278,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
   const googleEnabled = Boolean(env.googleClientId && env.googleClientSecret);
   const auth = betterAuth({
     appName: "Rakazo",
+    logger: env.logger,
     secret: env.secret,
     baseURL: env.baseURL,
     trustedOrigins: [...buildTrustedOrigins(env), "rakazo://"],
@@ -420,7 +418,17 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
         ) {
           const session = await sessionForAuthHook(ctx);
           if (!session || isMessagingEmail(session.user.email)) throw new APIError("UNAUTHORIZED");
-          await addOAuthServerContext({ reauthUserId: session.user.id });
+          const accounts = await ctx.context.internalAdapter.findAccounts(session.user.id);
+          const accountIds = accounts
+            .filter((account) => isCurrentOidcAccount(account, env.oidc?.issuer))
+            .map((account) => account.accountId);
+          if (!accountIds.length || ctx.body.idToken) throw new APIError("FORBIDDEN");
+          await addOAuthServerContext({
+            reauthUserId: session.user.id,
+            reauthSessionToken: session.session.token,
+            reauthAccountIds: accountIds,
+            reauthStartedAt: Math.floor(Date.now() / 1_000),
+          });
         }
         for (const value of [ctx.body?.email, ctx.body?.newEmail]) {
           if (typeof value === "string" && isMessagingEmail(value)) {
@@ -581,11 +589,19 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
               },
               data: { lastSignedInAt: session.createdAt },
             });
-            if (ctx && isOidcCallback(ctx)) {
+            const context =
+              ctx && isOidcCallback(ctx) ? (await getOAuthState())?.serverContext : undefined;
+            // Set only after ID-token verification and exact linked-account binding.
+            if (
+              ctx &&
+              context?.reauthUserId === session.userId &&
+              typeof context.reauthExpiresAt === "number" &&
+              context.reauthExpiresAt > Date.now()
+            ) {
               await ctx.context.internalAdapter.createVerificationValue({
                 identifier: oidcProofKey(session.id),
                 value: session.userId,
-                expiresAt: new Date(Date.now() + OIDC_FRESH_AGE * 1_000),
+                expiresAt: new Date(context.reauthExpiresAt),
               });
             }
             const previous = replacedSession(ctx);

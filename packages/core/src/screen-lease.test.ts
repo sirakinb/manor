@@ -27,6 +27,12 @@ describe("canTakeScreenLease", () => {
     expect(canTakeScreenLease("run-2:2", "run-1:1")).toBe(true);
   });
 
+  it("keeps an unfenced viewer from displacing a run's screen", () => {
+    expect(canTakeScreenLease("run-1:2", "screen-view-writer:0")).toBe(false);
+    expect(canTakeScreenLease("screen-view-writer:0", "run-1:1")).toBe(true);
+    expect(canTakeScreenLease("screen-view-a:0", "screen-view-b:0")).toBe(true);
+  });
+
   it("rejects a delayed request from an older fence of the same run", () => {
     expect(canTakeScreenLease("run-1:8", "run-1:1")).toBe(false);
     expect(canTakeScreenLease("run-2:2", undefined)).toBe(false);

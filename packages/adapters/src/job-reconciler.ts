@@ -17,6 +17,7 @@ import {
 import { getLogger } from "@rakazo/logging";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
+import { reconcileCallRequests } from "./call-request.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
 import type { MaintenanceAdmission } from "./maintenance-control.js";
 import { reconcileStuckWork } from "./stuck-work.js";
@@ -119,6 +120,7 @@ export function createJobReconciler(
     admission?: MaintenanceAdmission;
     reconcileComputerUpdates?: () => Promise<void>;
     reconcileCloudAgents?: () => Promise<void>;
+    reconcileRoutineRetryNotices?: () => Promise<void>;
   },
   options: { intervalMs?: number; batchSize?: number } = {},
 ) {
@@ -154,9 +156,12 @@ export function createJobReconciler(
       // Only maintenance jobs advance outside admission; cloud-agent and computer-update
       // reconciliation waits for the gate like every other scan.
       const auxiliary = await Promise.allSettled(
-        [deps.reconcileCloudAgents, deps.reconcileComputerUpdates].map(async (reconcile) =>
-          reconcile?.(),
-        ),
+        [
+          () => reconcileCallRequests(deps),
+          deps.reconcileCloudAgents,
+          deps.reconcileComputerUpdates,
+          deps.reconcileRoutineRetryNotices,
+        ].map(async (reconcile) => reconcile?.()),
       );
       for (const result of auxiliary) {
         if (result.status === "rejected")
@@ -366,8 +371,11 @@ export function createJobReconciler(
         );
       }
 
+      // A queued run already has a job while it waits out failure backoff.
+      // Default replace would zero that job's attempts and run it now. keepExisting
+      // leaves the job while attempts remain, and still replaces one that is exhausted.
       await Promise.all([
-        ...runs.map((run) => deps.jobs.enqueue(runContinueJob(run.id))),
+        ...runs.map((run) => deps.jobs.enqueue({ ...runContinueJob(run.id), keepExisting: true })),
         ...routines.flatMap((routine) =>
           routine.nextRunAt
             ? [deps.jobs.enqueue(routineWakeupJob(routine.id, routine.nextRunAt))]

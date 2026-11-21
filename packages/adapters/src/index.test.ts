@@ -1,7 +1,7 @@
 import { createCipheriv, createHash } from "node:crypto";
-import { BUILTIN_TOOL_NAMES } from "@rakazo/contracts";
+import { BUILTIN_TOOL_NAMES, FLEET_TOOL_NAMES } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
-import { agentConnectionTools, builtinAgentTools } from "./builtin-tools.js";
+import { agentConnectionTools, builtinAgentTools, DELEGATION_TOOL_NAMES } from "./builtin-tools.js";
 import { crmAgentTools } from "./crm-tools.js";
 import { selectBuiltinToolsForRun } from "./executor.js";
 import { FakeSandboxProvider } from "./fake-sandbox.js";
@@ -174,6 +174,10 @@ describe("scripted runtime", () => {
 });
 
 describe("builtin tools", () => {
+  it("keeps every fleet tool out of helper tool lists", () => {
+    for (const name of FLEET_TOOL_NAMES) expect(DELEGATION_TOOL_NAMES.has(name), name).toBe(true);
+  });
+
   it("exposes the tools the executor actually applies", async () => {
     // Manor's own tools are switched by their features (CRM, Workspace, channels, stored
     // logins, previews, webhook routines), not by the per-bot list of disabled tools.

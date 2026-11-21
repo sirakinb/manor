@@ -23,6 +23,19 @@ describe("run failure diagnostics", () => {
     circular.cause = circular;
     expect(diagnoseRunFailure(circular).category).toBe("timeout");
   });
+  it("keeps a diagnostic another package's error carries, and ignores a malformed one", () => {
+    const diagnostic = diagnoseRunFailure("fetch failed", "model");
+    const transient = Object.assign(new Error("Model request connection failed."), {
+      diagnostic,
+    });
+    expect(diagnoseRunFailure(transient, "execution")).toEqual(diagnostic);
+    const malformed = Object.assign(new Error("timeout"), { diagnostic: { stage: "nope" } });
+    expect(diagnoseRunFailure(malformed, "execution")).toEqual({
+      stage: "execution",
+      category: "timeout",
+      code: null,
+    });
+  });
   it("does not invent a stage or expose unknown errors in copied diagnostics", () => {
     const diagnostic = diagnoseRunFailure("password=fake-secret customer data");
     expect(diagnostic.stage).toBe("unknown");

@@ -16,7 +16,7 @@ import type {
   Verifier,
 } from "@rakazo/adapter-kit";
 import type { AutoReviewJudgeDecision } from "@rakazo/core";
-import { redactSecrets } from "@rakazo/core";
+import { escapePromptData, redactSecrets } from "@rakazo/core";
 import { formatCurrentTimeInstruction } from "./current-time.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { catalogModels } from "./model-vision.js";
@@ -247,10 +247,6 @@ function truncate(value: string, max: number): string {
   const trimmed = value.trim();
   if (trimmed.length <= max) return trimmed;
   return `${trimmed.slice(0, max - 1)}…`;
-}
-
-function escapePromptData(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 export function sanitizeAutoReviewReason(reason: string | undefined): string | undefined {

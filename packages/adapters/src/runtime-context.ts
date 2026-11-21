@@ -18,6 +18,14 @@ interface ProjectionEntry {
   catalogIds?: string[];
 }
 const projections = new Map<string, ProjectionEntry[]>();
+/** Keep editable source and fleet instruction versions intact; these tools bound their own output. */
+export const VERBATIM_TOOL_RESULTS: ReadonlySet<string> = new Set(["skill_read", "list_fleet"]);
+// History reads are exact evidence and keep their own offset-aware shortening elsewhere.
+const UNSHORTENED_TOOL_RESULTS = new Set([
+  "read_history",
+  "search_history",
+  ...VERBATIM_TOOL_RESULTS,
+]);
 const messageHash = (message: Message) =>
   createHash("sha256")
     .update(JSON.stringify(providerContextPrefix("", [], [message])))
@@ -148,13 +156,26 @@ export function createRuntimeContextPolicy(
   }
   return {
     prepareContext(ctx: Context, model: Model<Api>): Context {
-      const strategy = request.contextStrategy ?? DEFAULT_CONTEXT_STRATEGY;
       const standaloneHistoryFallback =
         request.contextStrategy === undefined &&
         (!request.executeTool ||
           !["read_history", "search_history"].every((name) =>
             request.tools.some((tool) => tool.name === name),
           ));
+      // An explicitly declared cache window opts this connection into prefix reuse.
+      // Without history retrieval, preserve fitting originals instead of replacing
+      // them with cold snapshots the caller cannot follow back to the source.
+      // Unknown/disabled caches retain the default; explicit overrides still win.
+      const retention = request.model.cacheCapabilities?.retentionMs;
+      const strategy =
+        request.contextStrategy ??
+        (!standaloneHistoryFallback &&
+        request.model.cacheCapabilities?.retentionMode !== "none" &&
+        typeof retention === "number" &&
+        Number.isFinite(retention) &&
+        retention > 0
+          ? "cache-aware"
+          : DEFAULT_CONTEXT_STRATEGY);
       metadataPresent = ctx.messages.some((message) =>
         Boolean((message as Message & OriginalMetadata).rakazoHistory),
       );
@@ -217,6 +238,12 @@ export function createRuntimeContextPolicy(
       if (currentIndex < 0)
         currentIndex = messages.findLastIndex((message) => message.role === "user");
       if (currentIndex < 0) currentIndex = 0;
+      // Steering, follow-ups and finished shells arrive as user messages during the
+      // run. Give each its own exchange so it does not push older history out:
+      // a moved first message rewrites the provider's whole cached prefix.
+      const laterUserMessages = messages
+        .slice(currentIndex + 1)
+        .filter((message) => message.role === "user").length;
       let protectedIndexes = messages.flatMap((message, index) =>
         message.role === "system" || (index >= currentIndex && message.role === "user")
           ? [index]
@@ -345,8 +372,7 @@ export function createRuntimeContextPolicy(
         if (
           message.role !== "toolResult" ||
           index >= latestToolCall ||
-          message.toolName === "read_history" ||
-          message.toolName === "search_history"
+          (message.toolName !== undefined && UNSHORTENED_TOOL_RESULTS.has(message.toolName))
         )
           return message;
         const source = text(message);
@@ -366,7 +392,8 @@ export function createRuntimeContextPolicy(
         strategy,
         protectedIndexes,
         cacheWarmth: predictedCache,
-        recentExchanges: retainShortHistory || standaloneHistoryFallback ? messages.length : 8,
+        recentExchanges:
+          retainShortHistory || standaloneHistoryFallback ? messages.length : 8 + laterUserMessages,
       });
       const shortenedStructuredResults = selected.messages.filter((message) => {
         if (message.role !== "toolResult") return false;

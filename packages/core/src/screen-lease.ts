@@ -21,7 +21,8 @@ export function canTakeScreenLease(
   // Fences only order requests within one run. Across runs the execution lease
   // has already serialised things, and a fresh run always starts at fence 1 —
   // so comparing fences here would wedge the screen behind a finished run.
-  if (next.ownerId !== current.ownerId) return true;
+  // An unfenced request (a viewer) still never displaces a fenced run's screen.
+  if (next.ownerId !== current.ownerId) return next.fence > 0 || current.fence === 0;
   return next.fence > current.fence;
 }
 

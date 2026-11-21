@@ -6,6 +6,11 @@ export function diagnoseRunFailure(
   stage: RunFailureDiagnostic["stage"] = "unknown",
 ): RunFailureDiagnostic {
   if (error instanceof RunExecutionError) return error.diagnostic;
+  // Errors from other packages (a transient model failure) may carry their diagnostic too.
+  if (error instanceof Error && "diagnostic" in error) {
+    const carried = RunFailureDiagnosticSchema.safeParse(error.diagnostic);
+    if (carried.success) return carried.data;
+  }
   const seen = new Set<unknown>();
   let current = error;
   let text = "";

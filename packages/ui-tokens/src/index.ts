@@ -13,6 +13,8 @@ export const UI_APPEARANCE_STORAGE_KEY = "rakazo.uiAppearance";
  */
 export type ColorTokens = {
   background: string;
+  /** Modals: a step lighter than the page so they read as raised above it. */
+  dialog: string;
   foreground: string;
   card: string;
   cardForeground: string;
@@ -43,6 +45,7 @@ export type ColorTokens = {
   faviconPlate: string;
   success: string;
   warning: string;
+  statusWorking: string;
   overlay: string;
   scrollbar: string;
   scrollbarHover: string;
@@ -55,6 +58,7 @@ export type ColorTokens = {
  */
 export const darkTokens = {
   background: "#0A0A0A",
+  dialog: "#0D0D0D",
   foreground: "#F1F0F3",
   card: "#171717",
   cardForeground: "#F1F0F3",
@@ -86,6 +90,8 @@ export const darkTokens = {
   faviconPlate: "#FFFFFF",
   success: "#4ECB71",
   warning: "#E9C46A",
+  // Matches Manor's link blue, as the semantic palette requires.
+  statusWorking: "#86B7FF",
   overlay: "rgba(4, 4, 5, 0.72)",
   scrollbar: "#1E2026",
   scrollbarHover: "#2E313A",
@@ -93,6 +99,7 @@ export const darkTokens = {
 
 export const lightTokens = {
   background: "#FAFAF8",
+  dialog: "#FFFFFF",
   foreground: "#1A1A1A",
   card: "#FFFFFF",
   cardForeground: "#1A1A1A",
@@ -110,7 +117,7 @@ export const lightTokens = {
   accentForeground: "#1A1A1A",
   destructive: "#DC2626",
   destructiveForeground: "#FFFFFF",
-  border: "#F0F0ED",
+  border: "#DCDCD6",
   input: "#EAEAE6",
   ring: "#6C6C70",
   sidebar: "#ECECE9",
@@ -122,6 +129,7 @@ export const lightTokens = {
   faviconPlate: "#FFFFFF",
   success: "#228B3B",
   warning: "#B7791F",
+  statusWorking: "#2563EB",
   overlay: "rgba(20, 20, 22, 0.45)",
   scrollbar: "#C8C8C4",
   scrollbarHover: "#A8A8A4",

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isIP } from "node:net";
 import path from "node:path";
 import { MAX_DESKTOP_DISPLAY, screenPorts } from "@rakazo/core/node/desktop-runtime";
 import type Docker from "dockerode";
@@ -198,6 +199,34 @@ export function resolveComputerEgressMode(
 export const COMPUTER_BRIDGE_PREFIX = "mnrc";
 
 /**
+ * DNS servers for computers, from SANDBOX_COMPUTER_DNS (comma-separated IP addresses).
+ * Unset keeps Docker's default: a computer on its own network asks Docker's embedded
+ * resolver, which forwards to the host's resolvers from inside the computer's network.
+ * Restricted egress drops that forward when the host's resolver has a private address
+ * (a cloud VPC resolver, a LAN router), so every name lookup times out; servers set here
+ * replace the host's as the forward target, and public ones stay reachable.
+ */
+export function resolveComputerDns(value = process.env.SANDBOX_COMPUTER_DNS): string[] | undefined {
+  const servers = (value ?? "")
+    .split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+  // Manor: fall back to RAKAZO_COMPUTER_DNS (or the sandboxed-runtime default) so the
+  // DNS a container is created with matches what the resume check expects.
+  if (servers.length === 0) return COMPUTER_DNS.length ? COMPUTER_DNS : undefined;
+  const invalid = servers.find((server) => isIP(server) === 0);
+  if (invalid) throw new Error(`Unsupported SANDBOX_COMPUTER_DNS server: ${invalid}`);
+  return servers;
+}
+
+/** Whether a container's DNS servers are the ones configured (none configured: none set). */
+export function computerDnsMatches(current: string[] | null | undefined, desired?: string[]) {
+  const have = current ?? [];
+  const want = desired ?? [];
+  return have.length === want.length && have.every((server, index) => server === want[index]);
+}
+
+/**
  * Host bridge interface name for a computer network. Linux caps interface names
  * at 15 bytes (IFNAMSIZ), so the prefix gets an 11-hex-char suffix derived from the
  * same digest as the network name — deterministic across recreate, unique per bot.
@@ -235,6 +264,26 @@ export function computerNetworkCreateOptions(botId: string, owner: string) {
     Labels: { "rakazo.computerOwner": owner, "rakazo.botId": botId },
     Options: { "com.docker.network.bridge.name": computerBridgeNameFor(botId) },
   };
+}
+
+/**
+ * Docker Engine API 1.48 added GwPriority. Older supported daemons must receive
+ * the original connect payload, because their API cannot preserve this setting.
+ */
+export function screenPeerNetworkConnectOptions(
+  containerId: string,
+  apiVersion: string,
+): Docker.NetworkConnectOptions {
+  const version = /^(\d+)\.(\d+)$/.exec(apiVersion);
+  const supportsGatewayPriority = Boolean(
+    version && (Number(version[1]) > 1 || (Number(version[1]) === 1 && Number(version[2]) >= 48)),
+  );
+  if (!supportsGatewayPriority) return { Container: containerId };
+
+  // @types/dockerode 4.0.1 predates the API field; the server accepts the
+  // endpoint setting as part of the standard Engine API payload.
+  const endpointConfig: Docker.EndpointSettings & { GwPriority: number } = { GwPriority: -1 };
+  return { Container: containerId, EndpointConfig: endpointConfig };
 }
 
 export function hostComputerUser(uid = process.getuid?.(), gid = process.getgid?.()): string {
@@ -328,6 +377,7 @@ export interface ComputerCreateInput {
   controlToken?: string;
   networkMode?: string;
   publishControlPort?: boolean;
+  dns?: string[];
 }
 
 interface PointerInput {
@@ -393,6 +443,7 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       NetworkMode: input.networkMode ?? "bridge",
       ...(COMPUTER_RUNTIME ? { Runtime: COMPUTER_RUNTIME } : {}),
       ...(COMPUTER_DNS.length ? { Dns: COMPUTER_DNS } : {}),
+      ...(input.dns ? { Dns: input.dns } : {}),
     },
     WorkingDir: "/home/rakazo",
   };

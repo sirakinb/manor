@@ -1,5 +1,6 @@
-import type { JobPublisher } from "@rakazo/adapter-kit";
+import type { ConnectorProvider, JobPublisher } from "@rakazo/adapter-kit";
 import { routineJobKey, routineWakeupJob } from "@rakazo/adapter-kit";
+import { RoutineWatchSchema } from "@rakazo/contracts";
 import {
   cronFromPreset,
   isOneShotRoutineCron,
@@ -7,7 +8,9 @@ import {
   nextCronDate,
   ONCE_ROUTINE_CRON,
 } from "@rakazo/core";
-import type { PrismaClient, ThreadEvents } from "@rakazo/db";
+import type { Prisma, PrismaClient, ThreadEvents } from "@rakazo/db";
+
+import { validateRoutineWatch } from "./routine-watch.js";
 
 export { isOneShotRoutineCron, ONCE_ROUTINE_CRON };
 
@@ -196,6 +199,7 @@ function validateRepeatingCron(cron: string): string | null {
 }
 
 export interface ScheduleToolDeps {
+  connector?: ConnectorProvider;
   prisma: PrismaClient;
   events: ThreadEvents;
   jobs: JobPublisher;
@@ -209,6 +213,7 @@ export async function createScheduleFromTool(
     botId: string;
     userId: string;
     threadId: string;
+    target?: { botId: string; threadId: string };
     name: string;
     prompt: string;
     timezone?: string;
@@ -216,6 +221,8 @@ export async function createScheduleFromTool(
     schedule: Record<string, unknown>;
   },
 ) {
+  const routineBotId = input.target?.botId ?? input.botId;
+  const routineThreadId = input.target?.threadId ?? input.threadId;
   const name = input.name.trim();
   const prompt = input.prompt.trim();
   if (!name) return { error: "name is required." };
@@ -230,6 +237,9 @@ export async function createScheduleFromTool(
   if (trigger === "webhook" && Object.values(input.schedule).some((value) => value !== undefined)) {
     return { error: "A webhook routine does not take schedule timing fields." };
   }
+  if (input.schedule.watch !== undefined) {
+    return createWatchFromTool(deps, { ...input, name, prompt, timezone });
+  }
   const resolved =
     trigger === "webhook"
       ? { ok: true as const, cron: null, nextRunAt: null, oneShot: false }
@@ -239,9 +249,9 @@ export async function createScheduleFromTool(
   const row = await deps.prisma.routine.create({
     data: {
       spaceId: input.spaceId,
-      botId: input.botId,
+      botId: routineBotId,
       userId: input.userId,
-      threadId: input.threadId,
+      threadId: routineThreadId,
       name,
       prompt,
       crons: resolved.cron ? [resolved.cron] : [],
@@ -271,8 +281,8 @@ export async function createScheduleFromTool(
   try {
     await deps.events.append({
       spaceId: input.spaceId,
-      threadId: input.threadId,
-      botId: input.botId,
+      threadId: routineThreadId,
+      botId: routineBotId,
       type: "routine.created",
       payload: { name: row.name },
     });
@@ -296,6 +306,93 @@ export async function createScheduleFromTool(
       : {}),
     nextRunAt: row.nextRunAt?.toISOString() ?? null,
     oneShot: resolved.oneShot,
+  };
+}
+
+/** A routine that runs when something changes, from `schedule_create` with `watch`. */
+async function createWatchFromTool(
+  deps: ScheduleToolDeps,
+  input: {
+    spaceId: string;
+    botId: string;
+    userId: string;
+    threadId: string;
+    name: string;
+    prompt: string;
+    timezone: string;
+    schedule: Record<string, unknown>;
+  },
+) {
+  const others = Object.keys(input.schedule).filter((key) => key !== "watch");
+  if (others.length) {
+    return { error: "A watch checks on its own interval; do not combine it with a schedule." };
+  }
+  // Some models send the object as JSON text; take it either way.
+  let raw = input.schedule.watch;
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return { error: 'watch must be an object like {"kind":"files","paths":["inbox/"]}.' };
+    }
+  }
+  const parsed = RoutineWatchSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: parsed.error.issues.map((issue) => issue.message).join("; ") };
+  }
+  try {
+    // Match routine editing's owner/space boundary before creating unattended work.
+    const bot = await deps.prisma.bot.findFirst({
+      where: { id: input.botId, spaceId: input.spaceId, userId: input.userId, archivedAt: null },
+      include: { computer: true },
+    });
+    if (!bot) return { error: "Bot not found." };
+    await validateRoutineWatch(deps, parsed.data, input, bot.computer);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Invalid change trigger." };
+  }
+  const nextRunAt = new Date(Date.now() + 2_000);
+  const row = await deps.prisma.routine.create({
+    data: {
+      spaceId: input.spaceId,
+      botId: input.botId,
+      userId: input.userId,
+      threadId: input.threadId,
+      name: input.name,
+      prompt: input.prompt,
+      crons: [],
+      timezone: input.timezone,
+      notify: true,
+      active: true,
+      watch: parsed.data as Prisma.InputJsonValue,
+      nextRunAt,
+    },
+  });
+  try {
+    await deps.jobs.enqueue(routineWakeupJob(row.id, nextRunAt));
+  } catch {
+    await deps.prisma.routine
+      .update({ where: { id: row.id }, data: { active: false, nextRunAt: null } })
+      .catch(() => undefined);
+    return { error: "Could not start the watch. Try again." };
+  }
+  try {
+    await deps.events.append({
+      spaceId: input.spaceId,
+      threadId: input.threadId,
+      botId: input.botId,
+      type: "routine.created",
+      payload: { name: row.name },
+    });
+  } catch {
+    // The watch is live even if the thread signal fails.
+  }
+  return {
+    ok: true as const,
+    routineId: row.id,
+    name: row.name,
+    watch: parsed.data,
+    note: `Takes a first reading now, then checks every ${parsed.data.everyMinutes} minutes and runs only when it changes.`,
   };
 }
 
@@ -324,6 +421,7 @@ export async function listSchedulesFromTool(
       timezone: row.timezone,
       nextRunAt: row.nextRunAt?.toISOString() ?? null,
       oneShot: isOneShotRoutineCrons(row.crons),
+      ...(row.watch ? { watch: row.watch, lastCheck: row.watchState ?? null } : {}),
     })),
   };
 }
@@ -360,4 +458,17 @@ export async function cancelScheduleFromTool(
   await deps.prisma.routine.delete({ where: { id: existing.id } });
   await deps.jobs.cancel(routineJobKey(existing.id));
   return { ok: true as const, routineId: existing.id, name: existing.name };
+}
+
+/** Creating unattended shell work requires explicit approval, including JSON tool input. */
+export function commandWatchFromTool(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  }
+  const parsed = RoutineWatchSchema.safeParse(value);
+  return parsed.success && parsed.data.kind === "command" ? parsed.data.command : undefined;
 }

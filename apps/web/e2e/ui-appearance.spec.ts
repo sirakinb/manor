@@ -61,6 +61,9 @@ test("the app stays dark whatever the system or a stored preference asks for", a
   await expect(settings.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Appearance", exact: true })).toHaveCount(0);
   await expect(settings.getByTestId("ui-appearance-select")).toHaveCount(0);
+  // Sidebar density stays adjustable under its own heading.
+  await expect(settings.getByRole("heading", { name: "Sidebar", exact: true })).toBeVisible();
+  await expect(settings.getByTestId("bots-sidebar-density-select")).toBeVisible();
   await captureScreenshot(page, testInfo, "ui-appearance-dark-settings");
 
   await settings.getByRole("button", { name: "Close user settings" }).click();

@@ -10,6 +10,7 @@ import {
 import { ThreadMessageSchema } from "./events.js";
 import { Id, MemoryScope, RunStatus, SandboxKind } from "./ids.js";
 import { McpHeadersSchema, McpRemoteEndpointSchema, McpTransportSchema } from "./mcp.js";
+import { RoutineWatchSchema, RoutineWatchStateSchema } from "./routine-watch.js";
 import { RunFailureDiagnosticSchema, RunTriggerSchema } from "./runs.js";
 
 // ── CRM ─────────────────────────────────────────────────────────────────────
@@ -80,6 +81,24 @@ export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
 
 export const AvatarStyleSchema = z.enum(["robot", "organic"]);
+
+/** True for an IANA timezone this runtime can format in, such as "Pacific/Auckland". */
+export function isValidTimeZone(value: string): boolean {
+  // Intl also accepts fixed offsets, which are not IANA timezone names.
+  if (/^[+-]/.test(value)) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export const TimeZoneSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .refine(isValidTimeZone, { message: "Unknown timezone" });
 export type AvatarStyle = z.infer<typeof AvatarStyleSchema>;
 
 export const ThinkingLevelSchema = z.enum([
@@ -109,6 +128,13 @@ export const AgentSecretInputSchema = z.object({
 });
 export type AgentSecretInput = z.infer<typeof AgentSecretInputSchema>;
 
+export const InstructionVersionSchema = z.object({
+  id: Id,
+  instructions: z.string(),
+  reason: z.string(),
+  createdAt: z.string(),
+});
+
 export const BotSchema = z.object({
   id: Id,
   spaceId: Id,
@@ -116,6 +142,8 @@ export const BotSchema = z.object({
   title: z.string(),
   description: z.string(),
   instructions: z.string(),
+  selfUpdateInstructions: z.boolean().optional(),
+  instructionHistory: z.array(InstructionVersionSchema).optional(),
   color: z.string(),
   notifyOnFinish: z.boolean(),
   pinned: z.boolean(),
@@ -127,6 +155,7 @@ export const BotSchema = z.object({
   threadId: Id,
   preview: z.string(),
   status: z.string(),
+  runErrorId: Id.nullable().default(null),
   computerMode: ComputerModeSchema,
   updatedAt: z.string(),
   createdAt: z.string(),
@@ -137,10 +166,21 @@ export const BotSchema = z.object({
   thinkingLevel: ThinkingLevelSchema.nullable(),
   teamChatAmbientEnabled: z.boolean(),
   teamChatRules: z.string(),
+  fleetManagement: z.boolean().default(false),
   disabledBuiltinTools: z.array(z.string()).default([]),
   webhookConfigured: z.boolean(),
   /** Present when created with an idempotency key (e.g. onboarding:first). */
   spawnKey: z.string().nullable(),
+  /** The bot is ringing the user right now. */
+  incomingCall: z
+    .object({
+      callId: z.string(),
+      reason: z.string(),
+      opening: z.string(),
+      expiresAt: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 export type Bot = z.infer<typeof BotSchema>;
 
@@ -171,7 +211,7 @@ export function truncateReplyQuote(value: string): string {
 }
 
 export const GROUP_MEMBER_MIN = 2;
-export const GROUP_MEMBER_MAX = 6;
+export const GROUP_MEMBER_MAX = 10;
 
 export const GroupSchema = z.object({
   id: Id,
@@ -205,6 +245,8 @@ export const UpdateGroupInput = z.object({
   groupId: Id,
   name: z.string().trim().min(1).max(80).optional(),
   botIds: GroupBotIds.optional(),
+  /** Reject a membership replacement when another client changed the active roster. */
+  expectedBotIds: z.array(Id).max(GROUP_MEMBER_MAX).optional(),
   pinned: z.boolean().optional(),
   sectionId: Id.nullable().optional(),
 });
@@ -214,6 +256,8 @@ export const GroupDetailSchema = GroupSchema.extend({
   messages: z.array(ThreadMessageSchema).optional(),
 });
 export type GroupDetail = z.infer<typeof GroupDetailSchema>;
+
+export const BotSectionName = z.string().trim().min(1).max(60);
 
 export const BotSectionSchema = z.object({
   id: Id,
@@ -242,6 +286,7 @@ export const SpaceBotSchema = BotSchema.pick({
   parentBotId: true,
   preview: true,
   status: true,
+  runErrorId: true,
   updatedAt: true,
 });
 export type SpaceBot = z.infer<typeof SpaceBotSchema>;
@@ -396,6 +441,8 @@ export const UpdateBotInput = z
     title: z.string().trim().max(BOT_TITLE_MAX_LENGTH).optional(),
     description: z.string().trim().max(BOT_DESCRIPTION_MAX_LENGTH).optional(),
     instructions: z.string().trim().max(BOT_INSTRUCTIONS_MAX_LENGTH).optional(),
+    expectedInstructions: z.string().max(BOT_INSTRUCTIONS_MAX_LENGTH).optional(),
+    selfUpdateInstructions: z.boolean().optional(),
     notifyOnFinish: z.boolean().optional(),
     color: BotAvatarValueSchema.optional(),
     pinned: z.boolean().optional(),
@@ -408,6 +455,7 @@ export const UpdateBotInput = z
     thinkingLevel: ThinkingLevelSchema.nullable().optional(),
     teamChatAmbientEnabled: z.boolean().optional(),
     teamChatRules: z.string().max(TEAM_CHAT_RULES_MAX_LENGTH).optional(),
+    fleetManagement: z.boolean().optional(),
     disabledBuiltinTools: DisabledBuiltinToolsSchema.optional(),
   })
   .superRefine((value, ctx) => {
@@ -487,6 +535,9 @@ export const RoutineSchema = z.object({
   modelProvider: z.string().nullable(),
   modelId: z.string().nullable(),
   thinkingLevel: ThinkingLevelSchema.nullable(),
+  /** Null unless the routine starts when something changes. */
+  watch: RoutineWatchSchema.nullable(),
+  watchState: RoutineWatchStateSchema.nullable(),
   lastRunAt: z.string().nullable(),
   nextRunAt: z.string().nullable(),
   createdAt: z.string(),
@@ -557,6 +608,7 @@ export const CreateRoutineInput = z
     modelProvider: z.string().trim().min(1).max(80).nullable().default(null),
     modelId: z.string().trim().min(1).max(200).nullable().default(null),
     thinkingLevel: ThinkingLevelSchema.nullable().default(null),
+    watch: RoutineWatchSchema.nullable().default(null),
   })
   .superRefine((value, ctx) => {
     routineModelIssues(value, ctx);
@@ -564,12 +616,20 @@ export const CreateRoutineInput = z
       value.crons.length === 0 &&
       !value.webhookEnabled &&
       !value.githubEnabled &&
-      !value.messageProvider
+      !value.messageProvider &&
+      !value.watch
     ) {
       ctx.addIssue({
         code: "custom",
-        message: "Add a schedule, webhook, GitHub, or message trigger",
+        message: "Add a schedule, webhook, GitHub, message, or change trigger",
         path: ["crons"],
+      });
+    }
+    if (value.watch && value.crons.length > 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A change trigger checks on its own interval; remove the schedule",
+        path: ["watch"],
       });
     }
   });
@@ -728,6 +788,12 @@ export const MemoryDocumentSchema = z.object({
   updatedAt: z.string(),
 });
 export type MemoryDocument = z.infer<typeof MemoryDocumentSchema>;
+
+/** Every bot and Space keeps its MEMORY.md index; other memory documents can be deleted. */
+export const MEMORY_INDEX_PATH = "MEMORY.md";
+export function isDeletableMemoryDocument(path: string): boolean {
+  return path !== MEMORY_INDEX_PATH;
+}
 
 export const ConnectionSchema = z.object({
   id: Id,
@@ -1278,6 +1344,8 @@ export function modelOutputLeavesInputRoom(
 }
 
 export const ModelCredentialSchema = z.object({
+  /** Computed space preference order; credentials themselves remain newest first. */
+  preferenceRank: z.number().int().nonnegative().optional(),
   ...ModelContextLimitsSchema.shape,
   id: Id,
   provider: z.string(),
@@ -1294,6 +1362,8 @@ export const ModelCredentialSchema = z.object({
   supportsImages: z.boolean().optional(),
   maxImagesPerPrompt: z.number().int().min(1).max(1000).optional(),
   thinkingLevels: z.array(ThinkingLevelSchema).optional(),
+  /** Openai-compatible only; always contains `modelId` when set. */
+  enabledModelIds: z.array(z.string()).optional(),
   /** Stored secret kind. Absent when the secret could not be read. */
   authKind: z.enum(["api_key", "oauth", "openai_compatible"]).optional(),
 });
@@ -1325,6 +1395,8 @@ export const ModelBackupListSchema = z
 
 export const OPENAI_COMPATIBLE_PROVIDER_ID = "openai-compatible";
 
+export const MAX_ENABLED_MODEL_IDS = 500;
+
 export const ModelConnectInputSchema = z
   .object({
     ...ModelContextLimitsSchema.shape,
@@ -1340,6 +1412,10 @@ export const ModelConnectInputSchema = z
     maxTokens: z.number().int().min(1).max(MAX_MODEL_MAX_TOKENS).nullable().optional(),
     supportsImages: z.boolean().optional(),
     maxImagesPerPrompt: z.number().int().min(1).max(1000).nullable().optional(),
+    enabledModelIds: z
+      .array(z.string().trim().min(1).max(512))
+      .max(MAX_ENABLED_MODEL_IDS)
+      .optional(),
   })
   .superRefine((value, ctx) => {
     if (!modelOutputLeavesInputRoom(value.maxTokens, value.contextWindow)) {
@@ -1446,6 +1522,8 @@ export const ModelCatalogEntrySchema = z.object({
   signIn: ModelOAuthSignInModeSchema.optional(),
   reasoning: z.boolean().optional(),
   thinkingLevels: z.array(ThinkingLevelSchema).optional(),
+  /** The model reads images. Left out where a connection setting decides it. */
+  images: z.boolean().optional(),
   /** Catalog stand-in so a provider appears before the user enters a real model id. */
   placeholder: z.boolean().optional(),
   /** Models share one pinned HTTPS models-list URL that can be probed. */
@@ -1477,6 +1555,10 @@ export const VoiceCredentialSchema = z.object({
   /** Fish speech-model override. Empty uses the deployment default. */
   speechModel: z.string(),
   transcribe: z.boolean(),
+  /** Self-hosted server base URL and model ids (never the key). Empty for hosted providers. */
+  endpoint: z.string().default(""),
+  ttsModel: z.string().default(""),
+  sttModel: z.string().default(""),
 });
 export type VoiceCredential = z.infer<typeof VoiceCredentialSchema>;
 
@@ -1621,7 +1703,9 @@ export const LocalDeviceSchema = z.object({
 export type LocalDevice = z.infer<typeof LocalDeviceSchema>;
 
 export const MeSchema = z.object({
+  maxUploadSizeBytes: z.number().int().positive().optional(),
   ticketBoardEnabled: z.boolean(),
+  phoneCallsEnabled: z.boolean().default(false),
   userId: Id,
   email: z.string().email(),
   name: z.string(),
@@ -1639,6 +1723,11 @@ export const MeSchema = z.object({
   sandboxProvider: z.string(),
   avatarStyle: AvatarStyleSchema,
   localComputer: LocalComputerLiveSessionSchema,
+  /**
+   * The user's IANA timezone, or null when unset (bots then see UTC only).
+   * Absent from servers that predate it.
+   */
+  timezone: z.string().nullable().optional(),
   /** True when this deployment bills and the user is not the deployment owner. */
   billingEnabled: z.boolean(),
 });

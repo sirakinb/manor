@@ -15,7 +15,7 @@ previous stage. CI is the verification gate; the local stack is not run. Product
 deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
-Stages done: `v0.1.6`. In progress: `v0.2.0`.
+Stages done: `v0.1.6`, `v0.2.0`. In progress: `v0.3.0`.
 
 ### How a stage is resolved
 
@@ -78,6 +78,33 @@ Stages done: `v0.1.6`. In progress: `v0.2.0`.
   failure (Manor's choice; upstream surfaces it).
 - Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
   and local sandbox tests (the temp directory is a symlink).
+
+### Deploy checklist for the staged sync
+
+Things the one production deploy at the end must cover, collected as stages land.
+
+- Set `PHONE_CALLS_ENABLED=true` to keep voice calls. Upstream gates call routes, call
+  controls and the bot's `call_user` tool behind it, off by default.
+- Keep `PI_DEFAULT_MODEL` set. Upstream's built-in default OpenRouter model differs
+  from the one production runs on.
+- The AI data sharing screen links to upstream's privacy page unless the server
+  supplies a privacy URL. Set Manor's before the screen is reachable.
+- New accounts get upstream's `organic` avatar style; Manor's sprites show only for
+  the `robot` style, which existing accounts keep.
+- Webhook-triggered runs pause for owner approval on tools outside upstream's
+  read-only list until a stage brings upstream's reworked approval settings.
+- A running Docker computer is reused on start instead of being set up again.
+- Index migrations that can leave work behind if they fail partway:
+  - `20261007010000_history_search` and `20261014120001_runs_retry_of_run_id_key_concurrent`
+    build concurrently. On failure drop the invalid index
+    (`DROP INDEX CONCURRENTLY IF EXISTS "<name>"`), run
+    `prisma migrate resolve --rolled-back <migration>`, then deploy again.
+  - `20261019010000_call_recovery_index` blocks writes to `messages` while it builds
+    and rolls back cleanly; resolve as rolled back and deploy again.
+- `20260908090000_message_reaction` drops `messages.thumbsUp` without carrying the
+  data over. Count existing thumbs-ups on the backup first.
+- `20261120120000_mark_existing_users_verified` must run with the rest, or upstream's
+  verification gate can refuse existing accounts.
 
 ## Standing rules
 
