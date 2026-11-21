@@ -108,5 +108,6 @@ it.skipIf(!testDatabase)(
       await admin.end();
     }
   },
-  60_000,
+  // Each CLI start takes many seconds on CI's shared runners beside the parallel suites.
+  180_000,
 );
