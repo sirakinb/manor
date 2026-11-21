@@ -11,14 +11,12 @@ const actor = {
   isDeploymentOwner: false,
 };
 
-function prisma(options: {
-  membership: boolean;
-  settings?: () => Promise<{ ownerUserId: string } | null>;
-}) {
+function prisma(options: { membership: boolean; failure?: Error; ownerUserId?: string }) {
   return {
     spaceMember: {
-      findFirst: vi.fn(async () =>
-        options.membership
+      findFirst: vi.fn(async () => {
+        if (options.failure) throw options.failure;
+        return options.membership
           ? {
               userId: actor.userId,
               spaceId: actor.spaceId,
@@ -27,11 +25,13 @@ function prisma(options: {
               // Manor's membership also says whether the space is a shared team space.
               space: { accountUserId: null },
             }
-          : null,
-      ),
+          : null;
+      }),
     },
+    // Manor keeps the deployment owner (maintenance agent, release controller); upstream #1915
+    // dropped it, so Manor's membership lookup still reads the owner seat.
     deploymentSettings: {
-      findUnique: vi.fn(options.settings ?? (async () => ({ ownerUserId: "someone-else" }))),
+      findUnique: vi.fn(async () => ({ ownerUserId: options.ownerUserId ?? "someone-else" })),
     },
   } as unknown as PrismaClient;
 }
@@ -45,24 +45,28 @@ describe("actorFromMembership", () => {
     ).resolves.toBeNull();
   });
 
-  it("returns the actor for a real membership", async () => {
+  it("returns the actor for a real membership, not the owner unless it holds the seat", async () => {
+    const db = prisma({ membership: true });
     await expect(
-      actorFromMembership(
-        requireMembership(prisma({ membership: true }), "user-1", "space-support"),
-      ),
+      actorFromMembership(requireMembership(db, "user-1", "space-support")),
     ).resolves.toEqual(actor);
   });
 
-  it("lets a deployment-settings failure surface instead of looking signed out", async () => {
+  it("marks the deployment owner from the stored owner seat", async () => {
+    const db = prisma({ membership: true, ownerUserId: "user-1" });
+    await expect(
+      actorFromMembership(requireMembership(db, "user-1", "space-support")),
+    ).resolves.toEqual({ ...actor, isDeploymentOwner: true });
+  });
+
+  it("lets a membership query failure surface instead of looking signed out", async () => {
     const failure = new Error("database unavailable");
     await expect(
       actorFromMembership(
         requireMembership(
           prisma({
             membership: true,
-            settings: async () => {
-              throw failure;
-            },
+            failure,
           }),
           "user-1",
           "space-support",

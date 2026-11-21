@@ -15,7 +15,7 @@ previous stage. CI is the verification gate; the local stack is not run. Product
 deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
-Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`. In progress: `v0.3.3`.
+Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`. In progress: `v0.3.5`.
 
 ### How a stage is resolved
 
@@ -74,13 +74,10 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`. In progress: `v0.3.3`.
   full-screen computer, so E2E locators for those names are scoped to a container.
 - Manor's sprite avatars show for the robot style on sprite colours; upstream specs
   that expect the robot face use a non-sprite colour.
-- Manor's default avatar style is `robot`, so its sprites show for new accounts too;
-  upstream's `organic` stays available as an explicit choice. Every fallback reads
-  `DEFAULT_AVATAR_STYLE` in `packages/core/src/avatar-style.ts`, and the column default
-  is set by Manor's own migration `20261121120000_manor_robot_avatar_default` (the
-  schema default matches). Upstream's `20261015120000_organic_avatar_default` stays
-  untouched. If a later upstream release removes the robot style, Manor keeps a sprite
-  style as its default rather than losing its sprites.
+- Avatars: there is no avatar style setting (upstream removed it in `v0.3.5`). Manor's
+  sprite is how a bot is drawn when it is on one of Manor's sprite colours and has no
+  uploaded image and no chosen shape, on web, desktop and mobile; other cases use
+  upstream's avatar. `20261121120000_manor_robot_avatar_default` stays in history.
 - Manor-only modules must not statically import sections upstream lazy-loads
   (`KnowledgeSection`), or upstream's code split and its chunk-failure specs break.
 - A dropped thread refresh after a send that succeeded is not shown as a send
@@ -130,6 +127,22 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`. In progress: `v0.3.3`.
 - The desktop setup's cloud choice is "Manor Cloud"; upstream's fixed cloud option
   is not adopted.
 - Auth emails and the passkey relying-party name say Manor.
+- The API router is upstream's split (`apps/api/src/routes/*.ts`). Manor's changes to
+  upstream procedures live there, as small local edits; Manor-only procedures stay
+  together in `router.ts` (`manorRoutes()`). `spaceAuthed` in `routes/context.ts` is
+  the team-space tier; a new upstream procedure that touches space-owned resources
+  goes on it. After a stage, compare every procedure's tier with the previous stage.
+- Deployment owner: upstream removed app-level administrators. Manor keeps
+  `deployment_settings.ownerUserId` (lookup in `scope.ts`, first sign-up claim in
+  `bootstrap-user.ts`, `me.isDeploymentOwner`) because `maintenance.*` is owner-only.
+  What upstream made server-only stays refused in the app.
+- Model error text: Manor's short summaries apply to outages, timeouts and rate
+  limits; account problems keep the provider's text, which upstream's run-error
+  screen turns into advice.
+- The installable web app's manifest says Manor with icons declared `any`; brand
+  portals have their own manifests under `public/brands/<id>/`. The service worker
+  stays away from `/preview`, `/v1`, `/mcp` and `/local-computer`.
+- The Android live notification icon (`ic_rakazo_notification`) is Manor's mark.
 - Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
   and local sandbox tests (the temp directory is a symlink).
 
@@ -152,6 +165,20 @@ Things the one production deploy at the end must cover, collected as stages land
 - Webhook-triggered runs pause for owner approval on tools outside upstream's
   read-only list until a stage brings upstream's reworked approval settings.
 - A running Docker computer is reused on start instead of being set up again.
+- Sign-up policy is read only from the environment from `v0.3.5` on, and the API
+  writes it into `deployment_settings` on every start. Production's stored allowlist
+  has one more entry than its environment's: bring `SIGNUP_ALLOWLIST` up to date
+  before deploying, and keep `SIGNUPS_ENABLED` set.
+- Push registrations move from files to the encrypted database. With API and worker
+  stopped, after the schema migration, run
+  `pnpm --filter @rakazo/api shared-storage push-tokens --dry-run`, then without
+  `--dry-run`; otherwise phones get no pushes until each user reopens the app.
+- `20261023000300_billing_audit` copies every usage record into an append-only audit
+  table and blocks truncating it; `20261023000000_thread_read_cursor` rewrites every
+  thread; `20261025140000_drop_space_backup_models` drops the old backup model table
+  after copying it into model roles. Users on the deployment key keep following
+  `PI_DEFAULT_MODEL`; bots' own model overrides are untouched.
+- In-app deployment settings and the in-app updater are gone (server-only upstream).
 - Content encryption: with `NODE_ENV=production` and `CONTENT_ENCRYPTION` unset,
   upstream encrypts new message content at rest. Keep it off for the sync deploy
   (set it explicitly) until Manor's code that reads message content directly has

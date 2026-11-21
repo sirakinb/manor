@@ -1,4 +1,3 @@
-import { AvatarStyleProvider } from "@rakazo/ui-web";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ActiveBotGlyph, CollaborationMarker } from "./CollaborationMarker";
@@ -20,7 +19,7 @@ describe("collaboration transcript markers", () => {
     expect(html).toContain('class="flex justify-start"');
     expect(html).toContain('class="inline-flex max-w-full');
     expect(html).toContain('class="truncate"');
-    expect(html).toContain("rakazo-bot-avatar-visor");
+    expect(html).toContain("rakazo-organic-avatar");
     expect(html).toContain("Message from Research");
     expect(html).not.toContain("{peer}");
   });
@@ -59,12 +58,10 @@ describe("collaboration transcript markers", () => {
 
   it("animates the active bot glyph from its run status", () => {
     const html = renderToString(
-      <AvatarStyleProvider value="organic">
-        <ActiveBotGlyph
-          bots={[{ botId: "research", color: "#14B8A6", status: "running" }]}
-          label="Research is working"
-        />
-      </AvatarStyleProvider>,
+      <ActiveBotGlyph
+        bots={[{ botId: "research", color: "#14B8A6", status: "running" }]}
+        label="Searching the web: injury news"
+      />,
     );
 
     expect(html).toContain('role="status"');

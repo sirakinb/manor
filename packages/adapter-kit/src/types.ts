@@ -126,6 +126,8 @@ export interface TerminalRequest {
 }
 
 export interface ScreenSession {
+  /** Provider credentials for the server proxy only; never return these to clients. */
+  headers?: Record<string, string>;
   url: string | null;
   mimeType: string;
   close(): Promise<void>;
@@ -422,15 +424,20 @@ export interface AgentSteeringMessage {
 export type CacheCapabilities = ConnectionCacheCapabilities;
 
 export interface AgentRunModel {
+  /** Server-side spending authorization, carried with the resolved credential. */
+  callObserver?: ModelCallObserver;
   cacheCapabilities?: CacheCapabilities;
   provider: string;
   id: string;
+  /** Opaque id of the stored connection serving it, so a model can fall back to another account. */
+  connectionId?: string;
   apiKey?: string;
   /** Cloudflare account id stored with a gateway BYOK credential. */
   accountId?: string;
   /** Cloudflare AI Gateway id stored with a gateway BYOK credential. */
   gatewayId?: string;
   baseUrl?: string;
+  headers?: Record<string, string>;
   /** The connection owner may reach a private or loopback `baseUrl`; absent means deny. */
   allowPrivateEndpoint?: boolean;
   /** Whether this custom connection accepts standard reasoning_effort. */
@@ -486,14 +493,24 @@ export interface AgentRunRequest {
   tools: ConnectorTool[];
   model: AgentRunModel;
   /** Ordered, user-selected models eligible after provider unavailability. */
-  fallbackModels?: Array<Pick<AgentRunModel, "provider" | "id">>;
+  fallbackModels?: Array<Pick<AgentRunModel, "provider" | "id" | "connectionId">>;
   /** Resolve one configured backup lazily so healthy primary turns do no extra auth work. */
-  resolveFallbackModel?: (provider: string, modelId: string) => Promise<AgentRunModel>;
+  resolveFallbackModel?: (
+    provider: string,
+    modelId: string,
+    connectionId?: string,
+  ) => Promise<AgentRunModel>;
   /** Persist the selected backup against the active run lease before requesting it. */
   onModelChange?: (provider: string, modelId: string) => Promise<void>;
   /** Resolve an explicitly requested helper model within the active user and space scope. */
   resolveModel?: (provider: string, modelId: string) => Promise<AgentRunModel>;
   resumeFromCheckpoint?: string;
+  /** Opaque runtime transcript, persisted only on the server. */
+  turnCheckpoint?: string;
+  /** Cheap per-call capture; serialize only when persisting that call’s human pause. */
+  onCheckpoint?: (capture: () => string, executionId: string) => Promise<void>;
+  /** Human answer or takeover outcome for the pending interaction. Never secret input. */
+  resumeToolResult?: { content: Array<{ type: "text"; text: string }> };
   script?: ScriptedTurn[];
   /**
    * FYI bot-message wakes and scheduled routines may finish with no text.
@@ -529,6 +546,8 @@ export interface ScriptedTurn {
  * Input excludes cache buckets. Reasoning is already included in output.
  */
 export interface AgentUsage {
+  providerRequestId?: string | null;
+  operationKind?: UsageOperationKind;
   inputTokens: number | null;
   outputTokens: number | null;
   cacheReadTokens?: number | null;
@@ -539,6 +558,7 @@ export interface AgentUsage {
   costUsd?: number | null;
   costSource?: string | null;
   pricingVersion?: string | null;
+  pricingSnapshot?: Record<string, unknown> | null;
   usageSource?: string | null;
 }
 
@@ -546,14 +566,20 @@ export type UsageOperationKind = "answer" | "setup" | "retrieval" | "subagent" |
 
 export interface ModelCallObserver {
   beforeCall(call: {
+    callId?: string;
+    runId?: string;
+    operationKind?: UsageOperationKind;
     provider: string;
     modelId: string;
     inputTokensEstimate: number;
     maxOutputTokens: number;
+    /** Conservative dollar bound from the resolved model pricing; absent means unknown. */
+    maxCostUsd?: number;
     /** Explicit adapter-known write bucket required by this request, not a billing prediction. */
     cacheWriteRetention?: "1h";
   }): string | Promise<string>;
   afterCall(reservationId: string, usage: AgentUsage | null): void | Promise<void>;
+  onRequestId?(reservationId: string, providerRequestId: string): void | Promise<void>;
 }
 
 export type AgentRuntimeEvent =
@@ -571,11 +597,12 @@ export type AgentRuntimeEvent =
   | { type: "tool"; name: string; args: Record<string, unknown>; executionId: string }
   | {
       type: "ask";
+      executionId?: string;
       text: string;
       detail?: string;
       actions?: Array<{ id: string; label: string }>;
     }
-  | { type: "takeover"; reason: string }
+  | { type: "takeover"; reason: string; executionId?: string }
   | ({
       type: "usage";
       /** Producer-side onUsage completed; consumers must not account it again. */
@@ -666,6 +693,7 @@ export interface BackgroundJobPayloads {
   /** One workspace automation run; `scheduledFor` is set for cron wakeups, absent for "run now". */
   "workspace.automation.run": { automationId: string; runId?: string; scheduledFor?: string };
   "workspace.report.generate": { reportId: string };
+  "messaging.credential-cleanup": { installationId: string; ref: string };
   /** Reconcile durable remote-agent intent; scope is loaded from the database. */
   "cloud_agent.poll": { agentId: string };
   /** Read an Expo push receipt; the token is identified by its digest, never stored. */
@@ -696,8 +724,16 @@ export type BackgroundJob = {
   };
 }[BackgroundJobName];
 
+export interface BackgroundJobExecution {
+  /** Release the dispatch slot only after durable run ownership and heartbeat setup. */
+  onRunStarted(): void;
+}
+
 export type BackgroundJobHandlers = {
-  [Name in BackgroundJobName]: (payload: BackgroundJobPayloads[Name]) => Promise<void>;
+  [Name in BackgroundJobName]: (
+    payload: BackgroundJobPayloads[Name],
+    execution?: BackgroundJobExecution,
+  ) => Promise<void>;
 };
 
 export interface SecretRecord {
@@ -728,6 +764,8 @@ export interface NotificationMessage {
   threadId: string;
   /** Group chat that owns threadId, so a tap does not open the bot's direct thread. */
   groupId?: string;
+  /** Unread chats to show on the app icon, when the sender knows them. */
+  badge?: number;
 }
 
 /** A product-authored transactional email, independent of its delivery vendor. */
@@ -807,6 +845,10 @@ export interface MessagingInboundMessage {
   mentionsBot?: boolean;
   /** Team-room workspace/team id when the platform reports one (Slack team_id, …). */
   workspaceId?: string;
+  /** Trusted installation owner, attached only after webhook verification. */
+  installationId?: string;
+  installationSpaceId?: string;
+  installationBotId?: string;
   /** Stable conversation key within the workspace (channel id, DM key, …). */
   conversationKey?: string;
   /** How this message should engage the team-chat bot. */
@@ -969,6 +1011,8 @@ export type BrowserActStep =
       text: string;
       /** Refuse the step unless the page is on this origin when it is applied. */
       origin?: string;
+      /** Which part of a saved login `text` is; a password is typed only into a password field. */
+      field?: "username" | "password";
     };
 
 export interface BrowserActRequest {
@@ -1109,7 +1153,24 @@ export interface BillingPrice {
 }
 
 /** Full subscription state for one billing customer, re-fetched from the provider on every sync. */
+export interface BillingCreditPurchase {
+  /** Stable provider payment identity, including any subsequent refund adjustment. */
+  id: string;
+  amountCents: number;
+  /** Subscription service-period end; absent for non-expiring top-ups. */
+  expiresAt?: string;
+}
+
+export interface BillingCreditCheckoutRequest {
+  customerId: string;
+  amountCents: number;
+  monthly: boolean;
+  successUrl: string;
+  cancelUrl: string;
+}
+
 export interface BillingSubscriptionSnapshot {
+  creditAmountCents?: number;
   subscriptionId: string;
   subscriptionItemId: string;
   priceId: string;
@@ -1128,4 +1189,10 @@ export interface BillingCheckoutRequest {
   trialDays?: number;
   successUrl: string;
   cancelUrl: string;
+}
+
+/** Optional provider adapter for recovering authoritative cost after an interrupted call. */
+export interface ModelUsageLookup {
+  provider: string;
+  lookupUsage(providerRequestId: string): Promise<AgentUsage | null>;
 }

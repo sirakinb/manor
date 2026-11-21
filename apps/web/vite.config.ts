@@ -31,6 +31,7 @@ import { brandHostnames } from "../../packages/brands/src/index.ts";
 import { resolveScreenProxySecret } from "../../packages/core/src/secrets-guard.ts";
 import { createServiceLogger } from "../../packages/logging/src/env.ts";
 import { socialPreviewPlugin } from "./social-preview-plugin";
+import { ASSET_ARCHIVE_DIR, archiveAssets } from "./src/asset-archive.js";
 import { appendForwardedFor } from "./src/forwarded-for.js";
 import { missingAssetMiddleware } from "./src/missing-asset.js";
 import {
@@ -42,6 +43,7 @@ import {
   rewrittenNovncHeaders,
   shouldInjectNovncStorageShim,
 } from "./src/novnc-html.js";
+import { rakazoPwa } from "./src/pwa/plugin.js";
 import {
   resolveNovncTarget,
   resolvePreviewTarget,
@@ -124,7 +126,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
       res.end("Invalid or expired screen capability");
       return;
     }
-    const forwarded = safeProxyHeaders(req.headers);
+    const forwarded = safeProxyHeaders(req.headers, target.headers);
     const headers = {
       // The storage shim rewrites the page, so ask for all of it, uncompressed.
       ...(isNovncPage(target.path) ? novncPageRequestHeaders(forwarded) : forwarded),
@@ -322,7 +324,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
         `${req.method ?? "GET"} ${target.path} HTTP/1.1`,
         `Host: ${target.hostname}:${target.port}`,
       ];
-      for (const [key, value] of Object.entries(safeProxyHeaders(req.headers))) {
+      for (const [key, value] of Object.entries(safeProxyHeaders(req.headers, target.headers))) {
         headerLines.push(`${key}: ${Array.isArray(value) ? value.join(",") : value}`);
       }
       upstream.write(`${headerLines.join("\r\n")}\r\n\r\n`);
@@ -633,6 +635,7 @@ export default defineConfig(({ command, mode }) => {
       babel({ plugins: ["@lingui/babel-plugin-lingui-macro"] }),
       lingui(),
       tailwindcss(),
+      rakazoPwa(buildId),
       {
         // Production only: the dev server injects inline scripts for React Refresh.
         name: "rakazo-content-security-policy",
@@ -655,11 +658,21 @@ export default defineConfig(({ command, mode }) => {
       {
         name: "rakazo-missing-asset-404",
         configurePreviewServer({ config, middlewares }) {
+          const outDir = path.resolve(config.root, config.build.outDir);
+          const assetsDir = path.join(outDir, config.build.assetsDir);
+          let archive: string | null = null;
+          try {
+            archive = archiveAssets({
+              assetsDir,
+              archiveDir: path.resolve(config.root, ASSET_ARCHIVE_DIR),
+              buildId: readFileSync(path.join(outDir, "build-id"), "utf8").trim(),
+              now: Date.now(),
+            });
+          } catch (error) {
+            screenLog.warn("web.asset_archive_failed", { "error.code": socketErrorCode(error) });
+          }
           middlewares.use(
-            missingAssetMiddleware(
-              path.resolve(config.root, config.build.outDir, config.build.assetsDir),
-              `${config.base}${config.build.assetsDir}/`,
-            ),
+            missingAssetMiddleware(assetsDir, `${config.base}${config.build.assetsDir}/`, archive),
           );
         },
       },

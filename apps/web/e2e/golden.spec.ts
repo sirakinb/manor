@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { CONNECTION_LABEL_MAX_LENGTH } from "@rakazo/contracts";
 import {
   activeBotId,
   captureScreenshot,
@@ -182,9 +183,6 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(page.getByRole("button", { name: "Add OpenAPI", exact: true })).toBeHidden();
   await expect(page.getByRole("button", { name: "Add GraphQL", exact: true })).toBeHidden();
   await expect(page.getByText("Tool sources", { exact: true })).toBeHidden();
-  await expect(
-    page.getByText("Connect apps or add Treg, MCP, and OpenAPI tool sources.", { exact: true }),
-  ).toBeHidden();
   await captureScreenshot(page, testInfo, "11-plugins-catalog");
 
   // Nearest ancestor with an Add/Added control (featured tile or catalog row).
@@ -204,13 +202,17 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
 
   await detail.getByRole("button", { name: "Add another", exact: true }).click();
   await expect(detail.getByLabel("Account label")).toHaveCount(2);
-  await detail.getByLabel("Account label").nth(1).fill("Work");
+  const accountName = "Work account ".padEnd(CONNECTION_LABEL_MAX_LENGTH, "x");
+  const accountLabel = detail.getByLabel("Account label").nth(1);
+  await accountLabel.clear();
+  await accountLabel.pressSequentially(`${accountName}overflow`);
+  await expect(accountLabel).toHaveValue(accountName);
   const renamed = page.waitForResponse(
     (response) => response.url().includes("connections/rename") && response.ok(),
   );
   await detail.getByLabel("Account label").nth(1).blur();
   await renamed;
-  await expect(detail.getByLabel("Account label").nth(1)).toHaveValue("Work");
+  await expect(detail.getByLabel("Account label").nth(1)).toHaveValue(accountName);
   await captureScreenshot(page, testInfo, "11a2-multi-account-plugins");
 
   await page
@@ -228,7 +230,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await gmailTileAgain.click();
   const detailAgain = page.getByTestId("connection-detail");
   await expect(detailAgain.getByLabel("Account label")).toHaveCount(2);
-  await expect(detailAgain.getByLabel("Account label").nth(1)).toHaveValue("Work");
+  await expect(detailAgain.getByLabel("Account label").nth(1)).toHaveValue(accountName);
 
   await detailAgain.getByRole("button", { name: "Remove", exact: true }).last().click();
   await expect(detailAgain.getByLabel("Account label")).toHaveCount(1);
@@ -361,14 +363,14 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
     await page.getByRole("button", { name: "Agent computer", exact: true }).click();
   }
   await gear.click();
-  await expandAdvancedSection(page.getByTestId("bot-settings"));
+  await page
+    .getByTestId("bot-settings")
+    .getByRole("button", { name: "Advanced", exact: true })
+    .click();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/chief-export\.json/i);
-  const settings = page.getByTestId("bot-settings");
-  await expect(settings.getByRole("button", { name: "Archive bot" })).toHaveCount(0);
-  await expect(settings.getByRole("button", { name: "Delete bot" })).toHaveCount(0);
   await page.getByRole("button", { name: "Close panel" }).click();
 
   await page.locator("aside").first().getByRole("button", { name: /Chief/ }).first().click({
@@ -412,9 +414,9 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   await expect(sidebarBotButton(page, /^Scout\b/)).toBeVisible({
     timeout: 30_000,
   });
-  const botLinkCard = page.getByTestId("bot-link-card");
-  await expect(botLinkCard).toBeVisible({ timeout: 30_000 });
-  await expectCardWidth(botLinkCard, 340);
+  await expect(page.getByTestId("bot-mention").filter({ hasText: "Scout" })).toBeVisible({
+    timeout: 30_000,
+  });
   await captureScreenshot(page, testInfo, "13-spawned-bot");
 
   await page
@@ -426,9 +428,6 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.getByTestId("composer-steering-status")).toHaveCount(0);
-  await expect(page.getByText("Messages sent now guide the next turn.")).toHaveCount(0);
-  await expect(page.getByText(/^Steer /)).toHaveCount(0);
   await expect(composer).toHaveAttribute("placeholder", "Message Chief");
   await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
   const holdToTalk = page
@@ -528,7 +527,7 @@ test("bot context menu pins, duplicates, edits, and confirms deletion", async ({
 
   await chief.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Edit Profile" }).click();
-  await expect(page.locator("label:has-text('Name') input")).toHaveValue("Chief");
+  await expect(page.getByRole("button", { name: "Edit name", exact: true })).toHaveText("Chief");
   await captureScreenshot(page, testInfo, "19-edit-profile");
 });
 

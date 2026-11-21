@@ -16,6 +16,7 @@ vi.mock("@lingui/react/macro", () => {
   return { useLingui: () => ({ t }), Trans: ({ children }: { children: ReactNode }) => children };
 });
 
+import { captureDrop } from "../../lib/agent-drop";
 import { dictation } from "../../lib/dictation";
 import { Composer } from "./composer";
 
@@ -195,6 +196,25 @@ describe("Composer", () => {
 
     expect(container?.querySelector('[data-testid="mention-chip"]')?.textContent).toBe("Alice");
   });
+
+  it.each([false, true])(
+    "draws an idle Send button with the primary disabled tokens (running: %s)",
+    (running) => {
+      renderComposer(vi.fn(), { running });
+      const send = container?.querySelector<HTMLButtonElement>('button[aria-label="Send"]');
+      expect(send?.disabled).toBe(true);
+      expect(send?.className.split(" ")).toEqual(
+        expect.arrayContaining([
+          "bg-primary",
+          "hover:bg-primary-hover",
+          "disabled:bg-primary-disabled",
+          "disabled:text-foreground/30",
+          "disabled:opacity-100",
+        ]),
+      );
+      expect(send?.className).not.toContain("disabled:opacity-50");
+    },
+  );
 
   it("clears the draft once the message is sent", async () => {
     const onSend = vi.fn().mockResolvedValue(true);
@@ -605,4 +625,186 @@ it.each([false, true])(
 it("hides call dictation until the server enables it", () => {
   renderComposer(vi.fn().mockResolvedValue(true));
   expect(container?.querySelector('button[aria-label="Hold to talk"]')).toBeNull();
+});
+
+// Manor takes drops on the whole chat pane; the pane offers each drop to the composer first
+// through `paneDropRef`, so these drops go through that hand-off as the shell does.
+describe("a dropped folder or archive", () => {
+  /** A drop whose file list the browser empties once the handler returns. */
+  function drop(entries: unknown[], files: File[]) {
+    const list = [...files];
+    const dataTransfer = {
+      files: list,
+      types: ["Files"],
+      items: files.map((file, index) => ({
+        kind: "file",
+        getAsFile: () => file,
+        webkitGetAsEntry: () => entries[index] ?? null,
+      })),
+    };
+    act(() => {
+      const take = composerProps.paneDropRef?.current;
+      const taken = take?.(captureDrop(dataTransfer as unknown as DataTransfer)) ?? false;
+      if (!taken) composerProps.onAttachmentPick(dataTransfer.files);
+    });
+    list.length = 0;
+  }
+  const settle = () => act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+
+  it("attaches an archive that is not an agent, after the event's list is gone", async () => {
+    const onAttachmentPick = vi.fn(() => true);
+    renderComposer(
+      vi.fn(async () => true),
+      { onAttachmentPick, onImportAgent: vi.fn(), paneDropRef: createRef() },
+    );
+    const archive = new File(["not a zip"], "photos.zip");
+    drop([{ name: "photos.zip", isFile: true, isDirectory: false }], [archive]);
+    await settle();
+    expect(onAttachmentPick).toHaveBeenCalledTimes(1);
+    expect([...(onAttachmentPick.mock.calls[0] as unknown as [File[]])[0]]).toEqual([archive]);
+  });
+
+  it("attaches nothing when the chat changes while a dropped archive is read", async () => {
+    const onAttachmentPick = vi.fn(() => true);
+    renderComposer(
+      vi.fn(async () => true),
+      { onAttachmentPick, onImportAgent: vi.fn(), paneDropRef: createRef() },
+    );
+    // A large archive: its read finishes only after the user moved to another chat.
+    const archive = new File(["not a zip"], "photos.zip");
+    let finishRead: (bytes: ArrayBuffer) => void = () => undefined;
+    archive.arrayBuffer = () =>
+      new Promise<ArrayBuffer>((resolve) => {
+        finishRead = resolve;
+      });
+    drop([{ name: "photos.zip", isFile: true, isDirectory: false }], [archive]);
+    rerenderComposer({ draftKey: "bot:bot-2", artifactTarget: { botId: "bot-2" } });
+    finishRead(new TextEncoder().encode("not a zip").buffer as ArrayBuffer);
+    await settle();
+    expect(onAttachmentPick).not.toHaveBeenCalled();
+  });
+
+  it("attaches a dropped agent when the user picks Attach, after the event's list is gone", async () => {
+    const onAttachmentPick = vi.fn(() => true);
+    const onImportAgent = vi.fn();
+    renderComposer(
+      vi.fn(async () => true),
+      { onAttachmentPick, onImportAgent, paneDropRef: createRef() },
+    );
+    const soul: unknown = {
+      name: "SOUL.md",
+      fullPath: "/workspace/SOUL.md",
+      isFile: true,
+      isDirectory: false,
+      file: (resolve: (file: File) => void) => resolve(new File(["Calm."], "SOUL.md")),
+    };
+    let listed = false;
+    const folder = {
+      name: "workspace",
+      fullPath: "/workspace",
+      isFile: false,
+      isDirectory: true,
+      createReader: () => ({
+        readEntries: (resolve: (entries: unknown[]) => void) => {
+          resolve(listed ? [] : [soul]);
+          listed = true;
+        },
+      }),
+    };
+    const placeholder = new File([], "workspace");
+    drop([folder], [placeholder]);
+    await settle();
+    expect(onAttachmentPick).not.toHaveBeenCalled();
+    const attach = [...container!.querySelectorAll("button")].find(
+      (button) => button.textContent === "Attach",
+    )!;
+    act(() => attach.click());
+    expect([...(onAttachmentPick.mock.calls[0] as unknown as [File[]])[0]]).toEqual([placeholder]);
+    expect(onImportAgent).not.toHaveBeenCalled();
+  });
+
+  it("attaches nothing when the composer is replaced while a dropped archive is read", async () => {
+    // The shell keys the composer by chat: moving to another chat unmounts this one.
+    const onAttachmentPick = vi.fn(() => true);
+    renderComposer(
+      vi.fn(async () => true),
+      { onAttachmentPick, onImportAgent: vi.fn(), paneDropRef: createRef() },
+    );
+    const archive = new File(["not a zip"], "photos.zip");
+    let finishRead: (bytes: ArrayBuffer) => void = () => undefined;
+    archive.arrayBuffer = () =>
+      new Promise<ArrayBuffer>((resolve) => {
+        finishRead = resolve;
+      });
+    drop([{ name: "photos.zip", isFile: true, isDirectory: false }], [archive]);
+    act(() =>
+      root?.render(
+        <Composer
+          key="bot:bot-2"
+          {...composerProps}
+          draftKey="bot:bot-2"
+          artifactTarget={{ botId: "bot-2" }}
+        />,
+      ),
+    );
+    finishRead(new TextEncoder().encode("not a zip").buffer as ArrayBuffer);
+    await settle();
+    expect(onAttachmentPick).not.toHaveBeenCalled();
+  });
+
+  it("drops the Import or Attach choice when the user moves to another chat", async () => {
+    const onAttachmentPick = vi.fn(() => true);
+    renderComposer(
+      vi.fn(async () => true),
+      { onAttachmentPick, onImportAgent: vi.fn(), paneDropRef: createRef() },
+    );
+    const soul: unknown = {
+      name: "SOUL.md",
+      fullPath: "/workspace/SOUL.md",
+      isFile: true,
+      isDirectory: false,
+      file: (resolve: (file: File) => void) => resolve(new File(["Calm."], "SOUL.md")),
+    };
+    let listed = false;
+    const folder = {
+      name: "workspace",
+      fullPath: "/workspace",
+      isFile: false,
+      isDirectory: true,
+      createReader: () => ({
+        readEntries: (resolve: (entries: unknown[]) => void) => {
+          resolve(listed ? [] : [soul]);
+          listed = true;
+        },
+      }),
+    };
+    drop([folder], [new File([], "workspace")]);
+    await settle();
+    const attach = () =>
+      [...container!.querySelectorAll("button")].find((button) => button.textContent === "Attach");
+    expect(attach()).toBeTruthy();
+    rerenderComposer({ draftKey: "bot:bot-2", artifactTarget: { botId: "bot-2" } });
+    expect(attach()).toBeUndefined();
+    expect(onAttachmentPick).not.toHaveBeenCalled();
+  });
+});
+
+it("passes the transparent padding through and leaves file drops to the chat pane", () => {
+  const onAttachmentPick = vi.fn(() => true);
+  renderComposer(async () => true, { onAttachmentPick });
+  const fieldset = container!.querySelector("fieldset")!;
+  const dispatchDrag = (target: EventTarget, type: string, dataTransfer: object) => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
+    act(() => target.dispatchEvent(event));
+  };
+  expect(fieldset.classList.contains("pointer-events-none")).toBe(true);
+  const files = [new File(["example"], "example.txt", { type: "text/plain" })];
+  const dataTransfer = { types: ["Files"], items: [], files };
+  dispatchDrag(window, "dragenter", dataTransfer);
+  dispatchDrag(fieldset, "dragover", dataTransfer);
+  dispatchDrag(fieldset, "drop", dataTransfer);
+  // Manor: Shell's pane drop zone attaches the files, so the composer itself never does.
+  expect(fieldset.dataset.dragging).toBeUndefined();
+  expect(onAttachmentPick).not.toHaveBeenCalled();
 });

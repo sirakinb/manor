@@ -127,6 +127,14 @@ function messagingDeps(
         findMembership(where),
       ),
     },
+    $queryRaw: vi.fn(async () =>
+      ["bot-1", "bot-9"].map((id) => ({
+        id,
+        spaceId: id,
+        crossSpaceCommunication: true,
+        archivedAt: null,
+      })),
+    ),
     agentConnection: {
       findMany: vi.fn(async () => overrides.connections ?? (connection ? [connection] : [])),
       findFirst: vi.fn(
@@ -368,6 +376,18 @@ describe("messaging.identities", () => {
         botName: "Assistant",
       },
     });
+  });
+
+  it("keeps a workspace-installed identity in its installation's space", async () => {
+    const { handler, actor, prisma } = messagingDeps({
+      identity: { ...identity, installationId: "inst-1", spaceId: "ws-other" },
+    });
+    const response = await call(handler, actor, "messaging/identities/setBot", {
+      identityId: "mi-1",
+      botId: "bot-2",
+    });
+    expect(response.status).toBe(400);
+    expect(prisma.messagingIdentity.update).not.toHaveBeenCalled();
   });
 
   it("unlinks only the caller's own identity", async () => {
@@ -901,6 +921,14 @@ describe("messaging.connections.respond confirmation atomicity", () => {
     (prisma as unknown as Record<string, unknown>).$transaction = vi.fn(
       async (fn: (tx: unknown) => Promise<unknown>) =>
         fn({
+          $queryRaw: vi.fn(async () =>
+            ["bot-1", "bot-9"].map((id) => ({
+              id,
+              spaceId: id,
+              crossSpaceCommunication: true,
+              archivedAt: null,
+            })),
+          ),
           agentConnection: prisma.agentConnection,
           messagingIdentity: prisma.messagingIdentity,
           messagingOutbound: {

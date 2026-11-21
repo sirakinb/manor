@@ -126,8 +126,10 @@ export function createJobReconciler(
     admission?: MaintenanceAdmission;
     reconcileComputerUpdates?: () => Promise<void>;
     reconcileCloudAgents?: () => Promise<void>;
+    reconcileModelCredits?: () => Promise<void>;
     reconcileRoutineRetryNotices?: () => Promise<void>;
     reconcileSecurityEventRetention?: () => Promise<void>;
+    reconcileHomeStorage?: () => Promise<void>;
   },
   options: { intervalMs?: number; batchSize?: number } = {},
 ) {
@@ -171,9 +173,11 @@ export function createJobReconciler(
         [
           () => reconcileCallRequests(deps),
           deps.reconcileCloudAgents,
+          deps.reconcileModelCredits,
           deps.reconcileComputerUpdates,
           deps.reconcileRoutineRetryNotices,
           deps.reconcileSecurityEventRetention,
+          deps.reconcileHomeStorage,
         ].map(async (reconcile) => reconcile?.()),
       );
       for (const result of auxiliary) {

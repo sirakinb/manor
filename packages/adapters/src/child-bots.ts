@@ -4,6 +4,7 @@ import type {
   AdapterContext,
   AgentHomeStore,
   ArtifactStore,
+  ComputerRef,
   JobPublisher,
   SandboxProvider,
 } from "@rakazo/adapter-kit";
@@ -17,6 +18,7 @@ import {
 import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
 import {
   cancelRunsInTransaction,
+  clearEndedRunState,
   computerScopeKey,
   createRepos,
   createThreadMessageInTransaction,
@@ -90,6 +92,7 @@ export async function spawnBot(
       description: (input.description ?? "").trim().slice(0, BOT_DESCRIPTION_MAX_LENGTH),
       instructions: (input.instructions ?? "").trim().slice(0, BOT_INSTRUCTIONS_MAX_LENGTH),
       notifyOnFinish: true,
+      // Creation provenance only; bots remain peers in the roster.
       parentBotId: input.spawnedBy.id,
       spawnKey: input.spawnKey,
       computerMode: input.computerMode,
@@ -213,6 +216,9 @@ type BotLifecycleDeps = {
   jobs: JobPublisher;
   dataDir?: string;
   artifacts?: ArtifactStore;
+  messagingInstallations?: {
+    removeForBot(bot: { id: string; spaceId: string; userId: string }): Promise<void>;
+  };
 };
 
 type LifecycleBot = {
@@ -225,7 +231,15 @@ type LifecycleBot = {
   webhookSecretId?: string | null;
 };
 
-/** Bots the caller created. No `archivedAt` filter: a retry on an archived child must still reconcile. */
+/** Management stays within the current user's space, regardless of who created the bot. */
+export function managedBotsWhere(caller: {
+  userId: string;
+  spaceId: string;
+}): Prisma.BotWhereInput {
+  return { userId: caller.userId, spaceId: caller.spaceId };
+}
+
+/** Creation provenance for the roster metadata; this does not grant management permissions. */
 export function createdByWhere(caller: {
   botId: string;
   userId: string;
@@ -250,22 +264,20 @@ export async function archiveSpawnedBot(
     return { error: "confirm_name is required. Refusing to archive." };
   }
 
-  const spawned = await deps.prisma.bot.findMany({
-    where: createdByWhere({
-      botId: input.spawnedByBotId,
-      userId: input.userId,
-      spaceId: input.spaceId,
-    }),
+  // Archived bots stay eligible so retries can reconcile unfinished cleanup.
+  const matches = await deps.prisma.bot.findMany({
+    where: {
+      ...managedBotsWhere(input),
+      ...(input.botId ? { id: input.botId } : { name: confirmName }),
+    },
+    take: 2,
   });
-  const matches = input.botId
-    ? spawned.filter((bot) => bot.id === input.botId)
-    : spawned.filter((bot) => bot.name === confirmName);
 
   if (input.botId && matches.length === 0) {
-    return { error: "That bot was not created by this bot. Refusing to archive." };
+    return { error: "That bot is not in this space. Refusing to archive." };
   }
   if (!input.botId && matches.length === 0) {
-    return { error: `This bot did not create a bot named "${confirmName}". Refusing to archive.` };
+    return { error: `This space has no bot named "${confirmName}". Refusing to archive.` };
   }
   if (!input.botId && matches.length > 1) {
     return {
@@ -316,6 +328,7 @@ export async function archiveBot(
       where: { id: { in: runIds } },
       data: { status: "cancelled", completedAt: now },
     });
+    await clearEndedRunState(tx, runIds);
     await tx.task.updateMany({
       where: { runs: { some: { id: { in: runIds } } } },
       data: { status: "cancelled" },
@@ -369,8 +382,16 @@ export async function destroyBot(
   deps: BotLifecycleDeps,
   bot: LifecycleBot,
   context: AdapterContext,
-  options: { deleteMemories: boolean },
+  options: {
+    deleteMemories: boolean;
+    /** Runs in the deletion transaction once the bot row is locked; may set `deleteMemories`. */
+    within?: (tx: Prisma.TransactionClient) => Promise<{ deleteMemories: boolean } | undefined>;
+    /** Fail before deleting anything when the provider cannot confirm the sandbox is gone,
+     * so the computer row keeps its handle for a retry. */
+    strictTeardown?: boolean;
+  },
 ) {
+  await deps.messagingInstallations?.removeForBot(bot);
   const [dedicated, activeRuns, routines] = await Promise.all([
     deps.prisma.computer.findUnique({
       where: {
@@ -393,6 +414,7 @@ export async function destroyBot(
     where: { id: { in: runIds } },
     data: { status: "cancelled", completedAt: new Date() },
   });
+  await clearEndedRunState(deps.prisma, runIds);
   await Promise.allSettled([
     ...activeRuns.map((run) => deps.jobs.cancel(runJobKey(run.id))),
     ...routines.map((routine) => deps.jobs.cancel(routineJobKey(routine.id))),
@@ -401,7 +423,8 @@ export async function destroyBot(
     cancelRunWork: true,
   });
   if (dedicated?.providerRef) {
-    await deps.sandbox.destroy(toComputerRef(dedicated), context).catch(() => undefined);
+    const destroyed = deps.sandbox.destroy(toComputerRef(dedicated), context);
+    await (options.strictTeardown ? destroyed : destroyed.catch(() => undefined));
   }
   // Keep the bot deletion transaction from committing if raw transcript cleanup fails.
   await removePiBotSessions(deps.dataDir, bot.userId, bot.id);
@@ -414,6 +437,7 @@ export async function destroyBot(
         FOR UPDATE
       `;
       const webhookSecretId = locked[0]?.webhookSecretId ?? bot.webhookSecretId ?? null;
+      const deleteMemories = (await options.within?.(tx))?.deleteMemories ?? options.deleteMemories;
       const botArtifacts = await tx.artifact.findMany({
         where: { botId: bot.id, groupId: null, spaceId: bot.spaceId },
         select: { storageKey: true },
@@ -430,7 +454,7 @@ export async function destroyBot(
         },
         data: releasedComputerLease(),
       });
-      if (!options.deleteMemories) {
+      if (!deleteMemories) {
         const directory = archivedMemoryDirectory(bot.name, bot.id);
         await tx.$executeRaw`
           UPDATE "memory_documents"
@@ -447,7 +471,7 @@ export async function destroyBot(
           spaceId: bot.spaceId,
           name: bot.name,
           deletedByUserId: context.userId,
-          memoriesPreserved: !options.deleteMemories,
+          memoriesPreserved: !deleteMemories,
         },
       });
       await tx.bot.delete({ where: { id: bot.id } });
@@ -545,6 +569,8 @@ async function detachBotFromGroups(tx: Prisma.TransactionClient, botId: string) 
         select: {
           id: true,
           taskId: true,
+          userId: true,
+          spaceId: true,
           botId: true,
           bot: {
             select: {
@@ -688,14 +714,13 @@ async function removeTeamBrowserProfile(
   // the server. See removeTeamBotWorkspace.
   if (computer.providerRef && deps.sandbox.releaseScreen && computer.state === "running") {
     await withCleanupDeadline(profileContext, LIVE_CLEANUP_BUDGET_MS, (cleanupContext) =>
-      removeComputerWorkspaceDirectories(
-        deps.sandbox,
-        toComputerRef(computer),
-        ".browser-profiles",
-        [name],
-        cleanupContext,
-      ),
+      removeProfileOnceClosed(deps.sandbox, toComputerRef(computer), name, cleanupContext),
     ).catch((error) => {
+      // Chromium's helpers can hold the profile's databases open briefly after the stop.
+      if (isBusyError(error)) {
+        getLogger().warn("team browser profile still open; removed on next boot");
+        return;
+      }
       getLogger().error("team browser profile cleanup", error);
     });
   }
@@ -704,6 +729,41 @@ async function removeTeamBrowserProfile(
   await removeContainedDirectory(homeDir, ".browser-profiles", name).catch((error) => {
     getLogger().error("team browser profile cleanup", error);
   });
+}
+
+const PROFILE_BUSY_ATTEMPTS = 3;
+const PROFILE_BUSY_RETRY_MS = 1_000;
+
+function isBusyError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  return (
+    (error as NodeJS.ErrnoException).code === "EBUSY" ||
+    error.message.includes("Device or resource busy")
+  );
+}
+
+async function removeProfileOnceClosed(
+  sandbox: SandboxProvider,
+  computer: ComputerRef,
+  name: string,
+  context: AdapterContext,
+) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await removeComputerWorkspaceDirectories(
+        sandbox,
+        computer,
+        ".browser-profiles",
+        [name],
+        context,
+      );
+      return;
+    } catch (error) {
+      if (!isBusyError(error) || attempt >= PROFILE_BUSY_ATTEMPTS) throw error;
+      await new Promise((resolve) => setTimeout(resolve, PROFILE_BUSY_RETRY_MS));
+      context.signal.throwIfAborted();
+    }
+  }
 }
 
 /** A Team Computer that is not running removes the folder when it next boots. */

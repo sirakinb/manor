@@ -2,9 +2,14 @@ import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ActionApprovalRule, ActionAutoReviewSettings } from "@rakazo/contracts";
 import { Button, Label, Switch } from "@rakazo/ui-web";
-import { lazy, Suspense, useEffect, useId, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { lazy, Suspense, useId, useState } from "react";
+import { useSpaceQueries, writeSaved } from "../lib/query";
 import { useSpaceRpc } from "../lib/space-rpc";
 import { errorText } from "../lib/user-error";
+import { SettingsGroup, SettingsRow } from "./SettingsRows";
+
+type Preset = "email" | "purchase";
 
 const VerificationComparisonOverlay = lazy(() =>
   import("./VerificationComparison").then((module) => ({
@@ -35,57 +40,63 @@ export function ApprovalRulesSettings() {
   const rpc = useSpaceRpc();
   const { t } = useLingui();
   const autoReviewId = useId();
+  const skipApprovalsId = useId();
   const answerCheckId = useId();
-  const [rules, setRules] = useState<ActionApprovalRule[]>([]);
-  const [autoReview, setAutoReview] = useState<ActionAutoReviewSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [savingPreset, setSavingPreset] = useState<"email" | "purchase" | null>(null);
+  const emailPresetId = useId();
+  const purchasePresetId = useId();
+  const queries = useSpaceQueries();
+  const queryClient = useQueryClient();
+  const rulesQuery = useQuery(queries.approvalRules.list.queryOptions());
+  const autoReviewQuery = useQuery(queries.autoReview.get.queryOptions());
+  const rules = rulesQuery.data ?? [];
+  const autoReview = autoReviewQuery.data ?? null;
+  const loading = rulesQuery.isPending || autoReviewQuery.isPending;
+  const loadFailed = rulesQuery.error ?? autoReviewQuery.error;
+  const [savingPreset, setSavingPreset] = useState<Preset | null>(null);
   const [savingAutoReview, setSavingAutoReview] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setError] = useState<string | null>(null);
   const [comparisonOpen, setComparisonOpen] = useState(false);
+  const error =
+    actionError ?? (loadFailed ? errorText(loadFailed, t`Could not load approval rules`) : null);
+  const presetRule = (preset: Preset) =>
+    rules.find(
+      (rule) =>
+        rule.effect === "require_approval" &&
+        rule.matchKind === "category" &&
+        rule.matchValue === preset,
+    );
+  const otherRules = rules.filter(
+    (rule) => rule !== presetRule("email") && rule !== presetRule("purchase"),
+  );
 
-  async function refresh() {
-    setLoading(true);
-    setError(null);
-    try {
-      const [nextRules, nextAutoReview] = await Promise.all([
-        rpc.approvalRules.list(),
-        rpc.autoReview.get(),
-      ]);
-      setRules(nextRules);
-      setAutoReview(nextAutoReview);
-    } catch (err) {
-      setError(errorText(err, t`Could not load approval rules`));
-    } finally {
-      setLoading(false);
-    }
+  function setRules(update: (current: ActionApprovalRule[]) => ActionApprovalRule[]) {
+    return writeSaved(queryClient, queries.approvalRules.list.queryKey(), (current) =>
+      update(current ?? []),
+    );
   }
 
-  useEffect(() => {
-    void refresh();
-  }, []);
+  function setAutoReview(next: ActionAutoReviewSettings) {
+    return writeSaved(queryClient, queries.autoReview.get.queryKey(), () => next);
+  }
 
-  async function setPreset(matchValue: "email" | "purchase") {
+  async function setPreset(preset: Preset, on: boolean) {
     if (loading || savingPreset) return;
-    if (
-      rules.some(
-        (rule) =>
-          rule.effect === "require_approval" &&
-          rule.matchKind === "category" &&
-          rule.matchValue === matchValue,
-      )
-    ) {
-      return;
-    }
-    setSavingPreset(matchValue);
+    const existing = presetRule(preset);
+    if (on === Boolean(existing)) return;
+    setSavingPreset(preset);
     setError(null);
     try {
-      const saved = await rpc.approvalRules.set({
-        effect: "require_approval",
-        matchKind: "category",
-        matchValue,
-      });
-      setRules((current) => [...current, saved]);
+      if (existing) {
+        await rpc.approvalRules.remove({ id: existing.id });
+        await setRules((current) => current.filter((rule) => rule.id !== existing.id));
+      } else {
+        const saved = await rpc.approvalRules.set({
+          effect: "require_approval",
+          matchKind: "category",
+          matchValue: preset,
+        });
+        await setRules((current) => [...current, saved]);
+      }
     } catch (err) {
       setError(errorText(err, t`Could not save rule`));
     } finally {
@@ -97,14 +108,15 @@ export function ApprovalRulesSettings() {
     setError(null);
     try {
       await rpc.approvalRules.remove({ id });
-      setRules((current) => current.filter((rule) => rule.id !== id));
+      await setRules((current) => current.filter((rule) => rule.id !== id));
     } catch (err) {
       setError(errorText(err, t`Could not remove rule`));
     }
   }
 
-  async function saveAutoReview(patch: {
+  async function saveAutoReview(input: {
     enabled?: boolean;
+    skipApprovals?: boolean;
     checkAnswers?: boolean;
     engine?: string;
     compare?: boolean;
@@ -113,7 +125,7 @@ export function ApprovalRulesSettings() {
     setSavingAutoReview(true);
     setError(null);
     try {
-      setAutoReview(await rpc.autoReview.set(patch));
+      await setAutoReview(await rpc.autoReview.set(input));
     } catch (err) {
       setError(errorText(err, t`Could not save Auto Review`));
     } finally {
@@ -125,129 +137,175 @@ export function ApprovalRulesSettings() {
   const checking = Boolean(autoReview?.enabled || autoReview?.checkAnswers);
 
   return (
-    <div data-testid="action-confirmation-settings" className="pt-5">
-      <div className="flex flex-col items-start gap-2">
-        <Button
-          variant="outline"
-          disabled={loading || savingPreset !== null}
-          onClick={() => void setPreset("email")}
-        >
-          <Trans>Ask before sending external email</Trans>
-        </Button>
-        <Button
-          variant="outline"
-          disabled={loading || savingPreset !== null}
-          onClick={() => void setPreset("purchase")}
-        >
-          <Trans>Ask before purchases</Trans>
-        </Button>
-      </div>
-      <div className="mt-5 flex items-start gap-3">
-        <Switch
-          id={autoReviewId}
-          data-testid="auto-review-toggle"
-          className="mt-0.5"
-          checked={autoReview?.enabled ?? false}
-          disabled={loading || savingAutoReview || !autoReview}
-          onCheckedChange={(checked) => void saveAutoReview({ enabled: checked })}
+    <div data-testid="action-confirmation-settings" className="space-y-8">
+      <SettingsGroup>
+        <SettingsRow
+          label={
+            <Label htmlFor={skipApprovalsId} className="text-[14px] font-normal text-foreground">
+              <Trans>Run actions without asking</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={skipApprovalsId}
+              data-testid="skip-approvals-toggle"
+              checked={autoReview?.skipApprovals ?? false}
+              disabled={loading || savingAutoReview || !autoReview}
+              onCheckedChange={(checked) => void saveAutoReview({ skipApprovals: checked })}
+            />
+          }
         />
-        <Label htmlFor={autoReviewId} className="text-[14px] font-normal text-foreground/75">
-          <Trans>Flag unexpected actions</Trans>
-        </Label>
-      </div>
-      <div className="mt-3 flex items-start gap-3">
-        <Switch
-          id={answerCheckId}
-          data-testid="answer-check-toggle"
-          className="mt-0.5"
-          checked={autoReview?.checkAnswers ?? false}
-          disabled={loading || savingAutoReview || !autoReview}
-          onCheckedChange={(checked) => void saveAutoReview({ checkAnswers: checked })}
-        />
-        <Label htmlFor={answerCheckId} className="text-[14px] font-normal text-foreground/75">
-          <Trans>Check replies against sources</Trans>
-        </Label>
-      </div>
-      {checking && !autoReview?.checkerAvailable ? (
-        <p className="mt-2 ml-7 text-[13px] text-muted-foreground">
-          <Trans>Add a model in Settings to use this.</Trans>
-        </p>
-      ) : null}
-      {autoReview && checking && engines.length > 1 ? (
-        <div className="mt-3 ml-7 flex flex-col gap-2">
-          <fieldset data-testid="auto-review-engine" className="flex flex-wrap gap-2">
-            <legend className="sr-only">
-              <Trans>Checker</Trans>
-            </legend>
-            {engines.map((engine) => (
-              <label
-                key={engine.id}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[14px] text-foreground/75 has-[:checked]:border-ring has-[:disabled]:cursor-default has-[:disabled]:opacity-50"
-              >
-                <input
-                  type="radio"
-                  name="auto-review-engine"
-                  value={engine.id}
-                  checked={autoReview.engine === engine.id}
-                  disabled={savingAutoReview || !engine.available}
-                  onChange={() => void saveAutoReview({ engine: engine.id })}
-                />
-                {engine.label}
-              </label>
-            ))}
-          </fieldset>
-          {engines.every((engine) => engine.available) ? (
-            <label className="flex cursor-pointer items-center gap-3 text-[14px] text-foreground/75">
-              <input
-                type="checkbox"
-                data-testid="auto-review-compare"
-                checked={autoReview.compare}
-                disabled={savingAutoReview}
-                onChange={(event) => void saveAutoReview({ compare: event.target.checked })}
+        {autoReview?.skipApprovals ? null : (
+          <SettingsRow
+            label={
+              <Label htmlFor={autoReviewId} className="text-[14px] font-normal text-foreground">
+                <Trans>Flag unexpected actions</Trans>
+              </Label>
+            }
+            control={
+              <Switch
+                id={autoReviewId}
+                data-testid="auto-review-toggle"
+                checked={autoReview?.enabled ?? false}
+                disabled={loading || savingAutoReview || !autoReview}
+                onCheckedChange={(checked) => void saveAutoReview({ enabled: checked })}
               />
-              <Trans>Compare checkers</Trans>
-            </label>
-          ) : null}
-          <Button
-            variant="link"
-            data-testid="open-checker-comparison"
-            className="h-auto w-fit p-0 text-[14px]"
-            onClick={() => setComparisonOpen(true)}
+            }
           >
-            <Trans>View comparison</Trans>
-          </Button>
-        </div>
+            {autoReview?.enabled && !autoReview.checkerAvailable ? (
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                <Trans>Add a model in Settings to use this.</Trans>
+              </p>
+            ) : null}
+          </SettingsRow>
+        )}
+        {/* Manor: the reply check and the checker choice sit beside Auto Review. */}
+        <SettingsRow
+          label={
+            <Label htmlFor={answerCheckId} className="text-[14px] font-normal text-foreground">
+              <Trans>Check replies against sources</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={answerCheckId}
+              data-testid="answer-check-toggle"
+              checked={autoReview?.checkAnswers ?? false}
+              disabled={loading || savingAutoReview || !autoReview}
+              onCheckedChange={(checked) => void saveAutoReview({ checkAnswers: checked })}
+            />
+          }
+        >
+          {autoReview?.checkAnswers && !autoReview.enabled && !autoReview.checkerAvailable ? (
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              <Trans>Add a model in Settings to use this.</Trans>
+            </p>
+          ) : null}
+        </SettingsRow>
+        {autoReview && checking && engines.length > 1 ? (
+          <div className="flex flex-col gap-2 px-4 py-3">
+            <fieldset data-testid="auto-review-engine" className="flex flex-wrap gap-2">
+              <legend className="sr-only">
+                <Trans>Checker</Trans>
+              </legend>
+              {engines.map((engine) => (
+                <label
+                  key={engine.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[14px] text-foreground/75 has-[:checked]:border-ring has-[:disabled]:cursor-default has-[:disabled]:opacity-50"
+                >
+                  <input
+                    type="radio"
+                    name="auto-review-engine"
+                    value={engine.id}
+                    checked={autoReview.engine === engine.id}
+                    disabled={savingAutoReview || !engine.available}
+                    onChange={() => void saveAutoReview({ engine: engine.id })}
+                  />
+                  {engine.label}
+                </label>
+              ))}
+            </fieldset>
+            {engines.every((engine) => engine.available) ? (
+              <label className="flex cursor-pointer items-center gap-3 text-[14px] text-foreground/75">
+                <input
+                  type="checkbox"
+                  data-testid="auto-review-compare"
+                  checked={autoReview.compare}
+                  disabled={savingAutoReview}
+                  onChange={(event) => void saveAutoReview({ compare: event.target.checked })}
+                />
+                <Trans>Compare checkers</Trans>
+              </label>
+            ) : null}
+            <Button
+              variant="link"
+              data-testid="open-checker-comparison"
+              className="h-auto w-fit p-0 text-[14px]"
+              onClick={() => setComparisonOpen(true)}
+            >
+              <Trans>View comparison</Trans>
+            </Button>
+          </div>
+        ) : null}
+        <SettingsRow
+          label={
+            <Label htmlFor={emailPresetId} className="text-[14px] font-normal text-foreground">
+              <Trans>Ask before sending external email</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={emailPresetId}
+              data-testid="ask-before-email-toggle"
+              checked={Boolean(presetRule("email"))}
+              disabled={loading || savingPreset !== null}
+              onCheckedChange={(checked) => void setPreset("email", checked)}
+            />
+          }
+        />
+        <SettingsRow
+          label={
+            <Label htmlFor={purchasePresetId} className="text-[14px] font-normal text-foreground">
+              <Trans>Ask before purchases</Trans>
+            </Label>
+          }
+          control={
+            <Switch
+              id={purchasePresetId}
+              data-testid="ask-before-purchase-toggle"
+              checked={Boolean(presetRule("purchase"))}
+              disabled={loading || savingPreset !== null}
+              onCheckedChange={(checked) => void setPreset("purchase", checked)}
+            />
+          }
+        />
+      </SettingsGroup>
+      {otherRules.length > 0 ? (
+        <SettingsGroup>
+          {otherRules.map((rule) => (
+            <SettingsRow
+              key={rule.id}
+              label={describeRule(rule)}
+              control={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => void removeRule(rule.id)}
+                >
+                  <Trans>Remove</Trans>
+                </Button>
+              }
+            />
+          ))}
+        </SettingsGroup>
       ) : null}
       {comparisonOpen ? (
         <Suspense fallback={null}>
           <VerificationComparisonOverlay onClose={() => setComparisonOpen(false)} />
         </Suspense>
       ) : null}
-      {error ? <p className="mt-3 text-[13px] text-destructive">{error}</p> : null}
-      {loading ? (
-        <p className="mt-4 text-[13px] text-muted-foreground">
-          <Trans>Loading rules…</Trans>
-        </p>
-      ) : rules.length > 0 ? (
-        <ul className="mt-4 space-y-2">
-          {rules.map((rule) => (
-            <li
-              key={rule.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border px-3.5 py-2"
-            >
-              <span className="text-[13.5px] text-foreground/75">{describeRule(rule)}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => void removeRule(rule.id)}
-              >
-                <Trans>Remove</Trans>
-              </Button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
     </div>
   );
 }

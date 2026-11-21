@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
@@ -18,28 +19,24 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   await expect(studio.getByText("Avatar Studio", { exact: true })).toBeVisible();
   await expect(studio.getByRole("tab", { name: "Bot", exact: true })).toBeVisible();
   await expect(studio.getByRole("tab", { name: "Upload", exact: true })).toBeVisible();
-  await expect(studio.getByRole("button", { name: "Generate" })).toHaveCount(0);
   await expect(studio.getByTestId("avatar-studio-bot-tab")).toBeVisible();
-  await expect(studio.getByText("Shape", { exact: true })).toBeVisible();
-  await expect(studio.getByText("Color", { exact: true })).toBeVisible();
 
   const defaultLook = studio.getByTestId("avatar-studio-default");
   const wedge = studio.getByRole("button", { name: "wedge", exact: true });
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
 
-  // New accounts default to Manor's robot style: the default look on a brand colour is
-  // Manor's sprite, a chosen shape wins over it, and a non-sprite colour shows the robot face.
+  // Manor's sprite is how a bot on one of Manor's sprite colours is drawn when it has no chosen
+  // shape and no uploaded image; a chosen shape wins over it, and a non-sprite colour shows
+  // upstream's organic avatar. There is no avatar style setting any more.
   const organic = studio.locator(".rakazo-organic-avatar");
   const sprite = studio.locator(".rakazo-bot-avatar-sprite");
-  const visor = studio.locator(".rakazo-bot-avatar-visor");
 
   await studio.getByRole("button", { name: "Color #8B5CF6" }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(sprite).toHaveCount(1);
   await expect(sprite).toHaveAttribute("src", /\/sprites\/sprite-purple\.png$/);
   await expect(organic).toHaveCount(0);
-  await expect(visor).toHaveCount(0);
 
   await wedge.click();
   await expect(wedge).toHaveAttribute("aria-pressed", "true");
@@ -56,9 +53,8 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   await studio.getByRole("button", { name: "Color #EAB308" }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
-  await expect(visor).toHaveCount(1);
+  await expect(organic.first()).toBeVisible();
   await expect(sprite).toHaveCount(0);
-  await expect(organic).toHaveCount(0);
 
   await studio.getByRole("button", { name: "Color #8B5CF6" }).click();
   await wedge.click();
@@ -69,4 +65,14 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   await expect(organic).toHaveCount(0);
 
   await captureScreenshot(page, testInfo, "avatar-studio-bot-tab");
+
+  // An uploaded image replaces the sprite; the studio closes once the image is applied.
+  await studio.getByRole("tab", { name: "Upload", exact: true }).click();
+  await studio
+    .locator('input[type="file"]')
+    .setInputFiles(fileURLToPath(new URL("../public/sprites/sprite-red.png", import.meta.url)));
+  await expect(studio).toBeHidden();
+  const trigger = settings.getByTestId("avatar-studio-trigger");
+  await expect(trigger.locator(".rakazo-bot-avatar-picture img")).toBeVisible();
+  await expect(trigger.locator(".rakazo-bot-avatar-sprite")).toHaveCount(0);
 });

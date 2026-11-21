@@ -33,6 +33,7 @@ test("launches with a narrow preload bridge and an isolated renderer", async () 
         updateKeys: desktop ? Object.keys(desktop.update).sort() : [],
         badgeKeys: desktop?.badge ? Object.keys(desktop.badge) : [],
         localComputerKeys: desktop ? Object.keys(desktop.localComputer).sort() : [],
+        passkeyRpIds: await desktop?.passkeys?.rpIds(),
         platform: desktop?.platform,
         state: await desktop?.window.state(),
         update: await desktop?.update.state(),
@@ -49,13 +50,20 @@ test("launches with a narrow preload bridge and an isolated renderer", async () 
       "badge",
       "computer",
       "localComputer",
-      "localSettings",
       "oauth",
+      "passkeys",
       "platform",
       "update",
       "window",
     ]);
-    expect(renderer.computerKeys).toEqual(["onConfigure", "requestAccess", "revokeAccess"]);
+    // Unpackaged builds carry no passkey association.
+    expect(renderer.passkeyRpIds).toEqual([]);
+    expect(renderer.computerKeys).toEqual([
+      "managesHostChoice",
+      "onConfigure",
+      "requestAccess",
+      "revokeAccess",
+    ]);
     expect(renderer.windowKeys).toEqual(["close", "minimize", "state", "toggleMaximize"]);
     expect(renderer.updateKeys).toEqual(["check", "download", "install", "state"]);
     expect(renderer.badgeKeys).toEqual(["set"]);

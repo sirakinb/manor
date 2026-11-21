@@ -58,7 +58,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 it("keeps only Activity, Search and Create in the transparent native home header", () => {
   const setOptions = vi.fn();
-  evaluate(slice(home, "  useLayoutEffect(() => {", "  const openBot ="), {
+  evaluate(slice(home, "  useLayoutEffect(() => {\n    if (!nativeHeader)", "  const openBot ="), {
     useLayoutEffect: (effect: () => void) => effect(),
     nativeHeader: true,
     navigation: { setOptions },
@@ -107,7 +107,7 @@ it.each(["android", "ios"])("omits Artifacts from the %s fallback header", (plat
     headerTop: 0,
     ManorLockup: () => null,
     insets: { top: 0 },
-    columnInset: 0,
+    columnInsets: { left: 0, right: 0 },
     t,
     router: { push: vi.fn() },
     initials: "A",
@@ -135,7 +135,7 @@ it.each(["android", "ios"])("omits Artifacts from the %s fallback header", (plat
 });
 
 it.each([false, true])(
-  "opens Artifacts on the root stack from the first account navigation row (owner: %s)",
+  "keeps account navigation free of server controls (stored owner: %s)",
   (isDeploymentOwner) => {
     const start = account.lastIndexOf(
       "        <SettingsGroup>",
@@ -171,8 +171,8 @@ it.each([false, true])(
         "Models",
         "Voice",
         "Integrations",
+        "Messaging",
         "AI data sharing",
-        ...(isDeploymentOwner ? ["Server integrations"] : []),
       ]);
       expect(rows[0]!.getAttribute("role")).toBe("button");
       expect(rows[0]!.dataset.chevron).toBe("right");
@@ -181,6 +181,9 @@ it.each([false, true])(
       events.length = 0;
       act(() => rows[1]!.click());
       expect(events).toEqual(["/models"]);
+      events.length = 0;
+      act(() => rows[4]!.click());
+      expect(events).toEqual(["/messaging"]);
       act(() => root.render(render(true)));
       expect(container.querySelector("button")!.disabled).toBe(true);
     } finally {

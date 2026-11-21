@@ -95,6 +95,8 @@ export interface AppEnv {
   sendbluePhoneNumber: string | undefined;
   expoAccessToken: string | undefined;
   smtpUrl: string | undefined;
+  emailProvider?: string;
+  emailApiKey?: string;
   emailFrom: string | undefined;
   ingestionUrl: string | undefined;
   ingestionSecret: string | undefined;
@@ -103,6 +105,8 @@ export interface AppEnv {
   stripeWebhookSecret: string | undefined;
   stripePriceId: string | undefined;
   emailEmulator: boolean;
+  slackClientId?: string;
+  slackClientSecret?: string;
   slackBotToken: string | undefined;
   slackSigningSecret: string | undefined;
   whatsappAccessToken: string | undefined;
@@ -142,12 +146,6 @@ export interface AppEnv {
   browserMonitoring:
     | { dsn: string; environment?: string; release?: string; pseudonymSecret?: string }
     | undefined;
-  /** Private Compose control-network URL for the opt-in updater sidecar. */
-  updaterUrl: string | undefined;
-  /** Bearer shared with the updater; never sent to the browser. */
-  updaterToken: string | undefined;
-  /** Current application image tag; used for compose manual-upgrade command selection. */
-  imageTag: string | undefined;
 }
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
@@ -199,8 +197,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const sandboxProvider = resolveSandboxProvider(source);
   const cloudAgentProvider = resolveCloudAgentProvider(source);
   const deploymentModel = resolveDeploymentModel(source);
-  const updaterUrl = optional(source.RAKAZO_UPDATER_URL);
-  const updaterToken = optional(source.RAKAZO_UPDATER_TOKEN);
   return {
     passwordAuth,
     breachedPasswordCheck: source.AUTH_BREACHED_PASSWORD_CHECK_ENABLED === "true",
@@ -265,6 +261,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     sendbluePhoneNumber: optional(source.SENDBLUE_PHONE_NUMBER),
     expoAccessToken: optional(source.EXPO_ACCESS_TOKEN),
     smtpUrl: optional(source.SMTP_URL),
+    emailProvider: optional(source.EMAIL_PROVIDER),
+    emailApiKey: optional(source.EMAIL_API_KEY),
     emailFrom: optional(source.EMAIL_FROM),
     ingestionUrl: optional(source.INGESTION_URL),
     ingestionSecret: optional(source.INGESTION_SECRET),
@@ -272,6 +270,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     stripeWebhookSecret: optional(source.STRIPE_WEBHOOK_SECRET),
     stripePriceId: optional(source.STRIPE_PRICE_ID),
     emailEmulator: source.EMAIL_EMULATOR === "true" && source.NODE_ENV !== "production",
+    slackClientId: optional(source.SLACK_CLIENT_ID),
+    slackClientSecret: optional(source.SLACK_CLIENT_SECRET),
     slackBotToken: optional(source.SLACK_BOT_TOKEN),
     slackSigningSecret: optional(source.SLACK_SIGNING_SECRET),
     whatsappAccessToken: optional(source.WHATSAPP_ACCESS_TOKEN),
@@ -304,9 +304,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     gitSha: optional(source.GIT_SHA) ?? optional(source.RAKAZO_GIT_SHA),
     minimumClientBuilds: parseMinimumClientBuilds(source.RAKAZO_MIN_CLIENT_BUILD),
     browserMonitoring: browserMonitoringFromEnv(source),
-    updaterUrl,
-    updaterToken,
-    imageTag: optional(source.RAKAZO_IMAGE_TAG),
   };
 }
 

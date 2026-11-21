@@ -5,6 +5,7 @@ import path from "node:path";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { createApp } from "../../../../apps/api/src/app.ts";
+import { createModelConnectionFixtureFetch } from "../model-connection-fixture.js";
 import { startJevEmulator } from "./jev-emulator.js";
 import { runProcess } from "./process.js";
 
@@ -54,7 +55,7 @@ async function main() {
   const externalDatabaseUrl = process.env.HARNESS_DATABASE_URL;
   const container = externalDatabaseUrl
     ? null
-    : await new PostgreSqlContainer("postgres:16-alpine").start();
+    : await new PostgreSqlContainer("postgres:18-alpine").start();
   try {
     // Migrations run as the container superuser and the e2e API connects as the
     // runtime login, so row-level security is enforced as in a deployment.
@@ -192,6 +193,7 @@ async function main() {
       {
         ComposioConnector,
         FakeComposioClient,
+        listPiCatalog,
         DestinationEmulator,
         EmailEmulator,
         PipedreamConnector,
@@ -221,6 +223,7 @@ async function main() {
     const handles = await createApp({
       maintenance: new TestMaintenanceAdapter(),
       databaseUrl,
+      modelConnectionFetch: createModelConnectionFixtureFetch(listPiCatalog()),
       prisma: undefined,
       composio: new ComposioConnector({ client: new FakeComposioClient() }),
       connectors: [new DestinationEmulator()],

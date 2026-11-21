@@ -5,6 +5,7 @@ import {
   mkdir,
   open,
   readdir,
+  readFile as readTextFile,
   realpath,
   rename,
   rm,
@@ -22,7 +23,7 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   // half-swapped or empty home.
   private readonly botLocks = new Map<string, Promise<void>>();
 
-  constructor(private readonly root: string) {}
+  constructor(protected readonly root: string) {}
 
   describe() {
     return {
@@ -45,7 +46,7 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   }
 
   async checkout(botId: string, dest: string, _context: AdapterContext): Promise<string> {
-    return this.withBotLock(botId, async () => {
+    return this.withBotWrite(botId, async () => {
       await this.recoverInterruptedCommit(botId);
       await mkdir(dest, { recursive: true });
       const src = this.botDir(botId);
@@ -56,36 +57,44 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   }
 
   async commit(botId: string, src: string, _context: AdapterContext): Promise<string> {
-    return this.withBotLock(botId, async () => {
-      await this.recoverInterruptedCommit(botId);
-      const dest = this.botDir(botId);
-      const parent = path.dirname(dest);
-      const staging = path.join(parent, `.${botId}.staging-${randomUUID()}`);
-      const previous = `${dest}.previous`;
-      await mkdir(parent, { recursive: true });
-      await mkdir(staging, { recursive: true });
-      try {
-        await copyDir(src, staging);
-        await rm(previous, { recursive: true, force: true });
-        if (await pathExists(dest)) await rename(dest, previous);
-        try {
-          await rename(staging, dest);
-        } catch (error) {
-          if (!(await pathExists(dest)) && (await pathExists(previous))) {
-            await rename(previous, dest).catch(() => undefined);
-          }
-          throw error;
-        }
-        await rm(previous, { recursive: true, force: true });
-        return this.writeRevision(botId);
-      } finally {
-        await rm(staging, { recursive: true, force: true });
-      }
+    return this.withBotWrite(botId, async () => {
+      await this.replaceHome(botId, (staging) => copyDir(src, staging));
+      return this.writeRevision(botId);
     });
   }
 
+  /**
+   * Fills a staging directory beside the home, then swaps it in. An interruption leaves the
+   * previous copy, which the next access restores. Callers hold the bot's write lock.
+   */
+  protected async replaceHome(botId: string, fill: (staging: string) => Promise<void>) {
+    await this.recoverInterruptedCommit(botId);
+    const dest = this.botDir(botId);
+    const parent = path.dirname(dest);
+    const staging = path.join(parent, `.${botId}.staging-${randomUUID()}`);
+    const previous = `${dest}.previous`;
+    await mkdir(parent, { recursive: true });
+    await mkdir(staging, { recursive: true });
+    try {
+      await fill(staging);
+      await rm(previous, { recursive: true, force: true });
+      if (await pathExists(dest)) await rename(dest, previous);
+      try {
+        await rename(staging, dest);
+      } catch (error) {
+        if (!(await pathExists(dest)) && (await pathExists(previous))) {
+          await rename(previous, dest).catch(() => undefined);
+        }
+        throw error;
+      }
+      await rm(previous, { recursive: true, force: true });
+    } finally {
+      await rm(staging, { recursive: true, force: true });
+    }
+  }
+
   async revise(botId: string): Promise<string> {
-    return this.withBotLock(botId, async () => this.writeRevision(botId));
+    return this.withBotWrite(botId, async () => this.writeRevision(botId));
   }
 
   async restore(
@@ -129,7 +138,7 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     _context: AdapterContext,
     options?: { maxBytes?: number },
   ): Promise<string> {
-    return this.withBotLock(botId, async () => {
+    return this.withBotWrite(botId, async () => {
       await this.recoverInterruptedCommit(botId);
       const full = await containedExistingPath(this.botDir(botId), filePath);
       const handle = await open(full, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -153,7 +162,7 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     content: string,
     _context: AdapterContext,
   ): Promise<void> {
-    await this.withBotLock(botId, async () => {
+    await this.withBotWrite(botId, async () => {
       await this.recoverInterruptedCommit(botId);
       const full = await containedWritePath(this.botDir(botId), filePath);
       const handle = await open(
@@ -170,7 +179,7 @@ export class LocalAgentHomeStore implements AgentHomeStore {
   }
 
   async list(botId: string, dirPath: string, _context: AdapterContext) {
-    return this.withBotLock(botId, async () => {
+    return this.withBotWrite(botId, async () => {
       await this.recoverInterruptedCommit(botId);
       const root = this.botDir(botId);
       const candidate = safeJoin(root, dirPath);
@@ -192,15 +201,27 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     });
   }
 
-  private async writeRevision(botId: string) {
-    const revision = `rev-${Date.now()}-${randomUUID().slice(0, 8)}`;
+  /** Records the revision the local copy holds. */
+  protected async writeRevision(botId: string, revision = newRevision()) {
     const directory = path.join(this.root, "home-revisions");
     await mkdir(directory, { recursive: true });
-    await writeFile(path.join(directory, `${botId}.txt`), revision, "utf8");
+    await writeFile(this.revisionFile(botId), revision, "utf8");
     return revision;
   }
 
-  private async recoverInterruptedCommit(botId: string) {
+  /** The revision last recorded for the local copy, if any. */
+  protected async localRevision(botId: string): Promise<string | undefined> {
+    return readTextFile(this.revisionFile(botId), "utf8").catch((error: unknown) => {
+      if (isMissing(error)) return undefined;
+      throw error;
+    });
+  }
+
+  private revisionFile(botId: string) {
+    return path.join(this.root, "home-revisions", `${path.basename(this.botDir(botId))}.txt`);
+  }
+
+  protected async recoverInterruptedCommit(botId: string) {
     const dest = this.botDir(botId);
     const previous = `${dest}.previous`;
     if (!(await pathExists(dest)) && (await pathExists(previous))) await rename(previous, dest);
@@ -223,7 +244,8 @@ export class LocalAgentHomeStore implements AgentHomeStore {
     };
   }
 
-  private async withBotLock<T>(botId: string, work: () => Promise<T>): Promise<T> {
+  /** The bot's one lock, held by readers as well as writers (see `botLocks`). */
+  protected async withBotWrite<T>(botId: string, work: () => Promise<T>): Promise<T> {
     const release = await this.acquireBotLock(botId);
     try {
       return await work();
@@ -253,6 +275,10 @@ export async function ensureAgentHomeDirectory(homePath: string, attempts = 5) {
       await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
     }
   }
+}
+
+export function newRevision() {
+  return `rev-${Date.now()}-${randomUUID().slice(0, 8)}`;
 }
 
 function safeJoin(root: string, rel: string) {
@@ -309,7 +335,7 @@ async function containedTarget(root: string, candidate: string) {
   return resolvedTarget;
 }
 
-function isContained(root: string, candidate: string) {
+export function isContained(root: string, candidate: string) {
   const relative = path.relative(root, candidate);
   return (
     relative === "" ||

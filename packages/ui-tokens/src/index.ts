@@ -57,6 +57,8 @@ export type ColorTokens = {
   statusWorking: string;
   /** Unread dot. The one blue in the inbox, in both themes. */
   unread: string;
+  /** Working dot on a busy bot's avatar. The one green, in both themes. */
+  workingDot: string;
   overlay: string;
   scrollbar: string;
   scrollbarHover: string;
@@ -110,8 +112,11 @@ export const darkTokens = {
   warning: "#E9C46A",
   // Matches Manor's link blue, as the semantic palette requires.
   statusWorking: "#86B7FF",
-  // Manor: the link blue, so the inbox keeps one blue.
-  unread: "#86B7FF",
+  // A darker blue than the link: the unread pill sets Manor's near-white text on it (4.7:1),
+  // and the unread dot still stands out on the page background (3.7:1).
+  unread: "#0066DD",
+  // The one green, the same in both themes.
+  workingDot: "#3FA266",
   overlay: "rgba(4, 4, 5, 0.72)",
   scrollbar: "#1E2026",
   scrollbarHover: "#2E313A",
@@ -155,10 +160,72 @@ export const lightTokens = {
   warning: "#885A07",
   statusWorking: "#0C64C1",
   unread: "#006CEB",
+  workingDot: "#3FA266",
   overlay: "rgba(0, 0, 0, 0.19)",
   scrollbar: "#C8C8C4",
   scrollbarHover: "#A8A8A4",
 } as const satisfies ColorTokens;
+
+/** Web and Electron only: the primary fill's hover and disabled states. Mobile has no hover. */
+export type WebColorTokens = ColorTokens & {
+  primaryHover: string;
+  primaryDisabled: string;
+};
+
+/**
+ * Web and Electron values for the tokens they draw differently from the palettes above. Mobile
+ * reads `darkTokens` / `lightTokens`; web reads `tokens.css`, rendered from these merged palettes.
+ * Manor's web dark palette is its own dark palette plus the web-only primary states; the light
+ * one follows upstream's web design (the web app is pinned to dark).
+ */
+export const webDarkOverrides = {
+  // Manor: web keeps Manor's dark palette and adds only the web-only primary states: the
+  // skin's strong accent on hover, and the ink at 13 % when disabled, as upstream's web design does.
+  primaryHover: "#9333EA",
+  primaryDisabled: "#F1F0F321",
+} as const satisfies Partial<WebColorTokens>;
+
+export const webLightOverrides = {
+  background: "#FFFFFF",
+  foreground: "#1C1C1C",
+  card: "#F2F2F2",
+  cardForeground: "#1C1C1C",
+  popoverForeground: "#1C1C1C",
+  primary: "#1C1C1C",
+  primaryHover: "#363636",
+  primaryDisabled: "#1C1C1C26",
+  primaryForeground: "#FCFCFC",
+  secondary: "#1C1C1C0F",
+  secondaryForeground: "#1C1C1C",
+  chatUser: "#1C1C1C",
+  muted: "#F2F2F2",
+  mutedForeground: "#1C1C1CAD",
+  faintForeground: "#1C1C1C8F",
+  accent: "#1C1C1C0F",
+  accentForeground: "#1C1C1C",
+  destructive: "#CD2834",
+  destructiveFill: "#E72E3B",
+  border: "#1C1C1C1F",
+  input: "#1C1C1C3D",
+  ring: "#1E86FC",
+  sidebar: "#F5F5F5",
+  sidebarForeground: "#1C1C1C",
+  sidebarBorder: "#1C1C1C1F",
+  sidebarAccent: "#1C1C1C14",
+  sidebarAccentForeground: "#1C1C1C",
+  link: "#0B6DD3",
+  success: "#00854A",
+  warning: "#AA6300",
+  statusWorking: "#0B6DD3",
+  unread: "#0B6DD3",
+  workingDot: "#10AB61",
+  overlay: "#00000080",
+  scrollbar: "#1C1C1C3D",
+  scrollbarHover: "#1C1C1C85",
+} as const satisfies Partial<WebColorTokens>;
+
+export const webDarkTokens: WebColorTokens = { ...darkTokens, ...webDarkOverrides };
+export const webLightTokens: WebColorTokens = { ...lightTokens, ...webLightOverrides };
 
 /**
  * Manor's skin palette, published as the `--rk-*` custom properties that the
@@ -285,6 +352,11 @@ export function tokensForAppearance(appearance: ResolvedAppearance): ColorTokens
   return appearance === "light" ? lightTokens : darkTokens;
 }
 
+/** The web and Electron palette; `tokensForAppearance` is the mobile one. */
+export function webTokensForAppearance(appearance: ResolvedAppearance): WebColorTokens {
+  return appearance === "light" ? webLightTokens : webDarkTokens;
+}
+
 function readStoredAppearance(storage: Pick<Storage, "getItem"> | null | undefined): string | null {
   if (!storage) return null;
   try {
@@ -295,12 +367,12 @@ function readStoredAppearance(storage: Pick<Storage, "getItem"> | null | undefin
 }
 
 /** `cardForeground` -> `--card-foreground` */
-export function cssVariableName(token: keyof ColorTokens): string {
+export function cssVariableName(token: keyof WebColorTokens): string {
   return `--${token.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
 }
 
-function renderBlock(selector: string, colorScheme: ResolvedAppearance, palette: ColorTokens) {
-  const lines = (Object.keys(palette) as (keyof ColorTokens)[]).map(
+function renderBlock(selector: string, colorScheme: ResolvedAppearance, palette: WebColorTokens) {
+  const lines = (Object.keys(palette) as (keyof WebColorTokens)[]).map(
     (token) => `  ${cssVariableName(token)}: ${palette[token].toLowerCase()};`,
   );
   return `${selector} {\n  color-scheme: ${colorScheme};\n${lines.join("\n")}\n  --radius: ${RADIUS};\n}`;
@@ -322,12 +394,12 @@ function renderSkinBlock() {
   return `:root {\n${lines.join("\n")}\n  --rk-radius: ${RADIUS};\n}`;
 }
 
-/** The CSS in `tokens.css`. Generated from the TS palette so both stay in sync. */
+/** The CSS in `tokens.css` (web and Electron). Generated from the web palettes so both stay in sync. */
 export function renderTokensCss(): string {
   return `${[
     "/* Generated by `pnpm --filter @rakazo/ui-tokens generate`. Edit src/index.ts instead. */",
-    renderBlock(':root,\n[data-theme="dark"]', "dark", darkTokens),
-    renderBlock('[data-theme="light"]', "light", lightTokens),
+    renderBlock(':root,\n[data-theme="dark"]', "dark", webDarkTokens),
+    renderBlock('[data-theme="light"]', "light", webLightTokens),
     renderSkinBlock(),
   ].join("\n\n")}\n`;
 }

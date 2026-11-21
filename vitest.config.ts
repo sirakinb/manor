@@ -50,7 +50,6 @@ export default defineConfig({
       "apps/mobile/plugins/**/*.test.js",
       "apps/api/src/**/*.test.ts",
       "apps/worker/src/**/*.test.ts",
-      "apps/www/src/**/*.test.ts",
     ],
     exclude: [...configDefaults.exclude, "**/._*"],
     testTimeout: 30_000,

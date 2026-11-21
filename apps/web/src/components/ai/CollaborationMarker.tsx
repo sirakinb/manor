@@ -62,15 +62,14 @@ export function CollaborationMarker({
   );
 }
 
+/** The working bot with what it is doing right now, such as its current tool call. */
 export function ActiveBotGlyph({ bots, label }: { bots: GroupAvatarMember[]; label: string }) {
   return (
-    <div className="flex min-h-10 items-center px-1">
-      <span role="status" className="flex w-fit items-center gap-2.5">
-        <ManorOrb size={28} label={label} />
-        <GroupAvatar members={bots} size={22} />
-        <span className="text-[13.5px] font-medium">
-          <Shimmer>{label}</Shimmer>
-        </span>
+    <div role="status" className="flex min-h-10 min-w-0 items-center gap-2.5 px-1">
+      <ManorOrb size={28} label={label} />
+      <GroupAvatar members={bots} size={22} />
+      <span dir="auto" className="min-w-0 truncate text-[13.5px] font-medium">
+        <Shimmer>{label}</Shimmer>
       </span>
     </div>
   );

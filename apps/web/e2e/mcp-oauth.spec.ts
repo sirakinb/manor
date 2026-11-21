@@ -90,7 +90,6 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
   await page.getByRole("button", { name: "Connect apps", exact: true }).click();
   await expandAdvancedSection(page.getByTestId("integrations-advanced"));
   await page.getByRole("button", { name: "Manage MCP servers", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "MCP servers" })).toBeVisible();
   await expect(page.getByText("Linear MCP", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Access token (optional)")).toBeHidden();
   await captureScreenshot(page, testInfo, "mcp-oauth-ready");
@@ -267,7 +266,6 @@ test("adds an MCP server with a pre-registered OAuth client", async ({ page }, t
   await page.getByRole("button", { name: "Connect apps", exact: true }).click();
   await expandAdvancedSection(page.getByTestId("integrations-advanced"));
   await page.getByRole("button", { name: "Manage MCP servers", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "MCP servers" })).toBeVisible();
 
   await page.getByLabel("Server name").fill("Gmail");
   await page.getByLabel("Server URL").fill("https://gmailmcp.example.test/mcp/v1");

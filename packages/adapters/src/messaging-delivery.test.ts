@@ -73,6 +73,7 @@ function createDeps(overrides: {
   existingOutbox?: unknown;
   sendError?: Error;
   connectionStatus?: string | null;
+  blockedBot?: string;
   artifacts?: Array<Record<string, unknown>>;
 }) {
   const rows = [...(overrides.outboundRows ?? [])] as Array<Record<string, unknown>>;
@@ -119,10 +120,17 @@ function createDeps(overrides: {
             : { status: "pending" },
       ),
     },
-    $queryRaw: vi.fn(async () =>
-      overrides.connectionStatus === null
-        ? []
-        : [{ status: overrides.connectionStatus ?? "pending" }],
+    $queryRaw: vi.fn(async (query: TemplateStringsArray) =>
+      query.join("").includes("FROM bots")
+        ? ["bot-1", "bot-2"].map((id) => ({
+            id,
+            spaceId: id,
+            crossSpaceCommunication: id !== overrides.blockedBot,
+            archivedAt: null,
+          }))
+        : overrides.connectionStatus === null
+          ? []
+          : [{ status: overrides.connectionStatus ?? "pending" }],
     ),
     messagingOutbound: {
       findUnique: vi.fn(async ({ where }: { where?: { id?: string } } = {}) => {
@@ -622,6 +630,7 @@ function createChannelDeps(
     sourceHop?: number;
     transport?: string;
     peerBotName?: string | null;
+    blockedBot?: string;
     messages?: unknown[];
   } = {},
 ) {
@@ -787,6 +796,14 @@ function createChannelDeps(
       ),
     },
     user: { findUnique: vi.fn(async () => ({ id: "user-1", name: "Alice Owner" })) },
+    $queryRaw: vi.fn(async () =>
+      ["bot-1", "bot-2"].map((id) => ({
+        id,
+        spaceId: id,
+        crossSpaceCommunication: id !== overrides.blockedBot,
+        archivedAt: null,
+      })),
+    ),
     bot: {
       findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
         where.id === "bot-1"
@@ -797,7 +814,9 @@ function createChannelDeps(
       ),
     },
     thread: { findFirst: vi.fn(async () => ({ id: "thread-2" })) },
-    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(txMock)),
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({ ...txMock, $queryRaw: prisma.$queryRaw }),
+    ),
   };
   return {
     prisma: prisma as unknown as PrismaClient & typeof prisma,
@@ -934,6 +953,7 @@ describe("deliverMessagingOutbound channel runs", () => {
         threadId: "thread-2",
         botId: "bot-2",
         trigger: "messaging",
+        crossSpaceSenderBotId: "bot-1",
         clientNonce: "messaging-peer:m-1:bot-2",
       }),
     );
@@ -1060,9 +1080,13 @@ describe("deliverMessagingOutbound conversation order", () => {
   const part = (letter: string) => letter.repeat(3000);
   const longReply = [part("a"), part("b"), part("c")].join("\n\n");
 
-  it("queues a long WhatsApp reply as one row per message-sized part", async () => {
+  it.each([
+    whatsapp,
+    { provider: "telegram", address: "123", dmThreadId: "telegram:123" },
+    { provider: "telegram-work", address: "123", dmThreadId: "telegram-work:123" },
+  ])("queues a long $provider reply as one row per message-sized part", async (identity) => {
     const deps = createDeps({
-      identity: whatsapp,
+      identity,
       messages: [{ id: "m-1", blocks: [{ kind: "text", text: longReply }] }],
     });
     await deliverMessagingOutbound(deps, { runId: "run-1" }, context);
@@ -1396,4 +1420,37 @@ describe("deliverMessagingOutbound attachments", () => {
     expect(deps.rows.map((row) => row.status)).toEqual(["sent", "failed", "failed"]);
     expect(deps.artifacts.get).not.toHaveBeenCalled();
   });
+});
+
+describe("cross-space group reply isolation", () => {
+  it.each(["bot-1", "bot-2"])(
+    "does not send history or wake a peer when %s is blocked",
+    async (blockedBot) => {
+      const deps = createChannelDeps({ blockedBot, text: "@Helper private reply" });
+      await deliverMessagingOutbound(deps, { runId: "run-1" }, context);
+      expect(deps.contextMessages).toHaveLength(0);
+      expect(deps.sendUserMessage).not.toHaveBeenCalled();
+    },
+  );
+});
+
+it("drops a queued connection invite after opt-out", async () => {
+  const deps = createDeps({
+    run: null,
+    blockedBot: "bot-1",
+    connectionStatus: "pending",
+    outboundRows: [
+      {
+        id: "invite",
+        idempotencyKey: "connect:bot-1:bot-2",
+        kind: "dm",
+        identityId: "mi-1",
+        body: "Connection invite",
+        status: "pending",
+        providerHandle: null,
+      },
+    ],
+  });
+  await deliverMessagingOutbound(deps, {}, context);
+  expect(deps.sendToThread).not.toHaveBeenCalled();
 });

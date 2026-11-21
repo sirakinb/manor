@@ -6,8 +6,8 @@ import {
   signupRequiresEmailVerification,
 } from "@rakazo/core";
 import { Button, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from "@rakazo/ui-web";
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { ParticleWordmark } from "../components/ai/ParticleWordmark";
 import { BrandLogo } from "../components/BrandLogo";
 import { PasskeySignIn } from "../components/PasskeySignIn";
@@ -15,7 +15,6 @@ import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
 import { brand, brandName } from "../lib/brand";
-import { signInReturnPath } from "../lib/return-path";
 import { clearSpaceSelection } from "../lib/rpc";
 import { runSsoFlow } from "../lib/sso-flow";
 import { authErrorText, credentialIssueText } from "../lib/user-error";
@@ -28,7 +27,6 @@ export const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
 
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,6 +38,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     return authErrorText({ code }, t`Could not continue`);
   });
   const [pending, setPending] = useState(false);
+  const entering = useRef(false);
   const [resetSent, setResetSent] = useState(false);
   // Signup triggers a session refresh that remounts the anonymous auth page.
   const sent = resetSent || searchParams.get("verify") === "email";
@@ -158,7 +157,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     } catch {
       setError(t`Could not reach the server`);
     } finally {
-      setPending(false);
+      if (!entering.current) setPending(false);
     }
   }
 
@@ -183,13 +182,16 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     } catch {
       setError(t`Could not reach the server`);
     } finally {
-      setPending(false);
+      if (!entering.current) setPending(false);
     }
   }
 
   function enterApp() {
     clearSpaceSelection();
-    navigate(mode === "up" ? "/onboarding" : (signInReturnPath(window.location.search) ?? "/app"));
+    // The routes move a signed-in user on once the session refetch lands. Navigating
+    // first beats it, so the guards bounce through sign-in and the shell.
+    entering.current = true;
+    setPending(true);
   }
 
   function chooseMethod(next: "code" | "password") {
@@ -219,6 +221,10 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     } catch {
       setError(t`Could not continue`);
     }
+  }
+
+  if (!sent && !reset && !capabilityError) {
+    return <div className="h-full bg-[var(--rk-page)]" />;
   }
 
   return (
@@ -276,10 +282,6 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   <Trans>Retry</Trans>
                 </Button>
               </div>
-            ) : !reset ? (
-              <p role="status">
-                <Trans>Loading…</Trans>
-              </p>
             ) : null}
             {reset?.sso && mode !== "forgot" ? (
               <button

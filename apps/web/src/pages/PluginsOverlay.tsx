@@ -5,8 +5,8 @@ import type {
   ConnectionCatalogItem,
   IntegrationCatalogResult,
   IntegrationCatalogSurface,
-  McpServer,
 } from "@rakazo/contracts";
+import { CONNECTION_LABEL_MAX_LENGTH } from "@rakazo/contracts";
 import {
   buildFeaturedConnectorTiles,
   CONNECTION_CATALOG_PAGE_SIZE,
@@ -35,12 +35,14 @@ import {
   NativeSelectOption,
   Spinner,
 } from "@rakazo/ui-web";
+import { queryOptions, skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IntegrationSetup } from "../components/integrations/IntegrationSetup";
 import { authClient } from "../lib/auth";
 import { connectedAppMarks } from "../lib/connected-apps";
 import { optionalCatalogFeedProbe } from "../lib/optional-catalog-feed";
+import { fetchFresh, useSpaceQueries, writeSaved } from "../lib/query";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
 import { CrmApiAccessPanel } from "./CrmApiAccessPanel";
@@ -78,7 +80,9 @@ function ConnectorIcon({
 
 type SourceKind = "treg" | "executor" | "mcp" | "api" | "graphql";
 
-type ConnectionTool = { name: string; description: string };
+const NO_CATALOG: ConnectionCatalogItem[] = [];
+const NO_CONNECTIONS: Connection[] = [];
+const NO_SOURCES: CapabilityInstall[] = [];
 
 /** "GMAIL_SEND_EMAIL" under Gmail reads as "Send email": the app is already the page title. */
 function toolLabel(name: string, item: ConnectionCatalogItem) {
@@ -117,12 +121,8 @@ export function PluginsOverlay({
   const [setupOpen, setSetupOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(CONNECTION_CATALOG_PAGE_SIZE);
-  const [catalog, setCatalog] = useState<ConnectionCatalogItem[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
+  // Only accounts whose label is being edited; the rest follow the saved name.
   const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
-  const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
-  const [mcpError, setMcpError] = useState<string | null>(null);
-  const [sources, setSources] = useState<CapabilityInstall[]>([]);
   const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
   const [sourceName, setSourceName] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -133,36 +133,23 @@ export function PluginsOverlay({
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourceHint, setSourceHint] = useState<string | null>(null);
-  const [catalogFeedEnabled, setCatalogFeedEnabled] = useState(false);
   const [catalogFeedQuery, setCatalogFeedQuery] = useState("");
   const [catalogFeedResults, setCatalogFeedResults] = useState<IntegrationCatalogResult[]>([]);
   const [catalogFeedError, setCatalogFeedError] = useState<string | null>(null);
   const [catalogFeedPending, setCatalogFeedPending] = useState(false);
   const [catalogFeedSearched, setCatalogFeedSearched] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [catalogLoaded, setCatalogLoaded] = useState(false);
-  const [detailKey, setDetailKey] = useState<{ connectorId: string; slug: string } | null>(null);
-  const [tools, setTools] = useState<ConnectionTool[]>([]);
-  const [toolsLoading, setToolsLoading] = useState(false);
-  const [toolsTick, setToolsTick] = useState(0);
+  const [detailKey, setDetailKey] = useState<{
+    connectorId: string;
+    slug: string;
+  } | null>(null);
   const connectionAttempt = useRef<AbortController | null>(null);
-  const mcpRefreshGeneration = useRef(0);
-
-  async function refreshMcp() {
-    const generation = ++mcpRefreshGeneration.current;
-    try {
-      const servers = await rpc.mcp.servers.list();
-      if (generation !== mcpRefreshGeneration.current) return;
-      setMcpServers(servers);
-      setMcpError(null);
-    } catch (reason) {
-      if (generation === mcpRefreshGeneration.current)
-        setMcpError(errorText(reason, t`Could not load MCP servers`));
-    }
-  }
-
-  async function refresh() {
-    void refreshMcp();
+  const queries = useSpaceQueries();
+  const queryClient = useQueryClient();
+  const mcpOptions = queries.mcp.servers.list.queryOptions();
+  const mcpQuery = useQuery(mcpOptions);
+  const mcpServers = mcpQuery.data ?? [];
+  const mcpError = mcpQuery.error ? errorText(mcpQuery.error, t`Could not load MCP servers`) : null;
+  async function loadIntegrations() {
     // The catalog call reconciles connection rows, so list them after it settles.
     const catalog = rpc.connections.catalog({});
     const [items, installs, rows, catalogFeed] = await Promise.all([
@@ -171,41 +158,74 @@ export function PluginsOverlay({
       catalog.catch(() => undefined).then(() => rpc.connections.list()),
       optionalCatalogFeedProbe(rpc.capabilities.catalogSearch({ query: "" })),
     ]);
-    setCatalogLoaded(true);
-    setCatalog(items);
-    setConnections(rows);
-    setLabelDrafts((current) => {
-      const next: Record<string, string> = {};
-      for (const row of rows) {
-        if (row.status === "connected" || row.status === "pending") {
-          next[row.id] = current[row.id] ?? row.displayName;
-        }
-      }
-      return next;
-    });
-    setSources(
-      installs.filter(
+    return {
+      catalog: items,
+      connections: rows,
+      sources: installs.filter(
         (install) => install.kind === "mcp" || install.kind === "api" || install.kind === "graphql",
       ),
+      catalogFeedEnabled: catalogFeed.enabled,
+    };
+  }
+  const integrationsOptions = queryOptions({
+    queryKey: [...queries.connections.catalog.queryKey({ input: {} }), "integrations"],
+    queryFn: loadIntegrations,
+  });
+  const integrations = useQuery(integrationsOptions);
+  const catalogLoaded = integrations.data !== undefined;
+  const loading = !catalogLoaded && integrations.isFetching;
+  const catalog = integrations.data?.catalog ?? NO_CATALOG;
+  const connections = integrations.data?.connections ?? NO_CONNECTIONS;
+  const sources = integrations.data?.sources ?? NO_SOURCES;
+  const catalogFeedEnabled = integrations.data?.catalogFeedEnabled ?? false;
+  // A failed refresh is shown even over what was cached, so stale apps never pass as current.
+  const loadError = integrations.error
+    ? errorText(integrations.error, t`Could not load integrations`)
+    : null;
+  const toolsQuery = useQuery(
+    queries.connections.tools.queryOptions({
+      input: detailKey
+        ? { connectorId: detailKey.connectorId, provider: detailKey.slug }
+        : skipToken,
+    }),
+  );
+  const tools = (detailKey && toolsQuery.data) || [];
+  const toolsLoading = detailKey !== null && toolsQuery.isPending && toolsQuery.isFetching;
+
+  function updateIntegrations(
+    update: (
+      current: NonNullable<typeof integrations.data>,
+    ) => NonNullable<typeof integrations.data>,
+  ) {
+    return writeSaved(queryClient, integrationsOptions.queryKey, (current) =>
+      update(
+        current ?? {
+          catalog: NO_CATALOG,
+          connections: NO_CONNECTIONS,
+          sources: NO_SOURCES,
+          catalogFeedEnabled: false,
+        },
+      ),
     );
-    setCatalogFeedEnabled(catalogFeed.enabled);
-    return items;
   }
 
-  function load() {
-    setLoading(true);
-    setCatalogError(null);
-    void refresh()
-      .catch((err: unknown) => setCatalogError(errorText(err, t`Could not load integrations`)))
-      .finally(() => setLoading(false));
+  /** Reads integrations again with requests sent after a change. */
+  async function refresh() {
+    void fetchFresh(queryClient, mcpOptions).catch(() => undefined);
+    await fetchFresh(queryClient, {
+      queryKey: integrationsOptions.queryKey,
+      queryFn: loadIntegrations,
+    });
+  }
+
+  function refreshTools() {
+    void queryClient.invalidateQueries({
+      queryKey: queries.connections.tools.key(),
+    });
   }
 
   useEffect(() => {
-    load();
-    return () => {
-      mcpRefreshGeneration.current += 1;
-      connectionAttempt.current?.abort();
-    };
+    return () => connectionAttempt.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -221,30 +241,6 @@ export function PluginsOverlay({
     );
   }, [catalog, detailKey]);
 
-  useEffect(() => {
-    if (!detailKey) {
-      setTools([]);
-      setToolsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setToolsLoading(true);
-    void rpc.connections
-      .tools({ connectorId: detailKey.connectorId, provider: detailKey.slug })
-      .then((list) => {
-        if (!cancelled) setTools(list);
-      })
-      .catch(() => {
-        if (!cancelled) setTools([]);
-      })
-      .finally(() => {
-        if (!cancelled) setToolsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [detailKey, toolsTick]);
-
   const featuredTiles = useMemo(() => buildFeaturedConnectorTiles(catalog), [catalog]);
   const showFeatured = !query.trim();
 
@@ -258,7 +254,6 @@ export function PluginsOverlay({
 
   function closeDetail() {
     setDetailKey(null);
-    setTools([]);
   }
 
   function itemConnected(item: ConnectionCatalogItem) {
@@ -268,12 +263,19 @@ export function PluginsOverlay({
   async function notifyAppConnected(item: ConnectionCatalogItem) {
     if (!activeBotId) return;
     await rpc.onboarding
-      .appConnected({ botId: activeBotId, provider: item.slug, connectorId: item.connectorId })
+      .appConnected({
+        botId: activeBotId,
+        provider: item.slug,
+        connectorId: item.connectorId,
+      })
       .catch(() => undefined);
   }
 
   function setItemConnected(item: ConnectionCatalogItem, connected: boolean) {
-    setCatalog((prev) => markConnected(prev, item.connectorId, item.slug, connected));
+    return updateIntegrations((current) => ({
+      ...current,
+      catalog: markConnected(current.catalog, item.connectorId, item.slug, connected),
+    }));
   }
 
   async function connect(item: ConnectionCatalogItem) {
@@ -306,10 +308,10 @@ export function PluginsOverlay({
       });
       if (result.status === "aborted") return;
       if (result.status === "connected") {
-        setItemConnected(item, true);
+        await setItemConnected(item, true);
         void notifyAppConnected(item);
         await refresh().catch(() => undefined);
-        setToolsTick((tick) => tick + 1);
+        refreshTools();
         return;
       }
       setCatalogError(
@@ -349,10 +351,10 @@ export function PluginsOverlay({
       );
       if (remaining.every((entry) => entry.status !== "connected")) {
         await unlinkAccount(item);
-        setItemConnected(item, false);
+        await setItemConnected(item, false);
       }
       await refresh().catch(() => undefined);
-      setToolsTick((tick) => tick + 1);
+      refreshTools();
     } catch (err) {
       setCatalogError(errorText(err, t`Could not revoke connection`));
     } finally {
@@ -363,7 +365,7 @@ export function PluginsOverlay({
   async function uninstall(item: ConnectionCatalogItem) {
     const matches = catalogItemAccounts(connections, item);
     if (matches.length === 0) {
-      setItemConnected(item, false);
+      void setItemConnected(item, false);
       closeDetail();
       return;
     }
@@ -374,7 +376,7 @@ export function PluginsOverlay({
         await rpc.connections.revoke({ connectionId: row.id });
       }
       await unlinkAccount(item);
-      setItemConnected(item, false);
+      await setItemConnected(item, false);
       await refresh().catch(() => undefined);
       closeDetail();
     } catch (err) {
@@ -387,17 +389,25 @@ export function PluginsOverlay({
 
   async function renameAccount(row: Connection) {
     const displayName = (labelDrafts[row.id] ?? row.displayName).trim();
-    if (!displayName || displayName === row.displayName) return;
+    const clearDraft = () => setLabelDrafts(({ [row.id]: _draft, ...rest }) => rest);
+    if (!displayName || displayName === row.displayName) {
+      clearDraft();
+      return;
+    }
     setPending(`rename:${row.id}`);
     setCatalogError(null);
     try {
-      const updated = await rpc.connections.rename({ connectionId: row.id, displayName });
-      setConnections((current) =>
-        current.map((entry) =>
+      const updated = await rpc.connections.rename({
+        connectionId: row.id,
+        displayName,
+      });
+      await updateIntegrations((current) => ({
+        ...current,
+        connections: current.connections.map((entry) =>
           entry.id === row.id ? { ...entry, displayName: updated.displayName } : entry,
         ),
-      );
-      setLabelDrafts((current) => ({ ...current, [row.id]: updated.displayName }));
+      }));
+      clearDraft();
     } catch (err) {
       setCatalogError(errorText(err, t`Could not rename connection`));
     } finally {
@@ -422,7 +432,9 @@ export function PluginsOverlay({
     setCatalogFeedSearched(false);
     setCatalogFeedResults([]);
     try {
-      const response = await rpc.capabilities.catalogSearch({ query: catalogFeedQuery });
+      const response = await rpc.capabilities.catalogSearch({
+        query: catalogFeedQuery,
+      });
       setCatalogFeedResults(response.results);
       setCatalogFeedSearched(true);
     } catch (err) {
@@ -496,7 +508,10 @@ export function PluginsOverlay({
     setSourceError(null);
     try {
       await rpc.capabilities.remove({ id: install.id });
-      setSources((current) => current.filter((source) => source.id !== install.id));
+      await updateIntegrations((current) => ({
+        ...current,
+        sources: current.sources.filter((source) => source.id !== install.id),
+      }));
     } catch (err) {
       setSourceError(errorText(err, t`Could not remove connector`));
     } finally {
@@ -513,7 +528,6 @@ export function PluginsOverlay({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full"
           size="sm"
           disabled={connecting}
           onClick={(event) => {
@@ -529,7 +543,6 @@ export function PluginsOverlay({
       <Button
         type="button"
         variant="secondary"
-        className="rounded-full"
         size="sm"
         disabled={connecting}
         onClick={(event) => {
@@ -621,7 +634,6 @@ export function PluginsOverlay({
           <Button
             type="button"
             variant="secondary"
-            className="rounded-full"
             size="sm"
             disabled={uninstalling || connecting}
             onClick={() => void uninstall(item)}
@@ -636,9 +648,13 @@ export function PluginsOverlay({
               <Input
                 value={labelDrafts[row.id] ?? row.displayName}
                 aria-label={t`Account label`}
+                maxLength={CONNECTION_LABEL_MAX_LENGTH}
                 className="h-9 rounded-lg border-transparent bg-transparent px-2 text-[14px] shadow-none hover:bg-accent/60 focus-visible:bg-background dark:bg-transparent"
                 onChange={(event) =>
-                  setLabelDrafts((current) => ({ ...current, [row.id]: event.target.value }))
+                  setLabelDrafts((current) => ({
+                    ...current,
+                    [row.id]: event.target.value,
+                  }))
                 }
                 onBlur={() => void renameAccount(row)}
                 onKeyDown={(event) => {
@@ -650,7 +666,7 @@ export function PluginsOverlay({
               <Button
                 type="button"
                 variant="ghost"
-                className="h-8 shrink-0 rounded-full px-2.5 text-[12px] text-muted-foreground pointer-fine:opacity-0 pointer-fine:group-focus-within/account:opacity-100 pointer-fine:group-hover/account:opacity-100"
+                className="h-8 shrink-0 px-2.5 text-[12px] text-muted-foreground pointer-fine:opacity-0 pointer-fine:group-focus-within/account:opacity-100 pointer-fine:group-hover/account:opacity-100"
                 size="sm"
                 disabled={pending === row.id || uninstalling}
                 onClick={() => void revokeAccount(row, item)}
@@ -662,7 +678,7 @@ export function PluginsOverlay({
           <Button
             type="button"
             variant="ghost"
-            className="h-9 rounded-lg px-2 text-[14px] text-muted-foreground"
+            className="h-9 px-2 text-[14px] text-muted-foreground"
             size="sm"
             disabled={connecting || uninstalling}
             onClick={() => void connect(item)}
@@ -715,7 +731,7 @@ export function PluginsOverlay({
         className="flex h-[760px] max-h-[calc(100%-2rem)] w-[1080px] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl bg-card p-0 sm:max-w-[1080px]"
       >
         <DialogHeader className="flex-row items-start justify-between px-8 pt-7">
-          <DialogTitle className="text-2xl text-foreground">
+          <DialogTitle className="text-heading2 text-foreground">
             <Trans>Integrations</Trans>
           </DialogTitle>
           <DialogClose
@@ -812,7 +828,6 @@ export function PluginsOverlay({
                         <Button
                           type="submit"
                           variant="secondary"
-                          className="rounded-full"
                           size="sm"
                           disabled={!catalogFeedQuery.trim() || catalogFeedPending}
                         >
@@ -864,7 +879,6 @@ export function PluginsOverlay({
                                   key={`${result.domain}:${surface.slug}`}
                                   type="button"
                                   variant="secondary"
-                                  className="rounded-full"
                                   size="sm"
                                   disabled={!canAdd}
                                   title={canAdd ? undefined : t`Manual setup required`}
@@ -884,7 +898,6 @@ export function PluginsOverlay({
                 <Button
                   type="button"
                   variant="secondary"
-                  className="rounded-full"
                   size="sm"
                   aria-expanded={setupOpen}
                   onClick={() => setSetupOpen((current) => !current)}
@@ -907,7 +920,6 @@ export function PluginsOverlay({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="rounded-full"
                     size="sm"
                     onClick={() => beginSource("mcp")}
                   >
@@ -916,7 +928,6 @@ export function PluginsOverlay({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="rounded-full"
                     size="sm"
                     onClick={() => beginSource("api")}
                   >
@@ -925,7 +936,6 @@ export function PluginsOverlay({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="rounded-full"
                     size="sm"
                     onClick={() => beginSource("graphql")}
                   >
@@ -934,7 +944,6 @@ export function PluginsOverlay({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="rounded-full"
                     size="sm"
                     onClick={() => beginSource("executor")}
                   >
@@ -943,7 +952,6 @@ export function PluginsOverlay({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="rounded-full"
                     size="sm"
                     onClick={() => beginSource("treg")}
                   >
@@ -1042,7 +1050,6 @@ export function PluginsOverlay({
                         <Button
                           type="button"
                           variant="secondary"
-                          className="rounded-full"
                           size="sm"
                           disabled={pending === "install-source"}
                           onClick={() => void installSource()}
@@ -1056,7 +1063,6 @@ export function PluginsOverlay({
                         <Button
                           type="button"
                           variant="secondary"
-                          className="rounded-full"
                           size="sm"
                           onClick={() => setSourceKind(null)}
                         >
@@ -1097,7 +1103,6 @@ export function PluginsOverlay({
                       <Button
                         type="button"
                         variant="secondary"
-                        className="rounded-full"
                         size="sm"
                         disabled={pending === source.id}
                         onClick={() => void removeSource(source)}
@@ -1123,11 +1128,11 @@ export function PluginsOverlay({
               </div>
             </Disclosure>
           ) : null}
-          {catalogError ? (
+          {catalogError || loadError ? (
             <div className="mb-4 flex items-center gap-3">
-              <p className="text-sm text-destructive">{catalogError}</p>
-              {!catalogLoaded ? (
-                <Button variant="outline" size="sm" onClick={load}>
+              <p className="text-sm text-destructive">{catalogError ?? loadError}</p>
+              {!catalogLoaded || (loadError && !catalogError) ? (
+                <Button variant="outline" size="sm" onClick={() => void integrations.refetch()}>
                   <Trans>Retry</Trans>
                 </Button>
               ) : null}
@@ -1149,7 +1154,7 @@ export function PluginsOverlay({
               {mcpError ? (
                 <div role="alert" className="flex items-center gap-2 text-sm text-destructive">
                   {mcpError}
-                  <Button variant="link" size="xs" onClick={() => void refreshMcp()}>
+                  <Button variant="link" size="xs" onClick={() => void mcpQuery.refetch()}>
                     <Trans>Retry</Trans>
                   </Button>
                 </div>
@@ -1263,7 +1268,6 @@ export function PluginsOverlay({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="rounded-full"
                     size="sm"
                     onClick={() => setVisibleCount((count) => count + CONNECTION_CATALOG_PAGE_SIZE)}
                   >

@@ -1,5 +1,6 @@
 import "./monitoring-bootstrap";
 import { Toaster, TooltipProvider } from "@rakazo/ui-web";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode, useEffect, useLayoutEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, useLocation } from "react-router-dom";
@@ -12,13 +13,16 @@ import { clientUpdates } from "./lib/client-update";
 import { reportCaughtReactError } from "./lib/monitoring";
 import { markAfterPaint, markOnce } from "./lib/performance";
 import { installPreloadRecovery } from "./lib/preload-recovery";
+import { queryClient } from "./lib/query";
 import { applyUiAppearance, watchSystemAppearance } from "./lib/ui-appearance";
 import { resolveUiLocale } from "./lib/ui-locale";
+import { registerServiceWorker } from "./pwa/register";
 import "./styles.css";
 
 markOnce("rk:renderer:module-evaluated");
 installPreloadRecovery();
 clientUpdates().install();
+registerServiceWorker();
 applyUiDirection(resolveUiLocale());
 applyUiAppearance();
 // After the appearance pass: a client brand's page color owns theme-color.
@@ -61,12 +65,14 @@ createRoot(document.getElementById("root")!, { onCaughtError: reportCaughtReactE
           land while the URL already moved. */}
       <BrowserRouter useTransitions={false}>
         <ClientUpdateOnNavigate />
-        <DesktopUpdatesProvider>
-          <TooltipProvider>
-            <App />
-          </TooltipProvider>
-          <Toaster />
-        </DesktopUpdatesProvider>
+        <QueryClientProvider client={queryClient}>
+          <DesktopUpdatesProvider>
+            <TooltipProvider>
+              <App />
+            </TooltipProvider>
+            <Toaster />
+          </DesktopUpdatesProvider>
+        </QueryClientProvider>
       </BrowserRouter>
     </I18nBootstrap>
   </StrictMode>,

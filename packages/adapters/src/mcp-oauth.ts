@@ -31,10 +31,9 @@ import { runAsSystem } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { secureFetch, validateUrl, withEndpointOriginFallback } from "./mcp-transport.js";
-import { actorMayUsePrivateEndpoint } from "./private-endpoint.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
 import { persistPreparedSecret } from "./secret-persistence.js";
-import { deleteSecretBestEffort } from "./secret-store-factory.js";
+import { deleteSecretBestEffort, holdSecretNotifications } from "./secret-store-factory.js";
 
 type OAuthState = {
   tokens?: OAuthTokens;
@@ -232,6 +231,12 @@ function boundClient(
 type ServerRef = { id: string; endpoint: string | null; secretId: string | null };
 type ActorRef = { spaceId: string; userId: string };
 
+class McpCredentialRefusedError extends Error {}
+
+function isCredentialRefusal(error: unknown): boolean {
+  return error instanceof McpCredentialRefusedError || error instanceof McpOAuthServerMismatchError;
+}
+
 /** Our own text, so callers may show it as is. */
 export class McpOAuthServerMismatchError extends Error {
   constructor() {
@@ -276,6 +281,9 @@ type ProviderOptions = {
 /** Refresh before expiry to cover clock skew and request time. */
 export const TOKEN_REFRESH_SKEW_MS = 60_000;
 
+/** The OpenID Connect scope that asks the authorization server for a refresh token. */
+const OFFLINE_ACCESS = "offline_access";
+
 /** When the access token lapses, if the grant says. */
 export function accessTokenExpiresAt(oauth: OAuthState | undefined): number | undefined {
   const lifetimeSeconds = oauth?.tokens?.expires_in;
@@ -304,6 +312,29 @@ function canonicalResource(resource: string | undefined): URL | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The SDK requests the scopes the resource publishes (RFC 9728). `offline_access`
+ * is an authorization-server scope, so it never appears there, yet servers such as
+ * OpenIddict and Entra issue a refresh token only when it is requested. Without it
+ * the connection lapses with the first access token and asks for a reconnect.
+ * Those servers issue the refresh token without `prompt=consent`, which would
+ * force a consent screen on every reconnect; a server that needs it can get it
+ * through the client's `authorization_params`.
+ */
+function requestOfflineAccess(
+  authorizationUrl: URL,
+  discovery: OAuthDiscoveryState | undefined,
+): void {
+  // Without a requested scope the server applies its defaults; `offline_access`
+  // alone would narrow the grant to no API scope at all.
+  const scope = authorizationUrl.searchParams.get("scope");
+  if (!scope) return;
+  if (!discovery?.authorizationServerMetadata?.scopes_supported?.includes(OFFLINE_ACCESS)) return;
+  const scopes = scope.split(/\s+/);
+  if (scopes.includes(OFFLINE_ACCESS)) return;
+  authorizationUrl.searchParams.set("scope", [...scopes, OFFLINE_ACCESS].join(" "));
 }
 
 function applyGrant(oauth: OAuthState, grant: TokenGrant): void {
@@ -441,7 +472,14 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
     const oauth = this.material.oauth;
     const held = oauth?.tokens;
     if (!oauth || !held?.refresh_token || !this.options.refresh) return;
-    const grant = await this.options.refresh(held.refresh_token);
+    let grant: TokenGrant;
+    try {
+      grant = await this.options.refresh(held.refresh_token);
+    } catch (error) {
+      if (isCredentialRefusal(error) && this.material.oauth === oauth && oauth.tokens === held)
+        applyGrant(oauth, {});
+      throw error;
+    }
     // A write that landed while the refresh ran is newer than the grant it replaced.
     if (this.material.oauth !== oauth || oauth.tokens !== held) return;
     applyGrant(oauth, grant);
@@ -472,6 +510,7 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
       for (const [key, value] of Object.entries(parseMcpOAuthAuthorizationParams(extra)))
         if (!authorizationUrl.searchParams.has(key)) authorizationUrl.searchParams.set(key, value);
     }
+    requestOfflineAccess(authorizationUrl, this.material.oauth?.discoveryState);
     this.authorizationUrl = authorizationUrl;
     if (this.options.onAuthorization) {
       this.options.onAuthorization(authorizationUrl);
@@ -965,11 +1004,6 @@ export class McpOAuthBroker {
       throw new Error("Too many pending MCP authorization attempts; wait and try again");
     }
     const sessionId = randomUUID();
-    const actorMayUsePrivate = await actorMayUsePrivateEndpoint(
-      this.prisma,
-      input.userId,
-      this.allowPrivateEndpoint,
-    );
 
     /** One authorization attempt against `redirectUri`; notes when registration refuses it. */
     const attempt = async (redirectUri: string) => {
@@ -995,7 +1029,7 @@ export class McpOAuthBroker {
         server.endpoint
           ? attemptLoaded.material
           : withoutRequestCredentials(attemptLoaded.material),
-        actorMayUsePrivate,
+        this.allowPrivateEndpoint,
       );
       const observed: typeof fetch = async (request, init) => {
         const response = await networkFetch.fetch(request, init);
@@ -1184,7 +1218,7 @@ export class McpOAuthBroker {
       // Only for redacting errors: the exchange sends the client secret, but none of
       // the server's static headers.
       { oauth: { clientInformation: pending.provider.clientInformation() } },
-      await actorMayUsePrivateEndpoint(this.prisma, pending.userId, this.allowPrivateEndpoint),
+      this.allowPrivateEndpoint,
     );
     try {
       if (pending.stdio)
@@ -1278,8 +1312,19 @@ export class McpOAuthBroker {
       {
         ...(target
           ? {
+              // The refresh writes its secret inside the lock transaction, so the change
+              // notification waits for that pooled connection to come back.
               refresh: (held: string) =>
-                this.refreshGrant(server.id, endpoint, target, context, held, options.onPersisted),
+                holdSecretNotifications(() =>
+                  this.refreshGrant(
+                    server.id,
+                    endpoint,
+                    target,
+                    context,
+                    held,
+                    options.onPersisted,
+                  ),
+                ),
             }
           : {}),
         ...options,
@@ -1303,13 +1348,9 @@ export class McpOAuthBroker {
     onPersisted?: ProviderOptions["onPersisted"],
   ): Promise<TokenGrant> {
     // Resolve the network before taking a connection for the lock.
-    const network = oauthFetch(
-      target,
-      this.network,
-      {},
-      await actorMayUsePrivateEndpoint(this.prisma, context.userId, this.allowPrivateEndpoint),
-    );
+    const network = oauthFetch(target, this.network, {}, this.allowPrivateEndpoint);
     let stored: { id: string; ciphertext: string } | undefined;
+    let rotated: { material: OAuthMaterial; grant: TokenGrant; spent: string } | undefined;
     try {
       const result = await persistPreparedSecret(
         this.prisma,
@@ -1339,6 +1380,7 @@ export class McpOAuthBroker {
                 grant = {};
               }
               applyGrant(oauth, grant);
+              if (grant.tokens) rotated = { material, grant, spent: current };
               stored = await this.putMaterial(material, context);
               if (!(await this.commitMaterial(tx, serverId, context, snapshot, stored)))
                 throw new Error("MCP credentials changed during refresh; retry");
@@ -1353,7 +1395,27 @@ export class McpOAuthBroker {
       return result.grant;
     } catch (error) {
       if (stored) await deleteSecretBestEffort(this.secrets, stored.ciphertext, stored.id);
-      throw error;
+      if (isCredentialRefusal(error) || !rotated) throw error;
+      // The authorization server already rotated the grant, so the stored one is spent.
+      // Store the new one over the grant it replaced; a login or disconnect that landed
+      // meanwhile wins. On a transient failure, keep observed state or the issued grant.
+      getLogger().warn("MCP OAuth refresh commit failed; storing the rotated grant again");
+      let observed: TokenGrant | undefined;
+      try {
+        const kept = await this.replaceMaterial(serverId, rotated.material, context, {
+          expectedEndpoint: endpoint,
+          onPersisted,
+          storedRefreshToken: rotated.spent,
+          replaceCleared: true,
+          onKept: (grant) => {
+            observed = grant;
+          },
+        });
+        return kept ?? rotated.grant;
+      } catch (fallbackError) {
+        if (isCredentialRefusal(fallbackError)) throw fallbackError;
+        return observed ?? rotated.grant;
+      }
     } finally {
       await network.close().catch(() => undefined);
     }
@@ -1368,6 +1430,8 @@ export class McpOAuthBroker {
       expectedEndpoint?: string | null;
       onPersisted?: ProviderOptions["onPersisted"];
       storedRefreshToken?: string | null;
+      replaceCleared?: boolean;
+      onKept?: (grant: TokenGrant) => void;
     } = {},
   ): Promise<TokenGrant | undefined> {
     // Take a DB-only snapshot, then do provider I/O with no transaction open.
@@ -1385,7 +1449,9 @@ export class McpOAuthBroker {
         // OAuth state belongs to the client that obtained it; a client changed in
         // settings meanwhile has already dropped the grant this write carries.
         if (!sameOAuthClient(material.oauthClient, nextMaterial.oauthClient))
-          throw new Error("MCP OAuth client changed during authorization; reconnect this server");
+          throw new McpCredentialRefusedError(
+            "MCP OAuth client changed during authorization; reconnect this server",
+          );
         // Overlapping flows may have bound the same unbound client to different servers;
         // the first binding saved wins and any other flow's state is refused.
         if (conflictsWithBinding(nextMaterial.oauthClient, material))
@@ -1394,13 +1460,19 @@ export class McpOAuthBroker {
         if (nextMaterial.oauthClient && bound && !nextMaterial.oauthClient.authorization_server)
           nextMaterial.oauthClient = { ...nextMaterial.oauthClient, authorization_server: bound };
         nextMaterial.oauth = structuredClone(material.oauth);
+        // A process that spent the rotated-away token meanwhile cleared the grant this write renews.
+        const staleClear = options.replaceCleared && storedOAuth && !storedOAuth.tokens;
         if (
           options.storedRefreshToken !== undefined &&
-          (storedOAuth?.tokens?.refresh_token ?? null) !== options.storedRefreshToken
+          (storedOAuth?.tokens?.refresh_token ?? null) !== options.storedRefreshToken &&
+          !staleClear
         ) {
           // Another process rotated or replaced the grant; never overwrite it with an older one.
+          // A disconnect removed the state altogether, and this write must not bring it back.
           kept = { tokens: storedOAuth?.tokens, obtainedAt: storedOAuth?.obtainedAt };
-          applyGrant(nextMaterial.oauth, kept);
+          options.onKept?.(kept);
+          if (storedOAuth) applyGrant(nextMaterial.oauth, kept);
+          else delete nextMaterial.oauth;
         }
       } else delete nextMaterial.oauth;
       const hasMaterial = Boolean(
@@ -1439,7 +1511,7 @@ export class McpOAuthBroker {
       );
       if (committed) return kept;
     }
-    throw new Error("MCP credentials changed during authorization; retry");
+    throw new McpCredentialRefusedError("MCP credentials changed during authorization; retry");
   }
 
   private async snapshot(
@@ -1452,9 +1524,11 @@ export class McpOAuthBroker {
       where: { id: serverId, spaceId: context.spaceId, userId: context.userId },
       select: { endpoint: true, secretId: true },
     });
-    if (!server) throw new Error("MCP server is unavailable");
+    if (!server) throw new McpCredentialRefusedError("MCP server is unavailable");
     if (expectedEndpoint !== undefined && server.endpoint !== expectedEndpoint)
-      throw new Error("MCP server endpoint changed during authorization; reconnect this server");
+      throw new McpCredentialRefusedError(
+        "MCP server endpoint changed during authorization; reconnect this server",
+      );
     const secret = server.secretId
       ? await tx.secret.findFirst({
           where: { id: server.secretId, spaceId: context.spaceId, userId: context.userId },
@@ -1490,7 +1564,7 @@ export class McpOAuthBroker {
       where: { id: serverId, spaceId: context.spaceId, userId: context.userId },
       select: { endpoint: true, secretId: true },
     });
-    if (!server) throw new Error("MCP server is unavailable");
+    if (!server) throw new McpCredentialRefusedError("MCP server is unavailable");
     if (
       server.endpoint !== snapshot.server.endpoint ||
       server.secretId !== snapshot.server.secretId

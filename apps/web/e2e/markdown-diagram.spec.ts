@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { darkTokens, lightTokens } from "@rakazo/ui-tokens";
+import { webDarkTokens, webLightTokens } from "@rakazo/ui-tokens";
 import { captureScreenshot } from "./helpers";
 
 const fixture = "/e2e/fixtures/markdown-diagram.html";
@@ -80,12 +80,12 @@ test("a mermaid fence is drawn as a themed, copyable diagram in place of its cod
     .toBe(flowSource);
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
 
-  // Diagram text is drawn in the theme's foreground token. Manor's dark palette differs from
+  // Diagram text is drawn in the theme's web foreground token. Manor's dark palette differs from
   // upstream's, so the expected fills come from the shared tokens rather than fixed hex values.
   // The app shell is pinned to dark; this fixture sets the page theme directly, so the light
   // half still checks the shared component on a light page.
-  const darkFill = `fill:${darkTokens.foreground}`;
-  const lightFill = `fill:${lightTokens.foreground}`;
+  const darkFill = `fill:${webDarkTokens.foreground}`;
+  const lightFill = `fill:${webLightTokens.foreground}`;
   expect(await diagramMarkup(page)).toContain(darkFill);
   await page.goto(`${fixture}?theme=light`);
   await expectDrawn(page);

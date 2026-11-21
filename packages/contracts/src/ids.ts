@@ -8,6 +8,7 @@ export const ActorSchema = z.object({
   spaceId: Id,
   organizationId: Id,
   email: z.string().email(),
+  /** Deprecated wire field. App accounts have no deployment role; always false. */
   isDeploymentOwner: z.boolean(),
   portalOrganizationId: Id.optional(),
   /** Authenticated person, retained when operating on a shared space account. */

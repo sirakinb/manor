@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
   persisted: vi.fn(),
   focused: true,
 }));
+vi.mock("./side-insets", () => ({ useSideInsets: () => ({}) }));
 vi.mock("expo-router", () => ({
   useFocusEffect: (callback: () => undefined | (() => void)) => {
     useEffect(() => {
@@ -66,6 +67,9 @@ vi.mock("react-native", () => {
     <div data-testid={testID}>{children}</div>
   );
   return {
+    ActivityIndicator: ({ accessibilityLabel }: { accessibilityLabel?: string }) => (
+      <div role="progressbar" aria-label={accessibilityLabel} />
+    ),
     View,
     ScrollView: View,
     Text: ({ children }: { children: ReactNode }) => <span>{children}</span>,

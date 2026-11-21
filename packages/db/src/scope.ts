@@ -38,6 +38,7 @@ export async function requireMembership(
   if (!membership) {
     throw new IsolationError("No personal space");
   }
+  // Manor keeps the deployment owner: its maintenance agent and release controller are gated on it.
   const settings = await prisma.deploymentSettings.findUnique({
     where: { id: "default" },
   });

@@ -625,10 +625,8 @@ test("workspace appears once the organization has one and its map opens sections
   // No model of the user's own is connected, so every choice past the space default is
   // the deployment's. That list is long enough for the searchable picker.
   expect(deploymentModels).toBeGreaterThan(10);
-  const model = botSettings
-    .locator("label")
-    .filter({ hasText: /^Model/ })
-    .getByRole("button");
+  // The bot settings' Model section labels its picker with a screen-reader-only label.
+  const model = botSettings.locator('button[id$="-model"]');
   await expect(model).toHaveText(/^Space default/);
   await model.click();
   await expect(page.getByRole("combobox", { name: "Search models" })).toBeFocused();

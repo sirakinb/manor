@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "@rakazo/ui-web/styles.css";
-@import "@fontsource-variable/geist/wght.css";
 
 @source "../../packages/ui-web/src/**/*.{ts,tsx}";
 @source "./src/**/*.{ts,tsx}";
@@ -21,6 +20,15 @@ body,
   background: var(--rk-page, #0a0a0a);
   color: var(--rk-body, #dfdde3);
   font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  font-weight: var(--font-weight-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* viewport-fit=cover lets the shell reach the screen edges; keep it clear of notches and the home indicator. */
+#root {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
 }
 
 .rk-display {

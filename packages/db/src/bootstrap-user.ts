@@ -213,6 +213,7 @@ export async function bootstrapUserSpace(
     },
     update: {},
   });
+  // Manor: the first sign-up claims the deployment-owner seat that maintenance is restricted to.
   if (claimDeploymentOwner) {
     // Conditional claim: only the first concurrent claimant wins the seat.
     await prisma.deploymentSettings.updateMany({

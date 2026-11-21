@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { darkTokens } from "@rakazo/ui-tokens";
+import { webDarkTokens } from "@rakazo/ui-tokens";
 import {
   activeBotId,
   captureScreenshot,
@@ -11,10 +11,16 @@ import {
 
 const DENSITY_KEY = "rakazo.botsSidebarDensity";
 
-/** A `#RRGGBB` token as the `rgb(r, g, b)` string computed styles report. */
-function hexToRgb(hex: string): string {
-  const value = Number.parseInt(hex.replace("#", ""), 16);
-  return `rgb(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255})`;
+/** A `#RRGGBB` or `#RRGGBBAA` token as the colour string computed styles report. */
+function hexToCss(hex: string): string {
+  const digits = hex.replace("#", "");
+  const [r, g, b] = [0, 2, 4].map((at) => Number.parseInt(digits.slice(at, at + 2), 16));
+  if (digits.length !== 8) return `rgb(${r}, ${g}, ${b})`;
+  // Browsers print the shortest alpha that still maps back to the same byte.
+  const byte = Number.parseInt(digits.slice(6, 8), 16);
+  const short = Math.round((byte / 255) * 100) / 100;
+  const alpha = Math.round(short * 255) === byte ? short : Math.round((byte / 255) * 1000) / 1000;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 test("compact bot sidebar hides previews and preserves roster status accessibly", async ({
@@ -53,11 +59,30 @@ test("compact bot sidebar hides previews and preserves roster status accessibly"
   await expect(previewRow).toHaveAttribute("data-roster-unread", "true");
   await expect(previewRow).toHaveAccessibleName(/Compact Sample.*unread/i);
   // The unread dot is the one blue in the sidebar, not ink. The web app is pinned to dark.
-  expect(darkTokens.unread.toLowerCase()).not.toBe(darkTokens.foreground.toLowerCase());
+  expect(webDarkTokens.unread.toLowerCase()).not.toBe(webDarkTokens.foreground.toLowerCase());
   await expect(previewRow.locator("[data-roster-unread-dot]")).toHaveCSS(
     "background-color",
-    hexToRgb(darkTokens.unread),
+    hexToCss(webDarkTokens.unread),
   );
+  // Times are tertiary text. Manor tints a hovered or selected row with its bot's colour.
+  await expect(previewRow.locator("[data-roster-time]")).toHaveCSS(
+    "color",
+    hexToCss(webDarkTokens.faintForeground),
+  );
+  await previewRow.hover();
+  await expect(previewRow).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(selectedRow).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  // Once read, the preview is secondary text.
+  await rpc(page, "threads/markRead", { botId: previewBot.id });
+  await page.reload();
+  await expect(previewRow).not.toHaveAttribute("data-roster-unread", "true");
+  await expect(previewRow.locator("[data-roster-preview]")).toHaveCSS(
+    "color",
+    hexToCss(webDarkTokens.mutedForeground),
+  );
+  await rpc(page, "threads/markUnread", { botId: previewBot.id });
+  await page.reload();
+  await expect(previewRow).toHaveAttribute("data-roster-unread", "true");
   await previewRow.scrollIntoViewIfNeeded();
   const comfortableHeight = await previewRow.evaluate(
     (element) => element.getBoundingClientRect().height,

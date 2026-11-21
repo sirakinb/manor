@@ -35,7 +35,6 @@ function oauthPrisma() {
         userId: SCOPE.userId,
         credentialId: "cred-codex",
         modelId: MODEL_ID,
-        isDefault: true,
         createdAt: stamp,
         updatedAt: stamp,
       },
@@ -157,6 +156,7 @@ function oauthExecutor(
   load: (ciphertext: string, secretId: string) => string = () => expiredOAuthPlaintext(),
 ) {
   return createRunExecutor({
+    billingEnabled: false,
     prisma,
     secretStore: { load: vi.fn(load), put: vi.fn() },
   } as unknown as Parameters<typeof createRunExecutor>[0]);

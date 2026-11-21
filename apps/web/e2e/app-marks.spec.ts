@@ -4,26 +4,32 @@ import { completeOnboarding, signup } from "./helpers";
 
 // Cached public catalog artwork keeps visual coverage offline and repeatable.
 const apps = ["gmail", "notion", "github"];
+const catalogApps = ["gmail", "obscure-app", "notion", "github"];
 test.use({ deviceScaleFactor: 3 });
 
 // Manor is pinned to dark, so the marks are checked in dark only.
-test("connected app marks share a plate and separating ring", async ({ page }, testInfo) => {
-  for (const app of apps) {
+test("familiar app suggestions share a plate and separating ring", async ({ page }, testInfo) => {
+  for (const app of catalogApps) {
     await page.route(`https://logos.composio.dev/api/${app}`, (route) =>
       route.fulfill({
         contentType: "image/svg+xml",
-        body: readFileSync(new URL(`./fixtures/app-marks/${app}.svg`, import.meta.url)),
+        body: readFileSync(
+          new URL(
+            `./fixtures/app-marks/${app === "obscure-app" ? "notion" : app}.svg`,
+            import.meta.url,
+          ),
+        ),
       }),
     );
   }
   await page.route("**/rpc/connections/catalog", (route) =>
     route.fulfill({
       json: {
-        json: apps.map((slug) => ({
+        json: catalogApps.map((slug) => ({
           connectorId: "composio",
           slug,
           name: slug,
-          connected: true,
+          connected: false,
           noAuth: false,
           logo: `https://logos.composio.dev/api/${slug}`,
         })),
@@ -39,6 +45,10 @@ test("connected app marks share a plate and separating ring", async ({ page }, t
   const images = tiles.locator("img");
   await expect(images).toHaveCount(apps.length);
   for (const index of apps.keys()) {
+    await expect(images.nth(index)).toHaveAttribute(
+      "src",
+      `https://logos.composio.dev/api/${apps[index]}`,
+    );
     await expect
       .poll(() => images.nth(index).evaluate((el) => (el as HTMLImageElement).naturalWidth))
       .toBeGreaterThan(0);

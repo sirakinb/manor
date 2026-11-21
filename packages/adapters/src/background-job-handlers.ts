@@ -2,6 +2,7 @@ import type {
   AgentHomeStore,
   AgentRuntime,
   ArtifactStore,
+  BackgroundJobExecution,
   BackgroundJobHandlers,
   IngestionRunner,
   JobPublisher,
@@ -41,13 +42,13 @@ type Tenant = { spaceId: string; userId: string };
  */
 function asOwner<Key, P extends Key>(
   owner: (payload: Key) => Promise<Tenant | null>,
-  handler: (payload: P) => Promise<void>,
-): (payload: P) => Promise<void> {
-  return async (payload) => {
+  handler: (payload: P, execution?: BackgroundJobExecution) => Promise<void>,
+): (payload: P, execution?: BackgroundJobExecution) => Promise<void> {
+  return async (payload, execution) => {
     const tenant = await runAsSystem("find the tenant a background job acts for", () =>
       owner(payload),
     );
-    if (tenant) await runAsTenant(tenant, () => handler(payload));
+    if (tenant) await runAsTenant(tenant, () => handler(payload, execution));
   };
 }
 
@@ -139,8 +140,10 @@ export function createBackgroundJobHandlers(deps: {
         ),
       );
     },
-    "run.continue": asOwner(run, async (payload) => {
-      await deps.executor.continueRun(payload.runId, deps.workerId);
+    "run.continue": asOwner(run, async (payload, execution) => {
+      if (execution)
+        await deps.executor.continueRun(payload.runId, deps.workerId, execution.onRunStarted);
+      else await deps.executor.continueRun(payload.runId, deps.workerId);
       // Automatic messaging mirror: once the run's bot messages are durable,
       // copy them into the outbox. Never let mirror failures fail the run.
       if (messagingDeps) {
@@ -151,6 +154,19 @@ export function createBackgroundJobHandlers(deps: {
         });
       }
     }),
+    "messaging.credential-cleanup": async ({ installationId, ref }) => {
+      await runAsSystem("clean up a retired messaging credential", async () => {
+        const installation = await deps.prisma.messagingInstallation.findUnique({
+          where: { id: installationId },
+          select: { ciphertext: true },
+        });
+        if (installation?.ciphertext === ref) return;
+        await deps.secretStore.delete(ref, {
+          recordId: installationId,
+          signal: AbortSignal.timeout(10_000),
+        });
+      });
+    },
     "messaging.deliver": async ({ runId }) => {
       if (runId && messagingDeps) {
         await asOwner(run, () => mirrorMessagingOutbound(messagingDeps, runId))({ runId });
@@ -228,7 +244,8 @@ export function createBackgroundJobHandlers(deps: {
       name,
       name === "maintenance.advance"
         ? handler
-        : (payload: never) => admission.run(() => handler(payload)),
+        : (payload: never, execution?: BackgroundJobExecution) =>
+            admission.run(() => handler(payload, execution)),
     ]),
   ) as BackgroundJobHandlers;
 }

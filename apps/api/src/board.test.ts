@@ -58,6 +58,7 @@ it.each([false, true])("includes the board capability in me (%s)", async (ticket
       })),
     },
     spaceModelPreference: { findFirst: vi.fn(async () => null) },
+    spaceModelRoleChoice: { findMany: vi.fn(async () => []) },
     deploymentSettings: { findUnique: vi.fn(async () => null) },
     // Manor's me also reports the "This Mac" session.
     localComputerSession: { findFirst: vi.fn(async () => null) },

@@ -16,69 +16,45 @@ async function openThread(page: Page, phase: "live" | "done") {
   await expect(page.getByTestId("message-user-bubble")).toBeVisible();
 }
 
-/** Cards stay hidden until this browser saved "on". Seed only when a test needs them visible. */
-async function seedToolActivityOn(page: Page) {
-  await page.addInitScript((key) => {
-    if (localStorage.getItem(key) == null) localStorage.setItem(key, "on");
-  }, STORAGE_KEY);
+// The fixture renders the real chat transcript. Manor's transcript lists tool steps in its
+// activity timeline whatever upstream's stored preference says, so no card ever appears.
+for (const stored of [null, "off", "on"] as const) {
+  test(`the fixture transcript lists every step for live and finished runs (stored: ${stored})`, async ({
+    page,
+  }, testInfo) => {
+    if (stored) {
+      await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
+        STORAGE_KEY,
+        stored,
+      ] as const);
+    }
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      for (const phase of ["live", "done"] as const) {
+        await openThread(page, phase);
+        const transcript = page.getByTestId("transcript");
+        const timeline = transcript.getByTestId("activity-timeline");
+        await expect(timeline.first()).toBeVisible();
+        await expect(timeline.first()).toContainText("Open calendar");
+        await expect(timeline.first()).toContainText("Check conflicts");
+        await expect(transcript.getByTestId("tool-activity")).toHaveCount(0);
+        if (phase === "done") {
+          await expect(page.getByTestId("message-bot-bubble")).toContainText(REPLY_TEXT);
+        } else {
+          await expect(transcript.getByTestId("live-status")).toBeVisible();
+        }
+        await expect(page.locator("body")).toHaveJSProperty("scrollWidth", viewport.width);
+        await captureScreenshot(
+          page,
+          testInfo,
+          `timeline-${phase}-${stored ?? "unset"}-${viewport.name}`,
+        );
+      }
+    }
+  });
 }
 
-test("tool activity shows for live and finished runs when the user turned it on", async ({
-  page,
-}, testInfo) => {
-  await seedToolActivityOn(page);
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-
-    await openThread(page, "live");
-    const liveLine = page.getByTestId("tool-activity-line");
-    await expect(liveLine).toHaveCount(1);
-    await expect(page.getByTestId("message-bot-bubble")).toHaveCount(0);
-    const liveCard = page.getByTestId("tool-activity");
-    await expect(liveCard.locator("button[aria-expanded]")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    await expect(liveCard.locator("button[aria-expanded]")).toContainText("Working… · 8 tools");
-    await expect(page.getByTestId("tool-rows-hidden")).toHaveText("+2 earlier steps");
-    await expect(page.getByTestId("tool-rows")).not.toContainText("Open calendar");
-    await expect(page.getByTestId("tool-rows")).toContainText("Check conflicts");
-    await expect(page.locator("body")).toHaveJSProperty("scrollWidth", viewport.width);
-    await captureScreenshot(page, testInfo, `default-live-${viewport.name}`);
-
-    await liveCard.locator("button[aria-expanded]").click();
-    await expect(liveCard.locator("button[aria-expanded]")).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-
-    await openThread(page, "done");
-    await expect(page.getByTestId("message-bot-bubble")).toHaveText(REPLY_TEXT);
-    const doneCard = page.getByTestId("tool-activity");
-    await expect(doneCard).toHaveCount(1);
-    await expect(doneCard.locator("button[aria-expanded]")).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-    await expect(doneCard.locator("button[aria-expanded]")).toContainText("Done · 8 tools · 12s");
-    await captureScreenshot(page, testInfo, `default-done-collapsed-${viewport.name}`);
-
-    await doneCard.locator("button[aria-expanded]").click();
-    await expect(doneCard.locator("button[aria-expanded]")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    await expect(page.getByTestId("tool-rows-hidden")).toHaveCount(0);
-    await expect(page.getByTestId("tool-rows")).toContainText("Open calendar");
-    await expect(page.getByTestId("tool-rows")).toContainText("Check conflicts");
-    await expect(page.locator("body")).toHaveJSProperty("scrollWidth", viewport.width);
-    await captureScreenshot(page, testInfo, `default-done-expanded-${viewport.name}`);
-  }
-});
-
-test("settings offer no tool activity toggle and the cards follow the stored preference", async ({
-  page,
-}, testInfo) => {
+test("settings offer no tool activity toggle", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
 
   // Manor's chat always shows tool activity, so its settings hide upstream's switch.
@@ -93,28 +69,6 @@ test("settings offer no tool activity toggle and the cards follow the stored pre
     .poll(() => page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY))
     .toBeNull();
   await captureScreenshot(page, testInfo, "settings-without-tool-activity-toggle");
-
-  // The collapsible cards (still used outside the chat) stay hidden until "on" is stored.
-  await openThread(page, "done");
-  await expect(page.getByTestId("message-bot-bubble")).toHaveText(REPLY_TEXT);
-  await expect(page.getByTestId("tool-activity")).toHaveCount(0);
-  await expect(page.getByText("Done · 8 tools", { exact: false })).toHaveCount(0);
-  await captureScreenshot(page, testInfo, "off-done");
-
-  await openThread(page, "live");
-  await expect(page.getByTestId("tool-activity")).toHaveCount(0);
-  await expect(page.getByTestId("tool-activity-line")).toHaveCount(0);
-  await expect(page.getByTestId("message-bot-bubble")).toHaveCount(0);
-  await captureScreenshot(page, testInfo, "off-live");
-
-  await page.evaluate((key) => localStorage.setItem(key, "on"), STORAGE_KEY);
-
-  await openThread(page, "done");
-  await expect(page.getByTestId("tool-activity")).toHaveCount(1);
-  await expect(page.getByTestId("tool-activity").locator("button[aria-expanded]")).toContainText(
-    "Done · 8 tools",
-  );
-  await captureScreenshot(page, testInfo, "on-again-done");
 });
 
 test("the chat transcript always shows tool activity, whatever preference is stored", async ({

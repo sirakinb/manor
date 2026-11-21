@@ -7,50 +7,45 @@ import {
   createAuth,
   isBlockedAuthPath,
   passwordResetEmail,
-  resolveSignupPolicy,
   signInCodeEmail,
   signupBrandId,
 } from "./index.js";
 
-function settings(policy: { signupsEnabled: boolean; signupAllowlist: string }) {
-  return {
-    deploymentSettings: {
-      findUnique: vi.fn().mockResolvedValue({ ...policy, signupPolicyInitialized: true }),
-    },
-  } as never;
-}
-
 const env = { signupsEnabled: "true", signupAllowlist: "" };
 
 describe("assertSignupAllowed", () => {
-  it("rejects every new account while registration is closed", async () => {
-    const prisma = settings({ signupsEnabled: false, signupAllowlist: "" });
-    await expect(assertSignupAllowed(prisma, env, "someone@example.com")).rejects.toThrow(
-      "Registration is closed",
-    );
+  it("rejects every new account while registration is closed", () => {
+    expect(() =>
+      assertSignupAllowed({ signupsEnabled: "false", signupAllowlist: "" }, "someone@example.com"),
+    ).toThrow("Registration is closed");
   });
 
-  it("rejects an address outside the allowlist", async () => {
-    const prisma = settings({ signupsEnabled: true, signupAllowlist: "@company.test" });
-    await expect(assertSignupAllowed(prisma, env, "outsider@example.com")).rejects.toThrow(
-      "Email is not allowed to register",
-    );
+  it("rejects an address outside the allowlist", () => {
+    expect(() =>
+      assertSignupAllowed(
+        { signupsEnabled: "true", signupAllowlist: "@company.test" },
+        "outsider@example.com",
+      ),
+    ).toThrow("Email is not allowed to register");
   });
 
-  it("admits an allowlisted address", async () => {
-    const prisma = settings({ signupsEnabled: true, signupAllowlist: "@company.test" });
-    await expect(assertSignupAllowed(prisma, env, "person@company.test")).resolves.toBeUndefined();
+  it("admits an allowlisted address", () => {
+    expect(() =>
+      assertSignupAllowed(
+        { signupsEnabled: "true", signupAllowlist: "@company.test" },
+        "person@company.test",
+      ),
+    ).not.toThrow();
   });
 
   // Google never hits a "sign-up" route, so the policy has to hang off user
   // creation. Asserting the wiring keeps it from drifting back onto a path check.
   it("is enforced on user creation, which social sign-in also goes through", async () => {
-    const prisma = settings({ signupsEnabled: false, signupAllowlist: "" });
-    const auth = createAuth(prisma, {
+    const auth = createAuth({} as never, {
       secret: "test-secret-at-least-32-characters-long",
       baseURL: "http://localhost",
       webOrigin: "http://localhost",
-      signupsEnabled: "true",
+      signupsEnabled: "false",
       signupAllowlist: "",
     });
 
@@ -127,7 +122,14 @@ describe("auth policy", () => {
     const error = new Error("database unavailable");
     const log = vi.fn();
     const auth = createAuth(
-      { deploymentSettings: { findUnique: vi.fn().mockRejectedValue(error) } } as never,
+      {
+        user: {
+          findFirst: vi.fn().mockRejectedValue(error),
+          findMany: vi.fn().mockRejectedValue(error),
+          count: vi.fn().mockRejectedValue(error),
+          create: vi.fn().mockRejectedValue(error),
+        },
+      } as never,
       {
         secret: "offline-auth-secret-at-least-32-characters",
         baseURL: "https://api.example.test",
@@ -224,8 +226,8 @@ describe("buildTrustedOrigins", () => {
 });
 
 describe("passwordResetEmail", () => {
-  it("keeps the reset URL in text and escapes user-controlled HTML", () => {
-    const message = passwordResetEmail(
+  it("keeps the reset URL in text and escapes user-controlled HTML", async () => {
+    const message = await passwordResetEmail(
       { id: "user-1", email: "ada@example.test", name: '<Ada & "team">' },
       "https://rakazo.test/reset-password?token=secret&next=1",
     );
@@ -242,65 +244,13 @@ describe("passwordResetEmail", () => {
 });
 
 describe("signInCodeEmail", () => {
-  it("puts the code in plain text and HTML without links", () => {
-    const message = signInCodeEmail("ada@example.test", "042517");
+  it("puts the code in plain text and HTML without links", async () => {
+    const message = await signInCodeEmail("ada@example.test", "042517");
     expect(message).toMatchObject({ to: "ada@example.test", subject: "Your Manor sign-in code" });
     expect(message.text).toContain("042517");
     expect(message.html).toContain("042517");
-    expect(`${message.text}${message.html}`).not.toMatch(/https?:/);
-  });
-});
-
-describe("resolveSignupPolicy", () => {
-  it("uses environment defaults before deployment settings exist", async () => {
-    const prisma = {
-      deploymentSettings: { findUnique: vi.fn().mockResolvedValue(null) },
-    };
-    await expect(
-      resolveSignupPolicy(prisma as never, {
-        signupsEnabled: "false",
-        signupAllowlist: "you@example.com,@company.test",
-      }),
-    ).resolves.toEqual({
-      enabled: false,
-      allowlist: ["you@example.com", "@company.test"],
-    });
-  });
-
-  it("keeps using the environment policy for a pre-upgrade uninitialized row", async () => {
-    const prisma = {
-      deploymentSettings: {
-        findUnique: vi.fn().mockResolvedValue({
-          signupsEnabled: true,
-          signupAllowlist: "",
-          signupPolicyInitialized: false,
-        }),
-      },
-    };
-    await expect(
-      resolveSignupPolicy(prisma as never, {
-        signupsEnabled: "false",
-        signupAllowlist: "existing-policy@example.com",
-      }),
-    ).resolves.toEqual({ enabled: false, allowlist: ["existing-policy@example.com"] });
-  });
-
-  it("uses live deployment settings as the effective policy after initial seeding", async () => {
-    const prisma = {
-      deploymentSettings: {
-        findUnique: vi.fn().mockResolvedValue({
-          signupsEnabled: false,
-          signupAllowlist: "approved@example.com",
-          signupPolicyInitialized: true,
-        }),
-      },
-    };
-    await expect(
-      resolveSignupPolicy(prisma as never, {
-        signupsEnabled: "false",
-        signupAllowlist: "environment-only@example.com",
-      }),
-    ).resolves.toEqual({ enabled: false, allowlist: ["approved@example.com"] });
+    expect(message.text).not.toMatch(/https?:/);
+    expect(message.html).not.toContain("<a ");
   });
 });
 
@@ -328,11 +278,11 @@ describe("signupBrandId", () => {
   });
 });
 
-// Manor's user-create hook checks the stored signup policy.
-const noStoredSignupPolicy = { deploymentSettings: { findUnique: async () => null } } as never;
+// Manor's user-create hook checks the signup policy, which comes from the environment.
+const noDatabase = {} as never;
 
 describe("stored account names", () => {
-  const auth = createAuth(noStoredSignupPolicy, {
+  const auth = createAuth(noDatabase, {
     secret: "offline-auth-secret-at-least-32-characters",
     baseURL: "https://api.example.test",
     webOrigin: "https://app.example.test",
@@ -358,7 +308,7 @@ describe("stored account names", () => {
 });
 
 it("preserves readable numbered account names on writes", async () => {
-  const auth = createAuth(noStoredSignupPolicy, {
+  const auth = createAuth(noDatabase, {
     secret: "offline-auth-secret-at-least-32-characters",
     baseURL: "https://api.example.test",
     webOrigin: "https://app.example.test",
