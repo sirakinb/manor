@@ -4,8 +4,8 @@
   "description": "Your team of always-on agents.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#030304",
-  "theme_color": "#030304",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
   "icons": [
     {
       "src": "/icon-192.png",
