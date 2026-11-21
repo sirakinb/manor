@@ -1,13 +1,146 @@
 import { createHash } from "node:crypto";
+import { MAX_DESKTOP_DISPLAY, screenPorts } from "@rakazo/core/node/desktop-runtime";
 
 export const COMPUTER_IMAGE = process.env.RAKAZO_COMPUTER_IMAGE ?? "rakazo/computer:local";
 export const COMPUTER_UID = 1000;
 export const COMPUTER_GID = 1000;
 export const COMPUTER_USER = `${COMPUTER_UID}:${COMPUTER_GID}`;
-export const TEAM_SCREEN_LIMIT = 8;
+
+export { screenPorts };
 export const COMPUTER_CONTROL_PORT = 7070;
 export const SCREEN_HOST = process.env.SANDBOX_SCREEN_HOST ?? "127.0.0.1";
 export type ScreenNetworkMode = "published" | "internal" | "isolated";
+
+export function resolveTeamScreenLimit(value = process.env.SANDBOX_TEAM_SCREEN_LIMIT): number {
+  if (value === undefined || value.trim() === "" || isUnlimited(value)) return MAX_DESKTOP_DISPLAY;
+  const limit = Number(value);
+  if (!Number.isSafeInteger(limit) || limit < 1) {
+    throw new Error(
+      "SANDBOX_TEAM_SCREEN_LIMIT must be a positive integer, or 0 for no configured cap",
+    );
+  }
+  return Math.min(limit, MAX_DESKTOP_DISPLAY);
+}
+
+/**
+ * Resource ceilings for a bot computer.
+ *
+ * A computer runs Xvfb, a window manager and a full Chromium on behalf of an
+ * agent that decides for itself what to open. #343 gave these containers a
+ * pids ceiling, but Memory and NanoCpus are still unset, so one runaway page is
+ * a host-wide memory and CPU event that takes every other bot and the Rakazo
+ * services down with it. Every service in docker-compose.prod.yml already
+ * carries mem_limit; this applies the same discipline to the containers that
+ * actually run untrusted page content.
+ *
+ * Defaults are a starting point for the Docker computer topology: generous enough
+ * for real browsing, small enough that one computer cannot starve the host or
+ * sibling bots. The pids default is #343's existing 2048, unchanged. Set any of
+ * these to "0", "none" or "unlimited" to opt out.
+ */
+const DEFAULT_COMPUTER_MEMORY = "2g";
+const DEFAULT_COMPUTER_CPUS = "2";
+const DEFAULT_COMPUTER_PIDS_LIMIT = "2048";
+/** The daemon refuses HostConfig.Memory below this at container creation. */
+const MIN_DOCKER_MEMORY_BYTES = 6 * 1024 ** 2;
+
+const MEMORY_UNITS: Record<string, number> = {
+  b: 1,
+  k: 1024,
+  m: 1024 ** 2,
+  g: 1024 ** 3,
+};
+
+function isUnlimited(raw: string): boolean {
+  const value = raw.trim().toLowerCase();
+  return value === "0" || value === "unlimited" || value === "none";
+}
+
+/** Bytes from a docker-style size string ("2g", "1536m", "1073741824"). */
+export function parseMemoryBytes(name: string, raw: string): number {
+  if (isUnlimited(raw)) return 0;
+  const match = /^(\d+(?:\.\d+)?)\s*([bkmg])?b?$/i.exec(raw.trim());
+  if (!match) {
+    throw new Error(`${name} must be a size like "2g", "1536m" or a byte count, received "${raw}"`);
+  }
+  const scale = MEMORY_UNITS[(match[2] ?? "b").toLowerCase()] ?? 1;
+  const bytes = Math.floor(Number(match[1]) * scale);
+  if (!Number.isSafeInteger(bytes) || bytes <= 0) {
+    throw new Error(`${name} must resolve to a positive byte count, received "${raw}"`);
+  }
+  // The daemon rejects a limit under 6 MiB at container creation. Catching it here turns a
+  // per-bot 500 at the first `POST /computers` into a startup failure that names the variable.
+  if (bytes < MIN_DOCKER_MEMORY_BYTES) {
+    throw new Error(`${name} must be at least 6m, Docker's minimum, received "${raw}"`);
+  }
+  return bytes;
+}
+
+/** Docker NanoCpus (1e9 per core) from a CPU count like "1.5". */
+export function parseNanoCpus(name: string, raw: string): number {
+  if (isUnlimited(raw)) return 0;
+  const value = Number(raw.trim());
+  // Tiny positives floor to 0 nanocpus (Docker reads as unlimited). Huge values leave the
+  // safe-integer range or become Infinity. Validate the converted number either way.
+  const nanoCpus = Math.floor(value * 1e9);
+  if (!Number.isSafeInteger(nanoCpus) || nanoCpus <= 0) {
+    throw new Error(`${name} must be a positive number of CPUs, received "${raw}"`);
+  }
+  return nanoCpus;
+}
+
+function parsePidsLimit(name: string, raw: string): number {
+  if (isUnlimited(raw)) return 0;
+  const value = Number(raw.trim());
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer, received "${raw}"`);
+  }
+  return value;
+}
+
+/**
+ * An environment value with blank treated as unset. Manor's VPS Compose file
+ * passes these as `${VAR:-}`, which arrives as an empty string, and an empty
+ * string must mean "use the default" rather than fail every computer.
+ */
+function envValue(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+/** The host resource ceilings applied to every bot computer. */
+export function computerResourceLimits() {
+  // Manor shipped RAKAZO_COMPUTER_MEMORY_MB (whole megabytes) and RAKAZO_COMPUTER_PIDS
+  // before upstream's names existed. Deployments that still set them keep working;
+  // the upstream names win when both are present.
+  const memory = envValue("RAKAZO_COMPUTER_MEMORY");
+  const legacyMemoryMb = envValue("RAKAZO_COMPUTER_MEMORY_MB");
+  const memoryBytes =
+    memory === undefined && legacyMemoryMb !== undefined
+      ? parseMemoryBytes(
+          "RAKAZO_COMPUTER_MEMORY_MB",
+          isUnlimited(legacyMemoryMb) ? legacyMemoryMb : `${legacyMemoryMb}m`,
+        )
+      : parseMemoryBytes("RAKAZO_COMPUTER_MEMORY", memory ?? DEFAULT_COMPUTER_MEMORY);
+  const nanoCpus = parseNanoCpus(
+    "RAKAZO_COMPUTER_CPUS",
+    envValue("RAKAZO_COMPUTER_CPUS") ?? DEFAULT_COMPUTER_CPUS,
+  );
+  const pids = envValue("RAKAZO_COMPUTER_PIDS_LIMIT");
+  const legacyPids = envValue("RAKAZO_COMPUTER_PIDS");
+  const pidsLimit =
+    pids === undefined && legacyPids !== undefined
+      ? parsePidsLimit("RAKAZO_COMPUTER_PIDS", legacyPids)
+      : parsePidsLimit("RAKAZO_COMPUTER_PIDS_LIMIT", pids ?? DEFAULT_COMPUTER_PIDS_LIMIT);
+  return {
+    // Memory and MemorySwap are set together: leaving MemorySwap unset lets the
+    // container swap to twice Memory, so the ceiling would not hold.
+    Memory: memoryBytes,
+    MemorySwap: memoryBytes,
+    NanoCpus: nanoCpus,
+    PidsLimit: pidsLimit,
+  };
+}
 
 export function resolveScreenNetworkMode(value: string | undefined): ScreenNetworkMode {
   if (!value || value === "published") return "published";
@@ -20,18 +153,6 @@ export function hostComputerUser(uid = process.getuid?.(), gid = process.getgid?
   return `${uid}:${gid}`;
 }
 
-function positiveNumber(raw: string | undefined, fallback: number): number {
-  const value = Number(raw);
-  return Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-// Per-computer resource ceilings. Defaults suit a 2 vCPU / 8 GB host running
-// one or two computers alongside the app containers.
-const COMPUTER_MEMORY_MB = positiveNumber(process.env.RAKAZO_COMPUTER_MEMORY_MB, 2048);
-const COMPUTER_CPUS = positiveNumber(process.env.RAKAZO_COMPUTER_CPUS, 1.5);
-// A graphical desktop with a browser forks well past a few hundred processes,
-// so this ceiling is a fork-bomb guard rather than a workload budget.
-const COMPUTER_PIDS = positiveNumber(process.env.RAKAZO_COMPUTER_PIDS, 2048);
 // Optional OCI runtime for agent computers. Set to "runsc" (gVisor) to run each
 // computer on a user-space kernel so a container escape cannot reach the host.
 // Unset uses the Docker default runtime.
@@ -47,34 +168,18 @@ export const COMPUTER_DNS = (
   .map((entry) => entry.trim())
   .filter(Boolean);
 
-export function screenPorts(index: number) {
-  if (index < 0 || index >= TEAM_SCREEN_LIMIT) {
-    throw new Error(
-      `screen index ${index} exceeds the Team Computer limit of ${TEAM_SCREEN_LIMIT}`,
-    );
-  }
-  return {
-    display: `:${index + 1}`,
-    displayNumber: index + 1,
-    viewPort: String(6080 + index * 2),
-    controlPort: String(6081 + index * 2),
-    viewVncPort: 5900 + index * 2,
-    controlVncPort: 5901 + index * 2,
-  };
-}
-
-export function computerPortBindings() {
+export function computerPortBindings(publishControlPort = false) {
   const ExposedPorts: Record<string, object> = {};
   const PortBindings: Record<string, Array<{ HostIp: string; HostPort: string }>> = {};
-  for (let index = 0; index < TEAM_SCREEN_LIMIT; index += 1) {
-    const ports = screenPorts(index);
-    ExposedPorts[`${ports.viewPort}/tcp`] = {};
-    ExposedPorts[`${ports.controlPort}/tcp`] = {};
-    PortBindings[`${ports.viewPort}/tcp`] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
-    PortBindings[`${ports.controlPort}/tcp`] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
+  const port = `${screenPorts(0).viewPort}/tcp`;
+  ExposedPorts[port] = {};
+  PortBindings[port] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
+  // Host-run Docker Desktop supervisors need an opt-in loopback mapping.
+  // Otherwise control stays unpublished on the container network.
+  if (publishControlPort) {
+    ExposedPorts[`${COMPUTER_CONTROL_PORT}/tcp`] = {};
+    PortBindings[`${COMPUTER_CONTROL_PORT}/tcp`] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
   }
-  // Control stays on the container network only (0.0.0.0 inside the container).
-  // Do not publish 7070 to the host.
   return { ExposedPorts, PortBindings };
 }
 
@@ -87,6 +192,7 @@ export interface ComputerCreateInput {
   user?: string;
   controlToken?: string;
   networkMode?: string;
+  publishControlPort?: boolean;
 }
 
 interface PointerInput {
@@ -103,7 +209,7 @@ export type SandboxInput =
   | { kind: "clipboard"; text: string };
 
 export function containerCreateOptions(input: ComputerCreateInput) {
-  const ports = computerPortBindings();
+  const ports = computerPortBindings(input.publishControlPort);
   return {
     Image: input.image,
     name: input.name,
@@ -130,11 +236,7 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       CapDrop: ["ALL"],
       SecurityOpt: ["no-new-privileges:true"],
       // Keep one computer from starving the host (and every other bot on it).
-      // Override per deployment with RAKAZO_COMPUTER_MEMORY_MB / _CPUS / _PIDS.
-      Memory: COMPUTER_MEMORY_MB * 1024 * 1024,
-      MemorySwap: COMPUTER_MEMORY_MB * 1024 * 1024,
-      NanoCpus: Math.round(COMPUTER_CPUS * 1e9),
-      PidsLimit: COMPUTER_PIDS,
+      ...computerResourceLimits(),
       ReadonlyPaths: ["/usr/share/novnc"],
       AutoRemove: false,
       NetworkMode: input.networkMode ?? "bridge",
@@ -200,6 +302,12 @@ export function screenUrlFor(hostPort: string, host = SCREEN_HOST) {
   return `http://${host}:${hostPort}/embed.html`;
 }
 
+export function screenUrlWithToken(screenUrl: string, token: string) {
+  const url = new URL(screenUrl);
+  url.searchParams.set("path", `websockify?token=${encodeURIComponent(token)}`);
+  return url.toString();
+}
+
 /**
  * Decide which host:port clients (and readiness probes) should use.
  *
@@ -226,17 +334,65 @@ export function resolveScreenPublishTarget(input: {
   return undefined;
 }
 
+type ControlPortBindings =
+  | Record<string, Array<{ HostIp?: string; HostPort?: string }> | null | undefined>
+  | null
+  | undefined;
+
+function validHostPort(port: string | undefined): port is string {
+  return !!port && /^\d{1,5}$/.test(port) && Number(port) > 0 && Number(port) <= 65535;
+}
+
+/** Resolve an assigned runtime port only when every control binding is loopback. */
+export function publishedLoopbackControlHostPort(portBindings: ControlPortBindings) {
+  const bindings = portBindings?.[`${COMPUTER_CONTROL_PORT}/tcp`];
+  if (!bindings?.length || bindings.some((binding) => binding.HostIp !== "127.0.0.1")) {
+    return undefined;
+  }
+  return bindings.find((binding) => validHostPort(binding.HostPort))?.HostPort;
+}
+
 /**
- * Resolve the in-container control service via its Docker network IP.
- * Control is never host-published; the supervisor reaches 7070 on the
- * container network while the process binds 0.0.0.0 inside the sandbox.
+ * Reuse only containers whose configured control publication matches the setting.
+ * Inspect HostConfig so stopped containers and Docker's automatic port allocation
+ * (empty or zero HostPort) work before a runtime port has been assigned.
+ */
+export function controlPortPublicationMatches(
+  portBindings: ControlPortBindings,
+  publishControlPort: boolean,
+): boolean {
+  const bindings = portBindings?.[`${COMPUTER_CONTROL_PORT}/tcp`];
+  if (!publishControlPort) return !bindings?.length;
+  return (
+    !!bindings?.length &&
+    bindings.every(
+      (binding) =>
+        binding.HostIp === "127.0.0.1" &&
+        (binding.HostPort === "" || binding.HostPort === "0" || validHostPort(binding.HostPort)),
+    )
+  );
+}
+
+/**
+ * Resolve the computer control service. Prefer a published loopback HostPort
+ * when provided; otherwise use the Docker network IP. When requirePublishedHostPort
+ * is set, never fall back to the container IP (unreachable from Docker Desktop hosts).
  */
 export function resolveComputerControlEndpoint(input: {
   token: string | undefined;
   networkMode: string | null | undefined;
   networks: Record<string, { IPAddress?: string } | undefined> | null | undefined;
+  publishedHostPort?: string;
+  requirePublishedHostPort?: boolean;
 }): { url: string; token: string } | undefined {
   if (!input.token) return undefined;
+  if (validHostPort(input.publishedHostPort)) {
+    return {
+      url: `http://127.0.0.1:${input.publishedHostPort}/v1/desktop`,
+      token: input.token,
+    };
+  }
+  if (input.requirePublishedHostPort) return undefined;
   const address =
     (input.networkMode ? input.networks?.[input.networkMode]?.IPAddress : undefined) ||
     Object.values(input.networks ?? {}).find((network) => network?.IPAddress)?.IPAddress;

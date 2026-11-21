@@ -2,7 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import { TEAM_HEARTBEAT_MS, type TeamMember } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { rpc } from "../lib/rpc";
-import { BuiCard, LoadingState } from "./beautiful-ui/primitives";
+import { BuiCard, LoadingState } from "./ai/primitives";
 
 export function TeamMembers() {
   const [members, setMembers] = useState<TeamMember[] | null>(null);

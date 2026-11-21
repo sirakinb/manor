@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { INTEGRATION_SCOPES } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
+import { BuiButton, BuiCard, SuccessPop } from "../components/ai/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import { brandName } from "../lib/brand";
 import { withSpaceHeaders } from "../lib/rpc";

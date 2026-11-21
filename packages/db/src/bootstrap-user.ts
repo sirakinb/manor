@@ -124,7 +124,7 @@ export async function joinOrganization(
  * Everything a brand-new user needs around their account row: a personal
  * organization, its default space, owner memberships for both boundaries,
  * deployment-owner claim, user memory, and notification preferences. Shared by
- * the Better Auth `user.create.after` hook and phone-identity provisioning so
+ * the Better Auth `session.create.before` hook and phone-identity provisioning so
  * both paths stay in lockstep.
  *
  * `brandId` is the white-label brand the sign-up arrived on. When an

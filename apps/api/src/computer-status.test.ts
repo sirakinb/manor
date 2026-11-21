@@ -39,7 +39,7 @@ describe("toComputerStatus", () => {
         scope: "team",
         controlHolder: "none",
         homeRevision: "r1",
-      }).updateAvailable,
+      }).canUpdate,
     ).toBe(false);
     expect(
       toComputerStatus("bot-1", {
@@ -49,7 +49,7 @@ describe("toComputerStatus", () => {
         controlHolder: "none",
         homeRevision: "r1",
       }),
-    ).toMatchObject({ mode: "local", screenAvailable: false, updateAvailable: false });
+    ).toMatchObject({ mode: "local", screenAvailable: false, canUpdate: false });
     expect(
       toComputerStatus("bot-1", {
         kind: "e2b",
@@ -57,7 +57,7 @@ describe("toComputerStatus", () => {
         scope: "team",
         controlHolder: "none",
         homeRevision: "r1",
-      }).updateAvailable,
+      }).canUpdate,
     ).toBe(true);
   });
 });

@@ -21,6 +21,7 @@ import {
   type IntegrationScope,
 } from "@rakazo/contracts";
 import { createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
 import type { Context, Hono } from "hono";
 import * as z from "zod";
 import {
@@ -725,7 +726,7 @@ export function createCrmIntegrationService(deps: {
           response: body as never,
         },
       })
-      .catch((error) => console.error("idempotency response persistence", error));
+      .catch((error) => getLogger().error("idempotency response persistence", error));
     return { body, status: 200 };
   }
 
@@ -1405,7 +1406,9 @@ export function mountCrmIntegrationRoutes(
   let timer: ReturnType<typeof setTimeout> | undefined;
   const poll = async () => {
     if (stopped) return;
-    await service.deliverPending().catch((error) => console.error("crm webhook delivery", error));
+    await service
+      .deliverPending()
+      .catch((error) => getLogger().error("crm webhook delivery", error));
     if (!stopped) timer = setTimeout(poll, 5_000);
   };
   timer = setTimeout(poll, 1_000);

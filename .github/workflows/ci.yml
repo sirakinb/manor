@@ -74,6 +74,13 @@ jobs:
             cmp "$name" "apps/web/dist/licenses/$name"
           done
           cmp apps/web/public/fonts/OFL.txt apps/web/dist/fonts/OFL.txt
+      - name: Upload desktop setup screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: desktop-e2e-screenshots
+          path: apps/desktop/e2e/screenshots
+          if-no-files-found: ignore
 
   test:
     name: Unit tests

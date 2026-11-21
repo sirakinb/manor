@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PublicForm, PublicFormInput } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
-import { BuiButton, BuiCard } from "../../components/beautiful-ui/primitives";
+import { BuiButton, BuiCard } from "../../components/ai/primitives";
 import { rpc } from "../../lib/rpc";
 import { isoToZonedLocal, zonedLocalToIso } from "../../lib/zoned-time";
 

@@ -4,7 +4,7 @@ import { BotAvatar } from "@rakazo/ui-web";
 import { ArrowUpRight, BookOpen, ChevronDown } from "lucide-react";
 import { useContext, useState } from "react";
 import { Link } from "react-router-dom";
-import { BuiButton } from "../../../components/beautiful-ui/primitives";
+import { BuiButton } from "../../../components/ai/primitives";
 import { rpc } from "../../../lib/rpc";
 import { KnowledgeSection, SpaceMemorySection } from "../../KnowledgeSection";
 import { WorkspaceTeamContext } from "../AskTeam";
@@ -99,7 +99,11 @@ export function TeamSection({
           )}
           {knowledgeBotId ? (
             <div id="workspace-bot-knowledge" className="mt-4 border-t border-[#25282B] pt-2">
-              <KnowledgeSection key={knowledgeBotId} botId={knowledgeBotId} />
+              <KnowledgeSection
+                key={knowledgeBotId}
+                botId={knowledgeBotId}
+                onSkillsChange={() => {}}
+              />
               <SpaceMemorySection />
             </div>
           ) : null}

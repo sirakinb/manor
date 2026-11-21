@@ -17,6 +17,8 @@ const MAX_TASK_CHARS = 400;
 const MAX_BOT_CHARS = 240;
 const MAX_ARGS_CHARS = 1_200;
 const MAX_REASON_CHARS = 160;
+const SENSITIVE_REVIEW_ARG_KEY =
+  /password|secret|token|api[_-]?key|authorization|cookie|credential/i;
 
 export type AutoReviewChecker = {
   provider: string;
@@ -137,7 +139,48 @@ export function redactToolArgsForReview(
   args: Record<string, unknown>,
   secrets: string[],
 ): Record<string, unknown> {
-  return redactForReview(args, secrets) as Record<string, unknown>;
+  const redacted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(args)) {
+    const redactedKey = redactSecrets(key, secrets);
+    if (SENSITIVE_REVIEW_ARG_KEY.test(key)) {
+      redacted[redactedKey] = "[redacted]";
+      continue;
+    }
+    if (typeof value === "string") {
+      redacted[redactedKey] = redactSecrets(value, secrets);
+      continue;
+    }
+    if (value == null || typeof value === "number" || typeof value === "boolean") {
+      redacted[redactedKey] = value;
+      continue;
+    }
+    try {
+      const serialized = JSON.stringify(value);
+      redacted[redactedKey] =
+        serialized === undefined
+          ? "[unserializable]"
+          : redactNestedReviewValue(JSON.parse(serialized), secrets);
+    } catch {
+      redacted[redactedKey] = "[unserializable]";
+    }
+  }
+  return redacted;
+}
+
+function redactNestedReviewValue(value: unknown, secrets: string[]): unknown {
+  if (typeof value === "string") return redactSecrets(value, secrets);
+  if (Array.isArray(value)) {
+    return value.map((item) => redactNestedReviewValue(item, secrets));
+  }
+  if (value == null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nestedValue]) => [
+      redactSecrets(key, secrets),
+      SENSITIVE_REVIEW_ARG_KEY.test(key)
+        ? "[redacted]"
+        : redactNestedReviewValue(nestedValue, secrets),
+    ]),
+  );
 }
 
 function truncate(value: string, max: number): string {
@@ -207,6 +250,7 @@ type CheckerCallInput = {
   checker: AutoReviewChecker;
   apiKey?: string;
   baseUrl?: string;
+  reasoning?: boolean;
   oauth?: {
     credential: AgentModelOAuthCredential;
     persist?: (credential: AgentModelOAuthCredential) => Promise<void>;
@@ -260,6 +304,7 @@ async function runCheckerCall(input: CheckerCallInput): Promise<CheckerCallResul
           id: input.checker.model,
           apiKey: input.oauth ? undefined : input.apiKey,
           baseUrl: input.baseUrl,
+          reasoning: input.reasoning,
           oauth: input.oauth,
         },
       },

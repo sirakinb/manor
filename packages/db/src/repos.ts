@@ -40,6 +40,8 @@ function mapBot(
     modelProvider?: string | null;
     modelId?: string | null;
     thinkingLevel?: string | null;
+    teamChatAmbientEnabled?: boolean;
+    teamChatRules?: string;
     webhookSecretId?: string | null;
   },
   preview = "",
@@ -74,6 +76,8 @@ function mapBot(
     modelProvider: bot.modelProvider ?? null,
     modelId: bot.modelId ?? null,
     thinkingLevel: (bot.thinkingLevel as Bot["thinkingLevel"]) ?? null,
+    teamChatAmbientEnabled: bot.teamChatAmbientEnabled ?? false,
+    teamChatRules: bot.teamChatRules ?? "",
     webhookConfigured: Boolean(bot.webhookSecretId),
   };
 }
@@ -257,6 +261,8 @@ export function createRepos(prisma: PrismaClient) {
           })
         : [];
       const peerRunIds = new Set(peerRuns.map((run) => run.id));
+      // Cache negative results too; ordinary runs were already checked in the batch above.
+      const checkedRunIds = new Set(candidateRunIds);
       return Promise.all(
         bots.map(async (bot) => {
           let messages = bot.thread?.messages ?? [];
@@ -264,13 +270,14 @@ export function createRepos(prisma: PrismaClient) {
           for (let attempt = 0; attempt < 5; attempt++) {
             const windowRunIds = [
               ...new Set(messages.flatMap((message) => (message.runId ? [message.runId] : []))),
-            ].filter((runId) => !peerRunIds.has(runId));
+            ].filter((runId) => !checkedRunIds.has(runId));
             if (windowRunIds.length > 0) {
               const morePeers = await prisma.run.findMany({
                 where: { id: { in: windowRunIds }, trigger: "bot_message" },
                 select: { id: true },
               });
               for (const run of morePeers) peerRunIds.add(run.id);
+              for (const runId of windowRunIds) checkedRunIds.add(runId);
             }
             const visible = userVisibleMessages(
               messages.map((message) => ({
@@ -278,7 +285,7 @@ export function createRepos(prisma: PrismaClient) {
                 blocks: message.blocks as MessageBlock[],
                 runId: message.runId ?? undefined,
               })),
-              { knownPeerRunIds: peerRunIds },
+              { knownPeerRunIds: peerRunIds, includeDelegatedReplyText: false },
             );
             preview = previewFromBlocks(visible[0]?.blocks);
             if (preview || messages.length === 0 || !bot.thread || attempt === 4) break;

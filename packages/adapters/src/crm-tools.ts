@@ -15,6 +15,7 @@ import {
   IsolationError,
   type PrismaClient,
 } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
 
 /**
  * The CRM as agent tools, so chat and voice can read and work the board.
@@ -614,7 +615,7 @@ export function createCrmWebhookEmitter(
     } catch (error) {
       // CRM writes remain authoritative if the outbox is temporarily unavailable.
       // The caller must never retry an already-applied mutation because event capture failed.
-      console.error("crm webhook event capture", error);
+      getLogger().error("crm webhook event capture", error);
     }
   };
 }

@@ -367,7 +367,7 @@ test("workspace appears once the organization has one and its map opens sections
   await captureScreenshot(page, testInfo, "workspace-team");
   await page.getByRole("button", { name: "Knowledge", exact: true }).first().click();
   const knowledge = page.getByTestId("bot-knowledge");
-  await knowledge.getByRole("button", { name: "Skills", exact: true }).click();
+  await knowledge.getByRole("tab", { name: "Skills", exact: true }).click();
   await expect(
     knowledge.getByText("workspace-callback-playbook", { exact: true }).first(),
   ).toBeVisible();

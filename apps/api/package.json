@@ -10,9 +10,9 @@
     "test": "vitest run --root ../.. apps/api/src"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.1",
+    "@hono/node-server": "2.1.1",
     "@modelcontextprotocol/sdk": "1.30.0",
-    "@orpc/server": "^1.15.0",
+    "@orpc/server": "1.15.0",
     "@rakazo/adapter-kit": "workspace:*",
     "@rakazo/adapters": "workspace:*",
     "@rakazo/auth": "workspace:*",
@@ -20,14 +20,15 @@
     "@rakazo/contracts": "workspace:*",
     "@rakazo/core": "workspace:*",
     "@rakazo/db": "workspace:*",
+    "@rakazo/logging": "workspace:*",
     "@rakazo/memory": "workspace:*",
-    "hono": "^4.9.6",
+    "hono": "4.13.7",
     "ws": "^8.18.3",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "devDependencies": {
-    "typescript": "^5.9.2",
-    "vitest": "^4.1.10",
-    "@types/ws": "^8.18.1"
+    "@types/ws": "^8.18.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
   }
 }

@@ -10,6 +10,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
+import { isLocalMcpHost } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import { secureFetch, validateUrl, withEndpointOriginFallback } from "./mcp-transport.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
@@ -104,9 +105,18 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
     await this.persist();
   }
   async redirectToAuthorization(url: URL): Promise<void> {
-    this.authorizationUrl = url;
+    let authorizationUrl: URL;
+    try {
+      authorizationUrl = validateUrl(url, { allowHttpLocalhost: true });
+    } catch (error) {
+      if (!this.options.onAuthorization) {
+        await this.invalidateCredentials("tokens");
+      }
+      throw error;
+    }
+    this.authorizationUrl = authorizationUrl;
     if (this.options.onAuthorization) {
-      this.options.onAuthorization(url);
+      this.options.onAuthorization(authorizationUrl);
       return;
     }
     // Runtime re-auth needs the user; drop the dead tokens so status reads "reconnect".
@@ -216,10 +226,28 @@ const MAX_PENDING_SESSIONS = 100;
 function oauthFetch(
   endpoint: string,
   network: RemoteTransportDependencies,
-): { fetch: typeof fetch; close: () => Promise<void> } {
+  material: OAuthMaterial = {},
+): { fetch: typeof fetch; close: () => Promise<void>; headers: Record<string, string> } {
   const url = new URL(endpoint);
-  const safeFetch = secureFetch(url, {}, {}, network);
+  const localHttp = url.protocol === "http:" && isLocalMcpHost(url.hostname);
+  const headers = {
+    ...material.headers,
+    ...(material.secret
+      ? {
+          Authorization: material.secret.startsWith("Bearer ")
+            ? material.secret
+            : `Bearer ${material.secret}`,
+        }
+      : {}),
+  };
+  const safeFetch = secureFetch(
+    url,
+    { allowHttpLocalhost: localHttp, allowLocalHttpCredentials: localHttp },
+    { headers },
+    network,
+  );
   return {
+    headers,
     fetch: withEndpointOriginFallback(url.origin, safeFetch),
     close: () => safeFetch.close(),
   };
@@ -322,7 +350,7 @@ export class McpOAuthBroker {
       // Never destroy working tokens here: if this attempt fails (network error,
       // cancelled popup), the server keeps its valid connection. The SDK itself
       // invalidates dead tokens when a refresh is rejected with invalid_grant.
-      const networkFetch = oauthFetch(server.endpoint!, this.network);
+      const networkFetch = oauthFetch(server.endpoint!, this.network, loaded.material);
       const observed: typeof fetch = async (request, init) => {
         const response = await networkFetch.fetch(request, init);
         if (response.status === 400 && (init?.method ?? "GET").toUpperCase() === "POST") {
@@ -331,6 +359,7 @@ export class McpOAuthBroker {
         return response;
       };
       const transport = new StreamableHTTPClientTransport(endpoint, {
+        requestInit: { headers: networkFetch.headers },
         authProvider: provider,
         fetch: observed,
       });

@@ -8,7 +8,7 @@ import type {
 } from "@rakazo/contracts";
 import { ChevronDown, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { BuiButton } from "../../../components/beautiful-ui/primitives";
+import { BuiButton } from "../../../components/ai/primitives";
 import { rpc } from "../../../lib/rpc";
 import {
   Card,

@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { getLogger } from "@rakazo/logging";
 import { Agent, request } from "undici";
 import { z } from "zod";
 
@@ -126,7 +127,9 @@ export class MaintenanceAdmission {
     try {
       return await work();
     } finally {
-      await leave().catch(() => console.error("Maintenance admission completion is unconfirmed."));
+      await leave().catch(() =>
+        getLogger().error("Maintenance admission completion is unconfirmed."),
+      );
     }
   }
 }

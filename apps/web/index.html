@@ -27,6 +27,16 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>Manor</title>
+    <script>
+      (() => {
+        // Manor is dark only for now, whatever the system or a stored preference asks for.
+        const theme = "dark";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", theme === "light" ? "#fafaf8" : "#0a0a0a");
+      })();
+    </script>
     <link rel="preload" href="/fonts/geist-pixel-grid.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link

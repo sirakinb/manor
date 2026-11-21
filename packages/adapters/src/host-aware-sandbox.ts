@@ -57,10 +57,26 @@ export function createRunSandbox(
 
 /** Routes attended laptop computers without changing SANDBOX_PROVIDER. */
 export class LocalAwareSandbox implements SandboxProvider {
+  readonly pageBrowser?: SandboxProvider["pageBrowser"];
+
   constructor(
     private readonly cloud: SandboxProvider,
     private readonly local: SandboxProvider,
-  ) {}
+  ) {
+    if (cloud.pageBrowser || local.pageBrowser) {
+      this.pageBrowser = (computer, request, context) => {
+        const provider = this.route(computer);
+        return provider.pageBrowser
+          ? provider.pageBrowser(computer, request, context)
+          : Promise.resolve({
+              ok: false,
+              uncertain: false,
+              fallback: "computer_act",
+              error: "Page browser is unavailable on this computer.",
+            });
+      };
+    }
+  }
 
   describe() {
     return this.cloud.describe();
@@ -179,11 +195,27 @@ export class LocalAwareSandbox implements SandboxProvider {
 }
 
 export class HostAwareSandbox implements SandboxProvider {
+  readonly pageBrowser?: SandboxProvider["pageBrowser"];
+
   constructor(
     private readonly isolated: SandboxProvider,
     private readonly host: SandboxProvider,
     private readonly hostEnabled: () => Promise<boolean>,
-  ) {}
+  ) {
+    if (isolated.pageBrowser || host.pageBrowser) {
+      this.pageBrowser = (computer, request, context) => {
+        const provider = this.route(computer);
+        return provider.pageBrowser
+          ? provider.pageBrowser(computer, request, context)
+          : Promise.resolve({
+              ok: false,
+              uncertain: false,
+              fallback: "computer_act",
+              error: "Page browser is unavailable on this computer.",
+            });
+      };
+    }
+  }
 
   describe() {
     return this.isolated.describe();

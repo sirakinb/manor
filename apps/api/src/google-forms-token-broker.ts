@@ -17,8 +17,13 @@ export function createGoogleFormsTokenBroker(
       return requiredScopes.every((scope) => granted.has(scope));
     },
     async accessToken(userId) {
+      const account = await prisma.account.findFirst({
+        where: { userId, providerId: "google" },
+        select: { id: true },
+      });
+      if (!account) throw new Error("Google Forms is not connected");
       const token = await auth.api.getAccessToken({
-        body: { providerId: "google", userId },
+        body: { accountId: account.id, userId },
       });
       if (!token.accessToken) throw new Error("Google Forms is not connected");
       return token.accessToken;

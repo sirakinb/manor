@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceAccess } from "@rakazo/contracts";
 import { useState } from "react";
-import { BuiButton, LoadingState } from "../components/beautiful-ui/primitives";
+import { BuiButton, LoadingState } from "../components/ai/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import {
   CONTACT_ENDPOINTS,

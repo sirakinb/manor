@@ -1,7 +1,9 @@
-import { Redirect, useRouter } from "expo-router";
+import type { IntegrationSetupState } from "@rakazo/contracts";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
+  AccessibilityInfo,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -28,16 +30,22 @@ import {
   probeApiBase,
   requestPasswordReset,
   resetApiBase,
+  rpc,
   saveApiBase,
   signIn,
   signUp,
   usesCustomApiBase,
 } from "../lib/api";
+import type { AuthMode } from "../lib/auth-routing";
+import { useI18n } from "../lib/i18n";
 import { brandType, manor } from "../lib/native";
 
 export default function SignIn() {
+  const { t } = useI18n();
   const router = useRouter();
-  const [mode, setMode] = useState<"in" | "up" | "forgot">("in");
+  const { mode: requestedMode } = useLocalSearchParams<{ mode?: string | string[] }>();
+  // Manor opens on sign-in; sign-up only when a link asks for it with mode=up.
+  const [mode, setMode] = useState<AuthMode>(() => (requestedMode === "up" ? "up" : "in"));
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,10 +78,14 @@ export default function SignIn() {
     };
   }, [apiBase]);
 
+  useEffect(() => {
+    if (resetSent) AccessibilityInfo.announceForAccessibility(t("Check your email"));
+  }, [resetSent, t]);
+
   if (!ready) {
     return (
       <View style={{ flex: 1, backgroundColor: manor.page, justifyContent: "center", padding: 24 }}>
-        <Text style={{ color: manor.muted, textAlign: "center" }}>Loading…</Text>
+        <Text style={{ color: manor.muted, textAlign: "center" }}>{t("Loading…")}</Text>
       </View>
     );
   }
@@ -86,7 +98,7 @@ export default function SignIn() {
     try {
       if (mode === "forgot") {
         if (!reset?.passwordReset || !reset.resetUrl) {
-          throw new Error("Password recovery is not configured for this server");
+          throw new Error(t("Password recovery is not configured for this server"));
         }
         await requestPasswordReset(email.trim(), reset.resetUrl);
         setResetSent(true);
@@ -94,13 +106,25 @@ export default function SignIn() {
       }
       if (mode === "up") {
         const trimmedEmail = email.trim();
-        await signUp(trimmedEmail, password, name.trim() || trimmedEmail.split("@")[0] || "User");
+        const result = await signUp(
+          trimmedEmail,
+          password,
+          name.trim() || trimmedEmail.split("@")[0] || "User",
+        );
+        if (result.verificationRequired) {
+          setResetSent(true);
+          return;
+        }
       } else {
         await signIn(email.trim(), password);
       }
-      router.replace("/");
+      const setup =
+        mode === "up"
+          ? await rpc<IntegrationSetupState>("integrationSetup/get").catch(() => null)
+          : null;
+      router.replace(setup?.needsSetup ? "/integration-setup" : "/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not continue");
+      setError(err instanceof Error ? err.message : t("Could not continue"));
     } finally {
       setPending(false);
     }
@@ -147,12 +171,22 @@ export default function SignIn() {
               </Pressable>
               {resetSent ? (
                 <View style={{ alignItems: "center", marginTop: 6 }}>
-                  <Text style={{ color: manor.ink, fontSize: 17 }}>Check your email</Text>
-                  <Text
-                    style={{ color: manor.muted, fontSize: 15, marginTop: 10, textAlign: "center" }}
-                  >
-                    If an account exists for that address, we sent a password reset link.
+                  <Text accessibilityRole="header" style={{ color: manor.ink, fontSize: 17 }}>
+                    {t("Check your email")}
                   </Text>
+                  {/* Sign-up verification lands here too; the reset sentence is only true for a reset. */}
+                  {mode === "forgot" ? (
+                    <Text
+                      style={{
+                        color: manor.muted,
+                        fontSize: 15,
+                        marginTop: 10,
+                        textAlign: "center",
+                      }}
+                    >
+                      {t("If an account exists for that address, we sent a password reset link.")}
+                    </Text>
+                  ) : null}
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => {
@@ -162,7 +196,7 @@ export default function SignIn() {
                     style={{ marginTop: 22 }}
                   >
                     <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
-                      Back to sign in
+                      {t("Back to sign in")}
                     </Text>
                   </Pressable>
                 </View>
@@ -171,7 +205,7 @@ export default function SignIn() {
                   {mode === "up" ? (
                     <TextInput
                       autoComplete="name"
-                      placeholder="Name"
+                      placeholder={t("Name")}
                       placeholderTextColor={manor.muted2}
                       keyboardAppearance="dark"
                       value={name}
@@ -184,30 +218,15 @@ export default function SignIn() {
                     autoComplete="email"
                     keyboardType="email-address"
                     keyboardAppearance="dark"
-                    placeholder="Email"
+                    placeholder={t("Email")}
                     placeholderTextColor={manor.muted2}
                     value={email}
                     onChangeText={setEmail}
                     style={styles.field}
                   />
-                  {mode === "in" && reset?.passwordReset && reset.resetUrl ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      hitSlop={8}
-                      onPress={() => {
-                        setMode("forgot");
-                        setError(null);
-                      }}
-                      style={{ alignSelf: "flex-end", marginTop: 10 }}
-                    >
-                      <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
-                        Forgot password?
-                      </Text>
-                    </Pressable>
-                  ) : null}
                   {mode !== "forgot" ? (
                     <TextInput
-                      placeholder="Password"
+                      placeholder={t("Password")}
                       placeholderTextColor={manor.muted2}
                       keyboardAppearance="dark"
                       autoComplete={mode === "in" ? "current-password" : "new-password"}
@@ -233,14 +252,29 @@ export default function SignIn() {
                   >
                     <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
                       {pending
-                        ? "Working…"
+                        ? t("Working…")
                         : mode === "in"
                           ? "Continue with email"
                           : mode === "up"
-                            ? "Sign up"
-                            : "Send reset link"}
+                            ? t("Sign up")
+                            : t("Send reset link")}
                     </Text>
                   </Pressable>
+                  {mode === "in" && reset?.passwordReset && reset.resetUrl ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      hitSlop={8}
+                      onPress={() => {
+                        setMode("forgot");
+                        setError(null);
+                      }}
+                      style={{ alignSelf: "center", marginTop: 16 }}
+                    >
+                      <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
+                        {t("Forgot password?")}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                   {mode !== "forgot" ? (
                     <View
                       style={{
@@ -251,7 +285,9 @@ export default function SignIn() {
                       }}
                     >
                       <Text style={{ color: manor.muted2, fontSize: 15 }}>
-                        {mode === "in" ? "Don’t have an account?" : "Already have an account?"}
+                        {mode === "in"
+                          ? t("Don’t have an account?")
+                          : t("Already have an account?")}
                       </Text>
                       <Pressable
                         accessibilityRole="button"
@@ -263,7 +299,7 @@ export default function SignIn() {
                         style={{ marginLeft: 5 }}
                       >
                         <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
-                          {mode === "in" ? "Sign up" : "Sign in"}
+                          {mode === "in" ? t("Sign up") : t("Sign in")}
                         </Text>
                       </Pressable>
                     </View>
@@ -274,7 +310,7 @@ export default function SignIn() {
             {custom ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Custom server ${displayApiHost(apiBase)}`}
+                accessibilityLabel={t("Custom server {host}", { host: displayApiHost(apiBase) })}
                 hitSlop={12}
                 onPress={() => setServerOpen(true)}
                 style={{
@@ -284,7 +320,7 @@ export default function SignIn() {
                   paddingTop: 8,
                 }}
               >
-                <Text style={styles.footnoteLabel}>Custom server</Text>
+                <Text style={styles.footnoteLabel}>{t("Custom server")}</Text>
                 <Text style={{ color: manor.muted2, fontSize: 13, marginTop: 3 }}>
                   {displayApiHost(apiBase)}
                 </Text>
@@ -317,6 +353,7 @@ function ServerSheet({
   onClose: () => void;
   onSaved: (url: string) => void;
 }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState(current);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -386,18 +423,17 @@ function ServerSheet({
             }}
           >
             <Pressable onPress={onClose} hitSlop={8}>
-              <Text style={{ color: manor.muted, fontSize: 17 }}>Cancel</Text>
+              <Text style={{ color: manor.muted, fontSize: 17 }}>{t("Cancel")}</Text>
             </Pressable>
-            <Text style={{ color: manor.ink, fontSize: 17, fontWeight: "600" }}>Server</Text>
+            <Text style={{ color: manor.ink, fontSize: 17, fontWeight: "600" }}>{t("Server")}</Text>
             <Pressable onPress={() => void save()} disabled={pending} hitSlop={8}>
               <Text style={{ color: manor.accent, fontSize: 17, fontWeight: "600" }}>
-                {pending ? "Checking…" : "Save"}
+                {pending ? t("Checking…") : t("Save")}
               </Text>
             </Pressable>
           </View>
           <Text style={{ color: manor.muted, marginTop: 28, fontSize: 15, lineHeight: 22 }}>
-            Point this app at your self-hosted Manor origin — the same HTTPS URL you open in a
-            browser.
+            Enter your Manor server address.
           </Text>
           <TextInput
             autoCapitalize="none"
@@ -427,7 +463,7 @@ function ServerSheet({
               disabled={pending}
               style={{ marginTop: 28, alignItems: "center" }}
             >
-              <Text style={{ color: manor.muted, fontSize: 15 }}>Use default server</Text>
+              <Text style={{ color: manor.muted, fontSize: 15 }}>{t("Use default server")}</Text>
             </Pressable>
           ) : null}
         </SafeAreaView>

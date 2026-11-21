@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceAccess } from "@rakazo/contracts";
 import { Ellipsis } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
-import { BuiButton, BuiCard } from "../components/beautiful-ui/primitives";
+import { BuiButton, BuiCard } from "../components/ai/primitives";
 import {
   type McpClient,
   type McpSurface,

@@ -69,7 +69,9 @@ for (const trigger of ["webhook", "scheduled"] as const) {
   });
 }
 
-test("routine trigger menu offers schedule and webhook only", async ({ page }, testInfo) => {
+test("routine trigger menu offers schedule, Slack, Git and webhook triggers", async ({
+  page,
+}, testInfo) => {
   await signup(
     page,
     `routine-triggers-${Date.now()}@rakazo.test`,
@@ -80,7 +82,12 @@ test("routine trigger menu offers schedule and webhook only", async ({ page }, t
   await page.getByTitle("Agent computer").click();
   await page.getByRole("button", { name: "Create Routine" }).click();
   await page.getByRole("button", { name: "Add trigger" }).click();
-  await expect(page.getByRole("menuitem")).toHaveText(["On a schedule", "Webhook"]);
+  await expect(page.getByRole("menuitem")).toHaveText([
+    "On a schedule",
+    "Slack message",
+    "Git event",
+    "Webhook",
+  ]);
   await captureScreenshot(page, testInfo, "routine-trigger-menu");
   await page.getByRole("menuitem", { name: "Webhook", exact: true }).click();
   await page.locator("label:has-text('Name') input").fill("Welcome guide");

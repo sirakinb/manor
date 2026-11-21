@@ -1,6 +1,6 @@
 import type { ComputerMode, ComputerReleaseReason } from "@rakazo/contracts";
 import { Link, useLocalSearchParams, useNavigation } from "expo-router";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import {
   initialWindowMetrics,
@@ -23,24 +23,33 @@ import {
   SCREEN_URL_OPEN_ATTEMPTS,
   screenSessionKey,
 } from "../lib/computer";
+import { createComputerRefresh } from "../lib/computer-refresh";
+import { useI18n } from "../lib/i18n";
+import { useMobileTokens } from "../lib/native";
 
 export default function Computer() {
+  const { t } = useI18n();
+  const tokens = useMobileTokens();
   const navigation = useNavigation();
   const { botId, name: nameParam } = useLocalSearchParams<{ botId?: string; name?: string }>();
-  const name = nameParam || "Bot";
+  const name = nameParam || t("Bot");
   const [computer, setComputer] = useState<ComputerStatus | null>(null);
   const [screenUrl, setScreenUrl] = useState<string | null>(null);
   const [screenError, setScreenError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const [booting, setBooting] = useState(false);
-  const [switching, setSwitching] = useState(false);
+  const [readyBotId, setReadyBotId] = useState<string | null>(null);
+  const [bootingCount, setBootingCount] = useState(0);
+  const [switchingCount, setSwitchingCount] = useState(0);
+  const booting = bootingCount > 0;
+  const switching = switchingCount > 0;
   const [computerOpen, setComputerOpen] = useState(false);
   const autoBooted = useRef<string | null>(null);
-  // The 2s poll below closes over the first render, so the guard in refresh()
-  // has to read these rather than the state values.
+  // The refresh controller closes over the first render for a bot, so its screen
+  // guard has to read these rather than the state values.
   const screenUrlRef = useRef<string | null>(null);
   const screenSession = useRef<string | null>(null);
+  // Set by each status read: whether the screen URL has to be fetched again.
+  const screenReadDue = useRef(true);
 
   function applyScreenUrl(url: string | null) {
     screenUrlRef.current = url;
@@ -48,6 +57,8 @@ export default function Computer() {
   }
 
   const embeddedScreenUrl = embeddableScreenUrl(screenUrl, currentApiBase());
+  useEffect(() => setScreenError(null), [embeddedScreenUrl]);
+
   const hasControl = computer?.controlHolder === "user" && computer.controlBotId === botId;
   const label = computerLabel(computer?.mode, name);
 
@@ -55,44 +66,55 @@ export default function Computer() {
     navigation.setOptions({ title: label });
   }, [label, navigation]);
 
-  async function refreshScreen(attempts: number) {
-    if (!botId) return;
-    try {
-      applyScreenUrl(
-        await readScreenUrl(() => rpc<{ url: string | null }>("computer/screenUrl", { botId }), {
-          attempts,
-        }),
-      );
-    } catch {
-      // Keep the last known URL. Cold boots often fail this RPC once, then succeed.
-    }
-  }
-
-  async function refresh(options?: { screenAttempts?: number }) {
-    if (!botId) return;
-    const status = await rpc<ComputerStatus>("computer/status", { botId });
-    setComputer(status);
-    // Asking for a screen URL allocates a fresh noVNC session, and the WebView
-    // is keyed on that URL — refetching on every poll tore the stream down and
-    // rebuilt it twice a second, which reads as a flicker. Only ask again when
-    // there is nothing to show or the session the URL encodes has changed.
-    const session = screenSessionKey(status);
-    if (!screenUrlRef.current || session !== screenSession.current) {
-      screenSession.current = session;
-      await refreshScreen(options?.screenAttempts ?? 1);
-    }
-    setReady(true);
-    return status;
-  }
+  const refreshController = useMemo(
+    () =>
+      createComputerRefresh({
+        readStatus: () => rpc<ComputerStatus>("computer/status", { botId }),
+        readScreen: async (attempts) => {
+          // Asking for a screen URL allocates a fresh noVNC session, and the WebView
+          // is keyed on that URL — refetching on every poll tore the stream down and
+          // rebuilt it twice a second, which reads as a flicker. Only ask again when
+          // there is nothing to show or the session the URL encodes has changed.
+          if (!screenReadDue.current) return screenUrlRef.current;
+          return readScreenUrl(() => rpc<{ url: string | null }>("computer/screenUrl", { botId }), {
+            attempts,
+          });
+        },
+        onStatus: (status) => {
+          const session = screenSessionKey(status);
+          screenReadDue.current = false;
+          if (!screenUrlRef.current || session !== screenSession.current) {
+            screenSession.current = session;
+            screenReadDue.current = true;
+          }
+          setComputer(status);
+        },
+        onScreen: (url) => {
+          screenUrlRef.current = url;
+          setScreenUrl(url);
+        },
+        onReady: () => setReadyBotId(botId ?? null),
+        onInitialError: (err) => setError(err instanceof Error ? err.message : String(err)),
+      }),
+    [botId],
+  );
+  const refresh = refreshController.refresh;
 
   useEffect(() => {
-    void refresh().catch((err: Error) => {
-      setError(err.message);
-      setReady(true);
-    });
-    const timer = setInterval(() => void refresh().catch(() => undefined), 2000);
-    return () => clearInterval(timer);
-  }, [botId]);
+    setComputer(null);
+    applyScreenUrl(null);
+    screenSession.current = null;
+    screenReadDue.current = true;
+    setScreenError(null);
+    setError(null);
+    setReadyBotId(null);
+    setBootingCount(0);
+    setSwitchingCount(0);
+    setComputerOpen(false);
+    autoBooted.current = null;
+    if (botId) refreshController.start();
+    return () => refreshController.dispose();
+  }, [botId, refreshController]);
 
   async function bootComputer({
     takeControl,
@@ -103,24 +125,32 @@ export default function Computer() {
     overlay: boolean;
     force?: boolean;
   }) {
-    if (!botId) return;
+    if (!botId || !refreshController.isActive()) return false;
+    const action = refreshController.beginAction();
     const needsBoot = force || computer?.state !== "running" || !screenUrl;
-    if (overlay && needsBoot) setBooting(true);
+    const showBooting = overlay && needsBoot;
+    if (showBooting) setBootingCount((count) => count + 1);
     try {
       if (needsBoot) await rpc("computer/boot", { botId });
+      if (!action.isActive()) return false;
       if (takeControl) await rpc("computer/takeover", { botId });
-      await refresh({ screenAttempts: SCREEN_URL_OPEN_ATTEMPTS });
+      if (!action.isActive()) return false;
+      await action.refresh({ screenAttempts: SCREEN_URL_OPEN_ATTEMPTS });
+      if (!action.isActive()) return false;
       setError(null);
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not open computer");
+      if (!action.isActive()) return false;
+      setError(err instanceof Error ? err.message : t("Could not open computer"));
       throw err;
     } finally {
-      setBooting(false);
+      if (action.isActive() && showBooting) setBootingCount((count) => count - 1);
+      action.finish();
     }
   }
 
   useEffect(() => {
-    if (!ready || !botId) return;
+    if (!botId || readyBotId !== botId || switching) return;
     if (computer?.state === "booting" || computer?.state === "suspended") return;
     if (autoBooted.current === botId) return;
     autoBooted.current = botId;
@@ -129,7 +159,7 @@ export default function Computer() {
       overlay: computer?.state !== "running",
       force: true,
     }).catch(() => undefined);
-  }, [ready, botId, computer?.state]);
+  }, [readyBotId, botId, computer?.state, switching]);
 
   useEffect(() => {
     if (!botId || computer?.state !== "running") return;
@@ -143,11 +173,12 @@ export default function Computer() {
     if (!botId) return;
     const needsTakeover = !(computer?.controlHolder === "user" && computer.controlBotId === botId);
     try {
-      await bootComputer({
+      const opened = await bootComputer({
         takeControl: needsTakeover,
         overlay: needsTakeover || computer?.state !== "running",
         force: computer?.state !== "running",
       });
+      if (!opened || !refreshController.isActive()) return;
       setComputerOpen(true);
       setScreenError(null);
     } catch {
@@ -156,15 +187,24 @@ export default function Computer() {
   }
 
   async function releaseComputer(reason?: ComputerReleaseReason) {
-    if (!botId) return;
-    await rpc("computer/release", { botId, reason }).catch(() => undefined);
-    setComputerOpen(false);
-    await refresh().catch(() => undefined);
+    if (!botId || !refreshController.isActive()) return;
+    const action = refreshController.beginAction();
+    try {
+      await rpc("computer/release", { botId, reason });
+      if (!action.isActive()) return;
+      setComputerOpen(false);
+      await action.refresh().catch(() => undefined);
+    } catch {
+      if (action.isActive()) setScreenError(t("Could not continue"));
+    } finally {
+      action.finish();
+    }
   }
 
   async function setComputerMode(mode: ComputerMode) {
-    if (!botId || mode === computer?.mode) return;
-    setSwitching(true);
+    if (!botId || !refreshController.isActive() || mode === computer?.mode) return;
+    const action = refreshController.beginAction();
+    setSwitchingCount((count) => count + 1);
     setError(null);
     try {
       if (hasControl) {
@@ -173,15 +213,19 @@ export default function Computer() {
           reason: computer?.takeoverRequested ? "skipped" : undefined,
         });
       }
+      if (!action.isActive()) return;
       await rpc("bots/setComputer", { botId, mode });
+      if (!action.isActive()) return;
       setComputer(null);
       applyScreenUrl(null);
       autoBooted.current = null;
-      await refresh();
+      await action.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not switch computer");
+      if (!action.isActive()) return;
+      setError(err instanceof Error ? err.message : t("Could not switch computer"));
     } finally {
-      setSwitching(false);
+      if (action.isActive()) setSwitchingCount((count) => count - 1);
+      action.finish();
     }
   }
 
@@ -189,41 +233,47 @@ export default function Computer() {
     screenError ?? previewPlaceholder(computer?.state, booting, name, computer?.mode);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0A0A0B", padding: 24 }}>
+    <View style={{ flex: 1, backgroundColor: tokens.background, padding: 24 }}>
       <Link href={{ pathname: "/files", params: { botId: botId ?? "", name } }} asChild>
         <Pressable accessibilityRole="button" style={{ paddingVertical: 12, marginBottom: 12 }}>
-          <Text style={{ color: "#ECECEE" }}>Files →</Text>
+          <Text style={{ color: tokens.foreground }}>Files →</Text>
         </Pressable>
       </Link>
-      {error ? <Text style={{ color: "#85858A", marginBottom: 12 }}>{error}</Text> : null}
+      {error ? (
+        <Text style={{ color: tokens.mutedForeground, marginBottom: 12 }}>{error}</Text>
+      ) : null}
       <View
         style={{
           flex: 1,
           minHeight: 220,
           borderRadius: 14,
           overflow: "hidden",
-          backgroundColor: "#0E0E10",
+          backgroundColor: tokens.card,
         }}
       >
         {computerOpen ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#6C6C70" }}>Open in full window</Text>
+            <Text style={{ color: tokens.mutedForeground }}>{t("Open in full window")}</Text>
           </View>
-        ) : computer?.state === "running" && embeddedScreenUrl ? (
+        ) : computer?.state === "running" && embeddedScreenUrl && !screenError ? (
           <ScreenWebView
             url={embeddedScreenUrl}
             interactive={false}
             onError={() =>
-              setScreenError("Could not load the desktop. This device cannot reach the screen URL.")
+              setScreenError(
+                t("Could not load the desktop. This device cannot reach the screen URL."),
+              )
             }
           />
         ) : (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <Text style={{ color: "#6C6C70", textAlign: "center" }}>{placeholder}</Text>
+            <Text style={{ color: tokens.mutedForeground, textAlign: "center" }}>
+              {placeholder}
+            </Text>
           </View>
         )}
         <Pressable
-          accessibilityLabel="Open computer"
+          accessibilityLabel={t("Open computer")}
           onPress={() => void openComputer()}
           style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
         />
@@ -237,7 +287,9 @@ export default function Computer() {
           gap: 12,
         }}
       >
-        <Text style={{ color: "#85858A", flex: 1 }}>{controlLabel(computer, name, botId)}</Text>
+        <Text style={{ color: tokens.mutedForeground, flex: 1 }}>
+          {controlLabel(computer, name, botId)}
+        </Text>
         {hasControl ? (
           <ComputerReleaseActions
             takeoverRequested={computer?.takeoverRequested ?? false}
@@ -247,19 +299,17 @@ export default function Computer() {
           <Pressable
             onPress={() => void openComputer()}
             style={{
-              backgroundColor: "#1A1A1D",
+              backgroundColor: tokens.muted,
               paddingHorizontal: 14,
               paddingVertical: 10,
               borderRadius: 12,
             }}
           >
-            <Text style={{ color: "#ECECEE" }}>Take control</Text>
+            <Text style={{ color: tokens.foreground }}>{t("Take control")}</Text>
           </Pressable>
         )}
       </View>
-      {computer?.state === "error" ||
-      computer?.state === "stopped" ||
-      (computer?.state === "running" && !embeddedScreenUrl) ? (
+      {computer ? (
         <ComputerMaintenanceActions
           botId={botId ?? ""}
           computer={computer}
@@ -273,22 +323,6 @@ export default function Computer() {
         disabled={switching}
         onChange={(mode) => void setComputerMode(mode)}
       />
-      <View
-        style={{
-          marginTop: 18,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: "#232326",
-          padding: 14,
-          gap: 8,
-        }}
-      >
-        <Text style={{ color: "#85858A", fontSize: 14 }}>Teach a task</Text>
-        <Text style={{ color: "#6C6C70", fontSize: 13.5, lineHeight: 20 }}>
-          Recording a live demonstration needs desktop or web with the full computer view. You can
-          still ask this bot to run saved skills from chat.
-        </Text>
-      </View>
 
       <Modal
         visible={booting || computerOpen}
@@ -304,7 +338,7 @@ export default function Computer() {
               edges={["top", "left", "right"]}
               style={{
                 flex: 1,
-                backgroundColor: "rgba(4,4,5,0.96)",
+                backgroundColor: tokens.background,
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 22,
@@ -312,9 +346,14 @@ export default function Computer() {
               }}
             >
               <Text
-                style={{ color: "#F1F1F2", fontSize: 19, fontWeight: "500", textAlign: "center" }}
+                style={{
+                  color: tokens.foreground,
+                  fontSize: 19,
+                  fontWeight: "500",
+                  textAlign: "center",
+                }}
               >
-                Booting {label}
+                {t("Booting {label}", { label })}
               </Text>
               <View
                 style={{
@@ -323,7 +362,7 @@ export default function Computer() {
                   maxWidth: 420,
                   overflow: "hidden",
                   borderRadius: 999,
-                  backgroundColor: "#232327",
+                  backgroundColor: tokens.muted,
                 }}
               >
                 <View
@@ -331,13 +370,13 @@ export default function Computer() {
                     height: "100%",
                     width: "66%",
                     borderRadius: 999,
-                    backgroundColor: "#F1F1EF",
+                    backgroundColor: tokens.primary,
                   }}
                 />
               </View>
             </SafeAreaView>
           ) : (
-            <View style={{ flex: 1, backgroundColor: "#050506" }}>
+            <View style={{ flex: 1, backgroundColor: tokens.background }}>
               <SafeAreaView
                 edges={["top", "left", "right"]}
                 style={{
@@ -346,7 +385,7 @@ export default function Computer() {
                   justifyContent: "space-between",
                   gap: 12,
                   borderBottomWidth: 1,
-                  borderBottomColor: "#171719",
+                  borderBottomColor: tokens.border,
                   paddingHorizontal: 18,
                   paddingVertical: 14,
                 }}
@@ -354,7 +393,7 @@ export default function Computer() {
                 <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
                   <Text
                     numberOfLines={1}
-                    style={{ color: "#ECECEE", fontSize: 15.5, fontWeight: "500" }}
+                    style={{ color: tokens.foreground, fontSize: 15.5, fontWeight: "500" }}
                   >
                     {label}
                   </Text>
@@ -363,12 +402,14 @@ export default function Computer() {
                       style={{
                         alignSelf: "flex-start",
                         borderRadius: 999,
-                        backgroundColor: "rgba(48,162,75,0.14)",
+                        backgroundColor: tokens.muted,
                         paddingHorizontal: 11,
                         paddingVertical: 4,
                       }}
                     >
-                      <Text style={{ color: "#4ECB71", fontSize: 13 }}>You have control</Text>
+                      <Text style={{ color: tokens.success, fontSize: 13 }}>
+                        {t("You have control")}
+                      </Text>
                     </View>
                   ) : null}
                 </View>
@@ -388,7 +429,7 @@ export default function Computer() {
                       hitSlop={8}
                       style={{
                         borderWidth: 1,
-                        borderColor: "#26262A",
+                        borderColor: tokens.border,
                         paddingHorizontal: 12,
                         paddingVertical: 8,
                         borderRadius: 10,
@@ -396,11 +437,11 @@ export default function Computer() {
                         justifyContent: "center",
                       }}
                     >
-                      <Text style={{ color: "#ECECEE" }}>Take control</Text>
+                      <Text style={{ color: tokens.foreground }}>{t("Take control")}</Text>
                     </Pressable>
                   )}
                   <Pressable
-                    accessibilityLabel="Close computer"
+                    accessibilityLabel={t("Close computer")}
                     hitSlop={8}
                     onPress={() => setComputerOpen(false)}
                     style={{
@@ -410,18 +451,23 @@ export default function Computer() {
                       justifyContent: "center",
                     }}
                   >
-                    <NativeSymbol ios="xmark" android="close" size={16} color="#85858A" />
+                    <NativeSymbol
+                      ios="xmark"
+                      android="close"
+                      size={16}
+                      color={tokens.mutedForeground}
+                    />
                   </Pressable>
                 </View>
               </SafeAreaView>
-              <View style={{ flex: 1, backgroundColor: "#0E0E10" }}>
-                {computer?.state === "running" && embeddedScreenUrl ? (
+              <View style={{ flex: 1, backgroundColor: tokens.card }}>
+                {computer?.state === "running" && embeddedScreenUrl && !screenError ? (
                   <ScreenWebView
                     url={embeddedScreenUrl}
                     interactive={hasControl}
                     onError={() =>
                       setScreenError(
-                        "Could not load the desktop. This device cannot reach the screen URL.",
+                        t("Could not load the desktop. This device cannot reach the screen URL."),
                       )
                     }
                   />
@@ -429,10 +475,8 @@ export default function Computer() {
                   <View
                     style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 16 }}
                   >
-                    <Text style={{ color: "#6C6C70", textAlign: "center" }}>
-                      {computer?.state === "suspended"
-                        ? "Computer is asleep"
-                        : computerLabel(computer?.mode, name)}
+                    <Text style={{ color: tokens.mutedForeground, textAlign: "center" }}>
+                      {placeholder}
                     </Text>
                   </View>
                 )}
@@ -452,13 +496,15 @@ function ComputerReleaseActions({
   takeoverRequested: boolean;
   onRelease: (reason?: ComputerReleaseReason) => Promise<void>;
 }) {
+  const { t } = useI18n();
+  const tokens = useMobileTokens();
   const actions: Array<{ label: string; reason?: ComputerReleaseReason; primary?: boolean }> =
     takeoverRequested
       ? [
-          { label: "Skip", reason: "skipped" },
-          { label: "I’m done", reason: "done", primary: true },
+          { label: t("Skip"), reason: "skipped" },
+          { label: t("I’m done"), reason: "done", primary: true },
         ]
-      : [{ label: "Release" }];
+      : [{ label: t("Release") }];
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
       {actions.map((action) => (
@@ -471,14 +517,16 @@ function ComputerReleaseActions({
             minHeight: 44,
             justifyContent: "center",
             borderWidth: 1,
-            borderColor: action.primary ? "#F1F1EF" : "#26262A",
-            backgroundColor: action.primary ? "#F1F1EF" : "#1A1A1D",
+            borderColor: action.primary ? tokens.primary : tokens.border,
+            backgroundColor: action.primary ? tokens.primary : tokens.muted,
             paddingHorizontal: 12,
             paddingVertical: 8,
             borderRadius: 10,
           }}
         >
-          <Text style={{ color: action.primary ? "#17171A" : "#ECECEE" }}>{action.label}</Text>
+          <Text style={{ color: action.primary ? tokens.primaryForeground : tokens.foreground }}>
+            {action.label}
+          </Text>
         </Pressable>
       ))}
     </View>
@@ -494,11 +542,12 @@ function ScreenWebView({
   interactive: boolean;
   onError: () => void;
 }) {
+  const tokens = useMobileTokens();
   return (
     <WebView
       key={url}
       source={{ uri: url }}
-      style={{ flex: 1, backgroundColor: "#000" }}
+      style={{ flex: 1, backgroundColor: tokens.background }}
       pointerEvents={interactive ? "auto" : "none"}
       javaScriptEnabled
       domStorageEnabled

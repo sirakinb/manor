@@ -1,3 +1,4 @@
+import { createLogger, createTestSink, installLogger } from "@rakazo/logging";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { describe, expect, it, vi } from "vitest";
@@ -34,14 +35,20 @@ describe("API maintenance admission", () => {
   it("does not turn committed work into a retry when lease completion is uncertain", async () => {
     const app = new Hono();
     const leave = vi.fn().mockRejectedValue(new Error("lost response"));
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const sink = createTestSink();
+    installLogger(createLogger({ service: "rakazo-api", sinks: [sink] }));
     mountMaintenanceAdmission(app, { enter: vi.fn().mockResolvedValue(leave) });
     app.post("/rpc/work", (c) => c.json({ committed: true }));
     expect(await (await app.request("/rpc/work", { method: "POST" })).json()).toEqual({
       committed: true,
     });
     expect(leave).toHaveBeenCalledOnce();
-    expect(log).toHaveBeenCalled();
-    log.mockRestore();
+    expect(sink.events).toEqual([
+      expect.objectContaining({
+        level: "error",
+        message: "Maintenance admission completion is unconfirmed.",
+      }),
+    ]);
+    installLogger(createLogger({ service: "rakazo-api", level: "off", sinks: [] }));
   });
 });

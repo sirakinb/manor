@@ -11,7 +11,8 @@ const requestedModels = [
   ["openai-codex", "gpt-6-astra", "GPT-6 Astra", "openai-codex-responses"],
   ["openai-codex", "gpt-6-sol", "GPT-6 Sol", "openai-codex-responses"],
   ["openai-codex", "gpt-6-luna", "GPT-6 Luna", "openai-codex-responses"],
-  ["openrouter", "anthropic/claude-fable-5.1", "Anthropic: Claude Fable 5.1", "openai-completions"],
+  // Pi 0.85.1 ships this one itself, on OpenRouter's Anthropic transport; Pi's definition wins.
+  ["openrouter", "anthropic/claude-fable-5.1", "Anthropic: Claude Fable 5.1", "anthropic-messages"],
   ["openrouter", "anthropic/claude-opus-5.5", "Anthropic: Claude Opus 5.5", "openai-completions"],
   ["openrouter", "openai/gpt-6-astra", "OpenAI: GPT-6 Astra", "openai-completions"],
   ["openrouter", "openai/gpt-6-sol", "OpenAI: GPT-6 Sol", "openai-completions"],

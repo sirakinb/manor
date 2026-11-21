@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserSettings, signup } from "./helpers";
 
 test("recent models are selectable through OpenRouter and subscriptions", async ({
   page,
@@ -8,8 +8,7 @@ test("recent models are selectable through OpenRouter and subscriptions", async 
   const userName = `Recent models ${stamp}`;
   await signup(page, `recent-models-${stamp}@rakazo.test`, "password12", userName);
   await completeOnboarding(page);
-  await page.getByRole("button", { name: new RegExp(userName) }).click();
-  await page.getByRole("button", { name: "Models", exact: true }).click();
+  await openUserSettings(page, "models");
   await expect(page.getByRole("button", { name: "Close model settings" })).toBeVisible();
 
   for (const [provider, query, label, screenshot] of [
@@ -47,8 +46,7 @@ test("model dropdown search and provider group headers", async ({ page }, testIn
   await signup(page, `model-picker-${stamp}@rakazo.test`, "password12", userName);
   await completeOnboarding(page);
 
-  await page.getByRole("button", { name: new RegExp(userName) }).click();
-  await page.getByRole("button", { name: "Models", exact: true }).click();
+  await openUserSettings(page, "models");
   await expect(page.getByRole("button", { name: "Close model settings" })).toBeVisible();
 
   // OpenRouter has many models so group headers and search are obvious.

@@ -14,7 +14,8 @@ describe("local computer UI surfaces", () => {
     const share = read("ShareThisMacSettings.tsx");
     const settings = read("../pages/AccountSettingsOverlay.tsx");
     const prompt = read("../pages/HostComputerPrompt.tsx");
-    const picker = read("ComputerModePicker.tsx");
+    // The computer mode picker moved with the bot forms into the shell's bot panel.
+    const picker = read("../pages/shell/bot-panel.tsx");
     const shell = read("../pages/Shell.tsx");
 
     const enCatalog = read("../locales/en/messages.po");
@@ -45,7 +46,8 @@ describe("local computer UI surfaces", () => {
     expect(picker).toContain("Shared folder on this laptop, only while desktop is sharing.");
     expect(picker).not.toContain("Where should bots run");
     expect(picker).not.toContain("they run as you");
-    expect(shell).toContain("ComputerModePicker");
+    expect(picker).toContain("function ComputerModePicker");
+    expect(shell).toContain("localComputer={bootstrapMe?.localComputer}");
     expect(shell).toContain(
       "This bot is using a shared folder on this laptop. Files and shell only.",
     );

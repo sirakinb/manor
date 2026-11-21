@@ -10,6 +10,8 @@ import {
 import {
   acquireComputerExecutionLease,
   appendRecordingEvent,
+  ComputerBusyError,
+  type ComputerExecutionLease,
   captureTeachingSnapshot,
   completeTeachingSession,
   emptyRecording,
@@ -38,7 +40,12 @@ import {
   type TeachRecordingEvent,
   teachRecordingTtlMs,
 } from "@rakazo/core";
-import { IsolationError, type PrismaClient, type ThreadEvents } from "@rakazo/db";
+import {
+  expireComputerExecutionLeases,
+  IsolationError,
+  type PrismaClient,
+  type ThreadEvents,
+} from "@rakazo/db";
 
 type TaughtSkillRow = {
   id: string;
@@ -115,7 +122,7 @@ async function cancelActiveRuns(
     where: { botId, status: { in: [...ACTIVE_RUN_STATUSES] } },
     data: { status: "cancelled", completedAt: new Date() },
   });
-  await deps.prisma.computerExecutionLease.deleteMany({ where: { botId } });
+  await expireComputerExecutionLeases(deps.prisma, { botId });
   await deps.prisma.computer.updateMany({
     where: { executionBotId: botId },
     data: { executionRunId: null, executionBotId: null, executionLeaseExpiresAt: null },
@@ -139,16 +146,29 @@ async function ensureGraphicalComputer(
   if (bot.computer.state !== "running" || !bot.computer.providerRef) {
     const ctx = computerContext(actor, bot.id, "skills.start");
     const manualRunId = `teach:${randomUUID()}`;
-    const lease = await acquireComputerExecutionLease(deps.prisma, {
-      computerId: bot.computer.id,
-      runId: manualRunId,
-      botId: bot.id,
-    });
+    let lease: ComputerExecutionLease | null;
+    try {
+      lease = await acquireComputerExecutionLease(deps.prisma, {
+        computerId: bot.computer.id,
+        runId: manualRunId,
+        botId: bot.id,
+      });
+    } catch (error) {
+      if (error instanceof ComputerBusyError) {
+        throw new ORPCError("CONFLICT", { message: "Computer is busy" });
+      }
+      throw error;
+    }
     try {
       await provisionComputer(deps, bot.computer.id, {
         ...ctx,
         screenLeaseId: screenLeaseIdForRun(lease, manualRunId),
       });
+    } catch (error) {
+      if (error instanceof ComputerBusyError) {
+        throw new ORPCError("CONFLICT", { message: "Computer is busy" });
+      }
+      throw error;
     } finally {
       await releaseComputerExecutionLease(deps.prisma, lease);
     }

@@ -1,4 +1,5 @@
 import type { MaintenanceAdmission } from "@rakazo/adapters";
+import { getLogger } from "@rakazo/logging";
 import type { Hono } from "hono";
 
 /** Mount after CORS so a closed guard returns a readable response to web clients. */
@@ -26,7 +27,9 @@ export function mountMaintenanceAdmission(
     } finally {
       // A lost lease-completion reply must not turn a committed business mutation
       // into an apparent failure and encourage a duplicate user submission.
-      await leave().catch(() => console.error("Maintenance admission completion is unconfirmed."));
+      await leave().catch(() =>
+        getLogger().error("Maintenance admission completion is unconfirmed."),
+      );
     }
   });
 }

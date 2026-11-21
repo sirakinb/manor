@@ -12,6 +12,7 @@ describe("parseScopes", () => {
 
   it("requires every requested grant and resolves refreshed tokens through Better Auth", async () => {
     const findFirst = vi.fn().mockResolvedValue({
+      id: "account-1",
       accessToken: "encrypted-token-material",
       scope: "scope:forms.body scope:forms.responses",
     });
@@ -32,8 +33,13 @@ describe("parseScopes", () => {
       where: { userId: "user-1", providerId: "google" },
       select: { accessToken: true, scope: true },
     });
+    // Better Auth resolves a token by account row, so the broker looks the Google account up first.
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { userId: "user-1", providerId: "google" },
+      select: { id: true },
+    });
     expect(getAccessToken).toHaveBeenCalledWith({
-      body: { providerId: "google", userId: "user-1" },
+      body: { accountId: "account-1", userId: "user-1" },
     });
   });
 });

@@ -17,6 +17,7 @@ describe("workspace agent tools", () => {
       groupId: null,
       trigger: "user",
       semanticMemoryEnabled: false,
+      messagingChannelRun: false,
     };
     expect(
       selectBuiltinToolsForRun(options).some((tool) => tool.name.startsWith("workspace_")),

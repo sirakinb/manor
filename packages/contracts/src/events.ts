@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { BotSecretDestination } from "./bot-secrets.js";
 import { Id } from "./ids.js";
 import { McpTransportSchema } from "./mcp.js";
 
@@ -15,6 +16,7 @@ export const ProductEventType = z.enum([
   "thread.meta",
   "thread.computer",
   "thread.subagent",
+  "thread.cloud_agent",
   "run.started",
   "run.checkpointed",
   "run.waiting_input",
@@ -36,6 +38,7 @@ export const ProductEventType = z.enum([
   "effect.recorded",
   "agent.tool.called",
   "agent.tool.finished",
+  "agent.tool.completed",
   "effect.reconciled",
   "usage.recorded",
   "bot.spawned",
@@ -83,6 +86,9 @@ const ChartBlock = z
     });
   });
 
+export const SecretAskPurpose = z.enum(["otp", "password", "api_key"]);
+export type SecretAskPurpose = z.infer<typeof SecretAskPurpose>;
+
 export const MessageBlock = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("text"), text: z.string() }),
   z.object({
@@ -95,6 +101,9 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     approvalEffectId: Id.optional(),
     detail: z.string().optional(),
     input: z.enum(["text", "secret"]).optional(),
+    /** Why the secret is needed; drives field label on the masked card. */
+    purpose: SecretAskPurpose.optional(),
+    credential: BotSecretDestination.optional(),
     status: z.enum(["pending", "answered"]).optional(),
     answer: z.string().optional(),
     actions: z
@@ -119,6 +128,7 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     /** Inline app authorization card (Composio-backed): logo, name, one-line
         description, and an Authorize button that flips to connected. */
     kind: z.literal("app_connect"),
+    connectorId: z.string().optional(),
     provider: z.string(),
     name: z.string(),
     description: z.string(),
@@ -153,6 +163,8 @@ export const MessageBlock = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("progress"),
     text: z.string(),
+    /** Provider-generated tool status rather than assistant-authored narration. */
+    activity: z.literal(true).optional(),
     pendingToolNames: z.array(z.string()).optional(),
   }),
   z.object({
@@ -181,6 +193,17 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     name: z.string(),
     title: z.string().optional(),
     status: z.enum(["created", "archived", "deleted"]),
+  }),
+  z.object({
+    /** Compact card for a remote cloud coding agent (not the bot computer). */
+    kind: z.literal("cloud_agent"),
+    agentId: z.string(),
+    title: z.string(),
+    status: z.enum(["running", "finished", "failed", "cancelled"]),
+    url: z.string(),
+    branch: z.string().optional(),
+    prUrl: z.string().optional(),
+    latestRunId: z.string().optional(),
   }),
   z.object({
     kind: z.literal("skill_draft"),
@@ -234,6 +257,8 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     /** A group-chat message delivered into a member bot's own thread. */
     kind: z.literal("channel_message"),
     provider: z.string(),
+    /** Per-message network when a provider spans multiple transports. */
+    transport: z.string().optional(),
     channelId: Id,
     fromAddress: z.string(),
     fromLabel: z.string(),

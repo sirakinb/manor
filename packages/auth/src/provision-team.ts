@@ -86,6 +86,8 @@ export async function provisionPortalTeam(prisma: PrismaClient, input: PortalTea
               id: randomUUID(),
               email: member.email,
               name: member.name,
+              // The operator provisions these accounts directly, so the address is trusted.
+              emailVerified: true,
               portalBrandId: brand.id,
             },
           });

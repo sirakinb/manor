@@ -14,6 +14,7 @@ const payloadSchemas = {
     routineId: z.string().min(1),
     scheduledFor: z.string().datetime({ offset: true }),
   }),
+  "computer.update": z.object({ updateId: z.string().min(1) }),
   "computer.sleep": z.object({ computerId: z.string().min(1) }),
   "computer.control-expire": z.object({
     computerId: z.string().min(1),
@@ -27,6 +28,7 @@ const payloadSchemas = {
     runId: z.string().min(1).optional(),
     scheduledFor: z.string().datetime({ offset: true }).optional(),
   }),
+  "cloud_agent.poll": z.object({ agentId: z.string().min(1) }),
 } satisfies { [Name in BackgroundJobName]: z.ZodType<BackgroundJobPayloads[Name]> };
 
 export function parseBackgroundJob(name: string, payload: unknown): BackgroundJob {
@@ -165,4 +167,20 @@ export function workspaceAutomationRunNowJob(automationId: string, runId: string
 
 export function maintenanceAdvanceJob(jobId: string): BackgroundJob {
   return { name: "maintenance.advance", payload: { jobId }, replaceKey: `maintenance:${jobId}` };
+}
+
+export function cloudAgentPollJobKey(agentId: string): string {
+  return `cloud_agent.poll:${agentId}`;
+}
+
+export function cloudAgentPollJob(
+  payload: BackgroundJobPayloads["cloud_agent.poll"],
+  availableAt?: Date,
+): BackgroundJob {
+  return {
+    name: "cloud_agent.poll",
+    payload,
+    replaceKey: cloudAgentPollJobKey(payload.agentId),
+    ...(availableAt ? { availableAt } : {}),
+  };
 }

@@ -2,6 +2,8 @@ import type { ComputerMode, LocalComputerLiveSession } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { rpc } from "../lib/api";
+import { useI18n } from "../lib/i18n";
+import { useMobileTokens } from "../lib/native";
 
 export function ComputerModePicker({
   value,
@@ -12,6 +14,8 @@ export function ComputerModePicker({
   onChange: (mode: ComputerMode) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
+  const tokens = useMobileTokens();
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
@@ -34,7 +38,9 @@ export function ComputerModePicker({
 
   return (
     <View style={{ marginTop: 16 }}>
-      <Text style={{ color: "#85858A", marginBottom: 8, fontSize: 14 }}>Computer</Text>
+      <Text style={{ color: tokens.mutedForeground, marginBottom: 8, fontSize: 14 }}>
+        {t("Computer")}
+      </Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
         {(["team", "dedicated"] as const).map((mode) => (
           <Pressable
@@ -47,15 +53,15 @@ export function ComputerModePicker({
               flex: 1,
               alignItems: "center",
               borderWidth: 1,
-              borderColor: value === mode ? "#6C6C70" : "#26262A",
-              backgroundColor: value === mode ? "#1A1A1D" : "transparent",
+              borderColor: value === mode ? tokens.mutedForeground : tokens.border,
+              backgroundColor: value === mode ? tokens.muted : "transparent",
               borderRadius: 11,
               paddingVertical: 12,
               opacity: disabled ? 0.5 : 1,
             }}
           >
-            <Text style={{ color: value === mode ? "#ECECEE" : "#85858A" }}>
-              {mode === "team" ? "Team" : "Private"}
+            <Text style={{ color: value === mode ? tokens.foreground : tokens.mutedForeground }}>
+              {mode === "team" ? t("Team") : t("Private")}
             </Text>
           </Pressable>
         ))}
@@ -69,16 +75,18 @@ export function ComputerModePicker({
           marginTop: 8,
           alignItems: "center",
           borderWidth: 1,
-          borderColor: value === "local" ? "#6C6C70" : "#26262A",
-          backgroundColor: value === "local" ? "#1A1A1D" : "transparent",
+          borderColor: value === "local" ? tokens.mutedForeground : tokens.border,
+          backgroundColor: value === "local" ? tokens.muted : "transparent",
           borderRadius: 11,
           paddingVertical: 12,
           opacity: disabled || !connected ? 0.5 : 1,
         }}
       >
-        <Text style={{ color: value === "local" ? "#ECECEE" : "#85858A" }}>This Mac</Text>
+        <Text style={{ color: value === "local" ? tokens.foreground : tokens.mutedForeground }}>
+          This Mac
+        </Text>
       </Pressable>
-      <Text style={{ color: "#6C6C70", marginTop: 8, fontSize: 12.5, lineHeight: 18 }}>
+      <Text style={{ color: tokens.mutedForeground, marginTop: 8, fontSize: 12.5, lineHeight: 18 }}>
         {connected
           ? "Shared folder on this laptop, only while desktop is sharing."
           : "Open Manor desktop to share this Mac."}

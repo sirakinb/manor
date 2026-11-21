@@ -5,7 +5,7 @@ import type {
   JobPublisher,
   SandboxProvider,
 } from "@rakazo/adapter-kit";
-import type { PrismaClient } from "@rakazo/db";
+import type { createRepos, PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import {
   archiveBot,
@@ -97,6 +97,59 @@ describe("spawned bot creation", () => {
     });
     expect(enqueue).toHaveBeenCalledOnce();
   });
+
+  it("passes computerMode through to createBot", async () => {
+    const createBot = vi.fn().mockResolvedValue({
+      id: "child-2",
+      name: "Painter",
+      title: "",
+      threadId: "thread-2",
+    });
+    const createReposSpy = vi.spyOn(await import("@rakazo/db"), "createRepos").mockReturnValue({
+      createBot,
+    } as unknown as ReturnType<typeof createRepos>);
+
+    const result = await spawnBot(
+      {
+        // Manor resolves the organization for the spawned bot's actor.
+        prisma: {
+          space: {
+            findUniqueOrThrow: vi.fn().mockResolvedValue({ organizationId: "organization-1" }),
+          },
+        } as unknown as PrismaClient,
+        jobs: { enqueue: vi.fn() } as unknown as JobPublisher,
+      },
+      {
+        spawnedBy: {
+          id: "parent-1",
+          name: "Chief",
+          spaceId: "workspace-1",
+          userId: "user-1",
+        },
+        runId: "run-1",
+        spawnKey: "tool-call-2",
+        name: "Painter",
+        computerMode: "dedicated",
+      },
+    );
+
+    expect(createBot).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "user-1", spaceId: "workspace-1" }),
+      expect.objectContaining({
+        name: "Painter",
+        computerMode: "dedicated",
+        parentBotId: "parent-1",
+      }),
+    );
+    expect(result).toEqual({
+      ok: true,
+      botId: "child-2",
+      name: "Painter",
+      title: "",
+      threadId: "thread-2",
+    });
+    createReposSpy.mockRestore();
+  });
 });
 describe("spawned bot archival", () => {
   it("refuses when confirm_name does not match exactly", () => {
@@ -132,7 +185,7 @@ describe("spawned bot archival", () => {
           run: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
           task: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
           routine: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-          computerExecutionLease: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+          computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
           computer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
           bot: { update: vi.fn().mockResolvedValue({}) },
         }),
@@ -258,6 +311,7 @@ describe("destroyBot", () => {
     const cancelAttempts = vi.fn().mockResolvedValue({ count: 1 });
     const cancelTasks = vi.fn().mockResolvedValue({ count: 1 });
     const deleteExecutionLeases = vi.fn().mockResolvedValue({ count: 1 });
+    const expireExecutionLeases = vi.fn().mockResolvedValue({ count: 1 });
     const clearExecution = vi.fn().mockResolvedValue({ count: 1 });
     const queryRaw = vi.fn().mockResolvedValue([{ id: "group-1" }, { id: "group-2" }]);
     const findRuns = vi.fn().mockResolvedValue([
@@ -315,7 +369,10 @@ describe("destroyBot", () => {
           findMany: vi.fn().mockResolvedValue([]),
           deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
         },
-        computerExecutionLease: { deleteMany: deleteExecutionLeases },
+        computerExecutionLease: {
+          deleteMany: deleteExecutionLeases,
+          updateMany: expireExecutionLeases,
+        },
         computer: { updateMany: clearExecution },
         $executeRaw: vi.fn(),
         botDeletion: { create: vi.fn() },
@@ -377,9 +434,11 @@ describe("destroyBot", () => {
       where: { id: { in: ["group-task"] } },
       data: { status: "cancelled" },
     });
-    expect(deleteExecutionLeases).toHaveBeenCalledWith({
+    expect(expireExecutionLeases).toHaveBeenCalledWith({
       where: { runId: { in: ["group-run"] } },
+      data: { expiresAt: new Date(0) },
     });
+    expect(deleteExecutionLeases).toHaveBeenCalledWith({ where: { botId: "bot-1" } });
     expect(clearExecution).toHaveBeenCalledWith({
       where: { executionRunId: { in: ["group-run"] } },
       data: {
@@ -423,7 +482,13 @@ describe("destroyBot", () => {
           jobs: { cancel: vi.fn() } as unknown as JobPublisher,
           dataDir: "/tmp/rakazo-destroy-bot-test",
         },
-        { id: "bot-1", spaceId: "workspace-1", name: "Researcher", archivedAt: null },
+        {
+          id: "bot-1",
+          userId: "user-1",
+          spaceId: "workspace-1",
+          name: "Researcher",
+          archivedAt: null,
+        },
         context,
         { deleteMemories: true },
       ),
@@ -477,7 +542,7 @@ describe("archiveBot", () => {
         run: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         task: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         routine: { updateMany: disableRoutines },
-        computerExecutionLease: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         computer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         bot: { update: updateBot },
       }),
@@ -531,7 +596,7 @@ describe("archiveBot", () => {
         run: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         task: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         routine: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-        computerExecutionLease: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         computer: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         bot: { update: vi.fn().mockResolvedValue({}) },
       }),
@@ -596,7 +661,7 @@ describe("archiveBot", () => {
         run: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         task: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         routine: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-        computerExecutionLease: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         computer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         bot: { update: vi.fn().mockResolvedValue({}) },
       }),

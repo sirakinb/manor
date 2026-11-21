@@ -1,8 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { readBoundedJsonResponse, signupRequiresEmailVerification } from "@rakazo/core";
+import { Button, Input, Label } from "@rakazo/ui-web";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ParticleWordmark } from "../components/ai/ParticleWordmark";
 import { BrandLogo } from "../components/BrandLogo";
-import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
 import { authClient } from "../lib/auth";
 import { brand, brandName } from "../lib/brand";
 import { signInReturnPath } from "../lib/return-path";
@@ -11,46 +13,64 @@ import { clearSpaceSelection } from "../lib/rpc";
 type AuthMode = "in" | "up" | "forgot";
 type PasswordResetCapabilities = { passwordReset: boolean; resetUrl: string | null };
 
+const fieldClass = "mt-2 h-12 rounded-xl px-4 text-base md:text-base";
+const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
+const AUTH_CAPABILITIES_TIMEOUT_MS = 8_000;
+const MAX_AUTH_CAPABILITIES_RESPONSE_BYTES = 64 * 1024;
+
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  // Signup triggers a session refresh that remounts the anonymous auth page.
+  const sent = resetSent || searchParams.get("verify") === "email";
   const [reset, setReset] = useState<PasswordResetCapabilities | null>(null);
   const passwordFieldId = mode === "in" ? "current-password" : "new-password";
-  const logoOnly = mode === "in" && brand.id !== "manor";
-  const title =
-    mode === "in" ? (
-      <Trans>Sign in to {brandName}</Trans>
-    ) : mode === "up" ? (
-      brand.id === "manor" ? (
-        <Trans>Create your Manor</Trans>
-      ) : (
-        <Trans>Create your {brandName} account</Trans>
-      )
+  const logoOnly = !sent && mode === "in" && brand.id !== "manor";
+  const title = sent ? (
+    <Trans>Check your email</Trans>
+  ) : mode === "in" ? (
+    <Trans>Sign in to {brandName}</Trans>
+  ) : mode === "up" ? (
+    brand.id === "manor" ? (
+      <Trans>Create your Manor</Trans>
     ) : (
-      <Trans>Reset your password</Trans>
-    );
+      <Trans>Create your {brandName} account</Trans>
+    )
+  ) : (
+    <Trans>Reset your password</Trans>
+  );
 
   useEffect(() => {
     if (mode === "up") return;
     let active = true;
-    void fetch("/api/auth/capabilities")
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AUTH_CAPABILITIES_TIMEOUT_MS);
+    void fetch("/api/auth/capabilities", { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Could not load authentication capabilities");
-        return (await response.json()) as PasswordResetCapabilities;
+        return readBoundedJsonResponse<PasswordResetCapabilities>(
+          response,
+          MAX_AUTH_CAPABILITIES_RESPONSE_BYTES,
+          controller.signal,
+        );
       })
       .then((capabilities) => {
         if (active) setReset(capabilities);
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => clearTimeout(timer));
     return () => {
       active = false;
+      clearTimeout(timer);
+      controller.abort();
     };
   }, [mode]);
 
@@ -72,7 +92,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           setError(result.error.message ?? t`Could not send reset email`);
           return;
         }
-        setSent(true);
+        setResetSent(true);
         return;
       }
       const result =
@@ -85,6 +105,10 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           : await authClient.signIn.email({ email, password });
       if (result.error) {
         setError(result.error.message ?? t`Could not continue`);
+        return;
+      }
+      if (mode === "up" && signupRequiresEmailVerification(result.data)) {
+        setSearchParams({ verify: "email" });
         return;
       }
       clearSpaceSelection();
@@ -126,13 +150,12 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         </h1>
         {sent ? (
           <div role="status" className="w-full text-center">
-            <p className="text-[17px] text-[#F1F0F3]">
-              <Trans>Check your email</Trans>
-            </p>
-            <p className="mt-3 text-[15px] leading-relaxed text-[#8A8590]">
-              <Trans>If an account exists for that address, we sent a password reset link.</Trans>
-            </p>
-            <Link to="/sign-in" className="mt-6 inline-block font-medium text-[#F1F0F3]">
+            {resetSent ? (
+              <p className="mb-6 text-[15px] leading-relaxed text-[#8A8590]">
+                <Trans>If an account exists for that address, we sent a password reset link.</Trans>
+              </p>
+            ) : null}
+            <Link to="/sign-in" className="inline-block font-medium text-[#F1F0F3]">
               <Trans>Back to sign in</Trans>
             </Link>
           </div>
@@ -318,56 +341,78 @@ export function PasswordResetPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-[#F7F7F4] px-6 py-16 text-[#1B1B1E]">
-      <form onSubmit={submit} className="flex w-[460px] flex-col items-center">
-        <div className="flex h-[74px] w-[74px] items-center justify-center gap-[11px] rounded-full bg-[#16161A]">
-          <span className="h-5 w-[9px] rounded-full bg-[#F7F7F4]" />
-          <span className="h-5 w-[9px] rounded-full bg-[#F7F7F4]" />
+    <AuthFrame onSubmit={submit} title={<Trans>Choose a new password</Trans>}>
+      {complete ? (
+        <div role="status" className="w-full text-center">
+          <p className="text-lg">
+            <Trans>Password updated</Trans>
+          </p>
+          <Link to="/sign-in" className="mt-6 inline-block font-medium">
+            <Trans>Sign in</Trans>
+          </Link>
         </div>
-        <h1 className="mb-[38px] mt-[30px] text-[38px] tracking-[-0.02em]">
-          <Trans>Choose a new password</Trans>
-        </h1>
-        {complete ? (
-          <div role="status" className="w-full text-center">
-            <p className="text-[17px]">
-              <Trans>Password updated</Trans>
+      ) : (
+        <>
+          <PasswordField
+            id="new-password"
+            label={t`New password`}
+            value={password}
+            onChange={setPassword}
+          />
+          <PasswordField
+            id="confirm-password"
+            label={t`Confirm password`}
+            value={confirmation}
+            onChange={setConfirmation}
+            className="mt-4"
+          />
+          {error ? (
+            <p role="alert" className="mt-3 w-full text-sm text-destructive">
+              {error}
             </p>
-            <Link to="/sign-in" className="mt-6 inline-block font-medium">
-              <Trans>Sign in</Trans>
-            </Link>
-          </div>
-        ) : (
-          <>
-            <PasswordField
-              id="new-password"
-              label={t`New password`}
-              value={password}
-              onChange={setPassword}
-            />
-            <PasswordField
-              id="confirm-password"
-              label={t`Confirm password`}
-              value={confirmation}
-              onChange={setConfirmation}
-              className="mt-4"
-            />
-            {error ? (
-              <p role="alert" className="mt-3 w-full text-sm text-[#EF4444]">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={pending || !params.get("token")}
-              className="mt-4 w-full rounded-[13px] bg-[#121215] py-[18px] text-[17px] font-medium text-[#FBFBF9] disabled:opacity-60"
-            >
-              {pending ? <Trans>Working…</Trans> : <Trans>Reset password</Trans>}
-            </button>
-            <Link to="/sign-in" className="mt-6 font-medium">
-              <Trans>Back to sign in</Trans>
-            </Link>
-          </>
-        )}
+          ) : null}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={pending || !params.get("token")}
+            className={submitClass}
+          >
+            {pending ? <Trans>Working…</Trans> : <Trans>Reset password</Trans>}
+          </Button>
+          <Link to="/sign-in" className="mt-6 font-medium">
+            <Trans>Back to sign in</Trans>
+          </Link>
+        </>
+      )}
+    </AuthFrame>
+  );
+}
+
+function AuthFrame({
+  title,
+  onSubmit,
+  children,
+}: {
+  title: React.ReactNode;
+  onSubmit: (event: React.FormEvent) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-full items-center justify-center bg-background px-6 py-16 text-foreground">
+      <form onSubmit={onSubmit} className="flex w-[460px] flex-col items-center">
+        <BrandLogo
+          className={
+            brand.logo.viewBox
+              ? "h-[90px] w-[156px]"
+              : brand.logo.wide
+                ? "h-12 w-auto"
+                : "h-[74px] w-[74px]"
+          }
+        />
+        <h1 aria-live="polite" className="mb-9 mt-7 text-4xl font-medium tracking-tight">
+          {title}
+        </h1>
+        {children}
       </form>
     </div>
   );
@@ -387,9 +432,11 @@ function PasswordField({
   className?: string;
 }) {
   return (
-    <label htmlFor={id} className={`w-full text-[16px] text-[#6E6E68] ${className}`}>
-      {label}
-      <input
+    <div className={`w-full ${className}`}>
+      <Label htmlFor={id} className="text-muted-foreground">
+        {label}
+      </Label>
+      <Input
         id={id}
         name={id}
         autoComplete="new-password"
@@ -398,8 +445,8 @@ function PasswordField({
         minLength={8}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-[13px] border border-[#E4E4DE] bg-[#F1F1ED] px-[18px] py-[17px] text-[17px] text-[#1B1B1E] outline-none"
+        className={fieldClass}
       />
-    </label>
+    </div>
   );
 }

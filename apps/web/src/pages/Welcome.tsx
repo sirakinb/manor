@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
-import { HeroSky } from "../components/beautiful-ui/HeroSky";
-import { ParticleWordmark } from "../components/beautiful-ui/ParticleWordmark";
+import { HeroSky } from "../components/ai/HeroSky";
+import { ParticleWordmark } from "../components/ai/ParticleWordmark";
 import { brand } from "../lib/brand";
 import { WindowChrome } from "./WindowChrome";
 
@@ -18,7 +18,10 @@ const SETUP_AGENTS = [
 export function WelcomePage() {
   const [demoOpen, setDemoOpen] = useState(false);
   return (
-    <div className="lp relative min-h-full overflow-hidden bg-black text-[#fafafa]">
+    <div
+      className="lp relative min-h-full overflow-hidden bg-black text-[#fafafa]"
+      data-rakazo-surface="welcome"
+    >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <img
           src="/hero-night.png"

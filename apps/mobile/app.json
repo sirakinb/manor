@@ -19,7 +19,7 @@
       ],
       "expo-router",
       "expo-secure-store",
-      "expo-audio",
+      ["expo-audio", { "enableBackgroundPlayback": false }],
       "expo-localization",
       "@react-native-vector-icons/ionicons",
       "@react-native-vector-icons/material-design-icons",
@@ -45,7 +45,7 @@
       "bundleIdentifier": "com.pentridgemedia.manor",
       "buildNumber": "1",
       "supportsTablet": false,
-      "icon": "./assets/icon.png",
+      "icon": "../../packages/ui-tokens/assets/Rakazo.icon",
       "config": {
         "usesNonExemptEncryption": false
       },

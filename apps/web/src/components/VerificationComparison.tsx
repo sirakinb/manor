@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { FOCUSABLE } from "../lib/focusable";
 import { rpc } from "../lib/rpc";
-import { BuiButton, BuiCard, LoadingState } from "./beautiful-ui/primitives";
+import { BuiButton, BuiCard, LoadingState } from "./ai/primitives";
 import { ChartCanvas } from "./ChartCanvas";
 
 type Checkpoint = "action" | "answer";

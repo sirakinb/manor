@@ -3,7 +3,7 @@ import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { MessageBlock } from "@rakazo/contracts";
 import { formatDurationMs } from "@rakazo/core";
 import { useEffect, useState } from "react";
-import { ManorOrb } from "./beautiful-ui/ManorOrb";
+import { ManorOrb } from "./ai/ManorOrb";
 
 export type ActivityItem = Extract<MessageBlock, { kind: "thinking" } | { kind: "steps" }>;
 

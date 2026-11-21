@@ -27,7 +27,7 @@ import {
   joinPath,
   sortEntries,
 } from "../lib/files-panel";
-import { BuiButton, BuiCard, LoadingState } from "./beautiful-ui/primitives";
+import { BuiButton, BuiCard, LoadingState } from "./ai/primitives";
 import { WorkspacePdfPreview } from "./WorkspacePdfPreview";
 
 type Form = { action: "file" | "dir" | "move" | "delete"; path: string; revision?: string };

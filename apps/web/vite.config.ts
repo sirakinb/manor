@@ -1,4 +1,5 @@
 // Modified for Manor: include the distribution's license and attribution texts in web builds.
+import { timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
@@ -6,6 +7,12 @@ import net from "node:net";
 import path from "node:path";
 import tls from "node:tls";
 import { lingui } from "@lingui/vite-plugin";
+import type { DesktopStackProbeResponse } from "@rakazo/contracts";
+import {
+  safeScreenProxyResponseHeaders,
+  stripSensitiveHandshakeHeaders,
+} from "@rakazo/core/node/screen-proxy-response";
+import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type PreviewServer, type ViteDevServer } from "vite";
@@ -19,10 +26,44 @@ import {
   rewritePreviewHtml,
   safeProxyHeaders,
   safeProxyResponseHeaders,
-  stripSensitiveHandshakeHeaders,
 } from "./src/screen-proxy.js";
 
 const webPort = Number(process.env.WEB_PORT ?? 5173);
+const DESKTOP_STACK_PROBE_PATH = "/.well-known/rakazo-desktop-stack";
+const DESKTOP_STACK_TOKEN_HEADER = "x-rakazo-desktop-stack-token";
+
+function equalStackToken(expected: string, supplied: string | string[] | undefined) {
+  if (expected === "" || typeof supplied !== "string") return false;
+  const expectedBytes = Buffer.from(expected);
+  const suppliedBytes = Buffer.from(supplied);
+  return (
+    expectedBytes.byteLength === suppliedBytes.byteLength &&
+    timingSafeEqual(expectedBytes, suppliedBytes)
+  );
+}
+
+function attachDesktopStackProbe(
+  server: ViteDevServer | PreviewServer,
+  token: string,
+  imageTag: string,
+) {
+  server.middlewares.use((req, res, next) => {
+    if (req.url?.split("?", 1)[0] !== DESKTOP_STACK_PROBE_PATH) {
+      next();
+      return;
+    }
+    if (!equalStackToken(token, req.headers[DESKTOP_STACK_TOKEN_HEADER])) {
+      res.statusCode = 404;
+      res.end("Not found");
+      return;
+    }
+    const body: DesktopStackProbeResponse = { ok: true, imageTag };
+    res.statusCode = 200;
+    res.setHeader("cache-control", "no-store");
+    res.setHeader("content-type", "application/json; charset=utf-8");
+    res.end(JSON.stringify(body));
+  });
+}
 
 function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string) {
   server.middlewares.use((req, res, next) => {
@@ -51,10 +92,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string)
         ...(target.protocol === "https:" ? { servername: target.hostname } : {}),
       },
       (incoming) => {
-        res.writeHead(incoming.statusCode ?? 502, {
-          ...safeProxyResponseHeaders(incoming.headers),
-          "access-control-allow-origin": "*",
-        });
+        res.writeHead(incoming.statusCode ?? 502, safeScreenProxyResponseHeaders(incoming.headers));
         incoming.pipe(res);
       },
     );
@@ -253,6 +291,9 @@ export default defineConfig(({ mode }) => {
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? rootEnv.BETTER_AUTH_SECRET,
     });
   const performanceAssetDelayMs = Number(process.env.RAKAZO_PERFORMANCE_ASSET_DELAY_MS ?? 0);
+  const desktopStackToken =
+    process.env.RAKAZO_DESKTOP_STACK_TOKEN ?? rootEnv.RAKAZO_DESKTOP_STACK_TOKEN ?? "";
+  const imageTag = process.env.RAKAZO_IMAGE_TAG ?? rootEnv.RAKAZO_IMAGE_TAG ?? "edge";
   return {
     plugins: [
       socialPreviewPlugin(),
@@ -268,13 +309,16 @@ export default defineConfig(({ mode }) => {
           }
         },
       },
-      react({
-        babel: {
-          plugins: ["@lingui/babel-plugin-lingui-macro"],
-        },
-      }),
+      react(),
+      babel({ plugins: ["@lingui/babel-plugin-lingui-macro"] }),
       lingui(),
       tailwindcss(),
+      {
+        name: "rakazo-desktop-stack-probe",
+        configureServer: (server) => attachDesktopStackProbe(server, desktopStackToken, imageTag),
+        configurePreviewServer: (server) =>
+          attachDesktopStackProbe(server, desktopStackToken, imageTag),
+      },
       {
         name: "rakazo-performance-asset-delay",
         configurePreviewServer(server) {

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import type { Bot } from "@rakazo/contracts";
 import { createDb, createSpaceForMember } from "../../../packages/db/src/index";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openNewSpace, signup } from "./helpers";
 
 test("two teammates use the same agent and conversation while personal spaces stay private", async ({
   page,
@@ -42,8 +42,7 @@ test("two teammates use the same agent and conversation while personal spaces st
       name: "Blair personal",
     });
 
-    await page.getByTitle("Create", { exact: true }).click();
-    await page.getByRole("button", { name: "New space", exact: true }).click();
+    await openNewSpace(page);
     const dialog = page.getByRole("dialog", { name: "New space" });
     await dialog.getByLabel("Name", { exact: true }).fill("Team projects");
     await dialog.getByLabel("Space access").selectOption("team");
@@ -114,17 +113,20 @@ test("two teammates use the same agent and conversation while personal spaces st
     await expect(
       peerPage.getByText("Team projects · Shared with your team", { exact: true }),
     ).toBeVisible();
+    // The featured tiles and the full catalog both list Gmail; a connected tile reads "Added".
     const gmailRow = peerPage
+      .getByTestId("featured-connectors")
       .getByText("Gmail", { exact: true })
       .locator("xpath=ancestor::*[.//button][1]");
     await gmailRow.getByRole("button", { name: "Add", exact: true }).click();
-    await expect(gmailRow.getByRole("button", { name: "Remove", exact: true })).toBeVisible();
+    await expect(gmailRow.getByRole("button", { name: "Added", exact: true })).toBeVisible();
     await captureScreenshot(peerPage, testInfo, "shared-space-integrations");
     await page.getByRole("button", { name: "Integrations", exact: true }).click();
     const ownerGmail = page
+      .getByTestId("featured-connectors")
       .getByText("Gmail", { exact: true })
       .locator("xpath=ancestor::*[.//button][1]");
-    await expect(ownerGmail.getByRole("button", { name: "Remove", exact: true })).toBeVisible();
+    await expect(ownerGmail.getByRole("button", { name: "Added", exact: true })).toBeVisible();
 
     const denied = await page.request.post("/rpc/bots/list", {
       headers: { "x-rakazo-space-id": personal.id },
