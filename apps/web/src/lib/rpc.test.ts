@@ -39,55 +39,80 @@ describe("signed-out responses", () => {
 });
 
 describe("initial space recovery", () => {
-  function fixture() {
-    let stored: string | null = "client-space";
-    const localStorage = {
-      getItem: () => stored,
-      setItem: (_key: string, value: string) => {
-        stored = value;
-      },
-      removeItem: () => {
-        stored = null;
-      },
-    };
+  // Manor: one recovery. The opening request's 401 drops a saved space the portal does not allow
+  // and reloads with nothing saved; the opening screen waits for that reload instead of failing.
+  function opening(saved: string, permitted: string[]) {
+    const items = new Map([["rakazo:space-id", saved]]);
+    const reload = vi.fn();
     vi.stubGlobal("window", {
-      localStorage,
-      location: { origin: "http://localhost" },
-      // selectSpace announces a new selection.
+      localStorage: {
+        getItem: (key: string) => items.get(key) ?? null,
+        setItem: (key: string, value: string) => items.set(key, value),
+        removeItem: (key: string) => items.delete(key),
+      },
+      location: { origin: "http://app.example", reload },
       dispatchEvent: vi.fn(),
     });
-    const fetch = vi.fn().mockResolvedValue(Response.json({ json: { spaceId: "main-space" } }));
+    const fetch = vi.fn(async (request: Request, init?: RequestInit) => {
+      const space = new Headers(init?.headers).get("x-rakazo-space-id");
+      if (request.url.endsWith("/organizations/list")) {
+        return Response.json({
+          json: {
+            activeOrganizationId: "main",
+            organizations: [
+              { id: "main", name: "Studio", defaultSpaceId: "main-space", spaceIds: permitted },
+            ],
+          },
+        });
+      }
+      if (space && !permitted.includes(space))
+        return Response.json({ json: { code: "UNAUTHORIZED", status: 401 } }, { status: 401 });
+      return Response.json({ json: { spaceId: space ?? "main-space" } });
+    });
     vi.stubGlobal("fetch", fetch);
-    return fetch;
+    return { items, reload, fetch };
   }
 
-  it("reopens the main organization after an unauthorized saved selection", async () => {
-    const fetch = fixture();
-    const error = Object.assign(new Error("Unauthorized"), { code: "UNAUTHORIZED" });
-    await expect(recoverInitialSpace(error, "client-space")).resolves.toMatchObject({
-      spaceId: "main-space",
+  it("reloads into the account's own space with nothing saved, once", async () => {
+    const { items, reload } = opening("client-space", ["main-space"]);
+    let settled = false;
+    void initialMe().finally(() => {
+      settled = true;
     });
-    expect(selectedSpaceId()).toBe("main-space");
-    expect(fetch.mock.calls[0]![1].headers.has("x-rakazo-space-id")).toBe(false);
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce());
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(items.has("rakazo:space-id")).toBe(false);
+    // The opening screen waits for the reload rather than showing an error.
+    expect(settled).toBe(false);
+    expect(reload).toHaveBeenCalledOnce();
   });
 
-  it("does not change the selection for network failures or a newer user selection", async () => {
-    const fetch = fixture();
-    const network = new Error("Offline");
-    await expect(recoverInitialSpace(network, "client-space")).rejects.toBe(network);
-    const unauthorized = Object.assign(new Error("Unauthorized"), { code: "UNAUTHORIZED" });
-    selectSpace("another-space");
-    await expect(recoverInitialSpace(unauthorized, "client-space")).rejects.toBe(unauthorized);
-    expect(fetch).not.toHaveBeenCalled();
-    expect(selectedSpaceId()).toBe("another-space");
+  it("leaves a stale saved organization entry inert while switching is off", async () => {
+    const { items, reload } = opening("client-space", ["main-space"]);
+    items.set("rakazo:org-spaces", JSON.stringify({ client: "client-space" }));
+    void initialMe();
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce());
+    expect(items.has("rakazo:space-id")).toBe(false);
+    // Read only when switching organizations, which Manor does not offer.
+    expect(items.get("rakazo:org-spaces")).toBe(JSON.stringify({ client: "client-space" }));
   });
 
-  it("uses the selected space when it is still authorized", async () => {
-    const fetch = fixture();
-    await initialMe();
+  it("uses the saved space when it is still allowed", async () => {
+    const { items, reload, fetch } = opening("main-space", ["main-space"]);
+    await expect(initialMe()).resolves.toMatchObject({ spaceId: "main-space" });
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0]![1].headers.get("x-rakazo-space-id")).toBe("client-space");
-    expect(selectedSpaceId()).toBe("client-space");
+    expect(items.get("rakazo:space-id")).toBe("main-space");
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("passes on failures that are not a refused saved space", async () => {
+    opening("main-space", ["main-space"]);
+    const network = new Error("Offline");
+    await expect(recoverInitialSpace(network, "main-space")).rejects.toBe(network);
+    const unauthorized = Object.assign(new Error("Unauthorized"), { code: "UNAUTHORIZED" });
+    await expect(recoverInitialSpace(unauthorized, null)).rejects.toBe(unauthorized);
+    // The space is still listed, so nothing reloads and the caller shows the error.
+    await expect(recoverInitialSpace(unauthorized, "main-space")).rejects.toBe(unauthorized);
   });
 });
 

@@ -65,6 +65,15 @@ test("Manor shows one organization and offers no switcher or Create organization
         createdAt: new Date(),
       },
     });
+    await prisma.bot.create({
+      data: {
+        spaceId: clientId,
+        userId: member.userId,
+        name: "Client assistant",
+        color: "#a855f7",
+        thread: { create: { spaceId: clientId, userId: member.userId } },
+      },
+    });
     await page.reload();
 
     // The list holds only the organization this portal allows.
@@ -117,10 +126,9 @@ test("Manor shows one organization and offers no switcher or Create organization
     await page.goto("/app");
     const sidebar = page.locator("aside").first();
     await expect(sidebar.getByRole("button", { name: /^Chief/ })).toBeVisible();
-    // Either recovery may win: Manor's saves the own Space, upstream's clears the selection so
-    // the server resolves the default Space, as on a fresh sign-in. Neither keeps the client's.
-    const ownOrNone = (saved: string | null) => saved === null || saved === member.organizationId;
-    await expect.poll(async () => ownOrNone(await selectedSpace(page))).toBe(true);
+    // The saved space is dropped and the page reloads into the account's own space with nothing
+    // saved, as on a fresh sign-in.
+    await expect.poll(() => selectedSpace(page)).toBeNull();
     await expect(sidebar.getByText("Client Company", { exact: true })).toHaveCount(0);
     await expect(sidebar.getByText("Client assistant", { exact: true })).toHaveCount(0);
     await captureScreenshot(page, testInfo, "org-recovered-own-space");
@@ -128,7 +136,8 @@ test("Manor shows one organization and offers no switcher or Create organization
     // A reload stays on the own Space.
     await page.reload();
     await expect(sidebar.getByRole("button", { name: /^Chief/ })).toBeVisible();
-    expect(ownOrNone(await selectedSpace(page))).toBe(true);
+    expect(await selectedSpace(page)).toBeNull();
+    await expect(sidebar.getByText("Client assistant", { exact: true })).toHaveCount(0);
     await expect(sidebar.getByText("Client Company", { exact: true })).toHaveCount(0);
   } finally {
     await prisma.$disconnect();

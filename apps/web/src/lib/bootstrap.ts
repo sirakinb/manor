@@ -102,24 +102,15 @@ export function discardPrimedBootstrap(promise: Promise<AppBootstrap>): void {
 function requestBootstrap(botId?: string, spaceId?: string) {
   markOnce("rk:renderer:bootstrap-request-start");
   const input = botId ? { botId } : {};
-  if (spaceId) {
-    return rpc.bootstrap(input, { context: { spaceId } }).then((bootstrap) => {
-      markOnce("rk:renderer:bootstrap-response");
-      return bootstrap;
-    });
-  }
-  // A stale saved space selection falls back to the account's own space while opening the app.
+  // Manor: a stale saved space waits for the reload into the account's own space, not an error.
   const savedSpaceId = selectedSpaceId();
-  return rpc
-    .bootstrap(input)
-    .catch(async (error) => {
-      await recoverInitialSpace(error, savedSpaceId);
-      return rpc.bootstrap({});
-    })
-    .then((bootstrap) => {
-      markOnce("rk:renderer:bootstrap-response");
-      return applyCapabilities(bootstrap);
-    });
+  const request = spaceId
+    ? rpc.bootstrap(input, { context: { spaceId } })
+    : rpc.bootstrap(input).catch((error) => recoverInitialSpace(error, savedSpaceId));
+  return request.then((bootstrap) => {
+    markOnce("rk:renderer:bootstrap-response");
+    return spaceId === undefined ? applyCapabilities(bootstrap) : bootstrap;
+  });
 }
 
 function applyCapabilities(bootstrap: AppBootstrap): AppBootstrap {

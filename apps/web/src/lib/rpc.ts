@@ -117,15 +117,20 @@ export function recheckSessionOnUnauthorized(status: number): void {
   if (status === 401) authClient.$store.notify("$sessionSignal");
 }
 
-let leavingSpace: Promise<void> | null = null;
+let leavingSpace: Promise<boolean> | null = null;
 
 /**
  * The server answers 401 when the selected space is no longer one of the user's, for instance
  * after they are removed from it, and every request would keep failing. Ask without a space which
  * spaces the user has in any organization; if the selected one is not among them, reload into
- * their default space.
+ * their default space. Resolves true when it is reloading.
+ *
+ * Manor: this is the only recovery from a stale saved space, while opening the app and later alike.
+ * The organization list holds only the organization this portal allows, so a saved space from
+ * another organization (or a brand's, on the main portal) is dropped here too, and the reload
+ * opens the portal's own space with nothing saved, as on a fresh sign-in.
  */
-export function leaveUnavailableSpace(spaceId: string): Promise<void> {
+export function leaveUnavailableSpace(spaceId: string): Promise<boolean> {
   leavingSpace ??= (async () => {
     try {
       const { organizations } = await rpc.organizations.list(undefined, {
@@ -135,15 +140,17 @@ export function leaveUnavailableSpace(spaceId: string): Promise<void> {
         organizations.some((organization) => organization.spaceIds.includes(spaceId)) ||
         selectedSpaceId() !== spaceId
       )
-        return;
+        return false;
       try {
         window.localStorage.removeItem(SPACE_STORAGE_KEY);
       } catch {
         // Without storage the reload keeps asking without a Space.
       }
       window.location.reload();
+      return true;
     } catch {
       // Signed out or unreachable: leave the selection for the next request to try again.
+      return false;
     } finally {
       leavingSpace = null;
     }
@@ -198,20 +205,25 @@ export function rpcForSpace(spaceId: string): RpcClient {
   return client;
 }
 
-/** Recover a stale saved selection only while opening the app, never replay a mutation. */
-export async function recoverInitialSpace(error: unknown, previousSpaceId: string | null) {
-  if (
-    !previousSpaceId ||
-    selectedSpaceId() !== previousSpaceId ||
-    !(error instanceof Error) ||
-    !("code" in error) ||
-    error.code !== "UNAUTHORIZED"
-  ) {
-    throw error;
+/**
+ * Manor: opening the app with a saved space the account can no longer use. The request's 401 has
+ * already started `leaveUnavailableSpace`, the one recovery; this waits for it so the opening
+ * screen shows no error while the page reloads into the account's own space. Any other failure,
+ * or a space the account still has, is the caller's to show.
+ */
+export async function recoverInitialSpace(
+  error: unknown,
+  previousSpaceId: string | null,
+): Promise<never> {
+  const unauthorized = error instanceof Error && "code" in error && error.code === "UNAUTHORIZED";
+  if (previousSpaceId && unauthorized) {
+    // Joins the recovery the 401 started. A selection that moved meanwhile was left by a
+    // recovery that is already reloading, or by a switch that navigates itself.
+    const leaving =
+      (await leaveUnavailableSpace(previousSpaceId)) || selectedSpaceId() !== previousSpaceId;
+    if (leaving) return new Promise<never>(() => {});
   }
-  const me = await rpc.me(undefined, { context: { spaceId: null } });
-  if (selectedSpaceId() !== previousSpaceId || !selectSpace(me.spaceId)) throw error;
-  return me;
+  throw error;
 }
 
 export async function initialMe() {

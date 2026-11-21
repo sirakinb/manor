@@ -24,28 +24,8 @@ function subscribe(listener: () => void) {
   };
 }
 
-/** The shell's current key; it moves on every in-place remount. */
-export function currentSpaceEpoch(): number {
-  return epoch;
-}
-
 export function useSpaceEpoch(): number {
-  return useSyncExternalStore(subscribe, currentSpaceEpoch);
-}
-
-/**
- * Manor: remounts a shell that is still bound to a space the selection has left without a switch,
- * for instance when opening the app recovered a stale saved space after the shell had mounted.
- * Checked a tick later, so a switch in progress (which moves the epoch itself) is left alone.
- * `isStale` reads the selection at that moment.
- */
-export function remountStaleShell(isStale: () => boolean): void {
-  const seen = epoch;
-  queueMicrotask(() => {
-    if (epoch !== seen || !isStale()) return;
-    epoch += 1;
-    for (const listener of listeners) listener();
-  });
+  return useSyncExternalStore(subscribe, () => epoch);
 }
 
 /**

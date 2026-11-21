@@ -87,40 +87,6 @@ describe("switching spaces in place", () => {
   });
 });
 
-describe("a shell left on a space the selection moved away from", () => {
-  it("remounts when the selection moved without a switch", async () => {
-    const { currentSpaceEpoch, remountStaleShell } = await import("./space-switch");
-    const before = currentSpaceEpoch();
-    remountStaleShell(() => true);
-    await Promise.resolve();
-    expect(currentSpaceEpoch()).toBe(before + 1);
-  });
-
-  it("stays when its space is still selected", async () => {
-    const { currentSpaceEpoch, remountStaleShell } = await import("./space-switch");
-    const before = currentSpaceEpoch();
-    remountStaleShell(() => false);
-    await Promise.resolve();
-    expect(currentSpaceEpoch()).toBe(before);
-  });
-
-  it("leaves a switch in progress to remount once", async () => {
-    stubTransitions();
-    vi.stubGlobal("window", { matchMedia: () => ({ matches: true }) });
-    const { currentSpaceEpoch, remountShellForSpace, remountStaleShell } = await import(
-      "./space-switch"
-    );
-    const before = currentSpaceEpoch();
-    // The switch's commit selects the space, which announces it to the old shell.
-    remountShellForSpace(() => {
-      remountStaleShell(() => true);
-      return true;
-    });
-    await Promise.resolve();
-    expect(currentSpaceEpoch()).toBe(before + 1);
-  });
-});
-
 describe("shell navigation", () => {
   it("uses the latest router navigate without replacing the guard", async () => {
     const { guardShellNavigate } = await import("./space-switch");

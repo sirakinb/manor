@@ -92,8 +92,8 @@ import { usePreloadRecoveryState } from "../lib/preload-recovery";
 import { lastChatKey, lastChatOf, queryClient, spaceQueries, spaceSeedKey } from "../lib/query";
 import type { Panel } from "../lib/right-panel-state";
 import { rightPanelStorageKey } from "../lib/right-panel-state";
-import { createSpaceRpc, SPACE_SELECTED_EVENT, selectedSpaceId, selectSpace } from "../lib/rpc";
-import { markShellReady, remountStaleShell, useSpaceEpoch } from "../lib/space-switch";
+import { createSpaceRpc, selectedSpaceId, selectSpace } from "../lib/rpc";
+import { markShellReady, useSpaceEpoch } from "../lib/space-switch";
 import { activeThreadRuns } from "../lib/thread-events";
 import type { AppearancePreference } from "../lib/ui-appearance";
 import {
@@ -166,16 +166,6 @@ function SpaceShell() {
   const { botId, groupId } = useParams();
   const [shellSpaceId] = useState(selectedSpaceId);
   const [rpc] = useState(() => createSpaceRpc(shellSpaceId));
-  // Manor: opening the app with a saved space the account can no longer use recovers to its own
-  // space, which can land after this shell mounted; a shell left on the old space would fail
-  // every request and stay empty, so it remounts on the recovered one.
-  useEffect(() => {
-    if (!shellSpaceId) return;
-    const check = () => remountStaleShell(() => selectedSpaceId() !== shellSpaceId);
-    check();
-    window.addEventListener(SPACE_SELECTED_EVENT, check);
-    return () => window.removeEventListener(SPACE_SELECTED_EVENT, check);
-  }, [shellSpaceId]);
   const session = authClient.useSession();
   const userId = session.data?.user.id;
   // Held from the first render, so Cmd/Ctrl+N works before the sidebar has data.

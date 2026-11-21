@@ -58,14 +58,22 @@ test("Manor hides other organizations and recovers a saved client space", async 
     await expect(sidebar.getByText("Client assistant", { exact: true })).toHaveCount(0);
     await captureScreenshot(page, testInfo, "organization-scoped-sidebar");
 
+    // The saved client space is dropped and the page reloads into the account's own space with
+    // nothing saved, as on a fresh sign-in.
+    const savedSpace = () => page.evaluate(() => localStorage.getItem("rakazo:space-id"));
     await page.evaluate((id) => localStorage.setItem("rakazo:space-id", id), clientId);
     await page.goto("/app");
     await expect(sidebar.getByRole("button", { name: /^Chief/ })).toBeVisible();
-    await expect
-      .poll(() => page.evaluate(() => localStorage.getItem("rakazo:space-id")))
-      .toBe(member.organizationId);
+    await expect.poll(savedSpace).toBeNull();
+    await expect(sidebar.getByText("Client Company", { exact: true })).toHaveCount(0);
     await expect(sidebar.getByText("Client assistant", { exact: true })).toHaveCount(0);
     await captureScreenshot(page, testInfo, "recovered-main-organization");
+
+    await page.reload();
+    await expect(sidebar.getByRole("button", { name: /^Chief/ })).toBeVisible();
+    expect(await savedSpace()).toBeNull();
+    await expect(sidebar.getByText("Client Company", { exact: true })).toHaveCount(0);
+    await expect(sidebar.getByText("Client assistant", { exact: true })).toHaveCount(0);
   } finally {
     await prisma.$disconnect();
     await pool.end();

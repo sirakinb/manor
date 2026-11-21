@@ -230,6 +230,11 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   this needs `assertPortalAccess`'s primary-organization rule reconciled first.
 - A bot cannot change a shared team space account's timezone (`update_preferences` refuses
   that field), since upstream moves every routine on the account's zone with it.
+- A saved space the account can no longer use recovers through upstream's
+  `leaveUnavailableSpace` only (`apps/web/src/lib/rpc.ts`): the saved id is cleared and the
+  page reloads into the account's own space. Manor's `recoverInitialSpace` just waits for
+  that recovery so the opening screen shows no error. There is no second recovery and no
+  in-place shell remount; two paths raced and ended in different states.
 
 ### Open decisions
 
