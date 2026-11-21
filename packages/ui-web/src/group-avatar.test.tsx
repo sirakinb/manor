@@ -1,5 +1,6 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { AvatarStyleProvider } from "./avatar-style.js";
 import { GroupAvatar } from "./group-avatar.js";
 
 describe("GroupAvatar", () => {
@@ -10,6 +11,15 @@ describe("GroupAvatar", () => {
 
   it("renders single BotAvatar when 1 member", () => {
     const html = renderToString(<GroupAvatar members={[{ name: "Harry", color: "#6366F1" }]} />);
+    expect(html).toContain("rakazo-bot-avatar-visor");
+  });
+
+  it("renders members in the organic style when it is chosen", () => {
+    const html = renderToString(
+      <AvatarStyleProvider value="organic">
+        <GroupAvatar members={[{ name: "Harry", color: "#6366F1" }]} />
+      </AvatarStyleProvider>,
+    );
     expect(html).toContain("rakazo-organic-avatar");
   });
 
@@ -37,7 +47,7 @@ describe("GroupAvatar", () => {
       />,
     );
     expect(html).toContain('data-working="true"');
-    expect(html).toContain("rakazo-organic-avatar");
+    expect(html).toContain("rakazo-bot-avatar-visor");
   });
 
   it("renders 3 mini bot avatars for 3 members", () => {

@@ -43,6 +43,7 @@ import {
   buildComposerMentionOptions,
   clampMentionHighlightIndex,
   cronFromPreset,
+  DEFAULT_AVATAR_STYLE,
   expandPeerReplies,
   foldPeerReplies,
   formatMessageTime,
@@ -5550,7 +5551,7 @@ function SpaceShell() {
             usage={usage}
             onUsageOpen={refreshUsage}
             initialSection={settingsSection}
-            avatarStyle={bootstrapMe?.avatarStyle ?? "organic"}
+            avatarStyle={bootstrapMe?.avatarStyle ?? DEFAULT_AVATAR_STYLE}
             isDeploymentOwner={bootstrapMe?.isDeploymentOwner === true}
             billingEnabled={bootstrapMe?.billingEnabled === true}
             sandboxProvider={bootstrapMe?.sandboxProvider}
@@ -5799,7 +5800,9 @@ function SpaceShell() {
   );
 
   return (
-    <AvatarStyleProvider value={bootstrapMe?.avatarStyle ?? "organic"}>{shell}</AvatarStyleProvider>
+    <AvatarStyleProvider value={bootstrapMe?.avatarStyle ?? DEFAULT_AVATAR_STYLE}>
+      {shell}
+    </AvatarStyleProvider>
   );
 }
 

@@ -261,7 +261,7 @@ describe("account preferences", () => {
   });
 
   it.each(["robot", "organic", "custom-cdn"])(
-    "returns the stored style or organic fallback for %s",
+    "returns the stored style or Manor's robot fallback for %s",
     async (style) => {
       const { actor, handler } = preferencesDeps(style);
 
@@ -276,7 +276,7 @@ describe("account preferences", () => {
 
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toEqual({
-        json: expect.objectContaining({ avatarStyle: style === "robot" ? "robot" : "organic" }),
+        json: expect.objectContaining({ avatarStyle: style === "organic" ? "organic" : "robot" }),
       });
     },
   );

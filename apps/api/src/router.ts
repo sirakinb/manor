@@ -165,6 +165,7 @@ import type {
   SpaceNavigation,
 } from "@rakazo/contracts";
 import {
+  AvatarStyleSchema,
   appContract,
   attachmentMaxBytes,
   attachmentSizeLabel,
@@ -188,6 +189,7 @@ import {
   checksStartingSince,
   clampCatalogThinkingLevel,
   containsSecret,
+  DEFAULT_AVATAR_STYLE,
   expandSkillReferencesInPrompt,
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
@@ -7829,7 +7831,7 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     computerHost: computerHostFor(setup.settings?.computerHost, deps.env.sandboxProvider),
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
-    avatarStyle: user.avatarStyle === "robot" ? "robot" : "organic",
+    avatarStyle: AvatarStyleSchema.safeParse(user.avatarStyle).data ?? DEFAULT_AVATAR_STYLE,
     timezone: user.timezone ?? null,
     localComputer: await localComputerLiveSession(deps.prisma, actor),
     billingEnabled: Boolean(deps.billing) && !actor.isDeploymentOwner,

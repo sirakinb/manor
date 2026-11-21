@@ -72,10 +72,23 @@ Stages done: `v0.1.6`, `v0.2.0`. In progress: `v0.3.0`.
   full-screen computer, so E2E locators for those names are scoped to a container.
 - Manor's sprite avatars show for the robot style on sprite colours; upstream specs
   that expect the robot face use a non-sprite colour.
+- Manor's default avatar style is `robot`, so its sprites show for new accounts too;
+  upstream's `organic` stays available as an explicit choice. Every fallback reads
+  `DEFAULT_AVATAR_STYLE` in `packages/core/src/avatar-style.ts`, and the column default
+  is set by Manor's own migration `20261121120000_manor_robot_avatar_default` (the
+  schema default matches). Upstream's `20261015120000_organic_avatar_default` stays
+  untouched. If a later upstream release removes the robot style, Manor keeps a sprite
+  style as its default rather than losing its sprites.
 - Manor-only modules must not statically import sections upstream lazy-loads
   (`KnowledgeSection`), or upstream's code split and its chunk-failure specs break.
 - A dropped thread refresh after a send that succeeded is not shown as a send
   failure (Manor's choice; upstream surfaces it).
+- Every app icon is Manor's mark: `apps/mobile/app.json` (`icon`, `ios.icon`,
+  Android adaptive, notification, splash), `apps/desktop/assets`, and the web app's
+  favicons and manifest icons. A merge must not point any of them at upstream's
+  `packages/ui-tokens/assets/Rakazo.icon`, and upstream's `export:brand` script is
+  never run, since it rewrites them from upstream's artwork.
+- Voice calls stay on: production sets `PHONE_CALLS_ENABLED=true`.
 - Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
   and local sandbox tests (the temp directory is a symlink).
 
@@ -89,8 +102,9 @@ Things the one production deploy at the end must cover, collected as stages land
   from the one production runs on.
 - The AI data sharing screen links to upstream's privacy page unless the server
   supplies a privacy URL. Set Manor's before the screen is reachable.
-- New accounts get upstream's `organic` avatar style; Manor's sprites show only for
-  the `robot` style, which existing accounts keep.
+- New accounts get Manor's `robot` avatar style, so they see Manor's sprites;
+  `20261121120000_manor_robot_avatar_default` changes only the column default, so
+  every existing account keeps its stored style.
 - Webhook-triggered runs pause for owner approval on tools outside upstream's
   read-only list until a stage brings upstream's reworked approval settings.
 - A running Docker computer is reused on start instead of being set up again.

@@ -1,5 +1,6 @@
 import type { AvatarStyle } from "@rakazo/contracts";
 import { AvatarStyleSchema } from "@rakazo/contracts";
+import { DEFAULT_AVATAR_STYLE } from "@rakazo/core";
 import * as SecureStore from "expo-secure-store";
 
 /** The last avatar style the server confirmed, so an offline launch starts from it. */
@@ -22,7 +23,7 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
 }
 
 export function getCachedAvatarStyle(): AvatarStyle {
-  return memoryStyle ?? "organic";
+  return memoryStyle ?? DEFAULT_AVATAR_STYLE;
 }
 
 export async function loadAvatarStyle(): Promise<AvatarStyle> {
@@ -70,7 +71,7 @@ export function clearAvatarStyle(): Promise<boolean> {
       return true;
     } catch {
       try {
-        await SecureStore.setItemAsync(AVATAR_STYLE_KEY, "organic");
+        await SecureStore.setItemAsync(AVATAR_STYLE_KEY, DEFAULT_AVATAR_STYLE);
       } catch {
         if (savedRevision === revision) {
           memoryStyle = rememberedMemory;
@@ -78,7 +79,7 @@ export function clearAvatarStyle(): Promise<boolean> {
         }
         return false;
       }
-      storedStyle = "organic";
+      storedStyle = DEFAULT_AVATAR_STYLE;
       return true;
     }
   });

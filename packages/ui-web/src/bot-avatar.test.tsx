@@ -216,19 +216,28 @@ describe("BotAvatar", () => {
     expect(organic).not.toContain("rakazo-bot-avatar-eyes");
   });
 
-  it("defaults to organic without a provider", () => {
+  it("defaults to Manor's sprite without a provider", () => {
     const html = renderToString(<BotAvatar color={DEFAULT_GROK_BOT_COLOR} identity="maya" />);
-    expect(html).toContain("rakazo-organic-avatar");
+    expect(html).toContain("rakazo-bot-avatar-sprite");
+    expect(html).toContain("/sprites/sprite-purple.png");
+    expect(html).not.toContain("rakazo-organic-avatar");
+  });
+
+  it("defaults to the robot face on a non-sprite colour without a provider", () => {
+    const html = renderToString(<BotAvatar color={ROBOT_COLOR} identity="maya" />);
+    expect(html).toContain("rakazo-bot-avatar-visor");
+    expect(html).not.toContain("rakazo-bot-avatar-sprite");
+    expect(html).not.toContain("rakazo-organic-avatar");
   });
 
   it("uses the preferred avatar style when variant is omitted", () => {
     const html = renderToString(
-      <AvatarStyleProvider value="robot">
-        <BotAvatar color={ROBOT_COLOR} identity="maya" />
+      <AvatarStyleProvider value="organic">
+        <BotAvatar color={DEFAULT_GROK_BOT_COLOR} identity="maya" />
       </AvatarStyleProvider>,
     );
-    expect(html).toContain("rakazo-bot-avatar-visor");
-    expect(html).not.toContain("grok-character-eyes");
+    expect(html).toContain("rakazo-organic-avatar");
+    expect(html).not.toContain("rakazo-bot-avatar-sprite");
   });
 
   it("keeps uploaded images when the organic style is preferred", () => {

@@ -60,7 +60,7 @@
       "bundleIdentifier": "com.pentridgemedia.manor",
       "buildNumber": "1",
       "supportsTablet": false,
-      "icon": "../../packages/ui-tokens/assets/Rakazo.icon",
+      "icon": "./assets/icon.png",
       "config": {
         "usesNonExemptEncryption": false
       },

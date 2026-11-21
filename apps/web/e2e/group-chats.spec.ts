@@ -86,6 +86,8 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
       }),
     });
   });
+  // Manor defaults to the robot style; choose organic to cover its working animation.
+  await rpc(page, "preferences/update", { avatarStyle: "organic" });
   await page.reload();
   // Anchor ^ so Now/Recent activity rows ("Bot · Draft team, …") do not match.
   const groupAvatar = page

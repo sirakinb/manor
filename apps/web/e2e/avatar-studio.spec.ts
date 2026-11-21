@@ -28,37 +28,45 @@ test("bot settings open Avatar Studio on the Bot tab", async ({ page }, testInfo
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
 
-  // New accounts default to the organic style. Manor's brand-colour sprites only replace the
-  // robot face, so neither the sprite nor the robot visor shows here.
+  // New accounts default to Manor's robot style: the default look on a brand colour is
+  // Manor's sprite, a chosen shape wins over it, and a non-sprite colour shows the robot face.
   const organic = studio.locator(".rakazo-organic-avatar");
   const sprite = studio.locator(".rakazo-bot-avatar-sprite");
   const visor = studio.locator(".rakazo-bot-avatar-visor");
 
+  await studio.getByRole("button", { name: "Color #8B5CF6" }).click();
+  await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
+  await expect(sprite).toHaveCount(1);
+  await expect(sprite).toHaveAttribute("src", /\/sprites\/sprite-purple\.png$/);
+  await expect(organic).toHaveCount(0);
+  await expect(visor).toHaveCount(0);
+
   await wedge.click();
   await expect(wedge).toHaveAttribute("aria-pressed", "true");
   await expect(defaultLook).toHaveAttribute("aria-pressed", "false");
-  await expect(organic).toHaveCount(0);
   await expect(sprite).toHaveCount(0);
+  await expect(organic).toHaveCount(0);
 
   await defaultLook.click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
-  await expect(organic).toHaveCount(1);
-  await expect(studio.locator(".rakazo-organic-avatar-eyes").first()).toBeVisible();
-  await expect(sprite).toHaveCount(0);
-  await expect(visor).toHaveCount(0);
+  await expect(sprite).toHaveCount(1);
+  await expect(organic).toHaveCount(0);
 
   await studio.getByRole("button", { name: "Color #EAB308" }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
-  await expect(organic).toHaveCount(1);
+  await expect(visor).toHaveCount(1);
+  await expect(sprite).toHaveCount(0);
+  await expect(organic).toHaveCount(0);
 
+  await studio.getByRole("button", { name: "Color #8B5CF6" }).click();
   await wedge.click();
   await studio.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(defaultLook).toHaveAttribute("aria-pressed", "true");
   await expect(wedge).toHaveAttribute("aria-pressed", "false");
-  await expect(organic).toHaveCount(1);
-  await expect(sprite).toHaveCount(0);
+  await expect(sprite).toHaveCount(1);
+  await expect(organic).toHaveCount(0);
 
   await captureScreenshot(page, testInfo, "avatar-studio-bot-tab");
 });
