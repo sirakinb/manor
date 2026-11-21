@@ -20,6 +20,7 @@ import {
   isActive,
   isRunWorking,
   memberName,
+  newClientId,
   WorkspaceFilesController,
 } from "@rakazo/core";
 import { fetchFresh, writeSaved } from "@rakazo/core/query";
@@ -425,6 +426,7 @@ function SpaceShell() {
         ?.focus();
     },
   });
+  const openSpaceChatRef = useRef<(spaceId: string, path: string) => void>(() => {});
   useSpaceBootstrap({
     rpc,
     roster,
@@ -439,9 +441,21 @@ function SpaceShell() {
     chat: groupId ? { groupId } : active ? { botId: active.id } : undefined,
     navigate,
     redirectKeepingOverlay,
+    openSpaceChat: openSpaceChatRef,
   });
-  const { notifyBrowserForEvent, flushPendingBrowserNotifications } =
-    useBrowserNotifications(botsRef);
+  const { notifyBrowserForEvent, flushPendingBrowserNotifications } = useBrowserNotifications(
+    bots,
+    botsRef,
+    {
+      rpc,
+      activeBotId,
+      activeGroupId,
+      openChat: (alert) => {
+        setMobileSidebarOpen(false);
+        navigate(alert.groupId ? `/app/g/${alert.groupId}` : `/app/${alert.botId}`);
+      },
+    },
+  );
   const { speakingMessageId, speakMessage } = useReadAloud({
     active,
     snapshot,
@@ -603,6 +617,9 @@ function SpaceShell() {
     overlayRevision,
     closeMobileSidebar: () => setMobileSidebarOpen(false),
   });
+  useLayoutEffect(() => {
+    openSpaceChatRef.current = openSpaceChat;
+  }, [openSpaceChat]);
 
   const activeSnapshot = inGroup
     ? snapshot?.groupId === groupId
@@ -1211,6 +1228,7 @@ function SpaceShell() {
         openSettings={openSettings}
         openIntegrations={() => setOverlay({ kind: "integrations" })}
         openSkills={() => setOverlay({ kind: "skills" })}
+        openSpaceChat={openSpaceChat}
         places={
           // Manor's places and Integrations sit above upstream's account footer.
           <div className={miniSidebar ? "flex flex-col items-center" : "contents"}>
@@ -1625,7 +1643,7 @@ function SpaceShell() {
                 void rpc.threads
                   .send({
                     botId,
-                    clientNonce: crypto.randomUUID(),
+                    clientNonce: newClientId(),
                     text: t`Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need.`,
                   })
                   .then(async () => {

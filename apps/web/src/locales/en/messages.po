@@ -668,6 +668,10 @@ msgstr "{toolCount, plural, one {# tool} other {# tools}}"
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 
+#: src/components/ModelCredits.tsx
+msgid "{vcpus} vCPU, {memoryGb} GB, {hours} computer hours a month"
+msgstr "{vcpus} vCPU, {memoryGb} GB, {hours} computer hours a month"
+
 #: src/pages/crm/CrmHome.tsx
 msgid "{wonCount} closed"
 msgstr "{wonCount} closed"
@@ -1992,6 +1996,7 @@ msgstr "Can't read images"
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/OAuthAuthorize.tsx
 #: src/pages/Onboarding.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
 #: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/create-bot-dialog.tsx
@@ -2565,6 +2570,10 @@ msgstr "Computer is stopped"
 #: src/pages/shell/composer.tsx
 msgid "Computer only"
 msgstr "Computer only"
+
+#: src/pages/ModelSettingsOverlay.tsx
+msgid "Computer-use model"
+msgstr "Computer-use model"
 
 #: src/components/ComputerDeviceSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
@@ -3674,6 +3683,7 @@ msgstr "Couldn't update your wallet"
 msgid "Country"
 msgstr "Country"
 
+#: src/components/CreateOrganizationDialog.tsx
 #: src/pages/Board.tsx
 #: src/pages/crm/CrmContacts.tsx
 #: src/pages/crm/CrmPipelineBoard.tsx
@@ -3708,6 +3718,11 @@ msgstr "Create branch"
 #: src/pages/GroupPanel.tsx
 msgid "Create group"
 msgstr "Create group"
+
+#: src/components/CreateOrganizationDialog.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
+msgid "Create organization"
+msgstr "Create organization"
 
 #: src/pages/RoutineEditor.tsx
 msgid "Create Routine"
@@ -3956,6 +3971,7 @@ msgstr "Default scope"
 #: src/pages/crm/CrmPipelineBoard.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/archived-chats.tsx
 #: src/pages/shell/dialogs.tsx
@@ -3984,6 +4000,7 @@ msgstr "Delete {0}"
 #. placeholder {0}: form.path
 #: src/components/FilesPanel.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Delete {0}?"
 msgstr "Delete {0}?"
@@ -4008,6 +4025,10 @@ msgstr "Delete memories too"
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Delete module"
 msgstr "Delete module"
+
+#: src/pages/OrganizationSettingsPanel.tsx
+msgid "Delete organization"
+msgstr "Delete organization"
 
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Delete row"
@@ -4036,6 +4057,7 @@ msgstr "deleted"
 
 #: src/components/PasskeySettings.tsx
 #: src/pages/Artifacts.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Deleting…"
 msgstr "Deleting…"
@@ -6342,6 +6364,7 @@ msgstr "Muted"
 msgid "My computers"
 msgstr "My computers"
 
+#: src/components/CreateOrganizationDialog.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/components/vault/VaultItemEditor.tsx
@@ -6352,6 +6375,7 @@ msgstr "My computers"
 #: src/pages/GroupPanel.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/model-settings/providers-section.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/agent-import.tsx
@@ -7227,6 +7251,7 @@ msgid "or, if the sender cannot set headers"
 msgstr "or, if the sender cannot set headers"
 
 #: src/components/ComputerProviderSettings.tsx
+#: src/pages/settings-nav.ts
 msgid "Organization"
 msgstr "Organization"
 
@@ -7555,6 +7580,10 @@ msgstr "Pipeline value by stage"
 #: src/pages/DocsView.tsx
 msgid "Pipelines and deals"
 msgstr "Pipelines and deals"
+
+#: src/components/ModelCredits.tsx
+msgid "Plan"
+msgstr "Plan"
 
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Planned"
@@ -8542,6 +8571,10 @@ msgstr "Sales & CRM"
 #: src/pages/ExternalConversationSettings.tsx
 msgid "Same as {botName}"
 msgstr "Same as {botName}"
+
+#: src/pages/ModelSettingsOverlay.tsx
+msgid "Same as main model"
+msgstr "Same as main model"
 
 #: src/pages/workspace/bits.tsx
 msgid "Sat"
@@ -9584,6 +9617,10 @@ msgid "Switch branch"
 msgstr "Switch branch"
 
 #: src/components/ModelCredits.tsx
+msgid "Switch to {tierTargetName}?"
+msgstr "Switch to {tierTargetName}?"
+
+#: src/components/ModelCredits.tsx
 msgid "Switch to yearly"
 msgstr "Switch to yearly"
 
@@ -9818,6 +9855,10 @@ msgstr "The shared link stops working"
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 
+#: src/components/ModelCredits.tsx
+msgid "The unused difference is credited to your next invoice."
+msgstr "The unused difference is credited to your next invoice."
+
 #: src/pages/DocsView.tsx
 msgid "The Workspace endpoint covers the operations and knowledge tools listed here. Report sending, charge posting, automation execution, Twilio SMS, Retell agent updates, and the original intake, cases and SEO tools are not exposed through this endpoint. A stored credential or imported playbook does not make those actions available. Existing external platforms must be reconfigured to this endpoint; old tokens and URLs are not redirected."
 msgstr "The Workspace endpoint covers the operations and knowledge tools listed here. Report sending, charge posting, automation execution, Twilio SMS, Retell agent updates, and the original intake, cases and SEO tools are not exposed through this endpoint. A stored credential or imported playbook does not make those actions available. Existing external platforms must be reconfigured to this endpoint; old tokens and URLs are not redirected."
@@ -9906,6 +9947,7 @@ msgstr "This call is no longer ringing."
 msgid "This can't be undone."
 msgstr "This can't be undone."
 
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "This cannot be undone."
 msgstr "This cannot be undone."
@@ -10287,6 +10329,10 @@ msgstr "Type"
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Type {0} to add a row"
 msgstr "Type {0} to add a row"
+
+#: src/pages/OrganizationSettingsPanel.tsx
+msgid "Type {name} to confirm"
+msgstr "Type {name} to confirm"
 
 #: src/pages/crm/CrmContactsSheet.tsx
 msgid "Type a name to add a contact"
@@ -11027,6 +11073,10 @@ msgstr "Your app must support Streamable HTTP and custom headers. Manor uses a t
 msgid "Your card is charged {annualPrice} today, less the unused part of this month."
 msgstr "Your card is charged {annualPrice} today, less the unused part of this month."
 
+#: src/components/ModelCredits.tsx
+msgid "Your card is charged the prorated difference today."
+msgstr "Your card is charged the prorated difference today."
+
 #: src/pages/Shell.tsx
 msgid "Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need."
 msgstr "Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need."
@@ -11069,6 +11119,10 @@ msgstr "Your OpenRouter"
 #: src/components/ModelCredits.tsx
 msgid "Your plan becomes {annualPrice} / year when your trial ends."
 msgstr "Your plan becomes {annualPrice} / year when your trial ends."
+
+#: src/components/ModelCredits.tsx
+msgid "Your plan becomes {tierTargetLabel} when your trial ends."
+msgstr "Your plan becomes {tierTargetLabel} when your trial ends."
 
 #: src/components/integrations/skills-dialog.tsx
 msgid "Your skills"

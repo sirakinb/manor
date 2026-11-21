@@ -1,0 +1,25 @@
+appId: com.rakazo.app
+name: Organizations
+---
+# Manor: each portal has one organization. Settings name it and offer no create or switch.
+- runFlow:
+    file: ../subflows/sign-in.yaml
+    env:
+      RAKAZO_ACTIVE_EMAIL: ${RAKAZO_SCREENSHOT_EMAIL}
+- openLink: "rakazo:///account"
+- scrollUntilVisible:
+    element: "Organization.*"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Organization.*"
+- extendedWaitUntil:
+    visible: "Name"
+    timeout: 15000
+- assertNotVisible: "Create organization"
+- assertNotVisible: ".*Delete organization.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-account-organization
+- openLink: "rakazo:///"
+- assertNotVisible:
+    id: "organization-menu"

@@ -668,6 +668,10 @@ msgstr "{toolCount, plural, other {도구 #개}}"
 msgid "{unsupported, plural, one {# unsupported statement} other {# unsupported statements}}"
 msgstr ""
 
+#: src/components/ModelCredits.tsx
+msgid "{vcpus} vCPU, {memoryGb} GB, {hours} computer hours a month"
+msgstr "{vcpus} vCPU, {memoryGb} GB, 월 {hours}시간 컴퓨터"
+
 #: src/pages/crm/CrmHome.tsx
 msgid "{wonCount} closed"
 msgstr "{wonCount}건 종료"
@@ -1992,6 +1996,7 @@ msgstr "이미지를 읽을 수 없음"
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/OAuthAuthorize.tsx
 #: src/pages/Onboarding.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
 #: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/create-bot-dialog.tsx
@@ -2565,6 +2570,10 @@ msgstr "컴퓨터가 중지됨"
 #: src/pages/shell/composer.tsx
 msgid "Computer only"
 msgstr ""
+
+#: src/pages/ModelSettingsOverlay.tsx
+msgid "Computer-use model"
+msgstr "컴퓨터 사용 모델"
 
 #: src/components/ComputerDeviceSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
@@ -3674,6 +3683,7 @@ msgstr ""
 msgid "Country"
 msgstr ""
 
+#: src/components/CreateOrganizationDialog.tsx
 #: src/pages/Board.tsx
 #: src/pages/crm/CrmContacts.tsx
 #: src/pages/crm/CrmPipelineBoard.tsx
@@ -3708,6 +3718,11 @@ msgstr ""
 #: src/pages/GroupPanel.tsx
 msgid "Create group"
 msgstr "그룹 만들기"
+
+#: src/components/CreateOrganizationDialog.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
+msgid "Create organization"
+msgstr "조직 만들기"
 
 #: src/pages/RoutineEditor.tsx
 msgid "Create Routine"
@@ -3956,6 +3971,7 @@ msgstr "기본 기억 범위"
 #: src/pages/crm/CrmPipelineBoard.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/archived-chats.tsx
 #: src/pages/shell/dialogs.tsx
@@ -3984,6 +4000,7 @@ msgstr "{0} 삭제"
 #. placeholder {0}: form.path
 #: src/components/FilesPanel.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Delete {0}?"
 msgstr "{0}을 삭제할까요?"
@@ -4008,6 +4025,10 @@ msgstr "기억도 함께 삭제"
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Delete module"
 msgstr "모듈 삭제"
+
+#: src/pages/OrganizationSettingsPanel.tsx
+msgid "Delete organization"
+msgstr "조직 삭제"
 
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Delete row"
@@ -4036,6 +4057,7 @@ msgstr "삭제됨"
 
 #: src/components/PasskeySettings.tsx
 #: src/pages/Artifacts.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Deleting…"
 msgstr "삭제 중…"
@@ -6342,6 +6364,7 @@ msgstr ""
 msgid "My computers"
 msgstr ""
 
+#: src/components/CreateOrganizationDialog.tsx
 #: src/components/FilesPanel.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/components/vault/VaultItemEditor.tsx
@@ -6352,6 +6375,7 @@ msgstr ""
 #: src/pages/GroupPanel.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/model-settings/providers-section.tsx
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/shell/agent-import.tsx
@@ -7227,8 +7251,9 @@ msgid "or, if the sender cannot set headers"
 msgstr "또는 발신자가 헤더를 설정할 수 없는 경우"
 
 #: src/components/ComputerProviderSettings.tsx
+#: src/pages/settings-nav.ts
 msgid "Organization"
-msgstr ""
+msgstr "조직"
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Organization API key"
@@ -7555,6 +7580,10 @@ msgstr "단계별 파이프라인 가치"
 #: src/pages/DocsView.tsx
 msgid "Pipelines and deals"
 msgstr "파이프라인과 딜"
+
+#: src/components/ModelCredits.tsx
+msgid "Plan"
+msgstr "요금제"
 
 #: src/pages/workspace/sections/TeamSection.tsx
 msgid "Planned"
@@ -8542,6 +8571,10 @@ msgstr ""
 #: src/pages/ExternalConversationSettings.tsx
 msgid "Same as {botName}"
 msgstr "{botName}와(과) 동일"
+
+#: src/pages/ModelSettingsOverlay.tsx
+msgid "Same as main model"
+msgstr "기본 모델과 동일"
 
 #: src/pages/workspace/bits.tsx
 msgid "Sat"
@@ -9584,6 +9617,10 @@ msgid "Switch branch"
 msgstr ""
 
 #: src/components/ModelCredits.tsx
+msgid "Switch to {tierTargetName}?"
+msgstr "{tierTargetName}(으)로 변경할까요?"
+
+#: src/components/ModelCredits.tsx
 msgid "Switch to yearly"
 msgstr "연간 결제로 전환"
 
@@ -9818,6 +9855,10 @@ msgstr "공유 링크가 더 이상 작동하지 않음"
 msgid "The signature is an HMAC-SHA256 of <0><timestamp>.<raw body></0> using the endpoint's signing secret:"
 msgstr "서명은 엔드포인트의 서명 시크릿으로 <0><timestamp>.<raw body></0>를 HMAC-SHA256 처리한 값입니다:"
 
+#: src/components/ModelCredits.tsx
+msgid "The unused difference is credited to your next invoice."
+msgstr "사용하지 않은 차액은 다음 청구서에 적립됩니다."
+
 #: src/pages/DocsView.tsx
 msgid "The Workspace endpoint covers the operations and knowledge tools listed here. Report sending, charge posting, automation execution, Twilio SMS, Retell agent updates, and the original intake, cases and SEO tools are not exposed through this endpoint. A stored credential or imported playbook does not make those actions available. Existing external platforms must be reconfigured to this endpoint; old tokens and URLs are not redirected."
 msgstr ""
@@ -9906,6 +9947,7 @@ msgstr ""
 msgid "This can't be undone."
 msgstr "되돌릴 수 없습니다."
 
+#: src/pages/OrganizationSettingsPanel.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "This cannot be undone."
 msgstr "이 작업은 되돌릴 수 없습니다."
@@ -10287,6 +10329,10 @@ msgstr ""
 #: src/pages/crm/CrmModuleSheet.tsx
 msgid "Type {0} to add a row"
 msgstr "{0}을(를) 입력해 행을 추가하세요"
+
+#: src/pages/OrganizationSettingsPanel.tsx
+msgid "Type {name} to confirm"
+msgstr "확인하려면 {name}을(를) 입력하세요"
 
 #: src/pages/crm/CrmContactsSheet.tsx
 msgid "Type a name to add a contact"
@@ -11027,6 +11073,10 @@ msgstr ""
 msgid "Your card is charged {annualPrice} today, less the unused part of this month."
 msgstr "오늘 카드에서 {annualPrice}이 결제되며, 이번 달 사용하지 않은 금액은 차감됩니다."
 
+#: src/components/ModelCredits.tsx
+msgid "Your card is charged the prorated difference today."
+msgstr "오늘 일할 계산된 차액이 카드로 청구됩니다."
+
 #: src/pages/Shell.tsx
 msgid "Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need."
 msgstr "컴퓨터 디스크가 거의 가득 찼습니다. 더 이상 필요 없는 빌드 출력과 캐시를 삭제해 공간을 확보하세요."
@@ -11069,6 +11119,10 @@ msgstr "사용 중인 OpenRouter"
 #: src/components/ModelCredits.tsx
 msgid "Your plan becomes {annualPrice} / year when your trial ends."
 msgstr "체험 기간이 끝나면 요금제가 연 {annualPrice}로 바뀝니다."
+
+#: src/components/ModelCredits.tsx
+msgid "Your plan becomes {tierTargetLabel} when your trial ends."
+msgstr "체험이 끝나면 요금제가 {tierTargetLabel}(으)로 바뀝니다."
 
 #: src/components/integrations/skills-dialog.tsx
 msgid "Your skills"

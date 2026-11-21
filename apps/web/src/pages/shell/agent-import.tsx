@@ -26,6 +26,7 @@ import {
   combineImportedInstructions,
   hasAgentImportSecrets,
   looksLikeCredential,
+  newClientId,
   openAgentImportArchive,
 } from "@rakazo/core";
 import {
@@ -208,7 +209,7 @@ export function AgentImportForm({
       setSourceFiles(chosen.entries);
       setHasSecretFiles(chosen.hasSecretFiles);
       setSkillFiles(siblings);
-      importKey.current = crypto.randomUUID();
+      importKey.current = newClientId();
       await preview(read, agentImportUpload(chosen.entries, { includeSecrets: false }), {
         siblings,
       });
@@ -296,7 +297,7 @@ export function AgentImportForm({
     setSourceFiles([]);
     setHasSecretFiles(false);
     setSkillFiles({});
-    importKey.current = crypto.randomUUID();
+    importKey.current = newClientId();
     await preview(read, [{ path: "agent.md", content }], { siblings: {} });
   }
 

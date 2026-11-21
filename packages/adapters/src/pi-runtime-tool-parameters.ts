@@ -171,7 +171,7 @@ function builtinParameters(tool: ConnectorTool) {
       shared: Type.Optional(Type.Boolean()),
     });
   }
-  if (tool.name === "archive_bot" || tool.name === "delete_bot") {
+  if (tool.name === "archive_bot") {
     return Type.Object({
       confirm_name: Type.String(),
       bot_id: Type.Optional(Type.String()),

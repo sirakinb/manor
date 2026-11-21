@@ -19,6 +19,7 @@ const UNCOVERED: Record<string, string> = {
   files: "Manor screen: needs a bot computer with workspace files",
   maintenance: "Manor screen: redirects to the inbox",
   "run-logs": "Manor screen: needs a finished run with diagnostics",
+  "new-organization": "unreachable in Manor: each portal has one organization, so none is created",
 };
 
 /** Route names under app/, without route groups, layouts, or Expo Router hooks. */

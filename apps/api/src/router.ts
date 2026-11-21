@@ -107,6 +107,7 @@ import { mcpRoutes } from "./routes/mcp.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
+import { organizationsRoutes } from "./routes/organizations.js";
 import { pagesRoutes } from "./routes/pages.js";
 import { paymentWalletRoutes } from "./routes/payment-wallet.js";
 import { routinesRoutes } from "./routes/routines.js";
@@ -128,6 +129,8 @@ export { callMarkerClientNonce } from "./routes/threads.js";
 
 export interface RouterDeps {
   maintenance?: MaintenanceAdapter;
+  /** Manor: tests only; production uses `ORGANIZATION_CHANGES_AVAILABLE`. */
+  organizationChangesAvailable?: boolean;
   pushTokens: PushTokenStore;
   /** Stops a call's ring on the owner's other devices once it is settled. */
   notifications?: NotificationProvider;
@@ -238,6 +241,7 @@ export function createRouter(deps: RouterDeps) {
   return os.router({
     ...accountRoutes(ctx),
     ...spacesRoutes(ctx),
+    ...organizationsRoutes(ctx),
     ...modelsRoutes(ctx),
     ...botsRoutes(ctx),
     ...threadsRoutes(ctx),

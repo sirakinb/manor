@@ -13,6 +13,8 @@ import { getLogger } from "@rakazo/logging";
 import type { ExecutorDeps } from "./executor-deps.js";
 import { notificationIdentity } from "./notification-identity.js";
 
+const COMPLETION_NOTIFICATION_MAX_CHARS = 180;
+
 export async function runNotificationsEnabled(
   prisma: PrismaClient,
   run: { spaceId: string; userId: string; botId: string; threadId: string },
@@ -67,7 +69,7 @@ export async function notifyRun(
   options: { retryOnFailure?: boolean } = {},
 ) {
   if (
-    !deps.notifications ||
+    (!deps.notifications && !deps.events.publishChatAlert) ||
     (isBackgroundRunTrigger(run.trigger) && message.kind !== "help" && message.kind !== "takeover")
   )
     return;
@@ -78,6 +80,28 @@ export async function notifyRun(
     return null;
   });
   if (!notice?.enabled) return;
+  // Manor: every member of a shared space is notified.
+  const recipients = await spaceNotificationRecipients(deps.prisma, run).catch((error) => {
+    if (options.retryOnFailure) throw error;
+    getLogger().error("notification recipient lookup", error);
+    return [] as string[];
+  });
+  // Open apps alert from this too, for every recipient. Not awaited, so it never holds up the push.
+  const alert = {
+    kind: message.kind,
+    title: truncatePlainText(message.title, COMPLETION_NOTIFICATION_MAX_CHARS),
+    body: truncatePlainText(message.body, COMPLETION_NOTIFICATION_MAX_CHARS),
+    spaceId: run.spaceId,
+    botId: message.botId,
+    threadId: message.threadId,
+    ...(notice.groupId ? { groupId: notice.groupId } : {}),
+  };
+  for (const userId of recipients) {
+    void (async () => deps.events.publishChatAlert?.(userId, alert))().catch((error) =>
+      getLogger().error("chat alert publish", error),
+    );
+  }
+  if (!deps.notifications) return;
   const bot = notice.bot;
   const sender = bot && (await notificationIdentity(bot));
   const notification = {
@@ -85,12 +109,6 @@ export async function notifyRun(
     ...(sender ? { sender } : {}),
     ...(notice.groupId ? { groupId: notice.groupId } : {}),
   };
-  // Manor: every member of a shared space is notified.
-  const recipients = await spaceNotificationRecipients(deps.prisma, run).catch((error) => {
-    if (options.retryOnFailure) throw error;
-    getLogger().error("notification recipient lookup", error);
-    return [] as string[];
-  });
   // The icon shows what the inbox shows: unread chats across the user's Spaces. Without a
   // count the push leaves the badge as it is. The count is read in the run owner's context,
   // so only the owner's push carries one; other members keep their badge as it is.
@@ -140,8 +158,6 @@ export function completionNotificationBody(assembled: string, blocks: MessageBlo
     .map((block) => block.text)
     .join("");
 }
-
-const COMPLETION_NOTIFICATION_MAX_CHARS = 180;
 
 /** Push body: Markdown stripped, then truncated so a cut cannot land inside a marker. */
 export function completionNotificationPreview(text: string): string {

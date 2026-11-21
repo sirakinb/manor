@@ -1096,6 +1096,8 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session?.user) return null;
     const actor = await actorFromMembership(
+      // Manor: the portal's organization limits the actor, so upstream's session organization
+      // pin is never consulted (requireMembership's `sessionId`) and a session cannot switch.
       requirePortalMembership(prisma, session.user.id, request),
     );
     return actor && { actor, sessionId: session.session.id };

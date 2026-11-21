@@ -16,7 +16,7 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`. In progress: `v0.6.0`.
+`v0.5.0`, `v0.6.0`. In progress: `v0.7.0`.
 
 ### How a stage is resolved
 
@@ -218,6 +218,28 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
 - Upstream's brighter Executive Violet (`#A97EFE`, the default colour) draws Manor's purple
   sprite like `#8B5CF6`. Stored bot colours are never remapped.
 - The account-level bot style (upstream's `botAvatarSet`) is not offered in Manor's apps.
+- Manor keeps its organization model (upstream added several organizations per person in
+  `v0.7.0`): a session acts only in the organization its portal allows. Upstream's create,
+  remove and switch are off behind `ORGANIZATION_CHANGES_AVAILABLE` in
+  `apps/api/src/organization-availability.ts` (refused with the `ORGANIZATIONS_UNAVAILABLE`
+  reason; `organizations.list` returns only the permitted organization; rename works on it),
+  and behind `ORGANIZATION_SWITCHING` in `apps/web/src/lib/organizations.ts` and
+  `apps/mobile/lib/organizations.ts`. `requireMembership` limits upstream's lookup to the
+  portal's organization and never reads or writes the session's organization pin when one
+  is set; a linked bot in another organization is not offered (`otherSpaceOfBot`). Lifting
+  this needs `assertPortalAccess`'s primary-organization rule reconciled first.
+- A bot cannot change a shared team space account's timezone (`update_preferences` refuses
+  that field), since upstream moves every routine on the account's zone with it.
+
+### Open decisions
+
+- Whether to enable upstream's multi-organization switching. With it on, any signed-in
+  person can create up to ten organizations they own alone, and a session moves between
+  organizations by choosing a Space in another one, or by a per-session pin
+  (`session.activeOrganizationId`) set from their latest run. Ownership is a `member` row
+  with role `owner`; only a sole-member owner can rename or delete. A non-owner member
+  reaches only the Spaces they belong to. Manor would first have to reconcile this with
+  the portal rule (one main-portal organization, brand organizations only on their portal).
 
 ### Deploy checklist for the staged sync
 
@@ -334,6 +356,9 @@ Things the one production deploy at the end must cover, collected as stages land
   `prisma migrate resolve --rolled-back <migration>`, then deploy again.
 - Desktop updates on Linux and Windows release builds now need signing keys; a build without
   a key refuses updates.
+- `SANDBOX_PROVIDER=incus` is not used in production. Never point a copy of production data
+  (such as the rehearsal) at a shared Incus project: Incus orphan removal deletes every
+  instance labelled with a bot's id, and a copy has the same bot ids.
 
 ## Standing rules
 

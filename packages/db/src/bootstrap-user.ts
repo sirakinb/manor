@@ -7,6 +7,11 @@ export interface SignupPolicyEnv {
   signupAllowlist: string | undefined;
 }
 
+type OrganizationClient = Pick<
+  PrismaClient,
+  "organization" | "member" | "space" | "spaceMember" | "memoryDocument" | "notificationPreference"
+>;
+
 function newId(): string {
   return randomBytes(16).toString("hex");
 }
@@ -17,7 +22,7 @@ function isUniqueViolation(error: unknown): boolean {
 
 /** The memory file and notification row every space member starts with. */
 async function seedSpaceDefaults(
-  prisma: PrismaClient,
+  prisma: Pick<OrganizationClient, "memoryDocument" | "notificationPreference">,
   input: { spaceId: string; userId: string },
 ): Promise<void> {
   const hasMemory = await prisma.memoryDocument.findFirst({
@@ -120,6 +125,68 @@ export async function joinOrganization(
 }
 
 /**
+ * An organization owned by `userId`, with a default Space of the same id and name. Each step
+ * joins an existing row instead of failing, so a concurrent call with the same slug converges.
+ * Returns the organization's id, which is also its default Space's.
+ */
+export async function createOrganizationWithDefaultSpace(
+  prisma: OrganizationClient,
+  input: { userId: string; orgId: string; name: string; slug: string },
+): Promise<string> {
+  const { userId, name, slug } = input;
+  let orgId = input.orgId;
+  try {
+    await prisma.organization.create({
+      data: { id: orgId, name, slug, createdAt: new Date() },
+    });
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    orgId = (await prisma.organization.findUniqueOrThrow({ where: { slug } })).id;
+  }
+  // Before the Space, so the trigger joining members to the default Space finds none and the
+  // SpaceMember below cannot collide, which would abort a caller's transaction.
+  await prisma.member
+    .create({
+      data: { id: newId(), organizationId: orgId, userId, role: "owner", createdAt: new Date() },
+    })
+    .catch((error: unknown) => {
+      if (!isUniqueViolation(error)) throw error;
+    });
+  await prisma.space
+    .create({
+      data: {
+        id: orgId,
+        organizationId: orgId,
+        name,
+        isDefault: true,
+        createdByUserId: userId,
+        createdAt: new Date(),
+      },
+    })
+    .catch((error: unknown) => {
+      if (!isUniqueViolation(error)) throw error;
+    });
+  await prisma.spaceMember
+    .create({
+      data: {
+        id: newId(),
+        spaceId: orgId,
+        organizationId: orgId,
+        userId,
+        role: "owner",
+        createdAt: new Date(),
+      },
+    })
+    .catch((error: unknown) => {
+      if (!isUniqueViolation(error)) throw error;
+    });
+  // Manor: one seeding path for every Space member; the notification row is an upsert, so a
+  // repeat inside a caller's transaction does not abort it.
+  await seedSpaceDefaults(prisma, { spaceId: orgId, userId });
+  return orgId;
+}
+
+/**
  * Everything a brand-new user needs around their account row: a personal
  * organization, its default space, owner memberships for both boundaries,
  * deployment-owner claim, user memory, and notification preferences. Shared by
@@ -146,60 +213,13 @@ export async function bootstrapUserSpace(
     if (organization) return joinOrganization(prisma, user, organization);
   }
   const claimDeploymentOwner = options.claimDeploymentOwner ?? true;
-  // Concurrent bootstraps for the same user (e.g. overlapping first phone
-  // inbounds) race on every unique key below; each step either wins or
-  // joins the winner's state instead of failing.
-  const slug = `user-${user.id.slice(0, 12)}`;
-  let orgId = newId();
-  try {
-    await prisma.organization.create({
-      data: { id: orgId, name: "Personal", slug, createdAt: new Date() },
-    });
-  } catch (error) {
-    if (!isUniqueViolation(error)) throw error;
-    orgId = (await prisma.organization.findUniqueOrThrow({ where: { slug } })).id;
-  }
-  await prisma.member
-    .create({
-      data: {
-        id: newId(),
-        organizationId: orgId,
-        userId: user.id,
-        role: "owner",
-        createdAt: new Date(),
-      },
-    })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
-  await prisma.space
-    .create({
-      data: {
-        id: orgId,
-        organizationId: orgId,
-        name: "Personal",
-        isDefault: true,
-        createdByUserId: user.id,
-        createdAt: new Date(),
-      },
-    })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
-  await prisma.spaceMember
-    .create({
-      data: {
-        id: newId(),
-        spaceId: orgId,
-        organizationId: orgId,
-        userId: user.id,
-        role: "owner",
-        createdAt: new Date(),
-      },
-    })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
+  // Concurrent bootstraps for the same user (e.g. overlapping first phone inbounds) share the slug.
+  const spaceId = await createOrganizationWithDefaultSpace(prisma, {
+    userId: user.id,
+    orgId: newId(),
+    name: "Personal",
+    slug: `user-${user.id.slice(0, 12)}`,
+  });
   const policy = signupPolicyFromEnv(env);
   await prisma.deploymentSettings.upsert({
     where: { id: "default" },
@@ -220,6 +240,5 @@ export async function bootstrapUserSpace(
       data: { ownerUserId: user.id },
     });
   }
-  await seedSpaceDefaults(prisma, { spaceId: orgId, userId: user.id });
-  return { spaceId: orgId, organizationId: orgId };
+  return { spaceId, organizationId: spaceId };
 }

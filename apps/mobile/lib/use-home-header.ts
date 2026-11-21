@@ -1,4 +1,5 @@
 import { useNavigation, useRouter } from "expo-router";
+import type { ReactNode } from "react";
 import { createElement, useLayoutEffect } from "react";
 import { ManorLockup } from "../components/manor-lockup";
 import type { CreateAction } from "./create-chooser";
@@ -14,6 +15,7 @@ export function useHomeHeader({
   activityMode,
   toggleActivityMode,
   runCreateAction,
+  headerTitle,
 }: {
   nativeHeader: boolean;
   ready: boolean;
@@ -22,6 +24,7 @@ export function useHomeHeader({
   activityMode: boolean;
   toggleActivityMode: () => void;
   runCreateAction: (action: CreateAction) => void;
+  headerTitle?: () => ReactNode;
 }) {
   const navigation = useNavigation();
   const router = useRouter();
@@ -34,8 +37,9 @@ export function useHomeHeader({
       headerTransparent: true,
       headerStyle: { backgroundColor: "transparent" },
       title: "",
-      // Manor's lockup as the native bar title; iOS 26 only, so CI cannot capture it.
-      headerTitle: () => createElement(ManorLockup),
+      // Manor's lockup as the native bar title unless an organization menu takes its place (it does
+      // not while organization switching is off); iOS 26 only, so CI cannot capture it.
+      headerTitle: headerTitle ?? (() => createElement(ManorLockup)),
       unstable_headerLeftItems: () => [
         {
           type: "button" as const,
@@ -93,6 +97,7 @@ export function useHomeHeader({
     activityMode,
     toggleActivityMode,
     runCreateAction,
+    headerTitle,
     router,
     t,
     locale,

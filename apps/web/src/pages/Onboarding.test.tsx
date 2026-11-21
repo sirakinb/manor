@@ -16,6 +16,7 @@ vi.mock("../lib/rpc", () => {
       }),
   );
   return {
+    selectedSpaceId: () => null,
     rpc: {
       me,
       models: {

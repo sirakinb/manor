@@ -30,6 +30,7 @@ import { ActivitySection } from "../components/inbox-activity";
 import { InboxHeader } from "../components/inbox-header";
 import { InboxListFooter, SWIPE_ROWS, useInboxRenderItem } from "../components/inbox-render-item";
 import { CompactRowsContext, SelectedChatContext } from "../components/inbox-rows";
+import { OrganizationTitleMenu } from "../components/organization-menu";
 import { PickChatPane } from "../components/pick-chat-pane";
 import { useUnreadJumpPills } from "../components/unread-jump-overlay";
 import { fetchSpaceActivity } from "../lib/activity";
@@ -79,6 +80,13 @@ import { applyUnreadOverrides, withoutArchiving } from "../lib/inbox-swipe";
 import { mobileLogoAvatarActivity } from "../lib/logo-avatar-activity";
 import { native, useThemedStyles } from "../lib/native";
 import { iosAtLeast } from "../lib/native-controls";
+import {
+  ensureOrganizations,
+  organizationSwitchActions,
+  organizationSwitchEpoch,
+  subscribeOrganizationSwitch,
+  useOrganizations,
+} from "../lib/organizations";
 import type { OrganizeTarget } from "../lib/organize-target";
 import { findOrganizeTarget } from "../lib/organize-target";
 import { offerPasskeyOnce } from "../lib/passkey";
@@ -140,9 +148,13 @@ export function HomeSession({
 }: InboxPaneProps & { embedded?: boolean }) {
   const generation = useSyncExternalStore(subscribeSessionGeneration, currentSessionGeneration);
   const ready = useSyncExternalStore(subscribeSessionGeneration, currentReadySessionGeneration);
+  const organizationEpoch = useSyncExternalStore(
+    subscribeOrganizationSwitch,
+    organizationSwitchEpoch,
+  );
   return (
     <Home
-      key={`${generation}:${ready}`}
+      key={`${generation}:${ready}:${organizationEpoch}`}
       embedded={embedded}
       onSelectSpace={onSelectSpace}
       onShareSelect={onShareSelect}
@@ -287,6 +299,7 @@ function Home({ embedded, onSelectSpace, onShareSelect }: InboxPaneProps & { emb
         }
       }
       inboxLoaded.current = true;
+      void ensureOrganizations();
       setBadgeLoad({ generation: badgeGeneration });
       setLoadFailure(null);
       saveInbox(
@@ -705,6 +718,13 @@ function Home({ embedded, onSelectSpace, onShareSelect }: InboxPaneProps & { emb
     [createQuickBot, router],
   );
 
+  const organizations = useOrganizations(hasSession && !onShareSelect).data;
+  const hasOrganizationMenu = organizationSwitchActions(organizations).length > 0;
+  const headerTitle = useMemo(
+    () => (hasOrganizationMenu ? () => <OrganizationTitleMenu list={organizations} /> : undefined),
+    [hasOrganizationMenu, organizations],
+  );
+
   useHomeHeader({
     nativeHeader,
     ready,
@@ -713,6 +733,7 @@ function Home({ embedded, onSelectSpace, onShareSelect }: InboxPaneProps & { emb
     activityMode,
     toggleActivityMode,
     runCreateAction,
+    headerTitle,
   });
 
   const openBot = useCallback(
@@ -822,6 +843,7 @@ function Home({ embedded, onSelectSpace, onShareSelect }: InboxPaneProps & { emb
           toggleActivityMode={toggleActivityMode}
           runCreateAction={runCreateAction}
           columnInsets={columnInsets}
+          title={headerTitle?.()}
         />
       )}
 
