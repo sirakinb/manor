@@ -4660,16 +4660,14 @@ export function createRouter(deps: RouterDeps): Router<typeof appContract, Route
           select: { id: true, secretId: true },
         });
         if (!existing) throw new IsolationError();
-        await deps.prisma.$transaction([
-          deps.prisma.botCredential.delete({ where: { id: existing.id } }),
-          ...(existing.secretId
-            ? [
-                deps.prisma.secret.deleteMany({
-                  where: { id: existing.secretId, spaceId: context.actor.spaceId },
-                }),
-              ]
-            : []),
-        ]);
+        // Interactive: row-level security rejects a batch transaction in the caller's context.
+        await deps.prisma.$transaction(async (tx) => {
+          await tx.botCredential.delete({ where: { id: existing.id } });
+          if (existing.secretId)
+            await tx.secret.deleteMany({
+              where: { id: existing.secretId, spaceId: context.actor.spaceId },
+            });
+        });
         return { ok: true as const };
       }),
     },
@@ -8391,17 +8389,14 @@ async function releaseComputerControl(
     }
     return;
   }
-  try {
-    await revokeScreenControl(
-      deps,
-      bot.computer,
-      computerContext(actor, controlBotId, "screen.release"),
-      controlLeaseId,
-    );
-  } catch {
-    // Releasing must not fail on a dead or unreachable container —
-    // the database lease is the source of truth for control.
-  }
+  // A gone sandbox counts as released inside revokeScreenControl. Any other failure keeps
+  // the user's lease so a retried reply cannot hand the bot a screen the user still drives.
+  await revokeScreenControl(
+    deps,
+    bot.computer,
+    computerContext(actor, controlBotId, "screen.release"),
+    controlLeaseId,
+  );
 
   const released = await deps.events.finalizeComputerControlRelease({
     spaceId: actor.spaceId,

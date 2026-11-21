@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import type { Bot } from "@rakazo/contracts";
-import { createDb, createSpaceForMember } from "../../../packages/db/src/index";
+import { createDb, createSpaceForMember, runAsSystem } from "../../../packages/db/src/index";
 import { captureScreenshot, completeOnboarding, openNewSpace, signup } from "./helpers";
 
 test("two teammates use the same agent and conversation while personal spaces stay private", async ({
@@ -36,11 +36,14 @@ test("two teammates use the same agent and conversation while personal spaces st
     const defaultSpace = await prisma.space.findFirstOrThrow({
       where: { organizationId: ownerMember.organizationId, isDefault: true },
     });
-    const personal = await createSpaceForMember(prisma, {
-      currentSpaceId: defaultSpace.id,
-      userId: peer.id,
-      name: "Blair personal",
-    });
+    // Same context the API uses when a member creates a Space.
+    const personal = await runAsSystem("create a Space for its member", () =>
+      createSpaceForMember(prisma, {
+        currentSpaceId: defaultSpace.id,
+        userId: peer.id,
+        name: "Blair personal",
+      }),
+    );
 
     await openNewSpace(page);
     const dialog = page.getByRole("dialog", { name: "New space" });

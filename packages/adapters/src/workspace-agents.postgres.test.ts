@@ -2,13 +2,22 @@ import { randomUUID } from "node:crypto";
 import type { JobPublisher } from "@rakazo/adapter-kit";
 import { parseSkillMd } from "@rakazo/core";
 import {
+  asSystem,
   createDb,
-  importWorkspaceKnowledge,
+  importWorkspaceKnowledge as importAsMember,
   type PrismaClient,
+  runAsTenant,
   workspaceForAgent,
 } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { executeWorkspaceTool } from "./workspace-tools.js";
+import { executeWorkspaceTool as executeAsRun } from "./workspace-tools.js";
+
+// The router imports for the signed-in member, and the executor runs tools as the
+// run's owner, so each call here runs in that member's Space.
+const importWorkspaceKnowledge: typeof importAsMember = (prisma, owner) =>
+  runAsTenant(owner, () => importAsMember(prisma, owner));
+const executeWorkspaceTool: typeof executeAsRun = (deps, owner, name, args) =>
+  runAsTenant(owner, () => executeAsRun(deps, owner, name, args));
 
 const suite =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
@@ -28,11 +37,14 @@ suite("workspace agents and knowledge (PostgreSQL)", () => {
   let workspaceId: string;
   let botId: string;
   let prisma: PrismaClient;
+  /** Bots, skills and memory are protected rows; fixtures and assertions read them as the system. */
+  let system: PrismaClient;
   let close: () => Promise<void>;
   const jobs = { enqueue: vi.fn().mockResolvedValue(undefined) } as unknown as JobPublisher;
   beforeAll(async () => {
     const db = createDb(process.env.DATABASE_URL!);
     prisma = db.prisma;
+    system = asSystem(prisma);
     close = async () => {
       await prisma.$disconnect();
       await db.pool.end();
@@ -74,7 +86,7 @@ suite("workspace agents and knowledge (PostgreSQL)", () => {
       })
     ).id;
     botId = (
-      await prisma.bot.create({ data: { ...owner, name: "Operations bot", color: "#123456" } })
+      await system.bot.create({ data: { ...owner, name: "Operations bot", color: "#123456" } })
     ).id;
     await prisma.workspaceSkill.createMany({
       data: [1, 2].map((version) => ({
@@ -100,7 +112,7 @@ suite("workspace agents and knowledge (PostgreSQL)", () => {
       importWorkspaceKnowledge(prisma, owner),
       importWorkspaceKnowledge(prisma, owner),
     ]);
-    const skills = await prisma.agentSkill.findMany({ where: owner });
+    const skills = await system.agentSkill.findMany({ where: owner });
     expect(skills).toHaveLength(1);
     const parsed = parseSkillMd(skills[0]!.content);
     expect(parsed).not.toHaveProperty("error");
@@ -108,7 +120,7 @@ suite("workspace agents and knowledge (PostgreSQL)", () => {
     expect(parsed.body).toContain("# Callbacks\nVersion 2. Check requested callbacks.");
     expect(parsed.body).toContain("workspace_rentals instead of get_available_rentals");
     expect(parsed.body).toContain("Do not execute those legacy commands");
-    const memory = await prisma.memoryDocument.findMany({
+    const memory = await system.memoryDocument.findMany({
       where: owner,
       include: { revisions: true },
     });
@@ -118,22 +130,24 @@ suite("workspace agents and knowledge (PostgreSQL)", () => {
     expect(await prisma.workspaceKnowledgeImport.count({ where: owner })).toBe(1);
   });
   it("preserves edited memory and deleted skills on later visits", async () => {
-    await prisma.agentSkill.deleteMany({ where: owner });
-    await prisma.memoryDocument.updateMany({
-      where: owner,
+    await system.agentSkill.deleteMany({ where: owner });
+    // Encrypted content is updated by id, as the memory store does.
+    const edited = await system.memoryDocument.findFirstOrThrow({ where: owner });
+    await system.memoryDocument.update({
+      where: { id: edited.id },
       data: { content: "Member's corrected hours" },
     });
     await importWorkspaceKnowledge(prisma, owner);
-    expect(await prisma.agentSkill.count({ where: owner })).toBe(0);
-    expect((await prisma.memoryDocument.findFirstOrThrow({ where: owner })).content).toBe(
+    expect(await system.agentSkill.count({ where: owner })).toBe(0);
+    expect((await system.memoryDocument.findFirstOrThrow({ where: owner })).content).toBe(
       "Member's corrected hours",
     );
     expect(await prisma.workspaceSkill.count({ where: { workspaceId } })).toBe(2);
   });
   it("converts independently for another member without copying personal edits", async () => {
     await importWorkspaceKnowledge(prisma, peer);
-    expect(await prisma.agentSkill.count({ where: peer })).toBe(1);
-    expect((await prisma.memoryDocument.findFirstOrThrow({ where: peer })).content).toBe(
+    expect(await system.agentSkill.count({ where: peer })).toBe(1);
+    expect((await system.memoryDocument.findFirstOrThrow({ where: peer })).content).toBe(
       "Weekdays 9–5",
     );
   });
@@ -234,7 +248,7 @@ suite("workspace agents and knowledge (PostgreSQL)", () => {
     expect(
       await prisma.workspaceKnowledgeImport.count({ where: { workspaceId: foreign.id } }),
     ).toBe(0);
-    expect(await prisma.agentSkill.count({ where: { spaceId: otherSpace, userId: userC } })).toBe(
+    expect(await system.agentSkill.count({ where: { spaceId: otherSpace, userId: userC } })).toBe(
       0,
     );
   });

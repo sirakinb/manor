@@ -74,7 +74,7 @@ describeIntegration("run executor lifecycle", () => {
     expect(run.status).toBe("completed");
     expect(attempts).toHaveLength(1);
     expect(attempts[0]).toMatchObject({ fence: 1, status: "completed" });
-    const finishes = await handles.prisma.event.findMany({
+    const finishes = await db.event.findMany({
       where: { runId: seeded.run.id, type: "agent.tool.finished" },
     });
     expect(finishes.length).toBeGreaterThan(0);

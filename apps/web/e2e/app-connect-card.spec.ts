@@ -23,24 +23,14 @@ test("a bot connects an app inline in a normal chat", async ({ page }, testInfo)
       .getByTestId("message-bot-bubble")
       .getByText("Connect Gmail and I’ll check your inbox.", { exact: true }),
   ).toBeVisible();
-  for (const theme of ["light", "dark"]) {
-    await page.evaluate(
-      (value) => document.documentElement.setAttribute("data-theme", value),
-      theme,
-    );
-    await captureScreenshot(page, testInfo, `web-pending-${theme}`);
-  }
+  // Manor is pinned to dark, so the card is only captured in dark.
+  await captureScreenshot(page, testInfo, "web-pending-dark");
   await card.getByRole("button", { name: "Authorize", exact: true }).click();
   await expect(card.getByText("Connected", { exact: true })).toBeVisible();
   await page.reload();
   await expect(card.getByText("Connected", { exact: true })).toBeVisible();
-  for (const theme of ["light", "dark"]) {
-    await page.evaluate(
-      (value) => document.documentElement.setAttribute("data-theme", value),
-      theme,
-    );
-    await captureScreenshot(page, testInfo, `web-connected-${theme}`);
-  }
+  // Manor is pinned to dark, so the card is only captured in dark.
+  await captureScreenshot(page, testInfo, "web-connected-dark");
 });
 
 test("a group card authorizes in its own thread without duplicate pending cards", async ({

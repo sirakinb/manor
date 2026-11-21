@@ -1,4 +1,4 @@
-import { createDb, type PrismaClient } from "@rakazo/db";
+import { asSystem, createDb, type PrismaClient, runAsTenant } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createWorkspaceTeam } from "./workspace-team.js";
 
@@ -12,19 +12,33 @@ describePostgres("workspace team (PostgreSQL)", () => {
   const spaceId = `${stamp}-space`;
   const userId = `${stamp}-owner`;
   const peerId = `${stamp}-peer`;
-  const actor = { organizationId, spaceId, userId, email: `${userId}@example.test` };
+  const actor = {
+    organizationId,
+    spaceId,
+    userId,
+    email: `${userId}@example.test`,
+    isDeploymentOwner: false,
+  };
   let prisma: PrismaClient;
+  /** Bots and runs are protected rows; fixtures and assertions read them as the system. */
+  let system: PrismaClient;
   let close: () => Promise<void>;
   let team: ReturnType<typeof createWorkspaceTeam>;
   let defaultId: string;
   beforeAll(async () => {
     const db = createDb(databaseUrl!);
     prisma = db.prisma;
+    system = asSystem(prisma);
     close = async () => {
       await prisma.$disconnect();
       await db.pool.end();
     };
-    team = createWorkspaceTeam(prisma);
+    // The router runs these procedures in the caller's Space.
+    const inner = createWorkspaceTeam(prisma);
+    team = {
+      list: (caller) => runAsTenant(caller, () => inner.list(caller)),
+      open: (caller, botId) => runAsTenant(caller, () => inner.open(caller, botId)),
+    };
     await prisma.organization.create({
       data: {
         id: organizationId,
@@ -73,11 +87,11 @@ describePostgres("workspace team (PostgreSQL)", () => {
     const bots = await Promise.all([team.open(actor), team.open(actor)]);
     defaultId = bots[0]!.id;
     expect(bots[1]!.id).toBe(defaultId);
-    expect(await prisma.bot.count({ where: { spaceId, userId } })).toBe(1);
-    expect(await prisma.run.count({ where: { spaceId, userId } })).toBe(0);
+    expect(await system.bot.count({ where: { spaceId, userId } })).toBe(1);
+    expect(await system.run.count({ where: { spaceId, userId } })).toBe(0);
   });
   it("opens the chosen bot and rejects a peer's bot and forged membership", async () => {
-    const second = await prisma.bot.create({
+    const second = await system.bot.create({
       data: {
         spaceId,
         userId,
@@ -86,7 +100,7 @@ describePostgres("workspace team (PostgreSQL)", () => {
         thread: { create: { spaceId, userId } },
       },
     });
-    const foreign = await prisma.bot.create({
+    const foreign = await system.bot.create({
       data: {
         spaceId,
         userId: peerId,
@@ -99,12 +113,12 @@ describePostgres("workspace team (PostgreSQL)", () => {
     await expect(team.open(actor, foreign.id)).rejects.toThrow();
     await expect(team.list({ ...actor, userId: "missing-member" })).rejects.toThrow();
     await expect(team.list({ ...actor, organizationId: "forged-org" })).rejects.toThrow();
-    await prisma.bot.delete({ where: { id: second.id } });
+    await system.bot.delete({ where: { id: second.id } });
   });
   it("does not restore an archived default or silently create duplicates", async () => {
-    await prisma.bot.update({ where: { id: defaultId }, data: { archivedAt: new Date() } });
+    await system.bot.update({ where: { id: defaultId }, data: { archivedAt: new Date() } });
     await expect(team.open(actor)).rejects.toThrow("Restore your archived workspace assistant");
-    expect(await prisma.bot.count({ where: { spaceId, userId } })).toBe(1);
+    expect(await system.bot.count({ where: { spaceId, userId } })).toBe(1);
     expect(await team.list(actor)).toEqual([]);
   });
 });

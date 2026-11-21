@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro";
 import type { MessageReaction, ThreadMessage } from "@rakazo/contracts";
 import type { FoldedTranscript } from "@rakazo/core";
 import {
+  displayName,
   expandPeerReplies,
   groupVoiceChats,
   isPeerReceiptBlocks,
@@ -443,7 +444,7 @@ export const Transcript = memo(function Transcript({
                 >
                   {message.authorName ? (
                     <div className="mb-1 text-right text-[12px] text-[#85858A]">
-                      {message.authorName}
+                      {displayName(message.authorName, t`Member`)}
                     </div>
                   ) : null}
                   <div

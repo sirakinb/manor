@@ -5634,19 +5634,21 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (!applied) return;
             const effectId = applied.effect.id;
             // Replays trust the stored decision, so its comparison row must commit with it.
-            await deps.prisma.$transaction([
-              deps.prisma.externalEffect.update({
+            // Interactive, because row-level security rejects a batch transaction in the
+            // run's tenant context.
+            await deps.prisma.$transaction(async (tx) => {
+              await tx.externalEffect.update({
                 where: { id: effectId },
                 data: {
                   reviewDecision: primary.decision,
                   reviewReason: primary.reason,
                   reviewModel: primary.model,
                 },
-              }),
-              deps.prisma.verificationCheck.create({
+              });
+              await tx.verificationCheck.create({
                 data: verificationRow(actionCheck(effectId), primaryEngine, "primary", primary),
-              }),
-            ]);
+              });
+            });
             if (shadowEngine && shadowReview) {
               logShadow(actionCheck(effectId), shadowEngine, () => shadowReview);
             }

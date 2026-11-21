@@ -430,15 +430,26 @@ test("built-in sidebar headings follow the language without renaming custom sect
   await dialog.getByRole("button", { name: "Create", exact: true }).click();
   await bot.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Pin", exact: true }).click();
+  // Manor names the space on every header and qualifies group keys with the space.
+  const pinnedGroup = sidebar.locator('[data-sidebar-group$=":pinned"]');
+  const pinnedTitle = await pinnedGroup.getByRole("button", { name: /^Collapse / }).textContent();
+  const spaceName = pinnedTitle?.match(/^(.+) · Pinned$/)?.[1];
+  expect(spaceName).toBeTruthy();
   const settings = await openUserSettings(page);
   await settings.getByTestId("ui-locale-select").click();
   await page.getByRole("option", { name: "Deutsch", exact: true }).click();
   await page.getByRole("button", { name: "Benutzereinstellungen schließen", exact: true }).click();
   await expect(settings).not.toBeVisible();
-  await expect(sidebar.locator('[data-sidebar-group="pinned"]')).toContainText("Angeheftet");
-  await expect(sidebar.locator('[data-sidebar-group="unassigned"]')).toContainText(
-    "Nicht zugewiesen",
+  await expect(pinnedGroup).toContainText(`${spaceName} · Angeheftet`);
+  await expect(sidebar.locator('[data-sidebar-group$=":unassigned"]')).toContainText(
+    `${spaceName} · Nicht zugewiesen`,
   );
-  await expect(sidebar.locator('[data-sidebar-group^="section:"]')).toContainText("Pinned");
+  const customSection = sidebar.locator('[data-sidebar-group*=":section:"]');
+  await expect(customSection).toContainText(`${spaceName} · Pinned`);
+  await expect(customSection).not.toContainText("Angeheftet");
+  // Manor's own navigation rows follow the language too; CRM is a name.
+  for (const name of ["CRM", "Integrationen", "Dokumentation"]) {
+    await expect(sidebar.getByRole("button", { name, exact: true })).toBeVisible();
+  }
   await captureScreenshot(page, testInfo, "localized-sidebar-headings-de");
 });

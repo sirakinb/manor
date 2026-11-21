@@ -99,7 +99,15 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`. In progress: `v0.3.3`.
   token's owner; public forms, channel inbound, OAuth, maintenance, Workspace jobs
   and the reconciler's Manor scans run in named `runAsSystem` contexts; Workspace
   credentials are organization-wide and read in a system context after the
-  workspace lookup.
+  workspace lookup. Operator portal provisioning and the shared space migration
+  also run in named system contexts. Inside a context, use an interactive
+  transaction: batch `$transaction([...])` is rejected.
+- Manor's `*.postgres.test.ts` suites run in CI from `v0.3.3` on (upstream's harness
+  finds them by file pattern). They call db and adapter functions in the context
+  the real caller uses, and read fixtures through the system client.
+- Manor's catch-all around the screen revocation when a user replies during a
+  takeover is retired: upstream's `revokeScreenControl` treats a gone sandbox as
+  released and surfaces other failures.
 - Passkeys are offered only on the primary host (`passkeyRpIdForRequest`); brand
   portals are on another domain and keep password, email-code and Google sign-in.
 - Bot computer screens are framed same-host (upstream's `embeddableScreenUrl`). App
@@ -108,6 +116,13 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`. In progress: `v0.3.3`.
   `frame-src` on brand hosts, and `framablePreviewUrl` validates the address.
 - The content security policy has a small Manor block: Google Fonts, the `/preview`
   pass-through, and the primary-origin frame source.
+- Manor code never creates encrypted rows (`Message`, `Event`, `MemoryRevision`)
+  through a nested Prisma write; upstream's content encryption layer rejects that
+  even when encryption is off. Create the parent, then the encrypted row directly
+  (see `importWorkspaceKnowledge`).
+- Names shown from Manor's own RPCs (team members, message authors in shared spaces,
+  the organization label) go through upstream's `displayName`, so legacy placeholder
+  names never reach the screen.
 - Composio is keyed per user and space (`composioEntityId`) everywhere, including
   upstream's fake client in tests.
 - The desktop setup's cloud choice is "Manor Cloud"; upstream's fixed cloud option

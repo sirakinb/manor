@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   ComposioConnector,
+  composioEntityId,
   EncryptedSecretStore,
   FakeComposioClient,
   InstalledConnectorProvider,
@@ -342,9 +343,10 @@ describeWithDatabase("Composio catalog reconciliation", () => {
         }),
       }),
     );
+    // Manor keys the Composio entity by user and space, so one person's spaces stay apart.
     expect(fake.executions).toContainEqual(
       expect.objectContaining({
-        userId: actor.userId,
+        userId: composioEntityId(actor.userId, actor.spaceId),
         tool: "GMAIL_FETCH_EMAILS",
         args: { query: "from:teammate", max_results: 5 },
       }),

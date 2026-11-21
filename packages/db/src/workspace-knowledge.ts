@@ -86,14 +86,13 @@ export async function importWorkspaceKnowledge(prisma: PrismaClient, owner: Work
           where: { ...owner, scope: "user", botId: null, path },
         });
         if (existing) continue;
-        await tx.memoryDocument.create({
-          data: {
-            ...owner,
-            scope: "user",
-            path,
-            content: entry.content,
-            revisions: { create: { revision: 1, content: entry.content } },
-          },
+        // Content encryption rejects nested writes into encrypted models, so the
+        // first revision is written on its own, as the memory store does.
+        const document = await tx.memoryDocument.create({
+          data: { ...owner, scope: "user", path, content: entry.content },
+        });
+        await tx.memoryRevision.create({
+          data: { documentId: document.id, revision: document.revision, content: entry.content },
         });
       }
     },

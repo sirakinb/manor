@@ -120,7 +120,8 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
 
     // Leasing: one property with two active leases, two listings.
     await prisma.workspaceBuildiumProperty.create({
-      data: { workspaceId, propertyId: 1001, addressLine: "12 Test St" },
+      // The Buildium sync records whether a property is active; the picker lists active ones.
+      data: { workspaceId, propertyId: 1001, addressLine: "12 Test St", isActive: true },
     });
     await prisma.workspaceBuildiumLease.createMany({
       data: [
@@ -698,6 +699,10 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     await prisma.workspaceUtilityProperty.update({
       where: { id: tracked.utilityPropertyId },
       data: { aliases: [] },
+    });
+    // The turnover leases are done; the leasing summary counts the base fixture's leases only.
+    await prisma.workspaceBuildiumLease.deleteMany({
+      where: { workspaceId, leaseId: { in: [40, 41] } },
     });
   });
 

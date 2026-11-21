@@ -75,8 +75,9 @@ test("sidebar Now and Recent surface active and terminal runs", async ({ page },
   await expect(aside.getByText("Now", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(activityRow(page, "Chief")).toBeVisible();
   await expect(activityRow(page, "Chief")).toContainText(/keep working|Running|Queued|Starting/i);
+  // Manor is pinned to dark: a light OS preference must not change the theme.
   await page.emulateMedia({ colorScheme: "light" });
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const filtersButton = aside.getByRole("button", { name: "Filters", exact: true });
   await expect(filtersButton).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByTestId("activity-status-filter")).toBeHidden();
@@ -114,7 +115,6 @@ test("sidebar Now and Recent surface active and terminal runs", async ({ page },
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await captureActivitySidebar(page, testInfo, "58c-activity-now-dark");
-  await page.emulateMedia({ colorScheme: "light" });
   await runSearch.fill("Chief");
   await activityToggle.click();
   const normalSearch = aside.getByRole("textbox", { name: "Search", exact: true });

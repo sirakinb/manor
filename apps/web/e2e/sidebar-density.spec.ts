@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { darkTokens } from "@rakazo/ui-tokens";
 import {
   activeBotId,
   captureScreenshot,
@@ -9,6 +10,12 @@ import {
 } from "./helpers";
 
 const DENSITY_KEY = "rakazo.botsSidebarDensity";
+
+/** A `#RRGGBB` token as the `rgb(r, g, b)` string computed styles report. */
+function hexToRgb(hex: string): string {
+  const value = Number.parseInt(hex.replace("#", ""), 16);
+  return `rgb(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255})`;
+}
 
 test("compact bot sidebar hides previews and preserves roster status accessibly", async ({
   page,
@@ -45,10 +52,11 @@ test("compact bot sidebar hides previews and preserves roster status accessibly"
   await expect(previewRow.locator("[data-roster-preview]")).toHaveClass(/line-clamp-2/);
   await expect(previewRow).toHaveAttribute("data-roster-unread", "true");
   await expect(previewRow).toHaveAccessibleName(/Compact Sample.*unread/i);
-  // The unread dot is the one blue in the sidebar, not ink.
+  // The unread dot is the one blue in the sidebar, not ink. The web app is pinned to dark.
+  expect(darkTokens.unread.toLowerCase()).not.toBe(darkTokens.foreground.toLowerCase());
   await expect(previewRow.locator("[data-roster-unread-dot]")).toHaveCSS(
     "background-color",
-    "rgb(0, 108, 235)",
+    hexToRgb(darkTokens.unread),
   );
   await previewRow.scrollIntoViewIfNeeded();
   const comfortableHeight = await previewRow.evaluate(

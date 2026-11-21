@@ -36,6 +36,7 @@ import {
   buildComposerMentionOptions,
   DEFAULT_AVATAR_STYLE,
   dismissableAskMessageIds,
+  displayName,
   foldPeerReplies,
   inferAttachmentMimeType,
   isActive,
@@ -1720,7 +1721,9 @@ function SpaceShell() {
   // Navigation contains only the account's organization for this portal.
   const currentOrganizationName = useMemo(() => {
     const currentSpaceId = selectedSpaceId() ?? bootstrapMe?.spaceId;
-    return spaces.find((space) => space.id === currentSpaceId)?.organizationName ?? null;
+    // An unreadable legacy organization name is hidden rather than printed raw.
+    const name = spaces.find((space) => space.id === currentSpaceId)?.organizationName;
+    return displayName(name, "") || null;
   }, [spaces, bootstrapMe?.spaceId]);
 
   const spaceSwitchRequest = useRef(0);

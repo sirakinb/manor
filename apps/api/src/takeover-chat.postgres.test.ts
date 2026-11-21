@@ -67,6 +67,13 @@ describePostgres("chat replies during screen takeover (PostgreSQL)", () => {
       data: { id, name: "Takeover fixture", slug: id, createdAt: new Date() },
     });
     await system.space.create({ data: { id, organizationId: id, name: "Fixture" } });
+    // Manor's run setup resolves the member's Workspace, so the owner must be a member.
+    await system.member.create({
+      data: { id, organizationId: id, userId: id, role: "owner", createdAt: new Date() },
+    });
+    await system.spaceMember.create({
+      data: { id, spaceId: id, organizationId: id, userId: id, createdAt: new Date() },
+    });
     const computer = await system.computer.create({
       data: { spaceId: id, userId: id, scopeKey: id, homeKey: id, kind: "fake", state: "running" },
     });

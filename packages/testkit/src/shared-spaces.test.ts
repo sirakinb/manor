@@ -5,6 +5,7 @@ import path from "node:path";
 import { ComposioConnector, FakeComposioClient } from "@rakazo/adapters";
 import type { Bot, Me, Space, SpaceNavigation, ThreadSnapshot } from "@rakazo/contracts";
 import {
+  type PrismaClient,
   requireMembership,
   shareUnstartedSpace,
   spaceNotificationRecipients,
@@ -12,6 +13,7 @@ import {
 } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
+import { asSystem } from "./system-db.js";
 
 const withDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
@@ -21,6 +23,8 @@ type Handles = Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").
 
 withDb("shared spaces keep team resources separate from personal accounts", () => {
   let handles: Handles;
+  // Fixtures and assertions; the code under test keeps the context its request gives it.
+  let db: PrismaClient;
   let ownerCookie: string;
   let peerCookie: string;
   let outsiderCookie: string;
@@ -73,7 +77,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     const cookie = sessionCookieHeader(response);
     const me = await rpc<Me>(cookie, "me");
     userIds.push(me.userId);
-    const space = await handles.prisma.space.findUniqueOrThrow({ where: { id: me.spaceId } });
+    const space = await db.space.findUniqueOrThrow({ where: { id: me.spaceId } });
     orgIds.push(space.organizationId);
     return { cookie, me, organizationId: space.organizationId };
   }
@@ -89,6 +93,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
       composio: new ComposioConnector({ client: new FakeComposioClient() }),
       encryptionKey: "offline-shared-space-encryption-key",
     });
+    db = asSystem(handles.prisma);
     const a = await signup("Alex");
     const b = await signup("Blair");
     const c = await signup("Casey");
@@ -98,8 +103,8 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     peerCookie = b.cookie;
     peer = b.me;
     outsiderCookie = c.cookie;
-    await handles.prisma.organization.delete({ where: { id: b.organizationId } });
-    await handles.prisma.member.create({
+    await db.organization.delete({ where: { id: b.organizationId } });
+    await db.member.create({
       data: {
         id: randomUUID(),
         organizationId,
@@ -120,8 +125,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
       { name: "Team projects", shared: true },
       owner.spaceId,
     );
-    accountUserId = (await handles.prisma.space.findUniqueOrThrow({ where: { id: team.id } }))
-      .accountUserId!;
+    accountUserId = (await db.space.findUniqueOrThrow({ where: { id: team.id } })).accountUserId!;
     userIds.push(accountUserId);
     bot = await rpc<Bot>(
       ownerCookie,
@@ -138,8 +142,8 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
   });
   afterAll(async () => {
     if (handles) {
-      await handles.prisma.organization.deleteMany({ where: { id: { in: orgIds } } });
-      await handles.prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      await db.organization.deleteMany({ where: { id: { in: orgIds } } });
+      await db.user.deleteMany({ where: { id: { in: userIds } } });
       await handles.stop();
     }
     rmSync(dataDir, { recursive: true, force: true });
@@ -149,7 +153,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     expect(team.shared).toBe(true);
     expect(
       (
-        await handles.prisma.spaceMember.findMany({
+        await db.spaceMember.findMany({
           where: { userId: accountUserId },
           select: { spaceId: true },
         })
@@ -206,7 +210,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     expect(
       (await rpc<ThreadSnapshot>(ownerCookie, "threads/get", { botId: bot.id }, team.id)).threadId,
     ).toBe(snapshot.threadId);
-    const runs = await handles.prisma.run.findMany({ where: { botId: bot.id } });
+    const runs = await db.run.findMany({ where: { botId: bot.id } });
     expect(runs.length).toBeGreaterThan(0);
     expect(runs.every((r) => r.userId === accountUserId)).toBe(true);
     expect(runs.every((r) => [owner.userId, peer.userId].includes(r.initiatedByUserId!))).toBe(
@@ -280,7 +284,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
       ),
     ).toEqual(new Set([owner.userId, peer.userId]));
     const actor = await requireMembership(handles.prisma, peer.userId, team.id);
-    await handles.prisma.spaceMember.delete({
+    await db.spaceMember.delete({
       where: { spaceId_userId: { spaceId: team.id, userId: peer.userId } },
     });
     await expect(spaceResourceActor(handles.prisma, actor)).rejects.toThrow();
@@ -311,10 +315,10 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
       },
       owner.spaceId,
     );
-    const memory = await handles.prisma.memoryDocument.findFirstOrThrow({
+    const memory = await db.memoryDocument.findFirstOrThrow({
       where: { spaceId: owner.spaceId, scope: "user", path: "MEMORY.md" },
     });
-    const duplicate = await handles.prisma.memoryDocument.create({
+    const duplicate = await db.memoryDocument.create({
       data: {
         spaceId: owner.spaceId,
         userId: peer.userId,
@@ -327,16 +331,15 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
       "conflicting memory",
     );
     expect(
-      (await handles.prisma.space.findUniqueOrThrow({ where: { id: owner.spaceId } }))
-        .accountUserId,
+      (await db.space.findUniqueOrThrow({ where: { id: owner.spaceId } })).accountUserId,
     ).toBeNull();
-    await handles.prisma.memoryDocument.update({
+    await db.memoryDocument.update({
       where: { id: duplicate.id },
       data: { content: memory.content },
     });
     const id = await shareUnstartedSpace(handles.prisma, owner.spaceId);
     expect(
-      await handles.prisma.memoryDocument.count({
+      await db.memoryDocument.count({
         where: { spaceId: owner.spaceId, scope: "user", path: "MEMORY.md", userId: id },
       }),
     ).toBe(1);
@@ -346,8 +349,8 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     expect(shared.id).toBe(old.id);
     expect(shared.threadId).toBe(old.threadId);
     const future = await signup("Drew");
-    await handles.prisma.organization.delete({ where: { id: future.organizationId } });
-    await handles.prisma.member.create({
+    await db.organization.delete({ where: { id: future.organizationId } });
+    await db.member.create({
       data: {
         id: randomUUID(),
         organizationId,

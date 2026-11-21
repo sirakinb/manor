@@ -5,6 +5,7 @@ import { ComposioConnector, FakeComposioClient } from "@rakazo/adapters";
 import type { SpaceNavigation } from "@rakazo/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
+import { asSystem } from "./system-db.js";
 
 type App = { request: (input: string, init?: RequestInit) => Response | Promise<Response> };
 type AppHandles = Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
@@ -45,17 +46,17 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
     });
     app = handles.app;
     // brandId is unique: park any existing claimant for the duration of the test.
-    previousClaimant = await handles.prisma.organization.findUnique({
+    previousClaimant = await asSystem(handles.prisma).organization.findUnique({
       where: { brandId: "jrh" },
       select: { id: true, brandId: true },
     });
     if (previousClaimant) {
-      await handles.prisma.organization.update({
+      await asSystem(handles.prisma).organization.update({
         where: { id: previousClaimant.id },
         data: { brandId: null },
       });
     }
-    await handles.prisma.organization.create({
+    await asSystem(handles.prisma).organization.create({
       data: {
         id: clientOrganizationId,
         name: "Jackson Rental Homes",
@@ -64,7 +65,7 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
         createdAt: new Date(),
       },
     });
-    await handles.prisma.space.create({
+    await asSystem(handles.prisma).space.create({
       data: {
         id: clientSpaceId,
         organizationId: clientOrganizationId,
@@ -76,19 +77,21 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
 
   afterAll(async () => {
     if (handles) {
-      const users = await handles.prisma.user.findMany({
+      const users = await asSystem(handles.prisma).user.findMany({
         where: { email: { in: [staffEmail, outsiderEmail] } },
         select: { id: true, members: { select: { organizationId: true } } },
       });
       const personalOrganizationIds = users
         .flatMap((user) => user.members.map((member) => member.organizationId))
         .filter((id) => id !== clientOrganizationId);
-      await handles.prisma.organization.deleteMany({
+      await asSystem(handles.prisma).organization.deleteMany({
         where: { id: { in: [clientOrganizationId, ...personalOrganizationIds] } },
       });
-      await handles.prisma.user.deleteMany({ where: { id: { in: users.map((u) => u.id) } } });
+      await asSystem(handles.prisma).user.deleteMany({
+        where: { id: { in: users.map((u) => u.id) } },
+      });
       if (previousClaimant) {
-        await handles.prisma.organization.update({
+        await asSystem(handles.prisma).organization.update({
           where: { id: previousClaimant.id },
           data: { brandId: previousClaimant.brandId },
         });
@@ -100,7 +103,7 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
 
   it("makes a sign-up on the branded host a member of the client's default space", async () => {
     const cookie = await signup(app, staffEmail, "Staff Member", BRAND_ORIGIN);
-    const user = await handles.prisma.user.findUniqueOrThrow({
+    const user = await asSystem(handles.prisma).user.findUniqueOrThrow({
       where: { email: staffEmail },
       include: { members: true },
     });
@@ -164,12 +167,12 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
   });
 
   it("keeps each portal within its organization for a member of two", async () => {
-    const outsider = await handles.prisma.user.findUniqueOrThrow({
+    const outsider = await asSystem(handles.prisma).user.findUniqueOrThrow({
       where: { email: outsiderEmail },
       include: { members: true },
     });
     const personalOrganizationId = outsider.members[0]!.organizationId;
-    await handles.prisma.member.create({
+    await asSystem(handles.prisma).member.create({
       data: {
         id: `member-${stamp}`,
         organizationId: clientOrganizationId,
@@ -180,7 +183,7 @@ describeWithDatabase("branded sign-up joins the client's organization", () => {
     });
     // The default-space membership trigger adds the new member to the client's default space.
     await expect(
-      handles.prisma.spaceMember.findUnique({
+      asSystem(handles.prisma).spaceMember.findUnique({
         where: { spaceId_userId: { spaceId: clientSpaceId, userId: outsider.id } },
       }),
     ).resolves.toBeTruthy();

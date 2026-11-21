@@ -5,7 +5,7 @@ import {
   FakePropertyLedger,
   runWorkspaceReport,
 } from "@rakazo/adapters";
-import { createDb, IsolationError, type PrismaClient } from "@rakazo/db";
+import { asSystem, createDb, IsolationError, type PrismaClient } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   createWorkspaceActions,
@@ -36,6 +36,8 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
   const draftReportId = `wa-report-draft-${suffix}`;
   const approvedReportId = `wa-report-approved-${suffix}`;
   let prisma: PrismaClient;
+  /** Secret rows are protected; the actions reach them in their own system context. */
+  let system: PrismaClient;
   let close: () => Promise<void>;
   let secrets: EncryptedSecretStore;
   let ledger: FakePropertyLedger;
@@ -46,6 +48,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
   beforeAll(async () => {
     const db = createDb(databaseUrl!);
     prisma = db.prisma;
+    system = asSystem(prisma);
     close = async () => {
       await db.prisma.$disconnect();
       await db.pool.end();
@@ -136,6 +139,8 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
           splitEvenly: true,
         },
         { workspaceId, address: "20 Single Rd", addressNorm: "20 single road", propertyId: 102 },
+        // Tracked but not yet tied to a Buildium property, so its bill stays unresolved.
+        { workspaceId, address: "99 Nowhere", addressNorm: "99 nowhere" },
       ],
     });
     await prisma.workspaceWaterBill.createMany({
@@ -326,7 +331,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
       fields: { clientSecret: "", accountId: "77" },
     });
     expect(merged.fields).toEqual(["accountId", "clientId"]);
-    const secretRows = await prisma.secret.findMany({
+    const secretRows = await system.secret.findMany({
       where: { kind: "workspace-credential", userId: ownerId },
     });
     expect(secretRows).toHaveLength(1);
@@ -348,7 +353,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
     await actions.removeCredential(owner, "twilio");
     expect((await actions.listCredentials(owner)).map((row) => row.provider)).toEqual(["buildium"]);
     expect(
-      await prisma.secret.count({ where: { kind: "workspace-credential", userId: ownerId } }),
+      await system.secret.count({ where: { kind: "workspace-credential", userId: ownerId } }),
     ).toBe(1);
   });
 
