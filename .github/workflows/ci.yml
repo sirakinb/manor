@@ -139,7 +139,8 @@ jobs:
   test-integration:
     name: Postgres journeys
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Manor's own Postgres suites run on top of upstream's, so this needs more than upstream's 10.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
         with:
