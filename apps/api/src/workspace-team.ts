@@ -31,6 +31,18 @@ export function createWorkspaceTeam(prisma: PrismaClient) {
       // Repeated simultaneous first clicks share one default bot. An archived
       // default is never silently restored; the normal bot picker can restore it.
       const spawnKey = `workspace:${workspace.id}:${actor.userId}`;
+      // createBot frees an archived bot's spawn key and makes a fresh one, so the
+      // archived default is checked here, before any create.
+      const archived = await prisma.bot.findFirst({
+        where: {
+          spaceId: actor.spaceId,
+          userId: actor.userId,
+          spawnKey,
+          archivedAt: { not: null },
+        },
+        select: { id: true },
+      });
+      if (archived) throw restoreArchivedDefault();
       try {
         return await repos.createBot(actor, {
           name: "Workspace assistant",
@@ -50,10 +62,14 @@ export function createWorkspaceTeam(prisma: PrismaClient) {
         const bot =
           created && (await repos.listBots(actor)).find((candidate) => candidate.id === created.id);
         if (bot) return bot;
-        throw new ORPCError("CONFLICT", {
-          message: "Restore your archived workspace assistant or create a bot first.",
-        });
+        throw restoreArchivedDefault();
       }
     },
   };
+}
+
+function restoreArchivedDefault() {
+  return new ORPCError("CONFLICT", {
+    message: "Restore your archived workspace assistant or create a bot first.",
+  });
 }
