@@ -1774,14 +1774,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
          */
         const checkReply = async (
           blocks: MessageBlock[],
+          // Narration already posted as its own message this turn. It is part of what the
+          // bot told the user, so it is checked with the final reply.
+          earlierTexts: readonly string[] = [],
         ): Promise<
           | { note?: Extract<MessageBlock, { kind: "verification" }>; logVerdicts: () => void }
           | undefined
         > => {
           if (!answerSources.items.length) return undefined;
-          const reply = blocks
-            .flatMap((block) => (block.kind === "text" ? [block.text] : []))
-            .join("\n");
+          const reply = [
+            ...earlierTexts,
+            ...blocks.flatMap((block) => (block.kind === "text" ? [block.text] : [])),
+          ].join("\n");
           const claims = extractClaims(reply);
           if (!claims.length) return undefined;
           const { preference, engines } = await loadVerificationSetup();
@@ -4442,7 +4446,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (containsSecret(text, runSecrets)) {
             throw new Error("refusing to persist a secret in the thread");
           }
-          const replyCheck = handedOff ? undefined : await checkReply(blocks);
+          const replyCheck = handedOff ? undefined : await checkReply(blocks, midTurnUserTexts);
           if (replyCheck?.note) blocks.push(replyCheck.note);
           if (!(await renewRunLease(deps, runId, workerId, fence))) return;
           const botMessageOutcome =

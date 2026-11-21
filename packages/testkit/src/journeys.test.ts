@@ -2716,10 +2716,11 @@ describeJourneys("required product journeys", () => {
           snap.messages.some((message) => message.runId === sent.runId && message.role === "bot") &&
           (!snap.run || ["completed", "failed", "cancelled"].includes(snap.run.status)),
       );
-      const reply = done.messages.find(
-        (message) => message.runId === sent.runId && message.role === "bot",
-      );
-      expect(reply?.blocks).toContainEqual({
+      // Narration before a tool call is its own message; the note rides on the final reply.
+      const replyBlocks = done.messages
+        .filter((message) => message.runId === sent.runId && message.role === "bot")
+        .flatMap((message) => message.blocks);
+      expect(replyBlocks).toContainEqual({
         kind: "verification",
         unsupported: ["writing the record through the connected destination."],
       });
