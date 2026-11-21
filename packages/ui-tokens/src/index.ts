@@ -20,17 +20,26 @@ export type ColorTokens = {
   cardForeground: string;
   popover: string;
   popoverForeground: string;
+  /** Fill and hairline where native Liquid Glass is unavailable (Android, iOS before 26). */
+  glassFill: string;
+  glassStroke: string;
   primary: string;
   primaryForeground: string;
   secondary: string;
   secondaryForeground: string;
   chatUser: string;
+  /** White in both themes: the user bubble is a solid fill (light grey in dark, near-black in light). */
   chatUserForeground: string;
   muted: string;
   mutedForeground: string;
+  /** Tertiary text: placeholders, list markers, quote bars, timestamps. */
+  faintForeground: string;
   accent: string;
   accentForeground: string;
+  /** Destructive text and outlines. */
   destructive: string;
+  /** Solid destructive fill (Hang up, a filled Delete); its text is `destructiveForeground`. */
+  destructiveFill: string;
   destructiveForeground: string;
   border: string;
   input: string;
@@ -41,11 +50,13 @@ export type ColorTokens = {
   sidebarAccent: string;
   sidebarAccentForeground: string;
   link: string;
-  /** Backing behind a link's site icon. White in both themes so dark logos stay visible. */
+  /** Backing behind a link's site icon. White in both themes so dark logos stay visible on any bubble. */
   faviconPlate: string;
   success: string;
   warning: string;
   statusWorking: string;
+  /** Unread dot. The one blue in the inbox, in both themes. */
+  unread: string;
   overlay: string;
   scrollbar: string;
   scrollbarHover: string;
@@ -64,6 +75,9 @@ export const darkTokens = {
   cardForeground: "#F1F0F3",
   popover: "#1A1A1A",
   popoverForeground: "#F1F0F3",
+  // Manor: the popover surface and the skin's strong hairline.
+  glassFill: "#1A1A1A",
+  glassStroke: "#262626",
   primary: "#A855F7",
   primaryForeground: "#FFFFFF",
   secondary: "#1F1F1F",
@@ -72,9 +86,13 @@ export const darkTokens = {
   chatUserForeground: "#F1F0F3",
   muted: "#1F1F1F",
   mutedForeground: "#8A8792",
+  // Manor: the skin's second muted step (--rk-muted-2).
+  faintForeground: "#6E6975",
   accent: "#242424",
   accentForeground: "#F1F0F3",
   destructive: "#EF4444",
+  // Manor: the skin's strong danger (--rk-danger-strong).
+  destructiveFill: "#DC2626",
   destructiveForeground: "#FFFFFF",
   border: "#1F1F1F",
   input: "#242424",
@@ -92,45 +110,52 @@ export const darkTokens = {
   warning: "#E9C46A",
   // Matches Manor's link blue, as the semantic palette requires.
   statusWorking: "#86B7FF",
+  // Manor: the link blue, so the inbox keeps one blue.
+  unread: "#86B7FF",
   overlay: "rgba(4, 4, 5, 0.72)",
   scrollbar: "#1E2026",
   scrollbarHover: "#2E313A",
 } as const satisfies ColorTokens;
 
 export const lightTokens = {
-  background: "#FAFAF8",
+  background: "#FCFCFC",
   dialog: "#FFFFFF",
-  foreground: "#1A1A1A",
-  card: "#FFFFFF",
-  cardForeground: "#1A1A1A",
+  foreground: "#000000",
+  card: "#EFEFEF",
+  cardForeground: "#000000",
   popover: "#FFFFFF",
-  popoverForeground: "#1A1A1A",
-  primary: "#1A1A1A",
-  primaryForeground: "#F1F1EF",
-  secondary: "#F0F0ED",
-  secondaryForeground: "#1A1A1A",
-  chatUser: "#E2E2DC",
-  chatUserForeground: "#1A1A1A",
-  muted: "#F0F0ED",
-  mutedForeground: "#6C6C70",
-  accent: "#EAEAE6",
-  accentForeground: "#1A1A1A",
-  destructive: "#DC2626",
+  popoverForeground: "#000000",
+  glassFill: "#FFFFFF",
+  glassStroke: "#14141416",
+  primary: "#000000",
+  primaryForeground: "#FFFFFF",
+  secondary: "#7676801F",
+  secondaryForeground: "#000000",
+  chatUser: "#0B0B0B",
+  chatUserForeground: "#FFFFFF",
+  muted: "#F2F2F1",
+  mutedForeground: "#3C3C43B3",
+  faintForeground: "#3C3C4394",
+  accent: "#78788029",
+  accentForeground: "#000000",
+  destructive: "#CE2C31",
+  destructiveFill: "#E5484D",
   destructiveForeground: "#FFFFFF",
-  border: "#DCDCD6",
-  input: "#EAEAE6",
+  border: "#14141414",
+  input: "#3C3C434A",
   ring: "#6C6C70",
-  sidebar: "#ECECE9",
-  sidebarForeground: "#1A1A1A",
-  sidebarBorder: "#E8E8E4",
+  sidebar: "#F7F7F7",
+  sidebarForeground: "#000000",
+  sidebarBorder: "#14141414",
   sidebarAccent: "#FFFFFF",
-  sidebarAccentForeground: "#1A1A1A",
-  link: "#2563EB",
+  sidebarAccentForeground: "#000000",
+  link: "#0C64C1",
   faviconPlate: "#FFFFFF",
-  success: "#228B3B",
-  warning: "#B7791F",
-  statusWorking: "#2563EB",
-  overlay: "rgba(20, 20, 22, 0.45)",
+  success: "#007041",
+  warning: "#885A07",
+  statusWorking: "#0C64C1",
+  unread: "#006CEB",
+  overlay: "rgba(0, 0, 0, 0.19)",
   scrollbar: "#C8C8C4",
   scrollbarHover: "#A8A8A4",
 } as const satisfies ColorTokens;
@@ -166,6 +191,28 @@ export const tokens = {
 } as const;
 
 export const RADIUS = "0.75rem";
+
+export const fontWeight = { regular: "400", medium: "500", semibold: "600" } as const;
+
+/**
+ * Native text styles on the system font, in points: iOS body text is 17/22. Titles use the
+ * font's own line spacing, written out so they don't inherit a smaller body line height.
+ */
+export const typeScale = {
+  title: { fontSize: 22, lineHeight: 26, fontWeight: fontWeight.semibold },
+  headline: { fontSize: 19, lineHeight: 23, fontWeight: fontWeight.semibold },
+  cardTitle: { fontSize: 17, lineHeight: 22, fontWeight: fontWeight.medium },
+  body: { fontSize: 17, lineHeight: 22 },
+  secondary: { fontSize: 15, lineHeight: 19 },
+  caption: { fontSize: 14, lineHeight: 18 },
+  footnote: { fontSize: 12, lineHeight: 16 },
+} as const;
+
+/**
+ * Text grows with the iOS text size until body text reaches 23pt, the xxxLarge size. Larger
+ * accessibility sizes keep that size, so message bubbles, rows and cards keep their layout.
+ */
+export const MAX_FONT_SCALE = 23 / typeScale.body.fontSize;
 
 // Manor sprite family: purple, yellow, teal, lavender, orange, red, blue.
 // Hexes must match the SPRITES map in ui-web/bot-avatar.tsx.

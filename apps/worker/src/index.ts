@@ -2,6 +2,7 @@ import type { JobPublisher, JobWorkerHost } from "@rakazo/adapter-kit";
 import { ComposioConnector, IntegrationProviderSettings } from "@rakazo/adapters";
 import { phoneCallSettings } from "@rakazo/core";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
+import { startWorkerHealth } from "./health.js";
 import { createWorkerSecretStore } from "./secret-store.js";
 
 loadRootEnv();
@@ -16,6 +17,7 @@ import {
   createJobReconciler,
   createMessagingContextLoader,
   createPostgresReconciliationLeadership,
+  createProductAnalytics,
   createRoutineRetryNoticeReconciler,
   createRunExecutor,
   createRunSandbox,
@@ -40,6 +42,7 @@ import {
   McpConnector,
   McpOAuthBroker,
   maintenanceControlFromEnv,
+  mcpStdioOptionsFromEnv,
   messagingEnvFromProcess,
   messagingPlatformsFromEnv,
   PiAgentRuntime,
@@ -61,12 +64,20 @@ import {
 } from "@rakazo/adapters";
 import { resolveEncryptionKey, resolveSupervisorToken, uploadSizeFromEnv } from "@rakazo/core";
 import {
+  contentEncryptionOf,
   createBoardEvents,
   createDb,
+  createSecurityEventPruner,
   createThreadEvents,
+  describeRowSecurity,
+  installSecurityEventStore,
   isTooManyDatabaseConnections,
   parsePositiveInteger,
   pushSessionExpiresAt,
+  rowSecurityWarning,
+  runAsSystem,
+  securityEventRetentionDays,
+  verifyContentKeys,
 } from "@rakazo/db";
 import { SERVICE_NAMES } from "@rakazo/logging";
 import { createRootLogger } from "@rakazo/logging/axiom";
@@ -88,6 +99,8 @@ async function main() {
   });
   const { pool } = created;
   let { prisma } = created;
+  const rowSecurity = rowSecurityWarning(await describeRowSecurity(prisma));
+  if (rowSecurity) logger.warn(rowSecurity);
   const realtime = new PostgresRealtimeFanout({
     connectionString: process.env.REALTIME_DATABASE_URL ?? databaseUrl,
     publisher: pool,
@@ -96,7 +109,15 @@ async function main() {
   if (secrets.describe().capabilities.degraded)
     logger.warn("Secret storage degraded; encrypted credentials remain available");
   prisma = withSecretPersistence(prisma, secrets);
+  installSecurityEventStore(prisma);
+  const unreadableMasterKeys = await verifyContentKeys(prisma);
+  if (unreadableMasterKeys.length)
+    logger.error("Stored space keys need master keys that are not configured", undefined, {
+      masterKeyIds: unreadableMasterKeys,
+    });
+  const analytics = createProductAnalytics();
   const events = createThreadEvents(prisma, realtime, {
+    analytics,
     runSecretWriter: createRunSecretWriter(secrets),
   });
   const ticketBoardEnabled = process.env.TICKET_BOARD_ENABLED === "true";
@@ -137,6 +158,7 @@ async function main() {
         .split(",")
         .map((v) => v.trim())
         .filter(Boolean),
+      ...mcpStdioOptionsFromEnv(process.env),
       events,
       allowPrivateEndpoint,
     },
@@ -169,23 +191,21 @@ async function main() {
     resolveEncryptionKey(process.env),
     {
       composio: isComposioEnabled(process.env.COMPOSIO_API_KEY)
-        ? new ComposioConnector(process.env.COMPOSIO_API_KEY)
+        ? new ComposioConnector({ apiKey: process.env.COMPOSIO_API_KEY })
         : undefined,
       pipedream,
     },
   );
-  const stack = createConnectorStack(false, undefined, [
+  const stack = createConnectorStack(undefined, [
     new InstalledConnectorProvider(prisma, secrets, {}, allowPrivateEndpoint),
     ...integrationSettings.providers(),
     new ZohoCampaignsConnector({ prisma, secrets }),
     mcp,
   ]);
-  const connector = stack.destination;
-  await connector.start();
   integrationSettings.warmDirectories();
   const memoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
   const home = new LocalAgentHomeStore(dataDir);
-  const artifacts = new LocalArtifactStore(dataDir);
+  const artifacts = new LocalArtifactStore(dataDir, contentEncryptionOf(prisma)?.ring);
   const inMemoryJobs = process.env.WAKEUP_DRIVER === "memory" ? new InMemoryJobQueue() : undefined;
   const jobs: JobPublisher = inMemoryJobs ?? new GraphileJobPublisher(pool);
   const ticketChanges = createTicketChangeNotifier({
@@ -197,9 +217,11 @@ async function main() {
   // One provider instance so emulator launches and polls share the same Map.
   const cloudAgent = createCloudAgentConnection();
   // Shared with the reconciler so a stuck wait uses the same push path as a finish notice.
-  const notifications = new ExpoPushProvider(dataDir, (sessionId) =>
-    pushSessionExpiresAt(prisma, sessionId),
-  );
+  const notifications = new ExpoPushProvider(dataDir, {
+    sessionExpiresAt: (sessionId) => pushSessionExpiresAt(prisma, sessionId),
+    jobs,
+    accessToken: process.env.EXPO_ACCESS_TOKEN,
+  });
   const executor = createRunExecutor({
     maxUploadSizeBytes: uploadSizeFromEnv(process.env),
     prisma,
@@ -261,6 +283,7 @@ async function main() {
     prisma,
     sandbox,
     home,
+    artifacts,
     jobs,
     events,
     workerId: process.pid.toString(),
@@ -272,6 +295,7 @@ async function main() {
     messaging,
     ingestion: ingestionRunnerFromEnv(process.env),
     cloudAgent,
+    notifications,
   });
   // graphile-worker run() connects through the shared pool. createPool already
   // retries connect() on 53300 a finite number of times. Keep retrying start
@@ -306,25 +330,31 @@ async function main() {
       : createRoutineRetryNoticeReconciler(pool, (runId) =>
           executor.notifyRoutineRetryAttemptsExhausted(runId),
         ),
+    reconcileSecurityEventRetention: createSecurityEventPruner(
+      prisma,
+      securityEventRetentionDays(),
+    ),
   });
   reconciler.start();
+  const stopHealth = startWorkerHealth(reconciler.lastCompletedAt);
 
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
     stopping = true;
     try {
+      await stopHealth();
       await reconciler.stop();
       await jobHost.stop();
       await jobs.close();
       await secrets.close();
       await realtime.close();
-      await connector.stop();
       await mcp.close();
       await control?.close();
       await prisma.$disconnect().catch(() => undefined);
       await pool.end().catch(() => undefined);
     } finally {
+      await analytics?.flush();
       await shutdownPiTelemetry();
       await logger.flush({ timeoutMs: 2_000 });
     }
@@ -350,7 +380,10 @@ async function main() {
   logger.info("worker ready", { degraded: secrets.describe().capabilities.degraded ?? false });
 }
 
-main().catch(async (error) => {
+// The worker only does cross-tenant work: job dispatch, reconcilers, leadership and
+// realtime, all keyed by ids rather than a signed-in user. This is its one
+// row-level security bypass; jobs re-enter it explicitly (see wakeup.ts).
+runAsSystem("worker process", main).catch(async (error) => {
   logger.error("worker startup failed", error);
   await logger.flush({ timeoutMs: 2_000 });
   // jobHost.start retries 53300 without bound above, so a saturated Postgres at

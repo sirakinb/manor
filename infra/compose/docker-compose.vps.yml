@@ -260,6 +260,12 @@ services:
       API_PROXY_TARGET: http://api:3100
       RAKAZO_HOST: ${RAKAZO_HOST:?Set RAKAZO_HOST in .env.vps}
       SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env.vps}
+      # Extra script and connect origins for the app's content security policy. Empty keeps
+      # the built-in policy; an invalid origin stops the server rather than widen it.
+      RAKAZO_CSP_SCRIPT_SRC: ${RAKAZO_CSP_SCRIPT_SRC:-}
+      RAKAZO_CSP_CONNECT_SRC: ${RAKAZO_CSP_CONNECT_SRC:-}
+      # Manor: brand portal pages frame app previews from this primary origin.
+      WEB_ORIGIN: ${WEB_ORIGIN:-}
     expose:
       - "5173"
     networks:

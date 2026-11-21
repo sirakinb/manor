@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { ModelCatalogEntry } from "@rakazo/contracts";
 import { createDb } from "../../../packages/db/src/client";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, expandAdvancedSection, signup } from "./helpers";
 
 /**
  * The Workspace place only exists for organizations with a connected
@@ -590,7 +590,7 @@ test("workspace appears once the organization has one and its map opens sections
   expect(await access.evaluate((node) => node.parentElement?.firstElementChild === node)).toBe(
     true,
   );
-  await access.locator("summary").click();
+  await expandAdvancedSection(access);
   await expect(access.getByRole("button", { name: "Create token", exact: true })).toHaveCSS(
     "background-color",
     "rgb(168, 85, 247)",

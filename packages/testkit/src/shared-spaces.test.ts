@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ComposioEmulator } from "@rakazo/adapters";
+import { ComposioConnector, FakeComposioClient } from "@rakazo/adapters";
 import type { Bot, Me, Space, SpaceNavigation, ThreadSnapshot } from "@rakazo/contracts";
 import {
   requireMembership,
@@ -86,7 +86,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
       agentRuntime: "scripted",
       wakeupDriver: "memory",
       signupsEnabled: "true",
-      composio: new ComposioEmulator(),
+      composio: new ComposioConnector({ client: new FakeComposioClient() }),
       encryptionKey: "offline-shared-space-encryption-key",
     });
     const a = await signup("Alex");

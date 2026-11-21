@@ -1,8 +1,10 @@
 import { t } from "@lingui/core/macro";
+import { MCP_OAUTH_CHANNEL } from "./mcp-oauth-channel";
 import { parsePastedCallback } from "./mcp-paste";
 import { rpc } from "./rpc";
 
-export const MCP_OAUTH_CHANNEL = "rakazo-mcp-oauth";
+export { MCP_OAUTH_CHANNEL } from "./mcp-oauth-channel";
+
 const MCP_OAUTH_TIMEOUT_MS = 2 * 60 * 1000;
 
 export type McpOauthResult =
@@ -19,11 +21,13 @@ export type McpOauthResult =
  *
  * The BroadcastChannel (not window.opener) is the completion signal because
  * provider login pages with COOP sever the opener link. */
+/** Where providers send the user back; a pre-registered client must allow it. */
+export function mcpOAuthRedirectUri(): string {
+  return `${window.location.origin}/mcp/oauth/callback`;
+}
+
 export async function connectMcpOauth(serverId: string): Promise<McpOauthResult> {
-  const started = await rpc.mcp.oauth.begin({
-    serverId,
-    redirectUri: `${window.location.origin}/mcp/oauth/callback`,
-  });
+  const started = await rpc.mcp.oauth.begin({ serverId, redirectUri: mcpOAuthRedirectUri() });
   if (started.status !== "authorization_required") return started.status;
   if (started.completion === "paste") {
     window.open(started.authorizationUrl, "_blank");

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   appEntryUrl,
+  BUNDLED_SERVER_URL,
   DEFAULT_LOCAL_WEB_URL,
   desktopStackImageTag,
   isRakazoHealth,
@@ -129,6 +130,17 @@ describe("saved setup", () => {
       mode: "existing",
       serverUrl: "http://192.168.1.20:3100",
     });
+  });
+
+  it("saves Manor Cloud as an existing server under its exact origin", () => {
+    // Manor Cloud is the existing-server choice, prefilled with the bundled hosted address.
+    expect(normalizeServerUrl(BUNDLED_SERVER_URL)).toBe(BUNDLED_SERVER_URL);
+    expect(parseSetupInput({ mode: "existing", serverUrl: BUNDLED_SERVER_URL })).toEqual({
+      mode: "existing",
+      serverUrl: BUNDLED_SERVER_URL,
+    });
+    expect(parseSetupInput({ mode: "new", serverUrl: BUNDLED_SERVER_URL })).toBeNull();
+    expect(servesBundledRenderer(BUNDLED_SERVER_URL, false)).toBe(false);
   });
 });
 

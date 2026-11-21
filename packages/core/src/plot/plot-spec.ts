@@ -2,7 +2,7 @@
 
 import * as Plot from "@observablehq/plot";
 import { MAX_CHART_DATA_ROWS } from "@rakazo/contracts";
-import { autoType, csvParse, tsvParse } from "d3-dsv";
+import { autoType, csvParseRows, tsvParseRows } from "d3-dsv";
 import { isGaugeSpec, renderGaugeSvg } from "./gauge.js";
 
 /**
@@ -255,9 +255,16 @@ function buildMark(
   return factory(data, finalOptions);
 }
 
+/** csvParse builds row objects with `new Function`, which the web app's CSP blocks. */
+function delimitedRows([columns = [], ...rows]: string[][]): unknown[] {
+  return rows.map((row) =>
+    autoType(Object.fromEntries(columns.map((column, index) => [column, row[index] ?? ""]))),
+  );
+}
+
 export function parsePlotData(name: string, content: string): unknown[] {
-  if (/\.csv$/i.test(name)) return csvParse(content, autoType);
-  if (/\.tsv$/i.test(name)) return tsvParse(content, autoType);
+  if (/\.csv$/i.test(name)) return delimitedRows(csvParseRows(content));
+  if (/\.tsv$/i.test(name)) return delimitedRows(tsvParseRows(content));
   const parsed = JSON.parse(content) as unknown;
   if (!Array.isArray(parsed))
     throw new Error("JSON data files must contain a top-level array of rows");

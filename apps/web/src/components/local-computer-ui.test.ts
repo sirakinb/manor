@@ -17,6 +17,8 @@ describe("local computer UI surfaces", () => {
     // The computer mode picker moved with the bot forms into the shell's bot panel.
     const picker = read("../pages/shell/bot-panel.tsx");
     const shell = read("../pages/Shell.tsx");
+    // The computer screen's empty states moved out of Shell into the shell's computer view.
+    const computerView = read("../pages/shell/computer-view.tsx");
 
     const enCatalog = read("../locales/en/messages.po");
     expect(enCatalog).toContain('msgid "Share this Mac"');
@@ -48,7 +50,7 @@ describe("local computer UI surfaces", () => {
     expect(picker).not.toContain("they run as you");
     expect(picker).toContain("function ComputerModePicker");
     expect(shell).toContain("localComputer={bootstrapMe?.localComputer}");
-    expect(shell).toContain(
+    expect(computerView).toContain(
       "This bot is using a shared folder on this laptop. Files and shell only.",
     );
   });

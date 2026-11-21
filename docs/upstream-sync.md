@@ -15,7 +15,7 @@ previous stage. CI is the verification gate; the local stack is not run. Product
 deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
-Stages done: `v0.1.6`, `v0.2.0`. In progress: `v0.3.0`.
+Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`. In progress: `v0.3.3`.
 
 ### How a stage is resolved
 
@@ -91,6 +91,28 @@ Stages done: `v0.1.6`, `v0.2.0`. In progress: `v0.3.0`.
 - Voice calls stay on: production sets `PHONE_CALLS_ENABLED=true`.
 - The composer's Send button follows upstream's styling (white), not the brand accent.
 - `AI_PRIVACY_URL` points at Pentridge Media's privacy policy, never upstream's.
+- Row-level security (upstream, from `v0.3.3`): production keeps connecting as the
+  table owner, so the policies filter nothing there, and Manor does not use the
+  restricted `rakazo_app` role. Manor's code still declares a context, because
+  upstream's test harness fails any query without one: request routes run in the
+  caller's space; the CRM and Workspace REST/MCP API runs as the integration
+  token's owner; public forms, channel inbound, OAuth, maintenance, Workspace jobs
+  and the reconciler's Manor scans run in named `runAsSystem` contexts; Workspace
+  credentials are organization-wide and read in a system context after the
+  workspace lookup.
+- Passkeys are offered only on the primary host (`passkeyRpIdForRequest`); brand
+  portals are on another domain and keep password, email-code and Google sign-in.
+- Bot computer screens are framed same-host (upstream's `embeddableScreenUrl`). App
+  previews stay on the primary host so preview code cannot reach a brand portal
+  user's session; the content security policy allows exactly `WEB_ORIGIN` in
+  `frame-src` on brand hosts, and `framablePreviewUrl` validates the address.
+- The content security policy has a small Manor block: Google Fonts, the `/preview`
+  pass-through, and the primary-origin frame source.
+- Composio is keyed per user and space (`composioEntityId`) everywhere, including
+  upstream's fake client in tests.
+- The desktop setup's cloud choice is "Manor Cloud"; upstream's fixed cloud option
+  is not adopted.
+- Auth emails and the passkey relying-party name say Manor.
 - Known macOS-only unit failures, which pass on Linux CI: the local folder runtime
   and local sandbox tests (the temp directory is a symlink).
 
@@ -113,6 +135,26 @@ Things the one production deploy at the end must cover, collected as stages land
 - Webhook-triggered runs pause for owner approval on tools outside upstream's
   read-only list until a stage brings upstream's reworked approval settings.
 - A running Docker computer is reused on start instead of being set up again.
+- Content encryption: with `NODE_ENV=production` and `CONTENT_ENCRYPTION` unset,
+  upstream encrypts new message content at rest. Keep it off for the sync deploy
+  (set it explicitly) until Manor's code that reads message content directly has
+  been checked; turning it on is its own change.
+- Production is behind Cloudflare and the web proxy: set `CLIENT_IP_HEADER`
+  (`cf-connecting-ip`) or `TRUSTED_PROXIES` so auth rate limiting sees real client
+  addresses instead of one shared address.
+- The web container needs `WEB_ORIGIN` (now passed through in the compose files)
+  for app previews on brand portals.
+- The API and worker start through `pnpm`, which does not pass the stop signal on;
+  upstream now runs `node` directly so in-flight work can finish on stop.
+- `20261021000000_team_computer_per_user` rewrites `computers` and `bots`: a shared
+  Team Computer becomes its owner's, and other members whose bots used it get a
+  stopped computer of their own without the old files. Compare each tenant's
+  computers and bots before and after on the rehearsal copy.
+- `20261021140000_row_level_security` creates the `rakazo_app` role (needs
+  CREATEROLE) and enables policies; the owner login bypasses them.
+- `20261020000000_rename_box_computers_to_boat` rewrites stored provider values.
+- `20261022000001_message_search_tokens_idx` builds concurrently; recover like the
+  other concurrent indexes below.
 - Index migrations that can leave work behind if they fail partway:
   - `20261007010000_history_search` and `20261014120001_runs_retry_of_run_id_key_concurrent`
     build concurrently. On failure drop the invalid index

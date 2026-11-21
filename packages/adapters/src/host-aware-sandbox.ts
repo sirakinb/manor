@@ -16,7 +16,7 @@ import type {
 import type { PrismaClient } from "@rakazo/db";
 import { cancelComputerRunWork } from "./computer-idle.js";
 import { manageComputerWorkspaceDirectories } from "./computer-workspace.js";
-import { DesktopSandboxProvider } from "./desktop-sandbox.js";
+import { assertHostCommandsAllowed, DesktopSandboxProvider } from "./desktop-sandbox.js";
 import { HostComputerSandbox } from "./host-computer-sandbox.js";
 import { DisconnectedLocalSandboxProvider } from "./local-sandbox.js";
 import { createSandboxProvider, type SandboxProviderOptions } from "./sandbox-factory.js";
@@ -32,6 +32,7 @@ export function createRunSandbox(
 ): SandboxProvider {
   const local = opts.localComputer ?? new DisconnectedLocalSandboxProvider();
   if (kind === "desktop") {
+    assertHostCommandsAllowed();
     return new LocalAwareSandbox(
       new DesktopSandboxProvider({
         root: opts.dataDir,

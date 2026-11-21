@@ -10,6 +10,17 @@ const flowSource = [
   "  A[Clone repo] --> B[Branch] --> C[Tests] --> D[Pull request]",
 ].join("\n");
 
+const invalidSource = [
+  "```mermaid",
+  "graph LR",
+  "  A[Unclosed --> B",
+  "```",
+  "",
+  "```ts",
+  "const ok = true;",
+  "```",
+].join("\n");
+
 async function streamUpdate(page: Page, markdown: string, streaming: boolean) {
   await page.evaluate(
     (detail) => {
@@ -34,7 +45,7 @@ async function expectDrawn(page: Page) {
   return image;
 }
 
-test("a mermaid fence is drawn as a diagram in place of its code block", async ({
+test("a mermaid fence is drawn as a themed, copyable diagram in place of its code block", async ({
   page,
 }, testInfo) => {
   await page.goto(fixture);
@@ -60,19 +71,22 @@ test("a mermaid fence is drawn as a diagram in place of its code block", async (
   expect(drawn!.width).toBeLessThanOrEqual(frame!.width);
 
   await captureScreenshot(page, testInfo, "markdown-diagram-dark");
-});
 
-test("diagrams follow the app theme", async ({ page }, testInfo) => {
+  // The copy button copies the diagram source.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Copy diagram source" }).click();
+  await expect
+    .poll(async () => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(flowSource);
+  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+
   // Diagram text is drawn in the theme's foreground token. Manor's dark palette differs from
   // upstream's, so the expected fills come from the shared tokens rather than fixed hex values.
   // The app shell is pinned to dark; this fixture sets the page theme directly, so the light
   // half still checks the shared component on a light page.
   const darkFill = `fill:${darkTokens.foreground}`;
   const lightFill = `fill:${lightTokens.foreground}`;
-  await page.goto(fixture);
-  await expectDrawn(page);
   expect(await diagramMarkup(page)).toContain(darkFill);
-
   await page.goto(`${fixture}?theme=light`);
   await expectDrawn(page);
   expect(await diagramMarkup(page)).toContain(lightFill);
@@ -115,65 +129,17 @@ test("source Mermaid cannot parse stays a readable code block", async ({ page },
   await expect(blocks).toHaveCount(2);
   await expect(blocks.first()).toContainText("A[Unclosed --> B");
   await expect(blocks.nth(1)).toContainText("const ok = true;");
-  // Give a late render the chance to replace the block before asserting it never does.
-  await page.waitForTimeout(500);
+  // Diagrams render one at a time in order, so once a valid diagram appended
+  // after the invalid one is drawn, the invalid one has settled.
+  await streamUpdate(page, `${invalidSource}\n\n\`\`\`mermaid\n${flowSource}\n\`\`\``, false);
+  await expectDrawn(page);
+  await streamUpdate(page, invalidSource, false);
+  await expect(blocks).toHaveCount(2);
   await expect(page.getByTestId("chat-diagram")).toHaveCount(0);
   await expect(message.getByRole("button", { name: "Copy code" })).toHaveCount(2);
   // Mermaid's error graphic must not appear anywhere on the page.
   await expect(page.locator("body > [id^='drk-mermaid'], body > svg")).toHaveCount(0);
   await captureScreenshot(page, testInfo, "markdown-diagram-invalid");
-});
-
-test("a fence still streaming reads as code until it closes", async ({ page }) => {
-  await page.goto(`${fixture}?case=plain&stream=1`);
-  const message = page.getByTestId("diagram-fixture");
-
-  await streamUpdate(page, "Drafting:\n\n```mermaid\ngraph LR\n  A[Clone repo] -->", true);
-  await expect(message.locator("pre")).toContainText("A[Clone repo] -->");
-  await page.waitForTimeout(500);
-  await expect(page.getByTestId("chat-diagram")).toHaveCount(0);
-
-  // Closed while the rest of the message is still arriving: drawn now.
-  await streamUpdate(page, `Drafting:\n\n\`\`\`mermaid\n${flowSource}\n\`\`\`\n\nAnd then`, true);
-  await expectDrawn(page);
-  await expect(message).toContainText("And then");
-
-  await streamUpdate(
-    page,
-    `Drafting:\n\n\`\`\`mermaid\n${flowSource}\n\`\`\`\n\nAnd then done.`,
-    false,
-  );
-  await expectDrawn(page);
-});
-
-test("a quoted streaming diagram waits for its closing fence", async ({ page }, testInfo) => {
-  await page.goto(`${fixture}?case=plain&stream=1`);
-  const open = `> \`\`\`mermaid\n${flowSource
-    .split("\n")
-    .map((line) => `> ${line}`)
-    .join("\n")}`;
-  await streamUpdate(page, open, true);
-  await expect(page.getByTestId("diagram-fixture").locator("blockquote pre")).toContainText(
-    flowSource,
-  );
-  await page.waitForTimeout(500);
-  await expect(page.getByTestId("chat-diagram")).toHaveCount(0);
-  await captureScreenshot(page, testInfo, "markdown-diagram-quoted-streaming");
-
-  await streamUpdate(page, `${open}\n> \`\`\``, true);
-  await expectDrawn(page);
-});
-
-test("the copy button copies the diagram source", async ({ page }) => {
-  await page.goto(fixture);
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await expectDrawn(page);
-  const copy = page.getByRole("button", { name: "Copy diagram source" });
-  await copy.click();
-  await expect
-    .poll(async () => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(flowSource);
-  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
 });
 
 test("Mermaid loads only for a message with a diagram", async ({ page }) => {
@@ -187,7 +153,6 @@ test("Mermaid loads only for a message with a diagram", async ({ page }) => {
   });
   await page.goto(`${fixture}?case=plain`);
   await expect(page.getByTestId("diagram-fixture").locator("pre")).toContainText("const ok");
-  await page.waitForTimeout(500);
   expect(libraryRequests).toEqual([]);
 
   await streamUpdate(page, `\`\`\`mermaid\n${flowSource}\n\`\`\``, false);

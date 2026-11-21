@@ -1,11 +1,18 @@
 import type { SecretStore } from "@rakazo/adapter-kit";
-import type { PrismaClient } from "@rakazo/db";
+import { type PrismaClient, runAsSystem } from "@rakazo/db";
 
 /**
  * Per-organization provider logins for the Workspace (Buildium, Zoho, ...).
  * Field values are a JSON object sealed in a Secret row; callers only ever
  * see field names unless they load the credential to use it server-side.
+ *
+ * The Secret row has no Space and is keyed to whichever member saved it, so
+ * row-level security would hide it from every other member of the organization.
+ * Each helper therefore reaches it in a named system context, and only through
+ * the `workspace_credentials` row found by workspace id: the caller's workspace
+ * lookup is the organization boundary, never the Secret's user or Space.
  */
+const CREDENTIAL_CONTEXT = "organization-wide Workspace credential";
 
 export const WORKSPACE_CREDENTIAL_SECRET_KIND = "workspace-credential";
 
@@ -53,21 +60,23 @@ export async function listWorkspaceCredentials(
   secrets: Pick<SecretStore, "load">,
   workspaceId: string,
 ): Promise<WorkspaceCredentialSummary[]> {
-  const rows = await prisma.workspaceCredential.findMany({
-    where: { workspaceId },
-    include: { secret: { select: { id: true, ciphertext: true } } },
-    orderBy: { provider: "asc" },
+  return runAsSystem(CREDENTIAL_CONTEXT, async () => {
+    const rows = await prisma.workspaceCredential.findMany({
+      where: { workspaceId },
+      include: { secret: { select: { id: true, ciphertext: true } } },
+      orderBy: { provider: "asc" },
+    });
+    return Promise.all(
+      rows.map(async (row) => ({
+        provider: row.provider,
+        label: row.label,
+        fields: Object.keys(
+          parseWorkspaceCredentialFields(await secrets.load(row.secret.ciphertext, row.secret.id)),
+        ).sort(),
+        updatedAt: row.updatedAt,
+      })),
+    );
   });
-  return Promise.all(
-    rows.map(async (row) => ({
-      provider: row.provider,
-      label: row.label,
-      fields: Object.keys(
-        parseWorkspaceCredentialFields(await secrets.load(row.secret.ciphertext, row.secret.id)),
-      ).sort(),
-      updatedAt: row.updatedAt,
-    })),
-  );
 }
 
 /** The decrypted fields for one provider, or null when nothing is stored. */
@@ -77,12 +86,14 @@ export async function loadWorkspaceCredential(
   workspaceId: string,
   provider: string,
 ): Promise<WorkspaceCredentialFields | null> {
-  const row = await prisma.workspaceCredential.findUnique({
-    where: { workspaceId_provider: { workspaceId, provider } },
-    include: { secret: { select: { id: true, ciphertext: true } } },
+  return runAsSystem(CREDENTIAL_CONTEXT, async () => {
+    const row = await prisma.workspaceCredential.findUnique({
+      where: { workspaceId_provider: { workspaceId, provider } },
+      include: { secret: { select: { id: true, ciphertext: true } } },
+    });
+    if (!row) return null;
+    return parseWorkspaceCredentialFields(await secrets.load(row.secret.ciphertext, row.secret.id));
   });
-  if (!row) return null;
-  return parseWorkspaceCredentialFields(await secrets.load(row.secret.ciphertext, row.secret.id));
 }
 
 /**
@@ -95,58 +106,60 @@ export async function saveWorkspaceCredential(
   scope: WorkspaceCredentialScope,
   input: { provider: string; label?: string; fields: Record<string, string> },
 ): Promise<WorkspaceCredentialSummary> {
-  const existing = await prisma.workspaceCredential.findUnique({
-    where: { workspaceId_provider: { workspaceId: scope.workspaceId, provider: input.provider } },
-    include: { secret: { select: { id: true, ciphertext: true } } },
-  });
-  const current = existing
-    ? parseWorkspaceCredentialFields(
-        await secrets.load(existing.secret.ciphertext, existing.secret.id),
-      )
-    : {};
-  const merged = mergeWorkspaceCredentialFields(current, input.fields);
-  const sealed = await secrets.put(JSON.stringify(merged), {
-    operationId: "workspace.credentials.set",
-    traceId: "workspace.credentials.set",
-    spaceId: scope.workspaceId,
-    userId: scope.userId,
-    signal: new AbortController().signal,
-  });
-  const row = await prisma.$transaction(async (tx) => {
-    await tx.secret.create({
-      data: {
-        id: sealed.id,
-        userId: scope.userId,
-        kind: WORKSPACE_CREDENTIAL_SECRET_KIND,
-        ciphertext: sealed.ciphertext,
-      },
+  return runAsSystem(CREDENTIAL_CONTEXT, async () => {
+    const existing = await prisma.workspaceCredential.findUnique({
+      where: { workspaceId_provider: { workspaceId: scope.workspaceId, provider: input.provider } },
+      include: { secret: { select: { id: true, ciphertext: true } } },
     });
-    const saved = existing
-      ? await tx.workspaceCredential.update({
-          where: { id: existing.id },
-          data: {
-            secretId: sealed.id,
-            ...(input.label === undefined ? {} : { label: input.label }),
-          },
-        })
-      : await tx.workspaceCredential.create({
-          data: {
-            workspaceId: scope.workspaceId,
-            provider: input.provider,
-            label: input.label ?? "",
-            secretId: sealed.id,
-            createdByUserId: scope.userId,
-          },
-        });
-    if (existing) await tx.secret.delete({ where: { id: existing.secret.id } });
-    return saved;
+    const current = existing
+      ? parseWorkspaceCredentialFields(
+          await secrets.load(existing.secret.ciphertext, existing.secret.id),
+        )
+      : {};
+    const merged = mergeWorkspaceCredentialFields(current, input.fields);
+    const sealed = await secrets.put(JSON.stringify(merged), {
+      operationId: "workspace.credentials.set",
+      traceId: "workspace.credentials.set",
+      spaceId: scope.workspaceId,
+      userId: scope.userId,
+      signal: new AbortController().signal,
+    });
+    const row = await prisma.$transaction(async (tx) => {
+      await tx.secret.create({
+        data: {
+          id: sealed.id,
+          userId: scope.userId,
+          kind: WORKSPACE_CREDENTIAL_SECRET_KIND,
+          ciphertext: sealed.ciphertext,
+        },
+      });
+      const saved = existing
+        ? await tx.workspaceCredential.update({
+            where: { id: existing.id },
+            data: {
+              secretId: sealed.id,
+              ...(input.label === undefined ? {} : { label: input.label }),
+            },
+          })
+        : await tx.workspaceCredential.create({
+            data: {
+              workspaceId: scope.workspaceId,
+              provider: input.provider,
+              label: input.label ?? "",
+              secretId: sealed.id,
+              createdByUserId: scope.userId,
+            },
+          });
+      if (existing) await tx.secret.delete({ where: { id: existing.secret.id } });
+      return saved;
+    });
+    return {
+      provider: row.provider,
+      label: row.label,
+      fields: Object.keys(merged).sort(),
+      updatedAt: row.updatedAt,
+    };
   });
-  return {
-    provider: row.provider,
-    label: row.label,
-    fields: Object.keys(merged).sort(),
-    updatedAt: row.updatedAt,
-  };
 }
 
 export async function deleteWorkspaceCredential(
@@ -154,11 +167,13 @@ export async function deleteWorkspaceCredential(
   workspaceId: string,
   provider: string,
 ): Promise<void> {
-  const row = await prisma.workspaceCredential.findUnique({
-    where: { workspaceId_provider: { workspaceId, provider } },
-    select: { secretId: true },
+  await runAsSystem(CREDENTIAL_CONTEXT, async () => {
+    const row = await prisma.workspaceCredential.findUnique({
+      where: { workspaceId_provider: { workspaceId, provider } },
+      select: { secretId: true },
+    });
+    if (!row) return;
+    // The credential row cascades from its secret.
+    await prisma.secret.delete({ where: { id: row.secretId } });
   });
-  if (!row) return;
-  // The credential row cascades from its secret.
-  await prisma.secret.delete({ where: { id: row.secretId } });
 }

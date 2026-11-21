@@ -3,11 +3,11 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AvatarStyleProvider } from "./avatar-style.js";
 import {
+  BOT_AVATAR_COLORS,
   BotAvatar,
-  DEFAULT_GROK_BOT_COLOR,
+  BotShapePreview,
+  DEFAULT_BOT_AVATAR_COLOR,
   defaultBotAvatarValue,
-  GROK_BOT_COLORS,
-  GrokShapePreview,
   parseBotAvatar,
   resolvePersonaColorDef,
   resolvePersonaShape,
@@ -88,28 +88,23 @@ describe("BotAvatar", () => {
   });
 
   it("parses shape indexes from encoded color values", () => {
-    const parsed = parseBotAvatar(`${DEFAULT_GROK_BOT_COLOR}::shape_3`);
-    expect(parsed.color).toBe(DEFAULT_GROK_BOT_COLOR);
+    const parsed = parseBotAvatar(`${DEFAULT_BOT_AVATAR_COLOR}::shape_3`);
+    expect(parsed.color).toBe(DEFAULT_BOT_AVATAR_COLOR);
     expect(parsed.shapeIndex).toBe(3);
     expect(parsed.isImage).toBe(false);
   });
 
   it("normalizes malformed shape suffixes to shape 0", () => {
-    expect(parseBotAvatar(`${DEFAULT_GROK_BOT_COLOR}::shape_-1`).shapeIndex).toBe(0);
-    expect(parseBotAvatar(`${DEFAULT_GROK_BOT_COLOR}::shape_3junk`).shapeIndex).toBe(0);
-    expect(parseBotAvatar(`${DEFAULT_GROK_BOT_COLOR}::shape_`).shapeIndex).toBe(0);
-  });
-
-  it("exposes the violet identity color as the shared default", () => {
-    expect(GROK_BOT_COLORS).toContain(DEFAULT_GROK_BOT_COLOR);
-    expect(parseBotAvatar(`${DEFAULT_GROK_BOT_COLOR}::shape_0`).color).toBe(DEFAULT_GROK_BOT_COLOR);
+    expect(parseBotAvatar(`${DEFAULT_BOT_AVATAR_COLOR}::shape_-1`).shapeIndex).toBe(0);
+    expect(parseBotAvatar(`${DEFAULT_BOT_AVATAR_COLOR}::shape_3junk`).shapeIndex).toBe(0);
+    expect(parseBotAvatar(`${DEFAULT_BOT_AVATAR_COLOR}::shape_`).shapeIndex).toBe(0);
   });
 
   it("resolves explicit colors and shapes", () => {
     expect(resolvePersonaColorDef("bot", "#10B981").hex.toLowerCase()).toBe("#10b981");
     expect(resolvePersonaColorDef("bot", "#fff").hex).toBe("#fff");
     expect(resolvePersonaShape("bot", "hex")).toContain("M");
-    expect(GROK_BOT_COLORS.length).toBeGreaterThan(0);
+    expect(BOT_AVATAR_COLORS.length).toBeGreaterThan(0);
   });
 
   it("falls back to the identity palette for invalid custom hex", () => {
@@ -123,7 +118,7 @@ describe("BotAvatar", () => {
     );
     expect(html).toContain("<img");
     expect(html).not.toContain("<path");
-    expect(html).not.toContain("grok-character-eyes");
+    expect(html).not.toContain("bot-character-eyes");
   });
 
   it("keeps a working photo ring outside the clipped image and uses the status token", () => {
@@ -169,15 +164,15 @@ describe("BotAvatar", () => {
   });
 
   it("restores a plain color that renders the animated robot instead of a pinned shape", () => {
-    expect(defaultBotAvatarValue(`${DEFAULT_GROK_BOT_COLOR}::shape_3`)).toBe(
-      DEFAULT_GROK_BOT_COLOR,
+    expect(defaultBotAvatarValue(`${DEFAULT_BOT_AVATAR_COLOR}::shape_3`)).toBe(
+      DEFAULT_BOT_AVATAR_COLOR,
     );
     expect(defaultBotAvatarValue("#EAB308::shape_1")).toBe("#EAB308");
     expect(defaultBotAvatarValue("#abc::shape_2")).toBe("#abc");
     expect(defaultBotAvatarValue("#fff")).toBe("#fff");
-    expect(defaultBotAvatarValue("data:image/png;base64,abc")).toBe(DEFAULT_GROK_BOT_COLOR);
-    expect(defaultBotAvatarValue("#zzzzzz::shape_1")).toBe(DEFAULT_GROK_BOT_COLOR);
-    expect(defaultBotAvatarValue("")).toBe(DEFAULT_GROK_BOT_COLOR);
+    expect(defaultBotAvatarValue("data:image/png;base64,abc")).toBe(DEFAULT_BOT_AVATAR_COLOR);
+    expect(defaultBotAvatarValue("#zzzzzz::shape_1")).toBe(DEFAULT_BOT_AVATAR_COLOR);
+    expect(defaultBotAvatarValue("")).toBe(DEFAULT_BOT_AVATAR_COLOR);
 
     const restored = renderToString(
       <BotAvatar
@@ -188,14 +183,14 @@ describe("BotAvatar", () => {
     );
     const shaped = renderToString(<BotAvatar color={`${ROBOT_COLOR}::shape_4`} identity="maya" />);
     expect(restored).toContain("rakazo-bot-avatar-visor");
-    expect(restored).not.toContain("grok-character-eyes");
-    expect(shaped).toContain("grok-character-eyes");
+    expect(restored).not.toContain("bot-character-eyes");
+    expect(shaped).toContain("bot-character-eyes");
     expect(shaped).not.toContain("rakazo-bot-avatar-visor");
   });
 
   it("exposes shape picker name and pressed state", () => {
     const html = renderToString(
-      <GrokShapePreview shapeIndex={0} color="#8B5CF6" selected onClick={() => undefined} />,
+      <BotShapePreview shapeIndex={0} color="#8B5CF6" selected onClick={() => undefined} />,
     );
     expect(html).toContain('aria-label="hex"');
     expect(html).toContain('aria-pressed="true"');
@@ -211,13 +206,13 @@ describe("BotAvatar", () => {
     );
     expect(robot).not.toEqual(organic);
     expect(robot).toContain("rakazo-bot-avatar-eyes");
-    expect(robot).not.toContain("grok-character-eyes");
+    expect(robot).not.toContain("bot-character-eyes");
     expect(organic).toContain("rakazo-organic-avatar");
     expect(organic).not.toContain("rakazo-bot-avatar-eyes");
   });
 
   it("defaults to Manor's sprite without a provider", () => {
-    const html = renderToString(<BotAvatar color={DEFAULT_GROK_BOT_COLOR} identity="maya" />);
+    const html = renderToString(<BotAvatar color={DEFAULT_BOT_AVATAR_COLOR} identity="maya" />);
     expect(html).toContain("rakazo-bot-avatar-sprite");
     expect(html).toContain("/sprites/sprite-purple.png");
     expect(html).not.toContain("rakazo-organic-avatar");
@@ -233,7 +228,7 @@ describe("BotAvatar", () => {
   it("uses the preferred avatar style when variant is omitted", () => {
     const html = renderToString(
       <AvatarStyleProvider value="organic">
-        <BotAvatar color={DEFAULT_GROK_BOT_COLOR} identity="maya" />
+        <BotAvatar color={DEFAULT_BOT_AVATAR_COLOR} identity="maya" />
       </AvatarStyleProvider>,
     );
     expect(html).toContain("rakazo-organic-avatar");
@@ -250,9 +245,13 @@ describe("BotAvatar", () => {
 
   it("keeps an encoded studio shape when the organic style is preferred", () => {
     const html = renderToString(
-      <BotAvatar color={`${DEFAULT_GROK_BOT_COLOR}::shape_3`} identity="maya" variant="organic" />,
+      <BotAvatar
+        color={`${DEFAULT_BOT_AVATAR_COLOR}::shape_3`}
+        identity="maya"
+        variant="organic"
+      />,
     );
-    expect(html).toContain("grok-character-eyes");
+    expect(html).toContain("bot-character-eyes");
     expect(html).not.toContain("rakazo-organic-avatar");
   });
 

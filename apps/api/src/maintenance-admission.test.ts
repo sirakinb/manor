@@ -43,7 +43,11 @@ describe("API maintenance admission", () => {
     );
     const details = await app.request("/internal/health");
     expect(details.status).toBe(200);
-    await expect(details.json()).resolves.toEqual({ ok: true, revision: "abc123" });
+    await expect(details.json()).resolves.toEqual({
+      ok: true,
+      revision: "abc123",
+      telemetry: { degraded: false, failures: 0, lastFailureAt: null },
+    });
     expect(enter).not.toHaveBeenCalled();
     expect((await app.request("/ready")).status).toBe(503);
     expect(enter).toHaveBeenCalledOnce();

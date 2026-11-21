@@ -4,14 +4,14 @@ import { transparentColor } from "./color.js";
 
 describe("transparentColor", () => {
   it("keeps the hue of six-digit backgrounds", () => {
-    // Manor's dark page is #0A0A0A.
+    // Manor's dark page is #0A0A0A; the light palette follows upstream's system background.
     expect(transparentColor(darkTokens.background)).toBe("rgba(10, 10, 10, 0)");
-    expect(transparentColor(lightTokens.background)).toBe("rgba(250, 250, 248, 0)");
+    expect(transparentColor(lightTokens.background)).toBe("rgba(252, 252, 252, 0)");
   });
 
   it("reads rgba palette colors and drops their alpha", () => {
     expect(transparentColor(darkTokens.overlay)).toBe("rgba(4, 4, 5, 0)");
-    expect(transparentColor(lightTokens.overlay)).toBe("rgba(20, 20, 22, 0)");
+    expect(transparentColor(lightTokens.overlay)).toBe("rgba(0, 0, 0, 0)");
     expect(transparentColor("rgb(1, 2, 3)")).toBe("rgba(1, 2, 3, 0)");
   });
 

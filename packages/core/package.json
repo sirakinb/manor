@@ -58,6 +58,11 @@
       "types": "./src/node/screen-capability.ts",
       "development": "./src/node/screen-capability.ts",
       "default": "./src/node/screen-capability.ts"
+    },
+    "./egress": {
+      "types": "./src/egress.ts",
+      "development": "./src/egress.ts",
+      "default": "./src/egress.ts"
     }
   },
   "scripts": {
@@ -74,6 +79,7 @@
     "mdast-util-to-hast": "13.2.1",
     "remark-gfm": "4.0.1",
     "remark-parse": "11.0.0",
+    "tldts": "7.4.10",
     "unified": "11.0.5"
   },
   "devDependencies": {

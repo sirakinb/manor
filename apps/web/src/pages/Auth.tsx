@@ -1,10 +1,16 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { credentialIssue, signupRequiresEmailVerification } from "@rakazo/core";
-import { Button, Input, Label } from "@rakazo/ui-web";
+import {
+  credentialIssue,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  signupRequiresEmailVerification,
+} from "@rakazo/core";
+import { Button, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from "@rakazo/ui-web";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ParticleWordmark } from "../components/ai/ParticleWordmark";
 import { BrandLogo } from "../components/BrandLogo";
+import { PasskeySignIn } from "../components/PasskeySignIn";
 import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
@@ -17,6 +23,7 @@ import { authErrorText, credentialIssueText } from "../lib/user-error";
 type AuthMode = "in" | "up" | "forgot";
 
 const fieldClass = "mt-2 h-12 rounded-xl px-4 text-base md:text-base";
+const CODE_LENGTH = 6;
 export const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
 
 export function AuthPage({ mode }: { mode: AuthMode }) {
@@ -39,21 +46,28 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [reset, setReset] = useState<AuthCapabilities | null>(null);
   const [capabilityError, setCapabilityError] = useState(false);
   const [capabilityAttempt, setCapabilityAttempt] = useState(0);
+  const [method, setMethod] = useState<"code" | "password">("code");
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState("");
+  const useCode = Boolean(reset?.passwordAuth && reset.emailCode) && mode !== "forgot";
+  const codeMode = useCode && method === "code";
+  const codeStep = codeMode && codeSent;
   const passwordFieldId = mode === "in" ? "current-password" : "new-password";
-  const logoOnly = !sent && mode === "in" && brand.id !== "manor";
-  const title = sent ? (
-    <Trans>Check your email</Trans>
-  ) : mode === "in" ? (
-    <Trans>Sign in to {brandName}</Trans>
-  ) : mode === "up" ? (
-    brand.id === "manor" ? (
-      <Trans>Create your Manor</Trans>
+  const logoOnly = !sent && !codeStep && mode === "in" && brand.id !== "manor";
+  const title =
+    sent || codeStep ? (
+      <Trans>Check your email</Trans>
+    ) : mode === "in" ? (
+      <Trans>Sign in to {brandName}</Trans>
+    ) : mode === "up" ? (
+      brand.id === "manor" ? (
+        <Trans>Create your Manor</Trans>
+      ) : (
+        <Trans>Create your {brandName} account</Trans>
+      )
     ) : (
-      <Trans>Create your {brandName} account</Trans>
-    )
-  ) : (
-    <Trans>Reset your password</Trans>
-  );
+      <Trans>Reset your password</Trans>
+    );
 
   useEffect(() => {
     setReset(null);
@@ -78,7 +92,15 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!reset?.passwordAuth) return;
-    const issue = credentialIssue({ email, password: mode === "forgot" ? undefined : password });
+    if (codeStep) {
+      // An unfinished code would spend one of the code's three attempts.
+      if (code.length === CODE_LENGTH) await verifyCode(code);
+      return;
+    }
+    const issue = credentialIssue({
+      email,
+      password: mode === "forgot" || codeMode ? undefined : password,
+    });
     if (issue) {
       setError(credentialIssueText(issue));
       return;
@@ -103,6 +125,19 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         return;
       }
       const trimmedEmail = email.trim();
+      if (codeMode) {
+        const request = await authClient.emailOtp.sendVerificationOtp({
+          email: trimmedEmail,
+          type: "sign-in",
+        });
+        if (request.error) {
+          setError(authErrorText(request.error, t`Could not continue`));
+          return;
+        }
+        setCode("");
+        setCodeSent(true);
+        return;
+      }
       const result =
         mode === "up"
           ? await authClient.signUp.email({
@@ -119,15 +154,49 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         setSearchParams({ verify: "email" });
         return;
       }
-      clearSpaceSelection();
-      navigate(
-        mode === "up" ? "/onboarding" : (signInReturnPath(window.location.search) ?? "/app"),
-      );
+      enterApp();
     } catch {
       setError(t`Could not reach the server`);
     } finally {
       setPending(false);
     }
+  }
+
+  async function verifyCode(otp: string) {
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      const trimmedEmail = email.trim();
+      const result = await authClient.signIn.emailOtp({
+        email: trimmedEmail,
+        otp,
+        // Only used when this creates the account.
+        name: mode === "up" ? name || trimmedEmail.split("@")[0] || "User" : undefined,
+      });
+      if (result.error) {
+        setError(authErrorText(result.error, t`Could not continue`));
+        setCode("");
+        return;
+      }
+      enterApp();
+    } catch {
+      setError(t`Could not reach the server`);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function enterApp() {
+    clearSpaceSelection();
+    navigate(mode === "up" ? "/onboarding" : (signInReturnPath(window.location.search) ?? "/app"));
+  }
+
+  function chooseMethod(next: "code" | "password") {
+    setMethod(next);
+    setCodeSent(false);
+    setCode("");
+    setError(null);
   }
 
   async function signInWithSso() {
@@ -230,7 +299,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           </div>
         ) : (
           <>
-            {mode === "up" ? (
+            {mode === "up" && !codeStep ? (
               <label className="mb-4 w-full text-[16px] text-[#8A8590]">
                 <Trans>Name</Trans>
                 <input
@@ -244,21 +313,47 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 />
               </label>
             ) : null}
-            <label className={`w-full text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}>
-              <Trans>Email</Trans>
-              <input
-                id="email"
-                name="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t`Your email address`}
-                type="email"
-                required
-                className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
-              />
-            </label>
-            {mode !== "forgot" ? (
+            {codeStep ? (
+              <div className="flex w-full justify-center">
+                <InputOTP
+                  aria-label={t({ message: "Code", context: "email sign-in" })}
+                  maxLength={CODE_LENGTH}
+                  pattern={"^\\d+$"}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  value={code}
+                  onChange={setCode}
+                  onComplete={(value: string) => void verifyCode(value)}
+                >
+                  <InputOTPGroup>
+                    {[0, 1, 2, 3, 4, 5].map((index) => (
+                      <InputOTPSlot
+                        key={index}
+                        index={index}
+                        className="size-12 text-lg first:rounded-l-xl last:rounded-r-xl"
+                      />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            ) : (
+              <label className={`w-full text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}>
+                <Trans>Email</Trans>
+                <input
+                  id="email"
+                  name="email"
+                  autoComplete={mode === "in" ? "username webauthn" : "username"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t`Your email address`}
+                  type="email"
+                  required
+                  className="mt-2 w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] px-[18px] py-[17px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
+                />
+              </label>
+            )}
+            {mode !== "forgot" && !codeMode ? (
               <div className="mt-4 w-full text-[16px] text-[#8A8590]">
                 <label htmlFor={passwordFieldId}>
                   <Trans>Password</Trans>
@@ -273,7 +368,8 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                     placeholder={t`Password`}
                     type={showPassword ? "text" : "password"}
                     required
-                    minLength={8}
+                    minLength={mode === "up" ? MIN_PASSWORD_LENGTH : undefined}
+                    maxLength={MAX_PASSWORD_LENGTH}
                     className="w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-[var(--rk-main)] py-[17px] pl-[18px] pr-[52px] text-[17px] text-[#F1F0F3] outline-none focus:border-[var(--rk-accent)]"
                   />
                   <button
@@ -334,11 +430,13 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
             ) : null}
             <button
               type="submit"
-              disabled={pending}
-              className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)]"
+              disabled={pending || (codeStep && code.length < CODE_LENGTH)}
+              className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)] disabled:opacity-60"
             >
               {pending ? (
                 <Trans>Working…</Trans>
+              ) : codeMode ? (
+                <Trans>Continue</Trans>
               ) : mode === "in" ? (
                 <Trans>Continue with email</Trans>
               ) : mode === "forgot" ? (
@@ -347,7 +445,31 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 <Trans>Create account</Trans>
               )}
             </button>
-            {reset?.sso && mode !== "forgot" ? (
+            {mode === "in" && !codeStep ? (
+              <PasskeySignIn
+                disabled={pending}
+                className="mt-3 h-auto w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-transparent py-[17px] text-[16px] text-[#F1F0F3] hover:bg-[var(--rk-main)]"
+                onSignedIn={enterApp}
+                onError={setError}
+              />
+            ) : null}
+            {useCode ? (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => chooseMethod(codeMode && !codeStep ? "password" : "code")}
+                className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
+              >
+                {codeStep ? (
+                  <Trans>Back</Trans>
+                ) : codeMode ? (
+                  <Trans>Use password</Trans>
+                ) : (
+                  <Trans>Use email code</Trans>
+                )}
+              </button>
+            ) : null}
+            {reset?.sso && mode !== "forgot" && !codeStep ? (
               <button
                 type="button"
                 disabled={pending}
@@ -357,27 +479,29 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 <Trans>Continue with {reset.sso.name}</Trans>
               </button>
             ) : null}
-            <p className="mt-[30px] text-[16px] text-[#8A8590]">
-              {mode === "in" ? (
-                <>
-                  <Trans>Don’t have an account?</Trans>{" "}
-                  <Link to="/sign-up" className="font-medium text-[#F1F0F3]">
-                    <Trans>Sign up</Trans>
-                  </Link>
-                </>
-              ) : mode === "up" ? (
-                <>
-                  <Trans>Already have an account?</Trans>{" "}
+            {codeStep ? null : (
+              <p className="mt-[30px] text-[16px] text-[#8A8590]">
+                {mode === "in" ? (
+                  <>
+                    <Trans>Don’t have an account?</Trans>{" "}
+                    <Link to="/sign-up" className="font-medium text-[#F1F0F3]">
+                      <Trans>Sign up</Trans>
+                    </Link>
+                  </>
+                ) : mode === "up" ? (
+                  <>
+                    <Trans>Already have an account?</Trans>{" "}
+                    <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
+                      <Trans>Sign in</Trans>
+                    </Link>
+                  </>
+                ) : (
                   <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
-                    <Trans>Sign in</Trans>
+                    <Trans>Back to sign in</Trans>
                   </Link>
-                </>
-              ) : (
-                <Link to="/sign-in" className="font-medium text-[#F1F0F3]">
-                  <Trans>Back to sign in</Trans>
-                </Link>
-              )}
-            </p>
+                )}
+              </p>
+            )}
           </>
         )}
       </form>
@@ -522,7 +646,8 @@ function PasswordField({
         autoComplete="new-password"
         type="password"
         required
-        minLength={8}
+        minLength={MIN_PASSWORD_LENGTH}
+        maxLength={MAX_PASSWORD_LENGTH}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className={fieldClass}

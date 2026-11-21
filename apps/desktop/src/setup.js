@@ -59,7 +59,7 @@
 
   function selectedMode() {
     const checked = form.querySelector('input[name="mode"]:checked');
-    return checked === null ? "new" : checked.value;
+    return checked === null ? "existing" : checked.value;
   }
 
   function setStatus(message, tone) {
@@ -81,8 +81,8 @@
   function syncPanels() {
     const mode = selectedMode();
     panelNew.hidden = mode !== "new";
-    panelExisting.hidden = mode === "new";
-    checkButton.hidden = mode === "new";
+    panelExisting.hidden = mode !== "existing";
+    checkButton.hidden = mode !== "existing";
     if (mode !== "new") continueButton.textContent = "Continue";
     setStatus("");
   }
@@ -312,6 +312,7 @@
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
+    // Manor Cloud is the existing-server choice, prefilled with the hosted address.
     if (selectedMode() === "new") void runStack();
     else void save("existing", serverUrl.value);
   });
@@ -337,6 +338,8 @@
     }
 
     watchStack();
+    // Continue needs the hosted address and any saved choice before it can submit.
+    setBusy(true);
     try {
       const state = await bridge.state();
       if (state === null) throw new Error("Setup is not active");
@@ -362,6 +365,7 @@
       const attached = stack !== null && stack.phase !== "idle";
       if (attached) document.getElementById("mode-new").checked = true;
       syncPanels();
+      setBusy(false);
       if (state.error) setStatus(state.error, "error");
       if (attached) {
         renderStack(stack);

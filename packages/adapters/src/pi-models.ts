@@ -33,6 +33,7 @@ export type PiCatalogEntry = {
   placeholder?: boolean;
   /** Provider models share one pinned HTTPS models-list base URL. */
   catalogProbe?: boolean;
+  live?: true;
 };
 
 const catalogProbeBaseUrls = new Map<string, string>();

@@ -51,7 +51,7 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
   await page.setViewportSize({ width: 1600, height: 1000 });
   await signup(page, `resize-${Date.now()}@rakazo.test`, "password12", "Resize test");
   await completeOnboarding(page);
-  await page.getByTitle("Agent computer", { exact: true }).click();
+  await page.getByRole("button", { name: "Agent computer", exact: true }).click();
   const panel = page.getByTestId("side-panel");
   const handle = page.getByRole("separator", { name: "Resize panel" });
   await expect(handle).toBeVisible();
@@ -78,9 +78,11 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
   await page.reload();
   // The right rail is restored after a reload, so only open it when it stayed closed.
   await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
-  await page.getByTitle("Agent computer", { exact: true }).waitFor({ state: "visible" });
+  await page
+    .getByRole("button", { name: "Agent computer", exact: true })
+    .waitFor({ state: "visible" });
   if ((await panel.getAttribute("data-panel")) === "closed") {
-    await page.getByTitle("Agent computer", { exact: true }).click();
+    await page.getByRole("button", { name: "Agent computer", exact: true }).click();
   }
   await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(saved);
   await page.getByRole("button", { name: "Expand computer", exact: true }).click();

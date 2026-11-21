@@ -32,6 +32,7 @@ describe("desktop preload bridge", () => {
     expect(globalName).toBe("rakazoDesktop");
     expect(bridge.platform).toBe("linux");
     expect(Object.keys(bridge).sort()).toEqual([
+      "badge",
       "computer",
       "localComputer",
       "localSettings",
@@ -55,6 +56,10 @@ describe("desktop preload bridge", () => {
     ]);
     expect(Object.keys(bridge.update).sort()).toEqual(["check", "download", "install", "state"]);
 
+    expect(Object.keys(bridge.badge!)).toEqual(["set"]);
+    await bridge.badge!.set(7);
+    expect(invoke).toHaveBeenCalledWith("desktop.badge.set", 7);
+
     await bridge.oauth.open?.("https://provider.example.com/authorize");
     await bridge.oauth.cancel?.("https://provider.example.com/authorize");
     await bridge.window.close();
@@ -66,6 +71,7 @@ describe("desktop preload bridge", () => {
     await bridge.update.download();
     await bridge.update.install();
     expect(invoke.mock.calls.map(([channel]) => channel)).toEqual([
+      "desktop.badge.set",
       "desktop.oauth.open",
       "desktop.oauth.cancel",
       "desktop.window.close",
@@ -76,27 +82,6 @@ describe("desktop preload bridge", () => {
       "desktop.update.check",
       "desktop.update.download",
       "desktop.update.install",
-    ]);
-  });
-
-  it("keeps setup off the app bridge so a connected server cannot re-point the app", () => {
-    const { exposeInMainWorld } = runPreload("preload.cjs");
-    const [, bridge] = exposeInMainWorld.mock.calls[0] as [string, Record<string, unknown>];
-    expect(Object.keys(bridge).sort()).toEqual([
-      "computer",
-      "localComputer",
-      "localSettings",
-      "oauth",
-      "platform",
-      "update",
-      "window",
-    ]);
-    expect(Object.keys(bridge.localComputer).sort()).toEqual([
-      "connect",
-      "onChange",
-      "pickFolder",
-      "status",
-      "stop",
     ]);
   });
 

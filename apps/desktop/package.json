@@ -21,6 +21,8 @@
   "dependencies": {
     "@rakazo/contracts": "workspace:*",
     "@rakazo/core": "workspace:*",
+    "@rakazo/logging": "workspace:*",
+    "@sentry/electron": "8.3.0",
     "electron-updater": "6.8.9",
     "koffi": "3.3.3",
     "ws": "^8.18.3"
@@ -30,7 +32,7 @@
     "@rakazo/adapters": "workspace:*",
     "@rakazo/ui-tokens": "workspace:*",
     "@types/ws": "^8.18.1",
-    "electron": "44.9.0",
+    "electron": "44.9.1",
     "electron-builder": "26.15.3",
     "esbuild": "0.28.2",
     "typescript": "7.0.2",
@@ -67,11 +69,38 @@
     "mac": {
       "icon": "assets/icon.icns",
       "category": "public.app-category.productivity",
+      "x64ArchFiles": "{**/node_modules/@koromix/koffi-darwin-*/darwin_*/koffi.node,**/node_modules/@oxc-parser/binding-darwin-*/parser.darwin-*.node}",
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Manor uses the microphone for dictation and voice calls with your bots."
+      },
       "target": [
         "dmg",
         "zip"
       ],
       "notarize": true
+    },
+    "dmg": {
+      "title": "${productName}",
+      "iconSize": 100,
+      "window": {
+        "width": 660,
+        "height": 400
+      },
+      "contents": [
+        {
+          "x": 170,
+          "y": 175,
+          "type": "file"
+        },
+        {
+          "x": 490,
+          "y": 175,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     },
     "win": {
       "icon": "assets/icon.ico",

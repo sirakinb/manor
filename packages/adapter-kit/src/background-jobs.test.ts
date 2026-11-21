@@ -26,6 +26,7 @@ function handlers(): BackgroundJobHandlers {
     "messaging.deliver": vi.fn(async () => undefined),
     "workspace.automation.run": vi.fn(async () => undefined),
     "cloud_agent.poll": vi.fn(async () => undefined),
+    "push.receipt": vi.fn(async () => undefined),
   };
 }
 
@@ -87,18 +88,6 @@ describe("background job contracts", () => {
         leaseId: "",
       }),
     ).toThrow();
-  });
-
-  it("validates and dispatches a control-expiry job", async () => {
-    const target = handlers();
-    await dispatchBackgroundJob(target, "computer.control-expire", {
-      computerId: "computer-1",
-      leaseId: "lease-1",
-    });
-    expect(target["computer.control-expire"]).toHaveBeenCalledWith({
-      computerId: "computer-1",
-      leaseId: "lease-1",
-    });
   });
 });
 

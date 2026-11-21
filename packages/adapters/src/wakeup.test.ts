@@ -18,6 +18,7 @@ function handlers(): BackgroundJobHandlers {
     "maintenance.advance": vi.fn(async () => undefined),
     "workspace.report.generate": vi.fn(async () => undefined),
     "cloud_agent.poll": vi.fn(async () => undefined),
+    "push.receipt": vi.fn(async () => undefined),
   };
 }
 

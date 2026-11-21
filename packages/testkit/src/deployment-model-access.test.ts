@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ComposioEmulator, InMemoryRealtimeFanout } from "@rakazo/adapters";
+import { ComposioConnector, FakeComposioClient, InMemoryRealtimeFanout } from "@rakazo/adapters";
 import type { ModelCatalogEntry } from "@rakazo/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
@@ -33,7 +33,7 @@ describeDb("bot model access through a deployment connection", () => {
       agentRuntime: "scripted",
       wakeupDriver: "memory",
       realtime: new InMemoryRealtimeFanout(),
-      composio: new ComposioEmulator(),
+      composio: new ComposioConnector({ client: new FakeComposioClient() }),
       signupsEnabled: "true",
       defaultProvider: "openrouter",
       deploymentModelKey: "synthetic-shared-key",
