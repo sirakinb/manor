@@ -5214,7 +5214,9 @@ msgstr "Средний"
 msgid "Medium"
 msgstr "Средний"
 
+#: src/components/TeamMembers.tsx
 #: src/lib/identity-display.ts
+#: src/pages/shell/transcript.tsx
 msgid "Member"
 msgstr "Участник"
 

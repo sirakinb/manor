@@ -30,7 +30,9 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`. In progress: `v0.3.3`.
    everything upstream added. Where both sides changed the same code for the same
    purpose, upstream's structure is canonical and Manor's deliberate delta is
    re-applied on top.
-4. Verify: `pnpm exec turbo run check --continue`, `pnpm lint`, `prisma validate`,
+4. Verify: `pnpm --filter @rakazo/web intl:extract` leaves the catalogs unchanged (CI's
+   lint job fails otherwise, so re-run it after any late string change),
+   `pnpm exec turbo run check --continue`, `pnpm lint`, `prisma validate`,
    `pnpm exec turbo run test --continue`, then CI for Postgres journeys and Playwright.
 5. Rehearse the stage's migrations with `prisma migrate deploy` against the copy of
    production data, and compare tenant row counts before and after.

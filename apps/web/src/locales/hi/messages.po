@@ -5214,7 +5214,9 @@ msgstr "मध्यम"
 msgid "Medium"
 msgstr "मध्यम"
 
+#: src/components/TeamMembers.tsx
 #: src/lib/identity-display.ts
+#: src/pages/shell/transcript.tsx
 msgid "Member"
 msgstr "सदस्य"
 
