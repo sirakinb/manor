@@ -262,7 +262,7 @@ test("start the own-key plan billed yearly", async ({ page }, testInfo) => {
     page.getByRole("button", { name: "Start 7-day free trial", exact: true }).click(),
   ]);
   // The checkout is mocked, so the paywall returns; waiting lets the reload's requests settle.
-  await expect(page.getByRole("heading", { name: "Choose how to use Rakazo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose how to use Manor" })).toBeVisible();
   expect(selected).toEqual({ funding: "byok", interval: "year" });
 });
 

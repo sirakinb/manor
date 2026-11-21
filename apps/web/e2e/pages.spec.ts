@@ -298,6 +298,34 @@ test("a bot's page shows in its reply, opens full screen, is shared by link and 
     page,
     `call save_page with ${JSON.stringify({ pageId, title: "Signups dashboard", source: dashboard("1.9%") })}\nthen say Updated [Signups dashboard](page:${pageId}) with the new churn figure.`,
   );
+  // Manor: the page is shared by link, so a bot's edit to it asks a person first.
+  await expect
+    .poll(
+      async () => {
+        const snapshot = await rpc<{ run?: { status: string } | null }>(page, "threads/get", {
+          botId: activeBotId(page),
+        });
+        return snapshot.run?.status ?? null;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe("waiting_input");
+  const transcript = page.getByTestId("transcript");
+  const sharedNote = "This page is shared by link: anyone with the link sees the change.";
+  // threads/get can observe waiting_input before the shell realtime feed paints the ask card.
+  if ((await transcript.getByText(sharedNote).count()) === 0) {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("combobox", { name: /^Message/ })).toBeVisible({
+      timeout: 15_000,
+    });
+  }
+  const approval = transcript
+    .locator("[data-message-id]")
+    .filter({ has: page.getByText(sharedNote) })
+    .last();
+  await expect(approval.getByText(sharedNote)).toBeVisible({ timeout: 15_000 });
+  await captureScreenshot(page, testInfo, "page-shared-edit-approval");
+  await approval.getByRole("button", { name: "Allow once", exact: true }).click();
   await expect(card).toHaveCount(2, { timeout: 30_000 });
   await expect(card.first()).toContainText("Updated below");
   await expect(card.last()).not.toContainText("Updated below");

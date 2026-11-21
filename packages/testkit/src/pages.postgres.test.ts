@@ -358,7 +358,13 @@ describePages("pages", () => {
         prompt: `call save_page with ${JSON.stringify({ pageId, edits: [{ find: 'title="v1"', replace: 'title="v2"' }] })}\nthen say NO_RESPONSE`,
       },
     });
-    expect(await fire()).toEqual([]);
+    // Manor keeps a silent run's tool steps for the activity timeline; no reply or page card.
+    const silent = await fire();
+    expect(
+      silent.every((message) =>
+        (message.blocks as Array<{ kind: string }>).every((block) => block.kind === "steps"),
+      ),
+    ).toBe(true);
     expect(await lastResult(bot.id)).toMatchObject({ pageId, version: 2 });
     expect(
       await db().pageVersion.findFirst({ where: { pageId, version: 2 }, select: { source: true } }),
