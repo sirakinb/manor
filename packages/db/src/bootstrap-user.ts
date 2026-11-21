@@ -89,20 +89,20 @@ export async function joinOrganization(
   user: { id: string },
   organization: { id: string; defaultSpaceId: string },
 ): Promise<{ spaceId: string; organizationId: string }> {
-  // The membership trigger adds the person to the organization's team spaces.
-  await prisma.member
-    .create({
-      data: {
+  // The membership trigger adds the person to the organization's team spaces. Skipping a
+  // duplicate, rather than catching it, keeps a caller's transaction usable.
+  await prisma.member.createMany({
+    data: [
+      {
         id: newId(),
         organizationId: organization.id,
         userId: user.id,
         role: "member",
         createdAt: new Date(),
       },
-    })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
+    ],
+    skipDuplicates: true,
+  });
   const space = await prisma.space.findUniqueOrThrow({
     where: { id: organization.defaultSpaceId },
     select: { accountUserId: true },
@@ -112,11 +112,9 @@ export async function joinOrganization(
     return { spaceId, organizationId: organization.id };
   }
   await assertSpaceTakesPerson(prisma, { spaceId: organization.defaultSpaceId, userId: user.id });
-  await prisma.spaceMember
-    .upsert({
-      where: { spaceId_userId: { spaceId: organization.defaultSpaceId, userId: user.id } },
-      update: {},
-      create: {
+  await prisma.spaceMember.createMany({
+    data: [
+      {
         id: newId(),
         spaceId: organization.defaultSpaceId,
         organizationId: organization.id,
@@ -124,10 +122,9 @@ export async function joinOrganization(
         role: "member",
         createdAt: new Date(),
       },
-    })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
+    ],
+    skipDuplicates: true,
+  });
   await seedSpaceDefaults(prisma, {
     spaceId: organization.defaultSpaceId,
     userId: space.accountUserId,
@@ -137,9 +134,12 @@ export async function joinOrganization(
 
 /**
  * Manor: the person's space in this organization. An existing membership there (their own space,
- * or a team space) is theirs already; otherwise a space of their own is created, marked as their
- * default, and seeded like every personal space. Its id is derived from the organization and the
- * person, so concurrent first sessions converge on one space.
+ * or a team space) is theirs already; otherwise a space of their own is created and seeded like
+ * every personal space. Its id is derived from the organization and the person, so concurrent
+ * first sessions converge on one space. It is not the organization's default space (one per
+ * organization, `spaces_organizationId_default_key`); it is the person's default there through
+ * `defaultSpaceForMember`. Inserts skip duplicates instead of catching a unique violation, which
+ * would abort a caller's transaction.
  */
 export async function ensureOwnSpace(
   prisma: OrganizationClient,
@@ -151,40 +151,40 @@ export async function ensureOwnSpace(
     orderBy: [{ space: { isDefault: "desc" } }, { createdAt: "asc" }, { id: "asc" }],
     select: { spaceId: true },
   });
-  if (existing) return existing.spaceId;
+  if (existing) {
+    // The first person in an organization joins its empty default space through the membership
+    // trigger, which seeds nothing; their memory file and notification row start here. A team
+    // space's defaults belong to its shared account and were seeded with it.
+    const space = await prisma.space.findUniqueOrThrow({
+      where: { id: existing.spaceId },
+      select: { accountUserId: true },
+    });
+    if (!space.accountUserId)
+      await seedSpaceDefaults(prisma, { spaceId: existing.spaceId, userId: user.id });
+    return existing.spaceId;
+  }
   const spaceId = createHash("sha256")
     .update(`own-space:${organizationId}:${user.id}`)
     .digest("hex")
     .slice(0, 32);
   const createdAt = new Date();
-  await prisma.space
-    .create({
-      data: {
+  await prisma.space.createMany({
+    data: [
+      {
         id: spaceId,
         organizationId,
         name: "Personal",
-        isDefault: true,
+        isDefault: false,
         createdByUserId: user.id,
         createdAt,
       },
-    })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
-  await prisma.spaceMember
-    .create({
-      data: {
-        id: newId(),
-        spaceId,
-        organizationId,
-        userId: user.id,
-        role: "owner",
-        createdAt,
-      },
-    })
-    .catch((error: unknown) => {
-      if (!isUniqueViolation(error)) throw error;
-    });
+    ],
+    skipDuplicates: true,
+  });
+  await prisma.spaceMember.createMany({
+    data: [{ id: newId(), spaceId, organizationId, userId: user.id, role: "owner", createdAt }],
+    skipDuplicates: true,
+  });
   await seedSpaceDefaults(prisma, { spaceId, userId: user.id });
   return spaceId;
 }

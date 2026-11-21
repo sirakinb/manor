@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import type { Bot } from "@rakazo/contracts";
-import { createDb, createSpaceForMember, runAsSystem } from "../../../packages/db/src/index";
+import {
+  createDb,
+  createSpaceForMember,
+  ensureOwnSpace,
+  runAsSystem,
+} from "../../../packages/db/src/index";
 import { captureScreenshot, completeOnboarding, openNewSpace, signup } from "./helpers";
 
 test("two teammates use the same agent and conversation while personal spaces stay private", async ({
@@ -33,16 +38,23 @@ test("two teammates use the same agent and conversation while personal spaces st
         createdAt: new Date(),
       },
     });
-    const defaultSpace = await prisma.space.findFirstOrThrow({
-      where: { organizationId: ownerMember.organizationId, isDefault: true },
-    });
-    // Same context the API uses when a member creates a Space.
+    // A space that is not a team space holds one person, so joining the organization gives Blair
+    // a space of their own there (as sign-in does), not a seat in Alex's default space.
+    const peerOwnSpaceId = await runAsSystem("give a new organization member their own Space", () =>
+      ensureOwnSpace(prisma, { id: peer.id }, ownerMember.organizationId),
+    );
+    // Same context the API uses when a member creates a Space, acting in Blair's own space.
     const personal = await runAsSystem("create a Space for its member", () =>
       createSpaceForMember(prisma, {
-        currentSpaceId: defaultSpace.id,
+        currentSpaceId: peerOwnSpaceId,
         userId: peer.id,
         name: "Blair personal",
       }),
+    );
+    // Blair's browser still holds their deleted organization's space; start from their own one.
+    await peerPage.evaluate(
+      (spaceId) => localStorage.setItem("rakazo:space-id", spaceId),
+      peerOwnSpaceId,
     );
 
     await openNewSpace(page);
@@ -81,7 +93,21 @@ test("two teammates use the same agent and conversation while personal spaces st
     const peerSidebar = peerPage.locator("aside").first();
     await expect(ownerSidebar.getByText("Blair personal", { exact: true })).toHaveCount(0);
     await expect(peerSidebar.getByText("Blair personal", { exact: true })).toBeVisible();
-    await expect(peerSidebar.getByRole("img", { name: "Shared team space" })).toBeVisible();
+    // Only the team space's headers carry the shared marker; Blair's own spaces do not.
+    const teamMarker = { name: "Shared team space" } as const;
+    await expect(
+      peerSidebar
+        .locator("[data-sidebar-group]")
+        .filter({ hasText: "Team projects" })
+        .getByRole("img", teamMarker)
+        .first(),
+    ).toBeVisible();
+    await expect(
+      peerSidebar
+        .locator("[data-sidebar-group]")
+        .filter({ hasText: "Blair personal" })
+        .getByRole("img", teamMarker),
+    ).toHaveCount(0);
 
     const ownerComposer = page.getByRole("combobox", { name: "Message Event agent" });
     await ownerComposer.fill("Let's plan the venue.");

@@ -12,6 +12,7 @@ import {
   createExternalConversationRepos,
   createSpaceForMember,
   createSpaceInvite,
+  defaultSpaceForMember,
   fallbackSpaceForMember,
   InvalidSpaceNameError,
   IsolationError,
@@ -209,6 +210,15 @@ export function spacesRoutes(ctx: RouterContext) {
               where: { id: input.spaceId },
               select: { organizationId: true, name: true },
             });
+            // Manor: a person's default Space in an organization is their home there (the
+            // organization's default for its first person, their own Space for everyone else), so
+            // deleting it would leave them nowhere in that organization.
+            if (
+              space &&
+              (await isPersonsDefaultSpace(deps.prisma, context.actor.userId, space, input.spaceId))
+            ) {
+              throw new CannotDeleteDefaultSpaceError();
+            }
             const { activeSpaceId } = await deleteSpaceWithContent(
               deps,
               context.actor,
@@ -442,6 +452,11 @@ async function memberSpaceNavigation(
     },
     orderBy: { createdAt: "asc" },
   });
+  // "Default" is per person: their home Space in this organization (`defaultSpaceForMember`).
+  const personalDefaultId = await defaultSpaceForMember(deps.prisma, {
+    userId: actor.userId,
+    organizationId: actor.organizationId,
+  });
   const spaceIds = memberships.map((membership) => membership.spaceId);
   const inactiveSpaceIds = spaceIds.filter((spaceId) => spaceId !== actor.spaceId);
   // Manor: these routes run as the signed-in person (`authed`), never as a team space's shared
@@ -509,11 +524,9 @@ async function memberSpaceNavigation(
       return {
         id: membership.spaceId,
         name: membership.space.name,
-        // Upstream: another person's default Space (one a guest was invited into from another
-        // organization) is not this member's default. Manor lists only the actor's own
-        // organization and has no guests, so its default Space is every member's home, as before:
-        // a brand portal member's home is the client's default Space.
-        isDefault: membership.space.isDefault,
+        // Manor: the person's own default Space in this organization, which is the organization's
+        // default only for its first person (`defaultSpaceForMember`).
+        isDefault: membership.spaceId === personalDefaultId,
         organizationId: membership.organizationId,
         organizationName: membership.space.organization.name,
         hasContent: spacesWithContent.has(membership.spaceId),
@@ -524,6 +537,7 @@ async function memberSpaceNavigation(
         canDelete:
           owner &&
           !membership.space.isDefault &&
+          membership.spaceId !== personalDefaultId &&
           memberships.length > 1 &&
           (membership.space.deletingAt === null || membership.space.deletingAt < staleClaimBefore),
         bots: spaceBots.map((bot) => ({
@@ -574,4 +588,17 @@ function partitionBySpace<T extends { spaceId: string }>(rows: T[]): Map<string,
     partitioned.set(row.spaceId, spaceRows);
   }
   return partitioned;
+}
+
+/** Whether `spaceId` is this person's default Space in its organization. */
+async function isPersonsDefaultSpace(
+  prisma: PrismaClient,
+  userId: string,
+  space: { organizationId: string },
+  spaceId: string,
+): Promise<boolean> {
+  const defaultId = await runAsSystem("find a person's default Space in an organization", () =>
+    defaultSpaceForMember(prisma, { userId, organizationId: space.organizationId }),
+  );
+  return defaultId === spaceId;
 }

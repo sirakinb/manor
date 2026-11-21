@@ -256,7 +256,9 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   artifacts, search and more (about 200 queries) and treat everything in a space as visible to its
   members; keeping one person per non-team space makes that true and private without re-adding
   filters that every later release would have to re-audit. A person joining an organization joins
-  its team spaces and gets a space of their own otherwise (`joinOrganization` / `ensureOwnSpace`
+  its team spaces and gets a space of their own otherwise; an organization keeps one default space
+  (`spaces_organizationId_default_key`), so a person's own space is their default through
+  `defaultSpaceForMember`, not the space's flag (`joinOrganization` / `ensureOwnSpace`
   in `packages/db/src/bootstrap-user.ts`); the membership trigger
   (`20261211130000_manor_member_joins_team_spaces_only`) adds a new member to team spaces and to the
   default space only while it has nobody in it. `assertSpaceTakesPerson` (`team-space.ts`) guards

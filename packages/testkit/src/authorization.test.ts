@@ -24,6 +24,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { BotIntroHarness } from "./discard-bot-intro.js";
 import { discardBotIntroFromCreate } from "./discard-bot-intro.js";
 import { sessionCookieHeader } from "./index.js";
+import { shareSpaceByInvite } from "./space-sharing-fixture.js";
 import { asSystem } from "./system-db.js";
 
 type App = { request: (input: string, init?: RequestInit) => Response | Promise<Response> };
@@ -87,7 +88,8 @@ describeWithDatabase("API authorization and resource isolation", () => {
     const peerActor = await rpc<Actor>(app, peer, "me");
     const space = await db.space.findUniqueOrThrow({ where: { id: ownerActor.spaceId } });
     // Manor: a main-portal account acts only in its primary organization, so the peer joins
-    // the owner's as its only one (the trigger on member adds the default-space membership).
+    // the owner's as its only one, and the owner shares their space with the peer by invite
+    // (joining an organization no longer adds anyone to another person's space).
     await db.member.deleteMany({ where: { userId: peerActor.userId } });
     await db.member.create({
       data: {
@@ -97,6 +99,11 @@ describeWithDatabase("API authorization and resource isolation", () => {
         role: "member",
         createdAt: new Date(),
       },
+    });
+    await shareSpaceByInvite(db, {
+      spaceId: space.id,
+      ownerUserId: ownerActor.userId,
+      userId: peerActor.userId,
     });
     const ownBot = await rpc<Bot>(app, owner, "bots/create", botInput("Own"), space.id);
     const peerBot = await rpc<Bot>(app, peer, "bots/create", botInput("Peer"), space.id);
@@ -195,6 +202,12 @@ describeWithDatabase("API authorization and resource isolation", () => {
         role: "member",
         createdAt: new Date(),
       },
+    });
+    // Two people in one space: shared by invite, as upstream shares one.
+    await shareSpaceByInvite(db, {
+      spaceId: space.id,
+      ownerUserId: ownerActor.userId,
+      userId: peerActor.userId,
     });
     const own = await rpc<Bot>(app, owner, "bots/create", botInput("Own"), space.id);
     const other = await rpc<Bot>(app, peer, "bots/create", botInput("Peer"), space.id);
@@ -1263,6 +1276,13 @@ describeWithDatabase("API authorization and resource isolation", () => {
         createdAt: new Date(),
       },
     });
+    // "Shared" is upstream's sense: a space the owner shared by invite, where each person keeps
+    // their own approval rules. (In a Manor team space everyone acts as its shared account.)
+    await shareSpaceByInvite(db, {
+      spaceId: ownerActor.spaceId,
+      ownerUserId: ownerActor.userId,
+      userId: memberActor.userId,
+    });
     const ownerRule = await rpc<{ id: string }>(app, owner, "approvalRules/set", {
       effect: "always_allow",
       matchKind: "tool",
@@ -1811,15 +1831,11 @@ describeWithDatabase("API authorization and resource isolation", () => {
         createdAt: new Date(),
       },
     });
-    await handles.prisma.spaceMember.create({
-      data: {
-        id: `space-shared-space-member-${stamp}`,
-        spaceId: shared.id,
-        organizationId: sharedRow.organizationId,
-        userId: memberActor.userId,
-        role: "member",
-        createdAt: new Date(),
-      },
+    const ownerActor = await rpc<Actor>(app, cookie, "me");
+    await shareSpaceByInvite(db, {
+      spaceId: shared.id,
+      ownerUserId: ownerActor.userId,
+      userId: memberActor.userId,
     });
     const memberNavigation = await rpc<SpaceNavigation>(
       app,

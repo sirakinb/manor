@@ -7,6 +7,7 @@ import { createRepos } from "./repos.js";
 import { asSystem, runAsSystem, runAsTenant } from "./row-security.js";
 import { IsolationError, requireMembership } from "./scope.js";
 import { createSpaceAccount } from "./space-account.js";
+import { defaultSpaceForMember } from "./spaces.js";
 import { assertSpaceTakesPerson, SpaceHasPersonError } from "./team-space.js";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -104,7 +105,7 @@ describePostgres("one person per space without a shared account (PostgreSQL)", (
     adaBot = bot.id;
   });
 
-  it("gives the next person a space of their own, marked as their default", async () => {
+  it("gives the next person a space of their own, their default in that organization", async () => {
     const joined = await bootstrap(client, { id: bea }, env, { brandId });
     beaSpace = joined.spaceId;
     expect(joined.organizationId).toBe(organization);
@@ -113,9 +114,17 @@ describePostgres("one person per space without a shared account (PostgreSQL)", (
       prisma.space.findUniqueOrThrow({ where: { id: beaSpace } }),
     ).resolves.toMatchObject({
       organizationId: organization,
-      isDefault: true,
+      // The organization keeps one default space (the first person's); this one is Bea's default
+      // through defaultSpaceForMember.
+      isDefault: false,
       accountUserId: null,
     });
+    await expect(
+      defaultSpaceForMember(prisma, { userId: bea, organizationId: organization }),
+    ).resolves.toBe(beaSpace);
+    await expect(
+      defaultSpaceForMember(prisma, { userId: ada, organizationId: organization }),
+    ).resolves.toBe(defaultSpace);
     await expect(
       prisma.spaceMember.findMany({ where: { spaceId: beaSpace }, select: { userId: true } }),
     ).resolves.toEqual([{ userId: bea }]);

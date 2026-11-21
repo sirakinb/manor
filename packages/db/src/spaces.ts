@@ -259,6 +259,33 @@ export async function homeOrganizationId(
 }
 
 /**
+ * Manor: a person's default space within one organization. Each non-team space holds one person,
+ * so the organization's default space (`spaces.isDefault`, one per organization) is only the first
+ * person's; everyone else's default is the space of their own there. Returns the organization's
+ * default space when they belong to it, else the oldest space they own there, else the oldest
+ * they belong to. The API reports `isDefault` for a listed space as "is this person's default".
+ */
+export async function defaultSpaceForMember(
+  db: Pick<PrismaClient, "spaceMember">,
+  input: { userId: string; organizationId: string },
+): Promise<string | null> {
+  const memberships = await db.spaceMember.findMany({
+    where: {
+      userId: input.userId,
+      organizationId: input.organizationId,
+      space: { deletingAt: null },
+    },
+    select: { spaceId: true, role: true, space: { select: { isDefault: true } } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  });
+  const chosen =
+    memberships.find((membership) => membership.space.isDefault) ??
+    memberships.find((membership) => isOwnerRole(membership.role)) ??
+    memberships[0];
+  return chosen?.spaceId ?? null;
+}
+
+/**
  * The Space a member lands in after leaving or deleting one: their own default
  * Space first, then the oldest they own, then the oldest they belong to.
  */

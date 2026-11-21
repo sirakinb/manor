@@ -6,6 +6,7 @@ import { ComposioConnector, FakeComposioClient } from "@rakazo/adapters";
 import type { Bot, Me, Space, SpaceNavigation, ThreadSnapshot } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import {
+  ensureOwnSpace,
   PERSON_MEMBER,
   requireMembership,
   shareUnstartedSpace,
@@ -113,12 +114,9 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
         createdAt: new Date(),
       },
     });
-    personal = await rpc<Space>(
-      peerCookie,
-      "spaces/create",
-      { name: "Blair personal" },
-      owner.spaceId,
-    );
+    // Joining the organization puts Blair in no space; like a real sign-in, they get their own.
+    const peerSpace = await ensureOwnSpace(db, { id: peer.userId }, organizationId);
+    personal = await rpc<Space>(peerCookie, "spaces/create", { name: "Blair personal" }, peerSpace);
     team = await rpc<Space>(
       ownerCookie,
       "spaces/create",

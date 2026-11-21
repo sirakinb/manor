@@ -24,6 +24,7 @@ import {
   extendByokFreePeriod,
   IsolationError,
   installAuditEventStore,
+  joinOrganization,
   LocalKeyProvider,
   personalOrganizationIds,
   requireMembership,
@@ -305,22 +306,19 @@ describePostgres("organizations (PostgreSQL)", () => {
       const ada = await signup();
       const grace = await signup();
       const team = await client(grace).organizations.create({ name: "Team" });
-      await system.member.create({
-        data: {
-          id: `member-${ada.userId}-team`,
-          organizationId: team.id,
-          userId: ada.userId,
-          role: "member",
-          createdAt: new Date(),
-        },
-      });
+      // Manor: joining an organization whose default Space already has its person gives the newcomer
+      // a Space of their own there (`joinOrganization`), as sign-in on its portal does.
+      const joined = await runAsSystem("organizations test", () =>
+        joinOrganization(system, { id: ada.userId }, team),
+      );
+      expect(joined.spaceId).not.toBe(team.defaultSpaceId);
 
       const { organizations } = await client(ada).organizations.list();
       expect(organizations.map(({ name, canManage }) => ({ name, canManage }))).toEqual([
         { name: "Personal", canManage: true },
         { name: "Team", canManage: false },
       ]);
-      expect(organizations[1]?.spaceIds).toEqual([team.defaultSpaceId]);
+      expect(organizations[1]?.spaceIds).toEqual([joined.spaceId]);
       await expect(
         client(ada).organizations.rename({ organizationId: team.id, name: "Mine" }),
       ).rejects.toBeInstanceOf(Error);

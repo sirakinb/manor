@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { BotIntroHarness } from "./discard-bot-intro.js";
 import { discardBotIntroFromCreate } from "./discard-bot-intro.js";
 import { sessionCookieHeader } from "./index.js";
+import { shareSpaceByInvite } from "./space-sharing-fixture.js";
 import { asSystem } from "./system-db.js";
 
 type App = { request: (input: string, init?: RequestInit) => Response | Promise<Response> };
@@ -707,6 +708,11 @@ describePages("pages", () => {
         createdAt: new Date(),
       },
     });
+    await shareSpaceByInvite(db(), {
+      spaceId: host.spaceId,
+      ownerUserId: host.userId,
+      userId: leaver.userId,
+    });
     const sharedBy = async (userId: string, title: string) => {
       const token = randomBytes(32).toString("base64url");
       const secret = await db().secret.create({
@@ -789,7 +795,13 @@ describePages("pages", () => {
         createdAt: new Date(),
       },
     });
-    // Joining the organization adds the member to its Space.
+    // Manor: joining an organization adds nobody to another person's space, so the owner shares
+    // theirs by invite, the way upstream makes two people co-members of one space.
+    await shareSpaceByInvite(db(), {
+      spaceId: owner.spaceId,
+      ownerUserId: owner.userId,
+      userId: member.userId,
+    });
     expect(
       await db().spaceMember.count({ where: { spaceId: owner.spaceId, userId: member.userId } }),
     ).toBe(1);
@@ -838,17 +850,12 @@ describePages("pages", () => {
         createdAt: new Date(),
       },
     });
-    if (!(await db().spaceMember.count({ where: { spaceId: shared.id, userId: member.userId } })))
-      await db().spaceMember.create({
-        data: {
-          id: `pages-space-member-${stamp}`,
-          spaceId: shared.id,
-          organizationId,
-          userId: member.userId,
-          role: "member",
-          createdAt: new Date(),
-        },
-      });
+    const ownerActor = await rpc<{ userId: string }>(app, ownerCookie, "me");
+    await shareSpaceByInvite(db(), {
+      spaceId: shared.id,
+      ownerUserId: ownerActor.userId,
+      userId: member.userId,
+    });
     const secret = await db().secret.create({
       data: {
         userId: member.userId,

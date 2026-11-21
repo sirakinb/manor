@@ -75,7 +75,9 @@ describePostgres("account export (PostgreSQL)", () => {
           { id: importerSpace, organizationId: importerOrg, name: "General", isDefault: true },
         ],
       });
-      // Members join each organization's default space by trigger.
+      // The first member joins each organization's empty default space by trigger. Manor: a later
+      // member joins only team spaces, so the exporter is in "Theirs" through an accepted invite
+      // (upstream's shared space, which exists while invite-link sharing is lifted) below.
       await prisma.member.createMany({
         data: [
           { org: personalOrg, user: exporter },
@@ -90,9 +92,26 @@ describePostgres("account export (PostgreSQL)", () => {
           createdAt: now,
         })),
       });
-      await prisma.spaceMember.updateMany({
-        where: { spaceId: sharedSpace, userId: exporter },
-        data: { role: "member" },
+      await prisma.spaceInvite.create({
+        data: {
+          id: `invite-${suffix}`,
+          spaceId: sharedSpace,
+          tokenHash: `export-invite-${suffix}`,
+          createdByUserId: other,
+          expiresAt: new Date(now.getTime() + 86_400_000),
+          acceptedAt: now,
+          acceptedByUserId: exporter,
+        },
+      });
+      await prisma.spaceMember.create({
+        data: {
+          id: `${sharedSpace}-${exporter}`,
+          spaceId: sharedSpace,
+          organizationId: sharedOrg,
+          userId: exporter,
+          role: "member",
+          createdAt: now,
+        },
       });
       await prisma.spaceMember.updateMany({
         where: { spaceId: ownedSpace, userId: exporter },

@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 // The app's own logger module (the API resolves `@rakazo/logging` to this file).
 import { createLogger, createTestSink, installLogger } from "../../logging/src/index.js";
 import { sessionCookieHeader } from "./index.js";
+import { shareSpaceByInvite } from "./space-sharing-fixture.js";
 import { asSystem } from "./system-db.js";
 
 type App = { request: (input: string, init?: RequestInit) => Response | Promise<Response> };
@@ -1105,15 +1106,12 @@ describeIntegration("agent import", () => {
         createdAt: new Date(),
       },
     });
-    await db.spaceMember.create({
-      data: {
-        id: `import-shared-space-member-${stamp}`,
-        spaceId: shared.id,
-        organizationId,
-        userId: memberActor.userId,
-        role: "member",
-        createdAt: new Date(),
-      },
+    // A space two people share is one shared by invite (see space-sharing-fixture).
+    const ownerActor = await rpc<{ userId: string }>(app, owner, "me");
+    await shareSpaceByInvite(db, {
+      spaceId: shared.id,
+      ownerUserId: ownerActor.userId,
+      userId: memberActor.userId,
     });
     const files = [
       { path: ".openclaw/workspace/SOUL.md", content: "Calm.\n" },

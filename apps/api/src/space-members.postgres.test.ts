@@ -1622,7 +1622,7 @@ describePostgres("shared spaces: invites and membership (PostgreSQL)", () => {
         },
       });
       await system.space.update({ where: { id: team }, data: { accountUserId } });
-      // Manor: a space member must first be a member of the space's organization.
+      // Manor: joining the organization adds the teammate to its team spaces (membership trigger).
       await system.member.create({
         data: {
           id: randomUUID(),
@@ -1632,16 +1632,9 @@ describePostgres("shared spaces: invites and membership (PostgreSQL)", () => {
           createdAt: new Date(),
         },
       });
-      await system.spaceMember.create({
-        data: {
-          id: randomUUID(),
-          spaceId: team,
-          organizationId: owner.organizationId,
-          userId: teammate.id,
-          role: "member",
-          createdAt: new Date(),
-        },
-      });
+      await expect(
+        system.spaceMember.count({ where: { spaceId: team, userId: teammate.id } }),
+      ).resolves.toBe(1);
       for (const [path, input] of procedures(team, teammate.id, token)) {
         const actor =
           path === "spaces/invites/preview"
@@ -1659,6 +1652,68 @@ describePostgres("shared spaces: invites and membership (PostgreSQL)", () => {
       await expect(
         system.spaceMember.count({ where: { spaceId: team, userId: teammate.id } }),
       ).resolves.toBe(1);
+    });
+  });
+  describe("a person's default Space (Manor: per person in each organization)", () => {
+    it("reports a second person's own Space as their default and refuses deleting it", async () => {
+      const lead = await person("lead");
+      const second = await person("second");
+      const createdAt = new Date();
+      // The second person joins the lead's organization: its default Space is the lead's, so they
+      // get a Space of their own there, as the join path does, plus another they own.
+      await system.member.create({
+        data: {
+          id: randomUUID(),
+          organizationId: lead.organizationId,
+          userId: second.id,
+          role: "member",
+          createdAt,
+        },
+      });
+      const own = randomUUID();
+      const other = randomUUID();
+      for (const [id, name] of [
+        [own, "Personal"],
+        [other, "Projects"],
+      ] as const) {
+        await system.space.create({
+          data: { id, organizationId: lead.organizationId, name, createdByUserId: second.id },
+        });
+        await system.spaceMember.create({
+          data: {
+            id: randomUUID(),
+            spaceId: id,
+            organizationId: lead.organizationId,
+            userId: second.id,
+            role: "owner",
+            createdAt: new Date(),
+          },
+        });
+      }
+      const actor: Actor = { ...second.actor, spaceId: own, organizationId: lead.organizationId };
+
+      const listed = await call(actor, "spaces/list", {});
+      const spaces = listed.json.spaces as Array<Record<string, unknown>>;
+      expect(spaces.find((space) => space.id === own)).toMatchObject({
+        isDefault: true,
+        canDelete: false,
+      });
+      expect(spaces.find((space) => space.id === other)).toMatchObject({
+        isDefault: false,
+        canDelete: true,
+      });
+      expect(spaces.map((space) => space.id)).not.toContain(lead.spaceId);
+
+      const refused = await call(inSpace(actor, other), "spaces/remove", { spaceId: own });
+      expect(refused.status).toBe(400);
+      await expect(system.space.findUnique({ where: { id: own } })).resolves.not.toBeNull();
+      // The organization's default stays the lead's own home.
+      const leadList = await call(lead.actor, "spaces/list", {});
+      expect(
+        (leadList.json.spaces as Array<Record<string, unknown>>).find(
+          (space) => space.id === lead.spaceId,
+        ),
+      ).toMatchObject({ isDefault: true, canDelete: false });
     });
   });
 });

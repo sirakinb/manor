@@ -92,7 +92,19 @@ class PreviewBoot(unittest.TestCase):
         finally:
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGTERM)
-            output = process.communicate(timeout=3)[0].decode()
+            try:
+                output = process.communicate(timeout=3)[0].decode()
+            except subprocess.TimeoutExpired:
+                # Manor: CI once saw the script outlive SIGTERM here. Show which processes in its
+                # group were still alive, and what the script printed, before cleaning up.
+                survivors = subprocess.run(
+                    ["ps", "-o", "pid,ppid,stat,etime,args", "-g", str(process.pid)],
+                    capture_output=True, text=True,
+                ).stdout
+                os.killpg(process.pid, signal.SIGKILL)
+                output = process.communicate(timeout=3)[0].decode()
+                self.fail("start.sh outlived SIGTERM for 3 seconds.\nStill running:\n"
+                          + survivors + "\nScript output:\n" + output)
             if succeeds:
                 self.assertIn("[preview] Ready", output)
 
