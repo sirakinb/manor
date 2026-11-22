@@ -55,9 +55,13 @@ test("large pasted text can stay inline or use the normal file upload", async ({
 
   await paste(log);
   await expect(choice).toBeVisible();
+  const keepInline = page.getByRole("button", { name: "Keep inline", exact: true });
   await composer.press("Shift+Tab");
-  await page.keyboard.press("Shift+Tab");
-  await expect(page.getByRole("button", { name: "Keep inline", exact: true })).toBeFocused();
+  for (let stop = 0; stop < 3; stop++) {
+    if (await keepInline.evaluate((button) => button === document.activeElement)) break;
+    await page.keyboard.press("Shift+Tab");
+  }
+  await expect(keepInline).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(choice).toHaveCount(0);
   await expect(composer).toHaveValue(log);

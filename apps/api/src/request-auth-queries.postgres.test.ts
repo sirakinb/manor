@@ -67,7 +67,12 @@ it.skipIf(!databaseUrl)(
       expect(authReads.sort()).toEqual(["member", "session", "space_members", "user"]);
 
       const user = await system.user.findUniqueOrThrow({ where: { email } });
+      // Manor: a member whose spaces were taken away gets a space of their own on the next
+      // request, so access ends with the organization membership, not with the space.
       await system.spaceMember.deleteMany({ where: { userId: user.id } });
+      expect((await call(cookie)).status).toBe(200);
+      await system.spaceMember.deleteMany({ where: { userId: user.id } });
+      await system.member.deleteMany({ where: { userId: user.id } });
       expect((await call(cookie)).status).toBe(401);
 
       const deactivatedEmail = `request-auth-deactivated-${stamp}@example.test`;
