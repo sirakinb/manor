@@ -29,6 +29,11 @@ requires these fixed values. Never derive paths, images or service names from a 
 | `compatibilityPolicy: unchanged-schema-and-toolchain-v1`          | Permit only compatible application changes                                                                     |
 | `unguardedBootstrapImage`                                         | Optional exact pre-integration rollback image; health may lack admission only for this operator-reviewed image |
 | `schemaCompatibleRevisions`                                       | Explicitly reviewed bootstrap revisions, including their rollback compatibility                                |
+| `buildMemoryMb`                                                   | Build and acceptance memory in MiB; defaults to 1024, at most 4096                                             |
+| `buildDiskMb`                                                     | Build filesystem in MiB; defaults to 3072, from 1024 to 8192                                                   |
+| `artifactLimitMb`                                                 | Built artifact archive in MiB; defaults to 128, from 16 to 1024; the source archive stays at 128               |
+| `buildPidsLimit`                                                  | Build and acceptance process count; defaults to 128, from 64 to 1024                                           |
+| `buildTimeoutSeconds`                                             | Per-command build, test and acceptance timeout; defaults to 1800, from 60 to 7200                              |
 
 Private token files must be operator-owned regular files with mode 0600. Configure
 the socket directory as root-owned and mount it read-only into API/worker through
@@ -50,8 +55,9 @@ workspace isolation and immutable builds; `tests/guard_smoke.py` covers the real
 admission/backup boundary, synthetic database restore, health rollback and interrupted
 rollout recovery. Rehearsal resources are explicitly synthetic and separately named.
 
-Measure live capacity first. The existing build needs 3 GiB scratch plus a 4 GiB
-host reserve; backup admission defaults to 4 GiB working headroom plus that reserve.
+Measure live capacity first. The build needs its scratch (3 GiB unless `buildDiskMb`
+raises it) plus a 4 GiB host reserve; backup admission defaults to 4 GiB working
+headroom plus that reserve.
 Restore verification uses its own 1 GiB filesystem and 256 MiB memory. Actual database
 and storage growth may require larger budgets. Retain current/previous images and
 verified backups. No automated pruning or backup retention is enabled: an operator

@@ -36,22 +36,31 @@ Inspect `df -h /`, `free -h`, `docker system df -v` and running containers
 before provisioning. Reserve at least 4 GiB disk and 512 MiB memory outside
 each admitted job. Account for the complete build peak, not idle memory.
 
-Defaults deliberately fit one small workspace:
+Defaults deliberately fit one small workspace. The operator policy may raise
+the build limits marked with a policy field, up to the stated bound, for a
+reviewed release. Admission then reserves the configured memory and disk.
+The final artifact is spooled to an anonymous file in the state directory, not
+held in memory, so its limit counts toward the disk a build needs.
 
-| Resource                                              | Limit                           |
-| ----------------------------------------------------- | ------------------------------- |
-| Workspaces                                            | one                             |
-| Workspace source, Git, synthetic database and storage | 1 GiB ext4 loop filesystem      |
-| Workspace memory / CPU / process count                | 256 MiB / one CPU / 128         |
-| Synthetic Postgres memory / CPU                       | 128 MiB / one-quarter CPU       |
-| Build writable filesystem                             | 3 GiB ext4 loop filesystem      |
-| Build memory / CPU / process count                    | at most 1 GiB / one CPU / 128   |
-| Heavy jobs                                            | one host-wide file lock         |
-| Source and final artifact archive                     | 128 MiB each                    |
-| Test command output                                   | 1 MiB                           |
-| Container logs                                        | two files of at most 1 MiB each |
+| Resource                                              | Default                         | Policy field and bound             |
+| ----------------------------------------------------- | ------------------------------- | ---------------------------------- |
+| Workspaces                                            | one                             | fixed                              |
+| Workspace source, Git, synthetic database and storage | 1 GiB ext4 loop filesystem      | fixed                              |
+| Workspace memory / CPU / process count                | 256 MiB / one CPU / 128         | fixed                              |
+| Synthetic Postgres memory / CPU                       | 128 MiB / one-quarter CPU       | fixed                              |
+| Build writable filesystem                             | 3 GiB ext4 loop filesystem      | `buildDiskMb`, 1,024 to 8,192      |
+| Build and acceptance memory                           | 1 GiB                           | `buildMemoryMb`, 128 to 4,096      |
+| Build and acceptance process count                    | 128                             | `buildPidsLimit`, 64 to 1,024      |
+| Build, test and acceptance command timeout            | 30 minutes                      | `buildTimeoutSeconds`, 60 to 7,200 |
+| Build CPU                                             | one CPU                         | fixed                              |
+| Heavy jobs                                            | one host-wide file lock         | fixed                              |
+| Source archive                                        | 128 MiB                         | fixed                              |
+| Final artifact archive                                | 128 MiB                         | `artifactLimitMb`, 16 to 1,024     |
+| Test command output                                   | 1 MiB                           | fixed                              |
+| Container logs                                        | two files of at most 1 MiB each | fixed                              |
 
 Build scratch is removed after preparation, including on failure and restart.
+A build filesystem left at a different size than `buildDiskMb` is recreated.
 Retained release images, workspace source and database snapshots are not
 removed by that cleanup. No automatic image or backup pruning occurs.
 Suspend the workspace before preparing a candidate. The controller refuses

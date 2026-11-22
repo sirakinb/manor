@@ -22,14 +22,36 @@ from source_policy import automatic_source_compatible
 
 MAX_ARCHIVE = 128 * 1024 * 1024
 MIB = 1024 * 1024
+# Optional operator policy limits for a reviewed build: field -> (default, minimum,
+# maximum, refusal). An absent field keeps the default.
+BUILD_LIMITS = {
+    "buildMemoryMb": (1024, 128, 4096, "build_memory_out_of_bounds"),
+    "artifactLimitMb": (128, 16, 1024, "artifact_limit_out_of_bounds"),
+    "buildDiskMb": (3072, 1024, 8192, "build_disk_out_of_bounds"),
+    "buildPidsLimit": (128, 64, 1024, "build_pids_limit_out_of_bounds"),
+    "buildTimeoutSeconds": (1800, 60, 7200, "build_timeout_out_of_bounds"),
+}
+
+
+def build_limits(policy):
+    limits = {}
+    for key, (default, minimum, maximum, refusal) in BUILD_LIMITS.items():
+        value = policy.get(key, default)
+        if type(value) is not int or not minimum <= value <= maximum:
+            raise Refused(refusal)
+        limits[key] = value
+    return limits
 
 
 def run(argv, *, cwd=None, data=None, timeout=120, max_output=MAX_ARCHIVE):
     # Bound host memory, disk and time even when candidate tests print forever.
-    with tempfile.TemporaryFile() as source:
-        if data:
-            source.write(data)
-        source.seek(0)
+    # A binary file object becomes stdin as is; the caller keeps ownership of it.
+    stream = hasattr(data, "read")
+    with contextlib.nullcontext(data) if stream else tempfile.TemporaryFile() as source:
+        if not stream:
+            if data:
+                source.write(data)
+            source.seek(0)
         try:
             child = subprocess.Popen(
                 argv, cwd=cwd, stdin=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -145,6 +167,7 @@ def load_policy(filename, *, connected=False):
     for key in ("testCommand", "buildCommand"):
         if not isinstance(policy[key], list) or not policy[key] or any(not isinstance(x, str) for x in policy[key]):
             raise Refused("fixed_container_argv_required")
+    build_limits(policy)
     return policy
 
 
@@ -173,22 +196,37 @@ def source_archive(repository, revision):
     return archive
 
 
-def members(archive):
+def checked_member(member, limit):
+    """Shared per-member rules; True for a regular file to keep, False for a directory."""
+    path = Path(member.name)
+    if (path.is_absolute() or ".." in path.parts
+            or any(part in {".git", "node_modules"} for part in path.parts)
+            or any(part == ".env" or (part.startswith(".env.") and not part.endswith(".example"))
+                   for part in path.parts)):
+        raise Refused("unsafe_source_path")
+    if member.isdir():
+        return False
+    if not member.isfile() or member.size > limit:
+        raise Refused("regular_source_files_required")
+    return True
+
+
+def members(archive, limit=MAX_ARCHIVE):
     result = []
     with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
         for member in tar:
-            path = Path(member.name)
-            if (path.is_absolute() or ".." in path.parts
-                    or any(part in {".git", "node_modules"} for part in path.parts)
-                    or any(part == ".env" or (part.startswith(".env.") and not part.endswith(".example"))
-                           for part in path.parts)):
-                raise Refused("unsafe_source_path")
-            if member.isdir():
-                continue
-            if not member.isfile() or member.size > MAX_ARCHIVE:
-                raise Refused("regular_source_files_required")
-            result.append((member.name, tar.extractfile(member).read(), member.mode & 0o111))
+            if checked_member(member, limit):
+                result.append((member.name, tar.extractfile(member).read(), member.mode & 0o111))
     return result
+
+
+def check_members(file, limit):
+    """Apply the members() rules to a tar file without reading contents into memory."""
+    file.seek(0)
+    with tarfile.open(fileobj=file) as tar:
+        for member in tar:
+            checked_member(member, limit)
+    file.seek(0)
 
 
 def write_source(archive, destination):
@@ -214,29 +252,35 @@ def clear_source(directory):
             entry.unlink()
 
 
-def artifact_archive(directory):
-    output = io.BytesIO()
-    total = 0
-    with tarfile.open(fileobj=output, mode="w") as tar:
-        for root, dirs, files in os.walk(directory, followlinks=False):
-            dirs[:] = [d for d in dirs if d != "node_modules"]
-            for name in dirs + files:
-                path = Path(root) / name
-                if path.is_symlink():
-                    raise Refused("artifact_symlink_refused")
-            for name in files:
-                path = Path(root) / name
-                if not path.is_file():
-                    raise Refused("artifact_special_file_refused")
-                total += path.stat().st_size
-                if total > MAX_ARCHIVE:
-                    raise Refused("artifact_too_large")
-                info = tar.gettarinfo(str(path), str(path.relative_to(directory)))
-                info.uid = info.gid = 1000
-                info.uname = info.gname = ""
-                with path.open("rb") as source:
-                    tar.addfile(info, source)
-    return output.getvalue()
+def artifact_archive(directory, spool, limit=MAX_ARCHIVE):
+    """Write the artifact tar to an anonymous file in spool; returns it open at the start."""
+    output = tempfile.TemporaryFile(dir=spool)
+    try:
+        total = 0
+        with tarfile.open(fileobj=output, mode="w") as tar:
+            for root, dirs, files in os.walk(directory, followlinks=False):
+                dirs[:] = [d for d in dirs if d != "node_modules"]
+                for name in dirs + files:
+                    path = Path(root) / name
+                    if path.is_symlink():
+                        raise Refused("artifact_symlink_refused")
+                for name in files:
+                    path = Path(root) / name
+                    if not path.is_file():
+                        raise Refused("artifact_special_file_refused")
+                    total += path.stat().st_size
+                    if total > limit:
+                        raise Refused("artifact_too_large")
+                    info = tar.gettarinfo(str(path), str(path.relative_to(directory)))
+                    info.uid = info.gid = 1000
+                    info.uname = info.gname = ""
+                    with path.open("rb") as source:
+                        tar.addfile(info, source)
+        output.seek(0)
+        return output
+    except BaseException:
+        output.close()
+        raise
 
 
 def quota_directory(state, name, size_mb):
@@ -298,27 +342,35 @@ class DockerAdapter:
 
     def prepare(self, revision, operation):
         from workspace import heavy_lock
-        with heavy_lock():
+        # The spool closes, and so removes, the artifact file on every path.
+        with heavy_lock(), contextlib.ExitStack() as spool:
             try:
-                return self._prepare(revision, operation)
+                return self._prepare(revision, operation, spool)
             finally:
                 self._cleanup_builds()
                 self._discard_build_volume()
 
-    def _prepare(self, revision, operation):
+    def _prepare(self, revision, operation, spool):
         development = self.docker("ps", "--filter", "label=manor.workspace", "--format", "{{.Names}}").decode().split()
         if any(not name.endswith("-db") for name in development):
             raise Refused("suspend_workspace_before_build")
-        memory = self.policy.get("buildMemoryMb", 1024)
-        if not 128 <= memory <= 1024:
-            raise Refused("build_memory_out_of_bounds")
+        limits = build_limits(self.policy)
+        memory, disk = limits["buildMemoryMb"], limits["buildDiskMb"]
+        pids, timeout = str(limits["buildPidsLimit"]), limits["buildTimeoutSeconds"]
         allocated = shutil.disk_usage(self.state / "build").used // MIB if os.path.ismount(self.state / "build") else 0
-        admission(self.state, memory, disk_mb=max(0, 3072 - allocated) + 256)
+        artifact_limit = limits["artifactLimitMb"] * MIB
+        # The artifact is spooled to the state disk beside the build filesystem.
+        admission(self.state, memory, disk_mb=max(0, disk - allocated) + 256 + limits["artifactLimitMb"])
         self.verify_image(self.policy["toolchainImage"])
         archive = source_archive(self.policy["repository"], revision)
         name = self.policy["project"] + "-build"
         self._cleanup_builds()
-        volume = quota_directory(self.state, "build", 3072)
+        leftover = self.state / "build.ext4"
+        if leftover.exists() and leftover.stat().st_size != disk * MIB:
+            # Scratch left by an interrupted build at another configured size is
+            # never reused; it holds nothing that outlives a preparation.
+            self._discard_build_volume()
+        volume = quota_directory(self.state, "build", disk)
         app = volume / "app"
         # Discard every dependency modification from prior untrusted builds.
         if app.exists():
@@ -331,18 +383,19 @@ class DockerAdapter:
         finally:
             self.docker("rm", seed)
         (volume / "lockfile").write_bytes((app / "pnpm-lock.yaml").read_bytes())
-        candidate_files = dict((n, data) for n, data, _ in members(archive))
-        if candidate_files.get("pnpm-lock.yaml") != (volume / "lockfile").read_bytes():
+        lockfile = dict((n, data) for n, data, _ in members(archive) if n == "pnpm-lock.yaml").get("pnpm-lock.yaml")
+        if lockfile != (volume / "lockfile").read_bytes():
             raise Refused("toolchain_dependency_lock_mismatch")
         clear_source(app)
         write_source(archive, app)
+        del archive, lockfile
         run(["chown", "-R", "1000:1000", str(app)], timeout=120)
         self.docker("create", "--name", name, "--label", self.label,
                     "--label", "manor.release.build=true",
                     "--network", "none", "--read-only", "--user", "1000:1000",
                     "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
                     "--cpus", "1", "--memory", str(memory) + "m",
-                    "--memory-swap", str(memory) + "m", "--pids-limit", "128",
+                    "--memory-swap", str(memory) + "m", "--pids-limit", pids,
                     "--log-driver", "local", "--log-opt", "max-size=1m", "--log-opt", "max-file=2",
                     "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=64m,uid=1000,gid=1000",
                     "--mount", "type=bind,src=" + str(app) + ",dst=/app",
@@ -356,13 +409,17 @@ class DockerAdapter:
             # Generate/build source first so checks can import generated clients. The
             # same checks run again against the immutable final image below.
             for command in (self.policy["buildCommand"], self.policy["testCommand"]):
-                output = self.docker("exec", name, *command, timeout=1800, max_output=MIB)
+                output = self.docker("exec", name, *command, timeout=timeout, max_output=MIB)
                 evidence.update(canonical(command).encode())
                 evidence.update(output)
             # Stop untrusted processes before reading their output (no symlink/write races).
             self.docker("stop", "--time", "0", name)
-            artifact = artifact_archive(app)
-            members(artifact)
+            artifact = spool.enter_context(artifact_archive(app, self.state, artifact_limit))
+            check_members(artifact, artifact_limit)
+            artifact_digest = hashlib.sha256()
+            for chunk in iter(lambda: artifact.read(MIB), b""):
+                artifact_digest.update(chunk)
+            artifact.seek(0)
         finally:
             self.docker("rm", "-f", name)
         # A small image layer on the trusted toolchain; no candidate Dockerfile is evaluated.
@@ -385,14 +442,15 @@ class DockerAdapter:
             code = self.docker("inspect", "--format", "{{.State.ExitCode}}", image_container).decode().strip()
             if code != "0":
                 raise Refused("image_preparation_failed")
-            self.docker("cp", "-", image_container + ":/app", data=artifact)
+            self.docker("cp", "-", image_container + ":/app", data=artifact, timeout=600)
             original_command = json.loads(self.docker("image", "inspect", "--format", "{{json .Config.Cmd}}",
                                                        self.policy["toolchainImage"]))
             image = self.docker("commit", "--change", "ENV GIT_SHA=" + revision,
                                 "--change", "LABEL manor.release.build=false",
                                 "--change", "USER 1000:1000",
                                 "--change", "CMD " + json.dumps(original_command),
-                                image_container, self.policy["project"] + "-candidate:" + operation).decode().strip()
+                                image_container, self.policy["project"] + "-candidate:" + operation,
+                                timeout=600).decode().strip()
         finally:
             self.docker("rm", "-f", image_container)
         self.verify_image(image)
@@ -404,13 +462,13 @@ class DockerAdapter:
                 "--label", "manor.release.build=true", "--network", "none", "--read-only",
                 "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
                 "--cpus", "1", "--memory", str(memory) + "m", "--memory-swap", str(memory) + "m",
-                "--pids-limit", "128", "--workdir", "/app",
+                "--pids-limit", pids, "--workdir", "/app",
                 "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=64m,uid=1000,gid=1000",
-                image, *self.policy["testCommand"], timeout=1800, max_output=MIB)
+                image, *self.policy["testCommand"], timeout=timeout, max_output=MIB)
             evidence.update(output)
         finally:
             self._cleanup_builds()
-        evidence.update(hashlib.sha256(artifact).digest())
+        evidence.update(artifact_digest.digest())
         return {"imageId": image, "evidenceHash": evidence.hexdigest()}
 
     def compose(self, *args, image=None):
