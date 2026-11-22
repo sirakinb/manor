@@ -12,10 +12,11 @@ import { connectionFormFields, pickCatalogModelId, popularModelProvidersFirst } 
 import { useMemo, useState } from "react";
 import { brandName } from "../../lib/brand";
 import { useCopyText } from "../../lib/copy-text";
-import { providerDisplayName } from "../../lib/localized-provider-hint";
-import type { ModelCatalogEntry } from "../../lib/model-auth";
-import { rpc } from "../../lib/rpc";
-import { useModelOAuthSignIn } from "../../lib/use-model-oauth-signin";
+import { providerDisplayName } from "../../lib/models/localized-provider-hint";
+import type { ModelCatalogEntry } from "../../lib/models/model-auth";
+import { useModelOAuthSignIn } from "../../lib/models/use-model-oauth-signin";
+import { analyticsSurface } from "../../lib/platform/desktop";
+import { rpc } from "../../lib/query/rpc";
 import { useModelConnectionForm } from "../model-settings/use-model-connection-form";
 
 /** Brand credits sit among the providers as the one choice that needs no account of its own. */
@@ -87,7 +88,7 @@ export function useOnboardingModel({
     setError,
     setProvider,
   } = form;
-  const [codeCopied, copyOAuthCode] = useCopyText();
+  const [codeCopied, copyText] = useCopyText();
 
   const signIn = useModelOAuthSignIn({
     onClearError: () => setError(null),
@@ -97,6 +98,12 @@ export function useOnboardingModel({
     },
   });
   const { oauthPending, cancelOAuthAttempt, startSubscriptionSignIn } = signIn;
+  const copyOAuthCode = (code: string) => {
+    const loginId = signIn.oauth?.loginId;
+    void copyText(code).then((copied) => {
+      if (copied) signIn.reportSignInStep("code_copied", loginId);
+    });
+  };
 
   const providers = useMemo(() => {
     const seen = new Map<string, ModelCatalogEntry>();
@@ -236,6 +243,7 @@ export function useOnboardingModel({
           modelId: modelId.trim(),
           apiKey: apiKey.trim() || undefined,
           label: selected?.providerName ?? provider,
+          surface: analyticsSurface(),
         });
       } else if (apiKey) {
         await rpc.models.connect({
@@ -249,6 +257,7 @@ export function useOnboardingModel({
           }),
           modelId,
           label: selected?.providerName ?? provider,
+          surface: analyticsSurface(),
         });
       }
       onConnected();
@@ -260,7 +269,7 @@ export function useOnboardingModel({
   async function fundWithCredits() {
     setError(null);
     try {
-      await rpc.billing.selectFunding({ funding: "credits" });
+      await rpc.billing.selectFunding({ funding: "credits", surface: analyticsSurface() });
       window.location.assign("/onboarding");
     } catch {
       setError(t`Could not open billing`);

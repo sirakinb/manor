@@ -80,4 +80,15 @@ export const RU_MESSAGES: Record<string, string> = {
   "Join {organization}": "Присоединиться к {organization}",
   "This invitation expires in 7 days. Sign in with this email address to accept it.":
     "Приглашение действует 7 дней. Чтобы принять его, войдите с этим адресом электронной почты.",
+  "{inviter} invited you to {space} on Rakazo": "{inviter} приглашает вас в {space} в Rakazo",
+  "{inviter} invited you to join {space} on Rakazo.":
+    "{inviter} приглашает вас присоединиться к {space} в Rakazo.",
+  "Join {space}": "Присоединиться к {space}",
+  "This invitation expires in 7 days.": "Приглашение действует 7 дней.",
+  "Connect a model to start using Rakazo": "Подключите модель, чтобы начать пользоваться Rakazo",
+  "Your Rakazo plan has started, but your bots can't reply until a model is connected.":
+    "Ваш тариф Rakazo уже действует, но ваши боты не смогут отвечать, пока не подключена модель.",
+  "Sign in with your {subscriptions} subscription, or paste an API key.":
+    "Войдите с подпиской {subscriptions} или вставьте ключ API.",
+  "Connect a model": "Подключить модель",
 };

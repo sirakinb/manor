@@ -1,6 +1,6 @@
 import type { Actor } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
-import { routineTestRunNonce } from "./routines.js";
+import { routineTestRunNonce } from "./routines/routines.js";
 
 describe("routineTestRunNonce", () => {
   const spaceAccount: Actor = {

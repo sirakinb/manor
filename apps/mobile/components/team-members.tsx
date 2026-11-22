@@ -2,7 +2,7 @@ import type { TeamMember } from "@rakazo/contracts";
 import { TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, AppState, Text, View } from "react-native";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 
 export function TeamMembers() {
   const [members, setMembers] = useState<TeamMember[] | null>(null);

@@ -6,10 +6,10 @@ import type {
   CrmRecordValue,
 } from "@rakazo/contracts";
 import { normalizeModuleRecordValues } from "@rakazo/contracts";
-import type { PrismaClient } from "./client.js";
 import type { CrmActorScope } from "./crm.js";
 import { applyCrmUtilityBillRecord } from "./crm-utility-bills.js";
-import { IsolationError } from "./scope.js";
+import type { PrismaClient } from "./database/client.js";
+import { IsolationError } from "./database/scope.js";
 
 /** Record values that don't fit the module's fields. Callers map this to a 400/tool error. */
 export class CrmModuleValueError extends Error {

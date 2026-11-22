@@ -2,7 +2,7 @@ import type { PrismaClient } from "@rakazo/db";
 import { currentDbContext, runAsTenant } from "@rakazo/db";
 import { describe, expect, it } from "vitest";
 import { loadBotCredentialSecret, serializeBotCredentialSecret } from "./bot-credentials.js";
-import { EncryptedSecretStore } from "./secrets.js";
+import { EncryptedSecretStore } from "./secrets/secrets.js";
 import {
   listWorkspaceCredentials,
   loadWorkspaceCredential,

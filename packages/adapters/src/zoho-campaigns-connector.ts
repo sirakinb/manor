@@ -13,7 +13,7 @@ import {
   combineSignals,
   redactConnectorPayload,
   sanitizeConnectorError,
-} from "./connector-safety.js";
+} from "./integrations/connector-safety.js";
 import type { WorkspaceCredentialFields } from "./workspace-credentials.js";
 import { loadWorkspaceCredential } from "./workspace-credentials.js";
 

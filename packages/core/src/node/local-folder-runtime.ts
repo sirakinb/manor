@@ -5,11 +5,11 @@ import {
   isInsideLocalRoot,
   LOCAL_COMPUTER_PATH_ESCAPE_MESSAGE,
   resolveLocalRelativePath,
-} from "../local-computer.js";
+} from "../computers/local-computer.js";
 import {
   boundedSandboxCommandTimeoutMs,
   DEFAULT_SANDBOX_COMMAND_TIMEOUT_MS,
-} from "../sandbox-command.js";
+} from "./sandbox-command.js";
 
 export interface LocalFolderListEntry {
   path: string;

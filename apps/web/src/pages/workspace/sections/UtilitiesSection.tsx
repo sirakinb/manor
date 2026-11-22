@@ -9,7 +9,7 @@ import type {
 import { ChevronDown, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BuiButton } from "../../../components/ai/primitives";
-import { rpc } from "../../../lib/rpc";
+import { rpc } from "../../../lib/query/rpc";
 import type { PillTone } from "../bits";
 import {
   Card,

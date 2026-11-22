@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceSummary } from "@rakazo/contracts";
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
-import { rpc } from "../../../lib/rpc";
+import { rpc } from "../../../lib/query/rpc";
 import {
   Card,
   ColumnBars,

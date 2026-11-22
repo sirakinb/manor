@@ -2,7 +2,7 @@ import { RunLogsController } from "@rakazo/core";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from "react-native";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 
 export default function RunLogs() {
   const { botId } = useLocalSearchParams<{ botId: string }>();

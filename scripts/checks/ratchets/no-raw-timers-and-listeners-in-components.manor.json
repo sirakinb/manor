@@ -1,6 +1,6 @@
 {
   "apps/mobile/app/files.tsx": 2,
-  "apps/mobile/components/computer-mode-picker.tsx": 1,
+  "apps/mobile/components/computers/computer-mode-picker.tsx": 1,
   "apps/mobile/components/team-members.tsx": 1,
   "apps/mobile/lib/use-team-presence.ts": 1,
   "apps/web/src/components/ActivityTimeline.tsx": 1,
@@ -17,8 +17,8 @@
   "apps/web/src/pages/Welcome.tsx": 2,
   "apps/web/src/pages/crm/CrmPipelineBoard.tsx": 1,
   "apps/web/src/pages/crm/SheetGrid.tsx": 1,
-  "apps/web/src/pages/shell/bot-settings-sections.tsx": 1,
-  "apps/web/src/pages/shell/composer.tsx": 1,
+  "apps/web/src/pages/shell/bots/bot-settings-sections.tsx": 1,
+  "apps/web/src/pages/shell/composer/composer.tsx": 1,
   "apps/web/src/pages/workspace/AutomationsCard.tsx": 1,
   "apps/web/src/pages/workspace/sections/ReportsSection.tsx": 1
 }

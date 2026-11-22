@@ -7,7 +7,7 @@ import {
   expandAdvancedSection,
   openBotSettings,
   signup,
-} from "./helpers";
+} from "./helpers/helpers";
 
 /**
  * The Workspace place only exists for organizations with a connected

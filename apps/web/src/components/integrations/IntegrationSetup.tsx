@@ -1,13 +1,20 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { IntegrationCatalogResult } from "@rakazo/contracts";
-import { customMcpServerInput } from "@rakazo/core";
+import { signInMcpServers } from "@rakazo/core";
 import { Button, Disclosure, Input } from "@rakazo/ui-web";
-import { useEffect, useRef, useState } from "react";
-import { connectMcpOauth } from "../../lib/mcp-connect";
-import { rpc } from "../../lib/rpc";
-import type { ErrorDetails } from "../../lib/user-error";
-import { errorDetails } from "../../lib/user-error";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { connectMcpEndpoint } from "../../lib/integrations/mcp-connect";
+import { lazyComponent } from "../../lib/platform/preload-recovery";
+import { rpc } from "../../lib/query/rpc";
+import type { ErrorDetails } from "../../lib/query/user-error";
+import { errorDetails } from "../../lib/query/user-error";
 import { ErrorNotice } from "../ErrorNotice";
+import type { McpOAuthPaste } from "./McpOAuthPasteForm";
+
+// Manor: only a loopback-only provider needs it, so it loads when one does.
+const McpOAuthPasteForm = lazyComponent(() =>
+  import("./McpOAuthPasteForm").then((module) => module.McpOAuthPasteForm),
+);
 
 /** Personal MCP connections never configure deployment-wide provider credentials. */
 export function IntegrationSetup({
@@ -28,18 +35,9 @@ export function IntegrationSetup({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ErrorDetails | null>(null);
   const [connected, setConnected] = useState<string[]>([]);
-  const remoteResults = [
-    ...new Map(
-      results.flatMap((result) =>
-        result.surfaces
-          .filter((surface) => surface.kind === "mcp" && surface.source?.startsWith("https://"))
-          .map(
-            (surface) =>
-              [surface.source!, { name: result.name, endpoint: surface.source! }] as const,
-          ),
-      ),
-    ).values(),
-  ];
+  // A sign-in the provider finishes only by pasting the address back; not connected until then.
+  const [paste, setPaste] = useState<(McpOAuthPaste & { endpoint: string }) | null>(null);
+  const remoteResults = signInMcpServers(results);
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setError(null);
@@ -73,12 +71,13 @@ export function IntegrationSetup({
 
   async function connect(name: string, url: string) {
     await run(async () => {
-      const existing = (await rpc.mcp.servers.list()).find((server) => server.endpoint === url);
-      const server = existing ?? (await rpc.mcp.servers.create(customMcpServerInput(name, url)));
-      const result = await connectMcpOauth(server.id);
-      if (result === "cancelled") return;
-      if (botId) await rpc.mcp.assignments.approve({ botId, serverId: server.id });
-      setConnected((current) => [...current, url]);
+      setPaste(null);
+      const result = await connectMcpEndpoint({ name, endpoint: url, botId });
+      if (typeof result === "object") {
+        setPaste({ endpoint: url, ...result.paste });
+        return;
+      }
+      if (result !== "cancelled") setConnected((current) => [...current, url]);
     });
   }
 
@@ -140,6 +139,20 @@ export function IntegrationSetup({
           </Button>
         </div>
       </Disclosure>
+      {paste ? (
+        <Suspense fallback={null}>
+          <McpOAuthPasteForm
+            key={paste.sessionId}
+            paste={paste}
+            onFinished={() => {
+              setConnected((current) => [...current, paste.endpoint]);
+              setPaste(null);
+            }}
+            onCancel={() => setPaste(null)}
+            onError={(err) => setError(errorDetails(err, t`Could not finish connecting`))}
+          />
+        </Suspense>
+      ) : null}
       {error ? <ErrorNotice error={error} /> : null}
       {onDone ? (
         <Button disabled={busy} onClick={onDone}>

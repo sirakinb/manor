@@ -2,7 +2,7 @@ import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import type { CrmModule, CrmModuleFieldType, CrmModuleRecord } from "@rakazo/contracts";
 import { CRM_MODULE_FIELD_TYPES } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import type { SheetColumn } from "./SheetGrid";
 import { SheetGrid } from "./SheetGrid";
 

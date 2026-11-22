@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspacePipe, WorkspaceSummary } from "@rakazo/contracts";
 import { accentColor } from "../../../lib/brand";
-import { rpc } from "../../../lib/rpc";
+import { rpc } from "../../../lib/query/rpc";
 import { useRunAutomation } from "../AutomationsCard";
 import {
   CLICKABLE_TEXT,

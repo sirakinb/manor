@@ -12,7 +12,7 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmContact, CrmDeal, CrmOverview, CrmStage } from "@rakazo/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import { formatMoney, formatMoneyShort, STATUS_COLORS, stageColor, withAlpha } from "./theme";
 
 /**

@@ -7,9 +7,9 @@ import {
   resolveBotCredentialValue,
   serializeBotCredentialSecret,
 } from "./bot-credentials.js";
-import { builtinAgentTools } from "./builtin.tool-definition.js";
-import { selectToolsForRoutingMode } from "./executor.js";
-import { generateTotp } from "./totp.js";
+import { selectToolsForRoutingMode } from "./runs/executor/executor.js";
+import { generateTotp } from "./secrets/vault/totp.js";
+import { builtinAgentTools } from "./tools/builtin.tool-definition.js";
 
 const RFC_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
 

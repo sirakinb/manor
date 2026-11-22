@@ -13,7 +13,7 @@
   "apps/web/src/pages/DocsView.tsx": 2,
   "apps/web/src/pages/crm/CrmForms.tsx": 1,
   "apps/web/src/pages/crm/CrmHome.tsx": 1,
-  "apps/web/src/pages/shell/message-view.tsx": 1,
+  "apps/web/src/pages/shell/chat/message-view.tsx": 1,
   "apps/web/src/pages/workspace/AutomationsCard.tsx": 4,
   "apps/web/src/pages/workspace/Overview.tsx": 5,
   "apps/web/src/pages/workspace/PipelineMap.tsx": 3,

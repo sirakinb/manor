@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { WorkspaceEntry, WorkspaceLocation, WorkspaceRepo } from "@rakazo/contracts";
 import { WORKSPACE_FILE_MAX_BYTES, workspacePreviewType } from "@rakazo/contracts";
-import type { WorkspaceFilesController } from "@rakazo/core";
+import { WorkspaceFilesController } from "@rakazo/core";
 import {
   ChevronRight,
   Download,
@@ -13,7 +13,6 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { decodeArtifactBase64, downloadArtifactBytes } from "../lib/artifact-open";
 import {
   baseName,
   breadcrumbs,
@@ -22,12 +21,39 @@ import {
   joinPath,
   sortEntries,
 } from "../lib/files-panel";
+import { decodeArtifactBase64, downloadArtifactBytes } from "../lib/pages/artifact-open";
 import { BuiButton, BuiCard, LoadingState } from "./ai/primitives";
 import { WorkspacePdfPreview } from "./WorkspacePdfPreview";
 
 type Form = { action: "file" | "dir" | "move" | "delete"; path: string; revision?: string };
 
+type WorkspaceRequest = ConstructorParameters<typeof WorkspaceFilesController>[1];
+
+/** The bot's file browser, kept in `controllers` so unsaved drafts survive a closed panel. The
+ * controller is made here, so the startup bundle carries none of its code. */
 export function FilesPanel({
+  controllers,
+  controllerKey,
+  botId,
+  request,
+  ...props
+}: {
+  controllers: Map<string, WorkspaceFilesController>;
+  controllerKey: string;
+  botId: string;
+  request: WorkspaceRequest;
+} & Omit<Parameters<typeof FilesView>[0], "controller">) {
+  const [controller] = useState(() => {
+    const kept = controllers.get(controllerKey);
+    if (kept) return kept;
+    const made = new WorkspaceFilesController(botId, request);
+    controllers.set(controllerKey, made);
+    return made;
+  });
+  return <FilesView controller={controller} {...props} />;
+}
+
+function FilesView({
   controller,
   computerState,
   team,

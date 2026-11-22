@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { WorkspaceFileResult } from "@rakazo/contracts";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers/helpers";
 
 test("workspace files can be created, edited, moved to shared files and downloaded", async ({
   page,

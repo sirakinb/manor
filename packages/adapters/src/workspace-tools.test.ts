@@ -1,7 +1,7 @@
 import { toolRequiresApproval } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
-import { selectBuiltinToolsForRun } from "./executor.js";
+import { selectBuiltinToolsForRun } from "./runs/executor/executor.js";
 import {
   executeWorkspaceTool,
   WORKSPACE_READ_ONLY_TOOL_NAMES,

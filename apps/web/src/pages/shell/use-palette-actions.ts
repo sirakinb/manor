@@ -11,15 +11,15 @@ import {
   Sun,
   Users,
 } from "lucide-react";
-import type { AppearancePreference } from "../../lib/ui-appearance";
+import type { AppearancePreference } from "../../lib/preferences/ui-appearance";
 import {
   getUiAppearancePreference,
   PINNED_APPEARANCE,
   setUiAppearance,
-} from "../../lib/ui-appearance";
-import { useSettingsNavItems } from "../settings-nav";
-import type { SettingsSection, ShellOverlay } from "../shell-overlay";
+} from "../../lib/preferences/ui-appearance";
+import { useSettingsNavItems } from "../settings/settings-nav";
 import type { CommandPaletteAction } from "./command-palette";
+import type { SettingsSection, ShellOverlay } from "./shell-overlay-url";
 
 /** What the command menu offers: create, connect, settings sections, and appearance. */
 export function usePaletteActions({

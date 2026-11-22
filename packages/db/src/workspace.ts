@@ -28,11 +28,11 @@ import type {
   WorkspaceSyncRun,
 } from "@rakazo/contracts";
 import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
-import type { PrismaClient } from "./client.js";
-import { Prisma } from "./client.js";
 import { syncWaterBillsFromCrm } from "./crm-utility-bills.js";
-import type { OrganizationScope } from "./scope.js";
-import { IsolationError } from "./scope.js";
+import type { PrismaClient } from "./database/client.js";
+import { Prisma } from "./database/client.js";
+import type { OrganizationScope } from "./database/scope.js";
+import { IsolationError } from "./database/scope.js";
 import {
   matchBillsToProperties,
   normStreetAddr,

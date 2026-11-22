@@ -1,7 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import type { WorkspaceOverview } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import type { SectionKey } from "./bits";
 import { CLICKABLE, formatCompact, formatMoney, formatNumber, formatPct, Sparkline } from "./bits";
 import { PipelineMap } from "./PipelineMap";

@@ -12,13 +12,13 @@ function read(relative: string) {
 describe("local computer UI surfaces", () => {
   it("starts sharing only from desktop Settings, not the website or HostComputerPrompt", () => {
     const share = read("ShareThisMacSettings.tsx");
-    const settings = read("../pages/AccountSettingsOverlay.tsx");
-    const prompt = read("../pages/HostComputerPrompt.tsx");
+    const settings = read("../pages/settings/AccountSettingsOverlay.tsx");
+    const prompt = read("../pages/shell/host-computer-prompt.tsx");
     // The computer mode picker moved with the bot settings groups into their own module.
-    const picker = read("../pages/shell/bot-settings-sections.tsx");
+    const picker = read("../pages/shell/bots/bot-settings-sections.tsx");
     const shell = read("../pages/Shell.tsx");
     // The computer screen's empty states moved out of Shell into the shell's computer view.
-    const computerView = read("../pages/shell/computer-view.tsx");
+    const computerView = read("../pages/shell/computers/computer-view.tsx");
 
     const enCatalog = read("../../../../packages/i18n/locales/en/messages.po");
     expect(enCatalog).toContain('msgid "Share this Mac"');

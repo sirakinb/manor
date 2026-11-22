@@ -2,9 +2,9 @@ import type { CrmDeal, CrmOverview, CrmStage } from "@rakazo/contracts";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 import { contactName, formatMoney, parseDealValue, STATUS_COLORS, stageColor } from "../lib/crm";
-import { manor } from "../lib/native";
+import { manor } from "../lib/native/native";
 import { Button, Card, Empty, Field, Label, Segmented } from "./crm-kit";
 import { KeyboardAvoider } from "./keyboard-avoider";
 

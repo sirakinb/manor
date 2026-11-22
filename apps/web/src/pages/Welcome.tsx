@@ -2,8 +2,8 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { HeroSky } from "../components/ai/HeroSky";
 import { ParticleWordmark } from "../components/ai/ParticleWordmark";
+import { WindowChrome } from "../components/WindowChrome";
 import { brand } from "../lib/brand";
-import { WindowChrome } from "./WindowChrome";
 
 const AGENT_SETUP_COMMAND = "set up manor - https://manor.pentridgemedia.com/llms.txt";
 const SETUP_AGENTS = [

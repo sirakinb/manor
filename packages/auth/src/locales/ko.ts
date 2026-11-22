@@ -79,4 +79,15 @@ export const KO_MESSAGES: Record<string, string> = {
   "Join {organization}": "{organization} 참여하기",
   "This invitation expires in 7 days. Sign in with this email address to accept it.":
     "이 초대는 7일 후에 만료됩니다. 수락하려면 이 이메일 주소로 로그인하세요.",
+  "{inviter} invited you to {space} on Rakazo": "{inviter}님이 Rakazo의 {space}에 초대했습니다",
+  "{inviter} invited you to join {space} on Rakazo.":
+    "{inviter}님이 Rakazo의 {space}에 참여하도록 초대했습니다.",
+  "Join {space}": "{space} 참여하기",
+  "This invitation expires in 7 days.": "이 초대는 7일 후에 만료됩니다.",
+  "Connect a model to start using Rakazo": "Rakazo를 시작하려면 모델을 연결하세요",
+  "Your Rakazo plan has started, but your bots can't reply until a model is connected.":
+    "Rakazo 요금제가 시작되었지만, 모델을 연결해야 봇이 답변할 수 있습니다.",
+  "Sign in with your {subscriptions} subscription, or paste an API key.":
+    "{subscriptions} 구독으로 로그인하거나 API 키를 붙여넣으세요.",
+  "Connect a model": "모델 연결",
 };

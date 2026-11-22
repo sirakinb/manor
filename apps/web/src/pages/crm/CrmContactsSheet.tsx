@@ -1,7 +1,7 @@
 import { Plural, useLingui } from "@lingui/react/macro";
 import type { CrmContact, CrmTag } from "@rakazo/contracts";
 import { useRef, useState } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import type { SheetColumn } from "./SheetGrid";
 import { SheetGrid } from "./SheetGrid";
 

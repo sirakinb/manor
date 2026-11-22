@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot } from "./helpers";
+import { captureScreenshot } from "./helpers/helpers";
 
 for (const width of [320, 390, 1440]) {
   test(`landing wordmark fits at ${width}px`, async ({ page }, testInfo) => {

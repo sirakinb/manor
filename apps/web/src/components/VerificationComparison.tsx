@@ -6,7 +6,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { FOCUSABLE } from "../lib/focusable";
-import { useSpaceRpc } from "../lib/space-rpc";
+import { useSpaceRpc } from "../lib/query/space-rpc";
 import { BuiButton, BuiCard, LoadingState } from "./ai/primitives";
 import { ChartCanvas } from "./ChartCanvas";
 

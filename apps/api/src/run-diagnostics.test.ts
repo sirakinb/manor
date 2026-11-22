@@ -4,7 +4,7 @@ import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import type { RouterDeps } from "./router.js";
 import { createRouter } from "./router.js";
-import { getRunDiagnostics, listBotRunHistory } from "./runs.js";
+import { getRunDiagnostics, listBotRunHistory } from "./threads/runs.js";
 
 const actor: Actor = {
   spaceId: "space-1",

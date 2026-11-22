@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { BuiButton, BuiCard, LoadingState } from "../components/ai/primitives";
 import { brandName } from "../lib/brand";
-import { rpc, selectedSpaceId, withSpaceHeaders } from "../lib/rpc";
+import { rpc, selectedSpaceId, withSpaceHeaders } from "../lib/query/rpc";
 import { useWorkspaceAccess } from "../lib/use-workspace-access";
 
 type AuthorizationDetails = { client_name: string; redirect_host: string; scopes: string[] };

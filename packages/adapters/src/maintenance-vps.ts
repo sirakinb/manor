@@ -7,10 +7,10 @@ import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import type { PrismaClient } from "@rakazo/db";
 import { Prisma } from "@rakazo/db";
 import { z } from "zod";
-import { resolveDeploymentModel } from "./deployment-model.js";
 import { requireMaintenanceOwner } from "./maintenance.js";
 import type { MaintenanceTransport } from "./maintenance-control.js";
 import { maintenanceOperationId } from "./maintenance-control.js";
+import { resolveDeploymentModel } from "./models/deployment-model.js";
 
 const operation = z.object({
   requestId: z.string().uuid(),

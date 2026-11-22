@@ -6,7 +6,7 @@ import type {
   WorkspaceSummary,
 } from "@rakazo/contracts";
 import { useState } from "react";
-import { rpc } from "../../../lib/rpc";
+import { rpc } from "../../../lib/query/rpc";
 import {
   BarRows,
   Card,

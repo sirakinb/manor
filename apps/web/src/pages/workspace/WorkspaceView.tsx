@@ -4,7 +4,7 @@ import { Settings } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { BuiButton } from "../../components/ai/primitives";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import { WorkspaceTeamContext } from "./AskTeam";
 import type { SectionKey } from "./bits";
 import { isSectionKey, Loading } from "./bits";

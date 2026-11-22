@@ -1,11 +1,11 @@
 import type { Actor } from "@rakazo/contracts";
 import { describe, expect, it, vi } from "vitest";
-import { sendThreadMessage } from "../thread-target.js";
+import { sendThreadMessage } from "../threads/thread-target.js";
 import type { RouterContext } from "./context.js";
 import { threadsRoutes } from "./threads.js";
 
-vi.mock("../thread-target.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../thread-target.js")>()),
+vi.mock("../threads/thread-target.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../threads/thread-target.js")>()),
   resolveThreadTarget: vi.fn(async () => ({ kind: "bot", botId: "bot-1", threadId: "thread-1" })),
   sendThreadMessage: vi.fn(async () => ({ taskId: "task-1", runId: "run-1", seq: 1 })),
 }));
@@ -13,8 +13,8 @@ vi.mock("./shared.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./shared.js")>()),
   modelSetup: vi.fn(async () => ({ needsModel: false, hasDeployment: false })),
 }));
-vi.mock("../taught-skills.js", () => ({ assertTeachingSendAllowed: vi.fn(async () => {}) }));
-vi.mock("../routines.js", () => ({
+vi.mock("../bots/taught-skills.js", () => ({ assertTeachingSendAllowed: vi.fn(async () => {}) }));
+vi.mock("../routines/routines.js", () => ({
   routineTestTarget: vi.fn(async () => ({ routine: { id: "routine-1", prompt: "Check in" } })),
   routineTestRunNonce: (_actor: Actor, nonce: string) => nonce,
   createRoutineTestRun: vi.fn(async () => ({ id: "routine-run-1" })),

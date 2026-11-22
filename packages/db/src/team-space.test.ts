@@ -1,8 +1,7 @@
 import { displayName } from "@rakazo/core";
 import { describe, expect, it, vi } from "vitest";
-import type { Prisma, PrismaClient } from "./client.js";
-import { teamComputerUserId } from "./computers.js";
-import { loadMessageAuthors } from "./messages.js";
+import { teamComputerUserId } from "./computers/computers.js";
+import type { Prisma, PrismaClient } from "./database/client.js";
 import {
   actsForRunUser,
   assertNotTeamSpace,
@@ -12,7 +11,8 @@ import {
   SpaceHasPersonError,
   TeamSpaceSharingError,
 } from "./team-space.js";
-import { markThreadUnreadForMembers, readerUserId } from "./thread-reads.js";
+import { loadMessageAuthors } from "./threads/messages.js";
+import { markThreadUnreadForMembers, readerUserId } from "./threads/thread-reads.js";
 
 function spaces(accountUserId: string | null, owner: string | null = "owner-1") {
   return {

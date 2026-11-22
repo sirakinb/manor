@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { buildSkillMd, parseSkillMd } from "@rakazo/core";
-import type { PrismaClient } from "./client.js";
-import { IsolationError } from "./scope.js";
+import type { PrismaClient } from "./database/client.js";
+import { IsolationError } from "./database/scope.js";
 
 export type WorkspaceAgentOwner = { spaceId: string; userId: string };
 

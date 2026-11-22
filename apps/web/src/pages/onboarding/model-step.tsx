@@ -12,12 +12,12 @@ import {
   SelectValue,
 } from "@rakazo/ui-web";
 import { Check, Copy } from "lucide-react";
-import { FoundModelPicker } from "../../components/FoundModelPicker";
+import { FoundModelPicker } from "../../components/models/FoundModelPicker";
 import {
   ModelPreflightFeedback,
   modelPreflightTestingLabel,
-} from "../../components/ModelConnectionPreflightNotice";
-import { ModelHeadersEditor } from "../../components/ModelHeadersEditor";
+} from "../../components/models/ModelConnectionPreflightNotice";
+import { ModelHeadersEditor } from "../../components/models/ModelHeadersEditor";
 import { CompatibleKeyField } from "../model-settings/compatible-key-field";
 import type { OnboardingModel } from "./use-onboarding-model";
 
@@ -202,10 +202,7 @@ export function ModelStep({ model, fieldId }: { model: OnboardingModel; fieldId:
                 disabled={preflightTesting || apiKey.trim().length < 8}
                 onClick={() => void testApiKeyConnection()}
               >
-                {modelPreflightTestingLabel(
-                  preflightTesting && preflightTarget === "api-key",
-                  "api-key",
-                )}
+                {modelPreflightTestingLabel(preflightTesting && preflightTarget === "api-key")}
               </Button>
               {preflightTarget === "api-key" ? (
                 <ModelPreflightFeedback success={preflightSuccess} failure={preflightFailure} />
@@ -376,6 +373,7 @@ function SubscriptionSignIn({ model }: { model: OnboardingModel }) {
     cancelOAuthAttempt,
     codeCopied,
     copyOAuthCode,
+    reportSignInStep,
     oauth,
     oauthPending,
     pasteCode,
@@ -396,6 +394,7 @@ function SubscriptionSignIn({ model }: { model: OnboardingModel }) {
                   Sign in at{" "}
                   <a
                     href={oauth.verificationUri}
+                    onClick={() => reportSignInStep("page_opened")}
                     target="_blank"
                     rel="noreferrer"
                     className="text-foreground underline"
@@ -433,6 +432,7 @@ function SubscriptionSignIn({ model }: { model: OnboardingModel }) {
                     Open{" "}
                     <a
                       href={oauth.verificationUri}
+                      onClick={() => reportSignInStep("page_opened")}
                       target="_blank"
                       rel="noreferrer"
                       className="text-foreground underline"
@@ -446,6 +446,7 @@ function SubscriptionSignIn({ model }: { model: OnboardingModel }) {
                     A sign-in tab opened at{" "}
                     <a
                       href={oauth.verificationUri}
+                      onClick={() => reportSignInStep("page_opened")}
                       target="_blank"
                       rel="noreferrer"
                       className="text-foreground underline"

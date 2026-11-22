@@ -722,6 +722,7 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
       jobs: {
         enqueue,
         enqueueIn: async () => {},
+        enqueueManyIn: async () => {},
         cancel: async () => {},
         cancelIn: async () => {},
         close: async () => {},

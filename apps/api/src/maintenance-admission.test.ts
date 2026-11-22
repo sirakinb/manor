@@ -2,7 +2,7 @@ import { createLogger, createTestSink, installLogger } from "@rakazo/logging";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { describe, expect, it, vi } from "vitest";
-import { healthRoutes } from "./health.js";
+import { healthRoutes } from "./http/health.js";
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
 
 describe("API maintenance admission", () => {

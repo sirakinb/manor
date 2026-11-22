@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { PublicForm, PublicFormInput } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
 import { BuiButton, BuiCard } from "../../components/ai/primitives";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import { isoToZonedLocal, zonedLocalToIso } from "../../lib/zoned-time";
 
 type Draft = PublicFormInput & { id?: string };

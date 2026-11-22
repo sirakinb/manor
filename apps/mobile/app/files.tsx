@@ -19,7 +19,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 
 const inputStyle = {
   color: "#ECECEE",

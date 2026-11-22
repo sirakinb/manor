@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { brandById, brands } from "@rakazo/brands";
-import { captureScreenshot } from "./helpers";
+import { captureScreenshot } from "./helpers/helpers";
 
 test.use({ javaScriptEnabled: false });
 

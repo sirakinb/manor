@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, rpc, signup } from "./helpers/helpers";
 
 test("organization owners manage event signup forms from the CRM", async ({ page }, testInfo) => {
   const stamp = Date.now();

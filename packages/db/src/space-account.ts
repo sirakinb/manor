@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { Actor } from "@rakazo/contracts";
-import type { PrismaClient } from "./client.js";
-import { Prisma } from "./client.js";
-import { runAsSystem } from "./row-security.js";
-import { IsolationError } from "./scope.js";
-import { withTransactionRetry } from "./transaction-retry.js";
+import type { PrismaClient } from "./database/client.js";
+import { Prisma } from "./database/client.js";
+import { runAsSystem } from "./database/row-security.js";
+import { IsolationError } from "./database/scope.js";
+import { withTransactionRetry } from "./database/transaction-retry.js";
 
 /** Resolve only after authenticating the person. Account identity is never client supplied. */
 export async function spaceResourceActor(prisma: PrismaClient, actor: Actor): Promise<Actor> {

@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceAutomation } from "@rakazo/contracts";
 import { useEffect, useRef, useState } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import {
   Card,
   CLICKABLE_TEXT,

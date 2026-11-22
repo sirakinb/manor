@@ -1,8 +1,8 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { RakazoDesktopLocalComputerStatus } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { desktopBridge } from "../lib/desktop";
-import { rpc } from "../lib/rpc";
+import { desktopBridge } from "../lib/platform/desktop";
+import { rpc } from "../lib/query/rpc";
 import { BuiButton } from "./ai/primitives";
 
 const DEVICE_TOKEN_KEY = "manor.local-computer.device-token";

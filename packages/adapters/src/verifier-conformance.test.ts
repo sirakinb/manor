@@ -8,7 +8,7 @@ import type {
   Verifier,
 } from "@rakazo/adapter-kit";
 import { describe, expect, it } from "vitest";
-import { createLlmVerifier } from "./auto-review.js";
+import { createLlmVerifier } from "./approvals/auto-review.js";
 import { FakeVerifier } from "./fake-verifier.js";
 import { JevVerifier } from "./jev-verifier.js";
 

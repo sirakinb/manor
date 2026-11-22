@@ -1,6 +1,6 @@
 import type { AnswerCheckRequest } from "@rakazo/adapter-kit";
 import { redactSecrets } from "@rakazo/core";
-import { redactForReview } from "./auto-review.js";
+import { redactForReview } from "./approvals/auto-review.js";
 
 const MIN_CLAIM_WORDS = 4;
 const MAX_CLAIMS = 20;

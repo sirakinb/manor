@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { PrismaClient } from "./client.js";
-import { setSpaceSettingOverride } from "./space-settings.js";
+import type { PrismaClient } from "./database/client.js";
+import { setSpaceSettingOverride } from "./spaces/space-settings.js";
 
 const scope = { spaceId: "space-1", userId: "user-1" };
 const member = { spaceId: "space-1", userId: "user-1" };

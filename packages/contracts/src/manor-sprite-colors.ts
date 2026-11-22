@@ -1,4 +1,4 @@
-import { parseBotAvatarValue } from "./bot-avatar.js";
+import { parseBotAvatarValue } from "./bots/bot-avatar.js";
 
 /**
  * Manor: the stored plain colours a bot is drawn as one of Manor's sprites on, when it has no

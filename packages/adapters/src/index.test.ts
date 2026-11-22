@@ -1,15 +1,18 @@
 import { createCipheriv, createHash } from "node:crypto";
 import { BUILTIN_TOOL_NAMES, FLEET_TOOL_NAMES } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
+import { crmAgentTools } from "./crm-tools.js";
+import {
+  offersAgentConnectionTools,
+  selectBuiltinToolsForRun,
+} from "./runs/tools/run-tool-selection.js";
+import { inferScript, ScriptedAgentRuntime } from "./runtime/scripted-runtime.js";
+import { EncryptedSecretStore } from "./secrets/secrets.js";
 import {
   agentConnectionTools,
   builtinAgentTools,
   DELEGATION_TOOL_NAMES,
-} from "./builtin.tool-definition.js";
-import { crmAgentTools } from "./crm-tools.js";
-import { offersAgentConnectionTools, selectBuiltinToolsForRun } from "./run-tool-selection.js";
-import { inferScript, ScriptedAgentRuntime } from "./scripted-runtime.js";
-import { EncryptedSecretStore } from "./secrets.js";
+} from "./tools/builtin.tool-definition.js";
 import { workspaceAgentTools } from "./workspace-tools.js";
 
 describe("secret store", () => {

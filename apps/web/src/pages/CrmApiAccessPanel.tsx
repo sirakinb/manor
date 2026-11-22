@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BuiButton, BuiCard, SuccessPop } from "../components/ai/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import { brandName } from "../lib/brand";
-import { withSpaceHeaders } from "../lib/rpc";
+import { withSpaceHeaders } from "../lib/query/rpc";
 import { useWorkspaceAccess } from "../lib/use-workspace-access";
 
 type Credential = {

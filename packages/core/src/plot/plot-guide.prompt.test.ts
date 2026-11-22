@@ -1,9 +1,11 @@
-import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { PLOT_TOOL_GUIDE } from "./plot-guide.prompt.js";
 
-it("keeps the plot guide text exact", () => {
-  expect(createHash("sha256").update(PLOT_TOOL_GUIDE).digest("hex")).toMatchInlineSnapshot(
-    `"c73d03e7e57bac332e1ffac7c461d173aab0256e458bd16f719f81d9b8c6ea0d"`,
+// Upstream dropped its exact-hash test: the run's prompt version now fingerprints every
+// *.prompt.ts file. Manor keeps a check that the guide still teaches its gauge marks.
+it("tells the bot how to draw gauges", () => {
+  expect(PLOT_TOOL_GUIDE).toContain(
+    'Gauges: for a single KPI against its range use {"type": "gauge"}',
   );
+  expect(PLOT_TOOL_GUIDE).toContain("bands [{to, color}]");
 });

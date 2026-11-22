@@ -1,5 +1,5 @@
 import { ClientError } from "@rakazo/core";
-import type { Prisma, PrismaClient } from "./client.js";
+import type { Prisma, PrismaClient } from "./database/client.js";
 
 /**
  * Manor's team spaces. A team space has one shared space account (`spaces.accountUserId`, a user

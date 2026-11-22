@@ -16,7 +16,8 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`. In progress: `v0.12.0`.
+`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`, `v0.12.0`. In progress:
+`v0.13.0`.
 
 ### How a stage is resolved
 
@@ -35,7 +36,10 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
    Strings that name the product get the brand-swapped translation (`{brandName}` for web,
    "Manor" for mobile): run the carry again against the merged tag with
    `--swap 'Rakazo={brandName}'` and then `--swap 'Rakazo=Manor'`, which fills a renamed
-   string from upstream's translation of the original. The catalogs stay committed; no CI check compares them with the code
+   string from upstream's translation of the original. Upstream's catalogs lag its code at a
+   release tag, and a test requires some new strings in every language, so finish with a
+   carry from upstream's current `main` (plain, then with the two swaps): those are upstream's
+   own translations arriving a stage early. The catalogs stay committed; no CI check compares them with the code
    and production builds extract a template first, so a missing string shows in English.
    Never commit `packages/i18n/locales/messages.pot`.
 3. Everything else is a hand union: Manor keeps every feature it has and gains
@@ -389,6 +393,35 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   A new Manor view is loaded the same way; raise the budget only for code every page needs.
 - The mobile app stays on Manor's own version and keeps no Apple sign-in entitlement; upstream's
   `expo-apple-authentication` config plugin is not in Manor's app config.
+- Upstream regrouped its source into topic folders in `v0.13.0`. Manor-only files stay where
+  they were, except in `packages/core`, whose root may hold only the barrel: Manor's core files
+  moved into the matching topic folders (a new `workspace/` among them). After such a release,
+  repair the relative imports of Manor-only files mechanically (an unresolved import is pointed
+  at the one file of that name in the same package) before type-checking.
+- Routines (`v0.13.0`): existing routines keep upstream's default and run alongside their chat.
+  Upstream lets a routine read only its owner's messages, which needs two Manor corrections.
+  In a team space every person member speaks for the shared account that owns the routine, so
+  their messages count as the owner's (one helper in the database package, used by the history
+  filter, history search and the checker's view of the owner's words). And existing user
+  messages carry no author, because Manor filled that column only in team spaces, so
+  `20261231120000_manor_message_authors_for_existing_chats` stamps each with its chat's owner,
+  the rule upstream's own team-space conversion uses.
+- Meetings (meeting bots, transcripts, calendar scheduling; `v0.13.0`) stay off: no meeting
+  provider is set. The code is kept on the team-space tier and says Manor.
+- Upstream's Apple Watch companion (`v0.13.0`) is not built: Manor's app configuration does not
+  register its plugin, and the plugin's test is skipped while that is so.
+- Deep links upstream adds for the mobile app use Manor's scheme (`manor://mcp-oauth`,
+  `manor://meeting-calendar-oauth`). The older `rakazo://` callbacks are still a separate change.
+- A deployment-provided model counts as connected everywhere a bot's model state is shown
+  (`botModelState` in core), so upstream's model picker in chat never tells a deployment-model
+  bot to connect a model.
+- The marketing site builds without upstream's private pages (upstream's own fallback): the home
+  page and docs only, plus Manor's CRM API page.
+- Pull request suites run from upstream's shared workflow on GitHub's runners; Manor has no
+  Depot account, and the copy under `.depot` is kept only because a check requires the two
+  files to match.
+- The folder size check takes Manor's allowance from `scripts/checks/folder-size.manor.json`,
+  like the per-rule allowances.
 
 ### Deploy checklist for the staged sync
 
@@ -655,6 +688,30 @@ Things the one production deploy at the end must cover, collected as stages land
     changed), and every account email has upstream's new layout.
   - Helper bots can now act instead of being read-only, and saving memory after outside content
     asks first in Ask and goes to the checker in Auto. Say so in the release note to tenants.
+- `v0.13.0` (17 upstream migrations, rehearsed on the copy: all applied, none failed, no invalid
+  indexes, no existing table gained or lost rows; `push_tokens` becomes `push_registrations`
+  with its rows carried over, so no phone registers again):
+  - Stop the API and worker before migrating, as already required: `drop_push_tokens` and
+    `drop_retired_lease_columns` apply at once, and rolling back needs a database restore.
+  - Two concurrent index changes on `runs` run outside a transaction; the usual recovery applies.
+  - Rehearse `20261231120000_manor_message_authors_for_existing_chats` on a fresh copy and
+    compare, per tenant, how many user messages a routine can read before and after.
+  - Keep unset: every `MEETING_*` setting, `DEPLOYMENT_VOICE`, `CHAT_HISTORY_RETENTION_DAYS`
+    (nothing deletes chat messages while it is unset), `MODEL_CREDIT_OFFERINGS`,
+    `RAKAZO_PROXY_CONNECT_BY_HOSTNAME_HOSTS`, `SANDBOX_COMPUTER_BROWSER_PROXY_PAC_URL`,
+    `RAKAZO_UPDATER_TOKEN`, `RAKAZO_AUTO_UPDATE_INTERVAL_HOURS` and the `updater` Compose
+    profile (production deploys only through the release controller). `WORKSPACE_SAVE_MAX_GB`
+    defaults to 5.
+  - Approvals changed again upstream: the approval mode alone decides when a bot asks. In Ask,
+    saving memory or a skill no longer asks; a webhook-started run now asks with a card that
+    expires instead of refusing a purchase, a sign-in or a new site outright. Manor's refusals
+    and the allow-once rule for This Mac are unchanged. Say so in the release note to tenants.
+  - New for people: a one-time prompt to adopt the device's time zone (never the shared
+    account's in a team space), editable outgoing drafts on approval cards, an optional model
+    picker in the message box, the mobile inbox opening from a saved copy on the device, and
+    every bot being told it runs on Manor.
+  - The mobile app needs a new native build (a new native markdown dependency), not an
+    over-the-air update.
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR

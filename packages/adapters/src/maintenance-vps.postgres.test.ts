@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createMaintenanceService } from "./maintenance.js";
 import type { MaintenanceTransport } from "./maintenance-control.js";
 import { VpsMaintenanceAdapter } from "./maintenance-vps.js";
-import { ScriptedAgentRuntime } from "./scripted-runtime.js";
+import { ScriptedAgentRuntime } from "./runtime/scripted-runtime.js";
 
 const describeDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL ? describe : describe.skip;

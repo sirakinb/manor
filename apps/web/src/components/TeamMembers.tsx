@@ -3,7 +3,7 @@ import type { TeamMember } from "@rakazo/contracts";
 import { TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
 import { displayName } from "@rakazo/core";
 import { useEffect, useState } from "react";
-import { rpc } from "../lib/rpc";
+import { rpc } from "../lib/query/rpc";
 import { BuiCard, LoadingState } from "./ai/primitives";
 
 export function TeamMembers() {

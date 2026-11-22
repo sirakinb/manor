@@ -10,7 +10,7 @@ import {
   combineSignals,
   redactConnectorPayload,
   sanitizeConnectorError,
-} from "./connector-safety.js";
+} from "./integrations/connector-safety.js";
 
 const FORMS_API = "https://forms.googleapis.com/v1";
 const DRIVE_API = "https://www.googleapis.com/drive/v3";

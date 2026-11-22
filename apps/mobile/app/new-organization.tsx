@@ -3,20 +3,20 @@ import { typeScale } from "@rakazo/ui-tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
-import { NativeActionButton } from "../components/native-action-button";
-import { SettingsGroup, SettingsInputRow } from "../components/settings-group";
-import { mobileTokens } from "../lib/appearance";
-import { native, useThemedStyles } from "../lib/native";
-import type { Organization } from "../lib/organizations";
+import { NativeActionButton } from "../components/native/native-action-button";
+import { SettingsGroup, SettingsInputRow } from "../components/settings/settings-group";
+import { errorText } from "../lib/api/user-error";
+import { mobileTokens } from "../lib/appearance/appearance";
+import { native, useThemedStyles } from "../lib/native/native";
+import { useSave } from "../lib/query/query";
+import { ACCOUNT_SETTINGS } from "../lib/query/settings-target";
+import type { Organization } from "../lib/spaces/organizations";
 import {
   ORGANIZATION_SWITCHING,
   refreshOrganizations,
   switchOrganization,
   useOrganizations,
-} from "../lib/organizations";
-import { useSave } from "../lib/query";
-import { ACCOUNT_SETTINGS } from "../lib/settings-target";
-import { errorText } from "../lib/user-error";
+} from "../lib/spaces/organizations";
 
 export default function NewOrganization() {
   const { t } = useLingui();

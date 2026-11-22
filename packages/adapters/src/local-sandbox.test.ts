@@ -9,10 +9,10 @@ import {
   writeLocalFolderFile,
 } from "@rakazo/core/node/local-folder-runtime";
 import { afterAll, describe, expect, it } from "vitest";
-import { FakeSandboxProvider } from "./fake-sandbox.js";
-import { createRunSandbox } from "./host-aware-sandbox.js";
+import { createRunSandbox } from "./computers/sandbox/host-aware-sandbox.js";
 import { MemoryLocalComputerGateway } from "./local-computer-gateway.js";
 import { LocalSandboxProvider } from "./local-sandbox.js";
+import { FakeSandboxProvider } from "./providers/computer/fake/fake-sandbox.js";
 
 const ctx = {
   operationId: "op",

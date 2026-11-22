@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { PrismaClient } from "./client.js";
-import { createDb } from "./client.js";
-import { IsolationError } from "./scope.js";
+import type { PrismaClient } from "./database/client.js";
+import { createDb } from "./database/client.js";
+import { IsolationError } from "./database/scope.js";
 import type { WorkspaceRepos } from "./workspace.js";
 import { createWorkspaceRepos } from "./workspace.js";
 

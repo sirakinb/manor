@@ -1,16 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { PrismaClient } from "./client.js";
-import { createDb } from "./client.js";
+import type { PrismaClient } from "./database/client.js";
+import { createDb } from "./database/client.js";
+import { asSystem, runAsSystem } from "./database/row-security.js";
+import { createSpaceAccount } from "./space-account.js";
 import {
   acceptOrganizationInvitation,
   listOrganizationMembers,
   revokeOrganizationMember,
   SpaceAccountUnmanageableError,
   setOrganizationMemberRole,
-} from "./organization-members.js";
-import { asSystem, runAsSystem } from "./row-security.js";
-import { createSpaceAccount } from "./space-account.js";
+} from "./spaces/organization-members.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;

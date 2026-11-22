@@ -5,7 +5,7 @@ import {
   WORKSPACE_TEXT_MAX_BYTES,
   WorkspaceFileOperationSchema,
 } from "@rakazo/contracts";
-import type { FakeBox } from "./fake-sandbox.js";
+import type { FakeBox } from "./providers/computer/fake/fake-sandbox.js";
 
 /** The in-memory computer's translation of the workspace command, without executing host commands. */
 export function fakeWorkspaceFiles(box: FakeBox, input: string): string {

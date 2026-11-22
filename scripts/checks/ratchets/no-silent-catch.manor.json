@@ -6,7 +6,7 @@
   "apps/api/src/workspace-integrations.ts": 1,
   "packages/adapters/src/google-forms-connector.ts": 1,
   "packages/adapters/src/maintenance-vps.ts": 2,
-  "packages/adapters/src/mcp-oauth.ts": 1,
-  "packages/adapters/src/run-attempt.ts": 2,
+  "packages/adapters/src/mcp/mcp-oauth.ts": 1,
+  "packages/adapters/src/runs/lifecycle/run-attempt.ts": 2,
   "packages/adapters/src/zoho-campaigns-connector.ts": 2
 }

@@ -1,6 +1,6 @@
 import { TEAM_HEARTBEAT_MS, TEAM_IDLE_MS } from "@rakazo/contracts";
 import { useEffect } from "react";
-import { rpc } from "./rpc";
+import { rpc } from "./query/rpc";
 
 export function useTeamPresence() {
   useEffect(() => {

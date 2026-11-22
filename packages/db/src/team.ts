@@ -1,7 +1,7 @@
 import type { Actor } from "@rakazo/contracts";
 import { TEAM_ACTIVE_MS, TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
-import type { PrismaClient } from "./client.js";
-import { IsolationError } from "./scope.js";
+import type { PrismaClient } from "./database/client.js";
+import { IsolationError } from "./database/scope.js";
 
 export function createTeamRepos(prisma: PrismaClient) {
   async function requireMember(actor: Actor) {

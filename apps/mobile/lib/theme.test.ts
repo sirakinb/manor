@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { botColors, tokens } from "./theme.js";
+import { botColors, tokens } from "./appearance/theme.js";
 
 describe("mobile theme tokens", () => {
   it("exposes the shared product palette used by custom surfaces", () => {

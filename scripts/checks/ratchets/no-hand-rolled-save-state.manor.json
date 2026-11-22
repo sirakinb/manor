@@ -1,6 +1,7 @@
 {
   "apps/web/src/components/BotCredentialsSettings.tsx": 1,
   "apps/web/src/components/ShareThisMacSettings.tsx": 1,
+  "apps/web/src/components/integrations/McpOAuthPasteForm.tsx": 1,
   "apps/web/src/pages/CrmApiAccessPanel.tsx": 1,
   "apps/web/src/pages/OAuthAuthorize.tsx": 1,
   "apps/web/src/pages/crm/CrmContacts.tsx": 1,

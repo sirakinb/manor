@@ -1,6 +1,6 @@
 import type { SecretStore } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
-import { generateTotp, normalizeTotpSecret, totpSecondsRemaining } from "./totp.js";
+import { generateTotp, normalizeTotpSecret, totpSecondsRemaining } from "./secrets/vault/totp.js";
 
 export const BOT_CREDENTIAL_SECRET_KIND = "bot-credential";
 

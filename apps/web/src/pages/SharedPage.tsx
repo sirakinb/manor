@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { PublicPageShell } from "../components/pages/PublicPageShell";
 import { brandName } from "../lib/brand";
-import { usePageDocument } from "../lib/pages";
+import { usePageDocument } from "../lib/pages/pages";
 
 async function readSharedPage(token: string): Promise<SharedPage | null> {
   const response = await fetch(`${SHARED_PAGE_PATH_PREFIX}${token}`, {

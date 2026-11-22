@@ -36,15 +36,16 @@
         "**/packages/chat-ui/**/*.tsx",
         "!**/*.test.tsx",
         "!**/packages/ui-web/src/bot-avatar.tsx",
-        "!**/apps/mobile/components/bot-avatar.tsx",
+        "!**/apps/mobile/components/bots/bot-avatar.tsx",
         "!**/apps/mobile/app/files.tsx",
         "!**/apps/mobile/app/run-logs.tsx",
         "!**/apps/mobile/app/sign-in.tsx",
         "!**/apps/mobile/components/team-members.tsx",
         "!**/apps/mobile/components/thread/message-bubble.tsx",
+        "!**/apps/mobile/components/thread/reply-verification-note.tsx",
         "!**/apps/mobile/components/crm-kit.tsx",
         "!**/apps/mobile/components/crm-pipeline.tsx",
-        "!**/apps/web/src/pages/WindowChrome.tsx",
+        "!**/apps/web/src/components/WindowChrome.tsx",
         "!**/apps/web/src/pages/workspace/**",
         "!**/apps/web/src/pages/crm/**",
         "!**/apps/web/src/pages/AgentConnectionSetup.tsx",
@@ -64,17 +65,17 @@
         "!**/apps/web/src/components/ai/ParticleWordmark.tsx",
         "!**/apps/web/src/components/ai/manor-primitives.tsx",
         "!**/apps/web/src/App.tsx",
-        "!**/apps/web/src/pages/Auth.tsx",
-        "!**/apps/web/src/pages/Auth.test.tsx",
-        "!**/apps/web/src/pages/PluginsOverlay.tsx",
+        "!**/apps/web/src/pages/auth/Auth.tsx",
+        "!**/apps/web/src/pages/auth/Auth.test.tsx",
+        "!**/apps/web/src/pages/plugins/PluginsOverlay.tsx",
         "!**/apps/web/src/pages/Shell.tsx",
-        "!**/apps/web/src/pages/shell/composer.tsx",
-        "!**/apps/web/src/pages/shell/computer-overlay.tsx",
-        "!**/apps/web/src/pages/shell/computer-panel.tsx",
-        "!**/apps/web/src/pages/shell/message-view.tsx",
-        "!**/apps/web/src/pages/shell/sidebar-header.tsx",
-        "!**/apps/web/src/pages/shell/sidebar-roster.tsx",
-        "!**/apps/web/src/pages/shell/transcript.tsx"
+        "!**/apps/web/src/pages/shell/composer/composer.tsx",
+        "!**/apps/web/src/pages/shell/computers/computer-overlay.tsx",
+        "!**/apps/web/src/pages/shell/computers/computer-panel.tsx",
+        "!**/apps/web/src/pages/shell/chat/message-view.tsx",
+        "!**/apps/web/src/pages/shell/sidebar/sidebar-header.tsx",
+        "!**/apps/web/src/pages/shell/sidebar/sidebar-roster.tsx",
+        "!**/apps/web/src/pages/shell/chat/transcript.tsx"
       ]
     },
     {
@@ -101,17 +102,17 @@
         "!**/apps/web/src/components/ai/ParticleWordmark.tsx",
         "!**/apps/web/src/components/ai/manor-primitives.tsx",
         "!**/apps/web/src/App.tsx",
-        "!**/apps/web/src/pages/Auth.tsx",
-        "!**/apps/web/src/pages/Auth.test.tsx",
-        "!**/apps/web/src/pages/PluginsOverlay.tsx",
+        "!**/apps/web/src/pages/auth/Auth.tsx",
+        "!**/apps/web/src/pages/auth/Auth.test.tsx",
+        "!**/apps/web/src/pages/plugins/PluginsOverlay.tsx",
         "!**/apps/web/src/pages/Shell.tsx",
-        "!**/apps/web/src/pages/shell/composer.tsx",
-        "!**/apps/web/src/pages/shell/computer-overlay.tsx",
-        "!**/apps/web/src/pages/shell/computer-panel.tsx",
-        "!**/apps/web/src/pages/shell/message-view.tsx",
-        "!**/apps/web/src/pages/shell/sidebar-header.tsx",
-        "!**/apps/web/src/pages/shell/sidebar-roster.tsx",
-        "!**/apps/web/src/pages/shell/transcript.tsx"
+        "!**/apps/web/src/pages/shell/composer/composer.tsx",
+        "!**/apps/web/src/pages/shell/computers/computer-overlay.tsx",
+        "!**/apps/web/src/pages/shell/computers/computer-panel.tsx",
+        "!**/apps/web/src/pages/shell/chat/message-view.tsx",
+        "!**/apps/web/src/pages/shell/sidebar/sidebar-header.tsx",
+        "!**/apps/web/src/pages/shell/sidebar/sidebar-roster.tsx",
+        "!**/apps/web/src/pages/shell/chat/transcript.tsx"
       ]
     }
   ],
@@ -271,13 +272,13 @@
     {
       "includes": [
         "packages/adapters/**",
-        "apps/desktop/src/monitoring.ts",
-        "apps/web/src/lib/monitoring.ts",
-        "apps/mobile/lib/monitoring.ts",
+        "apps/desktop/src/main/system/monitoring.ts",
+        "apps/web/src/lib/platform/monitoring.ts",
+        "apps/mobile/lib/platform/monitoring.ts",
         "packages/logging/src/sentry.ts",
         "packages/logging/src/sentry.test.ts",
         "packages/logging/src/axiom-sink.ts",
-        "packages/testkit/src/cli/ios-screenshot-publish.ts"
+        "packages/testkit/src/screenshots/ios-screenshot-publish.ts"
       ],
       "linter": {
         "rules": {

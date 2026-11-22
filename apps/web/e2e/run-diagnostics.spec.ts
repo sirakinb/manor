@@ -7,7 +7,7 @@ import {
   openBotPanel,
   rpc,
   signup,
-} from "./helpers";
+} from "./helpers/helpers";
 
 test("a failed routine has persistent diagnostics after its banner is dismissed", async ({
   page,

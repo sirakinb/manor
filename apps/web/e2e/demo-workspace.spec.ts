@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { brandById } from "@rakazo/brands";
 import { createDb } from "@rakazo/db";
 import { createDemoWorkspace } from "../../../packages/db/src/demo-workspace";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, signup } from "./helpers/helpers";
 
 test("demo has isolated sample operations and yellow branding", async ({ page }, testInfo) => {
   const email = `demo-${randomUUID()}@rakazo.test`;

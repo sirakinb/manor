@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cancelDeactivatedAccountRuns } from "./account-status.js";
-import type { PrismaClient } from "./client.js";
-import { createDb } from "./client.js";
-import { teamComputerUserId } from "./computers.js";
-import { createThreadMessage, loadMessageAuthors } from "./messages.js";
-import { createRepos } from "./repos.js";
-import { asSystem, runAsSystem, runAsTenant } from "./row-security.js";
+import { cancelDeactivatedAccountRuns } from "./account/account-status.js";
+import { createRepos } from "./bots/bot-repository.js";
+import { teamComputerUserId } from "./computers/computers.js";
+import type { PrismaClient } from "./database/client.js";
+import { createDb } from "./database/client.js";
+import { asSystem, runAsSystem, runAsTenant } from "./database/row-security.js";
 import { createSpaceAccount } from "./space-account.js";
 import {
   leaveInvitedSpaces,
@@ -14,9 +13,10 @@ import {
   listSpaceMembers,
   removeSpaceMember,
   spaceIsShared,
-} from "./space-members.js";
+} from "./spaces/space-members.js";
 import { TeamSpaceSharingError } from "./team-space.js";
-import { markThreadReadFor } from "./thread-reads.js";
+import { createThreadMessage, loadMessageAuthors } from "./threads/messages.js";
+import { markThreadReadFor } from "./threads/thread-reads.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;

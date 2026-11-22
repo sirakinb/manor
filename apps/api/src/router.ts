@@ -19,12 +19,13 @@ import { maintenanceAdvanceJob } from "@rakazo/adapter-kit";
 import type {
   CloudAgentConnection,
   CodexLiveCatalog,
-  ComposioProvider,
   ConnectorRegistry,
   FaviconResolver,
   IntegrationProviderSettings,
   McpConnector,
   McpOAuthBroker,
+  MeetingCalendarService,
+  MeetingService,
   MemoryProviderResolver,
   MessagingDelivery,
   MessagingInstallations,
@@ -81,7 +82,8 @@ import {
   parseComputerMode,
   withLease,
 } from "@rakazo/db";
-import type { BillingService } from "./billing.js";
+import type { BillingService } from "./billing/billing.js";
+import type { VoiceDeps } from "./calls/voice.js";
 import type { WorkspaceRepo } from "./computer-changes.js";
 import {
   findGitRepositoriesArgv,
@@ -93,6 +95,7 @@ import {
   runInComputer,
   truncateDiff,
 } from "./computer-changes.js";
+import { addPreviewProxyCapability } from "./computers/screen-proxy.js";
 import {
   listLocalDevices,
   localComputerLiveSession,
@@ -100,6 +103,9 @@ import {
   revokeLocalDevice,
   stopLocalComputerSessions,
 } from "./local-computer.js";
+import { meetingCalendarRoutes } from "./meetings/calendar/calendar-routes.js";
+import type { createMeetingAnswers } from "./meetings/meeting-answers.js";
+import { meetingRoutes } from "./meetings/meeting-routes.js";
 import { accountRoutes } from "./routes/account.js";
 import { availabilityRoutes } from "./routes/availability.js";
 import { boardsRoutes } from "./routes/boards.js";
@@ -124,16 +130,14 @@ import { computerContext } from "./routes/shared.js";
 import { spacesRoutes } from "./routes/spaces.js";
 import { spendingLimitRoutes } from "./routes/spending-limit.js";
 import { threadsRoutes } from "./routes/threads.js";
-import { getRunDiagnostics, listBotRunHistory } from "./runs.js";
-import { addPreviewProxyCapability } from "./screen-proxy.js";
-import type { VoiceDeps } from "./voice.js";
+import { getRunDiagnostics, listBotRunHistory } from "./threads/runs.js";
 import { workspaceAccess } from "./workspace-access.js";
 import type { PropertyLedgerFactory } from "./workspace-actions.js";
 import { createWorkspaceActions, WorkspaceActionError } from "./workspace-actions.js";
 import { createWorkspaceTeam } from "./workspace-team.js";
 
-export { botIntroPrompt } from "./hidden-turns.prompt.js";
-export { nextConnectionLabel } from "./model-credentials.js";
+export { botIntroPrompt } from "./bots/hidden-turns.prompt.js";
+export { nextConnectionLabel } from "./models/model-credentials.js";
 export { enqueueBotIntroRun } from "./routes/bots.js";
 export { HEARTBEAT_MS, SESSION_RECHECK_MS } from "./routes/shared.js";
 export { callMarkerClientNonce } from "./routes/threads.js";
@@ -144,6 +148,9 @@ export interface RouterDeps {
   organizationChangesAvailable?: boolean;
   /** Manor: tests only; production uses `SPACE_SHARING_AVAILABLE`. */
   spaceSharingAvailable?: boolean;
+  meetings?: MeetingService;
+  meetingCalendar?: MeetingCalendarService;
+  meetingAnswers?: ReturnType<typeof createMeetingAnswers>;
   pushTokens: PushTokenStore;
   /** Absent when the deployment cannot update a phone's live status card. */
   workActivities?: Pick<WorkActivities, "register" | "registerStarts">;
@@ -188,7 +195,6 @@ export interface RouterDeps {
     provider: string,
   ) => void;
   integrationSettings?: IntegrationProviderSettings;
-  composio?: ComposioProvider;
   mcpOAuth?: McpOAuthBroker;
   /** Probes MCP server health; without it servers are never probed from here. */
   mcp?: Pick<McpConnector, "probe">;
@@ -205,6 +211,7 @@ export interface RouterDeps {
     enabled: boolean;
     providers: string[];
     addresses: Record<string, string>;
+    resolveAddresses?: (signal?: AbortSignal) => Promise<Record<string, string>>;
     openSignup: boolean;
   };
   crmEvent?: (
@@ -225,6 +232,7 @@ export interface RouterDeps {
   onEmailError?: (error: unknown) => void;
   speechSummary?: VoiceDeps["speechSummary"];
   env: {
+    deploymentVoice?: NonNullable<VoiceDeps["env"]>["deploymentVoice"];
     /** Domain of bots' email addresses; unset when this server receives no email. */
     inboundEmailDomain?: string;
     navLinks?: NavLink[];
@@ -266,6 +274,8 @@ export function createRouter(deps: RouterDeps) {
 
   return os.router({
     ...accountRoutes(ctx),
+    ...meetingRoutes(ctx),
+    ...meetingCalendarRoutes(ctx),
     ...spacesRoutes(ctx),
     ...organizationsRoutes(ctx),
     ...modelsRoutes(ctx),

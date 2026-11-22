@@ -1,7 +1,7 @@
 import type { AgentRuntimeEvent } from "@rakazo/adapter-kit";
 import { createStreamingRedactor, redactSecrets } from "@rakazo/core";
-import type { RunContext } from "./run-context.js";
-import { flushPendingTools, flushProgress } from "./run-progress.js";
+import type { RunContext } from "./runs/assembly/run-context.js";
+import { flushPendingTools, flushProgress } from "./runs/lifecycle/run-progress.js";
 
 /**
  * Manor: reasoning streams beside the reply. Deltas batch into thread.thinking events, and

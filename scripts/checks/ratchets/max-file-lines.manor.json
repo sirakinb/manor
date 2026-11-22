@@ -1,11 +1,10 @@
 {
   "apps/api/src/crm-integrations.ts": 1,
-  "apps/api/src/organizations.postgres.test.ts": 1,
   "apps/api/src/router.ts": 1,
-  "apps/web/src/pages/shell/composer.tsx": 1,
+  "apps/web/src/pages/shell/composer/composer.tsx": 1,
   "apps/web/src/pages/workspace/bits.tsx": 1,
   "apps/web/src/pages/workspace/sections/UtilitiesSection.tsx": 1,
-  "packages/auth/src/identity-trust.test.ts": 1,
-  "packages/db/src/spaces.ts": 1,
+  "packages/adapters/src/runs/assembly/run-assembly-capabilities.ts": 1,
+  "packages/db/src/spaces/spaces.ts": 1,
   "packages/db/src/workspace.ts": 1
 }

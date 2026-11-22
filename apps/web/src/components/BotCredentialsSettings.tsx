@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { BotCredential } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { rpc } from "../lib/rpc";
+import { rpc } from "../lib/query/rpc";
 
 const inputClass =
   "mt-1 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-2.5 text-[14px] text-[#ECECEE] placeholder:text-[#5C5C62]";

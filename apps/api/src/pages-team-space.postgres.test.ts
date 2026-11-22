@@ -3,7 +3,7 @@ import type { Actor } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import { createDb, runAsSystem, runAsTenant, spaceResourceActor } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getPage, listPages } from "./pages.js";
+import { getPage, listPages } from "./content/pages.js";
 
 const enabled = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABASE_URL);
 

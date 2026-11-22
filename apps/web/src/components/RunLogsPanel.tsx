@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { RunLogsController } from "@rakazo/core";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { rpc } from "../lib/rpc";
+import { rpc } from "../lib/query/rpc";
 import { BuiButton, BuiCard, LoadingState } from "./ai/primitives";
 
 export function RunLogsPanel({ botId }: { botId: string }) {

@@ -1,8 +1,8 @@
 import { TEAM_HEARTBEAT_MS, TEAM_IDLE_MS } from "@rakazo/contracts";
 import { useCallback, useEffect, useRef } from "react";
 import { AppState } from "react-native";
-import { rpc } from "./api";
-import { loadSessionToken } from "./session";
+import { rpc } from "./api/api";
+import { loadSessionToken } from "./api/session";
 
 export function useTeamPresence(ready: boolean) {
   const lastInput = useRef(Date.now());

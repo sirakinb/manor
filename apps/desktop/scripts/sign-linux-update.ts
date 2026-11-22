@@ -9,7 +9,7 @@ import {
   linuxUpdateSignatureMessage,
   sha512File,
   verifyLinuxUpdate,
-} from "../src/linux-update-signature.js";
+} from "../src/main/updates/linux-update-signature.js";
 
 if (linuxUpdatePublicKey() === null) {
   console.error("RAKAZO_LINUX_UPDATE_PUBLIC_KEY is not set.");

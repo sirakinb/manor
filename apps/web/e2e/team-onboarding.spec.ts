@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { brandById } from "@rakazo/brands";
 import { createDb } from "@rakazo/db";
 import { provisionPortalTeam } from "../../../packages/auth/src/provision-team";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, signup } from "./helpers/helpers";
 
 // Both tests claim the "vibecodephilly" brand, and an organization's brand id is unique.
 // They share this file so they run one after the other: spec files run in parallel workers,

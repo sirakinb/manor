@@ -12,8 +12,8 @@ import { SERVICE_NAMES } from "@rakazo/logging";
 import { createRootLogger } from "@rakazo/logging/axiom";
 import { watchEventLoopStalls } from "@rakazo/logging/event-loop";
 import { createApp } from "./app.js";
-import { RUN_DRAIN_SIGNAL, trackConnections } from "./drain.js";
 import { loadEnv } from "./env.js";
+import { RUN_DRAIN_SIGNAL, trackConnections } from "./http/drain.js";
 import { LOCAL_COMPUTER_SOCKET_PATH } from "./local-computer.js";
 
 const logger = await createRootLogger(SERVICE_NAMES.api);

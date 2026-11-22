@@ -7,7 +7,7 @@ import type { AdapterContext, ComputerRef } from "@rakazo/adapter-kit";
 import type { WorkspaceFileOperation } from "@rakazo/contracts";
 import { WorkspaceFileOperationSchema } from "@rakazo/contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DesktopSandboxProvider } from "./desktop-sandbox.js";
+import { DesktopSandboxProvider } from "./providers/computer/desktop/desktop-sandbox.js";
 import { decodeWorkspaceUpload, manageWorkspaceFiles } from "./workspace-files.js";
 
 const exec = promisify(execFile);

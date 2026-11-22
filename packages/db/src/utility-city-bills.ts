@@ -1,4 +1,4 @@
-import type { PrismaClient } from "./client.js";
+import type { PrismaClient } from "./database/client.js";
 
 /** Persist and display city bills as whole cents, never whole dollars. */
 export function toMoneyCents(value: number): number {

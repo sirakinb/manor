@@ -7,7 +7,7 @@ vi.mock("@rakazo/db", async (importOriginal) => ({
   ensureComputerRecord,
 }));
 
-import { runLeaseComputerId } from "./run-attempt.js";
+import { runLeaseComputerId } from "./runs/lifecycle/run-attempt.js";
 
 const deps = { prisma: {} as PrismaClient };
 const thisMac = { computerId: "this-mac", scope: "local", spaceId: "space-1", userId: "user-1" };

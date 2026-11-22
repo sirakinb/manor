@@ -1,4 +1,4 @@
-import { autoReviewTimeoutMs } from "./auto-review.js";
+import { autoReviewTimeoutMs } from "./approvals/auto-review.js";
 import { JevVerifier } from "./jev-verifier.js";
 
 export const LLM_ENGINE = "llm";

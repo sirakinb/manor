@@ -19,8 +19,8 @@ import {
   resolveLabs,
 } from "@rakazo/contracts";
 import { spaceResourceActor } from "@rakazo/db";
-import { isAdmin } from "../admins.js";
-import { effectiveSandboxProvider } from "../computer-provider-config.js";
+import { isAdmin } from "../auth/admins.js";
+import { effectiveSandboxProvider } from "../computers/computer-provider-config.js";
 import { localComputerLiveSession } from "../local-computer.js";
 import type { RouterDeps } from "../router.js";
 
@@ -36,7 +36,7 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
   // Manor: in a team space the person is the initiator; model setup is the space account's.
   const resourceActor = await spaceResourceActor(deps.prisma, actor);
   const personId = actor.initiatedByUserId ?? actor.userId;
-  const [user, setup, admin] = await Promise.all([
+  const [user, setup, admin, meetingsEnabled] = await Promise.all([
     deps.prisma.user.findUniqueOrThrow({
       where: { id: personId },
       select: {
@@ -51,6 +51,8 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     }),
     modelSetup(deps, resourceActor),
     isAdmin(deps, actor),
+    // Manor: a team space's meetings belong to the shared account, like its bots.
+    deps.meetings?.visible(resourceActor),
   ]);
   // Where the deployment runs computers once an admin's choice in Settings applies.
   const sandboxProvider = effectiveSandboxProvider(setup.settings, deps.env.sandboxProvider);
@@ -60,6 +62,7 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     labs,
     labsAvailable: LAB_FEATURES.filter((feature) => !deploymentLabs.includes(feature)),
     ticketBoardEnabled: labs.includes("board"),
+    meetingsEnabled,
     phoneCallsEnabled: deps.env.phoneCallsEnabled === true,
     navLinks: deps.env.navLinks ?? [],
     maxUploadSizeBytes: attachmentMaxBytes(deps.env),
@@ -117,6 +120,18 @@ function computerHostFor(
   return null;
 }
 
+/** Whether this member can use the deployment's model under the current funding mode. */
+export async function deploymentModelAccess(deps: RouterDeps, actor: Actor) {
+  const funding = deps.billing ? await deps.billing.status(actor) : null;
+  const creditsAvailable = modelCreditsUsd(funding) !== null;
+  return {
+    creditsAvailable,
+    hasDeployment:
+      Boolean(deps.env.deploymentModelConfigured) &&
+      (!funding?.creditPurchasesEnabled || creditsAvailable),
+  };
+}
+
 /** The main model chat runs: the member's while it can run, else the deployment's. */
 export async function modelSetup(deps: RouterDeps, actor: Actor) {
   const [member, settings] = await Promise.all([
@@ -130,11 +145,7 @@ export async function modelSetup(deps: RouterDeps, actor: Actor) {
         (await hasHostedModelCredits(deps.prisma, actor, member.provider))))
       ? member
       : null;
-  const funding = deps.billing ? await deps.billing.status(actor) : null;
-  const creditsAvailable = modelCreditsUsd(funding) !== null;
-  const hasDeployment =
-    Boolean(deps.env.deploymentModelConfigured) &&
-    (!funding?.creditPurchasesEnabled || creditsAvailable);
+  const deploymentAccess = await deploymentModelAccess(deps, actor);
   return {
     main,
     model:
@@ -144,10 +155,8 @@ export async function modelSetup(deps: RouterDeps, actor: Actor) {
         deployment: { provider: deps.env.defaultProvider, model: deps.env.defaultModel },
       }).primary,
     settings,
-    funding,
-    creditsAvailable,
-    hasDeployment,
-    needsModel: deps.env.agentRuntime !== "scripted" && !main && !hasDeployment,
+    ...deploymentAccess,
+    needsModel: deps.env.agentRuntime !== "scripted" && !main && !deploymentAccess.hasDeployment,
   };
 }
 

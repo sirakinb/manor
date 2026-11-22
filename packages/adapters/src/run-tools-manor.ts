@@ -4,14 +4,14 @@ import {
   loadBotCredentialSecret,
   resolveBotCredentialValue,
 } from "./bot-credentials.js";
+import { getActiveTeachingSession } from "./bots/teaching-session.js";
 import { botMayUseChannels, sendChannelMessage } from "./channels.js";
 import { crmAgentTools, executeCrmTool } from "./crm-tools.js";
 import { prepareRoutineWebhook } from "./routine-webhook.js";
-import type { RunContext } from "./run-context.js";
-import { addRunSecrets } from "./run-context.js";
-import { publishMessage } from "./run-messages.js";
-import type { ToolCall, ToolHandler, ToolHandlers } from "./run-tool-gate.js";
-import { getActiveTeachingSession } from "./teaching-session.js";
+import type { RunContext } from "./runs/assembly/run-context.js";
+import { addRunSecrets } from "./runs/assembly/run-context.js";
+import { publishMessage } from "./runs/assembly/run-messages.js";
+import type { ToolCall, ToolHandler, ToolHandlers } from "./runs/tools/run-tool-gate.js";
 import { executeWorkspaceTool } from "./workspace-tools.js";
 
 /** Manor's own tools: messaging channels, previews, saved logins, webhook routines, CRM. */

@@ -20,28 +20,28 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { PreviewServer, ProxyOptions, ViteDevServer } from "vite";
 import { defineConfig, loadEnv } from "vite";
-import { wuyingScreenAssets } from "../../packages/adapters/src/wuying-screen-assets.ts";
-import { wuyingScreenPolicy } from "../../packages/adapters/src/wuying-screen-policy.ts";
+import { wuyingScreenAssets } from "../../packages/adapters/src/providers/computer/wuying/wuying-screen-assets.ts";
+import { wuyingScreenPolicy } from "../../packages/adapters/src/providers/computer/wuying/wuying-screen-policy.ts";
 import { brandHostnames } from "../../packages/brands/src/index.ts";
 import { createServiceLogger } from "../../packages/logging/src/env.ts";
-import { socialPreviewPlugin } from "./social-preview-plugin";
-import { apiProxy, DEVICE_SOCKET } from "./src/api-proxy.js";
-import { withInstanceThemeLink } from "./src/instance-theme.js";
+import { apiProxy, DEVICE_SOCKET } from "./server/api-proxy.js";
+import { withInstanceThemeLink } from "./server/instance-theme.js";
 import {
   attachDesktopStackProbe,
   attachNovncProxy,
   attachPreviewMiddleware,
   sharedPageHeaders,
   webServerSettings,
-} from "./src/preview-middleware.js";
-import { rakazoPwa } from "./src/pwa/plugin.js";
+} from "./server/preview-middleware.js";
+import { rakazoPwa } from "./server/pwa-plugin.js";
 import {
   resolvePreviewTarget,
   rewritePreviewCss,
   rewritePreviewHtml,
   safeProxyHeaders,
   safeProxyResponseHeaders,
-} from "./src/screen-proxy.js";
+} from "./server/screen-proxy.js";
+import { socialPreviewPlugin } from "./social-preview-plugin";
 
 const PREVIEW_REWRITE_LIMIT = 4 * 1024 * 1024;
 

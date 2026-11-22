@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, signup } from "./helpers/helpers";
 
 test("approves an MCP client's OAuth request for a space", async ({ page }, testInfo) => {
   const stamp = Date.now();

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { PrismaClient } from "./client.js";
+import type { PrismaClient } from "./database/client.js";
 import { WORKSPACE_AUTOMATIONS } from "./workspace-automations.js";
 
 /** Create a fictional, disconnected demo. Refuses to overwrite any existing organization. */

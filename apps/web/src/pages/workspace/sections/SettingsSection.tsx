@@ -12,7 +12,7 @@ import { Bot, Building2, Camera, Mail, Mails, Network, Phone, Sparkles } from "l
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BuiButton } from "../../../components/ai/primitives";
-import { rpc } from "../../../lib/rpc";
+import { rpc } from "../../../lib/query/rpc";
 import {
   Card,
   CLICKABLE_TEXT,

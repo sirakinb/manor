@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { PrismaClient } from "./client.js";
-import { createDb } from "./client.js";
-import { crossSpaceCommunicationAllowed } from "./cross-space-communication.js";
-import { asSystem, runAsSystem } from "./row-security.js";
+import type { PrismaClient } from "./database/client.js";
+import { createDb } from "./database/client.js";
+import { asSystem, runAsSystem } from "./database/row-security.js";
+import { crossSpaceCommunicationAllowed } from "./spaces/cross-space-communication.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;

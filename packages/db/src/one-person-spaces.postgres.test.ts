@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bootstrapUserSpace, joinOrganization } from "./bootstrap-user.js";
-import type { PrismaClient } from "./client.js";
-import { createDb } from "./client.js";
-import { createRepos } from "./repos.js";
-import { asSystem, runAsSystem, runAsTenant } from "./row-security.js";
-import { IsolationError, requireMembership } from "./scope.js";
+import { bootstrapUserSpace, joinOrganization } from "./account/bootstrap-user.js";
+import { createRepos } from "./bots/bot-repository.js";
+import type { PrismaClient } from "./database/client.js";
+import { createDb } from "./database/client.js";
+import { asSystem, runAsSystem, runAsTenant } from "./database/row-security.js";
+import { IsolationError, requireMembership } from "./database/scope.js";
 import { createSpaceAccount } from "./space-account.js";
-import { defaultSpaceForMember } from "./spaces.js";
+import { defaultSpaceForMember } from "./spaces/spaces.js";
 import { assertSpaceTakesPerson, SpaceHasPersonError } from "./team-space.js";
 
 const databaseUrl = process.env.DATABASE_URL;

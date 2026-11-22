@@ -13,7 +13,7 @@ import {
 } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { BuiButton, SuccessPop } from "../../../components/ai/primitives";
-import { rpc } from "../../../lib/rpc";
+import { rpc } from "../../../lib/query/rpc";
 import type { PillTone } from "../bits";
 import {
   Card,

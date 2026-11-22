@@ -6,9 +6,9 @@ import { CrmContacts } from "../components/crm-contacts";
 import { CrmHome } from "../components/crm-home";
 import { Segmented } from "../components/crm-kit";
 import { CrmPipeline } from "../components/crm-pipeline";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 import { ALL_PIPELINES } from "../lib/crm";
-import { manor } from "../lib/native";
+import { manor } from "../lib/native/native";
 
 type Tab = "home" | "pipeline" | "contacts";
 

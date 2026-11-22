@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   ModelPreflightFeedback,
   modelPreflightTestingLabel,
-} from "../../components/ModelConnectionPreflightNotice";
+} from "../../components/models/ModelConnectionPreflightNotice";
 import { brandName } from "../../lib/brand";
 import { CompatibleKeyField } from "./compatible-key-field";
 
@@ -22,6 +22,7 @@ export function ConnectionControls({
   codeCopied,
   connectKey,
   copyOAuthCode,
+  reportSignInStep,
   credential,
   gatewayId,
   projectId,
@@ -48,7 +49,6 @@ export function ConnectionControls({
   submitOAuthCode,
   subscriptionSignIn,
   testApiKeyConnection,
-  testOAuthConnection,
   updateApiKey,
 }: Pick<
   ModelSettingsState,
@@ -62,6 +62,7 @@ export function ConnectionControls({
   | "codeCopied"
   | "connectKey"
   | "copyOAuthCode"
+  | "reportSignInStep"
   | "credential"
   | "gatewayId"
   | "projectId"
@@ -88,7 +89,6 @@ export function ConnectionControls({
   | "submitOAuthCode"
   | "subscriptionSignIn"
   | "testApiKeyConnection"
-  | "testOAuthConnection"
   | "updateApiKey"
 >) {
   const { t } = useLingui();
@@ -104,7 +104,7 @@ export function ConnectionControls({
   }, [keyShownFor]);
   return !isOpenAiCompatible ? (
     <>
-      {subscriptionSignIn ? (
+      {subscriptionSignIn && (credential?.authKind !== "oauth" || credential.reconnectRequired) ? (
         <div className="mt-5 flex flex-wrap items-center gap-2 first:mt-0">
           {oauth ? (
             <div className="w-full rounded-xl border border-border px-4 py-3">
@@ -115,6 +115,7 @@ export function ConnectionControls({
                       Sign in at{" "}
                       <a
                         href={oauth.verificationUri}
+                        onClick={() => reportSignInStep("page_opened")}
                         target="_blank"
                         rel="noreferrer"
                         className="text-foreground underline"
@@ -159,6 +160,7 @@ export function ConnectionControls({
                         Open{" "}
                         <a
                           href={oauth.verificationUri}
+                          onClick={() => reportSignInStep("page_opened")}
                           target="_blank"
                           rel="noreferrer"
                           className="text-foreground underline"
@@ -172,6 +174,7 @@ export function ConnectionControls({
                         A sign-in tab opened at{" "}
                         <a
                           href={oauth.verificationUri}
+                          onClick={() => reportSignInStep("page_opened")}
                           target="_blank"
                           rel="noreferrer"
                           className="text-foreground underline"
@@ -236,23 +239,6 @@ export function ConnectionControls({
               )}
             </Button>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={busy || preflightTesting || credential?.authKind !== "oauth"}
-            onClick={() => void testOAuthConnection()}
-          >
-            {modelPreflightTestingLabel(
-              preflightTesting && preflightTarget === "sign-in",
-              "sign-in",
-            )}
-          </Button>
-          {preflightTarget === "sign-in" ? (
-            <div className="w-full">
-              <ModelPreflightFeedback success={preflightSuccess} failure={preflightFailure} />
-            </div>
-          ) : null}
         </div>
       ) : null}
 
@@ -335,10 +321,7 @@ export function ConnectionControls({
                 disabled={busy || preflightTesting || apiKey.trim().length < 8}
                 onClick={() => void testApiKeyConnection()}
               >
-                {modelPreflightTestingLabel(
-                  preflightTesting && preflightTarget === "api-key",
-                  "api-key",
-                )}
+                {modelPreflightTestingLabel(preflightTesting && preflightTarget === "api-key")}
               </Button>
             ) : null}
             <Button

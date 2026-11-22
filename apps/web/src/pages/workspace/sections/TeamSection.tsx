@@ -6,7 +6,7 @@ import { lazy, Suspense, useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { BuiButton } from "../../../components/ai/primitives";
 import { ErrorBoundary, SectionLoadFailed } from "../../../components/ErrorBoundary";
-import { rpc } from "../../../lib/rpc";
+import { rpc } from "../../../lib/query/rpc";
 import { WorkspaceTeamContext } from "../AskTeam";
 import { AutomationsCard } from "../AutomationsCard";
 import { Card, CLICKABLE_TEXT, Empty, ErrorLine, formatDateTime, PageHeader } from "../bits";
@@ -14,13 +14,13 @@ import { Card, CLICKABLE_TEXT, Empty, ErrorLine, formatDateTime, PageHeader } fr
 // Lazy, as in the bot panel: a static import here would pull the section into the
 // shell's first load and undo its code split.
 const KnowledgeSection = lazy(() =>
-  import("../../KnowledgeSection").then((module) => ({ default: module.KnowledgeSection })),
+  import("../../space/KnowledgeSection").then((module) => ({ default: module.KnowledgeSection })),
 );
 const AgentSkills = lazy(() =>
-  import("../../KnowledgeSection").then((module) => ({ default: module.AgentSkills })),
+  import("../../space/KnowledgeSection").then((module) => ({ default: module.AgentSkills })),
 );
 const SpaceMemorySection = lazy(() =>
-  import("../../KnowledgeSection").then((module) => ({ default: module.SpaceMemorySection })),
+  import("../../space/KnowledgeSection").then((module) => ({ default: module.SpaceMemorySection })),
 );
 
 export function TeamSection({

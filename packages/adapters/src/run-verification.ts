@@ -12,7 +12,7 @@ import type { Prisma } from "@rakazo/db";
 import { recordUsage } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { AnswerSources, extractClaims } from "./answer-check.js";
-import type { AutoReviewChecker } from "./auto-review.js";
+import type { AutoReviewChecker } from "./approvals/auto-review.js";
 import {
   answerCheckTimeoutMs,
   autoReviewTimeoutMs,
@@ -20,13 +20,14 @@ import {
   createLlmVerifier,
   isAutoReviewCheckerConfigured,
   resolveAutoReviewChecker,
-} from "./auto-review.js";
-import { reviewWithBackups } from "./auto-review-backups.js";
-import type { ExecutorDeps } from "./executor-deps.js";
-import { findConnectedModelCredential, hasHostedModelCredits } from "./model-selection.js";
-import { autoReviewCheckerProvider } from "./run-auto-review.js";
-import type { RunTrust } from "./run-context.js";
-import { resolveModelKey } from "./run-model.js";
+} from "./approvals/auto-review.js";
+import type { AutoReviewCandidate } from "./approvals/auto-review-backups.js";
+import { reviewWithBackups } from "./approvals/auto-review-backups.js";
+import { findConnectedModelCredential, hasHostedModelCredits } from "./models/model-selection.js";
+import type { RunTrust } from "./runs/assembly/run-context.js";
+import type { ExecutorDeps } from "./runs/executor/executor-deps.js";
+import { autoReviewCheckerProvider } from "./runs/turn/run-auto-review.js";
+import { resolveModelKey } from "./runs/turn/run-model.js";
 import type { VerificationEngineId } from "./verification-engines.js";
 import {
   isVerificationEngineId,
@@ -47,10 +48,12 @@ type VerificationSetup = {
   preference: { checkAnswers: boolean; engine: VerificationEngineId; compare: boolean };
   /** Auto Review judges actions: the approval mode is "auto". */
   reviewsActions: boolean;
-  /** The approval model, then its ordered backups; empty when none is set. */
-  checkers: AutoReviewChecker[];
-  /** The approval role's backups, which run only on their own connection or hosted credits. */
-  backups: readonly { provider: string; modelId: string }[];
+  /**
+   * The approval model (the member's choice or the deployment's default), then its ordered
+   * backups; empty when none is set. Manor never adds upstream's included reviewer here: a
+   * tenant's actions go only to a checker the deployment or the member configured.
+   */
+  checkers: AutoReviewCandidate[];
   /** The member chose the approval model, so it always runs as an LLM. */
   memberChecker: boolean;
   jev: ReturnType<typeof jevVerifierFromEnv>;
@@ -114,14 +117,17 @@ export function createRunVerification(
                 model: reviewSettings.primary.modelId,
                 thinkingLevel: reviewSettings.primary.thinkingLevel,
                 credentialId: reviewSettings.primary.credentialId,
+                creditOfferingId: reviewSettings.primary.creditOfferingId,
               }
             : null
           : resolveAutoReviewChecker();
-      const backups: AutoReviewChecker[] = (reviewSettings?.backups ?? []).map((choice) => ({
+      const backups: AutoReviewCandidate[] = (reviewSettings?.backups ?? []).map((choice) => ({
         provider: choice.provider,
         model: choice.modelId,
         thinkingLevel: choice.thinkingLevel,
         credentialId: choice.credentialId,
+        creditOfferingId: choice.creditOfferingId,
+        role: "backup",
       }));
       const jev = active ? jevVerifierFromEnv() : null;
       // An injected Auto Review provider stands in for the LLM judge on action reviews.
@@ -131,7 +137,7 @@ export function createRunVerification(
           memberChecker ||
           backups.length > 0 ||
           (checker
-            ? isAutoReviewCheckerConfigured({}) ||
+            ? isAutoReviewCheckerConfigured({ checker }) ||
               Boolean(
                 await findConnectedModelCredential(
                   deps.prisma,
@@ -149,8 +155,9 @@ export function createRunVerification(
       return {
         preference,
         reviewsActions,
-        checkers: checker ? [checker, ...backups] : backups,
-        backups: reviewSettings?.backups ?? [],
+        checkers: checker
+          ? [{ ...checker, role: memberChecker ? "member" : "default" }, ...backups]
+          : backups,
         memberChecker,
         jev,
         engines,
@@ -306,11 +313,11 @@ export function createRunVerification(
         verifier.reviewAction(actionRequest, reviewContext),
       );
     }
-    const { checkers, backups, memberChecker } = await loadSetup();
-    const candidates: AutoReviewChecker[] = checkers.length
+    const { checkers } = await loadSetup();
+    const candidates: AutoReviewCandidate[] = checkers.length
       ? checkers
       : deps.autoReview
-        ? [{ provider: "injected", model: "injected" }]
+        ? [{ provider: "injected", model: "injected", role: "default" }]
         : [];
     const reviewContext = reviewContextFor(timeoutMs);
     const started = performance.now();
@@ -324,8 +331,7 @@ export function createRunVerification(
           { runId, spaceId: run.spaceId, userId: run.userId, botId, threadId },
           {
             injectedReview: deps.autoReview,
-            memberChecker,
-            backups,
+            memberChecker: checker.role !== "default",
             registerSecrets: (values) => secrets.push(...values),
           },
           checker,

@@ -1,6 +1,6 @@
 import type { DragEvent } from "react";
 import { useCallback, useRef, useState } from "react";
-import { isFileDrag } from "./pending-attachments";
+import { isFileDrag } from "./composer/pending-attachments";
 
 /**
  * Turns any element into a file drop target. Tracks nested dragenter/leave
