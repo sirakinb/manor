@@ -787,8 +787,25 @@ Things the one production deploy at the end must cover, collected as stages land
     team, system), the CRM overview and the team list, with no error logged;
   - the worker ran for two minutes with no error and changed nothing: no run, message, thread,
     event, job or computer row was touched, and no lifecycle email was attempted.
-  Still to rehearse: the release tooling itself (toolchain image from the `toolchain` stage,
-  archive and build limits, workspace disk), which runs through the release controller.
+- The release controller's candidate build was replayed with its exact limits (one CPU, 1 GiB of
+  memory, no network, a read-only root, 30 minutes for each command) in the same isolated engine:
+  - the toolchain image builds from the `toolchain` stage in under five minutes; it is 5.6 GB
+    and carries the lockfile, which matched the candidate's;
+  - the API and worker build inside 1 GiB, but the web build is killed there; it passes with
+    2 GiB at a peak of about 1,900 MiB;
+  - the built artifact is about 405 MB (about 197 MB without source maps) against the
+    controller's 128 MiB, and the build filesystem holds about 2,990 MB against its 3,072 MiB;
+  - the policy's test command, the whole unit suite on one worker, completed 96 of about
+    2,150 test files in its 30 minutes, so a release needs a short test command and the full
+    suite stays with CI;
+  - the controller refuses symlinks in source, and upstream added one in a folder for a CI
+    vendor Manor does not use, which is now left out of archives.
+    The controller's limits became optional policy fields for that reason (a separate change),
+    and the policy for this release has to set them, build the API and worker as well as the web
+    app, name the new toolchain image and allow the release's revision.
+- In production the worker and web containers start only after the API is healthy, and the API
+  applies migrations before it starts, so the new code never runs against a half-migrated
+  database. The health wait after a rollout is 60 seconds; raise it for this release.
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR
