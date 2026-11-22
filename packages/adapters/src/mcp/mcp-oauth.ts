@@ -624,6 +624,18 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
     }
   }
 
+  /**
+   * Whether a held access token is still lapsed only because renewing it failed for now: a
+   * refused refresh drops the grant, so a refresh token still held here can be tried again.
+   */
+  get renewalPending(): boolean {
+    return Boolean(
+      this.options.refresh &&
+        this.material.oauth?.tokens?.refresh_token &&
+        accessTokenExpired(this.material.oauth),
+    );
+  }
+
   get redirectUrl(): string | undefined {
     return this.options.redirectUri ?? this.material.oauth?.redirectUri;
   }
@@ -916,6 +928,13 @@ function forgetClientForOtherRedirect(material: OAuthMaterial, redirectUri: stri
 }
 const MAX_PENDING_SESSIONS = 100;
 
+/**
+ * Where a sign-in is sent back when the authorization server registers only loopback
+ * redirects. Nothing listens there: the desktop app reads the code from the navigation
+ * itself, and RFC 8252 has servers accept any port on a loopback redirect.
+ */
+export const MCP_LOOPBACK_REDIRECT_URI = "http://127.0.0.1:53682/callback";
+
 /** OAuth traffic runs through the same URL policy as runtime MCP requests
  * (HTTPS enforced, redirects rejected), with the endpoint-origin fallback
  * layered on top for providers like Brex. */
@@ -929,6 +948,8 @@ function oauthFetch(
   close: () => Promise<void>;
   headers: Record<string, string>;
   publicError: (error: unknown, message: string) => Error;
+  /** The last answer received was a refusal of the redirect address (RFC 7591). */
+  refusedRedirect: () => boolean;
 } {
   const url = new URL(endpoint);
   const localHttp = url.protocol === "http:" && isLocalhostOrLoopbackIp(url.hostname);
@@ -961,16 +982,21 @@ function oauthFetch(
   const networkErrors = new WeakSet<Error>();
   let rejection: OAuthRejection | undefined;
   let lastAnswerFailed = false;
+  // The most recent answer's own rejection, so an earlier one cannot explain a later failure.
+  let lastRejection: OAuthRejection | undefined;
   const recordingFetch: typeof fetch = async (input, init) => {
     try {
       const response = await fallbackFetch(input, init);
       lastAnswerFailed = !response.ok;
+      lastRejection = undefined;
       if (!response.ok) {
         const next = await readOAuthRejection(response);
         if (next) rejection = next;
+        lastRejection = next;
       }
       return response;
     } catch (error) {
+      lastRejection = undefined;
       if (error instanceof Error) networkErrors.add(error);
       throw error;
     }
@@ -979,6 +1005,7 @@ function oauthFetch(
     headers,
     fetch: recordingFetch,
     close: () => safeFetch.close(),
+    refusedRedirect: () => lastRejection?.code === "invalid_redirect_uri",
     publicError: (error, message) => {
       if (error instanceof McpOAuthStoreError) return error;
       const secrets = oauthMaterialSecrets(material);
@@ -1297,6 +1324,9 @@ export class McpOAuthBroker {
     redirectUri: string;
     client?: McpOAuthClientKind;
     botId?: string;
+    /** The client can take the code from a loopback redirect, so a server that registers
+     * only loopback redirects (RFC 8252) is tried again on one when it refuses ours. */
+    capturesLoopback?: boolean;
   }): Promise<
     | {
         status: "authorization_required";
@@ -1401,15 +1431,33 @@ export class McpOAuthBroker {
         authorizationUrl,
         failure,
         redirectRejected,
+        refusedRedirect: networkFetch.refusedRedirect(),
         publicError: networkFetch.publicError,
       };
     };
 
     let completion: "popup" | "paste" = "popup";
     let result = await attempt(input.redirectUri);
-    // Some providers (Upwork) only register loopback callbacks. Retry with one; the user
-    // pastes the address the browser lands on after approving.
-    if (!result.authorizationUrl && result.redirectRejected) {
+    // A client that captures loopback redirects (the desktop app) retries on one and still
+    // completes by itself. A client entered by hand was registered with its own redirect; only a
+    // registration this attempt made can be made again with another one.
+    if (
+      !result.authorizationUrl &&
+      result.failure !== undefined &&
+      !needsMcpOAuthClient(result.failure) &&
+      input.capturesLoopback === true &&
+      input.redirectUri !== MCP_LOOPBACK_REDIRECT_URI &&
+      !loaded.material.oauthClient &&
+      result.refusedRedirect
+    )
+      return this.begin({ ...input, redirectUri: MCP_LOOPBACK_REDIRECT_URI });
+    // Manor: some providers (Upwork) only register loopback callbacks. Other clients retry with
+    // one; the user pastes the address the browser lands on after approving.
+    if (
+      !result.authorizationUrl &&
+      result.redirectRejected &&
+      input.redirectUri !== MCP_LOOPBACK_REDIRECT_URI
+    ) {
       completion = "paste";
       result = await attempt(LOOPBACK_REDIRECT_URI);
     }

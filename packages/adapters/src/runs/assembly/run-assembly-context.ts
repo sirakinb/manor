@@ -26,6 +26,7 @@ import { createReplyState } from "../lifecycle/run-progress.js";
 import { historyMyChatsAllowed } from "../tools/run-tools-memory.js";
 import { withLatestStepScreenshot, withRecentTurnImages } from "../turn/run-turn-images.js";
 import { missingTurnImagesInstruction } from "../turn/run-turn-images.prompt.js";
+import { checkpointAnswerHistory } from "./checkpoint-answer-history.js";
 import { formatCurrentTimeInstruction } from "./current-time.prompt.js";
 import { loadReplyContext } from "./reply-context.js";
 import type {
@@ -59,6 +60,7 @@ export async function createRunContext(
     capabilities: RunCapabilities;
     tools: SelectedRunTools;
     computerInstructions: ComputerInstructions;
+    meetingChat: boolean;
   },
 ) {
   const { web, mediaGeneration, paidServices, browser } = services;
@@ -124,6 +126,7 @@ export async function createRunContext(
     approvedEffectReplays,
     connectorTools,
     initiallyTainted,
+    initialOutsideText,
     searchResultUrls,
     strategicBuiltins,
     tools,
@@ -156,6 +159,7 @@ export async function createRunContext(
     overLimitActionCalls: 0,
     toolResults: new Map(),
     tainted: initiallyTainted,
+    outsideText: initialOutsideText,
     // A resumed turn replaces this with the baseline its saved prompt was built from.
     ownInstructionsBaseline: bot.instructions ?? "",
     earlierAttempt: undefined,
@@ -204,6 +208,7 @@ export async function createRunContext(
     secrets: runSecrets,
     source: {
       ownerStartedRun,
+      meetingChat: parts.meetingChat,
       messagingChannelRun: nonOwnerChatRun,
       channelId,
       historySearchBeforeSeq,
@@ -284,6 +289,7 @@ export async function buildTurnPrompt(
     capabilities: RunCapabilities;
     tools: SelectedRunTools;
     ctx: RunContext;
+    meetingContext?: string;
   },
 ) {
   const { deps, run, current, executionStartedAt, firstLateSince, secrets: runSecrets } = hold;
@@ -293,7 +299,7 @@ export async function buildTurnPrompt(
   const { agentSkills, nonOwnerChatRun, savedSkills, task, thread, conversationThread } =
     parts.records;
   const { connectedPlugins, context } = parts.connected;
-  const { compactedHistory, people } = parts.thread;
+  const { compactedHistory, people, speakers } = parts.thread;
   const {
     currentTurnImages,
     currentTurnMessage,
@@ -397,6 +403,7 @@ export async function buildTurnPrompt(
     : undefined;
   const prompt = [
     replyContext,
+    parts.meetingContext,
     routineNote,
     run.trigger === "reaction" && replyContext ? undefined : basePrompt,
     takeoverResume?.promptNote,
@@ -431,6 +438,16 @@ export async function buildTurnPrompt(
       content: redactSecrets(recalledMemory, runSecrets),
     });
   }
+  const resumeHistory = turnCheckpoint
+    ? await checkpointAnswerHistory(
+        deps.prisma,
+        run,
+        history,
+        parts.records.messages,
+        Boolean(speakers),
+      )
+    : undefined;
+  const replayHistory = resumeHistory?.history ?? history;
   const modelImageBudget =
     resolved.maxImagesPerPrompt === undefined
       ? undefined
@@ -440,13 +457,13 @@ export async function buildTurnPrompt(
   const historyWithImages = modelSeesImages
     ? await withLatestStepScreenshot(
         deps,
-        await withRecentTurnImages(deps, history, historyMessages, context, {
+        await withRecentTurnImages(deps, replayHistory, historyMessages, context, {
           skipMessageId: currentTurnMessage?.id,
           maxImages: modelImageBudget,
         }),
         context,
       )
-    : history;
+    : replayHistory;
   const runtimeHistory = [...historicalContext, ...historyWithImages];
   const groupDirectory = conversationThread.groupId
     ? undefined
@@ -462,6 +479,8 @@ export async function buildTurnPrompt(
     prompt,
     historicalContext,
     runtimeHistory,
+    resumeHistoryMessageIds: resumeHistory?.representedMessageIds,
+    resumeAnswerReplyContexts: resumeHistory?.answerReplyContexts,
     botDirectory,
     turnCheckpoint,
   };

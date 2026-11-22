@@ -300,6 +300,8 @@ export function createRunVerification(
   const reviewAction = async (
     engine: VerificationEngineId,
     request: AutoReviewRequest,
+    /** The reviewed action's effect, so its usage is counted and priced on its own. */
+    effectId?: string,
   ): Promise<VerificationResult> => {
     const timeoutMs = autoReviewTimeoutMs();
     if (engine === JEV_ENGINE) {
@@ -319,7 +321,8 @@ export function createRunVerification(
       : deps.autoReview
         ? [{ provider: "injected", model: "injected", role: "default" }]
         : [];
-    const reviewContext = reviewContextFor(timeoutMs);
+    const operationId = effectId ? `auto-review:${runId}:${effectId}` : `auto-review:${runId}`;
+    const reviewContext = { ...reviewContextFor(timeoutMs), operationId };
     const started = performance.now();
     let used: AutoReviewChecker | undefined;
     const judge = await reviewWithBackups(
@@ -328,7 +331,14 @@ export function createRunVerification(
         used = checker;
         const provider = await autoReviewCheckerProvider(
           deps,
-          { runId, spaceId: run.spaceId, userId: run.userId, botId, threadId },
+          {
+            runId,
+            spaceId: run.spaceId,
+            userId: run.userId,
+            botId,
+            threadId,
+            operationId,
+          },
           {
             injectedReview: deps.autoReview,
             memberChecker: checker.role !== "default",

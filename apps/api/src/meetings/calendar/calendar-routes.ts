@@ -75,7 +75,13 @@ export function meetingCalendarRoutes(ctx: RouterContext) {
       ),
       select: spaceAuthed.meetingCalendar.select.handler(async ({ context: { actor }, input }) => {
         await repos.getBot(actor, input.botId);
-        await configured().updateSelection(actor, input.botId, input.eventId, input.scope);
+        await configured().updateSelection(
+          actor,
+          input.botId,
+          input.eventId,
+          input.scope,
+          input.shareTranscript,
+        );
       }),
       skip: spaceAuthed.meetingCalendar.skip.handler(async ({ context: { actor }, input }) => {
         await repos.getBot(actor, input.botId);

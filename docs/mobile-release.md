@@ -30,9 +30,8 @@ your own branded build, use your own Expo and store accounts.
 5. Before a native iOS or Android build, run
    `pnpm --filter @rakazo/mobile deps:check`. CI does not run it, because it
    asks the npm registry and fails whenever Expo publishes a patch. Attachment pickers
-   and other Expo native modules must match the SDK (SDK 57 needs
-   `expo-image-picker@~57.0.11`, not 17.x). Use `pnpm exec expo install --fix`
-   from `apps/mobile` if that check fails.
+   and other Expo native modules must match the SDK. Use
+   `pnpm exec expo install --fix` from `apps/mobile` if that check fails.
 
 From `apps/mobile`:
 

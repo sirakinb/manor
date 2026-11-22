@@ -14,6 +14,8 @@ import {
   attachmentMaxCount,
   attachmentSizeLabel,
   isAttachmentImageMimeType,
+  messageTextFits,
+  THREAD_MESSAGE_TEXT_MAX_LENGTH,
 } from "@rakazo/contracts";
 import type { ComposerMention } from "@rakazo/core";
 import {
@@ -93,7 +95,7 @@ export function useComposerActions({
   clearReadBoundary: () => void;
   flushPendingBrowserNotifications: () => void;
 }) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   usePendingAttachmentPreviewCleanup(pendingAttachments);
   const [replyTarget, setReplyTarget] = useState<ThreadMessage | null>(null);
@@ -423,6 +425,10 @@ export function useComposerActions({
           }
           return true;
         }
+        if (!messageTextFits(trimmed)) {
+          const limit = new Intl.NumberFormat(i18n.locale).format(THREAD_MESSAGE_TEXT_MAX_LENGTH);
+          throw new Error(t`Messages can be up to ${limit} characters.`);
+        }
         const artifactIds: string[] = [];
         const uploaded =
           uploadedSendArtifacts.current.get(clientNonce) ?? new WeakMap<File, string>();
@@ -550,6 +556,7 @@ export function useComposerActions({
       pendingAttachments,
       sending,
       t,
+      i18n.locale,
     ],
   );
   const stopRun = useCallback(async () => {

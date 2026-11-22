@@ -10,8 +10,8 @@ import {
 } from "./approvals.js";
 import {
   CATALOG_SEARCH_QUERY_MAX_LENGTH,
-  CONNECTION_LABEL_MAX_LENGTH,
   ConnectionCatalogItemSchema,
+  ConnectionLabelSchema,
   ConnectionSchema,
   IntegrationCatalogResultSchema,
 } from "./connections.js";
@@ -26,7 +26,7 @@ import {
   McpServerSchema,
   McpSourcePresetSchema,
 } from "./mcp.js";
-import { McpOAuthClientKindSchema } from "./mcp-oauth-return.js";
+import { McpCapturesLoopbackSchema, McpOAuthClientKindSchema } from "./mcp-oauth-return.js";
 import {
   MessagingAgentConnectionSchema,
   MessagingChannelMembershipSchema,
@@ -126,6 +126,7 @@ export const integrationsRpc = {
             botId: Id.optional(),
             redirectUri: z.string().url().optional(),
             client: McpOAuthClientKindSchema,
+            capturesLoopback: McpCapturesLoopbackSchema,
           }),
         )
         .output(z.object({ server: McpServerSchema, signIn: McpOAuthBeginSchema })),
@@ -176,6 +177,7 @@ export const integrationsRpc = {
             serverId: Id,
             redirectUri: z.string().url().optional(),
             client: McpOAuthClientKindSchema,
+            capturesLoopback: McpCapturesLoopbackSchema,
           }),
         )
         .output(McpOAuthBeginSchema),
@@ -200,7 +202,7 @@ export const integrationsRpc = {
           /** Omitted for the server's default connector. */
           connectorId: z.string().optional(),
           provider: z.string(),
-          displayName: z.string(),
+          displayName: ConnectionLabelSchema,
         }),
       )
       .output(
@@ -217,7 +219,7 @@ export const integrationsRpc = {
       .input(
         z.object({
           connectionId: Id,
-          displayName: z.string().trim().min(1).max(CONNECTION_LABEL_MAX_LENGTH),
+          displayName: ConnectionLabelSchema,
         }),
       )
       .output(ConnectionSchema),

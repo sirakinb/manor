@@ -8,11 +8,14 @@ import {
 } from "@rakazo/adapter-kit";
 import { ROUTINE_WATCH_DEFAULT_MINUTES } from "@rakazo/contracts";
 import {
+  ACTIVE_RUN_STATUSES,
   displayName,
   expandSkillReferencesInPrompt,
   isOneShotRoutineCrons,
   nextRoutineRunDateAcross,
+  ONCE_ROUTINE_CRON,
 } from "@rakazo/core";
+import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import {
   accountDeactivated,
   importWorkspaceKnowledge,
@@ -20,10 +23,11 @@ import {
   SpaceDeletionInProgressError,
   spaceTakesWork,
 } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+import { bestEffort, getLogger } from "@rakazo/logging";
 import { routineRunModelPin } from "../../models/model-selection.js";
 import { protectedComputerLifecycleRefusal } from "../../providers/computer/desktop/desktop-command-guard.js";
 import { findPendingRoutineTick, routineTimerNonce } from "../../routines/routine-coalescing.js";
+import { routineGroupThreadId } from "../../routines/routine-thread.js";
 import {
   nextRoutineWatchAt,
   parseRoutineWatch,
@@ -98,6 +102,35 @@ export async function scheduleRoutineRetry(
     getLogger().error("routine retry schedule", scheduleError);
     return false;
   }
+}
+
+export async function deleteSpentOneShotRoutine(
+  deps: { prisma: PrismaClient; events?: Pick<ThreadEvents, "publishSpaceChange"> },
+  run: { spaceId: string; routineId: string; userId: string },
+): Promise<void> {
+  const deleted = await bestEffort(
+    "delete spent one-time routine",
+    deps.prisma.routine.deleteMany({
+      where: {
+        id: run.routineId,
+        userId: run.userId,
+        crons: { equals: [ONCE_ROUTINE_CRON] },
+        active: false,
+        nextRunAt: null,
+        lastRunAt: { not: null },
+        webhookEnabled: false,
+        githubEnabled: false,
+        messageProvider: null,
+        emailSenders: null,
+        runs: { none: { status: { in: [...ACTIVE_RUN_STATUSES] } } },
+      },
+    }),
+  );
+  if (!deleted?.count) return;
+  await bestEffort(
+    "publish deleted one-time routine",
+    deps.events?.publishSpaceChange?.(run.spaceId, "routines"),
+  );
 }
 
 async function notifyFailedRoutineRun(
@@ -176,30 +209,13 @@ export async function wakeRoutine(deps: ExecutorDeps, routineId: string, schedul
     // Archiving pauses a bot's routines; re-pause one that slipped back to active.
     await deps.prisma.routine.updateMany({
       where: { id: routine.id, active: true },
-      data: { active: false, nextRunAt: null },
+      data: { active: false, nextRunAt: null, resumeOnRestore: true },
     });
     return;
   }
   if (!bot?.thread) return;
-  const targetThread = routine.threadId
-    ? await deps.prisma.thread.findFirst({
-        where: {
-          id: routine.threadId,
-          spaceId: routine.spaceId,
-          OR: [
-            { botId: bot.id },
-            {
-              group: {
-                archivedAt: null,
-                members: { some: { botId: bot.id } },
-              },
-            },
-          ],
-        },
-        select: { id: true },
-      })
-    : null;
-  const thread = targetThread ?? bot.thread;
+  const targetThreadId = await routineGroupThreadId(deps.prisma, routine, bot.id);
+  const thread = targetThreadId ? { id: targetThreadId } : bot.thread;
   // A change trigger checks first, without a model; only news becomes a run.
   const watchTick =
     routine.watch == null
@@ -305,7 +321,7 @@ export async function wakeRoutine(deps: ExecutorDeps, routineId: string, schedul
   }
   if ("cancelledEvents" in claimed && claimed.cancelledEvents) {
     for (const event of claimed.cancelledEvents) {
-      await deps.events.notify(event.threadId, event.seq).catch(() => undefined);
+      await deps.events.notify(event.threadId, event.seq);
     }
   }
   // Enqueue continuation first so a thread-signal failure cannot strand the run.

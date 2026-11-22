@@ -19,15 +19,21 @@ export function meetingRoutes({ spaceAuthed, deps }: RouterContext) {
           service?.list(context.actor, input.botId) ?? { enabled: false, meetings: [] },
       ),
       join: spaceAuthed.meetings.join.handler(({ input, context }) =>
-        requireMeetings().join(context.actor, input.botId, input.url),
+        requireMeetings().join(context.actor, input.botId, input.url, input.shareTranscript),
       ),
       leave: spaceAuthed.meetings.leave.handler(({ input, context }) =>
         requireMeetings().leave(context.actor, input.id),
       ),
       transcript: spaceAuthed.meetings.transcript.handler(async ({ input, context }) => {
-        const { turns } = await requireMeetings().transcript(context.actor, input.id);
-        return { turns };
+        const { turns, artifactAvailable } = await requireMeetings().transcript(
+          context.actor,
+          input.id,
+        );
+        return { turns, artifactAvailable };
       }),
+      shareTranscript: spaceAuthed.meetings.shareTranscript.handler(({ input, context }) =>
+        requireMeetings().shareTranscript(context.actor, input.id),
+      ),
       deleteTranscript: spaceAuthed.meetings.deleteTranscript.handler(({ input, context }) =>
         requireMeetings().deleteTranscript(context.actor, input.id),
       ),

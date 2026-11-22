@@ -34,6 +34,13 @@
         }
       ],
       "expo-localization",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Manor to read and add events in calendars you choose for your bots.",
+          "remindersPermission": "Allow Manor to create and complete reminders in lists you choose for your bots."
+        }
+      ],
       "@react-native-vector-icons/ionicons",
       "@react-native-vector-icons/material-design-icons",
       [
@@ -95,7 +102,8 @@
     ],
     "locales": {
       "es": "./locales/es.json",
-      "pl": "./locales/pl.json"
+      "pl": "./locales/pl.json",
+      "th": "./locales/th.json"
     },
     "ios": {
       "bundleIdentifier": "com.pentridgemedia.manor",

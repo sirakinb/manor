@@ -1,6 +1,6 @@
 import { i18n } from "@lingui/core";
 import { expect, it } from "vitest";
-import { computerUsageDetails } from "./computer-usage.js";
+import { computerLabel, computerName, computerUsageDetails } from "./computer-usage.js";
 
 it("shows a failed refresh in place of the previously loaded hours", () => {
   i18n.activate("en");
@@ -10,4 +10,13 @@ it("shows a failed refresh in place of the previously loaded hours", () => {
     rows: [],
     message: "Could not load computer hours",
   });
+});
+
+it("names a This Mac computer by its shared folder", () => {
+  i18n.activate("en");
+  expect(computerLabel("local", "Maya")).toBe("Shared folder on this Mac");
+  expect(computerName({ scope: "local", botName: "Maya" })).toBe("Shared folder on this Mac");
+  expect(computerLabel("dedicated", "Maya")).toBe("Maya’s computer");
+  expect(computerLabel("team", "Maya")).toBe("Team Computer");
+  expect(computerName({ scope: "dedicated", botName: "Maya" })).toBe("Maya");
 });

@@ -96,10 +96,10 @@ describe("recent model availability", () => {
       listPiCatalog().find((entry) => entry.provider === provider && entry.id === id)
         ?.thinkingLevels,
     ).toEqual(["off", "low", "high", "max"]);
+    // Pi 1.6.0's own entry decides the request shape too, as it does the effort levels.
     expect(model?.compat).toMatchObject({
       thinkingFormat: "openrouter",
       requiresReasoningContentOnAssistantMessages: true,
-      supportsDeveloperRole: false,
     });
   });
 

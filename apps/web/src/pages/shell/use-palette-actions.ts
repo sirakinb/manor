@@ -1,5 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
+import type { Me } from "@rakazo/contracts";
 import {
+  Import,
   Keyboard,
   LayoutTemplate,
   Lock,
@@ -11,6 +13,8 @@ import {
   Sun,
   Users,
 } from "lucide-react";
+import { computersAreUnavailable } from "../../lib/computers/computer-sandbox";
+import { desktopBridge } from "../../lib/platform/desktop";
 import type { AppearancePreference } from "../../lib/preferences/ui-appearance";
 import {
   getUiAppearancePreference,
@@ -23,7 +27,8 @@ import type { SettingsSection, ShellOverlay } from "./shell-overlay-url";
 
 /** What the command menu offers: create, connect, settings sections, and appearance. */
 export function usePaletteActions({
-  settingsAvailable,
+  me,
+  messagingEnabled,
   onNewBot,
   onNewGroup,
   onNewSpace,
@@ -31,7 +36,8 @@ export function usePaletteActions({
   setOverlay,
   openSettings,
 }: {
-  settingsAvailable: Parameters<typeof useSettingsNavItems>[0];
+  me: Me | null | undefined;
+  messagingEnabled: boolean;
   onNewBot: () => void;
   onNewGroup: () => void;
   onNewSpace: () => void;
@@ -40,7 +46,14 @@ export function usePaletteActions({
   openSettings: (section: SettingsSection) => void;
 }): CommandPaletteAction[] {
   const { t } = useLingui();
-  const settingsNavItems = useSettingsNavItems(settingsAvailable);
+  const settingsNavItems = useSettingsNavItems({
+    messaging: messagingEnabled,
+    wallet: Boolean(me?.paymentWalletProvider),
+    computer: me?.computerSettingsEnabled === true && computersAreUnavailable(me?.sandboxProvider),
+    billing: me?.billingEnabled === true,
+    updates: Boolean(desktopBridge()?.update),
+    labs: Boolean(me?.labsAvailable.length),
+  });
   return [
     {
       id: "new-bot",
@@ -71,6 +84,12 @@ export function usePaletteActions({
       label: t`Bot templates`,
       icon: LayoutTemplate,
       onSelect: () => setOverlay({ kind: "templates" }),
+    },
+    {
+      id: "import-agent",
+      label: t`Import an agent`,
+      icon: Import,
+      onSelect: () => setOverlay({ kind: "import" }),
     },
     {
       id: "keyboard-shortcuts",

@@ -27,7 +27,11 @@ import {
 } from "../../integrations/connection-context.js";
 import { loadBotMessageContext } from "../../messaging/bot-messages.js";
 import { resolveMemberMainModel } from "../../models/model-roles.js";
-import { findConnectedModelCredential, runModelChoice } from "../../models/model-selection.js";
+import {
+  findConnectedModelCredential,
+  runModelChoice,
+  UNKNOWN_PROVIDER_MODEL,
+} from "../../models/model-selection.js";
 import { loadPurchaseRedactions } from "../../payments/purchase-service.js";
 import {
   mergeConnectedPlugins,
@@ -44,7 +48,12 @@ import {
 } from "../../secrets/bot-secrets.js";
 import { listAgentSkillRecords } from "../../tools/skill-tools.js";
 import type { RunExecutorServices, RunHold } from "../lifecycle/run-attempt.js";
-import { isDelegatedRun, loadRunOrigin } from "../lifecycle/run-origin.js";
+import { PausedTurnModelUnlistedError } from "../lifecycle/run-lifecycle.js";
+import {
+  isDelegatedRun,
+  loadRunOrigin,
+  RunOriginUnauthorizedError,
+} from "../lifecycle/run-origin.js";
 import { runReplaysToolHistory } from "../turn/tool-step-calls.js";
 import { restoreTurnCheckpoint } from "../turn/turn-checkpoint.js";
 import type { HistoryReach } from "./run-instructions.prompt.js";
@@ -95,9 +104,15 @@ export async function loadSavedTurn(services: RunExecutorServices, hold: RunHold
         savedComputerMode,
       );
     } catch (error) {
+      const unlisted = error instanceof Error && error.message === UNKNOWN_PROVIDER_MODEL;
       // A paused turn whose model or account is gone cannot resume; retrying will not help.
-      if (!isLostPinnedModel(error)) throw error;
-      pinnedComputerFailure = PINNED_COMPUTER_MODEL_LOST_RUN_ERROR;
+      if (isLostPinnedModel(error))
+        pinnedComputerFailure = unlisted
+          ? new PausedTurnModelUnlistedError().message
+          : PINNED_COMPUTER_MODEL_LOST_RUN_ERROR;
+      // A failed catalog read reports this too, so setup tries again before giving up.
+      else if (unlisted) throw new PausedTurnModelUnlistedError();
+      else throw error;
     }
   }
   return {
@@ -144,7 +159,7 @@ export async function loadRunRecords(
   const { pinnedComputerModels } = parts.saved;
   const origin = await loadRunOrigin(deps.prisma, run);
   if (isDelegatedRun(run.trigger) && run.delegatedFromRunId && !origin)
-    throw new Error("The originating conversation no longer authorizes this task.");
+    throw new RunOriginUnauthorizedError();
   const conversationRun = origin ?? run;
   const messagingSource =
     conversationRun.trigger === "messaging" && conversationRun.sourceMessageId

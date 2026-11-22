@@ -168,7 +168,11 @@ describe("bot intro run", () => {
 });
 
 describe("group restore with archived bots", () => {
-  function fixture(archivedBots: Array<{ id: string; computerId: string | null }>, inUse = 0) {
+  function fixture(
+    archivedBots: Array<{ id: string; computerId: string | null }>,
+    inUse = 0,
+    teamSpace = false,
+  ) {
     const bot = { update: vi.fn(async () => ({})) };
     const chatGroup = { update: vi.fn(async () => ({})) };
     const tx = {
@@ -186,7 +190,18 @@ describe("group restore with archived bots", () => {
       },
       $queryRaw: vi.fn(async () => [{ id: "group-1", lock: "1" }]),
     };
+    const routine = { findMany: vi.fn(async () => []) };
     const prisma = {
+      chatGroupMember: {
+        findMany: vi.fn(async () => archivedBots.map(({ id }) => ({ botId: id }))),
+      },
+      routine,
+      // Manor: in a team space the person acts as the space's shared account.
+      spaceMember: {
+        findFirst: vi.fn(async () => ({
+          space: { accountUser: { id: "space-account", email: "team@example.test" } },
+        })),
+      },
       $transaction: vi.fn(async (callback: (client: unknown) => Promise<unknown>) => callback(tx)),
     };
     const handler = new RPCHandler(
@@ -213,20 +228,30 @@ describe("group restore with archived bots", () => {
               userId: "user-1",
               email: "user@example.test",
               isDeploymentOwner: true,
+              ...(teamSpace ? { spaceAccountUserId: "space-account" } : {}),
             },
           },
         },
       );
-    return { tx, call };
+    return { tx, routine, call };
   }
 
   it("brings the group's archived bots back before the group, so it can be opened again", async () => {
-    const { tx, call } = fixture([
+    const { tx, routine, call } = fixture([
       { id: "bot-a", computerId: "computer-a" },
       { id: "bot-b", computerId: null },
     ]);
     const response = await call();
     expect(response.status).toBe(200);
+    // The routines archiving those bots turned off are looked up to be turned back on.
+    expect(routine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          botId: { in: ["bot-a", "bot-b"] },
+          resumeOnRestore: true,
+        }),
+      }),
+    );
     expect(tx.bot.update.mock.calls).toEqual([
       [{ where: { id: "bot-a" }, data: { archivedAt: null } }],
       [{ where: { id: "bot-b" }, data: { archivedAt: null } }],
@@ -237,6 +262,18 @@ describe("group restore with archived bots", () => {
     });
     expect(tx.chatGroup.update.mock.invocationCallOrder[0]).toBeGreaterThan(
       tx.bot.update.mock.invocationCallOrder[1]!,
+    );
+  });
+
+  it("resumes the shared account's routines when a person restores in a team space", async () => {
+    const { routine, call } = fixture([{ id: "bot-a", computerId: null }], 0, true);
+    const response = await call();
+    expect(response.status).toBe(200);
+    // The team's bots and routines belong to its shared account, so the restore compares with it.
+    expect(routine.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ botId: { in: ["bot-a"] }, userId: "space-account" }),
+      }),
     );
   });
 

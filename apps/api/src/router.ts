@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import path from "node:path";
 import { ORPCError } from "@orpc/server";
 import type {
@@ -20,6 +20,7 @@ import type {
   CloudAgentConnection,
   CodexLiveCatalog,
   ConnectorRegistry,
+  createPageRevisions,
   FaviconResolver,
   IntegrationProviderSettings,
   McpConnector,
@@ -96,6 +97,7 @@ import {
   truncateDiff,
 } from "./computer-changes.js";
 import { addPreviewProxyCapability } from "./computers/screen-proxy.js";
+import type { AppEnv } from "./env.js";
 import {
   listLocalDevices,
   localComputerLiveSession,
@@ -148,6 +150,8 @@ export interface RouterDeps {
   organizationChangesAvailable?: boolean;
   /** Manor: tests only; production uses `SPACE_SHARING_AVAILABLE`. */
   spaceSharingAvailable?: boolean;
+  /** Manor: tests only; production uses `PAGE_REVIEW_OUTSIDE_ORGANIZATION_AVAILABLE`. */
+  pageReviewOutsideOrganizationAvailable?: boolean;
   meetings?: MeetingService;
   meetingCalendar?: MeetingCalendarService;
   meetingAnswers?: ReturnType<typeof createMeetingAnswers>;
@@ -167,6 +171,7 @@ export interface RouterDeps {
   ticketChanges: TicketChangeNotifier;
   auth: Auth;
   jobs: JobPublisher;
+  pageRevisions?: Pick<ReturnType<typeof createPageRevisions>, "start" | "recipient">;
   sandbox: SandboxProvider;
   memory: MemoryStore;
   memoryProviders: MemoryProviderResolver;
@@ -1319,4 +1324,40 @@ async function moduleRecordWrite<T>(write: () => Promise<T>): Promise<T> {
     }
     throw error;
   }
+}
+
+/** What the procedures read from the deployment's settings. */
+export function routerEnv(env: AppEnv): RouterDeps["env"] {
+  return {
+    inboundEmailDomain: env.inboundEmail?.domain,
+    deploymentLabs: env.deploymentLabs,
+    deploymentVoice: env.deploymentVoice,
+    phoneCallsEnabled: env.phoneCallsEnabled,
+    phoneCallRingSeconds: env.phoneCallRingSeconds,
+    navLinks: env.navLinks,
+    adminEmails: env.adminEmails,
+    maxUploadSizeBytes: env.maxUploadSizeBytes,
+    maxAttachmentsPerMessage: env.maxAttachmentsPerMessage,
+    agentRuntime: env.agentRuntime,
+    defaultProvider: env.defaultProvider,
+    defaultModel: env.defaultModel,
+    teamChatJudgeProvider: env.teamChatJudgeProvider,
+    teamChatJudgeModel: env.teamChatJudgeModel,
+    deploymentModelConfigured: env.deploymentModelConfigured,
+    deploymentModelHostCredentials: env.deploymentModelHostCredentials,
+    webOrigin: env.webOrigin,
+    privacyPolicyUrl: env.privacyPolicyUrl,
+    screenProxySecret: env.screenProxySecret,
+    invitationRecipientKey: createHmac("sha256", env.authSecret)
+      .update("organization-invitation-recipient")
+      .digest("hex"),
+    sandboxProvider: env.sandboxProvider,
+    gitSha: env.gitSha,
+    integrationsCatalogUrl: env.integrationsCatalogUrl,
+    mcpAllowPrivateEndpoint: env.mcpAllowPrivateEndpoint,
+    desktopHostChoiceEnabled: Boolean(env.desktopStackToken),
+    computerSettingsEnabled: env.computerSettingsEnabled,
+    mcpStdioEnabled: env.mcpStdioEnabled,
+    mcpStdioAllowedCommands: env.mcpStdioAllowedCommands,
+  };
 }

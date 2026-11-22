@@ -2,16 +2,19 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FakeSandboxProvider } from "@rakazo/adapters";
+import { LOCAL_SIGNUP_COOKIE, localSignupKey } from "@rakazo/core/node/local-signup";
 import { asSystem, runAsSystem } from "@rakazo/db";
 import { expect, it } from "vitest";
 import { sessionCookieHeader } from "../../../../packages/testkit/src/index.js";
 import { createApp } from "../app.js";
 
 const databaseUrl = process.env.VERIFY_DATABASE === "1" ? process.env.DATABASE_URL : undefined;
+const stackToken = "ab".repeat(32);
 
 it.skipIf(!databaseUrl).each([
   { sandboxProvider: "docker", nativeToken: true, expected: true },
   { sandboxProvider: "docker", nativeToken: false, expected: false },
+  { sandboxProvider: "local-vm", nativeToken: true, expected: true },
   { sandboxProvider: "fake", nativeToken: true, expected: false },
 ])("exposes native host choice only on a managed Docker instance (%j)", async (fixture) => {
   const dataDir = await mkdtemp(join(tmpdir(), "rakazo-host-choice-"));
@@ -22,7 +25,7 @@ it.skipIf(!databaseUrl).each([
     dataDir,
     sandboxProvider: fixture.sandboxProvider,
     sandbox: new FakeSandboxProvider(),
-    desktopStackToken: fixture.nativeToken ? "ab".repeat(32) : undefined,
+    desktopStackToken: fixture.nativeToken ? stackToken : undefined,
     agentRuntime: "scripted",
     wakeupDriver: "memory",
     signupsEnabled: "true",
@@ -36,7 +39,12 @@ it.skipIf(!databaseUrl).each([
     const signUp = async (role: string) => {
       const signup = await handles.app.request("/api/auth/sign-up/email", {
         method: "POST",
-        headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+        headers: {
+          "content-type": "application/json",
+          origin: "http://127.0.0.1:5173",
+          // A managed stack (desktop token set) admits sign-ups that carry its local key.
+          cookie: `${LOCAL_SIGNUP_COOKIE}=${localSignupKey(stackToken)}`,
+        },
         body: JSON.stringify({
           email: emailFor(role),
           password: "test-password-123",
@@ -48,8 +56,8 @@ it.skipIf(!databaseUrl).each([
       return { userId: user.id, cookie: sessionCookieHeader(signup) };
     };
     const owner = await signUp("owner");
-    // A managed stack (desktop token set) admits only its first account, so it has no member.
-    const member = fixture.nativeToken ? undefined : await signUp("member");
+    // A managed stack now admits more than one account, so every case has a second member.
+    const member = await signUp("member");
     // Manor keeps a deployment owner (the first sign-up); host choice must not depend on it.
     previousOwner =
       (await system.deploymentSettings.findUnique({ where: { id: "default" } }))?.ownerUserId ??
@@ -58,7 +66,7 @@ it.skipIf(!databaseUrl).each([
       where: { id: "default" },
       data: { ownerUserId: owner.userId },
     });
-    const accounts = [[owner, true] as const, ...(member ? [[member, false] as const] : [])];
+    const accounts = [[owner, true] as const, [member, false] as const];
     for (const [account, isDeploymentOwner] of accounts) {
       for (const procedure of ["me", "bootstrap"]) {
         const response = await handles.app.request(`/rpc/${procedure}`, {
@@ -85,7 +93,7 @@ it.skipIf(!databaseUrl).each([
         data: { ownerUserId: previousOwner },
       });
     }
-    // A managed stack admits only its first account, so each case starts without one.
+    // Each case starts without the accounts it signs up.
     await runAsSystem("remove the host choice testers", () =>
       handles.prisma.user.deleteMany({
         where: { email: { in: [emailFor("owner"), emailFor("member")] } },

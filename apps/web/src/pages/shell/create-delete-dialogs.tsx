@@ -124,7 +124,11 @@ export function NewSpaceDialog({
               </div>
             ))}
           </div>
-          {error ? <p className="text-body text-destructive">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-body text-destructive">
+              {error}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button disabled={saving} onClick={finish}>
               {saving ? <Trans>Saving…</Trans> : <Trans>Continue</Trans>}
@@ -176,8 +180,8 @@ export function NewSpaceDialog({
             onValueChange={(next) => setShared(next === "team")}
             className="mt-2 w-full"
             options={[
-              { value: "personal", label: t`Personal — only you` },
-              { value: "team", label: t`Team — everyone in this organization` },
+              { value: "personal", label: t`Personal: only you` },
+              { value: "team", label: t`Team: everyone in this organization` },
             ]}
           />
         </label>
@@ -186,7 +190,11 @@ export function NewSpaceDialog({
             <Trans>Agents, conversations, files, and connected accounts are shared.</Trans>
           </p>
         ) : null}
-        {error ? <p className="text-body text-destructive">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-body text-destructive">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline" disabled={saving} onClick={onCancel}>
             <Trans>Cancel</Trans>
@@ -247,7 +255,11 @@ export function NewBotSectionDialog({
               className="mt-2"
             />
           </label>
-          {error ? <p className="text-body text-destructive">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-body text-destructive">
+              {error}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
               <Trans>Cancel</Trans>
@@ -307,7 +319,11 @@ export function RenameBotSectionDialog({
               autoFocus
             />
           </label>
-          {error ? <p className="text-body text-destructive">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-body text-destructive">
+              {error}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
               <Trans>Cancel</Trans>

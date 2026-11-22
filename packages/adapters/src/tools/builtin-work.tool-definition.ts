@@ -59,7 +59,7 @@ const scheduleTimingSpecs = {
   watch: {
     type: "object",
     description:
-      'Run when something changes; quiet checks use no model. everyMinutes: 5–1440 (default 15). Do not combine watch with cron/every/startAt. files: computer paths. command: shell command in your folder, repeated without per-run approval; compare its output. tool: read-only connected tool + args. http: public HTTPS url, GET only; no headers, auth, body or redirects. Prefer tool/http for network checks: no computer; files/command wake it. Watch one named resource, not a whole account. For JSON lists, track names the identity then changed fields: mail search ["id"], Drive folder ["id","modifiedTime"], ClickUp list ["id","date_updated"].',
+      'Run when something changes; quiet checks use no model. everyMinutes: 5–1440 (default 15). Do not combine watch with cron/every/startAt. files: computer paths. command: shell command in your folder, repeated without per-run approval; compare its output. tool: read-only connected tool + args; an arg {{today}} or {{today+2d}} is that date. http: public HTTPS url, GET only; no headers, auth, body or redirects. Prefer tool/http for network checks: no computer; files/command wake it. Watch one named resource, not a whole account. For JSON lists, track names the identity then changed fields: mail search ["id"], Drive folder ["id","modifiedTime"], ClickUp list ["id","date_updated"].',
     properties: {
       kind: { type: "string", enum: ["files", "command", "tool", "http"] },
       paths: { type: "array", items: { type: "string" } },
@@ -152,6 +152,9 @@ export function scheduleCreateBranch(
     additionalProperties: false,
   };
 }
+
+/** Another bot in this space whose routines the call reaches; needs bot management. */
+const otherBotRoutineProperties = { bot_id: { type: "string" }, bot_name: { type: "string" } };
 
 /**
  * Exactly one timing method, or none for a webhook routine (Manor). Null or blank leftovers stay
@@ -350,13 +353,13 @@ export const workTools: ConnectorTool[] = [
   {
     name: "schedule_create",
     description:
-      "Create a routine in this bot's Routines UI from the user's description, such as \"remind me in 10 minutes\" or \"every morning send a joke\". Fill in a short name and complete reusable instructions; preserve specified email wording and attachment references in prompt, and ask for missing details rather than inventing them. Repeats: cron or every/unit (min 1 minute), optionally from startAt. One-shot: runAt, delayMinutes, or delaySeconds. A repeating job carries out the user's lasting request each time, not a copy of what was decided today. inChat true only when each run continues work this chat is doing, such as updating a draft or plan written here or fixing something started here; it then waits for work under way here. Otherwise false: it runs on time, seeing this chat's latest messages and its own earlier results. on: run on events too, or only (no timing); each run receives the event: webhook, git (a GitHub repo webhook the user adds with the routine URL and key; needs no connected app), chat (your connected chat app, by name), email (to your address from the owner or their domain). trigger=webhook instead: a routine only its own webhook starts; omit all timing fields and on, then call routine_prepare_webhook and configure the sender on the computer.",
+      "Create a routine in this bot's Routines UI from the user's description, such as \"remind me in 10 minutes\" or \"every morning send a joke\". Fill in a short name and complete reusable instructions; preserve specified email wording and attachment references in prompt, and ask for missing details rather than inventing them. Repeats: cron or every/unit (min 1 minute), optionally from startAt. One-shot: runAt, delayMinutes, or delaySeconds. A repeating job carries out the user's lasting request each time, not a copy of what was decided today. inChat true only when each run continues work this chat is doing, such as updating a draft or plan written here or fixing something started here; it then waits for work under way here. Otherwise false: it runs on time, seeing this chat's latest messages and its own earlier results. on: run on events too, or only (no timing); each run receives the event: webhook, git (a GitHub repo webhook the user adds with the routine URL and key; needs no connected app), chat (your connected chat app, by name), email (to your address from the owner or their domain). trigger=webhook: only its own webhook starts it; omit timing and on, then call routine_prepare_webhook.",
     inputSchema: scheduleCreateInputSchema,
   },
   {
     name: "routine_prepare_webhook",
     description:
-      "Prepare an existing webhook routine for external setup. Writes a private setup JSON file with its URL and authorization on this bot's computer, without exposing credentials in chat. Use the file in a script or browser on the computer to configure the user's form or automation. Do not print, publish, commit, or attach this file. Use stable event IDs to avoid duplicate runs. Never claim the source is connected until verified. Only available in this bot's direct conversation.",
+      "Prepare a webhook routine for external setup: writes a private setup JSON file (URL and authorization) on this bot's computer, never in chat. Use it from a script or browser there to configure the sender. Never print, publish, commit or attach it. Use stable event IDs. Never claim the source is connected until verified.",
     inputSchema: {
       type: "object",
       properties: { routineId: { type: "string" } },
@@ -365,13 +368,13 @@ export const workTools: ConnectorTool[] = [
   },
   {
     name: "schedule_list",
-    description: "List this bot's active and inactive schedules (routines).",
-    inputSchema: { type: "object", properties: {} },
+    description: "List this bot's active and inactive schedules (routines), or another bot's.",
+    inputSchema: { type: "object", properties: otherBotRoutineProperties },
   },
   {
     name: "schedule_update",
     description:
-      "Edit one of this bot's schedules by routineId instead of cancelling and recreating it. Send only what changes. Timing fields replace the current timing; startAt alone moves the next run of the current repeat. active false pauses it. The result's changes lists each field that changed with its before and after; the prompt is returned only there. It cannot change a watch's interval or timezone; the user can change the interval in the routine's settings on the web. on replaces the routine's events; {} removes them.",
+      "Edit one of this bot's schedules, or another bot's by bot_id or exact bot_name, by routineId instead of cancelling and recreating it. Send only what changes. Timing fields replace the current timing; startAt alone moves the next run of the current repeat. active false pauses it. The result's changes lists each field that changed with its before and after; the prompt is returned only there. A watch has no timing fields; everyMinutes changes how often it checks. on replaces the routine's events; {} removes them.",
     inputSchema: {
       type: "object",
       properties: {
@@ -385,19 +388,28 @@ export const workTools: ConnectorTool[] = [
         runAt: scheduleTimingSpecs.runAt,
         delayMinutes: scheduleTimingSpecs.delayMinutes,
         delaySeconds: scheduleTimingSpecs.delaySeconds,
+        everyMinutes: {
+          type: "integer",
+          minimum: 5,
+          maximum: 1440,
+          description: "A watch's check interval in minutes.",
+        },
         on: optionalRoutineEvents,
+        ...otherBotRoutineProperties,
       },
       required: ["routineId"],
     },
   },
   {
     name: "schedule_cancel",
-    description: "Cancel a schedule by routineId or exact name.",
+    description:
+      "Cancel a schedule by routineId or exact name; another bot's by bot_id or exact bot_name.",
     inputSchema: {
       type: "object",
       properties: {
         routineId: { type: "string" },
         name: { type: "string" },
+        ...otherBotRoutineProperties,
       },
     },
   },

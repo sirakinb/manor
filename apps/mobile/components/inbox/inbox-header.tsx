@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { mobileTokens, resolveMobileAppearance } from "../../lib/appearance/appearance";
 import type { CreateAction } from "../../lib/inbox/create-chooser";
 import { createMenuActions, isCreateAction } from "../../lib/inbox/create-chooser";
+import { setInboxHidden, useSplitView } from "../../lib/layout/split-view";
 import { useThemedStyles } from "../../lib/native/native";
 import { ManorLockup } from "../manor-lockup";
 import { GlassSurface } from "../native/glass-surface";
@@ -48,6 +49,7 @@ export function InboxHeader({
     embedded && Platform.OS === "ios"
       ? Math.min(insets.top, STATUS_BAR_HEIGHT) + 8
       : Math.max(insets.top, 20) + 8;
+  const { foldActive } = useSplitView();
   return (
     <View
       style={[
@@ -63,16 +65,26 @@ export function InboxHeader({
       <View pointerEvents="none" style={[styles.lockup, { top: headerTop }]}>
         <ManorLockup />
       </View>
-      {/* Artifacts opens from the account sheet; the lockup stays centred between the rows. */}
+      {/* Beside a chat the account sits at the foot of the list, and this corner hides the list
+          unless a fold keeps it in place. Manor's CRM stays in this corner either way. */}
       <GlassSurface style={styles.headerGroup} fallbackStyle={styles.headerFill}>
-        <HeaderButton accessibilityLabel={t`Account`} onPress={() => router.push("/account")}>
-          <Text style={styles.profileInitials}>{initials}</Text>
-        </HeaderButton>
+        {embedded ? (
+          foldActive ? null : (
+            <HeaderButton accessibilityLabel={t`Hide chats`} onPress={() => setInboxHidden(true)}>
+              <NativeSymbol ios="sidebar.left" android="expand-outline" size={19} />
+            </HeaderButton>
+          )
+        ) : (
+          <HeaderButton accessibilityLabel={t`Account`} onPress={() => router.push("/account")}>
+            <Text style={styles.profileInitials}>{initials}</Text>
+          </HeaderButton>
+        )}
         <HeaderButton accessibilityLabel="CRM" onPress={() => router.push("/crm")}>
           <NativeSymbol ios="chart.bar" android="stats-chart" size={17} />
         </HeaderButton>
       </GlassSurface>
-      {title}
+      {/* The title gives way to the buttons when the column is narrow. */}
+      {title ? <View style={styles.headerTitle}>{title}</View> : null}
       <View style={styles.headerActions}>
         <GlassSurface style={styles.headerGroup} fallbackStyle={styles.headerFill}>
           <HeaderButton

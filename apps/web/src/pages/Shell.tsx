@@ -1,85 +1,26 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type {
-  AgentSkillCatalogEntry,
-  Bot,
-  ProductEvent,
-  SpaceMemoryConfig,
-  ThreadMessage,
-  VoiceStatus,
-  WorkspaceSummary,
-} from "@rakazo/contracts";
-import { ATTACHMENT_MAX_COUNT, DEFAULT_NEW_BOT_AVATAR_SET, hasLab } from "@rakazo/contracts";
-import type { WorkspaceFilesController } from "@rakazo/core";
-import {
-  activeThreadRuns,
-  answerableAskMessageIds,
-  channelMessageSender,
-  chatSnoozed,
-  chatUserBubbleColors,
-  chatWoke,
-  dismissableAskMessageIds,
-  displayName,
-  foldPeerReplies,
-  groupBotsForSidebar,
-  isActive,
-  isRunWorking,
-  newClientId,
-  otherAuthor,
-  workingRoutineName,
-} from "@rakazo/core";
-import type { GroupAvatarMember } from "@rakazo/ui-web";
+import { Trans } from "@lingui/react/macro";
+import type { Bot } from "@rakazo/contracts";
+import { DEFAULT_NEW_BOT_AVATAR_SET, hasLab } from "@rakazo/contracts";
+import { chatWoke } from "@rakazo/core";
+import { bestEffort } from "@rakazo/logging/best-effort";
 import { Button } from "@rakazo/ui-web";
 import { useIsMobile } from "@rakazo/ui-web/hooks/use-mobile";
-import { useQuery } from "@tanstack/react-query";
-import {
-  BookOpen,
-  FolderTree,
-  Globe,
-  LayoutGrid,
-  ListFilter,
-  Maximize2,
-  Paperclip,
-  Plus,
-  Waypoints,
-} from "lucide-react";
-import type { ReactNode } from "react";
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { useLocation, useParams } from "react-router-dom";
-import { CallCard, CallReturnBar } from "../components/call/CallCard";
+import { Plus } from "lucide-react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import { CallCard } from "../components/call/CallCard";
 import { IncomingCall } from "../components/call/IncomingCall";
 import { ComputerUpdateProgress } from "../components/computers/ComputerUpdateProgress";
-import { IconTooltip } from "../components/IconTooltip";
 import { PageLoading } from "../components/PageLoading";
 import { PageViewHost } from "../components/pages/PageViewHost";
 import { authClient } from "../lib/auth/auth";
 import { peekBootstrapSeed } from "../lib/bootstrap";
-import { accentColor } from "../lib/brand";
-import { setCallMinimized, startCall, useCallSession } from "../lib/calls/call-session";
 import { composerEnterToSendPreference } from "../lib/composer/composer-enter-to-send-pref";
-import { composerPrefillFromState } from "../lib/composer-prefill";
-import { computersAreUnavailable } from "../lib/computers/computer-sandbox";
-import { framablePreviewUrl } from "../lib/computers/computer-screen";
 import { composerModelPickerPreference } from "../lib/models/composer-model-picker-preference";
-import type { ArtifactTarget } from "../lib/pages/artifact-open";
 import { PagesProvider, usePagesForChat } from "../lib/pages/pages";
 import { desktopBridge } from "../lib/platform/desktop";
-import { hasOpenDialog } from "../lib/platform/has-open-dialog";
-import { markAfterPaint, markOnce } from "../lib/platform/performance";
-import { lazyComponent, usePreloadRecoveryState } from "../lib/platform/preload-recovery";
-import { useDesktopBadge } from "../lib/platform/use-desktop-badge";
+import { usePreloadRecoveryState } from "../lib/platform/preload-recovery";
 import { botsSidebarDensityPreference } from "../lib/preferences/bots-sidebar-density-pref";
-import {
-  readBotsSidebarCollapsed,
-  writeBotsSidebarCollapsed,
-} from "../lib/preferences/bots-sidebar-pref";
 import {
   lastChatKey,
   lastChatOf,
@@ -90,79 +31,65 @@ import {
 import type { RpcClient } from "../lib/query/rpc";
 import { createSpaceRpc, selectedSpaceId } from "../lib/query/rpc";
 import { SpaceRpcProvider } from "../lib/query/space-rpc";
-import { errorText } from "../lib/query/user-error";
-import { routineNeedsOneShotArm } from "../lib/routines/routine-draft";
-import { useFileDropZone } from "../lib/use-file-drop";
 import { useTeamPresence } from "../lib/use-team-presence";
 import type { CreateBotDialogInput } from "./shell/bots/create-bot-dialog";
-import type { ImportSetupTarget } from "./shell/bots/import-setup-card";
 import { useTeaching } from "./shell/bots/use-teaching";
-import type { ChatMenuState, ChatMenuTarget } from "./shell/chat/chat-context-menu";
-import { ChatContextMenu } from "./shell/chat/chat-context-menu";
-import { ChatFindBar } from "./shell/chat/chat-find-bar";
+import { ChatColumn } from "./shell/chat/chat-column";
+import { useChatMenu } from "./shell/chat/chat-context-menu";
 import { ChatHeader } from "./shell/chat/chat-header";
-import { FALLBACK_BOT_COLOR } from "./shell/chat/chat-shared";
 import { Transcript } from "./shell/chat/transcript";
-import { resolveTranscriptMemberName as groupTranscriptMemberName } from "./shell/chat/transcript-member-name";
 import { useChatRead } from "./shell/chat/use-chat-read";
+import { useMessageActions } from "./shell/chat/use-message-actions";
 import { useMessageJump } from "./shell/chat/use-message-jump";
 import { useReadAloud } from "./shell/chat/use-read-aloud";
 import { useThreadState } from "./shell/chat/use-thread-state";
 import { useThreadSync } from "./shell/chat/use-thread-sync";
-import { Composer } from "./shell/composer/composer";
-import { ComposerModelPicker } from "./shell/composer/composer-model-picker";
+import { useTranscriptView } from "./shell/chat/use-transcript-view";
+import { ChatComposerArea } from "./shell/composer/chat-composer-area";
 import { useComposerActions } from "./shell/composer/use-composer-actions";
 import { useComposerMentions } from "./shell/composer/use-composer-mentions";
+import { useComposerModelShortcuts } from "./shell/composer/use-composer-model-shortcuts";
 import { ComputerOverlay } from "./shell/computers/computer-overlay";
 import { ComputerPanel } from "./shell/computers/computer-panel";
 import { useComputerControls, useComputerState } from "./shell/computers/use-computer";
 import { HostComputerPrompt } from "./shell/host-computer-prompt";
 import { KeyboardShortcutsDialog } from "./shell/keyboard-shortcuts-dialog";
+import { useManorShellProps, useManorShellState } from "./shell/manor-shell";
 import { isPlaceRoute } from "./shell/place-routes";
 import { rightPanelStorageKey } from "./shell/right-panel-state";
 import { ShellDialogs, useShellDialogs } from "./shell/shell-dialogs";
-import type { SettingsSection } from "./shell/shell-overlay-url";
 import { AppOverlays, SettingsOverlays } from "./shell/shell-overlays";
-import { cycleBotId, isApplePlatform, useShellShortcuts } from "./shell/shell-shortcuts";
+import { isApplePlatform } from "./shell/shell-shortcuts";
 import { ShellSidePanel } from "./shell/side-panel";
 import { ArchivedChats } from "./shell/sidebar/archived-chats";
-import { focusSidebarSearch, ShellSidebar } from "./shell/sidebar/shell-sidebar";
+import { ShellSidebar } from "./shell/sidebar/shell-sidebar";
 import { BotsSidebarLayout } from "./shell/sidebar/sidebar-layout";
 import { SidebarRoster } from "./shell/sidebar/sidebar-roster";
 import { SnoozedChats } from "./shell/sidebar/snoozed-chats";
-import { countUnreadChats, sidebarGroupsForSpaces } from "./shell/sidebar/space-sidebar";
 import { useChatSnooze } from "./shell/sidebar/use-chat-snooze";
 import { useMobileSidebar } from "./shell/sidebar/use-mobile-sidebar";
 import { useSidebarExpansion } from "./shell/sidebar/use-sidebar-expansion";
 import { useSidebarSearch } from "./shell/sidebar/use-sidebar-search";
+import { useSidebarView } from "./shell/sidebar/use-sidebar-view";
 import { useSnoozeClock } from "./shell/sidebar/use-snooze-clock";
 import { useRosterDrop, useSpaceBootstrap, useSpaceRoster } from "./shell/sidebar/use-space-roster";
-import { markShellReady, useSpaceEpoch } from "./shell/space-switch";
-import { TimezonePrompt } from "./shell/timezone-prompt";
+import { useSpaceEpoch } from "./shell/space-switch";
+import { TimezonePrompt, withSavedTimezone } from "./shell/timezone-prompt";
+import { useActiveChat } from "./shell/use-active-chat";
+import { useBotCall } from "./shell/use-bot-call";
 import { useBrowserNotifications } from "./shell/use-browser-notifications";
 import { usePaletteActions } from "./shell/use-palette-actions";
 import { useReportedUiLocale } from "./shell/use-reported-ui-locale";
 import { useRightPanel, useRightPanelRestore } from "./shell/use-right-panel";
 import { useRoutineEditor } from "./shell/use-routine-editor";
+import { useRoutineList } from "./shell/use-routine-list";
 import { useShellNavigation } from "./shell/use-shell-navigation";
+import { useShellReadyMarks } from "./shell/use-shell-ready-marks";
+import { useShellSettings } from "./shell/use-shell-settings";
+import { useShellShortcutActions } from "./shell/use-shell-shortcut-actions";
+import { useShellStatus } from "./shell/use-shell-status";
 import { useSpaceActions } from "./shell/use-space-actions";
 import { useOpenSpaceChat } from "./shell/use-space-switch";
-
-// Manor: its places and side panels load when opened, so they stay out of the startup bundle.
-const WorkspaceView = lazyComponent(() =>
-  import("./workspace/WorkspaceView").then((module) => module.WorkspaceView),
-);
-const CrmView = lazyComponent(() => import("./crm/CrmView").then((module) => module.CrmView));
-const DocsView = lazyComponent(() => import("./DocsView").then((module) => module.DocsView));
-const FilesPanel = lazyComponent(() =>
-  import("../components/FilesPanel").then((module) => module.FilesPanel),
-);
-const RunLogsPanel = lazyComponent(() =>
-  import("../components/RunLogsPanel").then((module) => module.RunLogsPanel),
-);
-
-const NO_AGENT_SKILLS: AgentSkillCatalogEntry[] = [];
-const NO_PROVIDERS: string[] = [];
 
 export function ShellPage() {
   useTeamPresence();
@@ -172,7 +99,6 @@ export function ShellPage() {
 }
 
 function SpaceShell() {
-  const { t } = useLingui();
   const { botId, groupId } = useParams();
   const [shellSpaceId] = useState(selectedSpaceId);
   const [rpc] = useState(() => createSpaceRpc(shellSpaceId));
@@ -215,6 +141,7 @@ function SpaceShell() {
     botSections,
     spaces,
     setSpaces,
+    firstBotDue,
     archivedBots,
     archivedGroups,
     initialBotsLoaded,
@@ -223,23 +150,6 @@ function SpaceShell() {
     setBootstrapMe,
     refreshBots,
   } = roster;
-  // The CRM, docs and Workspace are places, not panels, so they live on their own routes
-  // and win the main pane whenever the address says so.
-  const location = useLocation();
-  const placePathname = location.pathname;
-  const crmOpen = placePathname === "/app/crm";
-  const docsOpen = placePathname === "/app/docs";
-  const workspaceOpen =
-    placePathname === "/app/workspace" || placePathname.startsWith("/app/workspace/");
-  // The Workspace place exists only for accounts with a connected warehouse;
-  // one cheap status read on mount decides whether the nav shows it.
-  const [workspace, setWorkspace] = useState<WorkspaceSummary | null>(null);
-  useEffect(() => {
-    rpc.workspace
-      .status()
-      .then((result) => setWorkspace(result.workspace))
-      .catch(() => setWorkspace(null));
-  }, []);
   const snoozeNow = useSnoozeClock([
     ...bots,
     ...groups,
@@ -254,15 +164,9 @@ function SpaceShell() {
     refreshBots,
   });
   const { collapsedSidebarSections, toggleSidebarSection } = useSidebarExpansion(userId);
-  const [botsSidebarCollapsed, setBotsSidebarCollapsed] = useState(false);
-  useEffect(() => {
-    setBotsSidebarCollapsed(readBotsSidebarCollapsed(userId));
-  }, [userId]);
   const search = useSidebarSearch({ rpc, navigate });
   const thread = useThreadState();
   const { snapshot } = thread;
-  // Manor's ActivityTimeline always shows thoughts and tool steps, so upstream's
-  // "Show tool activity" preference is not read here and its settings toggle is hidden.
   const botsSidebarDensity = botsSidebarDensityPreference.use();
   const enterToSend = composerEnterToSendPreference.use();
   const showComposerModel = composerModelPickerPreference.use();
@@ -272,78 +176,38 @@ function SpaceShell() {
     peerBotId: string;
     peerBotName: string;
   } | null>("peerConversation", null);
-  const agentSkillsQuery = useQuery(queries.agentSkills.list.queryOptions());
-  const agentSkills = agentSkillsQuery.data ?? NO_AGENT_SKILLS;
-  const refreshAgentSkills = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: queries.agentSkills.list.queryKey() });
-  }, [queries]);
-
-  const messagingStatus = useQuery({
-    ...queries.messaging.status.queryOptions(),
-    enabled: Boolean(session.data?.user),
-  }).data;
-  const messagingSurfaceEnabled = messagingStatus?.enabled ?? false;
-  const messagingProviders = messagingStatus?.providers ?? NO_PROVIDERS;
-  const memoryConfigQuery = useQuery(queries.memory.providerConfig.queryOptions());
-  // Undefined while it first loads; null when the space has none or it could not be read.
-  const memoryProviderConfig: SpaceMemoryConfig | null | undefined =
-    memoryConfigQuery.data !== undefined
-      ? memoryConfigQuery.data
-      : memoryConfigQuery.isError
-        ? null
-        : undefined;
-  const call = useCallSession();
-  /** Calls a bot, or opens voice settings first when no voice is connected. */
-  const callBot = (bot: Bot) => {
-    if (!bootstrapMe?.phoneCallsEnabled) return;
-    if (!voiceStatus?.ready) {
-      openSettings("voice");
-      return;
-    }
-    startCall({
-      botId: bot.id,
-      botName: bot.name,
-      botColor: bot.color,
-      botAvatarSet: bot.avatarSet,
-      transcribe: voiceStatus ? Boolean(voiceStatus.transcribe) : undefined,
-    });
-  };
-  const voiceStatus: VoiceStatus | null =
-    useQuery(queries.voice.status.queryOptions()).data ?? null;
+  const {
+    agentSkills,
+    refreshAgentSkills,
+    messagingEnabled: messagingSurfaceEnabled,
+    messagingProviders,
+    memoryProviderConfig,
+    voiceStatus,
+  } = useShellStatus(queries, Boolean(session.data?.user));
+  const { call, callBot, openCall } = useBotCall({
+    phoneCallsEnabled: Boolean(bootstrapMe?.phoneCallsEnabled),
+    voiceStatus,
+    openVoiceSettings: () => openSettings("voice"),
+  });
   const { mobileSidebarOpen, setMobileSidebarOpen, swipeHandlers } = useMobileSidebar();
   const isMobileSidebar = useIsMobile();
+  const [panelCoversChat, setPanelCoversChat] = useState(false);
+  const [panelOverlays, setPanelOverlays] = useState(false);
   const pages = usePagesForChat();
-  const miniSidebar = botsSidebarCollapsed && !isMobileSidebar;
-  const [botMenu, setBotMenu] = useState<ChatMenuTarget | null>(null);
-  const closeBotMenu = useCallback(() => setBotMenu(null), []);
-  const currentSpaceId = selectedSpaceId() ?? bootstrapMe?.spaceId ?? null;
-  // null: settings follow the space the app is showing.
-  const settingsSpaceId = overlay?.kind === "settings" ? overlay.spaceId : null;
-  const settingsSpace =
-    spaces.find((space) => space.id === (settingsSpaceId ?? currentSpaceId)) ?? null;
-  // Never fall back to another space's settings when the edited space goes away.
-  const settingsSpaceGone = initialBotsLoaded && settingsSpaceId !== null && !settingsSpace;
-  useEffect(() => {
-    if (settingsSpaceGone) setOverlay(null);
-  }, [settingsSpaceGone]);
-  // The app menu owns Cmd+, because macOS takes it before the page sees a keydown.
-  const openSettingsRef = useRef(openSettings);
-  openSettingsRef.current = openSettings;
-  useEffect(() => desktopBridge()?.settings?.onOpen(() => openSettingsRef.current("general")), []);
+  const sidebar = useSidebarView({
+    userId,
+    isMobile: isMobileSidebar,
+    bootstrapMe,
+    spaces,
+    bots,
+    groups,
+    botSections,
+    searchQuery: search.query,
+    now: snoozeNow,
+  });
 
-  const inGroup = Boolean(groupId);
-  const chatPanelOpen = inGroup
-    ? panel === "group-settings"
-    : panel === "routines" || panel === "pages" || panel === "settings" || panel === "routine";
-  // Until the route names the chat reopened from cache, that chat stands in for it.
-  const routeChat = botId || groupId ? undefined : startChat;
-  const active =
-    inGroup || routeChat?.groupId
-      ? undefined
-      : (bots.find((b) => b.id === (botId ?? routeChat?.botId)) ??
-        // With no chat named, open one that's in the list, not a snoozed one.
-        bots.find((b) => !chatSnoozed(b, snoozeNow)) ??
-        bots[0]);
+  const { inGroup, routeChat, active, activeGroup, activeBotId, activeGroupId, userBubble } =
+    useActiveChat({ botId, groupId, startChat, bots, groups, now: snoozeNow });
   const selectBot = useCallback(
     (id: string) => {
       setMobileSidebarOpen(false);
@@ -351,147 +215,10 @@ function SpaceShell() {
     },
     [navigate, setMobileSidebarOpen],
   );
-  const userBubble = useMemo(
-    () => (active ? chatUserBubbleColors(active.color, active.id) : undefined),
-    [active?.color, active?.id],
-  );
-  const activeGroup = groups.find((group) => group.id === groupId);
-  const activeBotId = useRef<string | undefined>(inGroup ? undefined : active?.id);
-  activeBotId.current = inGroup ? undefined : active?.id;
-  const activeGroupId = useRef<string | undefined>(groupId);
-  activeGroupId.current = groupId;
   const computerState = useComputerState({ rpc, panel, activeId: active?.id, activeBotId });
-  const { computer, computerOpen, setComputerOpen, booting, commitComputer } = computerState;
-  const [cleaningUpDisk, setCleaningUpDisk] = useState(false);
-  const dismissDiskWarning = (botId: string) => {
-    const current = computerState.computerRef.current;
-    if (current?.botId === botId) commitComputer({ ...current, diskFullPercent: undefined });
-    const cached = computerState.computerCacheRef.current.get(botId)?.computer;
-    if (cached)
-      computerState.cacheComputerFor(botId, {
-        computer: { ...cached, diskFullPercent: undefined },
-      });
-    return rpc.computer.dismissDiskWarning({ botId }).catch(() => undefined);
-  };
+  const { computerOpen, setComputerOpen, commitComputer } = computerState;
   useReportedUiLocale(rpc, bootstrapMe?.locale);
-  const cycleBots = useMemo(
-    () =>
-      groupBotsForSidebar(
-        bots.filter((bot) => !chatSnoozed(bot, snoozeNow)),
-        botSections,
-      ).flatMap((group) => group.bots),
-    [bots, botSections, snoozeNow],
-  );
   const dialogs = useShellDialogs();
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [findOpen, setFindOpen] = useState(false);
-  const findInputRef = useRef<HTMLInputElement>(null);
-  const chatColumnRef = useRef<HTMLDivElement>(null);
-  // Matches belong to the chat they were found in.
-  useEffect(() => setFindOpen(false), [botId, groupId]);
-  const quoteShortcutRef = useRef<(() => boolean) | null>(null);
-  const registerQuoteShortcut = useCallback((handler: (() => boolean) | null) => {
-    quoteShortcutRef.current = handler;
-  }, []);
-  const focusComposer = useCallback(() => {
-    const composer = document.querySelector<HTMLTextAreaElement>(
-      'textarea[name="chat-message"]:not(:disabled)',
-    );
-    composer?.focus();
-    return Boolean(composer);
-  }, []);
-  useShellShortcuts({
-    run: (shortcut) => {
-      switch (shortcut.type) {
-        case "command-menu":
-          dialogs.setCommandPaletteOpen((open) => !open);
-          return true;
-        case "new":
-          setCreateMenuOpen(true);
-          return true;
-        case "shortcuts":
-          setShortcutsOpen((open) => !open);
-          return true;
-        case "back":
-        case "forward":
-          void navigate(shortcut.type === "back" ? -1 : 1);
-          return true;
-      }
-      // The full-screen computer covers the sidebar and takes the keyboard.
-      if (computerOpen) return false;
-      if (shortcut.type === "toggle-sidebar") {
-        if (isMobileSidebar) setMobileSidebarOpen((open) => !open);
-        else setBotsSidebarCollapsedPref(!botsSidebarCollapsed);
-        return true;
-      }
-      if (shortcut.type === "search") {
-        if (isMobileSidebar) setMobileSidebarOpen(true);
-        else if (botsSidebarCollapsed) setBotsSidebarCollapsedPref(false);
-        search.setSearchOpen(true);
-        focusSidebarSearch();
-        return true;
-      }
-      // The command menu picks its own Cmd/Ctrl+1–9 from what it lists.
-      if (hasOpenDialog(document, true)) return false;
-      switch (shortcut.type) {
-        case "new-group":
-          // A space without bots has nobody to add, and the side panel needs a chat to open in.
-          if (!active && !activeGroup) return false;
-          setPanel("create-group");
-          return true;
-        case "integrations":
-          setOverlay({ kind: "integrations" });
-          return true;
-        case "chat-panel":
-          // A form in the side panel (a new group, an import) keeps its unsaved input.
-          if (panel && !chatPanelOpen) return false;
-          return toggleChatPanel();
-        case "focus-composer":
-          return focusComposer();
-        case "quote-selection":
-          if (mobileSidebarOpen || (isMobileSidebar && panel)) return false;
-          return quoteShortcutRef.current?.() ?? false;
-        case "find":
-          // Manor: Workspace, CRM and docs fill the pane with no chat to search.
-          if ((!active && !activeGroup) || workspaceOpen || crmOpen || docsOpen) return false;
-          // On a narrow window the drawer makes the chat inert and a side panel covers it, so
-          // either would hide the bar. A panel holding a form keeps its input instead.
-          if (isMobileSidebar && panel) {
-            if (!chatPanelOpen) return false;
-            setPanel(null);
-          }
-          setMobileSidebarOpen(false);
-          setFindOpen(true);
-          // A bar already open may have lost focus; a new one focuses itself as it mounts.
-          requestAnimationFrame(() => {
-            findInputRef.current?.focus();
-            findInputRef.current?.select();
-          });
-          return true;
-      }
-      const botId =
-        shortcut.type === "bot"
-          ? cycleBots[shortcut.index]?.id
-          : cycleBotId(cycleBots, active?.id, shortcut.type === "next-bot" ? 1 : -1);
-      if (!botId) return false;
-      selectBot(botId);
-      return true;
-    },
-    onTyping: () => {
-      if (computerOpen || hasOpenDialog(document, true)) return;
-      focusComposer();
-    },
-  });
-  function toggleChatPanel() {
-    if (chatPanelOpen) setPanel(null);
-    else if (inGroup) setPanel("group-settings");
-    else if (active) {
-      setPanel("settings");
-      // Refresh run/computer so Take control isn't stuck on a stale busyBotName.
-      void refreshThread(active.id).catch(() => undefined);
-    } else return false;
-    return true;
-  }
   const openSpaceChatRef = useRef<(spaceId: string, path: string) => void>(() => {});
   const rosterSignals = useSpaceBootstrap({
     roster,
@@ -531,36 +258,7 @@ function SpaceShell() {
     activeBotId,
   });
   const read = useChatRead({ rpc, active, groupId, activeGroup, setBots, setGroups });
-  // Manor's live activity feed: the open bot's tool calls in the current run.
-  const [activity, setActivity] = useState<
-    Array<{ id: string; runId: string; name: string; detail: string }>
-  >([]);
-  const [showActivity, setShowActivity] = useState(
-    () => window.localStorage.getItem("manor.showActivity") !== "0",
-  );
-  const toggleActivity = useCallback(() => {
-    setShowActivity((prev) => {
-      window.localStorage.setItem("manor.showActivity", prev ? "0" : "1");
-      return !prev;
-    });
-  }, []);
-  useEffect(() => setActivity([]), [active?.id]);
-  const recordActivity = useCallback((event: ProductEvent) => {
-    if (event.type !== "agent.tool.called" || !event.runId) return;
-    const payload = event.payload as { name?: string; executionId?: string; detail?: string };
-    const runId = event.runId;
-    const entry = {
-      id: `${runId}:${payload.executionId ?? event.seq}`,
-      runId,
-      name: payload.name ?? "tool",
-      detail: payload.detail ?? "",
-    };
-    setActivity((prev) => {
-      const scoped = prev.filter((item) => item.runId === entry.runId);
-      if (scoped.some((item) => item.id === entry.id)) return prev;
-      return [...scoped, entry].slice(-40);
-    });
-  }, []);
+  const manor = useManorShellState(rpc, active?.id, spaces, bootstrapMe?.spaceId);
   // A chat that wakes while it is open is already seen: read it, which ends the snooze.
   const openChatWoke = active
     ? chatWoke(active, snoozeNow)
@@ -599,7 +297,7 @@ function SpaceShell() {
     notifyBrowserForEvent,
     markBotReadIfVisible: read.markBotReadIfVisible,
     markGroupReadOnReply: read.markGroupReadOnReply,
-    onBotEvent: recordActivity,
+    onBotEvent: manor.liveActivity.recordActivity,
     meId: userId,
   });
   const {
@@ -619,25 +317,11 @@ function SpaceShell() {
     timezone: bootstrapMe?.timezone,
     setBots,
     refreshThread,
+    openGroup: (id) => navigate(`/app/g/${id}`),
     setPanel,
     messageProviders: messagingProviders,
   });
-  // Until this visit's read lands, a bot shows the routines and skills it had last time.
-  const cachedRoutines =
-    inGroup || !active || thread.routinesBotId === active.id
-      ? undefined
-      : queryClient.getQueryData(queries.routines.list.queryKey({ input: { botId: active.id } }));
-  // The on/off choice still to send for each routine whose switch was just pressed.
-  const routineToggles = useRef(new Map<string, boolean>());
-  const activeRoutines =
-    inGroup || !active
-      ? []
-      : thread.routinesBotId === active.id
-        ? thread.routines
-        : (cachedRoutines ?? []);
-  // A bot opened for the first time has no routines to show yet, which is not the same as none.
-  const routinesLoaded =
-    !active || inGroup || thread.routinesBotId === active.id || cachedRoutines !== undefined;
+  // Until this visit's read lands, a bot shows the skills it had last time.
   const activeTaughtSkills = !active
     ? []
     : thread.taughtSkillsBotId === active.id
@@ -645,58 +329,65 @@ function SpaceShell() {
       : (queryClient.getQueryData(queries.skills.list.queryKey({ input: { botId: active.id } })) ??
         []);
   const recordingSkill = activeTaughtSkills.find((skill) => skill.status === "recording") ?? null;
+  const modelShortcuts = useComposerModelShortcuts({
+    botId: inGroup ? undefined : active?.id,
+    enabled: showComposerModel && !recordingSkill,
+  });
+  const {
+    chatPanelOpen,
+    toggleChatPanel,
+    focusComposer,
+    registerQuoteShortcut,
+    shortcutsOpen,
+    setShortcutsOpen,
+    findOpen,
+    setFindOpen,
+    findInputRef,
+  } = useShellShortcutActions({
+    botId,
+    groupId,
+    active,
+    activeGroup,
+    bots,
+    botSections,
+    snoozeNow,
+    navigate,
+    selectBot,
+    setCommandPaletteOpen: dialogs.setCommandPaletteOpen,
+    setCreateMenuOpen,
+    setOverlay,
+    panel,
+    setPanel,
+    panelOverlays,
+    computerOpen,
+    isMobileSidebar,
+    mobileSidebarOpen,
+    setMobileSidebarOpen,
+    sidebarCollapsed: sidebar.collapsed,
+    setSidebarCollapsed: sidebar.setCollapsedPref,
+    openSidebarSearch: () => search.setSearchOpen(true),
+    modelShortcuts,
+    refreshThread,
+    placeOpen: manor.places.placeOpen,
+  });
+  const {
+    settingsSpaceId,
+    settingsSpace,
+    openSettings,
+    openSpaceSettings,
+    openImportSetup,
+    openAgentImport,
+  } = useShellSettings({
+    overlay,
+    setOverlay,
+    searchParams,
+    setSearchParams,
+    spaces,
+    currentSpaceId: selectedSpaceId() ?? bootstrapMe?.spaceId ?? null,
+    initialBotsLoaded,
+    refreshActiveThread,
+  });
 
-  const sidebarSpaces = useMemo(
-    () =>
-      spaces.length > 0
-        ? spaces.map((space) =>
-            space.id === bootstrapMe?.spaceId ? { ...space, bots, groups, botSections } : space,
-          )
-        : bootstrapMe
-          ? [
-              {
-                id: bootstrapMe.spaceId,
-                name: "Personal",
-                isDefault: true,
-                organizationId: "",
-                organizationName: "",
-                hasContent: true,
-                canRename: false,
-                canDelete: false,
-                bots,
-                groups,
-                botSections,
-              },
-            ]
-          : [],
-    [bootstrapMe, botSections, bots, groups, spaces],
-  );
-  const sidebarGroups = useMemo(
-    () =>
-      // Manor names the space on every header, even when the account has only one.
-      sidebarGroupsForSpaces(
-        sidebarSpaces,
-        miniSidebar ? "" : search.query,
-        { pinned: t`Pinned`, unassigned: t`Unassigned` },
-        snoozeNow,
-        { alwaysNameSpaces: true },
-      ),
-    [sidebarSpaces, search.query, miniSidebar, t, snoozeNow],
-  );
-  // The Dock badge ignores the roster search box: a filter must not hide unread chats.
-  const unreadChatCount = useMemo(
-    () => countUnreadChats(sidebarGroupsForSpaces(sidebarSpaces, "", undefined, snoozeNow)),
-    [sidebarSpaces, snoozeNow],
-  );
-  useDesktopBadge(userId ? unreadChatCount : 0);
-
-  // Navigation contains only the account's organization for this portal.
-  const currentOrganizationName = useMemo(() => {
-    const currentSpaceId = selectedSpaceId() ?? bootstrapMe?.spaceId;
-    // An unreadable legacy organization name is hidden rather than printed raw.
-    const name = spaces.find((space) => space.id === currentSpaceId)?.organizationName;
-    return displayName(name, "") || null;
-  }, [spaces, bootstrapMe?.spaceId]);
   const openSpaceChat = useOpenSpaceChat({
     bootstrapSpaceId: bootstrapMe?.spaceId,
     userId,
@@ -710,62 +401,17 @@ function SpaceShell() {
     openSpaceChatRef.current = openSpaceChat;
   }, [openSpaceChat]);
 
-  const activeSnapshot = inGroup
-    ? snapshot?.groupId === groupId
-      ? snapshot
-      : null
-    : snapshot?.botId === active?.id
-      ? snapshot
-      : null;
-  const currentRuns = activeThreadRuns(activeSnapshot);
-  const answerableAskIds = useMemo(
-    () => answerableAskMessageIds(activeSnapshot, userId),
-    [activeSnapshot, userId],
-  );
-  const dismissableAskIds = useMemo(
-    () => dismissableAskMessageIds(activeSnapshot, userId),
-    [activeSnapshot, userId],
-  );
-  const workingRuns = currentRuns.filter((run) => isRunWorking(run.status));
-  const transcriptRunning = workingRuns.length > 0;
-  const composerRunning = currentRuns.some((run) => isActive(run.status));
-  const transcript = useMemo(
-    () => foldPeerReplies(activeSnapshot?.messages ?? [], { includePeerReceipts: true }),
-    [activeSnapshot?.messages],
-  );
-  const transcriptArtifactTarget = useMemo<ArtifactTarget>(
-    () => (inGroup ? { groupId: groupId ?? "" } : { botId: active?.id ?? "" }),
-    [active?.id, groupId, inGroup],
-  );
-  const transcriptMembers = activeSnapshot?.members ?? activeGroup?.members;
-  const resolveTranscriptBot = useCallback(
-    (botId: string) => {
-      const bot = bots.find((candidate) => candidate.id === botId);
-      if (bot) return bot;
-      return transcriptMembers?.find((member) => member.botId === botId);
-    },
-    [bots, transcriptMembers],
-  );
-  const workingBots: GroupAvatarMember[] = workingRuns.map((run) => {
-    const bot = resolveTranscriptBot(run.botId);
-    return {
-      botId: run.botId,
-      color: bot?.color ?? FALLBACK_BOT_COLOR,
-      avatarSet: bot?.avatarSet,
-      name: bot?.name,
-      status: run.status,
-    };
+  const view = useTranscriptView({
+    snapshot,
+    inGroup,
+    groupId,
+    active,
+    activeGroup,
+    bots,
+    archivedBots,
+    meId: userId,
   });
-  const resolveTranscriptMemberName = useCallback(
-    (botId: string | undefined) =>
-      groupTranscriptMemberName({
-        botId,
-        members: transcriptMembers,
-        bots,
-        archivedBots,
-      }),
-    [archivedBots, bots, transcriptMembers],
-  );
+  const { activeSnapshot, transcript, composerRunning } = view;
   const { composerMentionTargets, footerLogos, setFooterLogos } = useComposerMentions({
     rpc,
     queries,
@@ -786,28 +432,21 @@ function SpaceShell() {
     (groups.length > 0 ||
       archivedBots.length > 0 ||
       archivedGroups.length > 0 ||
-      spaces.some((space) => space.hasContent));
+      spaces.some((space) => space.hasContent) ||
+      // Someone who has chatted before, in a new organization: nothing is on its way to them.
+      !firstBotDue);
   const shellReady =
     initialBotsLoaded &&
     (inGroup
       ? Boolean(activeGroup && activeSnapshot)
       : bots.length === 0 || Boolean(active && activeSnapshot));
 
-  useLayoutEffect(() => {
-    if (initialBotsLoaded) {
-      markOnce("rk:renderer:bots-committed");
-      markAfterPaint("rk:renderer:bots-painted");
-    }
-    if (active && snapshot?.botId === active.id) {
-      markOnce("rk:renderer:thread-committed");
-      markAfterPaint("rk:renderer:thread-painted");
-    }
-    if (shellReady) {
-      markShellReady();
-      markOnce("rk:renderer:shell-ready");
-      markAfterPaint("rk:renderer:shell-painted");
-    }
-  }, [active, initialBotsLoaded, shellReady, snapshot?.botId]);
+  useShellReadyMarks({
+    botsLoaded: initialBotsLoaded,
+    active,
+    snapshotBotId: snapshot?.botId,
+    ready: shellReady,
+  });
 
   const { scrollRequest, clearScrollRequest, jumpToReplyMessage } = useMessageJump({
     rpc,
@@ -841,6 +480,7 @@ function SpaceShell() {
     refreshThread,
     refreshGroupThread: (id) => refreshGroupThreadRef.current(id),
     onUpgrade: () => openSettings("billing"),
+    onSendError: (message) => composer.setSendError(message),
   });
   const { computerBot, openComputer } = computerControls;
   const composer = useComposerActions({
@@ -866,6 +506,18 @@ function SpaceShell() {
     flushPendingBrowserNotifications,
   });
   const { sending, sendError, stopRun } = composer;
+  const routineList = useRoutineList({
+    rpc,
+    queries,
+    thread,
+    active,
+    inGroup,
+    activeBotId,
+    refreshThread,
+    startRoutine,
+    stopRun,
+    setSendError: composer.setSendError,
+  });
   function openChatSettings(kind: "bot" | "group", id: string) {
     const destKey =
       userId && bootstrapMe?.spaceId
@@ -876,21 +528,12 @@ function SpaceShell() {
     );
   }
 
-  const replyTargetName = composer.replyTarget
-    ? composer.replyTarget.role === "user"
-      ? (otherAuthor(composer.replyTarget.author, userId)?.name ??
-        channelMessageSender(composer.replyTarget.blocks) ??
-        t`You`)
-      : (resolveTranscriptMemberName(composer.replyTarget.botId) ?? active?.name ?? t`Bot`)
-    : undefined;
   useRightPanelRestore({
     rightPanel,
     userId,
     spaceId: bootstrapMe?.spaceId,
     inGroup,
-    // The CRM, Workspace and docs places have no chat, so no bot's saved panel is restored there.
-    panelTarget:
-      crmOpen || docsOpen || workspaceOpen ? undefined : inGroup ? activeGroup?.id : active?.id,
+    panelTarget: manor.places.placeOpen ? undefined : inGroup ? activeGroup?.id : active?.id,
     activeId: active?.id,
     routines: thread.routines,
     routinesBotId: thread.routinesBotId,
@@ -909,175 +552,43 @@ function SpaceShell() {
     setSendError: composer.setSendError,
   });
 
-  // Keep unsaved drafts when a panel closes or the user switches bots, scoped to this signed-in shell.
-  // FilesPanel makes each controller when first opened, so its code loads with the panel.
-  const fileControllers = useRef(new Map<string, WorkspaceFilesController>());
-  useEffect(() => {
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      if ([...fileControllers.current.values()].some((controller) => controller.dirty)) {
-        event.preventDefault();
-        event.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", beforeUnload);
-    return () => window.removeEventListener("beforeunload", beforeUnload);
-  }, []);
-
-  // Manor's app preview: a bot's share_preview opens it beside the chat, on the primary host.
-  const [previewTarget, setPreviewTarget] = useState<{
-    botId: string;
-    messageId: string;
-    port: number;
-    path?: string;
-    title?: string;
-  } | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const lastPreviewMessage = useRef<string | null>(null);
-  const activePreview = active && previewTarget?.botId === active.id ? previewTarget : null;
-  // Mint a fresh signed preview link while the pane is open; links expire after an hour.
-  useEffect(() => {
-    if (panel !== "preview" || !activePreview || computer?.state !== "running") {
-      setPreviewUrl(null);
-      return;
-    }
-    let cancelled = false;
-    const mint = () => {
-      void rpc.computer
-        .previewUrl({
-          botId: activePreview.botId,
-          port: activePreview.port,
-          ...(activePreview.path ? { path: activePreview.path } : {}),
-        })
-        .then((result) => {
-          if (!cancelled) setPreviewUrl(result.url);
-        })
-        .catch(() => {
-          if (!cancelled) setPreviewUrl(null);
-        });
-    };
-    mint();
-    const timer = setInterval(mint, 45 * 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [panel, activePreview, computer?.state]);
-  // A bot calling share_preview opens the pane; older previews stay one click away.
-  useEffect(() => {
-    const messages = snapshot?.messages;
-    if (!messages || !active || (snapshot?.botId && snapshot.botId !== active.id)) return;
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      const message = messages[index]!;
-      if (message.role !== "bot") continue;
-      const block = message.blocks.find((item) => item.kind === "preview");
-      if (block?.kind !== "preview") continue;
-      if (lastPreviewMessage.current === message.id) return;
-      lastPreviewMessage.current = message.id;
-      setPreviewTarget({
-        botId: active.id,
-        messageId: message.id,
-        port: block.port,
-        ...(block.path ? { path: block.path } : {}),
-        ...(block.title ? { title: block.title } : {}),
-      });
-      if (Date.now() - new Date(message.createdAt).getTime() < 5 * 60_000) setPanel("preview");
-      return;
-    }
-  }, [snapshot?.messages, snapshot?.botId, active]);
-  const openPreview = useCallback(
-    (block: { port: number; path?: string; title?: string }, messageId: string) => {
-      if (!active) return;
-      lastPreviewMessage.current = messageId;
-      setPreviewTarget({
-        botId: active.id,
-        messageId,
-        port: block.port,
-        ...(block.path ? { path: block.path } : {}),
-        ...(block.title ? { title: block.title } : {}),
-      });
-      setPanel("preview");
-    },
-    [active],
-  );
-  const framedPreviewUrl = framablePreviewUrl(previewUrl, window.location.href);
-
-  // Manor takes file drops on the whole chat pane, not just the composer.
-  const paneDrop = useFileDropZone<HTMLDivElement>({
-    disabled: Boolean(recordingSkill) || (!active && !activeGroup),
-    onFiles: (files) => void composer.onAttachmentPick(files),
+  const manorProps = useManorShellProps({
+    rpc,
+    manor,
+    sidebar,
+    roster,
+    rightPanel,
+    inGroup,
+    active,
+    activeGroup,
+    thread,
+    view,
+    computerState,
+    computerControls,
+    composer,
+    recordingSkill,
+    refreshThread,
+    navigate,
+    setMobileSidebarOpen,
+    setOverlay,
   });
 
   const openBot = useCallback((id: string) => navigate(`/app/${id}`), [navigate]);
-  // An import's setup checklist re-checks on each thread refresh, so refresh once setup closes.
-  const importSetupOpen = useRef(false);
-  useEffect(() => {
-    if (!importSetupOpen.current || overlay || searchParams.has("routine")) return;
-    importSetupOpen.current = false;
-    void refreshActiveThread();
-  }, [overlay, searchParams, refreshActiveThread]);
-  const setOverlayRef = useRef(setOverlay);
-  useLayoutEffect(() => {
-    setOverlayRef.current = setOverlay;
-  }, [setOverlay]);
-  const replyToMessage = useCallback(
-    (message: ThreadMessage) => {
-      composer.setReplyTarget(message);
-      composer.setReplyQuote(null);
-    },
-    [composer.setReplyQuote, composer.setReplyTarget],
-  );
-  const quoteMessage = useCallback(
-    (message: ThreadMessage, quote: string) => {
-      if (
-        computerOpen ||
-        mobileSidebarOpen ||
-        (isMobileSidebar && panel) ||
-        hasOpenDialog(document, true)
-      )
-        return;
-      composer.setReplyTarget(message);
-      composer.setReplyQuote(quote);
-      focusComposer();
-    },
-    [
-      composer.setReplyQuote,
-      composer.setReplyTarget,
-      focusComposer,
-      computerOpen,
-      mobileSidebarOpen,
-      isMobileSidebar,
-      panel,
-    ],
-  );
-  const markMessageUnread = useCallback(
-    (message: ThreadMessage) => {
-      if (groupId) read.markGroupUnreadFrom(groupId, message.id);
-      else if (active?.id) void read.markBotUnread(active.id, message.id).catch(() => undefined);
-    },
-    [active?.id, groupId, read.markBotUnread, read.markGroupUnreadFrom],
-  );
+  const { replyToMessage, quoteMessage, markMessageUnread } = useMessageActions({
+    activeId: active?.id,
+    groupId,
+    setReplyTarget: composer.setReplyTarget,
+    setReplyQuote: composer.setReplyQuote,
+    focusComposer,
+    quoteBlocked: computerOpen || mobileSidebarOpen || Boolean(isMobileSidebar && panel),
+    markBotUnread: read.markBotUnread,
+    markGroupUnreadFrom: read.markGroupUnreadFrom,
+  });
   const openPeerMessages = useCallback(
     (peer: { peerBotId: string; peerBotName: string }) => {
       setPeerConversation(peer);
     },
     [setPeerConversation],
-  );
-  const openImportSetup = useCallback(
-    (target: ImportSetupTarget) => {
-      importSetupOpen.current = true;
-      if (target.kind === "models")
-        setOverlayRef.current({ kind: "settings", section: "models", spaceId: null });
-      else if (target.kind === "mcp")
-        setOverlayRef.current({ kind: "mcp", serverId: target.serverId });
-      else {
-        setSearchParams((current) => {
-          const next = new URLSearchParams(current);
-          next.set("routine", target.routineId);
-          return next;
-        });
-      }
-    },
-    [setSearchParams],
   );
   const { teachBusy, stopTeaching, refreshActiveTeaching } = useTeaching({
     rpc,
@@ -1088,32 +599,9 @@ function SpaceShell() {
     closeComputer: () => setComputerOpen(false),
   });
 
-  function setBotsSidebarCollapsedPref(collapsed: boolean) {
-    setBotsSidebarCollapsed(collapsed);
-    writeBotsSidebarCollapsed(userId, collapsed);
-  }
-
-  function openSettings(section: SettingsSection = "general", spaceId: string | null = null) {
-    setOverlay({ kind: "settings", section, spaceId });
-  }
-
-  // Space-scoped sections bind their own rpc client to this space, so another
-  // space's settings open in place without switching the app or reloading.
-  function openSpaceSettings(spaceId: string) {
-    openSettings("space", spaceId);
-  }
-
   const paletteActions = usePaletteActions({
-    settingsAvailable: {
-      messaging: messagingSurfaceEnabled,
-      wallet: Boolean(bootstrapMe?.paymentWalletProvider),
-      computer:
-        bootstrapMe?.computerSettingsEnabled === true &&
-        computersAreUnavailable(bootstrapMe?.sandboxProvider),
-      billing: bootstrapMe?.billingEnabled === true,
-      updates: Boolean(desktopBridge()?.update),
-      labs: Boolean(bootstrapMe?.labsAvailable.length),
-    },
+    me: bootstrapMe,
+    messagingEnabled: messagingSurfaceEnabled,
     onNewBot: () => dialogs.setCreateBotOpen(true),
     onNewGroup: () => setPanel("create-group"),
     onNewSpace: () => dialogs.setNewSpaceOpen(true),
@@ -1142,46 +630,28 @@ function SpaceShell() {
     openCreatedBot(bot);
     dialogs.setCreateBotOpen(false);
     await composer.startFocusPrompt(bot.id, isFirstBot);
-    await refreshBots().catch(() => undefined);
+    await bestEffort("refresh bots after creating one", refreshBots());
   }
 
-  const contextBot =
-    botMenu?.kind === "bot" ? bots.find((bot) => bot.id === botMenu.id) : undefined;
-  const contextGroup =
-    botMenu?.kind === "group" ? groups.find((group) => group.id === botMenu.id) : undefined;
-  const botMenuContent =
-    contextBot || contextGroup ? (
-      <ChatContextMenu
-        rpc={rpc}
-        bot={contextBot}
-        group={contextGroup}
-        sections={botSections}
-        spaceId={bootstrapMe?.spaceId}
-        onClose={closeBotMenu}
-        refreshBots={refreshBots}
-        read={read}
-        snooze={snooze}
-        dialogs={dialogs}
-        openChatSettings={openChatSettings}
-        navigate={navigate}
-      />
-    ) : null;
-  const chatMenu: ChatMenuState = {
-    menu: botMenu,
-    setMenu: setBotMenu,
-    content: botMenuContent,
-    // Search can list a chat the roster doesn't hold; it has no menu to show.
-    has: (target) =>
-      target.kind === "bot"
-        ? bots.some((bot) => bot.id === target.id)
-        : groups.some((group) => group.id === target.id),
-  };
+  const chatMenu = useChatMenu({
+    bots,
+    groups,
+    rpc,
+    sections: botSections,
+    spaceId: bootstrapMe?.spaceId,
+    refreshBots,
+    read,
+    snooze,
+    dialogs,
+    openChatSettings,
+    navigate,
+  });
   const shell = (
     <BotsSidebarLayout
       userId={userId}
-      collapsed={botsSidebarCollapsed}
-      onCollapsedChange={setBotsSidebarCollapsedPref}
-      onPreviewCollapsedChange={setBotsSidebarCollapsed}
+      collapsed={sidebar.collapsed}
+      onCollapsedChange={sidebar.setCollapsedPref}
+      onPreviewCollapsedChange={sidebar.setCollapsed}
       computerOpen={computerOpen}
       data-testid="shell-root"
       data-ready={shellReady}
@@ -1201,16 +671,7 @@ function SpaceShell() {
           key={userId}
           userId={userId}
           timezone={bootstrapMe.timezone}
-          onSaved={(me, adopted) =>
-            setBootstrapMe((prev) =>
-              // An adoption only fills an empty zone, so it never replaces a newer pick.
-              !prev
-                ? me
-                : adopted && prev.timezone != null
-                  ? prev
-                  : { ...prev, timezone: me.timezone },
-            )
-          }
+          onSaved={(me, adopted) => setBootstrapMe((prev) => withSavedTimezone(prev, me, adopted))}
         />
       ) : null}
       <ShellSidebar
@@ -1218,9 +679,9 @@ function SpaceShell() {
         mobileOpen={mobileSidebarOpen}
         setMobileOpen={setMobileSidebarOpen}
         density={botsSidebarDensity}
-        collapsed={botsSidebarCollapsed}
-        mini={miniSidebar}
-        setCollapsedPref={setBotsSidebarCollapsedPref}
+        collapsed={sidebar.collapsed}
+        mini={sidebar.mini}
+        setCollapsedPref={sidebar.setCollapsedPref}
         createMenuOpen={createMenuOpen}
         setCreateMenuOpen={setCreateMenuOpen}
         search={search}
@@ -1235,14 +696,10 @@ function SpaceShell() {
         chatMenu={chatMenu}
         roster={
           <>
-            {currentOrganizationName && !miniSidebar ? (
-              <p className="truncate px-2.5 pt-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#6E6975]">
-                {currentOrganizationName}
-              </p>
-            ) : null}
+            {manorProps.rosterLabel}
             <SidebarRoster
-              mini={miniSidebar}
-              sidebarGroups={sidebarGroups}
+              mini={sidebar.mini}
+              sidebarGroups={sidebar.sidebarGroups}
               collapsedSidebarSections={collapsedSidebarSections}
               bootstrapMe={bootstrapMe}
               botSections={botSections}
@@ -1274,14 +731,7 @@ function SpaceShell() {
         archived={
           <>
             <SnoozedChats
-              snoozed={sidebarSpaces.flatMap((space) => [
-                ...space.bots
-                  .filter((chat) => chatSnoozed(chat, snoozeNow))
-                  .map((chat) => ({ kind: "bot" as const, chat })),
-                ...space.groups
-                  .filter((chat) => chatSnoozed(chat, snoozeNow))
-                  .map((chat) => ({ kind: "group" as const, chat })),
-              ])}
+              snoozed={sidebar.snoozed}
               showSpaceSearch={search.showSpaceSearch}
               now={snoozeNow}
               snooze={snooze}
@@ -1305,404 +755,121 @@ function SpaceShell() {
         openSettings={openSettings}
         openIntegrations={() => setOverlay({ kind: "integrations" })}
         openSkills={() => setOverlay({ kind: "skills" })}
+        openAgentImport={() => setOverlay({ kind: "import" })}
         openSpaceChat={openSpaceChat}
-        places={
-          // Manor's places and Integrations sit above upstream's account footer.
-          <div className={miniSidebar ? "flex flex-col items-center" : "contents"}>
-            {workspace ? (
-              <ManorNavRow
-                mini={miniSidebar}
-                label={t`Workspace`}
-                icon={<Waypoints size={15} strokeWidth={1.7} />}
-                active={workspaceOpen}
-                onClick={() => {
-                  setMobileSidebarOpen(false);
-                  navigate("/app/workspace");
-                }}
-              />
-            ) : null}
-            <ManorNavRow
-              mini={miniSidebar}
-              label="CRM"
-              icon={<CrmIcon />}
-              active={crmOpen}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                navigate("/app/crm");
-              }}
-            />
-            <ManorNavRow
-              mini={miniSidebar}
-              label={t`Integrations`}
-              icon={<LayoutGrid size={15} strokeWidth={1.7} />}
-              onClick={() => setOverlay({ kind: "integrations" })}
-            />
-            <ManorNavRow
-              mini={miniSidebar}
-              label={t`Documentation`}
-              icon={<BookOpen size={15} strokeWidth={1.7} />}
-              active={docsOpen}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                navigate("/app/docs");
-              }}
-            />
-          </div>
-        }
+        places={manorProps.sidebarPlaces}
       />
 
-      {/* Keep the composer's z-index inside the chat so phone overlays like the side panel cover it. */}
-      <main
-        data-space-switch="main"
-        aria-hidden={mobileSidebarOpen || undefined}
-        inert={mobileSidebarOpen}
-        className="isolate flex min-w-0 flex-1 flex-col bg-background"
-      >
-        {/* Inside main so the composer and its menus stay above it. */}
-        {!mobileSidebarOpen ? (
-          <div
-            data-testid="mobile-sidebar-swipe-edge"
-            aria-hidden="true"
-            className="absolute bottom-20 start-0 top-16 z-20 w-8 touch-none md:hidden"
+      <ChatColumn
+        drawerOpen={mobileSidebarOpen}
+        covered={panelCoversChat}
+        {...manorProps.chatColumn}
+        findOpen={findOpen}
+        findInputRef={findInputRef}
+        onCloseFind={() => {
+          setFindOpen(false);
+          focusComposer();
+        }}
+        header={
+          <ChatHeader
+            inGroup={inGroup}
+            active={active}
+            activeGroup={activeGroup}
+            activeSnapshot={activeSnapshot}
+            phoneCallsEnabled={Boolean(bootstrapMe?.phoneCallsEnabled)}
+            meetingsEnabled={Boolean(bootstrapMe?.meetingsEnabled)}
+            voiceReady={Boolean(voiceStatus?.ready)}
+            inCall={Boolean(active) && call?.botId === active?.id}
+            panelOpen={chatPanelOpen}
+            onOpenNavigation={() => setMobileSidebarOpen(true)}
+            onTogglePanel={toggleChatPanel}
+            onCall={openCall}
+            {...manorProps.header}
           />
-        ) : null}
-        {workspaceOpen ? (
-          <Suspense fallback={null}>
-            <WorkspaceView
-              organizationName={currentOrganizationName}
-              onOpenBot={(bot, text) => {
-                setBots((current) =>
-                  current.some((candidate) => candidate.id === bot.id)
-                    ? current
-                    : [...current, bot],
-                );
-                navigate(`/app/${bot.id}`, { state: { composerPrefill: { botId: bot.id, text } } });
-              }}
-            />
-          </Suspense>
-        ) : crmOpen ? (
-          <Suspense fallback={null}>
-            <CrmView />
-          </Suspense>
-        ) : docsOpen ? (
-          <Suspense fallback={null}>
-            <DocsView />
-          </Suspense>
-        ) : (
-          <div
-            data-testid="chat-pane"
-            data-dragging={paneDrop.dragging ? "files" : undefined}
-            {...paneDrop.handlers}
-            className="relative flex min-h-0 flex-1 flex-col"
-          >
-            {paneDrop.dragging ? (
-              <FileDropOverlay
-                name={
-                  inGroup
-                    ? (activeGroup?.name ?? activeSnapshot?.groupName ?? t`this group`)
-                    : (active?.name ?? t`this bot`)
-                }
-              />
-            ) : null}
-            <CallReturnBar />
-            {/* The header floats so the transcript scrolls under its buttons. */}
-            <div
-              ref={chatColumnRef}
-              data-finding={findOpen || undefined}
-              className="relative flex min-h-0 flex-1 flex-col"
-            >
-              {/* Only the pills take input; the gaps pass clicks and scrolling to the transcript. */}
-              <div aria-hidden="true" className="app-drag absolute inset-x-0 top-0 z-10 h-3" />
-              {findOpen ? (
-                <div className="absolute end-3 top-14 z-20">
-                  <ChatFindBar
-                    scope={chatColumnRef}
-                    inputRef={findInputRef}
-                    onClose={() => {
-                      setFindOpen(false);
-                      focusComposer();
-                    }}
-                  />
-                </div>
-              ) : null}
-              <ChatHeader
-                inGroup={inGroup}
-                active={active}
-                activeGroup={activeGroup}
-                activeSnapshot={activeSnapshot}
-                phoneCallsEnabled={Boolean(bootstrapMe?.phoneCallsEnabled)}
-                meetingsEnabled={Boolean(bootstrapMe?.meetingsEnabled)}
-                voiceReady={Boolean(voiceStatus?.ready)}
-                inCall={Boolean(active) && call?.botId === active?.id}
-                panelOpen={chatPanelOpen}
-                onOpenNavigation={() => setMobileSidebarOpen(true)}
-                onTogglePanel={toggleChatPanel}
-                onCall={(bot) => {
-                  if (call?.botId === bot.id) {
-                    setCallMinimized(false);
-                    return;
-                  }
-                  callBot(bot);
-                }}
-                leadingActions={
-                  <IconTooltip label={showActivity ? t`Hide live activity` : t`Show live activity`}>
-                    <Button
-                      variant="floating"
-                      size="icon-lg"
-                      aria-label={showActivity ? t`Hide live activity` : t`Show live activity`}
-                      aria-pressed={showActivity}
-                      onClick={toggleActivity}
-                      className="app-no-drag"
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke={showActivity ? accentColor : "currentColor"}
-                        strokeWidth="1.6"
-                        aria-hidden="true"
-                      >
-                        <path d="M2 12h4l3-8 4 16 3-8h6" />
-                      </svg>
-                    </Button>
-                  </IconTooltip>
-                }
-                trailingActions={
-                  <>
-                    {!inGroup && active ? (
-                      <IconTooltip label={t`Run logs`}>
-                        <Button
-                          variant="floating"
-                          size="icon-lg"
-                          aria-label={t`Run logs`}
-                          aria-pressed={panel === "logs"}
-                          data-testid="run-logs-trigger"
-                          onClick={() => setPanel(panel === "logs" ? null : "logs")}
-                          className="app-no-drag"
-                        >
-                          <ListFilter strokeWidth={1.6} className="size-[18px]" />
-                        </Button>
-                      </IconTooltip>
-                    ) : null}
-                    {!inGroup ? (
-                      <IconTooltip label={t`Files`}>
-                        <Button
-                          variant="floating"
-                          size="icon-lg"
-                          aria-label={t`Files`}
-                          aria-pressed={panel === "files"}
-                          data-testid="files-trigger"
-                          onClick={() => setPanel(panel === "files" ? null : "files")}
-                          className="app-no-drag"
-                        >
-                          <FolderTree strokeWidth={1.6} className="size-[18px]" />
-                        </Button>
-                      </IconTooltip>
-                    ) : null}
-                  </>
-                }
-              />
-              {showNewBotPrompt ? (
-                <div className="grid flex-1 place-items-center">
-                  <Button onClick={() => dialogs.setCreateBotOpen(true)}>
-                    <Plus size={16} aria-hidden="true" />
-                    <Trans>New bot</Trans>
-                  </Button>
-                </div>
-              ) : (
-                <Transcript
-                  key={activeSnapshot?.threadId}
-                  meId={userId}
-                  scrollRef={thread.messageScroll}
-                  scrollRequest={scrollRequest}
-                  onScrollRequestHandled={clearScrollRequest}
-                  followRequest={composer.sentCount}
-                  artifactTarget={transcriptArtifactTarget}
-                  markedUnreadMessageId={read.markedUnreadMessageId}
-                  transcript={transcript}
-                  olderCursor={activeSnapshot?.olderCursor ?? null}
-                  unreadAfterSeq={read.unreadAfterSeq}
-                  loadingOlder={loadingOlder}
-                  answerableAskIds={answerableAskIds}
-                  dismissableAskIds={dismissableAskIds}
-                  running={transcriptRunning}
-                  liveRun={
-                    activeSnapshot?.run && isActive(activeSnapshot.run.status)
-                      ? {
-                          startedAt: activeSnapshot.run.startedAt,
-                          name: active?.name ?? activeGroup?.name ?? activeSnapshot.groupName ?? "",
-                        }
-                      : undefined
-                  }
-                  workingBots={workingBots}
-                  workingRoutine={workingRoutineName(workingRuns)}
-                  userBubble={userBubble}
-                  onCallBack={
-                    bootstrapMe?.phoneCallsEnabled && !inGroup && active
-                      ? () => callBot(active)
-                      : undefined
-                  }
-                  activityFeed={
-                    showActivity && activity.some((item) => item.runId === snapshot?.run?.id) ? (
-                      <div className="w-full max-w-[560px] rounded-[16px] border border-[#1F1B29] bg-[#0C0B10] px-4 py-3">
-                        <div className="rk-label mb-2 text-[10.5px] text-[#6E6975]">
-                          <Trans>Activity</Trans>
-                        </div>
-                        <div className="flex flex-col gap-[7px]">
-                          {activity
-                            .filter((item) => item.runId === snapshot?.run?.id)
-                            .map((item, index, list) => (
-                              <div
-                                key={item.id}
-                                className="flex items-baseline gap-2.5 font-mono text-[12.5px]"
-                                style={
-                                  index === list.length - 1
-                                    ? { animation: "rkPulse 1.2s ease-in-out infinite" }
-                                    : undefined
-                                }
-                              >
-                                <span className="shrink-0 text-[var(--rk-accent)]">
-                                  {item.name}
-                                </span>
-                                {item.detail ? (
-                                  <span className="truncate text-[#6E6975]">{item.detail}</span>
-                                ) : null}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    ) : null
-                  }
-                  onLoadOlder={loadOlder}
-                  onOpenBot={openBot}
-                  onAnswer={composer.answerMessage}
-                  onReply={replyToMessage}
-                  onMarkUnread={markMessageUnread}
-                  onQuote={quoteMessage}
-                  onQuoteShortcutChange={registerQuoteShortcut}
-                  onReact={composer.reactToMessage}
-                  onJumpToMessage={jumpToReplyMessage}
-                  onOpenPeerMessages={openPeerMessages}
-                  memberName={resolveTranscriptMemberName}
-                  peerBot={resolveTranscriptBot}
-                  onRefresh={refreshActiveThread}
-                  onBotChanged={refreshBots}
-                  onAddRoutine={addSkillRoutine}
-                  onOpenPreview={openPreview}
-                  voiceReady={Boolean(voiceStatus?.ready)}
-                  speakingMessageId={speakingMessageId}
-                  callHoldsSpeaker={callHoldsSpeaker}
-                  onSpeak={speakMessage}
-                  onOpenComputer={computerControls.onOpenComputer}
-                  onReleaseComputer={computerControls.onReleaseComputer}
-                  onOpenImportSetup={openImportSetup}
-                  rpc={rpc}
-                />
-              )}
-            </div>
-            {active || activeGroup ? (
-              // Let messages continue behind the composer's rounded top corners.
-              <div className="pointer-events-none relative z-30 -mt-7">
-                {recordingSkill ? (
-                  <div className="pointer-events-auto bg-background px-6 pb-2 text-center text-[13px] text-destructive">
-                    <Trans>Teaching in progress. Stop teaching before sending a new message.</Trans>
-                  </div>
-                ) : null}
-                <Composer
-                  key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
-                  draftKey={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
-                  enterToSend={enterToSend}
-                  sendColors={userBubble}
-                  modelPicker={
-                    showComposerModel && active && !inGroup ? (
-                      <ComposerModelPicker
-                        bot={active}
-                        disabled={Boolean(recordingSkill)}
-                        onConnect={() => openSettings("models")}
-                        onSaved={(updated) =>
-                          setBots((current) =>
-                            current.map((bot) => (bot.id === updated.id ? updated : bot)),
-                          )
-                        }
-                      />
-                    ) : undefined
-                  }
-                  prefill={
-                    inGroup
-                      ? undefined
-                      : composerPrefillFromState(location.state, location.key, botId, active?.id)
-                  }
-                  onPrefillConsumed={() =>
-                    navigate(`${location.pathname}${location.search}`, {
-                      replace: true,
-                      state: null,
-                    })
-                  }
-                  activeName={
-                    inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name
-                  }
-                  running={composerRunning}
-                  disabled={Boolean(recordingSkill)}
-                  pendingAttachments={composer.activePendingAttachments}
-                  attachmentNotice={composer.attachmentNotice}
-                  sendError={sendError}
-                  imageConfirmation={composer.imageConfirmation}
-                  onDraftEdited={composer.clearImageConfirmation}
-                  onOpenModels={() => {
-                    // A group's failed run belongs to one member; change that bot's model.
-                    const failedBotId =
-                      inGroup && composer.displayedRunError ? activeSnapshot?.run?.botId : null;
-                    if (active && !inGroup) {
-                      setPanel("settings");
-                      setModelFocusRequest(Date.now());
-                    } else if (failedBotId) {
-                      openChatSettings("bot", failedBotId);
-                      setModelFocusRequest(Date.now());
-                    } else openSettings("models");
-                  }}
-                  onOpenConnections={() => openSettings("models")}
-                  onOpenBilling={() => openSettings("billing")}
-                  runError={composer.displayedRunError}
-                  runErrorId={composer.displayedRunErrorId}
-                  onRunErrorPresented={composer.handleRunErrorPresented}
-                  onDismissError={composer.dismissComposerError}
-                  onOpenRunLogs={!inGroup && active ? () => setPanel("logs") : undefined}
-                  sending={sending}
-                  fileInputRef={composer.fileInputRef}
-                  onAttachmentPick={composer.onAttachmentPick}
-                  onRemoveAttachment={composer.removeAttachment}
-                  onSend={composer.sendMessage}
-                  onStop={stopRun}
-                  phoneCallsEnabled={bootstrapMe?.phoneCallsEnabled === true}
-                  dictationTranscribe={voiceStatus ? Boolean(voiceStatus.transcribe) : undefined}
-                  artifactTarget={transcriptArtifactTarget}
-                  replyTarget={composer.replyTarget}
-                  replyQuote={composer.replyQuote}
-                  replyTargetName={replyTargetName}
-                  onClearReply={composer.clearReply}
-                  mentionTargets={composerMentionTargets}
-                  agentSkills={agentSkills}
-                  onSlashOpen={refreshAgentSkills}
-                  onSlashAction={(action) => {
-                    if (action === "chat-settings") {
-                      setPanel(inGroup ? "group-settings" : "settings");
-                      return;
-                    }
-                    if (action === "settings-general") {
-                      openSettings("general");
-                      return;
-                    }
-                    if (action === "settings-usage") {
-                      openSettings("usage");
-                    }
-                  }}
-                />
-              </div>
-            ) : null}
+        }
+        composer={
+          <ChatComposerArea
+            composer={composer}
+            inGroup={inGroup}
+            groupId={groupId}
+            active={active}
+            activeGroup={activeGroup}
+            activeSnapshot={activeSnapshot}
+            meId={userId}
+            memberName={view.resolveMemberName}
+            recordingSkill={Boolean(recordingSkill)}
+            running={composerRunning}
+            enterToSend={enterToSend}
+            sendColors={userBubble}
+            modelPicker={showComposerModel ? modelShortcuts.pickerProps : null}
+            onBotSaved={(updated) =>
+              setBots((current) => current.map((bot) => (bot.id === updated.id ? updated : bot)))
+            }
+            phoneCallsEnabled={bootstrapMe?.phoneCallsEnabled === true}
+            dictationTranscribe={voiceStatus ? Boolean(voiceStatus.transcribe) : undefined}
+            artifactTarget={view.artifactTarget}
+            mentionTargets={composerMentionTargets}
+            agentSkills={agentSkills}
+            onSlashOpen={refreshAgentSkills}
+            openSettings={openSettings}
+            openChatSettings={openChatSettings}
+            setPanel={setPanel}
+            setModelFocusRequest={setModelFocusRequest}
+            {...manorProps.composer}
+          />
+        }
+      >
+        {showNewBotPrompt ? (
+          <div className="grid flex-1 place-items-center">
+            <Button onClick={() => dialogs.setCreateBotOpen(true)}>
+              <Plus size={16} aria-hidden="true" />
+              <Trans>New bot</Trans>
+            </Button>
           </div>
+        ) : (
+          <Transcript
+            key={activeSnapshot?.threadId}
+            meId={userId}
+            scrollRef={thread.messageScroll}
+            scrollRequest={scrollRequest}
+            onScrollRequestHandled={clearScrollRequest}
+            followRequest={composer.sentCount}
+            {...view.transcriptProps}
+            markedUnreadMessageId={read.markedUnreadMessageId}
+            unreadAfterSeq={read.unreadAfterSeq}
+            {...manorProps.transcript}
+            loadingOlder={loadingOlder}
+            userBubble={userBubble}
+            onCallBack={
+              bootstrapMe?.phoneCallsEnabled && !inGroup && active
+                ? () => callBot(active)
+                : undefined
+            }
+            onLoadOlder={loadOlder}
+            onOpenBot={openBot}
+            onAnswer={composer.answerMessage}
+            onReply={replyToMessage}
+            onMarkUnread={markMessageUnread}
+            onQuote={quoteMessage}
+            onQuoteShortcutChange={registerQuoteShortcut}
+            onReact={composer.reactToMessage}
+            onJumpToMessage={jumpToReplyMessage}
+            onOpenPeerMessages={openPeerMessages}
+            onRefresh={refreshActiveThread}
+            onBotChanged={refreshBots}
+            onAddRoutine={addSkillRoutine}
+            voiceReady={Boolean(voiceStatus?.ready)}
+            speakingMessageId={speakingMessageId}
+            callHoldsSpeaker={callHoldsSpeaker}
+            onSpeak={speakMessage}
+            onOpenComputer={computerControls.onOpenComputer}
+            onReleaseComputer={computerControls.onReleaseComputer}
+            onOpenImportSetup={openImportSetup}
+            onOpenAgentImport={openAgentImport}
+            rpc={rpc}
+          />
         )}
-      </main>
+      </ChatColumn>
 
       <PageViewHost />
       <CallCard onSettings={() => openSettings("voice")} />
@@ -1726,231 +893,32 @@ function SpaceShell() {
         refreshBots={refreshBots}
         refreshGroupThread={refreshGroupThread}
         discardChatAttachments={composer.discardThreadAttachments}
+        onCoversChat={setPanelCoversChat}
+        onOverlays={setPanelOverlays}
         computerOpen={computerOpen}
         computerPanel={
           active ? (
             <ComputerPanel
-              bot={active}
-              computer={computer}
-              computerOpen={computerOpen}
-              embeddedScreenUrl={panel === "settings" ? computerControls.embeddedScreenUrl : null}
-              screenFrameKey={computerState.screenFrameKey}
-              heldScreen={computerState.heldScreen}
-              screenFrameRef={computerState.setScreenFrame}
-              computerScreenError={computerControls.computerScreenError}
-              computerBooting={computerControls.computerBooting}
-              booting={booting}
-              showingRecoveryHint={computerControls.showingRecoveryHint}
-              showComputerRecoveryHint={computerControls.showComputerRecoveryHint}
+              {...computerControls.panelProps(active)}
               sandboxProvider={bootstrapMe?.sandboxProvider}
               onRecovered={(sandboxProvider) => {
                 setBootstrapMe((prev) => (prev ? { ...prev, sandboxProvider } : prev));
                 computerControls.holdComputerRecovery();
               }}
-              onRecoveryDismissed={computerControls.releaseComputerRecovery}
               onOpenComputerSettings={
                 bootstrapMe?.computerSettingsEnabled === true
                   ? () => openSettings("computer")
                   : undefined
               }
-              onOpen={() => void openComputer()}
-              cleaningUpDisk={cleaningUpDisk}
-              onCleanUpDisk={() => {
-                const botId = active.id;
-                setCleaningUpDisk(true);
-                void rpc.threads
-                  .send({
-                    botId,
-                    clientNonce: newClientId(),
-                    text: t`Your computer's disk is nearly full. Free up space by removing build output and caches you no longer need.`,
-                  })
-                  .then(async () => {
-                    // The refresh must read the dismissal, or it would paint the warning again.
-                    await dismissDiskWarning(botId);
-                    void refreshThread(botId);
-                  })
-                  .catch((error: unknown) => composer.setSendError(errorText(error)))
-                  .finally(() => setCleaningUpDisk(false));
-              }}
-              onDismissDiskWarning={() => void dismissDiskWarning(active.id)}
             />
           ) : null
         }
-        routineList={{
-          routines: activeRoutines,
-          loaded: routinesLoaded,
-          runningRoutineId:
-            snapshot?.run && isActive(snapshot.run.status)
-              ? (snapshot.run.routineId ?? undefined)
-              : undefined,
-          onCreate: () => startRoutine(),
-          onEdit: startRoutine,
-          onStop: () => void stopRun(),
-          onToggle: (routine, on) => {
-            // A one-shot that never ran needs a run time, which only its editor can take.
-            if (on && routineNeedsOneShotArm(routine, routine.crons)) {
-              startRoutine(routine);
-              return;
-            }
-            thread.setRoutines((current) =>
-              current.map((item) => (item.id === routine.id ? { ...item, active: on } : item)),
-            );
-            // One update per routine at a time, so quick presses cannot race; the last one wins.
-            const queued = routineToggles.current.get(routine.id);
-            routineToggles.current.set(routine.id, on);
-            if (queued !== undefined) return;
-            void (async () => {
-              let sent: boolean | undefined;
-              try {
-                while (routineToggles.current.get(routine.id) !== sent) {
-                  sent = routineToggles.current.get(routine.id);
-                  await rpc.routines.update({ routineId: routine.id, active: sent });
-                }
-              } catch (error) {
-                composer.setSendError(errorText(error));
-              } finally {
-                routineToggles.current.delete(routine.id);
-                // Another bot opened since must not have its own refresh superseded.
-                if (activeBotId.current === routine.botId)
-                  void refreshThread(routine.botId).catch(() => undefined);
-              }
-            })();
-          },
-        }}
+        routineList={routineList}
         routineEditorProps={routineEditorProps}
         openBot={openBot}
         modelFocusRequest={modelFocusRequest}
         onClearBot={(bot) => dialogs.setClearTarget({ kind: "bot", chat: bot })}
-        localComputer={bootstrapMe?.localComputer}
-        manorTitle={
-          // Manor titles its own panels; upstream's only title is a group's. The computer is a
-          // section of the bot's panel, which has its own header.
-          panel === "preview" || panel === "files" || panel === "logs" ? (
-            <span className="text-[13.5px] text-muted-foreground">
-              {panel === "preview" ? (
-                <Trans>Preview</Trans>
-              ) : panel === "files" ? (
-                <Trans>Files</Trans>
-              ) : (
-                <Trans>Run logs</Trans>
-              )}
-            </span>
-          ) : null
-        }
-        manorHeaderActions={
-          active ? (
-            <>
-              {panel === "settings" ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t`Expand computer`}
-                  onClick={() => void openComputer()}
-                  className="text-muted-foreground"
-                >
-                  <Maximize2 size={16} strokeWidth={1.7} />
-                </Button>
-              ) : null}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={panel === "logs" ? t`Show computer` : t`Run logs`}
-                onClick={() => setPanel(panel === "logs" ? "settings" : "logs")}
-                className={panel === "logs" ? "text-foreground" : "text-muted-foreground"}
-              >
-                <ListFilter size={16} strokeWidth={1.7} />
-              </Button>
-              {activePreview ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={panel === "preview" ? t`Show computer` : t`Show preview`}
-                  onClick={() => setPanel(panel === "preview" ? "settings" : "preview")}
-                  className={panel === "preview" ? "text-foreground" : "text-muted-foreground"}
-                >
-                  <Globe size={16} strokeWidth={1.7} />
-                </Button>
-              ) : null}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={panel === "files" ? t`Show computer` : t`Show files`}
-                onClick={() => setPanel(panel === "files" ? "settings" : "files")}
-                className={panel === "files" ? "text-foreground" : "text-muted-foreground"}
-              >
-                <FolderTree size={16} strokeWidth={1.7} />
-              </Button>
-            </>
-          ) : null
-        }
-        manorContent={
-          active ? (
-            <Suspense fallback={null}>
-              {panel === "logs" ? <RunLogsPanel key={active.id} botId={active.id} /> : null}
-              {panel === "files" ? (
-                <FilesPanel
-                  key={`${active.id}:${computer?.mode ?? "team"}`}
-                  controllers={fileControllers.current}
-                  controllerKey={`${active.id}:${computer?.mode ?? "team"}`}
-                  botId={active.id}
-                  request={(request) => rpc.computer.workspace(request)}
-                  team={computer?.mode === "team"}
-                  computerState={computer?.state}
-                  running={transcriptRunning}
-                  onAttach={async (file) => {
-                    composer.onAttachmentPick([file], active.id);
-                  }}
-                  onWake={() => {
-                    void rpc.computer
-                      .boot({ botId: active.id })
-                      .then(() => refreshThread(active.id))
-                      .catch(() => undefined);
-                  }}
-                />
-              ) : null}
-              {panel === "preview" && activePreview ? (
-                <div>
-                  <div
-                    data-testid="app-preview"
-                    className="relative aspect-[3/4] overflow-hidden rounded-[14px] bg-[#0E0E10]"
-                  >
-                    {computer?.state === "running" && framedPreviewUrl ? (
-                      <iframe
-                        title={activePreview.title || t`App preview`}
-                        src={framedPreviewUrl}
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-                        className="h-full w-full border-0 bg-white"
-                      />
-                    ) : (
-                      <div className="grid h-full place-items-center px-6 text-center text-sm text-[#6C6C70]">
-                        {computer?.state === "running" ? (
-                          <Trans>Connecting to the preview…</Trans>
-                        ) : (
-                          <Trans>Start the computer to load the preview.</Trans>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <p className="truncate text-[13.5px] text-[#85858A]" dir="auto">
-                      {activePreview.title || t`Port ${activePreview.port}`}
-                    </p>
-                    {previewUrl ? (
-                      <a
-                        href={previewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="shrink-0 text-[13px] text-[#A855F7] hover:underline"
-                      >
-                        <Trans>Open in new tab</Trans>
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-            </Suspense>
-          ) : null
-        }
+        {...manorProps.sidePanel}
       />
 
       <Suspense fallback={null}>
@@ -1971,12 +939,7 @@ function SpaceShell() {
           createBot={createBot}
           botAvatarSet={bootstrapMe?.botAvatarSet ?? DEFAULT_NEW_BOT_AVATAR_SET}
           discardChatAttachments={composer.discardThreadAttachments}
-          clearOpenThread={() => {
-            thread.resetHistory();
-            thread.updateSnapshot((current) =>
-              current ? { ...current, messages: [], olderCursor: null, run: null } : current,
-            );
-          }}
+          clearOpenThread={thread.clearOpenThread}
           deleteRoutineDialogProps={deleteRoutineDialogProps}
           localComputer={bootstrapMe?.localComputer}
           paletteActions={paletteActions}
@@ -1992,7 +955,7 @@ function SpaceShell() {
           onOpenBot={(bot) => {
             openCreatedBot(bot);
             // As after any new bot: the Space's sections and counts come from the server.
-            void refreshBots().catch(() => undefined);
+            void bestEffort("refresh bots after opening one", refreshBots());
           }}
         />
       </Suspense>
@@ -2020,7 +983,7 @@ function SpaceShell() {
           peerConversation={peerConversation}
           setPeerConversation={setPeerConversation}
           active={active}
-          peerBot={resolveTranscriptBot}
+          peerBot={view.resolveBot}
         />
       </Suspense>
 
@@ -2029,26 +992,20 @@ function SpaceShell() {
         onOpenChange={setShortcutsOpen}
         host={{ desktop: Boolean(desktopBridge()), apple: isApplePlatform() }}
         dictation={Boolean(bootstrapMe?.phoneCallsEnabled)}
+        modelPicker={showComposerModel}
       />
 
       {computerOpen && computerBot ? (
         <ComputerOverlay
+          {...computerControls.screenProps}
           bot={computerBot}
-          computer={computer}
           computerViewport={computerState.computerViewport}
           recordingSkill={recordingSkill}
           teachBusy={teachBusy}
           hasControl={computerControls.hasControl}
           composerRunning={composerRunning}
           sending={sending}
-          booting={booting}
           sendError={sendError}
-          embeddedScreenUrl={computerControls.embeddedScreenUrl}
-          screenFrameKey={computerState.screenFrameKey}
-          heldScreen={computerState.heldScreen}
-          screenFrameRef={computerState.setScreenFrame}
-          computerScreenError={computerControls.computerScreenError}
-          computerBooting={computerControls.computerBooting}
           onStopTeaching={stopTeaching}
           onStopRun={() => void stopRun()}
           onRelease={computerControls.releaseComputer}
@@ -2061,7 +1018,7 @@ function SpaceShell() {
     </BotsSidebarLayout>
   );
 
-  // Empty chrome until the first bot list lands would flash "Select a bot" before the chat.
+  // Render nothing until the first bot list lands so the chat chrome does not flash a bot-less state.
   return (
     <SpaceRpcProvider spaceId={shellSpaceId}>
       {initialBotsLoaded || initialLoadFailed ? (
@@ -2070,95 +1027,5 @@ function SpaceShell() {
         <PageLoading />
       )}
     </SpaceRpcProvider>
-  );
-}
-
-function FileDropOverlay({ name }: { name: string }) {
-  const { t } = useLingui();
-  return (
-    <div
-      data-testid="file-drop-overlay"
-      aria-hidden
-      className="pointer-events-none absolute inset-0 z-40 p-3 md:p-4"
-    >
-      <div className="rk-drop-zone flex h-full w-full flex-col items-center justify-center gap-3 rounded-[22px]">
-        <span className="grid h-12 w-12 place-items-center rounded-full border border-[#8B5CF6]/40 bg-[#8B5CF6]/15 text-[#C4B5FD]">
-          <Paperclip size={20} strokeWidth={1.8} />
-        </span>
-        <span className="text-[16px] font-medium text-[#ECECEE]" dir="auto">
-          {t`Drop to attach to ${name}`}
-        </span>
-        <span className="text-[13px] text-[#85858A]">
-          {t`Images, PDFs and text files, up to ${ATTACHMENT_MAX_COUNT}`}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** One of Manor's sidebar rows for its places (Workspace, CRM, Docs) and Integrations. */
-function ManorNavRow({
-  mini,
-  label,
-  icon,
-  active = false,
-  onClick,
-}: {
-  mini: boolean;
-  label: string;
-  icon: ReactNode;
-  active?: boolean;
-  onClick: () => void;
-}) {
-  if (mini) {
-    return (
-      <IconTooltip label={label}>
-        <button
-          type="button"
-          aria-label={label}
-          onClick={onClick}
-          className={`mb-1 grid size-10 place-items-center rounded-[11px] hover:bg-[#131315] ${
-            active ? "bg-[#131315]" : ""
-          }`}
-        >
-          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
-            {icon}
-          </span>
-        </button>
-      </IconTooltip>
-    );
-  }
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-[#131315] ${
-        active ? "bg-[#131315]" : ""
-      }`}
-    >
-      <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[#17171A] text-[#9A9AA0]">
-        {icon}
-      </span>
-      <span className="text-[14.5px] text-[#C9C9CE]">{label}</span>
-    </button>
-  );
-}
-
-function CrmIcon() {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      aria-hidden="true"
-    >
-      <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
-      <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
-      <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
-      <path d="M17.25 13.5v7.5M13.5 17.25h7.5" />
-    </svg>
   );
 }

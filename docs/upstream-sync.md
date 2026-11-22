@@ -16,8 +16,9 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`, `v0.12.0`. In progress:
-`v0.13.0`.
+`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`, `v0.12.0`, `v0.13.0`.
+In progress: upstream's `main` as of 2026-11-22 (commit `31b9ebaaa`, 606 commits after
+`v0.13.0`), the last stage.
 
 ### How a stage is resolved
 
@@ -391,9 +392,9 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   is kept at upstream's number. Manor's places (Workspace, CRM, docs) and side panels (files,
   run logs, saved logins) load when opened (`lazyComponent`), which keeps the web app under it.
   A new Manor view is loaded the same way; raise the budget only for code every page needs.
-  The desktop main process is one file built from the whole app contract, so Manor's own
-  procedures and Share this Mac code cannot be split off; `scripts/checks/bundle-size.manor.json`
-  adds that much to upstream's budget for it, and upstream's budgets file stays untouched.
+  `scripts/checks/bundle-size.manor.json` can add to a budget for code the fork cannot load
+  lazily; it is empty since upstream slimmed the desktop main process, and upstream's budgets
+  file stays untouched.
 - The mobile app stays on Manor's own version and keeps no Apple sign-in entitlement; upstream's
   `expo-apple-authentication` config plugin is not in Manor's app config.
 - Upstream regrouped its source into topic folders in `v0.13.0`. Manor-only files stay where
@@ -407,7 +408,7 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   their messages count as the owner's (one helper in the database package, used by the history
   filter, history search and the checker's view of the owner's words). And existing user
   messages carry no author, because Manor filled that column only in team spaces, so
-  `20261231120000_manor_message_authors_for_existing_chats` stamps each with its chat's owner,
+  `20261231170000_manor_message_authors_for_existing_chats` stamps each with its chat's owner,
   the rule upstream's own team-space conversion uses.
 - Meetings (meeting bots, transcripts, calendar scheduling; `v0.13.0`) stay off: no meeting
   provider is set. The code is kept on the team-space tier and says Manor.
@@ -425,6 +426,26 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   files to match.
 - The folder size check takes Manor's allowance from `scripts/checks/folder-size.manor.json`,
   like the per-rule allowances.
+- Lifecycle emails follow upstream from the last stage on: the welcome, model connection and
+  agent import emails are sent only when the deployment supplies its own copy
+  (`EMAIL_COPY_DIR`), and `WELCOME_EMAIL_ENABLED` is gone. The referral email also keeps
+  `REFERRAL_EMAIL_ENABLED`. Production supplies no copy, so it sends none of them.
+- A page shared with specific people (upstream's page reviews) counts as shared exactly like a
+  page shared by link: a bot's save goes through the approval gate and is refused in Never ask
+  when the run could have been steered. Page review procedures are on the team-space tier.
+- A bot cannot move a bot it manages onto This Mac, and in Never ask a bot's change to its own
+  team chat rules is refused when the run could have been steered, like a change to its own
+  instructions.
+- Upstream's own "Use this Mac" (the desktop app's local server letting bots use the host
+  computer) and Manor's "Share this Mac" (a person's Mac reached from a remote Manor server)
+  are different mechanisms and both stay. Production sets no desktop stack token and no
+  computer host, so upstream's is off there.
+- Upstream's "Support Rakazo" prompt in the mobile app (monthly support offers shown whenever
+  the app points at a server other than upstream's own) never shows in Manor.
+- Upstream's rules for interface copy (no em dash joining clauses, no fixed control heights)
+  apply to Manor's own strings and controls, which were changed rather than allowed.
+- Manor's migrations are named to sort after upstream's last at the time they are written; a
+  Manor migration that has only ever run on a rehearsal copy may be renamed for that.
 
 ### Deploy checklist for the staged sync
 
@@ -459,7 +480,6 @@ Things the one production deploy at the end must cover, collected as stages land
   had none of either, so nothing is copied.
 - The app image moves to Node 24, so the release toolchain image must be rebuilt.
 - New optional settings reach the API and worker through the environment file:
-  `WELCOME_EMAIL_ENABLED` (leave off unless the welcome email has been read),
   `USER_DEVICES_ENABLED`, `RAKAZO_NAV_LINKS`, `VOICE_SUMMARY_MIN_CHARS`,
   `NOVITA_API_KEY`. Upstream sets `RAYON_NUM_THREADS=4` on the web container.
 - A running Docker computer is reused on start instead of being set up again.
@@ -697,7 +717,7 @@ Things the one production deploy at the end must cover, collected as stages land
   - Stop the API and worker before migrating, as already required: `drop_push_tokens` and
     `drop_retired_lease_columns` apply at once, and rolling back needs a database restore.
   - Two concurrent index changes on `runs` run outside a transaction; the usual recovery applies.
-  - Rehearse `20261231120000_manor_message_authors_for_existing_chats` on a fresh copy and
+  - Rehearse `20261231170000_manor_message_authors_for_existing_chats` on a fresh copy and
     compare, per tenant, how many user messages a routine can read before and after.
   - Keep unset: every `MEETING_*` setting, `DEPLOYMENT_VOICE`, `CHAT_HISTORY_RETENTION_DAYS`
     (nothing deletes chat messages while it is unset), `MODEL_CREDIT_OFFERINGS`,
@@ -719,6 +739,28 @@ Things the one production deploy at the end must cover, collected as stages land
     every bot being told it runs on Manor.
   - The mobile app needs a new native build (a new native markdown dependency), not an
     over-the-air update.
+- Upstream `main` as of 2026-11-22 (19 migrations, rehearsed on the copy: all applied, none
+  failed, no invalid indexes, no existing table gained or lost rows; seven new empty tables,
+  `speech_allowances` dropped while empty; every computer gets size `standard`):
+  - Stop the API and worker before migrating, as already required: three more drops apply at
+    once, and `task_prompt_inert_plaintext` scans every task (the copy had none to change).
+  - The API and worker now refuse to start on a mistyped setting. Production's
+    `SIGNUPS_ENABLED` was checked and is in an accepted form; check
+    `RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC`, `RAKAZO_LIVE_MODEL_CATALOG` and
+    `RAKAZO_AUTO_REVIEW_MIN_CONFIDENCE` the same way if any is set.
+  - Remove `WELCOME_EMAIL_ENABLED` if it is set anywhere. Keep unset: `EMAIL_COPY_DIR` copy
+    (the image points at an empty folder), `RAKAZO_MODEL_PROVIDER_ALLOWLIST`,
+    `TELEGRAM_GROUPS`, the WhatsApp and Qwen settings, the desktop stack token and any
+    computer host setting.
+  - Open work nobody has touched for 14 days is parked once a day, only on bots with daily
+    check-ins on. Existing bots had check-ins turned off by a Manor migration, so nothing is
+    parked for them; nothing is deleted and a parked item can be reopened.
+  - New for people: a server-created first bot for a new account, earlier versions of a
+    computer's saved files, comments and revision requests on pages shared with reviewers, an
+    activity log for organization owners, phone calendars and reminders for bots on mobile
+    (new permission prompts), Thai as a language, and the Integrations shortcut moving to
+    Cmd/Ctrl+Shift+A on desktop.
+  - The mobile app again needs a new native build (calendar and store review modules).
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR

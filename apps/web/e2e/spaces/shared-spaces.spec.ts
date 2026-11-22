@@ -61,7 +61,7 @@ test("two teammates use the same agent and conversation while personal spaces st
     await openNewSpace(page);
     const dialog = page.getByRole("dialog", { name: "New space" });
     await dialog.getByLabel("Name", { exact: true }).fill("Team projects");
-    await chooseOption(dialog.getByLabel("Space access"), "Team — everyone in this organization");
+    await chooseOption(dialog.getByLabel("Space access"), "Team: everyone in this organization");
     await expect(
       dialog.getByText("Agents, conversations, files, and connected accounts are shared."),
     ).toBeVisible();

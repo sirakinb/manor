@@ -65,7 +65,8 @@ export const SESSIONLESS_ROUTES: Readonly<Record<string, string>> = {
   "GET /api/dev/emails": "public in development only: mail the loopback-only emulator captured",
   "GET /health": "public: liveness, a constant body",
   "GET /ready": "public: readiness, no deployment details",
-  "GET /internal/health": "operators on the API port: 404 for a request the public proxy forwarded",
+  "GET /internal/health":
+    "operators on the deployment's own network: 404 for a public or proxy-forwarded caller",
   // Manor's raw routes. The CRM, Workspace, integration-credential, webhook, /mcp/crm,
   // /mcp/workspace, OAuth consent and desktop host routes refuse a request without credentials.
   "POST /api/channels/:provider/inbound":

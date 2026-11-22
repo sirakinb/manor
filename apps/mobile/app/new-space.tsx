@@ -1,7 +1,15 @@
 import { useLingui } from "@lingui/react/macro";
 import { Stack, useNavigation, useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  AccessibilityInfo,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { NativeActionButton } from "../components/native/native-action-button";
 import { cancelHeaderOptions } from "../components/native/sheet-header";
 import { selectSpace } from "../lib/api/api-server";
@@ -22,6 +30,7 @@ export default function NewSpace() {
   const navigation = useNavigation();
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
+  const creationError = (failure: Error) => errorText(failure, t`Could not create space`);
   const creation = useSave({
     // A new Space belongs to the account, so opening it does not end the save that made it.
     target: ACCOUNT_SETTINGS,
@@ -38,10 +47,12 @@ export default function NewSpace() {
       router.dismissAll();
       router.replace("/");
     },
+    // VoiceOver and TalkBack keep focus on the button, so the failure is spoken here as well.
+    onFailed: (failure) => AccessibilityInfo.announceForAccessibility(creationError(failure)),
     closesScreen: true,
   });
   const pending = creation.pending;
-  const error = creation.error ? errorText(creation.error, t`Could not create space`) : null;
+  const error = creation.error ? creationError(creation.error) : null;
 
   function create() {
     const trimmed = name.trim();
@@ -59,6 +70,7 @@ export default function NewSpace() {
       >
         <Text style={{ color: tokens.mutedForeground, fontSize: 14 }}>{t`Name`}</Text>
         <TextInput
+          accessibilityLabel={t`Name`}
           autoFocus
           value={name}
           maxLength={60}
@@ -92,7 +104,7 @@ export default function NewSpace() {
                 }}
               >
                 {shared === team ? "● " : "○ "}
-                {team ? "Team — everyone in this organization" : "Personal — only you"}
+                {team ? "Team: everyone in this organization" : "Personal: only you"}
               </Text>
             </Pressable>
           ))}
@@ -102,7 +114,11 @@ export default function NewSpace() {
             Agents, conversations, files, and connected accounts are shared.
           </Text>
         ) : null}
-        {error ? <Text style={{ color: tokens.destructive, marginTop: 14 }}>{error}</Text> : null}
+        {error ? (
+          <Text accessibilityRole="alert" style={{ color: tokens.destructive, marginTop: 14 }}>
+            {error}
+          </Text>
+        ) : null}
         <NativeActionButton
           disabled={!name.trim() || pending}
           label={pending ? t`Creating…` : t`Create space`}

@@ -30,6 +30,7 @@ const home = vi.hoisted(() => ({
   setOptions: vi.fn(),
   push: vi.fn(),
   insets: { top: 20, bottom: 30, left: 0, right: 12 },
+  inboxShown: true,
 }));
 const { styled } = vi.hoisted(() => ({
   styled:
@@ -57,6 +58,13 @@ vi.mock("../native/native", () => ({
   // Manor's brand palette and type, read by its unread dot and wordmark styles.
   manor: new Proxy({}, { get: (_target, name) => String(name) }),
   brandType: new Proxy({}, { get: (_target, name) => String(name) }),
+}));
+vi.mock("../layout/split-view", () => ({ useSplitView: () => ({ inboxShown: home.inboxShown }) }));
+vi.mock("../../components/native/glass-surface", () => ({
+  GlassSurface: ({ children }: { children?: ReactNode }) => children,
+}));
+vi.mock("../../components/thread/header/chat-route-header", () => ({
+  ShowChatsButton: () => createElement("button", { type: "button", "aria-label": "Show chats" }),
 }));
 
 const toggleActivityMode = vi.fn();
@@ -170,4 +178,13 @@ it("shows a translated, safe-area-centred placeholder only in the split pane", (
   expect(pane.style.paddingBottom).toBe("30px");
   expect(pane.style.paddingRight).toBe("12px");
   expect(container.querySelector("span")!.style.color).toBe("gray");
+});
+
+it("offers to show the hidden chat list from the empty pane", () => {
+  act(() => root.render(<PickChatPane />));
+  expect(container.querySelector('[aria-label="Show chats"]')).toBeNull();
+  home.inboxShown = false;
+  act(() => root.render(<PickChatPane />));
+  expect(container.querySelector('[aria-label="Show chats"]')).not.toBeNull();
+  home.inboxShown = true;
 });

@@ -13,7 +13,6 @@
   "apps/web/src/pages/AgentConnectionSetup.tsx": 1,
   "apps/web/src/pages/CrmApiAccessPanel.tsx": 1,
   "apps/web/src/pages/DocsView.tsx": 1,
-  "apps/web/src/pages/Shell.tsx": 2,
   "apps/web/src/pages/Welcome.tsx": 2,
   "apps/web/src/pages/crm/CrmPipelineBoard.tsx": 1,
   "apps/web/src/pages/crm/SheetGrid.tsx": 1,

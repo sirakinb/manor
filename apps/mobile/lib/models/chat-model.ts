@@ -1,6 +1,7 @@
 import { t } from "@lingui/core/macro";
 import type { ChatModelChoice } from "@rakazo/core";
 import { botModelState } from "@rakazo/core";
+import { localizeModelEntry } from "@rakazo/i18n/model-provider";
 import type { MobileMe, MobileModel, MobileModelCredential } from "../api/mobile-types";
 
 /** What a chat's model picker lists, with the space default named after its model. */
@@ -19,7 +20,7 @@ export function chatModelPickerChoices(
   // Manor: through `botModelState`, so the models the deployment provides are listed too.
   const { choices } = botModelState({
     credentials,
-    catalog,
+    catalog: catalog.map(localizeModelEntry),
     me,
     modelKey: selectedKey,
     spaceDefaultLabel,

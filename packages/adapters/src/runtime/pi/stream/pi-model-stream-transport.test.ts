@@ -114,7 +114,8 @@ describe.each(["local", "openai-compatible"] as const)("%s model stream transpor
         response.writeHead(200, { "content-type": "text/event-stream" });
         response.write(": still thinking\n\n", () => response.socket?.destroy());
       }),
-    ).rejects.toThrow("terminated (other side closed)");
+      // Manor reports an outage by its short summary, which still names the cause.
+    ).rejects.toThrow("Model request connection failed (UND_ERR_SOCKET).");
   });
 
   it("keeps thoughts a model writes into its answer text out of the reply", async () => {

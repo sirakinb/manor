@@ -277,8 +277,8 @@ export function CrmApiAccessPanel() {
               </BuiButton>
               <p className="min-w-0 flex-1 text-xs leading-5 text-[#85858A]">
                 <Trans>
-                  One paste into Claude, Cursor, or any coding agent — token included, it connects
-                  over MCP and verifies itself.
+                  One paste into Claude, Cursor, or any coding agent. The token is included, and it
+                  connects over MCP and verifies itself.
                 </Trans>
               </p>
             </div>

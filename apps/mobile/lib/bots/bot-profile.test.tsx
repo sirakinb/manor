@@ -82,6 +82,7 @@ const routinesChanged = () =>
   });
 
 vi.mock("../layout/side-insets", () => ({ useSideInsets: () => ({}) }));
+vi.mock("../platform/app-foreground", () => ({ useAppForeground: () => true }));
 vi.mock("../api/api", () => ({
   rpc,
   currentApiBase: () => "https://api.example",
@@ -356,7 +357,7 @@ function profileRpc(
     computer = async () => ({ state: "stopped" }),
   }: {
     bot?: () => Promise<unknown>;
-    update?: () => Promise<unknown>;
+    update?: (input: { notifyOnFinish?: boolean }) => Promise<unknown>;
     updateRoutine?: (input: { routineId: string; active: boolean }) => Promise<unknown>;
     removeRoutine?: (input: { routineId: string }) => Promise<unknown>;
     history?: (input: { routineId: string; before?: unknown }) => Promise<unknown>;
@@ -366,7 +367,7 @@ function profileRpc(
   rpc.mockImplementation((procedure: string, input: never) => {
     if (procedure === "bots/get") return bot();
     if (procedure === "routines/list") return routines();
-    if (procedure === "bots/update") return update();
+    if (procedure === "bots/update") return update(input);
     if (procedure === "routines/update") return updateRoutine(input);
     if (procedure === "routines/remove") return removeRoutine(input);
     if (procedure === "routines/history") return history(input);
@@ -450,6 +451,20 @@ describe("bot profile", () => {
     profileRpc(async () => [], { computer: async () => ({ state }) });
     await render(createElement(BotProfile));
     expect(button("Computer").textContent).toBe(`Computer${value}`);
+  });
+
+  it("shows no computer state from an earlier visit until this one's read answers", async () => {
+    let status = deferred<unknown>();
+    profileRpc(async () => [], { computer: () => status.promise });
+    await render(createElement(BotProfile));
+    await act(async () => status.resolve({ state: "running" }));
+    expect(button("Computer").textContent).toBe("ComputerRunning");
+    await act(async () => root.render(null));
+    status = deferred<unknown>();
+    await render(createElement(BotProfile));
+    expect(button("Computer").textContent).toBe("Computer");
+    await act(async () => status.resolve({ state: "suspended" }));
+    expect(button("Computer").textContent).toBe("ComputerAsleep");
   });
 
   it.each([
@@ -590,54 +605,55 @@ describe("bot profile notifications", () => {
     },
   );
 
-  it("saves at once and keeps the switch enabled while saving", async () => {
-    let save!: Deferred;
+  const updates = () =>
+    rpc.mock.calls
+      .filter(([procedure]) => procedure === "bots/update")
+      .map(([procedure, input]) => [procedure, input]);
+  /** A server holding the bot's setting; each write waits until the test answers it. */
+  function notifyServer(initial: boolean) {
+    const server = { notify: initial, writes: [] as Deferred<void>[] };
     profileRpc(async () => [], {
-      bot: async () => ({ ...fixtureBot, notifyOnFinish: false }),
-      update: () => {
-        save = deferred();
-        return save.promise;
+      bot: async () => ({ ...fixtureBot, notifyOnFinish: server.notify }),
+      update: async (input) => {
+        const write = deferred<void>();
+        server.writes.push(write);
+        await write.promise;
+        server.notify = input.notifyOnFinish!;
+        return { ...fixtureBot, notifyOnFinish: server.notify };
       },
     });
+    return server;
+  }
+
+  it("saves at once and keeps the switch enabled while saving", async () => {
+    const server = notifyServer(false);
     await render(createElement(BotProfile));
 
     await act(async () => notificationsSwitch()!.click());
     expect(notificationsSwitch()!.checked).toBe(true);
     expect(notificationsSwitch()!.disabled).toBe(false);
-    expect(rpc).toHaveBeenCalledWith("bots/update", {
-      botId: "bot-fixture",
-      notifyOnFinish: true,
-    });
+    expect(updates()).toEqual([["bots/update", { botId: "bot-fixture", notifyOnFinish: true }]]);
     expect(afterChatNotifyChange).not.toHaveBeenCalled();
 
-    await act(async () => save.resolve());
+    await act(async () => server.writes[0]!.resolve());
     expect(notificationsSwitch()!.checked).toBe(true);
     expect(notificationsSwitch()!.disabled).toBe(false);
-    expect(rpc.mock.calls.filter(([procedure]) => procedure === "bots/update")).toHaveLength(1);
+    expect(updates()).toHaveLength(1);
     expect(alert).not.toHaveBeenCalled();
   });
 
   it("keeps rapid on/off/on taps responsive and skips the redundant queued save", async () => {
-    let save!: Deferred;
-    profileRpc(async () => [], {
-      bot: async () => ({ ...fixtureBot, notifyOnFinish: false }),
-      update: () => {
-        save = deferred();
-        return save.promise;
-      },
-    });
+    const server = notifyServer(false);
     await render(createElement(BotProfile));
     for (const checked of [true, false, true]) {
       await act(async () => notificationsSwitch()!.click());
       expect(notificationsSwitch()!.checked).toBe(checked);
       expect(notificationsSwitch()!.disabled).toBe(false);
     }
-    expect(rpc.mock.calls.filter(([procedure]) => procedure === "bots/update")).toEqual([
-      ["bots/update", { botId: "bot-fixture", notifyOnFinish: true }],
-    ]);
-    await act(async () => save.resolve());
+    expect(updates()).toEqual([["bots/update", { botId: "bot-fixture", notifyOnFinish: true }]]);
+    await act(async () => server.writes[0]!.resolve());
     expect(notificationsSwitch()!.checked).toBe(true);
-    expect(rpc.mock.calls.filter(([procedure]) => procedure === "bots/update")).toHaveLength(1);
+    expect(updates()).toHaveLength(1);
     expect(afterChatNotifyChange).toHaveBeenCalledExactlyOnceWith(
       "https://api.example",
       "token",
@@ -647,23 +663,18 @@ describe("bot profile notifications", () => {
   });
 
   it("serializes taps and reverts a failed queued save to the last confirmed value", async () => {
-    const requests: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
-    profileRpc(async () => [], {
-      bot: async () => ({ ...fixtureBot, notifyOnFinish: false }),
-      update: () => new Promise<void>((resolve, reject) => requests.push({ resolve, reject })),
-    });
+    const server = notifyServer(false);
     await render(createElement(BotProfile));
     await act(async () => notificationsSwitch()!.click());
     await act(async () => notificationsSwitch()!.click());
     expect(notificationsSwitch()!.checked).toBe(false);
-    expect(requests).toHaveLength(1);
-    await act(async () => requests[0]!.resolve());
-    expect(requests).toHaveLength(2);
-    expect(rpc.mock.calls.filter(([procedure]) => procedure === "bots/update")).toEqual([
+    expect(server.writes).toHaveLength(1);
+    await act(async () => server.writes[0]!.resolve());
+    expect(updates()).toEqual([
       ["bots/update", { botId: "bot-fixture", notifyOnFinish: true }],
       ["bots/update", { botId: "bot-fixture", notifyOnFinish: false }],
     ]);
-    await act(async () => requests[1]!.reject(new Error("offline")));
+    await act(async () => server.writes[1]!.reject(new Error("offline")));
     expect(notificationsSwitch()!.checked).toBe(true);
     expect(notificationsSwitch()!.disabled).toBe(false);
     expect(alert).toHaveBeenCalledWith("Could not update notifications", "offline");
@@ -677,9 +688,10 @@ describe("bot profile notifications", () => {
       let save!: Deferred;
       profileRpc(async () => [], {
         bot: () => new Promise((resolve) => reads.push(resolve)),
-        update: () => {
+        update: async () => {
           save = deferred();
-          return save.promise;
+          await save.promise;
+          return { ...fixtureBot, notifyOnFinish: false };
         },
       });
       await render(createElement(BotProfile));
@@ -691,51 +703,24 @@ describe("bot profile notifications", () => {
 
       if (when === "before") await refocus();
       await act(async () => notificationsSwitch()!.click());
-      if (when === "during") await refocus();
+      if (when === "during") {
+        await refocus();
+        await act(async () => reads[1]!(fixtureBot));
+        expect(notificationsSwitch()!.checked).toBe(false);
+      }
       await act(async () => save.resolve());
-      await act(async () => reads[1]!({ ...fixtureBot, name: "Reloaded" }));
+      if (when === "before") await act(async () => reads[1]!(fixtureBot));
+      expect(notificationsSwitch()!.checked).toBe(false);
+      // The read after the save shows the server's value.
+      await act(async () => reads[2]!({ ...fixtureBot, name: "Reloaded", notifyOnFinish: false }));
       expect(container.textContent).toContain("Reloaded");
       expect(notificationsSwitch()!.checked).toBe(false);
 
-      // A reload after the save shows the server's value again.
       await refocus();
-      await act(async () => reads[2]!({ ...fixtureBot, notifyOnFinish: true }));
+      await act(async () => reads[3]!(fixtureBot));
       expect(notificationsSwitch()!.checked).toBe(true);
     },
   );
-
-  it("keeps the change when a reload starts and resolves while the save is pending", async () => {
-    const reads: Array<(bot: unknown) => void> = [];
-    let save!: Deferred;
-    profileRpc(async () => [], {
-      bot: () => new Promise((resolve) => reads.push(resolve)),
-      update: () => {
-        save = deferred();
-        return save.promise;
-      },
-    });
-    await render(createElement(BotProfile));
-    await act(async () => reads[0]!(fixtureBot));
-    const refocus = () =>
-      act(async () => {
-        for (const effect of focus) effect();
-      });
-
-    await act(async () => notificationsSwitch()!.click());
-    await refocus();
-    await act(async () => reads[1]!({ ...fixtureBot, name: "Reloaded" }));
-    expect(container.textContent).toContain("Reloaded");
-    expect(notificationsSwitch()!.checked).toBe(false);
-    expect(notificationsSwitch()!.disabled).toBe(false);
-
-    await act(async () => save.resolve());
-    expect(notificationsSwitch()!.checked).toBe(false);
-    expect(notificationsSwitch()!.disabled).toBe(false);
-
-    await refocus();
-    await act(async () => reads[2]!(fixtureBot));
-    expect(notificationsSwitch()!.checked).toBe(true);
-  });
 
   it("moves the switch back and says so when the save fails", async () => {
     profileRpc(async () => [], {
@@ -757,7 +742,7 @@ describe("bot profile notifications", () => {
     async (notify) => {
       profileRpc(async () => [], {
         bot: async () => ({ ...fixtureBot, notifyOnFinish: !notify }),
-        update: async () => undefined,
+        update: async () => ({ ...fixtureBot, notifyOnFinish: notify }),
       });
       await render(createElement(BotProfile));
 
@@ -1045,12 +1030,12 @@ describe("routines screen", () => {
     expect(switchFor("Morning digest")!.checked).toBe(true);
   });
 
-  it("disables the switch and delete for a routine another member created", async () => {
+  it("keeps the switch and delete for a routine only another member can change", async () => {
     profileRpc(async () => [{ ...digest(), editable: false }]);
     await render(createElement(RoutinesScreen));
-    expect(switchFor("Morning digest")!.disabled).toBe(true);
+    expect(switchFor("Morning digest")!.disabled).toBe(false);
     rowFor("Morning digest, On")!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
-    expect(alert).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalled();
   });
 
   it("asks before deleting and removes the row only once the server confirms", async () => {
@@ -1695,7 +1680,7 @@ describe("artifacts opened for one bot", () => {
     expect(container.textContent).toContain("No artifacts yet");
   });
 
-  it("keeps Made by bots on the next page and when the screen comes back", async () => {
+  it("keeps Made by bots during pagination, live refresh, and focus", async () => {
     const file = (id: string, name: string) => ({
       id,
       name,
@@ -1731,6 +1716,21 @@ describe("artifacts opened for one bot", () => {
     expect(container.textContent).toContain("first-report.md");
     expect(container.textContent).toContain("second-report.md");
 
+    const readsBeforeSignal = listSpaceArtifacts.mock.calls.length;
+    await act(async () => {
+      for (const listener of spaceChangeListeners.get("meetings") ?? []) await listener();
+    });
+    expect(listSpaceArtifacts).toHaveBeenCalledTimes(readsBeforeSignal);
+    await act(async () => {
+      for (const listener of spaceChangeListeners.get("artifacts") ?? []) await listener();
+    });
+    expect(listSpaceArtifacts.mock.calls.slice(readsBeforeSignal)).toEqual([
+      [{ botId: "bot-fixture", madeByBots: true, limit: 30 }],
+      [{ botId: "bot-fixture", madeByBots: true, limit: 30, cursor: "page-2" }],
+    ]);
+    expect(container.textContent).toContain("first-report.md");
+    expect(container.textContent).toContain("second-report.md");
+
     await act(async () => {
       for (const effect of focus) effect();
     });
@@ -1739,6 +1739,15 @@ describe("artifacts opened for one bot", () => {
       madeByBots: true,
       limit: 30,
     });
+    expect(container.textContent).not.toContain("second-report.md");
+
+    const readsAfterFocus = listSpaceArtifacts.mock.calls.length;
+    await act(async () => {
+      for (const listener of spaceChangeListeners.get("artifacts") ?? []) await listener();
+    });
+    expect(listSpaceArtifacts.mock.calls.slice(readsAfterFocus)).toEqual([
+      [{ botId: "bot-fixture", madeByBots: true, limit: 30 }],
+    ]);
   });
 
   it("never pages the new filter with the old filter's cursor", async () => {

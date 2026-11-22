@@ -105,7 +105,15 @@ test("Manor shows one organization and offers no switcher or Create organization
     if ((await name.count()) > 0) await expect(name).toHaveValue("Studio");
     else await expect(panel.getByText("Studio", { exact: true })).toBeVisible();
     await expect(settings.getByRole("button", { name: "Create organization" })).toHaveCount(0);
-    await expect(panel.getByRole("button", { name: "Delete organization" })).toHaveCount(0);
+    await expect(panel.getByRole("button", { name: "Members" })).toHaveCount(0);
+    // The header's options menu offers the activity log but no deletion.
+    await settings
+      .getByTestId("settings-header")
+      .getByRole("button", { name: "Organization options" })
+      .click();
+    await expect(page.getByRole("menuitem", { name: "Activity log" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Delete organization" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
     await expect(settings.getByText("Client Company", { exact: true })).toHaveCount(0);
     await captureScreenshot(page, testInfo, "org-settings-single");
 
@@ -152,4 +160,33 @@ test("Manor shows one organization and offers no switcher or Create organization
     await prisma.$disconnect();
     await pool.end();
   }
+});
+
+test("an organization owner opens the activity log from the organization menu", async ({
+  page,
+}, testInfo) => {
+  await signup(page, `audit-log-${Date.now()}@rakazo.test`, "password12", "Audit Owner");
+  await completeOnboarding(page);
+  await rpc(page, "spaces/create", { name: "Audited space" });
+
+  const settings = await openUserSettings(page, "organization");
+  // The organization page stays about the organization; the log is behind the header menu.
+  await expect(settings.getByTestId("audit-log")).toHaveCount(0);
+  await settings
+    .getByTestId("settings-header")
+    .getByRole("button", { name: "Organization options" })
+    .click();
+  await page.getByRole("menuitem", { name: "Activity log" }).click();
+
+  const log = settings.getByTestId("audit-log");
+  await expect(log.getByRole("heading", { name: "Activity log" })).toBeVisible();
+  await expect(log.getByRole("button", { name: "Export" })).toBeEnabled();
+  await expect(log.getByRole("listitem").filter({ hasText: "space.created" })).toContainText(
+    "Audited space",
+  );
+  await captureScreenshot(page, testInfo, "audit-log");
+
+  await log.getByRole("button", { name: "Back" }).click();
+  await expect(settings.getByTestId("organization-settings")).toBeVisible();
+  await expect(settings.getByTestId("audit-log")).toHaveCount(0);
 });

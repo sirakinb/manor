@@ -83,6 +83,18 @@ it.skipIf(!watchConfigured)(
           watchSigning.bundleIdentifier,
         );
       }
+
+      const bundleIdentifier = "com.example.rakazo-custom";
+      addWatchTarget(regenerated, directory, name, {
+        ...config.expo,
+        ios: { ...config.expo.ios, bundleIdentifier },
+      });
+      for (const { buildSettings } of settings) {
+        expect(buildSettings.INFOPLIST_KEY_WKCompanionAppBundleIdentifier).toBe(bundleIdentifier);
+        expect(buildSettings.PRODUCT_BUNDLE_IDENTIFIER.replaceAll('"', "")).toBe(
+          `${bundleIdentifier}.watchkitapp`,
+        );
+      }
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

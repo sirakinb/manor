@@ -41,7 +41,6 @@
         "!**/apps/mobile/app/run-logs.tsx",
         "!**/apps/mobile/app/sign-in.tsx",
         "!**/apps/mobile/components/team-members.tsx",
-        "!**/apps/mobile/components/thread/message-bubble.tsx",
         "!**/apps/mobile/components/thread/reply-verification-note.tsx",
         "!**/apps/mobile/components/crm-kit.tsx",
         "!**/apps/mobile/components/crm-pipeline.tsx",
@@ -67,15 +66,14 @@
         "!**/apps/web/src/App.tsx",
         "!**/apps/web/src/pages/auth/Auth.tsx",
         "!**/apps/web/src/pages/auth/Auth.test.tsx",
-        "!**/apps/web/src/pages/plugins/PluginsOverlay.tsx",
         "!**/apps/web/src/pages/Shell.tsx",
+        "!**/apps/web/src/pages/shell/manor-shell.tsx",
         "!**/apps/web/src/pages/shell/composer/composer.tsx",
         "!**/apps/web/src/pages/shell/computers/computer-overlay.tsx",
         "!**/apps/web/src/pages/shell/computers/computer-panel.tsx",
         "!**/apps/web/src/pages/shell/chat/message-view.tsx",
         "!**/apps/web/src/pages/shell/sidebar/sidebar-header.tsx",
-        "!**/apps/web/src/pages/shell/sidebar/sidebar-roster.tsx",
-        "!**/apps/web/src/pages/shell/chat/transcript.tsx"
+        "!**/apps/web/src/pages/shell/sidebar/sidebar-roster.tsx"
       ]
     },
     {
@@ -104,15 +102,14 @@
         "!**/apps/web/src/App.tsx",
         "!**/apps/web/src/pages/auth/Auth.tsx",
         "!**/apps/web/src/pages/auth/Auth.test.tsx",
-        "!**/apps/web/src/pages/plugins/PluginsOverlay.tsx",
         "!**/apps/web/src/pages/Shell.tsx",
+        "!**/apps/web/src/pages/shell/manor-shell.tsx",
         "!**/apps/web/src/pages/shell/composer/composer.tsx",
         "!**/apps/web/src/pages/shell/computers/computer-overlay.tsx",
         "!**/apps/web/src/pages/shell/computers/computer-panel.tsx",
         "!**/apps/web/src/pages/shell/chat/message-view.tsx",
         "!**/apps/web/src/pages/shell/sidebar/sidebar-header.tsx",
-        "!**/apps/web/src/pages/shell/sidebar/sidebar-roster.tsx",
-        "!**/apps/web/src/pages/shell/chat/transcript.tsx"
+        "!**/apps/web/src/pages/shell/sidebar/sidebar-roster.tsx"
       ]
     }
   ],

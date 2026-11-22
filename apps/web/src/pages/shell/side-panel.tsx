@@ -39,6 +39,8 @@ export function ShellSidePanel({
   manorHeaderActions,
   manorContent,
   discardChatAttachments,
+  onCoversChat,
+  onOverlays,
 }: {
   rpc: ReturnType<typeof createSpaceRpc>;
   panel: Panel;
@@ -69,6 +71,8 @@ export function ShellSidePanel({
   manorContent?: ReactNode;
   /** Drops a deleted chat's pending attachments with their previews. */
   discardChatAttachments: (threadKey: string) => void;
+  onCoversChat: (covers: boolean) => void;
+  onOverlays: (overlays: boolean) => void;
 }) {
   const { t } = useLingui();
   const open = Boolean(panel && (active || activeGroup));
@@ -85,10 +89,16 @@ export function ShellSidePanel({
   }
 
   return (
-    <ResizableSidePanel open={open} panel={panel ?? "closed"}>
+    <ResizableSidePanel
+      open={open}
+      panel={panel ?? "closed"}
+      onCoversChat={onCoversChat}
+      onOverlays={onOverlays}
+      onEscape={panel === "settings" && !computerOpen ? () => setPanel(null) : undefined}
+    >
       {open ? (
         <div
-          className={`rk-scroll h-full w-full overflow-y-auto px-5 py-[17px] ${
+          className={`rk-scroll h-full w-full overflow-y-auto px-5 pt-3.5 pb-[17px] ${
             panel === "files" ? "flex flex-col" : ""
           }`}
         >
@@ -108,11 +118,11 @@ export function ShellSidePanel({
                 {manorHeaderActions}
                 <Button
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon"
                   aria-label={t`Close panel`}
                   onClick={() => setPanel(null)}
                 >
-                  <X size={16} strokeWidth={1.8} />
+                  <X className="size-4.5" strokeWidth={1.75} />
                 </Button>
               </div>
             </div>

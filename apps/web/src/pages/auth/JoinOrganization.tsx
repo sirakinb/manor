@@ -113,7 +113,7 @@ function OrganizationInvitation() {
           else navigate("/app", { replace: true });
         }}
       >
-        <Button type="submit" className={submitClass}>
+        <Button type="submit" size="xl" className={submitClass}>
           {state.kind === "error" ? <Trans>Retry</Trans> : <Trans>Open {brandName}</Trans>}
         </Button>
       </AuthFrame>
@@ -137,7 +137,7 @@ function OrganizationInvitation() {
           {joinError}
         </p>
       ) : null}
-      <Button type="submit" disabled={join.pending} className={cn(submitClass, "mt-6")}>
+      <Button type="submit" size="xl" disabled={join.pending} className={cn(submitClass, "mt-6")}>
         <Trans>Join</Trans>
       </Button>
     </AuthFrame>

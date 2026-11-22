@@ -1,6 +1,14 @@
 import { ORPCError } from "@orpc/server";
 import { createAdapterContext, runJobKey } from "@rakazo/adapter-kit";
-import { getActiveTeachingSession, settleCallRequest, wakeRun } from "@rakazo/adapters";
+import {
+  claimNativeCalendar,
+  finishNativeCalendar,
+  getActiveTeachingSession,
+  nativeCalendarDeviceDigest,
+  pendingNativeCalendar,
+  settleCallRequest,
+  wakeRun,
+} from "@rakazo/adapters";
 import type { Actor } from "@rakazo/contracts";
 import {
   AttachmentValidationError,
@@ -28,7 +36,6 @@ import {
   touchGroupUpdatedAt,
   withTransactionRetry,
 } from "@rakazo/db";
-import { bestEffort, getLogger } from "@rakazo/logging";
 import { HANG_UP_PROMPT } from "../bots/hidden-turns.prompt.js";
 import { assertTeachingSendAllowed } from "../bots/taught-skills.js";
 import { answerComputerRequest } from "../computers/computer-control.js";
@@ -103,6 +110,20 @@ export function takeoverReleaser(deps: RouterDeps, actor: Actor, target: ThreadT
   };
 }
 
+function calendarDevice(
+  { actor, nativeSessionId }: { actor: Actor; nativeSessionId?: string },
+  key: string,
+) {
+  return nativeSessionId
+    ? {
+        spaceId: actor.spaceId,
+        userId: actor.userId,
+        sessionId: nativeSessionId,
+        deviceDigest: nativeCalendarDeviceDigest(key),
+      }
+    : undefined;
+}
+
 export function threadsRoutes(ctx: RouterContext) {
   const { deps, spaceAuthed, callsEnabled, codexCatalog, repos, agentSkills } = ctx;
   /** The bot a reaction can wake: the thread's bot, or in a group the bot that wrote the message. */
@@ -117,8 +138,13 @@ export function threadsRoutes(ctx: RouterContext) {
         )?.botId ?? target.memberBotIds[0]!);
   const send = async (
     actor: Actor,
-    input: Parameters<typeof sendThreadMessage>[3] & { botId?: string; groupId?: string },
+    input: Parameters<typeof sendThreadMessage>[3] & {
+      botId?: string;
+      groupId?: string;
+      nativeCalendarDeviceKey?: string;
+    },
     startRoutines?: Parameters<typeof sendThreadMessage>[5],
+    nativeSessionId?: string,
   ) => {
     const setup = await modelSetup(deps, actor);
     const target = await resolveThreadTarget(deps.prisma, actor, input);
@@ -140,6 +166,7 @@ export function threadsRoutes(ctx: RouterContext) {
     const deployment = setup.hasDeployment
       ? { provider: deps.env.defaultProvider, model: deps.env.defaultModel }
       : null;
+    const deviceKey = nativeSessionId && target.kind === "bot" && input.nativeCalendarDeviceKey;
     return sendThreadMessage(
       {
         ...deps,
@@ -155,7 +182,12 @@ export function threadsRoutes(ctx: RouterContext) {
       },
       actor,
       target,
-      { ...input, noModel },
+      {
+        ...input,
+        noModel,
+        nativeCalendarSessionId: deviceKey ? nativeSessionId : undefined,
+        nativeCalendarDeviceDigest: deviceKey ? nativeCalendarDeviceDigest(deviceKey) : undefined,
+      },
       takeoverReleaser(deps, actor, target),
       startRoutines,
     ).catch((error: unknown) => {
@@ -226,7 +258,31 @@ export function threadsRoutes(ctx: RouterContext) {
           yield event;
         }
       }),
-      send: spaceAuthed.threads.send.handler(({ context, input }) => send(context.actor, input)),
+      send: spaceAuthed.threads.send.handler(({ context, input }) =>
+        send(context.actor, input, undefined, context.nativeSessionId),
+      ),
+      // Manor: the phone's requests are keyed by the person's own native session, so in a team
+      // space only the member who sent from that phone answers them.
+      nativeCalendarPending: spaceAuthed.threads.nativeCalendarPending.handler(
+        ({ context, input }) => {
+          const device = calendarDevice(context, input.deviceKey);
+          return device ? pendingNativeCalendar(deps.prisma, device, input.botId) : [];
+        },
+      ),
+      nativeCalendarClaim: spaceAuthed.threads.nativeCalendarClaim.handler(({ context, input }) => {
+        const device = calendarDevice(context, input.deviceKey);
+        return device ? claimNativeCalendar(deps.prisma, device, input) : null;
+      }),
+      nativeCalendarResult: spaceAuthed.threads.nativeCalendarResult.handler(
+        async ({ context, input }) => {
+          const device = calendarDevice(context, input.deviceKey);
+          return {
+            accepted: device
+              ? await finishNativeCalendar(deps, device, input, input.response)
+              : false,
+          };
+        },
+      ),
       sendWithRoutines: spaceAuthed.threads.sendWithRoutines.handler(async ({ context, input }) => {
         const { actor } = context;
         // The same checks as routines/testRun, all before anything is written.
@@ -267,7 +323,7 @@ export function threadsRoutes(ctx: RouterContext) {
         try {
           if (input.text?.trim() || input.artifactIds?.length) {
             // A saved message for this nonce is replayed before any of this runs.
-            sent = await send(actor, input, startRoutines);
+            sent = await send(actor, input, startRoutines, context.nativeSessionId);
           } else {
             // Only the routines: they all commit or none does.
             const started = await withTransactionRetry(() =>
@@ -307,9 +363,7 @@ export function threadsRoutes(ctx: RouterContext) {
           takeoverReleaser(deps, context.actor, target),
         );
         if (result.eventSeq != null) {
-          await deps.events.notify(target.threadId, result.eventSeq).catch((error) => {
-            getLogger().error("thread reaction realtime notification", error);
-          });
+          await deps.events.notify(target.threadId, result.eventSeq);
         }
         return { ok: true as const, runIds: result.runIds };
       }),
@@ -467,9 +521,7 @@ export function threadsRoutes(ctx: RouterContext) {
             { name: "message_sent", trigger: "follow_up" },
             { id: committed.message.id, at: committed.message.createdAt },
           );
-          await deps.events.notify(target.threadId, committed.eventSeq).catch((error) => {
-            getLogger().error("group follow-up realtime notification", error);
-          });
+          await deps.events.notify(target.threadId, committed.eventSeq);
           if (committed.runId) {
             await wakeRun(deps.jobs, committed.runId);
           }
@@ -601,9 +653,7 @@ export function threadsRoutes(ctx: RouterContext) {
             return null;
           });
         if (!committed) return { ok: true as const };
-        await deps.events.notify(threadId, committed.eventSeq).catch((error) => {
-          getLogger().error("call end realtime notification", error);
-        });
+        await deps.events.notify(threadId, committed.eventSeq);
         await wakeRun(deps.jobs, committed.runId);
         return { ok: true as const };
       }),
@@ -653,11 +703,7 @@ export function threadsRoutes(ctx: RouterContext) {
           });
           // The call waiting on this card hears it through the thread's events, wherever it runs.
           // The answer is saved: a missed signal only delays it to the waiting call's re-read.
-          if (committed)
-            await bestEffort(
-              "tool question notify",
-              deps.events.notify(committed.threadId, committed.seq),
-            );
+          if (committed) await deps.events.notify(committed.threadId, committed.seq);
           return { ok: true as const };
         },
       ),

@@ -256,7 +256,7 @@ export function BotCredentialsSettings({ botId }: { botId: string }) {
               autoComplete="new-password"
               placeholder={
                 editing !== "new" && rows.find((row) => row.id === editing)?.hasPassword
-                  ? t`Stored — leave blank to keep`
+                  ? t`Stored. Leave blank to keep`
                   : ""
               }
               {...field("password")}
@@ -270,7 +270,7 @@ export function BotCredentialsSettings({ botId }: { botId: string }) {
               autoComplete="off"
               placeholder={
                 editing !== "new" && rows.find((row) => row.id === editing)?.hasTotp
-                  ? t`Stored — leave blank to keep`
+                  ? t`Stored. Leave blank to keep`
                   : t`Base32 key or otpauth:// link from the site's authenticator setup`
               }
               {...field("totpSecret")}

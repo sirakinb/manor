@@ -115,7 +115,7 @@ services:
       - ../../.env.vps
     environment:
       NODE_ENV: production
-      # Every other setting in .env.vps (WELCOME_EMAIL_ENABLED, EMAIL_REPLY_TO, RAKAZO_NAV_LINKS,
+      # Every other setting in .env.vps (EMAIL_REPLY_TO, RAKAZO_NAV_LINKS, REFERRAL_EMAIL_ENABLED,
       # VOICE_SUMMARY_MIN_CHARS, USER_DEVICES_ENABLED, NOVITA_API_KEY, SANDBOX_TEMPLATE, ...)
       # arrives through env_file, so leaving one out of .env.vps keeps it unset.
       # Sibling containers reach the API over the compose network, so it must

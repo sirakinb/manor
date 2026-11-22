@@ -6,11 +6,11 @@ import {
   BUILTIN_TOOL_NAMES,
 } from "@rakazo/contracts";
 import type { ChatModelChoice } from "@rakazo/core";
+import { thinkingLevelLabel } from "@rakazo/i18n/thinking-level";
 import { Button, OptionSelect, SectionHeading, Switch, Textarea, Toggle } from "@rakazo/ui-web";
 import { X } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
 import { useEffect, useState } from "react";
-import { thinkingLevelLabel } from "../../../lib/models/model-catalog";
 import { rpc } from "../../../lib/query/rpc";
 import { ChatModelPicker } from "../chat/chat-model-picker";
 

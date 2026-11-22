@@ -10,7 +10,7 @@ import {
 import { Button, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from "@rakazo/ui-web";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { PasskeySignIn, usePasskeySignIn } from "../../components/account/PasskeySignIn";
 import { SocialSignInButtons } from "../../components/account/SocialSignInButtons";
 import { ParticleWordmark } from "../../components/ai/ParticleWordmark";
@@ -28,10 +28,9 @@ import { authErrorText, credentialIssueText } from "../../lib/query/user-error";
 
 type AuthMode = "in" | "up" | "forgot";
 
-// off-scale: 16px below md stops iOS Safari zooming into a focused field.
-const fieldClass = "mt-2 h-12 rounded-xl px-4 text-[16px]/6 md:text-body-lg";
+const fieldClass = "mt-2";
 const CODE_LENGTH = 6;
-export const submitClass = "mt-3 h-12 w-full rounded-xl text-body-lg";
+export const submitClass = "mt-3 w-full";
 
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
@@ -62,6 +61,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   // Signup triggers a session refresh that remounts the anonymous auth page.
   const sent = resetSent || searchParams.get("verify") === "email";
   const [reset, setReset] = useState<AuthCapabilities | null>(null);
+  const showAccountSwitch = mode !== "in" || reset?.registrationOpen !== false;
   const [capabilityError, setCapabilityError] = useState(false);
   const [capabilityAttempt, setCapabilityAttempt] = useState(0);
   const [codeSent, setCodeSent] = useState(false);
@@ -276,6 +276,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   if (!sent && !reset && !capabilityError) {
     return <div className="h-full bg-[var(--rk-page)]" />;
   }
+  if (!sent && mode === "up" && reset?.registrationOpen === false) {
+    return <Navigate to={`/sign-in${nextQuery}`} replace />;
+  }
 
   return (
     <div
@@ -392,23 +395,25 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   {error}
                 </p>
               ) : null}
-              <p className="mt-[30px] text-center">
-                {mode === "in" ? (
-                  <>
-                    <Trans>Don’t have an account?</Trans>{" "}
-                    <Link to={`/sign-up${nextQuery}`} className="font-medium text-foreground">
-                      <Trans>Sign up</Trans>
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Trans>Already have an account?</Trans>{" "}
-                    <Link to={`/sign-in${nextQuery}`} className="font-medium text-foreground">
-                      <Trans>Sign in</Trans>
-                    </Link>
-                  </>
-                )}
-              </p>
+              {showAccountSwitch ? (
+                <p className="mt-[30px] text-center">
+                  {mode === "in" ? (
+                    <>
+                      <Trans>Don’t have an account?</Trans>{" "}
+                      <Link to={`/sign-up${nextQuery}`} className="font-medium text-foreground">
+                        <Trans>Sign up</Trans>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Trans>Already have an account?</Trans>{" "}
+                      <Link to={`/sign-in${nextQuery}`} className="font-medium text-foreground">
+                        <Trans>Sign in</Trans>
+                      </Link>
+                    </>
+                  )}
+                </p>
+              ) : null}
             </div>
           ) : (
             <>
@@ -594,7 +599,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="lg"
+                  size="xl"
                   disabled={pending}
                   className={submitClass}
                   onClick={() => reset.demoAccount && void signInAsDemo(reset.demoAccount)}
@@ -612,7 +617,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   <Trans>Back</Trans>
                 </button>
               ) : null}
-              {codeStep ? null : (
+              {!codeStep && showAccountSwitch ? (
                 <p className="mt-[30px] text-center text-[16px] text-[#8A8590]">
                   {mode === "in" ? (
                     <>
@@ -644,7 +649,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                     </Link>
                   )}
                 </p>
-              )}
+              ) : null}
             </>
           )}
         </form>
@@ -722,7 +727,7 @@ export function PasswordResetPage() {
           ) : null}
           <Button
             type="submit"
-            size="lg"
+            size="xl"
             disabled={pending || !params.get("token")}
             className={submitClass}
           >
@@ -838,6 +843,7 @@ function PasswordField({
         maxLength={MAX_PASSWORD_LENGTH}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        size="xl"
         className={fieldClass}
       />
     </div>

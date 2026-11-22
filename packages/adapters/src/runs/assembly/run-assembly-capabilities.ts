@@ -14,6 +14,7 @@ import {
 import { availableInSpace, parseComputerMode } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { createApprovedEffectReplayQueue } from "../../approvals/approval-effect.js";
+import { appendOutsideText, taskPromptIsOutside } from "../../approvals/review-target-sources.js";
 import { loadGroupContext } from "../../bots/group-handoff.js";
 import { botMayUseChannels } from "../../channels.js";
 import { USER_CLOUD_AGENT_KEY_PREFIX } from "../../cloud-agents/cloud-agent-factory.js";
@@ -65,6 +66,7 @@ import {
   offersAgentConnectionTools,
   selectBuiltinToolsForRun,
   selectToolsForRoutingMode,
+  unavailableBuiltinToolReasons,
 } from "../tools/run-tool-selection.js";
 import type { UserComputerState } from "../tools/run-tools-user-computer.js";
 import { USER_COMPUTER_SHELL_TOOL, userComputerOwner } from "../tools/run-tools-user-computer.js";
@@ -78,7 +80,7 @@ import {
 import { runModelBackups, startRunModel } from "../turn/run-model-start.js";
 import { RECENT_TURN_IMAGE_TURNS } from "../turn/run-turn-images.js";
 import { refreshTakeoverContinuePlan } from "../turn/takeover-resume.js";
-import { historyReplaysOutsideContent } from "../turn/tool-step-calls.js";
+import { historyReplaysOutsideContent, historyToolResults } from "../turn/tool-step-calls.js";
 import type { ThreadHistory, TurnContext } from "./run-assembly-history.js";
 import type { ConnectedRun, RunRecords, SavedTurn } from "./run-assembly-records.js";
 import { lazyRunComputer } from "./run-computer.js";
@@ -620,7 +622,10 @@ export async function resolveRunCapabilities(
       userComputer = "connected";
       userComputerShell = !device.screenOnly;
       // The macOS and Windows desktops fetch a screen driver; Linux has none yet.
-      userComputerScreen = device.platform === "darwin" || device.platform === "win32";
+      const computers = await deps.userDevices.list(userComputerOwnerId);
+      userComputerScreen = [device, ...computers.filter((computer) => computer.connected)].some(
+        (computer) => computer.platform === "darwin" || computer.platform === "win32",
+      );
     } else userComputer = "offline";
   }
   const cloudAgent = await cloudAgentPromise;
@@ -684,6 +689,7 @@ export async function selectRunTools(
     connected: ConnectedRun;
     turnContext: TurnContext;
     capabilities: RunCapabilities;
+    meetingTranscriptsAvailable?: boolean;
   },
 ) {
   const { contextStrategy, mediaGeneration, paidServices } = services;
@@ -762,6 +768,7 @@ export async function selectRunTools(
           }),
         ),
       historyRetrievalEnabled: contextStrategy !== "current" && !unknownChannelSourceId,
+      meetingTranscriptsAvailable: parts.meetingTranscriptsAvailable,
       graphicalToolsAllowed,
       pageBrowserAllowed,
       groupId: conversationThread.groupId,
@@ -844,6 +851,12 @@ export async function selectRunTools(
     Boolean(turnCheckpoint) ||
     Boolean(checkpointLoadError) ||
     historyReplaysOutsideContent(history);
+  // What Auto Review checks a call's targets against: a run someone else started carries their
+  // words in its task, and replayed history the results earlier turns read.
+  const initialOutsideText = [
+    ...(taskPromptIsOutside(run, ownerStartedRun) ? [task.prompt] : []),
+    ...historyToolResults(history),
+  ].reduce<string>(appendOutsideText, "");
   // The creation intro only asks what the bot is for (see selectBuiltinToolsForRun),
   // so it gets no connector tools either.
   // Manor: a run pinned to the computer or to plugins is offered only that side.
@@ -851,6 +864,15 @@ export async function selectRunTools(
     { computerToolsAvailable, pluginToolsAvailable },
     strategicBuiltins,
     run.trigger === "created" ? [] : strategicConnectorTools,
+  );
+  // Reasons come from the bot's own settings, not the handoff_to_bot entry added above.
+  const unavailableToolReasons = unavailableBuiltinToolReasons(
+    {
+      groupId: conversationThread.groupId,
+      trigger: run.trigger,
+      disabledBuiltinTools: bot.disabledBuiltinTools,
+    },
+    tools,
   );
   const taskCatalogInstruction = tools.some((tool) => tool.name === "task_catalog")
     ? TASK_CATALOG_GUIDANCE
@@ -868,7 +890,9 @@ export async function selectRunTools(
     trustLoaders,
     searchResultUrls,
     initiallyTainted,
+    initialOutsideText,
     tools,
+    unavailableToolReasons,
     taskCatalogInstruction,
     approvedEffects,
     approvedEffectReplays,

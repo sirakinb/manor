@@ -1,20 +1,18 @@
 import type { AgentToolExecutionObserver, ConnectorCall } from "@rakazo/adapter-kit";
 import {
-  applyJudgeDecision,
-  BACKGROUND_HELPER_TRIGGER,
   batchActions,
+  clicksBeforeTyping,
   connectorKindFromToolName,
   connectorReadRequiresApproval,
   connectorToolRequiresApproval,
   decisiveActionApprovalRules,
   displayName,
-  HELPER_RESULT_TRIGGER,
   humanizeToolName,
   isLocalComputerMutatingTool,
   outboundSiteGate,
   outsideRunToolRequiresApproval,
+  ownComputerActionNeedsReview,
   planActionGate,
-  redactSecrets,
   repeatsDeniedAction,
   resolveActionApprovalForTools,
   SITE_SENDING_TOOLS,
@@ -24,11 +22,13 @@ import {
 } from "@rakazo/core";
 import { normalizedHttpUrl, urlSite } from "@rakazo/core/egress";
 import { approvalEffectKey, toolEffectIdempotencyKey } from "@rakazo/core/node/approval-effect-key";
-import type { AuditEventInput } from "@rakazo/db";
-import { recordAuditEvent, runSecretKind } from "@rakazo/db";
-import { bestEffort } from "@rakazo/logging";
+import { runSecretKind } from "@rakazo/db";
 import type { ApprovalCardOptions } from "../../approvals/approval-ask.js";
-import { buildApprovalAskBlock, MAX_FETCH_URL_LENGTH } from "../../approvals/approval-ask.js";
+import {
+  approvalActionName,
+  buildApprovalAskBlock,
+  MAX_FETCH_URL_LENGTH,
+} from "../../approvals/approval-ask.js";
 import {
   boundDirectApprovalDetails,
   DENIED_ACTION_ERROR,
@@ -37,8 +37,6 @@ import {
   uncertainEffectResult,
 } from "../../approvals/approval-effect.js";
 import { scheduleApprovalExpiry } from "../../approvals/approval-expiry.js";
-import { redactToolArgsForReview } from "../../approvals/auto-review.js";
-import { reviewOwnerMessages } from "../../approvals/review-owner-messages.js";
 import { pagePaymentPrecheck, paysWithWallet } from "../../billing/spending-gate.js";
 import { argumentGiven } from "../../bots/update-bot-patch.js";
 import { reportBotMessageWait } from "../../messaging/bot-messages.js";
@@ -51,7 +49,6 @@ import { scheduleRunSecretsExpiry } from "../../secrets/run-secrets-expiry.js";
 import { RAKAZO_DOCS_URLS } from "../../tools/builtin-skills.prompt.js";
 import { CATALOG_LOAD, CATALOG_SEARCH } from "../../tools/lazy-tool-catalog.js";
 import { watchFromTool } from "../../tools/schedule-tools.js";
-import type { VerificationEngineId } from "../../verification-engines.js";
 import type { RunContext } from "../assembly/run-context.js";
 import {
   isRunTainted,
@@ -71,7 +68,10 @@ import {
 import { enqueueSteeringContinuation, renewRunLease } from "../lifecycle/run-lifecycle.js";
 import { notifyRun } from "../lifecycle/run-notifications.js";
 import { refusal } from "../turn/tool-refusal.js";
+import { auditToolCall } from "./run-tool-audit.js";
 import type { ToolRequest } from "./run-tool-request.js";
+import type { ToolReview } from "./run-tool-review.js";
+import { backfillShadowReview, reviewToolCall } from "./run-tool-review.js";
 import { BUILTIN_AGENT_TOOL_NAMES, READ_ONLY_AGENT_TOOLS } from "./run-tool-selection.js";
 import { callMediaTool } from "./run-tools-files.js";
 import { callPaidService } from "./run-tools-integrations.js";
@@ -112,20 +112,6 @@ export type ToolHandler = (ctx: RunContext, call: ToolCall) => Promise<unknown>;
 export type ToolHandlers = Record<string, ToolHandler>;
 
 type GateOutcome = { result: unknown; replayed?: true } | { call: ToolCall };
-
-type ToolReview = {
-  name: string;
-  args: Record<string, unknown>;
-  connectorKind: ReturnType<typeof connectorKindFromToolName>;
-  newSite: boolean;
-  savedContextWrite: boolean;
-  fetchUrl: string | undefined;
-  matchingRules: ReturnType<typeof resolveActionApprovalForTools>["matchingRules"];
-  gated: boolean;
-  applied: AppliedEffect | undefined;
-  /** Manor: the engine that decides and the one that shadows it for comparison. */
-  engines: { primary?: VerificationEngineId; shadow?: VerificationEngineId };
-};
 
 /**
  * Decide whether a resolved call runs, asks the owner, is reviewed, or is refused, and record
@@ -260,10 +246,47 @@ export async function gateToolCall(
   const savedContextWriteReviewed = await savedContextWriteNeedsReview(name, () =>
     isRunTainted(ctx),
   );
+  // The page a call opens, or types into: opening one sends its whole URL to the site, like a
+  // fetch, and typing sends the text to the site of the page the browser last reported.
+  const opensPage = name === "browser_navigate" || name === "open_path";
+  const pageTarget =
+    name === "open_path"
+      ? args.path
+      : name === "browser_navigate"
+        ? args.url
+        : name === "browser_act" && !ctx.state.pageUrlUncertain && !clicksBeforeTyping(args)
+          ? ctx.state.pageUrl
+          : undefined;
+  const pageUrl = typeof pageTarget === "string" ? normalizedHttpUrl(pageTarget) : undefined;
+  const pageSite = pageUrl ? urlSite(pageUrl) : undefined;
+  const mode = await ctx.trust.loadApprovalMode();
+  // Only the approval model reads this, so only Auto looks for outside content here.
+  const ownComputerActionReviewed = await ownComputerActionNeedsReview(name, args, {
+    tainted: async () => mode === "auto" && (await isRunTainted(ctx)),
+    pageSiteGiven: async () =>
+      pageUrl !== undefined &&
+      pageSite !== undefined &&
+      outboundSiteGate({
+        site: pageSite,
+        // A search result's exact URL may be opened, as it may be fetched, but what the bot types
+        // or uploads there goes to a page outside content chose.
+        trusted:
+          (opensPage && ctx.trust.searchResultUrls.has(pageUrl)) ||
+          (await ctx.trust.loadTrustedSites()).has(pageSite),
+        rules: await ctx.trust.loadApprovalRules(),
+      }) === "allow",
+  });
+  // A page opened on a new site is judged on its URL alone, as a fetch is, when the URL is short
+  // enough to show whole; a longer one is judged with the call's other arguments, under their limit.
+  const newPageUrl =
+    ownComputerActionReviewed && opensPage && pageSite && pageUrl!.length <= MAX_FETCH_URL_LENGTH
+      ? pageUrl
+      : undefined;
   // Outside text only ever informs the approval model: these go to it in Auto, and nowhere else.
   const reviewOnly =
     connectorReadGated ||
     savedContextWriteReviewed ||
+    ownComputerActionReviewed ||
     (Boolean(request.settingsChange) && (await isRunTainted(ctx)));
   const { purchase, cardUse, loginUse } = request;
   // Saved logins that ask first require the owner on every use, like saved cards.
@@ -299,11 +322,11 @@ export async function gateToolCall(
   const asksEveryTime =
     (unattendedWatch || scheduleNamesNewSite || routineAddsEvents || ignoresAllowRules) &&
     !toolRequiresApproval(name, viaConnector);
-  const mode = await ctx.trust.loadApprovalMode();
-  // Manor: upstream's holdSharedPageSave holds a save to a page shared by link for approval,
+  // Manor: upstream's holdSharedPageSave holds a save to a shared page (by link or with people),
   // except in Never ask; there it is refused when the run could have been steered.
-  const editsSharedPage =
-    name === "save_page" && mode === "never" && (await savesSharedPage(ctx, args));
+  const sharedPage =
+    name === "save_page" && mode === "never" ? await sharedPageSaved(ctx, args) : undefined;
+  const editsSharedPage = sharedPage !== undefined;
   // Never ask runs everything else: only another owner's connection could have been steered into it.
   // Manor: so could a change on This Mac, the owner's own laptop, which Never ask refused before.
   // Manor: so could a shared page save or a paid service call, which spends the deployment's money.
@@ -367,7 +390,9 @@ export async function gateToolCall(
         "approval_denied",
         approvalResolved.decision === "deny"
           ? `${name} is blocked in this space${blockingRuleSuffix(approvalResolved)}. Don't try it another way; tell the user it's blocked.`
-          : `${name} needs the owner's approval because it could have been asked for by someone else, and this space never asks. Don't retry; tell the user.`,
+          : sharedPage
+            ? `${name} would change a page shared ${sharedPage === "link" ? "by link" : "with specific people"}, which needs the owner's approval because it could have been asked for by someone else, and this space never asks. Don't retry; tell the user.`
+            : `${name} needs the owner's approval because it could have been asked for by someone else, and this space never asks. Don't retry; tell the user.`,
       ),
     };
   }
@@ -483,9 +508,11 @@ export async function gateToolCall(
     name,
     args,
     connectorKind,
-    newSite: siteGate === "new",
+    newSiteUrl: siteGate === "new" ? fetchUrl : newPageUrl,
     savedContextWrite: savedContextWriteReviewed,
-    fetchUrl,
+    ownComputerAction: ownComputerActionReviewed && !newPageUrl,
+    // Only a page the gate knows this call types into; one that may have changed shows none.
+    pageUrl: name === "browser_act" ? pageUrl : undefined,
     matchingRules: approvalResolved.matchingRules,
     gated,
     applied,
@@ -622,6 +649,9 @@ export async function gateToolCall(
     const early = await call.claimOrReturn("intended");
     if (early !== undefined) return { result: early, replayed: true };
   }
+  // A desktop action or a command can change the page the page browser last reported.
+  if (name === "open_path" || name === "launch_app" || name === "computer_act" || name === "shell")
+    ctx.state.pageUrlUncertain = true;
   // Past the gate: this destination is now one the run was given. A search result's exact
   // URL trusts only that URL, never the rest of its site, and a URL Auto Review passed (judged on
   // what that URL carries) trusts nothing beyond itself: the site's next URL is judged again.
@@ -635,41 +665,23 @@ export async function gateToolCall(
 }
 
 /**
- * Manor: a save_page call that changes a page currently shared by link, the same pages
- * upstream's holdSharedPageSave holds outside Never ask. Reads ask nothing.
+ * Manor: how a save_page call that changes a page is shared, by link or with specific people: the
+ * same pages upstream's holdSharedPageSave holds outside Never ask. Reads and private pages give
+ * nothing.
  */
-async function savesSharedPage(ctx: RunContext, args: Record<string, unknown>) {
+async function sharedPageSaved(
+  ctx: RunContext,
+  args: Record<string, unknown>,
+): Promise<"link" | "people" | undefined> {
   const changes = ["source", "edits", "title"].some((key) =>
     key === "edits" && Array.isArray(args.edits) ? args.edits.length > 0 : argumentGiven(args[key]),
   );
-  if (args.help === true || !argumentGiven(args.pageId) || !changes) return false;
+  if (args.help === true || !argumentGiven(args.pageId) || !changes) return undefined;
   const page = await ctx.deps.prisma.page.findFirst({
     where: { id: String(args.pageId), spaceId: ctx.run.spaceId, userId: ctx.run.userId },
     select: { visibility: true },
   });
-  return page?.visibility === "link";
-}
-
-/** A bot's consequential tool call, recorded in its organization's audit log. */
-export async function auditToolCall(
-  ctx: RunContext,
-  tool: string,
-  outcome: "success" | "failure" | "denied",
-  metadata: AuditEventInput["metadata"],
-  recorded: Pick<AuditEventInput, "action" | "actor"> = {
-    action: "tool.call",
-    actor: { type: "bot", id: ctx.bot.id, label: ctx.bot.name },
-  },
-): Promise<void> {
-  await recordAuditEvent({
-    ...recorded,
-    spaceId: ctx.run.spaceId,
-    target: { type: "tool", id: tool, label: humanizeToolName(tool) },
-    outcome,
-    runId: ctx.runId,
-    threadId: ctx.thread.id,
-    metadata,
-  });
+  return page?.visibility === "link" || page?.visibility === "people" ? page.visibility : undefined;
 }
 
 function blockingRuleSuffix(resolved: ReturnType<typeof resolveActionApprovalForTools>): string {
@@ -807,172 +819,11 @@ async function showApprovalCard(ctx: RunContext, call: ToolCall, card: ApprovalC
   await notifyRun(deps, run, {
     kind: "help",
     title: `${displayName(bot.name, "Bot")} needs approval`,
-    body: `Review before ${name}`,
+    // Only the action, with no verb: the card's title can name a recipient or subject, and a call
+    // can decline rather than allow, so both stay on the card.
+    body: approvalActionName(name, args, card.batch, ctx.secrets),
     botId: bot.id,
     threadId: thread.id,
   });
   return pauseForApproval(ctx);
-}
-
-/** A helper's brief is the bot's, so its review is judged on the owner's words instead. */
-function delegatedRun(ctx: RunContext): boolean {
-  return ctx.run.trigger === BACKGROUND_HELPER_TRIGGER || ctx.run.trigger === HELPER_RESULT_TRIGGER;
-}
-
-/**
- * What a review judges. A new site, or a memory or skill save after outside content, is judged on
- * the owner's own words only (with the full URL for a new site): the task prompt of a webhook,
- * helper or bot-started run carries text someone else wrote. A follow-up's task is a fixed
- * "continue" prompt, so the owner's latest words stand in for it.
- */
-async function reviewSubject(ctx: RunContext, review: ToolReview) {
-  const { bot } = ctx;
-  const { name, args, connectorKind, fetchUrl } = review;
-  const botDescription = redactSecrets(`${bot.name}\n${bot.description}`, ctx.secrets);
-  const newSite = review.newSite && fetchUrl !== undefined;
-  // A webhook run's task prompt carries the delivery, which someone else wrote, so the checker
-  // gets only the owner's routine (reviewToolCall asks a person when there is none).
-  const ownerWordsOnly =
-    newSite || review.savedContextWrite || ctx.run.trigger === "webhook" || delegatedRun(ctx);
-  const continuation = ctx.run.trigger === "follow_up" || ctx.run.trigger === "messaging";
-  const userTask = ownerWordsOnly
-    ? await ctx.trust.loadOwnerWords()
-    : (continuation && (await ctx.trust.loadOwnerWords()).trim()) || ctx.task.prompt;
-  return {
-    toolName: name,
-    connectorKind,
-    args:
-      newSite && fetchUrl
-        ? { url: redactSecrets(fetchUrl, ctx.secrets) }
-        : redactToolArgsForReview(args, ctx.secrets),
-    userTask: redactSecrets(userTask, ctx.secrets),
-    botDescription,
-  };
-}
-
-/** One engine's verdict on a call. A reviewer that throws counts as "could not check". */
-async function reviewWith(ctx: RunContext, review: ToolReview, engine: VerificationEngineId) {
-  const newSite = review.newSite && review.fetchUrl !== undefined;
-  const ownerMessages = reviewOwnerMessages(
-    // Extra context only: a failed lookup drops it and never fails the review.
-    (
-      (await bestEffort("auto_review.owner_messages", ctx.trust.loadEarlierOwnerMessages())) ?? []
-    ).map((text) => redactSecrets(text, ctx.secrets)),
-  );
-  return ctx.verification.reviewAction(engine, {
-    ...(await reviewSubject(ctx, review)),
-    matchingRules: review.matchingRules,
-    ...(newSite ? { newSite: true } : {}),
-    ...(review.savedContextWrite ? { savedContextWrite: true } : {}),
-    ...(ownerMessages.length ? { ownerMessages } : {}),
-  });
-}
-
-const actionCheck = (name: string, effectId: string) =>
-  ({ checkpoint: "action", subject: name, effectId }) as const;
-
-/**
- * Run the selected verification engine on a call and store its verdict on the effect, with
- * its comparison row in the same interactive transaction. The shadow engine is only logged.
- * Returns nothing when there is no engine or the run was cancelled.
- */
-async function reviewToolCall(
-  ctx: RunContext,
-  review: ToolReview,
-): Promise<{ reason: string | undefined; decision: "ask" | "allow" } | undefined> {
-  const { deps, context } = ctx;
-  const { primary: primaryEngine, shadow: shadowEngine } = review.engines;
-  if (!primaryEngine) return;
-  // With no routine to judge a webhook run against, a person decides. Older helpers and deleted
-  // origins cannot establish authorization from their brief either.
-  if (
-    (ctx.run.trigger === "webhook" || delegatedRun(ctx)) &&
-    !(await ctx.trust.loadOwnerWords()).trim()
-  )
-    return { reason: undefined, decision: "ask" };
-  // The shadow only feeds comparison, so it must never delay the selected verdict.
-  const shadowReview = shadowEngine ? reviewWith(ctx, review, shadowEngine) : undefined;
-  const primary = await reviewWith(ctx, review, primaryEngine);
-  // Cancellation must not write a review the next attempt would reuse.
-  if (context.signal.aborted) return;
-  const verdict = {
-    reason: primary.reason,
-    decision: applyJudgeDecision({ decision: primary.decision, consequential: review.gated }),
-  };
-  const { applied } = review;
-  if (!applied) {
-    await auditAutoReview(
-      ctx,
-      review.name,
-      applied,
-      primary.decision,
-      primary.model,
-      primaryEngine,
-    );
-    return verdict;
-  }
-  const effectId = applied.effect.id;
-  // Replays trust the stored decision, so its comparison row must commit with it.
-  // Interactive, because row-level security rejects a batch transaction in the
-  // run's tenant context.
-  await deps.prisma.$transaction(async (tx) => {
-    await tx.externalEffect.update({
-      where: { id: effectId },
-      data: {
-        reviewDecision: primary.decision,
-        reviewReason: primary.reason,
-        reviewModel: primary.model,
-      },
-    });
-    await tx.verificationCheck.create({
-      data: ctx.verification.verificationRow(
-        actionCheck(review.name, effectId),
-        primaryEngine,
-        "primary",
-        primary,
-      ),
-    });
-  });
-  await auditAutoReview(ctx, review.name, applied, primary.decision, primary.model, primaryEngine);
-  if (shadowEngine && shadowReview) {
-    ctx.verification.logShadow(
-      actionCheck(review.name, effectId),
-      shadowEngine,
-      () => shadowReview,
-    );
-  }
-  return verdict;
-}
-
-/** A replayed decision has no shadow row when the first attempt ended before logging it. */
-async function backfillShadowReview(ctx: RunContext, review: ToolReview) {
-  const shadowEngine = review.engines.shadow;
-  const { applied } = review;
-  if (!applied || !shadowEngine) return;
-  const logged = await ctx.deps.prisma.verificationCheck.count({
-    where: { effectId: applied.effect.id, engine: shadowEngine },
-  });
-  if (!logged) {
-    ctx.verification.logShadow(actionCheck(review.name, applied.effect.id), shadowEngine, () =>
-      reviewWith(ctx, review, shadowEngine),
-    );
-  }
-}
-
-function auditAutoReview(
-  ctx: RunContext,
-  tool: string,
-  applied: AppliedEffect | undefined,
-  decision: string,
-  model: string | undefined,
-  /** Manor: which verification engine judged the call (its model is the actor label). */
-  engine: VerificationEngineId,
-): Promise<void> {
-  return auditToolCall(
-    ctx,
-    tool,
-    decision === "error" ? "failure" : "success",
-    { effectId: applied?.effect.id, decision, engine },
-    { action: "approval.auto_reviewed", actor: { type: "system", label: model } },
-  );
 }
