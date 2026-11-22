@@ -391,6 +391,9 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   is kept at upstream's number. Manor's places (Workspace, CRM, docs) and side panels (files,
   run logs, saved logins) load when opened (`lazyComponent`), which keeps the web app under it.
   A new Manor view is loaded the same way; raise the budget only for code every page needs.
+  The desktop main process is one file built from the whole app contract, so Manor's own
+  procedures and Share this Mac code cannot be split off; `scripts/checks/bundle-size.manor.json`
+  adds that much to upstream's budget for it, and upstream's budgets file stays untouched.
 - The mobile app stays on Manor's own version and keeps no Apple sign-in entitlement; upstream's
   `expo-apple-authentication` config plugin is not in Manor's app config.
 - Upstream regrouped its source into topic folders in `v0.13.0`. Manor-only files stay where
@@ -705,7 +708,11 @@ Things the one production deploy at the end must cover, collected as stages land
   - Approvals changed again upstream: the approval mode alone decides when a bot asks. In Ask,
     saving memory or a skill no longer asks; a webhook-started run now asks with a card that
     expires instead of refusing a purchase, a sign-in or a new site outright. Manor's refusals
-    and the allow-once rule for This Mac are unchanged. Say so in the release note to tenants.
+    and the allow-once rule for This Mac are unchanged. In Auto, changing another bot's model or
+    creating a space now goes to the approval model instead of always asking a person; creating
+    a group or a routine for another bot no longer shows a card; in Never ask, a purchase or a
+    saved login runs without a card and only the spending limit applies; a scheduled routine
+    counts as started by its owner. Say so in the release note to tenants.
   - New for people: a one-time prompt to adopt the device's time zone (never the shared
     account's in a team space), editable outgoing drafts on approval cards, an optional model
     picker in the message box, the mobile inbox opening from a saved copy on the device, and

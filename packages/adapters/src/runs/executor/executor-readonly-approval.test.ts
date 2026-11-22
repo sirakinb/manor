@@ -4257,6 +4257,63 @@ it("uses the OpenRouter environment key for a decision checker on another deploy
   }
 });
 
+// Upstream (#5269) moved set_child_bot_model from "a person every time" to the approval mode:
+// Ask shows a card that offers Always allow; Auto lets the approval model judge it.
+describe("changing another bot's model", () => {
+  beforeEach(() => reviewMock.mockReset());
+  const call = { args: { bot_id: "child-1", clear: true }, executionId: "call-1" };
+  // The bot to change, on a model of its own so that clearing it is a change.
+  function withChild(f: ReturnType<typeof fixture>) {
+    const child = {
+      id: "child-1",
+      name: "Scout",
+      modelProvider: "openrouter",
+      modelId: "scripted",
+      thinkingLevel: null,
+      userId: "user-1",
+      thread: { id: "child-thread" },
+    };
+    const findMany = f.prisma.bot.findMany;
+    Object.assign(f.prisma.bot, {
+      findMany: vi.fn(async (query: { where?: { id?: unknown } }) =>
+        query?.where?.id === "child-1" ? [child] : findMany(query as never),
+      ),
+    });
+    return f;
+  }
+
+  it("asks in Ask with a card that offers Always allow", async () => {
+    const f = withChild(
+      fixture({ name: "set_child_bot_model", builtin: true, fleetManagement: true }),
+    );
+    f.setCalls([call]);
+    await f.run();
+    expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+    expect(isApprovalPausedResult(f.results[0])).toBe(true);
+    expect(pausedActionIds(f)).toEqual(["allow", "always", "deny"]);
+    expect(reviewMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["ask", true],
+    ["pass", false],
+  ] as const)("in Auto follows the approval model's %s", async (decision, asks) => {
+    reviewMock.mockResolvedValue({ decision, reason: "Checked", model: "mock" });
+    const f = withChild(
+      fixture({
+        name: "set_child_bot_model",
+        builtin: true,
+        fleetManagement: true,
+        autoReview: true,
+      }),
+    );
+    f.setCalls([call]);
+    await f.run(true);
+    expect(reviewMock).toHaveBeenCalledOnce();
+    expect(f.pauseRunForInput).toHaveBeenCalledTimes(asks ? 1 : 0);
+  });
+});
+
 describe("retry of an action a person denied in the same run", () => {
   const WRAPPER = "COMPOSIO_MULTI_EXECUTE_TOOL";
   const DENIED = { error: DENIED_ACTION_ERROR };

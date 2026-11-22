@@ -8,6 +8,18 @@ import { gzipSync } from "node:zlib";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const BUDGETS_FILE = "scripts/checks/bundle-size.budgets.json";
+// Manor: what the fork's own code needs above upstream's budgets, in kB, with the reason beside it
+// in scripts/checks/README.md. Upstream's budgets file is never edited.
+const MANOR_ALLOWANCE_FILE = "scripts/checks/bundle-size.manor.json";
+
+/** Upstream's budgets with Manor's allowance added per bundle. */
+export function withManorAllowance(budgets, allowance) {
+  const combined = { ...budgets };
+  for (const [name, extra] of Object.entries(allowance)) {
+    if (typeof combined[name] === "number") combined[name] += extra;
+  }
+  return combined;
+}
 const LARGEST_SHOWN = 8;
 
 // The entry HTML names the entry chunk, every chunk it imports statically (the bundler's
@@ -96,7 +108,8 @@ export function checkBundleSizes(root, budgets) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const budgets = JSON.parse(readFileSync(path.join(repoRoot, BUDGETS_FILE), "utf8"));
+  const read = (file) => JSON.parse(readFileSync(path.join(repoRoot, file), "utf8"));
+  const budgets = withManorAllowance(read(BUDGETS_FILE), read(MANOR_ALLOWANCE_FILE));
   const { passed, failures } = checkBundleSizes(repoRoot, budgets);
   for (const line of passed) console.log(line);
   for (const failure of failures) console.error(`\n${failure}`);

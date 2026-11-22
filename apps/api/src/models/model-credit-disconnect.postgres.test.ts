@@ -19,7 +19,7 @@ suite("personal connection removal preserves credit models (PostgreSQL)", () => 
   const actor: Actor = {
     userId,
     spaceId: spaceIds[0]!,
-    organizationId: "org-1",
+    organizationId,
     email: `credit-disconnect-${stamp}@rakazo.test`,
     isDeploymentOwner: false,
   };

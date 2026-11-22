@@ -40,7 +40,7 @@ Raising a count or adding a file is a hand edit that review will see. It is fine
 
 ### Manor allowances
 
-Manor never edits upstream's baselines. What Manor's own code has above them lives beside them: `ratchets/<rule>.manor.json` (rewritten with `node scripts/checks/ratchets.mjs --freeze-manor`) and `folder-size.manor.json` for the folder size check, where the larger of the two counts per folder wins and `--tighten` leaves Manor's file alone.
+Manor never edits upstream's baselines. What Manor's own code has above them lives beside them: `ratchets/<rule>.manor.json` (rewritten with `node scripts/checks/ratchets.mjs --freeze-manor`) and `folder-size.manor.json` for the folder size check, where the larger of the two counts per folder wins and `--tighten` leaves Manor's file alone. `bundle-size.manor.json` adds kB to a bundle's budget: the desktop main process is one file built from the whole app contract, so Manor's own procedures (Workspace, CRM, maintenance) and its Share this Mac code, about 70 kB, cannot be loaded lazily. The web startup has no allowance: Manor's views load on demand.
 
 ## Compatibility shims
 

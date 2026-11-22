@@ -70,7 +70,7 @@ dbTests("model connection email", () => {
     const actor: Actor = {
       userId: id,
       spaceId: id,
-      organizationId: "org-1",
+      organizationId: id,
       email: `${id}@example.test`,
       isDeploymentOwner: false,
     };
@@ -121,7 +121,7 @@ dbTests("model connection email", () => {
 
     const [message, ...extra] = sentTo(id);
     expect(extra).toHaveLength(0);
-    expect(message!.subject).toBe("Connect a model to start using Rakazo");
+    expect(message!.subject).toBe("Connect a model to start using Manor");
     expect(message!.text).toContain(`${WEB_ORIGIN}/sign-in?next=%2Fonboarding%2Fmodel`);
     expect(message!.text).toContain("ChatGPT or Claude subscription, or paste an API key");
     expect(message!.headers).toEqual({

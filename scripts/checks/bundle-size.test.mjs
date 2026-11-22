@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkBundleSizes } from "./bundle-size.mjs";
+import { checkBundleSizes, withManorAllowance } from "./bundle-size.mjs";
 
 const BUDGETS = { "web-startup": 10, "desktop-main": 10 };
 
@@ -120,4 +120,14 @@ test("every measured bundle has a committed budget", (t) => {
     'No budget for "web-startup" in scripts/checks/bundle-size.budgets.json.',
     'No budget for "desktop-main" in scripts/checks/bundle-size.budgets.json.',
   ]);
+});
+
+test("Manor's allowance is added to upstream's budget for that bundle only", () => {
+  assert.deepEqual(
+    withManorAllowance({ "web-startup": 900, "desktop-main": 2760 }, { "desktop-main": 80 }),
+    { "web-startup": 900, "desktop-main": 2840 },
+  );
+  assert.deepEqual(withManorAllowance({ "web-startup": 900 }, { other: 5 }), {
+    "web-startup": 900,
+  });
 });

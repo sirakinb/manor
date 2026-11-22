@@ -81,7 +81,7 @@ describe.skipIf(!enabled)("MCP catalog connect (PostgreSQL, offline providers)",
       ).id;
       actor = {
         spaceId,
-        organizationId: "org-1",
+        organizationId,
         userId,
         email: `${userId}@example.test`,
         isDeploymentOwner: false,

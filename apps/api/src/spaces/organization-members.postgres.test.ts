@@ -84,7 +84,7 @@ describePostgres("organization members and invitations (PostgreSQL)", () => {
       actor: {
         userId: id,
         spaceId: id,
-        organizationId: "org-1",
+        organizationId: id,
         email: address,
         isDeploymentOwner: false,
       },
@@ -120,7 +120,11 @@ describePostgres("organization members and invitations (PostgreSQL)", () => {
       invitationId,
     });
     expect(accepted.status).toBe(200);
-    return { ...invitee.actor, spaceId: accepted.json.spaceId as string };
+    return {
+      ...invitee.actor,
+      spaceId: accepted.json.spaceId as string,
+      organizationId: inviter.organizationId,
+    };
   }
 
   async function sharedSpace(owner: Person, name: string): Promise<string> {
@@ -603,11 +607,28 @@ describePostgres("organization members and invitations (PostgreSQL)", () => {
     const organizationId = owner.organizationId;
     const colleagueActor = await join(owner, colleague);
     const clients = await sharedSpace(owner, "Clients");
-    const ownerIn = { ...owner.actor, spaceId: clients };
+    // Manor: an actor acts in the organization of the Space it is in.
+    const ownerIn = { ...owner.actor, spaceId: clients, organizationId };
+    // Manor: a space without a shared account holds one person, so the owner cannot add a
+    // colleague to it directly (as in "adds members to a Space" above).
     expect(
       (await call(ownerIn, "spaces/members/add", { spaceId: clients, userId: colleague.id }))
         .status,
+    ).toBe(403);
+    await expect(
+      system.spaceMember.findUnique({
+        where: { spaceId_userId: { spaceId: clients, userId: colleague.id } },
+      }),
+    ).resolves.toBeNull();
+    // With sharing lifted, the colleague joins by link instead (`assertSpaceTakesPerson` admits a
+    // person who accepted an invite), and stays a member of the organization, not a guest.
+    const colleagueLink = await call(ownerIn, "spaces/invites/create", { spaceId: clients });
+    expect(colleagueLink.status).toBe(200);
+    const colleagueToken = new URL(colleagueLink.json.url as string).pathname.split("/").at(-1)!;
+    expect(
+      (await call(colleagueActor, "spaces/invites/accept", { token: colleagueToken })).status,
     ).toBe(200);
+    await expect(role(organizationId, colleague.id)).resolves.toEqual({ role: "member" });
     const colleagueIn = { ...colleagueActor, spaceId: clients };
     const spaceOf = async (actor: Actor, spaceId: string) => {
       const listed = await call(actor, "spaces/list", {});
@@ -638,7 +659,7 @@ describePostgres("organization members and invitations (PostgreSQL)", () => {
     expect(sent.slice(before)).toHaveLength(1);
     const message = sent.at(-1)!;
     expect(message.to).toBe(outsider.email);
-    expect(message.subject).toBe("owner invited you to Clients on Rakazo");
+    expect(message.subject).toBe("owner invited you to Clients on Manor");
     expect(message.text).toContain(url);
     // Anyone holding the link may join, so the email asks for no particular address.
     expect(message.text).not.toContain("Sign in with this email address");
@@ -657,7 +678,7 @@ describePostgres("organization members and invitations (PostgreSQL)", () => {
     const token = new URL(url).pathname.split("/").at(-1)!;
     expect((await call(outsider.actor, "spaces/invites/accept", { token })).status).toBe(200);
     await expect(role(organizationId, outsider.id)).resolves.toEqual({ role: "guest" });
-    const outsiderIn = { ...outsider.actor, spaceId: clients };
+    const outsiderIn = { ...outsider.actor, spaceId: clients, organizationId };
 
     // Everyone in the Space sees that it includes someone from outside, and who.
     for (const actor of [ownerIn, colleagueIn, outsiderIn])

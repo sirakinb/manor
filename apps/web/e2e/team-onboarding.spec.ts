@@ -145,7 +145,8 @@ test("branded team shows active and last-seen members without exposing other org
         lastActiveAt: new Date("2026-09-02T12:00:00Z"),
       },
     });
-    await page.route(/\/(?:api\/auth|rpc)\//, async (route) => {
+    // Anchored at the origin: a source module's path can hold "/rpc/" too.
+    await page.route(/^https?:\/\/[^/]+\/(?:api\/auth|rpc)\//, async (route) => {
       const request = route.request();
       const url = new URL(request.url());
       const response = await route.fetch({

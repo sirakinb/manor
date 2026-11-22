@@ -5213,6 +5213,9 @@ describeJourneys("required product journeys", () => {
 
     it("set_child_bot_model applies the approved model and re-checks it at execution", async () => {
       const { cookie, chief } = await fleetOwner("child-model");
+      // Manor: the scripted runtime has a reviewer that passes every action, so in Auto this
+      // change is reviewed and runs. Ask shows the card this journey checks.
+      await rpc(app, cookie, "autoReview/set", { mode: "ask" });
       const scout = await createManagedBot(cookie, "Scout");
       await rpc(app, cookie, "models/connect", {
         provider: "openrouter",

@@ -55,7 +55,8 @@ test("demo has isolated sample operations and yellow branding", async ({ page },
       },
     });
     // Exercise the client's portal boundary while serving the UI from local Vite.
-    await page.route(/\/(?:api\/auth|rpc)\//, async (route) => {
+    // Anchored at the origin: a source module's path can hold "/rpc/" too.
+    await page.route(/^https?:\/\/[^/]+\/(?:api\/auth|rpc)\//, async (route) => {
       const request = route.request();
       const url = new URL(request.url());
       const response = await route.fetch({
