@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ReportGenerateInput, WorkspaceSummary } from "@rakazo/contracts";
 import { useState } from "react";
-import { BuiButton } from "../../../components/beautiful-ui/primitives";
+import { BuiButton } from "../../../components/ai/primitives";
 import { Card, Field, INPUT } from "../bits";
 
 export function reportPreviewRange(kind: "monthly_voice" | "email"): { from: string; to: string } {

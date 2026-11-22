@@ -12,10 +12,15 @@ function read(relative: string) {
 describe("local computer ingress", () => {
   it("proxies /local-computer as a websocket to the API in vite server and preview", () => {
     const vite = read("apps/web/vite.config.ts");
-    const matches = vite.match(
-      /"\/local-computer":\s*\{\s*target:\s*api,\s*changeOrigin:\s*false,\s*ws:\s*true\s*\}/g,
+    // One API proxy table serves both the dev server and preview (upstream's shape); Manor
+    // keeps the browser's Host and adds Share this Mac's socket with the device socket's options.
+    const table = vite.slice(
+      vite.indexOf("const upstreamProxy"),
+      vite.indexOf("const screenProxySecret"),
     );
-    expect(matches).toHaveLength(2);
+    expect(table).toContain('"/local-computer": keepHost(upstreamProxy[DEVICE_SOCKET])');
+    expect(table).toMatch(/changeOrigin:\s*false/);
+    expect(vite.match(/^\s+proxy,$/gm)).toHaveLength(2);
   });
 
   it("routes /local-computer to the API in both Caddyfiles", () => {

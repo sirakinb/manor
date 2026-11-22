@@ -1,13 +1,10 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import {
-  CRM_MODULE_FIELD_TYPES,
-  type CrmModule,
-  type CrmModuleFieldType,
-  type CrmModuleRecord,
-} from "@rakazo/contracts";
+import type { CrmModule, CrmModuleFieldType, CrmModuleRecord } from "@rakazo/contracts";
+import { CRM_MODULE_FIELD_TYPES } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
-import { rpc } from "../../lib/rpc";
-import { type SheetColumn, SheetGrid } from "./SheetGrid";
+import { rpc } from "../../lib/query/rpc";
+import type { SheetColumn } from "./SheetGrid";
+import { SheetGrid } from "./SheetGrid";
 
 /**
  * One custom module rendered as a sheet: columns come from the module's field

@@ -1,7 +1,6 @@
-import type { IngestionRunner } from "@rakazo/adapter-kit";
+import type { IngestionRunner, SecretStore } from "@rakazo/adapter-kit";
 import { ReportGenerateInputSchema } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
-import type { EncryptedSecretStore } from "./secrets.js";
 import { loadWorkspaceCredential } from "./workspace-credentials.js";
 
 /** A report ID is the durable request and idempotency key. The ingestion adapter
@@ -9,7 +8,7 @@ import { loadWorkspaceCredential } from "./workspace-credentials.js";
 export async function runWorkspaceReport(
   deps: {
     prisma: PrismaClient;
-    secrets: EncryptedSecretStore;
+    secrets: Pick<SecretStore, "load">;
     ingestion?: IngestionRunner;
   },
   reportId: string,

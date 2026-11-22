@@ -22,10 +22,10 @@ agent, no UI login, no SDK to install.
 
 - A Manor workspace owner mints a **connect key** from their workspace settings.
 - Each key carries **granular scopes** — e.g. `contacts:read`, `leads:write`,
-  `activity:write` — and nothing else. The key *is* the signup.
+  `activity:write` — and nothing else. The key _is_ the signup.
 - Keys are revocable individually, and every call is logged against the key,
   so the workspace owner sees exactly what each connected agent did.
-- OAuth per the MCP spec lets third-party agents *request* access and the
+- OAuth per the MCP spec lets third-party agents _request_ access and the
   workspace owner approve once — the "Sign in with Manor" of agent data.
 
 This is a proven pattern for us: our client agent-workspace deployments already run
@@ -49,7 +49,7 @@ to it). CRM Connect generalizes it into a product surface.
 Your agent gets a persistent, structured memory of the people and deals it manages —
 hosted, multi-tenant, permissioned — for the cost of storing one key. Its human can
 open the Manor UI at any time and see the same data in a full CRM (list, kanban,
-and spreadsheet views), because it *is* the same data.
+and spreadsheet views), because it _is_ the same data.
 
 ## Status & next step
 

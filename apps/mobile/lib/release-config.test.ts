@@ -51,6 +51,9 @@ describe("mobile release configuration", () => {
     expect(app.expo.runtimeVersion).toEqual({ policy: "fingerprint" });
     expect(eas.build.production.channel).toBe("production");
     expect(eas.build.preview.channel).toBe("preview");
-    expect(eas.submit.production).toEqual({});
+    // Submit settings may name a track, but never an account, app or key.
+    expect(JSON.stringify(eas.submit)).not.toMatch(
+      /ascAppId|appleId|appleTeamId|ascApiKey|serviceAccountKeyPath|com\.pentridgemedia/,
+    );
   });
 });

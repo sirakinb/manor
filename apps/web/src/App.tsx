@@ -1,42 +1,187 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
-import { BuiButton, LoadingState } from "./components/beautiful-ui/primitives";
-import { authClient } from "./lib/auth";
-import { brand } from "./lib/brand";
-import { markAfterPaint, markOnce } from "./lib/performance";
-import { signInPathFor, signInReturnPath } from "./lib/return-path";
+import { useTimeout } from "@rakazo/chat-ui/hooks";
+import type { LinkFavicons } from "@rakazo/chat-ui/web";
+import { LinkFaviconsContext, RemoteImagesContext } from "@rakazo/chat-ui/web";
+import { mobileMcpOAuthReturnUrl } from "@rakazo/contracts";
+import { analyticsScreen } from "@rakazo/core";
+import { Button } from "@rakazo/ui-web";
 import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
+import { LoadingState } from "./components/ai/primitives";
+import { SubscriptionGate } from "./components/billing/SubscriptionGate";
+import { AiDataConsentPrompt } from "./components/call/AiDataConsentPrompt";
+import { CallLayout } from "./components/call/CallLayout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { MarkdownLinkPrompt } from "./components/messages/markdown-link-prompt";
+import { PageLoading } from "./components/PageLoading";
+import { authClient } from "./lib/auth/auth";
+import { rememberSignedIn } from "./lib/auth/returning-user";
+import {
+  gateForPath,
+  holdAnonymousGate,
   holdUnreachableGate,
   sessionGate,
   sessionRetryDelayMs,
   showSessionUnavailable,
-} from "./lib/session-gate";
-import { McpOAuthCallbackPage } from "./pages/McpOAuthCallback";
+} from "./lib/auth/session-gate";
+import {
+  MCP_OAUTH_CALLBACK_PATH,
+  newAccountDestination,
+  SLACK_INSTALL_CALLBACK_PATH,
+  signInNext,
+} from "./lib/auth/sign-in-next";
+import { syncLogOutFailure } from "./lib/auth/sign-out";
+import { completeSsoCallback, SSO_CALLBACK_PATH } from "./lib/auth/sso-flow";
+import { getLabs, subscribeLabs } from "./lib/bootstrap";
+import { syncWebLogoAvatarIdentity } from "./lib/bots/logo-avatar-activity";
+import { brand } from "./lib/brand";
+import { syncCallIdentity } from "./lib/calls/call-session";
+import { ORGANIZATION_SWITCHING } from "./lib/organization-switching";
+import { analyticsSurface } from "./lib/platform/desktop";
+import { identifyMonitoringUser } from "./lib/platform/monitoring";
+import { markAfterPaint, markOnce } from "./lib/platform/performance";
+import { lazyComponent } from "./lib/platform/preload-recovery";
+import { remoteImagesPreference } from "./lib/preferences/remote-images-preference";
+import { QueryUserProvider, setQueryUser } from "./lib/query/query";
+import { rpc } from "./lib/query/rpc";
+import { signInPathFor, signInReturnPath } from "./lib/return-path";
+import { SPACE_SHARING } from "./lib/space-sharing";
+import { IntegrationCallbackPage } from "./pages/integrations/IntegrationCallback";
+import { IntegrationSetupPage } from "./pages/integrations/IntegrationSetup";
+import { McpOAuthCallbackPage } from "./pages/integrations/McpOAuthCallback";
+import { SlackInstallCallbackPage } from "./pages/integrations/SlackInstallCallback";
+import { SharedPagePage } from "./pages/SharedPage";
 import { ShellPage } from "./pages/Shell";
+import { AppRailLayout } from "./pages/shell/app-rail";
 
-const AuthPage = lazy(() =>
-  import("./pages/Auth").then((module) => ({ default: module.AuthPage })),
+const PageReviewHost = lazyComponent(() =>
+  import("./components/pages/PageReviewHost").then((module) => module.default),
 );
-const PasswordResetPage = lazy(() =>
-  import("./pages/Auth").then((module) => ({ default: module.PasswordResetPage })),
+const AuthPage = lazyComponent(() => import("./pages/auth/Auth").then((module) => module.AuthPage));
+const PasswordResetPage = lazyComponent(() =>
+  import("./pages/auth/Auth").then((module) => module.PasswordResetPage),
 );
-const OAuthAuthorizePage = lazy(() =>
-  import("./pages/OAuthAuthorize").then((module) => ({ default: module.OAuthAuthorizePage })),
+const OnboardingPage = lazyComponent(() =>
+  import("./pages/onboarding/Onboarding").then((module) => module.OnboardingPage),
 );
-const OnboardingPage = lazy(() =>
-  import("./pages/Onboarding").then((module) => ({ default: module.OnboardingPage })),
+const OAuthAuthorizePage = lazyComponent(() =>
+  import("./pages/OAuthAuthorize").then((module) => module.OAuthAuthorizePage),
 );
-const WelcomePage = lazy(() =>
-  import("./pages/Welcome").then((module) => ({ default: module.WelcomePage })),
+// Manor keeps its landing screen at / on the primary host.
+const WelcomePage = lazyComponent(() =>
+  import("./pages/Welcome").then((module) => module.WelcomePage),
 );
+const NotFoundPage = lazyComponent(() =>
+  import("./pages/NotFound").then((module) => module.NotFoundPage),
+);
+const ArtifactsPage = lazyComponent(() =>
+  import("./pages/space/Artifacts").then((module) => module.ArtifactsPage),
+);
+const BoardPage = lazyComponent(() =>
+  import("./pages/space/Board").then((module) => module.BoardPage),
+);
+const AdminPluginsPage = lazyComponent(() =>
+  import("./pages/plugins/AdminPluginsPage").then((module) => module.AdminPluginsPage),
+);
+const AdminAccessPage = lazyComponent(() =>
+  import("./pages/auth/AdminAccessPage").then((module) => module.AdminAccessPage),
+);
+const NavLinkPage = lazyComponent(() =>
+  import("./pages/NavLinkPage").then((module) => module.NavLinkPage),
+);
+const InvitePage = lazyComponent(() =>
+  import("./pages/auth/Invite").then((module) => module.InvitePage),
+);
+const JoinOrganizationPage = lazyComponent(() =>
+  import("./pages/auth/JoinOrganization").then((module) => module.JoinOrganizationPage),
+);
+
+function SsoCallbackPage() {
+  useEffect(() => {
+    completeSsoCallback();
+  }, []);
+  return null;
+}
+
+// Link icons come from our API, which fetches and caches them; the browser never asks the site.
+const linkFavicons: LinkFavicons = {
+  load: (origin) => rpc.links.favicon({ origin }),
+};
 
 export function App() {
+  const loadRemoteImages = remoteImagesPreference.use();
+  return (
+    <RemoteImagesContext.Provider value={loadRemoteImages}>
+      <LinkFaviconsContext.Provider value={linkFavicons}>
+        <ErrorBoundary fallback={<AppFailed />}>
+          {window.location.pathname === SSO_CALLBACK_PATH ? (
+            <SsoCallbackPage />
+          ) : window.location.pathname === "/integrations/callback" ? (
+            <IntegrationCallbackPage />
+          ) : (
+            <SessionApp />
+          )}
+        </ErrorBoundary>
+      </LinkFaviconsContext.Provider>
+    </RemoteImagesContext.Provider>
+  );
+}
+
+function SessionApp() {
+  const [searchParams] = useSearchParams();
+  const next = signInNext(searchParams.get("next"));
+  const boardEnabled = useSyncExternalStore(
+    subscribeLabs,
+    () => getLabs().includes("board"),
+    () => false,
+  );
   const session = authClient.useSession();
-  const gate = sessionGate(session);
+  const { pathname, search } = useLocation();
+  const screen = analyticsScreen(pathname);
+  const analyticsUserId = session.data?.user.id;
+  const lastScreen = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    // A pending session is not a sign-out; startup already tagged the signed-in user.
+    if (session.isPending) return;
+    void identifyMonitoringUser(Boolean(analyticsUserId));
+  }, [analyticsUserId, session.isPending]);
+  useEffect(() => {
+    if (!analyticsUserId) {
+      lastScreen.current = undefined;
+      return;
+    }
+    if (!screen) return;
+    const key = `${analyticsUserId}:${screen}`;
+    if (lastScreen.current === key) return;
+    lastScreen.current = key;
+    void Promise.resolve()
+      .then(() => rpc.analytics.screen({ screen, surface: analyticsSurface() }))
+      .catch(() => undefined);
+  }, [analyticsUserId, screen]);
+  const gate = gateForPath(sessionGate(session), pathname);
+  useLayoutEffect(() => {
+    if (gate !== "authenticated" && gate !== "anonymous") return;
+    syncWebLogoAvatarIdentity(analyticsUserId ?? null);
+    syncCallIdentity(analyticsUserId ?? null);
+    syncLogOutFailure(gate === "authenticated");
+    if (gate === "authenticated") rememberSignedIn();
+  }, [gate, analyticsUserId]);
+  useEffect(() => {
+    if (gate === "authenticated" || gate === "anonymous") setQueryUser(analyticsUserId ?? null);
+  }, [gate, analyticsUserId]);
   const [holdingUnreachable, setHoldingUnreachable] = useState(false);
   const nextHolding = holdUnreachableGate(gate, holdingUnreachable);
   if (nextHolding !== holdingUnreachable) setHoldingUnreachable(nextHolding);
+  const [holdingAnonymous, setHoldingAnonymous] = useState(false);
+  const nextHoldingAnonymous = holdAnonymousGate(gate, holdingAnonymous);
+  if (nextHoldingAnonymous !== holdingAnonymous) setHoldingAnonymous(nextHoldingAnonymous);
 
   useLayoutEffect(() => {
     if (session.isPending) return;
@@ -47,103 +192,209 @@ export function App() {
   if (showSessionUnavailable(gate, nextHolding)) {
     return <SessionUnavailable refetch={session.refetch} />;
   }
-  if (gate === "loading") {
-    return window.location.pathname.startsWith("/app") ? (
-      <ShellSkeleton />
-    ) : (
-      <div
-        className="grid h-full place-items-center text-[#6C6C70]"
-        data-rakazo-app-state="session-pending"
-      >
-        <Trans>Loading…</Trans>
-      </div>
-    );
+  if (gate === "loading" && !nextHoldingAnonymous) {
+    return <PageLoading data-rakazo-app-state="session-pending" />;
   }
 
   const user = session.data?.user;
   return (
-    <div className="h-full" data-rakazo-app-state="ready">
-      <Suspense fallback={<div className="h-full bg-[var(--rk-page)]" />}>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              user ? (
-                <Navigate to="/app" replace />
-              ) : brand.id === "manor" ? (
-                <WelcomePage />
-              ) : (
-                <Navigate to="/sign-in" replace />
-              )
-            }
-          />
-          <Route
-            path="/sign-in"
-            element={
-              user ? (
-                <Navigate to={signInReturnPath(window.location.search) ?? "/app"} replace />
-              ) : (
-                <AuthPage key="in" mode="in" />
-              )
-            }
-          />
-          <Route
-            path="/sign-up"
-            element={user ? <Navigate to="/onboarding" replace /> : <AuthPage key="up" mode="up" />}
-          />
-          <Route
-            path="/forgot-password"
-            element={
-              user ? <Navigate to="/app" replace /> : <AuthPage key="forgot" mode="forgot" />
-            }
-          />
-          <Route path="/reset-password" element={<PasswordResetPage />} />
-          <Route
-            path="/onboarding"
-            element={user ? <OnboardingPage /> : <Navigate to="/sign-in" replace />}
-          />
-          <Route
-            path="/oauth/authorize"
-            element={
-              user ? (
-                <OAuthAuthorizePage />
-              ) : (
-                <Navigate to={signInPathFor(window.location)} replace />
-              )
-            }
-          />
-          <Route
-            path="/mcp/oauth/callback"
-            element={user ? <McpOAuthCallbackPage /> : <Navigate to="/sign-in" replace />}
-          />
-          <Route
-            path="/app/maintenance"
-            element={<Navigate to={user ? "/app" : "/sign-in"} replace />}
-          />
-          <Route path="/app" element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />} />
-          <Route
-            path="/app/g/:groupId"
-            element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
-          />
-          <Route
-            path="/app/workspace/*"
-            element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
-          />
-          <Route
-            path="/app/crm"
-            element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
-          />
-          <Route
-            path="/app/docs"
-            element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
-          />
-          <Route
-            path="/app/:botId"
-            element={user ? <ShellPage /> : <Navigate to="/sign-in" replace />}
-          />
-        </Routes>
-      </Suspense>
-    </div>
+    <QueryUserProvider value={user?.id ?? null}>
+      <AiDataConsentPrompt key={user?.id ?? "anonymous"} />
+      <MarkdownLinkPrompt>
+        <div className="h-full" data-rakazo-app-state="ready">
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  user ? (
+                    <Navigate to="/app" replace />
+                  ) : brand.id === "manor" ? (
+                    <WelcomePage />
+                  ) : (
+                    // Brand portal accounts are provisioned by the operator, so a portal opens sign-in.
+                    <Navigate to="/sign-in" replace />
+                  )
+                }
+              />
+              {["/sign-in", "/sign-in/email"].map((path) => (
+                <Route
+                  key={path}
+                  path={path}
+                  element={
+                    user ? (
+                      <Navigate
+                        to={signInReturnPath(window.location.search) ?? next ?? "/app"}
+                        replace
+                      />
+                    ) : (
+                      <AuthPage key={path} mode="in" />
+                    )
+                  }
+                />
+              ))}
+              {["/sign-up", "/sign-up/email"].map((path) => (
+                <Route
+                  key={path}
+                  path={path}
+                  element={
+                    user ? (
+                      <Navigate
+                        to={SPACE_SHARING ? newAccountDestination(next) : "/onboarding"}
+                        replace
+                      />
+                    ) : (
+                      <AuthPage key={path} mode="up" />
+                    )
+                  }
+                />
+              ))}
+              <Route
+                path="/forgot-password"
+                element={
+                  user ? <Navigate to="/app" replace /> : <AuthPage key="forgot" mode="forgot" />
+                }
+              />
+              <Route path="/reset-password" element={<PasswordResetPage />} />
+              <Route path="/p/:slugToken" element={<SharedPagePage />} />
+              <Route
+                path="/oauth/authorize"
+                element={
+                  user ? (
+                    <OAuthAuthorizePage />
+                  ) : (
+                    <Navigate to={signInPathFor(window.location)} replace />
+                  )
+                }
+              />
+              <Route
+                path="/review/:pageId?"
+                element={
+                  user ? (
+                    <PageReviewHost />
+                  ) : (
+                    <Navigate to={`/sign-in?next=${encodeURIComponent(pathname)}`} replace />
+                  )
+                }
+              />
+              <Route
+                path={MCP_OAUTH_CALLBACK_PATH}
+                element={
+                  // A sign-in the mobile app started goes back to the app, signed in here or not.
+                  user || mobileMcpOAuthReturnUrl(new URLSearchParams(search)) ? (
+                    <McpOAuthCallbackPage />
+                  ) : (
+                    <Navigate
+                      to={`/sign-in?next=${encodeURIComponent(pathname + search)}`}
+                      replace
+                    />
+                  )
+                }
+              />
+              <Route
+                path="/app/maintenance"
+                element={<Navigate to={user ? "/app" : "/sign-in"} replace />}
+              />
+              <Route
+                path={SLACK_INSTALL_CALLBACK_PATH}
+                element={
+                  user ? (
+                    <SlackInstallCallbackPage />
+                  ) : (
+                    <Navigate
+                      to={`/sign-in?next=${encodeURIComponent(pathname + search)}`}
+                      replace
+                    />
+                  )
+                }
+              />
+              <Route
+                path="/integrations/setup"
+                element={
+                  user ? (
+                    <IntegrationSetupPage />
+                  ) : (
+                    <Navigate to="/sign-in?next=/integrations/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/admin/plugins"
+                element={
+                  user ? (
+                    <AdminPluginsPage />
+                  ) : (
+                    <Navigate to="/sign-in?next=/admin/plugins" replace />
+                  )
+                }
+              />
+              <Route
+                path="/join/:invitationId"
+                element={
+                  // Manor: with organization invitations off the page only says the invitation is
+                  // not available, signed in or not, so it never sends a visitor through sign-in.
+                  user || !ORGANIZATION_SWITCHING ? (
+                    <JoinOrganizationPage />
+                  ) : (
+                    <Navigate to={`/sign-in?next=${encodeURIComponent(pathname)}`} replace />
+                  )
+                }
+              />
+              <Route
+                path="/invite/:token"
+                element={
+                  // Manor: with space sharing off the page only says the link is not available,
+                  // signed in or not, so it never sends a visitor through sign-in for nothing.
+                  user || !SPACE_SHARING ? (
+                    <InvitePage />
+                  ) : (
+                    <Navigate to={`/sign-in?next=${encodeURIComponent(pathname)}`} replace />
+                  )
+                }
+              />
+              <Route
+                path="/admin/access"
+                element={
+                  user ? <AdminAccessPage /> : <Navigate to="/sign-in?next=/admin/access" replace />
+                }
+              />
+              <Route
+                element={
+                  user ? (
+                    <SubscriptionGate fallback={<PageLoading />}>
+                      <Outlet />
+                    </SubscriptionGate>
+                  ) : (
+                    <Navigate to="/sign-in" replace />
+                  )
+                }
+              >
+                <Route element={<AppRailLayout enabled={boardEnabled} />}>
+                  <Route path="/app" element={<ShellPage />} />
+                  <Route path="/app/g/:groupId" element={<ShellPage />} />
+                  <Route path="/app/workspace/*" element={<ShellPage />} />
+                  <Route path="/app/crm" element={<ShellPage />} />
+                  <Route path="/app/docs" element={<ShellPage />} />
+                  <Route path="/app/:botId" element={<ShellPage />} />
+                  {boardEnabled ? (
+                    <Route element={<CallLayout />}>
+                      <Route path="/app/board" element={<BoardPage />} />
+                    </Route>
+                  ) : null}
+                </Route>
+                <Route element={<CallLayout />}>
+                  <Route path="/onboarding/:step?" element={<OnboardingPage />} />
+                  <Route path="/app/artifacts" element={<ArtifactsPage />} />
+                  <Route path="/app/artifacts/:artifactId" element={<ArtifactsPage />} />
+                  <Route path="/app/x/:linkId" element={<NavLinkPage />} />
+                </Route>
+              </Route>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </div>
+      </MarkdownLinkPrompt>
+    </QueryUserProvider>
   );
 }
 
@@ -154,77 +405,57 @@ export function App() {
  */
 function SessionUnavailable({ refetch }: { refetch: () => Promise<void> }) {
   const { t } = useLingui();
-  const [attempt, setAttempt] = useState(0);
-  const [retryKey, setRetryKey] = useState(0);
-  const retryImmediately = useRef(false);
-  const refetchRef = useRef(refetch);
-  refetchRef.current = refetch;
-
-  useEffect(() => {
-    let cancelled = false;
-    const delay = retryImmediately.current ? 0 : sessionRetryDelayMs(attempt);
-    retryImmediately.current = false;
-    const timer = setTimeout(() => {
-      void refetchRef.current().finally(() => {
-        if (!cancelled) setAttempt((value) => value + 1);
-      });
-    }, delay);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [attempt, retryKey]);
+  // Each retry is a new object, so a lookup that answers after Retry now cannot advance it.
+  const [retry, setRetry] = useState({ attempt: 0, delay: sessionRetryDelayMs(0) });
+  useTimeout(
+    () => {
+      const started = retry;
+      void refetch().finally(() =>
+        setRetry((current) =>
+          current === started
+            ? { attempt: started.attempt + 1, delay: sessionRetryDelayMs(started.attempt + 1) }
+            : current,
+        ),
+      );
+    },
+    retry.delay,
+    retry,
+  );
 
   return (
     <div className="grid h-full place-items-center bg-[var(--rk-page)] px-6 text-center">
       <div className="flex flex-col items-center">
         <LoadingState label={t`Reconnecting`} />
-        <p className="mt-3 text-[13.5px] text-[#6C6C70]">
+        <p className="mt-3 text-body text-muted-foreground/80">
           <Trans>Can&apos;t reach the server.</Trans>
         </p>
         <div className="mt-4">
-          <BuiButton
-            onClick={() => {
-              retryImmediately.current = true;
-              setAttempt(0);
-              setRetryKey((key) => key + 1);
-            }}
-          >
+          <Button variant="secondary" onClick={() => setRetry({ attempt: 0, delay: 0 })}>
             <Trans>Retry now</Trans>
-          </BuiButton>
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-function ShellSkeleton() {
+/** Last resort for a render failure no inner boundary caught: offer a reload instead of a blank page. */
+function AppFailed() {
   return (
     <div
-      className="flex h-full overflow-hidden bg-[var(--rk-page)]"
-      data-rakazo-app-state="session-pending"
+      className="grid h-full place-items-center bg-background px-6 text-center"
+      data-rakazo-app-state="failed"
     >
-      <aside className="hidden w-[316px] shrink-0 border-e border-[#171719] bg-[#0B0B0C] px-3.5 pt-16 md:block">
-        <div className="h-10 rounded-xl bg-[#141416]" />
-        <div className="mt-5 space-y-2 px-1">
-          {[0, 1, 2, 3].map((row) => (
-            <div key={row} className="flex items-center gap-3 rounded-xl px-2 py-2.5">
-              <div className="h-9 w-9 rounded-full bg-[#18181B]" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-2/5 rounded bg-[#202024]" />
-                <div className="h-2.5 w-4/5 rounded bg-[#151518]" />
-              </div>
-            </div>
-          ))}
+      <div className="flex flex-col items-center">
+        <p className="text-body text-muted-foreground/80">
+          <Trans>Something went wrong. Try again.</Trans>
+        </p>
+        <div className="mt-4">
+          <Button variant="secondary" onClick={() => window.location.reload()}>
+            <Trans>Refresh</Trans>
+          </Button>
         </div>
-      </aside>
-      <main className="flex flex-1 flex-col">
-        <div className="h-[74px] border-b border-[#141416]" />
-        <div className="flex flex-1 items-center justify-center text-[14px] text-[#55555A]">
-          <Trans>Opening your Space…</Trans>
-        </div>
-        <div className="mx-6 mb-6 h-[54px] rounded-full border border-[#202023] bg-[#131315]" />
-      </main>
+      </div>
     </div>
   );
 }

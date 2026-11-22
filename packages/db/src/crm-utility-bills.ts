@@ -1,4 +1,4 @@
-import type { PrismaClient } from "./client.js";
+import type { PrismaClient } from "./database/client.js";
 import { normStreetAddr, toMoneyCents, upsertCityUtilityBill } from "./utility-city-bills.js";
 
 export type CrmUtilityField = { id: string; label: string };

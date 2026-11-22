@@ -1,47 +1,51 @@
-type DemoCardLine = {
-  k: string;
-  v: string;
+import type { DemoTextKey } from "./i18n/demo-text";
+
+/** `Text` is `DemoTextKey` for the English seed, so every seeded string must have a translation. */
+export type DemoCardLine<Text extends string = string> = {
+  k: Text;
+  v: Text;
 };
 
-export type DemoMessage =
-  | { type: "time"; text: string }
-  | { type: "meta"; text: string }
-  | { type: "user"; text: string }
-  | { type: "bot"; text: string }
+export type DemoMessage<Text extends string = string> =
+  | { type: "time"; text: Text }
+  | { type: "meta"; text: Text }
+  | { type: "user"; text: Text }
+  | { type: "bot"; text: Text }
   | { type: "typing" }
-  | { type: "card"; lines: DemoCardLine[] };
+  | { type: "computer"; text: Text }
+  | { type: "card"; lines: DemoCardLine<Text>[] };
 
-export type DemoRoutine = {
-  name: string;
-  when: string;
-  instruction?: string;
+export type DemoRoutine<Text extends string = string> = {
+  name: Text;
+  when: Text;
+  instruction?: Text;
   active?: boolean;
-  runs?: DemoRoutineRun[];
+  runs?: DemoRoutineRun<Text>[];
 };
 
-export type DemoRoutineRun = {
+export type DemoRoutineRun<Text extends string = string> = {
   mark: string;
   color: string;
-  text: string;
-  time: string;
+  text: Text;
+  time: Text;
 };
 
-export type DemoScreen = {
+export type DemoScreen<Text extends string = string> = {
   host: string;
-  title: string;
-  lines: string[];
+  title: Text;
+  lines: Text[];
 };
 
-export type DemoBot = {
+export type DemoBot<Text extends string = string> = {
   id: string;
   name: string;
   color: string;
-  time: string;
-  preview: string;
-  routines: DemoRoutine[];
-  screen: DemoScreen;
-  thread: DemoMessage[];
-  reply: string;
+  time: Text;
+  preview: Text;
+  routines: DemoRoutine<Text>[];
+  screen: DemoScreen<Text>;
+  thread: DemoMessage<Text>[];
+  reply: Text;
 };
 
 export type RosterBot = {
@@ -51,7 +55,7 @@ export type RosterBot = {
   desc: string;
 };
 
-export const DEMO_BOTS: DemoBot[] = [
+export const DEMO_BOTS: DemoBot<DemoTextKey>[] = [
   {
     id: "chief",
     name: "Chief of Staff",
@@ -61,7 +65,7 @@ export const DEMO_BOTS: DemoBot[] = [
     routines: [{ name: "Monday briefing", when: "Mondays 7am" }],
     screen: {
       host: "notion.so",
-      title: "Offsite — week of the 14th",
+      title: "Offsite: week of the 14th",
       lines: ["Harbor House held", "Contract out for signature", "4 calendar holds → invites"],
     },
     thread: [
@@ -99,7 +103,7 @@ export const DEMO_BOTS: DemoBot[] = [
     ],
     screen: {
       host: "app.hubspot.com",
-      title: "Seed-stage fintech — review list",
+      title: "Seed-stage fintech: review list",
       lines: ["40 accounts scored", "22 LinkedIn profiles read", "18 drafts queued"],
     },
     thread: [
@@ -112,6 +116,7 @@ export const DEMO_BOTS: DemoBot[] = [
         type: "bot",
         text: "understood. i will research, score, and draft. everything lands in a review list at 6am.",
       },
+      { type: "computer", text: "Scoring the list in HubSpot." },
       { type: "meta", text: "Created routine ◷ Overnight sourcing" },
       { type: "time", text: "3:10 AM" },
       {
@@ -127,7 +132,7 @@ export const DEMO_BOTS: DemoBot[] = [
         text: "two of them raised last week, so those drafts lead with the round. everything else follows your usual opener.",
       },
     ],
-    reply: "on it — i will queue those and leave the rest in review.",
+    reply: "on it. i will queue those and leave the rest in review.",
   },
   {
     id: "inbox",
@@ -141,7 +146,7 @@ export const DEMO_BOTS: DemoBot[] = [
     ],
     screen: {
       host: "mail.google.com",
-      title: "Inbox — 5 drafts parked",
+      title: "Inbox: 5 drafts parked",
       lines: ["41 threads read", "26 archived · 9 replied", "Nora’s renewal held"],
     },
     thread: [
@@ -151,6 +156,7 @@ export const DEMO_BOTS: DemoBot[] = [
         type: "bot",
         text: "on it. 41 unread since friday. archiving the noise, drafting the rest.",
       },
+      { type: "computer", text: "Sweeping Gmail back to friday." },
       { type: "time", text: "12:11 AM" },
       {
         type: "card",
@@ -179,7 +185,7 @@ export const DEMO_BOTS: DemoBot[] = [
     routines: [{ name: "Renewal watch", when: "Daily 9am" }],
     screen: {
       host: "app.hubspot.com",
-      title: "Helix — renewal",
+      title: "Helix: renewal",
       lines: ["Thursday 10am with Sam", "Annual only", "Nora approves"],
     },
     thread: [
@@ -211,7 +217,7 @@ export const DEMO_BOTS: DemoBot[] = [
     screen: {
       host: "app.ashbyhq.com",
       title: "Infra applicants",
-      lines: ["61 read", "9 shortlisted — ran their own cluster", "3 intros held"],
+      lines: ["61 read", "9 shortlisted: ran their own cluster", "3 intros held"],
     },
     thread: [
       { type: "time", text: "Yesterday 4:15 PM" },
@@ -244,7 +250,7 @@ export const DEMO_BOTS: DemoBot[] = [
     screen: {
       host: "app.ramp.com",
       title: "Month-end close",
-      lines: ["9 receipts matched", "Harbor hotel — two nights", "Report filed · $2,340"],
+      lines: ["9 receipts matched", "Harbor hotel: two nights", "Report filed · $2,340"],
     },
     thread: [
       { type: "time", text: "Yesterday 3:11 AM" },
@@ -284,7 +290,7 @@ export const DEMO_BOTS: DemoBot[] = [
     routines: [{ name: "Triage sweep", when: "Every 2h" }],
     screen: {
       host: "sentry.io",
-      title: "Auth loop — P1",
+      title: "Auth loop: P1",
       lines: ["6 new reports", "4 reproduced", "Stale session token"],
     },
     thread: [
@@ -304,56 +310,5 @@ export const DEMO_BOTS: DemoBot[] = [
       },
     ],
     reply: "i will reproduce it and attach the steps to the issue.",
-  },
-];
-
-export const DEMO_ROSTER: RosterBot[] = [
-  {
-    name: "Sales Outbound",
-    color: "#F5A03C",
-    slug: "rakazo/sales-outbound",
-    desc: "Researches accounts overnight, scores intent, drafts in your voice, leaves a review list.",
-  },
-  {
-    name: "Inbox Manager",
-    color: "#6A6BF5",
-    slug: "rakazo/inbox-manager",
-    desc: "Archives the noise, replies to routine threads, parks drafts that need your read.",
-  },
-  {
-    name: "Talent Scout",
-    color: "#3B82F6",
-    slug: "rakazo/talent-scout",
-    desc: "Reads every applicant, shortlists against your bar, writes the intro emails.",
-  },
-  {
-    name: "Expense Manager",
-    color: "#F2622A",
-    slug: "rakazo/expense-manager",
-    desc: "Matches receipts to charges, files the report, asks before guessing.",
-  },
-  {
-    name: "Bug Triage",
-    color: "#D9508A",
-    slug: "rakazo/bug-triage",
-    desc: "Reproduces reports in a real browser and attaches steps to the issue.",
-  },
-  {
-    name: "Account Manager",
-    color: "#9B5CF6",
-    slug: "rakazo/account-manager",
-    desc: "Keeps renewal context, answers known questions, escalates the rest.",
-  },
-  {
-    name: "Paid Media",
-    color: "#3EC5A8",
-    slug: "rakazo/paid-media",
-    desc: "Watches spend daily, pauses what is not converting, reports what changed.",
-  },
-  {
-    name: "Chief of Staff",
-    color: "#8B93A8",
-    slug: "rakazo/chief-of-staff",
-    desc: "Runs the week: briefings, bookings, and handoffs between your other bots.",
   },
 ];

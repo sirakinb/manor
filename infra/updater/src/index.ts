@@ -1,3 +1,4 @@
+import type { ExecFileException } from "node:child_process";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { access, lstat, open, readFile, rename, unlink } from "node:fs/promises";
@@ -5,8 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import type { ServerUpdateRun } from "@rakazo/contracts";
+import type { ComposeUpdateStep } from "@rakazo/core";
 import {
-  type ComposeUpdateStep,
   chooseUpdateStrategy,
   commitImageTag,
   composeUpArgv,
@@ -17,11 +18,12 @@ import {
   gitStatusArgv,
   gitUntrackedFilesArgv,
   gitWorktreeContentDiffArgv,
-  hasValidBearerToken,
   IMAGE_TAG_ENV,
   imageRef,
   isGitCommit,
   normalizeUpdateBranch,
+  OFFICIAL_REPO_URL,
+  OFFICIAL_SERVER_IMAGE,
   PREVIOUS_IMAGE_TAG_ENV,
   parseGitNameOnly,
   parseGitStatusPorcelain,
@@ -33,13 +35,38 @@ import {
   upsertEnvAssignments,
   validateUpdateRequest,
 } from "@rakazo/core";
-import { type Context, Hono } from "hono";
+import { hasValidBearerToken } from "@rakazo/core/node/secrets-guard";
+import type { Logger } from "@rakazo/logging";
+import { bestEffort, SERVICE_NAMES } from "@rakazo/logging";
+import { createRootLogger } from "@rakazo/logging/axiom";
+import { requestLogging } from "@rakazo/logging/hono";
+import type { Context } from "hono";
+import { Hono } from "hono";
+import type { ComputerTagChange } from "./runtime-state.js";
 import {
+  COMPUTER_TAG_ENV,
+  cacheComputerImage,
+  cacheRuntimeBaseline,
+  PREVIOUS_COMPUTER_TAG_ENV,
+  pruneUpdateImages,
+  readManualComputer,
+  readRollbackComputer,
+  readScheduledComputer,
+  readScheduledRuntime,
+} from "./runtime-state.js";
+import { applyStableUpdate, startUpdateSchedule } from "./schedule.js";
+
+export { applyStableUpdate } from "./schedule.js";
+
+import type { UpdaterConfig } from "./updater-logic.js";
+import {
+  missingSecretAssignments,
   readTagState,
   resolveUpdaterConfig,
+  scheduledImageEnvironment,
   truncateOutput,
   UpdateRefused,
-  type UpdaterConfig,
+  upToDateRecord,
 } from "./updater-logic.js";
 
 const STEP_TIMEOUT_MS: Record<string, number> = {
@@ -48,14 +75,19 @@ const STEP_TIMEOUT_MS: Record<string, number> = {
   checkout: 60_000,
   merge: 60_000,
   pull: 600_000,
-  recreate: 1_800_000,
-  recover: 1_800_000,
+  // A recreate can build, wait up to the worker's 50-minute stop_grace_period for its running
+  // jobs, and then wait for the new services to become healthy.
+  recreate: 5_400_000,
+  recover: 5_400_000,
 };
 const DEFAULT_TIMEOUT_MS = 120_000;
 
 export interface CommandResult {
   ok: boolean;
   exitCode: number | null;
+  /** Complete machine-readable stdout, bounded by the child process maxBuffer. */
+  stdout: string;
+  /** Truncated stdout/stderr for diagnostics and update step logs. */
   output: string;
 }
 
@@ -94,63 +126,98 @@ export function commandEnvironment(
     const value = source[key];
     if (value !== undefined) env[key] = value;
   }
+  // Root against a checkout the deploy user owns makes git exit 128 with "detected dubious
+  // ownership". It is declared here, not in Compose, because this allowlist drops the service
+  // environment; it is applied after `overrides` so a caller cannot widen it.
+  const deployDir = source.RAKAZO_DEPLOY_DIR?.trim();
+  const gitOwnership =
+    deployDir === undefined || deployDir === ""
+      ? {}
+      : {
+          GIT_CONFIG_COUNT: "1",
+          GIT_CONFIG_KEY_0: "safe.directory",
+          GIT_CONFIG_VALUE_0: deployDir,
+        };
   return {
     ...env,
     ...overrides,
     GIT_TERMINAL_PROMPT: "0",
     GIT_ASKPASS: "true",
     CI: "1",
+    ...gitOwnership,
   };
 }
 
+function directArguments(args: readonly string[]): string[] | undefined {
+  if (!Array.isArray(args)) return undefined;
+  if (args.some((arg) => typeof arg !== "string" || arg.includes("\0"))) return undefined;
+  return [...args];
+}
+
 /**
- * Every command is argv with `shell: false`. A repository URL or a branch reaches git as one
- * argument and reaches Compose not at all, so there is no string a caller can craft that becomes
- * part of a command line, a build argument, or a service definition.
+ * git and docker only, each as argv with `shell: false`. A repository URL or a branch reaches
+ * git as one argument and reaches Compose not at all, so there is no string a caller can craft
+ * that becomes part of a command line, a build argument, or a service definition.
  */
-const runCommand: UpdaterCommandRunner = (
-  command: string,
-  args: string[],
-  options: { cwd: string; timeoutMs: number; env?: Record<string, string> },
-): Promise<CommandResult> =>
-  new Promise((resolve) => {
-    execFile(
-      command,
-      args,
-      {
-        cwd: options.cwd,
-        timeout: options.timeoutMs,
-        maxBuffer: 8 * 1024 * 1024,
-        windowsHide: true,
-        shell: false,
-        env: commandEnvironment(process.env, options.env),
-      },
-      (error, stdout, stderr) => {
-        const output = truncateOutput(`${stdout}${stderr}`);
-        if (!error) {
-          resolve({ ok: true, exitCode: 0, output });
-          return;
-        }
-        const exitCode = typeof error.code === "number" ? error.code : null;
-        const timedOut = "killed" in error && Boolean(error.killed);
-        const reason = timedOut
-          ? `Timed out after ${options.timeoutMs}ms (${"signal" in error && error.signal ? String(error.signal) : "killed"}).`
-          : error.message;
-        resolve({ ok: false, exitCode, output: output ? `${output}\n${reason}` : reason });
-      },
-    );
+export const runHostCommand: UpdaterCommandRunner = (command, args, options) => {
+  const argv = directArguments(args);
+  if ((command !== "git" && command !== "docker") || !argv) {
+    return Promise.resolve({
+      ok: false,
+      exitCode: null,
+      stdout: "",
+      output: "Refusing to run an unexpected program.",
+    });
+  }
+  return new Promise((resolve) => {
+    const execOptions = {
+      cwd: options.cwd,
+      timeout: options.timeoutMs,
+      maxBuffer: 8 * 1024 * 1024,
+      windowsHide: true,
+      shell: false as const,
+      env: commandEnvironment(process.env, options.env),
+    };
+    const done = (
+      error: ExecFileException | null,
+      stdout: string | Buffer,
+      stderr: string | Buffer,
+    ) => {
+      const output = truncateOutput(`${stdout}${stderr}`);
+      if (!error) {
+        resolve({ ok: true, exitCode: 0, stdout: String(stdout), output });
+        return;
+      }
+      const exitCode = typeof error.code === "number" ? error.code : null;
+      const timedOut = Boolean(error.killed);
+      const signal = error.signal ? String(error.signal) : "killed";
+      const reason = timedOut
+        ? `Timed out after ${options.timeoutMs}ms (${signal}).`
+        : error.message;
+      resolve({
+        ok: false,
+        exitCode,
+        stdout: String(stdout),
+        output: output ? `${output}\n${reason}` : reason,
+      });
+    };
+    if (command === "git") execFile("git", argv, execOptions, done);
+    else execFile("docker", argv, execOptions, done);
   });
+};
 
 export function createUpdaterApp(
   config: UpdaterConfig,
-  options: { run?: UpdaterCommandRunner } = {},
+  options: { run?: UpdaterCommandRunner; logger?: Logger } = {},
 ) {
   const app = new Hono();
-  const run = options.run ?? runCommand;
+  app.use("*", requestLogging(options.logger));
+  const run = options.run ?? runHostCommand;
   const composeTarget = {
-    composeFile: config.composeFile,
+    composeFiles: config.composeFiles,
     envFiles: [config.envFile],
     projectName: config.projectName,
+    services: config.updateServices,
   };
   let running = false;
   let planInFlight: Promise<unknown> | null = null;
@@ -176,11 +243,13 @@ export function createUpdaterApp(
       const checkout = await readCheckout();
       return c.json({
         deployDir: config.deployDir,
-        composeFile: config.composeFile,
+        composeFiles: config.composeFiles,
         image: config.image,
         imageRef: imageRef(config.image, tags.currentTag),
         running,
         lastRun,
+        autoUpdateIntervalHours: config.autoUpdateIntervalMs / 3_600_000,
+        autoUpdateDisabledReason: config.autoUpdateDisabledReason,
         ...tags,
         checkout,
       });
@@ -221,10 +290,10 @@ export function createUpdaterApp(
           upToDate: target.imageTag === tags.currentTag,
           checkout,
         };
-      })();
-      planInFlight = work.finally(() => {
+      })().finally(() => {
         planInFlight = null;
       });
+      planInFlight = work;
       return c.json(await work);
     } catch (error) {
       return refusal(c, error);
@@ -248,7 +317,18 @@ export function createUpdaterApp(
     }
   });
 
-  return app;
+  return Object.assign(app, {
+    // In-process entry point: scheduled work cannot weaken its safeguards or choose a fork.
+    applyScheduledUpdate: () =>
+      withRunLock(async () => {
+        if (config.autoUpdateDisabledReason)
+          throw new UpdateRefused(config.autoUpdateDisabledReason);
+        if (config.image !== OFFICIAL_SERVER_IMAGE) {
+          throw new UpdateRefused("Scheduled updates require the official stable release image.");
+        }
+        return apply({ repoUrl: OFFICIAL_REPO_URL, branch: "main", official: true }, true);
+      }),
+  });
 
   async function body(request: Request): Promise<unknown> {
     try {
@@ -352,7 +432,7 @@ export function createUpdaterApp(
       git(gitStatusArgv()),
       git(gitUntrackedFilesArgv()),
     ]);
-    const porcelain = parseGitStatusPorcelain(status.ok ? status.output : "");
+    const porcelain = parseGitStatusPorcelain(status.ok ? status.stdout : "");
     let contentChanged: string[] = [];
     let contentDiffOk = true;
     if (status.ok && !porcelain.clean) {
@@ -362,22 +442,22 @@ export function createUpdaterApp(
       ]);
       contentDiffOk = worktree.ok && index.ok;
       contentChanged = [
-        ...parseGitNameOnly(worktree.ok ? worktree.output : ""),
-        ...parseGitNameOnly(index.ok ? index.output : ""),
+        ...parseGitNameOnly(worktree.ok ? worktree.stdout : ""),
+        ...parseGitNameOnly(index.ok ? index.stdout : ""),
       ];
     }
     const tracked = resolveTrackedDirtyPaths({
       porcelainChanged: porcelain.changed,
       contentChanged,
       contentDiffOk,
-      untrackedPaths: parseGitNameOnly(untracked.ok ? untracked.output : ""),
+      untrackedPaths: parseGitNameOnly(untracked.ok ? untracked.stdout : ""),
     });
     const stateReadable = status.ok && untracked.ok;
     return {
       present: true,
-      commit: head.ok ? head.output.trim() : null,
-      branch: branch.ok ? branch.output.trim() : null,
-      remoteUrl: remote.ok ? remote.output.trim() : null,
+      commit: head.ok ? head.stdout.trim() : null,
+      branch: branch.ok ? branch.stdout.trim() : null,
+      remoteUrl: remote.ok ? remote.stdout.trim() : null,
       dirty: stateReadable ? tracked.dirty : true,
       dirtyPaths: stateReadable
         ? tracked.dirtyPaths
@@ -394,13 +474,15 @@ export function createUpdaterApp(
     if (!listed.ok) {
       throw new UpdateRefused(`Could not read releases from ${repoUrl}: ${listed.output}`);
     }
-    const release = selectLatestRelease(parseLsRemoteReleases(listed.output));
+    const releases = parseLsRemoteReleases(listed.stdout);
+    const release = selectLatestRelease(releases);
     if (release === null) {
       throw new UpdateRefused(
         `${repoUrl} has no published release tags, so there is no image to pull.`,
       );
     }
     return {
+      releases,
       releaseTag: release.tag,
       commit: release.commit,
       imageTag: commitImageTag(release.commit),
@@ -409,15 +491,17 @@ export function createUpdaterApp(
 
   /** The branch head on the remote, read without fetching, so a plan does not mutate the checkout. */
   async function resolveRemoteHead(request: { repoUrl: string; branch: string }) {
-    const listed = await run(
-      "git",
-      ["ls-remote", "--heads", "--", request.repoUrl, request.branch],
-      { cwd: config.deployDir, timeoutMs: STEP_TIMEOUT_MS.fetch ?? DEFAULT_TIMEOUT_MS },
-    );
+    const ref = `refs/heads/${request.branch}`;
+    const listed = await run("git", ["ls-remote", "--heads", "--", request.repoUrl, ref], {
+      cwd: config.deployDir,
+      timeoutMs: STEP_TIMEOUT_MS.fetch ?? DEFAULT_TIMEOUT_MS,
+    });
     if (!listed.ok) {
       throw new UpdateRefused(`Could not read ${request.branch} from ${request.repoUrl}.`);
     }
-    const commit = listed.output.trim().split(/\s/)[0] ?? "";
+    // ls-remote matches a pattern against the tail of each ref, so `main` also lists `feature/main`.
+    const line = listed.stdout.split("\n").find((entry) => entry.trim().split(/\s+/)[1] === ref);
+    const commit = line?.trim().split(/\s+/)[0] ?? "";
     if (!isGitCommit(commit)) {
       throw new UpdateRefused(`${request.repoUrl} has no branch called ${request.branch}.`);
     }
@@ -434,10 +518,19 @@ export function createUpdaterApp(
     return currentTag === forkImageTag(commit);
   }
 
-  async function apply(request: { repoUrl: string; branch: string; official: boolean }) {
+  async function apply(
+    request: { repoUrl: string; branch: string; official: boolean },
+    scheduled = false,
+  ) {
     const decision = chooseUpdateStrategy(request);
-    const tags = readTagState(await readEnvFile());
+    const envContents = await readEnvFile();
+    const imageEnvironment = scheduled ? scheduledImageEnvironment(config, envContents) : undefined;
+    const tags = readTagState(envContents);
     const checkout = await readCheckout();
+    let recoveryAllowed = true;
+    let fromCommit = checkout.commit;
+    let computerTags: ComputerTagChange | undefined;
+    let computerCurrent = true;
 
     if (decision.strategy === "build") {
       if (!checkout.present) {
@@ -455,6 +548,11 @@ export function createUpdaterApp(
           "The deployment checkout has changed or untracked source files, or its state could not be verified. Commit, stash, clean, or fix it before updating.",
         );
       }
+      if (checkout.commit === null || !isGitCommit(checkout.commit)) {
+        throw new UpdateRefused(
+          "The deployment checkout's current commit could not be verified. Fix it before updating.",
+        );
+      }
     }
 
     let targetTag: string | null = null;
@@ -462,10 +560,44 @@ export function createUpdaterApp(
     let releaseTag: string | null = null;
     if (decision.strategy === "pull") {
       const target = await resolveRelease(request.repoUrl);
+      if (scheduled) {
+        const runtime = await readScheduledRuntime(config, target.releases, run);
+        const computer = await readScheduledComputer(
+          config,
+          runtime,
+          envContents,
+          target.imageTag,
+          run,
+        );
+        await cacheRuntimeBaseline(config, runtime, run);
+        recoveryAllowed =
+          runtime.uniform &&
+          runtime.baseline.tag !== target.imageTag &&
+          (computer?.uniform ?? true);
+        computerTags = computer?.tags;
+        const current =
+          runtime.uniform && runtime.services.every((service) => service.commit === target.commit);
+        if (current && (computer?.current ?? true)) {
+          const pins: Record<string, string> = {};
+          if (tags.currentTag !== target.imageTag) pins[IMAGE_TAG_ENV] = target.imageTag;
+          if (computer && computer.envTag !== target.imageTag)
+            pins[COMPUTER_TAG_ENV] = target.imageTag;
+          if (Object.keys(pins).length > 0) await writeEnvAssignments(pins);
+          return rememberRun(upToDateRecord(request, target.imageTag, "pull", target.commit));
+        }
+        // Recovery pins must describe the observed runtime rather than a stale environment file.
+        tags.currentTag = runtime.baseline.tag;
+        fromCommit = runtime.baseline.commit;
+      } else {
+        const computer = await readManualComputer(config, envContents, target.imageTag, run);
+        computerTags = computer?.tags;
+        computerCurrent = computer?.current ?? true;
+        recoveryAllowed = computer?.uniform ?? true;
+      }
       targetTag = target.imageTag;
       targetCommit = target.commit;
       releaseTag = target.releaseTag;
-      if (targetTag === tags.currentTag) {
+      if (!scheduled && targetTag === tags.currentTag && computerCurrent) {
         return rememberRun(upToDateRecord(request, targetTag, "pull", targetCommit));
       }
     } else {
@@ -491,11 +623,14 @@ export function createUpdaterApp(
     return rememberRun(
       await execute({
         request,
+        recoveryAllowed,
+        imageEnvironment,
+        computerTags,
         strategy: decision.strategy,
         fromTag: tags.currentTag,
         originalPreviousTag: tags.previousTag,
         toTag: targetTag,
-        fromCommit: checkout.commit,
+        fromCommit,
         fromBranch: checkout.branch,
         toCommit: targetCommit,
         restoreRemoteUrl:
@@ -514,7 +649,9 @@ export function createUpdaterApp(
   }
 
   async function rollback(): Promise<ServerUpdateRun> {
-    const tags = readTagState(await readEnvFile());
+    const env = await readEnvFile();
+    const tags = readTagState(env);
+    const computerTags = await readRollbackComputer(config, env, run);
     const decision = rollbackTarget(tags);
     if ("error" in decision) throw new UpdateRefused(decision.error);
     const checkout = await readCheckout();
@@ -525,6 +662,8 @@ export function createUpdaterApp(
     return rememberRun(
       await execute({
         request: { repoUrl: "", branch: "" },
+        recoveryAllowed: computerTags?.sourceAvailable !== false,
+        computerTags,
         strategy: "pull",
         fromTag: tags.currentTag,
         originalPreviousTag: tags.previousTag,
@@ -551,6 +690,9 @@ export function createUpdaterApp(
   async function execute(input: {
     request: { repoUrl: string; branch: string };
     strategy: "pull" | "build";
+    recoveryAllowed?: boolean;
+    imageEnvironment?: Record<string, string>;
+    computerTags?: ComputerTagChange;
     fromTag: string;
     originalPreviousTag: string | null;
     toTag: string | null;
@@ -561,6 +703,18 @@ export function createUpdaterApp(
     steps: ComposeUpdateStep[];
     restartAdvice: string;
   }): Promise<ServerUpdateRun> {
+    const preserveComputerHistory =
+      input.computerTags?.sourceAvailable === false ||
+      (input.computerTags?.fromTag === input.computerTags?.toTag && input.fromTag === input.toTag);
+    let cachedComputerTag = input.computerTags?.fromTag ?? "";
+    if (input.computerTags && !preserveComputerHistory) {
+      cachedComputerTag = await cacheComputerImage(
+        config,
+        upsertEnvAssignments(await readEnvFile(), input.imageEnvironment ?? {}),
+        input.computerTags.fromTag,
+        run,
+      );
+    }
     const record: ServerUpdateRun = {
       startedAt: new Date().toISOString(),
       finishedAt: null,
@@ -580,24 +734,46 @@ export function createUpdaterApp(
     const revertAssignments = {
       [IMAGE_TAG_ENV]: input.fromTag,
       [PREVIOUS_IMAGE_TAG_ENV]: input.originalPreviousTag ?? input.fromTag,
+      ...(input.computerTags
+        ? {
+            [COMPUTER_TAG_ENV]: input.computerTags.restoreTag ?? input.computerTags.fromTag,
+            [PREVIOUS_COMPUTER_TAG_ENV]: input.computerTags.previousTag ?? "",
+          }
+        : {}),
     };
-    // Build updates may switch branches and/or fast-forward before recreate. Mark the checkout
-    // touched as soon as either mutates so a mid-plan failure still restores branch + commit.
-    let checkoutTouched = false;
+    // A failed Git command can still change files. Restore once before Compose recovery, or in
+    // finally for failures that never reached Compose.
+    let checkoutNeedsRestore = false;
+    async function restoreCheckout() {
+      if (!checkoutNeedsRestore) return true;
+      checkoutNeedsRestore = false;
+      if (input.fromCommit === null || !isGitCommit(input.fromCommit)) return false;
+      return runStep(
+        record,
+        {
+          id: "restore-checkout",
+          label: "Restore the previous checkout",
+          command: "git",
+          args: restoreCheckoutArgv(input.fromBranch, input.fromCommit),
+        },
+        undefined,
+        false,
+      );
+    }
     try {
       const gitSteps = input.steps.filter((step) => step.command === "git");
       const composeSteps = input.steps.filter((step) => step.command !== "git");
 
       for (const step of gitSteps) {
+        if (step.id === "checkout" || step.id === "merge") checkoutNeedsRestore = true;
         if (!(await runStep(record, step))) return record;
-        if (step.id === "checkout" || step.id === "merge") checkoutTouched = true;
       }
 
       // The build path only knows its tag after the fast-forward, because the tag is the commit.
       let toTag = input.toTag;
       if (input.strategy === "build") {
         const head = await git(["rev-parse", "HEAD"]);
-        const commit = head.ok ? head.output.trim() : "";
+        const commit = head.ok ? head.stdout.trim() : "";
         if (!isGitCommit(commit)) {
           record.error = "Could not read the commit to build.";
           return record;
@@ -613,41 +789,69 @@ export function createUpdaterApp(
 
       try {
         await writeEnvAssignments({
+          ...missingSecretAssignments(await readEnvFile()),
           [IMAGE_TAG_ENV]: toTag,
-          [PREVIOUS_IMAGE_TAG_ENV]: input.fromTag,
+          [PREVIOUS_IMAGE_TAG_ENV]:
+            input.fromTag === toTag || input.computerTags?.sourceAvailable === false
+              ? (input.originalPreviousTag ?? input.fromTag)
+              : input.fromTag,
+          ...(input.computerTags
+            ? {
+                [COMPUTER_TAG_ENV]: input.computerTags.toTag,
+                [PREVIOUS_COMPUTER_TAG_ENV]: preserveComputerHistory
+                  ? (input.computerTags.previousTag ?? "")
+                  : cachedComputerTag,
+              }
+            : {}),
         });
       } catch {
         record.error = "Could not persist the target image tag in the deployment environment.";
         record.restartAdvice = `${record.error} Nothing was recreated.`;
         return record;
       }
-      const composeEnv: Record<string, string> = { [IMAGE_TAG_ENV]: toTag };
+      const composeEnv: Record<string, string> = {
+        ...input.imageEnvironment,
+        [IMAGE_TAG_ENV]: toTag,
+        ...(input.computerTags ? { [COMPUTER_TAG_ENV]: input.computerTags.toTag } : {}),
+      };
       if (record.toCommit !== null) composeEnv.GIT_SHA = record.toCommit;
 
       for (const step of composeSteps) {
         if (!(await runStep(record, step, composeEnv))) {
           const primaryError = record.error ?? `${step.label} failed.`;
+          // The failed revision may have changed Compose or files it references. The old image
+          // must be recreated from the old checkout, using the same configured Compose target.
+          const checkoutRestored = await restoreCheckout();
           const envRestored = await writeEnvAssignments(revertAssignments).then(
             () => true,
             () => false,
           );
-          if (step.id === "recreate") {
+          if (step.id === "recreate" && input.recoveryAllowed === false) {
+            record.restart = "manual";
+            record.restartAdvice = `${primaryError} Reconciliation failed without a distinct, uniform previous release to restore. The failed target was not retried as recovery. Manual intervention is required${envRestored ? "" : "; environment pins also need repair"}.`;
+          } else if (step.id === "recreate") {
             const previous = composeUpArgv(composeTarget);
-            const recovered = await runStep(
-              record,
-              {
-                id: "recover",
-                label: `Restore the previously running ${input.fromTag} image`,
-                command: previous.command,
-                args: previous.args,
-              },
-              { [IMAGE_TAG_ENV]: input.fromTag },
-              false,
-            );
+            const recovered =
+              checkoutRestored &&
+              (await runStep(
+                record,
+                {
+                  id: "recover",
+                  label: `Restore the previously running ${input.fromTag} image`,
+                  command: previous.command,
+                  args: previous.args,
+                },
+                {
+                  ...input.imageEnvironment,
+                  [IMAGE_TAG_ENV]: input.fromTag,
+                  ...(input.computerTags ? { [COMPUTER_TAG_ENV]: cachedComputerTag } : {}),
+                },
+                false,
+              ));
             record.restart = recovered ? "not-required" : "manual";
             record.restartAdvice = recovered
               ? `${primaryError} The updater restored the previously running ${input.fromTag} image${envRestored ? " and its environment pin" : ", but could not restore the environment pin"}. Read the failed step output before retrying.`
-              : `${primaryError} Automatic recovery to ${input.fromTag} also failed${envRestored ? "" : ", and the environment pin could not be restored"}. The runtime may contain a mix of versions; use the recorded commands to recover it manually.`;
+              : `${primaryError} Automatic recovery to ${input.fromTag} ${checkoutRestored ? "also failed" : "was skipped because the previous checkout could not be restored"}${envRestored ? "" : ", and the environment pin could not be restored"}. The runtime may contain a mix of versions; use the recorded commands to recover it manually.`;
           } else {
             record.restartAdvice = `${primaryError} No service was recreated${envRestored ? ", and the prior environment pin was restored" : ", but the prior environment pin could not be restored"}. Read the failed step output before retrying.`;
           }
@@ -657,28 +861,16 @@ export function createUpdaterApp(
       }
       record.ok = true;
       record.restart = "recreated";
+      await bestEffort(
+        "prune obsolete update images",
+        readEnvFile().then((env) =>
+          pruneUpdateImages(config, upsertEnvAssignments(env, input.imageEnvironment ?? {}), run),
+        ),
+      );
       return record;
     } finally {
-      if (
-        !record.ok &&
-        checkoutTouched &&
-        input.fromCommit !== null &&
-        isGitCommit(input.fromCommit)
-      ) {
-        const restored = await runStep(
-          record,
-          {
-            id: "restore-checkout",
-            label: "Restore the previous checkout",
-            command: "git",
-            args: restoreCheckoutArgv(input.fromBranch, input.fromCommit),
-          },
-          undefined,
-          false,
-        );
-        if (!restored) {
-          record.restartAdvice = `${record.restartAdvice} The previous checkout also could not be restored; fix it before retrying.`;
-        }
+      if (!record.ok && checkoutNeedsRestore && !(await restoreCheckout())) {
+        record.restartAdvice = `${record.restartAdvice} The previous checkout also could not be restored; fix it before retrying.`;
       }
       if (!record.ok && input.restoreRemoteUrl !== null) {
         const restored = await runStep(
@@ -721,38 +913,49 @@ export function createUpdaterApp(
     if (!result.ok && setError) record.error = `${step.label} failed.`;
     return result.ok;
   }
-
-  function upToDateRecord(
-    request: { repoUrl: string; branch: string },
-    tag: string,
-    strategy: "pull" | "build",
-    commit: string | null,
-  ): ServerUpdateRun {
-    const now = new Date().toISOString();
-    return {
-      startedAt: now,
-      finishedAt: now,
-      ok: true,
-      fromCommit: commit,
-      toCommit: commit,
-      fromTag: tag,
-      toTag: tag,
-      strategy,
-      repoUrl: request.repoUrl,
-      branch: request.branch,
-      restart: "not-required",
-      restartAdvice: `Already running ${tag}; nothing was changed.`,
-      error: null,
-      steps: [],
-    };
-  }
 }
 
-function startUpdater() {
+async function startUpdater() {
+  const logger = await createRootLogger(SERVICE_NAMES.updater);
   const config = resolveUpdaterConfig(process.env);
-  const app = createUpdaterApp(config);
-  return serve({ fetch: app.fetch, hostname: config.host, port: config.port }, () => {
-    console.log(`rakazo updater on http://${config.host}:${config.port} for ${config.deployDir}`);
+  const app = createUpdaterApp(config, { logger });
+  if (config.autoUpdateDisabledReason) logger.warn(config.autoUpdateDisabledReason);
+  const server = serve({ fetch: app.fetch, hostname: config.host, port: config.port }, () => {
+    logger.info("updater listening", {
+      "http.host": config.host,
+      "http.port": config.port,
+      "updater.deploy_dir": config.deployDir,
+    });
+  });
+  const stopSchedule = startUpdateSchedule(
+    config.autoUpdateIntervalMs,
+    async () => {
+      await applyStableUpdate(app);
+      logger.info("scheduled stable update check completed");
+    },
+    (error) => logger.error("scheduled stable update failed", { error }),
+  );
+  let stopping = false;
+  const shutdown = async () => {
+    if (stopping) return;
+    stopping = true;
+    await stopSchedule();
+    await closeListeningServer(server);
+    await logger.flush({ timeoutMs: 2_000 });
+    process.exit(0);
+  };
+  process.once("SIGTERM", () => void shutdown());
+  process.once("SIGINT", () => void shutdown());
+  return server;
+}
+
+function closeListeningServer(server: {
+  close(callback?: (err?: Error) => void): void;
+  closeIdleConnections?: () => void;
+}): Promise<void> {
+  server.closeIdleConnections?.();
+  return new Promise((resolve) => {
+    server.close(() => resolve());
   });
 }
 
@@ -771,5 +974,6 @@ export function restoreCheckoutArgv(fromBranch: string | null, fromCommit: strin
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  startUpdater();
+  // A rejected startup keeps Node's default: the error is printed and the process exits.
+  void startUpdater();
 }

@@ -65,6 +65,14 @@ def main():
                 break
             except Refused:
                 if attempt == 59:
+                    # State and recent logs only; the database is synthetic.
+                    import subprocess
+                    state = subprocess.run(["docker", "inspect", "--format",
+                                            "{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{.State.Error}}",
+                                            database], capture_output=True, timeout=30)
+                    logs = subprocess.run(["docker", "logs", "--tail", "40", database], capture_output=True, timeout=30)
+                    print("--- " + database + "\nstate: " + state.stdout.decode().strip() + "\nlast log lines:\n"
+                          + (logs.stdout + logs.stderr).decode("utf-8", errors="replace"), file=sys.stderr, flush=True)
                     raise
                 time.sleep(0.5)
         run(["docker", "exec", database, "psql", "-U", "postgres", "-c",

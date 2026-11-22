@@ -1,17 +1,23 @@
-import { Button } from "@rakazo/ui-web";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  DEMO_BOTS,
-  type DemoBot,
-  type DemoMessage,
-  type DemoRoutine,
-  type DemoRoutineRun,
-  type DemoScreen,
-} from "../demo";
+import type { CSSProperties, ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import type { DemoBot, DemoMessage, DemoRoutine, DemoRoutineRun, DemoScreen } from "../demo";
+import type { DemoMessages, DemoTextKey, DemoValues } from "../i18n/demo-text";
+import { fillDemoText, lookupDemoText } from "../i18n/demo-text";
 import { LandingBotAvatar } from "./LandingBotAvatar";
+import type { DemoTrigger } from "./product-demo-when";
+import {
+  defaultTrigger,
+  describeTrigger,
+  displayRoutineWhen,
+  parseWhen,
+  resolveRoutineWhen,
+} from "./product-demo-when";
+
+export type DemoTranslator = (source: DemoTextKey, values?: DemoValues) => string;
+type DemoLookup = (source: string, values?: DemoValues) => string;
 
 const BOT_COLORS = ["#3EC5A8", "#F5A03C", "#6A6BF5", "#9B5CF6", "#3B82F6", "#F2622A", "#D9508A"];
-const FREQS = [
+const FREQS: readonly DemoTextKey[] = [
   "Every hour",
   "Every day",
   "Weekdays",
@@ -20,9 +26,9 @@ const FREQS = [
   "Interval",
   "Advanced",
 ];
-const UNITS = ["minutes", "hours", "days"];
+const UNITS: readonly DemoTextKey[] = ["minutes", "hours", "days"];
 const NUMBERS = [1, 2, 3, 5, 10, 15, 30, 45];
-const TIMES = [
+const TIMES: readonly DemoTextKey[] = [
   "6:00 AM",
   "7:00 AM",
   "8:00 AM",
@@ -33,7 +39,12 @@ const TIMES = [
   "9:00 PM",
 ];
 
-const ONBOARD = [
+const ONBOARD: readonly {
+  q: DemoTextKey;
+  sub: DemoTextKey;
+  opts: readonly DemoTextKey[];
+  ack: DemoTextKey;
+}[] = [
   {
     q: "What do you mainly want me helping with?",
     sub: "Pick whatever’s closest, or type your own.",
@@ -44,7 +55,7 @@ const ONBOARD = [
       "Research & writing",
       "A bit of everything",
     ],
-    ack: (answer: string) => `${answer.toLowerCase()} is a sweet spot for me.`,
+    ack: "{answer} is a sweet spot for me.",
   },
   {
     q: "How do you want me to write?",
@@ -55,13 +66,13 @@ const ONBOARD = [
       "Polished / formal",
       "Match whatever I draft",
     ],
-    ack: (answer: string) => `Got it — ${answer.toLowerCase()} it is.`,
+    ack: "Got it. {answer} it is.",
   },
   {
     q: "Where does most of that work live?",
     sub: "So I know where to pull from and drop drafts.",
     opts: ["Google Docs", "Notion", "Just chat / paste here", "A mix"],
-    ack: (answer: string) => `Noted. I’ll pull from ${answer} and leave drafts there too.`,
+    ack: "Noted. I’ll pull from {answer} and leave drafts there too.",
   },
 ];
 
@@ -73,7 +84,7 @@ type LiveBot = DemoBot & {
   onboarding: boolean;
   answers: string[];
 };
-type Trigger = { freq: string; n: number; unit: string; time: string; cron: string };
+type Trigger = DemoTrigger;
 type RoutineDraft = {
   index: number | null;
   name: string;
@@ -81,10 +92,12 @@ type RoutineDraft = {
   active: boolean;
   triggers: Trigger[];
   runs: DemoRoutineRun[];
+  /** Original English `when` from the bot; kept when triggers are unchanged. */
+  sourceWhen?: string;
 };
 
-function cloneBots(): LiveBot[] {
-  return DEMO_BOTS.map((bot) => ({
+function cloneBots(source: DemoBot[]): LiveBot[] {
+  return source.map((bot) => ({
     ...bot,
     routines: bot.routines.map((routine) => ({
       ...routine,
@@ -97,68 +110,8 @@ function cloneBots(): LiveBot[] {
   }));
 }
 
-function defaultTrigger(): Trigger {
-  return { freq: "Every day", n: 3, unit: "minutes", time: "9:00 AM", cron: "" };
-}
-
-function parseWhen(when: string): Trigger {
-  const trigger = defaultTrigger();
-  if (!when) {
-    return trigger;
-  }
-  const interval = /every\s+(\d+)\s*(min|h)/i.exec(when);
-  if (interval) {
-    trigger.freq = "Interval";
-    trigger.n = Number(interval[1]);
-    trigger.unit = /h/i.test(interval[2] ?? "") ? "hours" : "minutes";
-    return trigger;
-  }
-  if (/hourly/i.test(when)) {
-    trigger.freq = "Every hour";
-    return trigger;
-  }
-  if (/weekday/i.test(when)) {
-    trigger.freq = "Weekdays";
-  } else if (/monday|week/i.test(when)) {
-    trigger.freq = "Every week";
-  } else if (/month/i.test(when)) {
-    trigger.freq = "Every month";
-  }
-  const time = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i.exec(when);
-  if (time) {
-    trigger.time = `${time[1]}:${time[2] || "00"} ${time[3]?.toUpperCase()}`;
-  }
-  return trigger;
-}
-
-function describeTrigger(trigger: Trigger) {
-  if (trigger.freq === "Interval") {
-    return { lead: "Every", detail: `${trigger.n} ${trigger.unit}` };
-  }
-  if (trigger.freq === "Every hour") {
-    return { lead: "Every hour", detail: "" };
-  }
-  if (trigger.freq === "Advanced") {
-    return { lead: "Cron", detail: trigger.cron || "*/3 * * * *" };
-  }
-  if (trigger.freq === "Weekdays") {
-    return { lead: "Weekdays", detail: `at ${trigger.time}` };
-  }
-  if (trigger.freq === "Every week") {
-    return { lead: "Every Monday", detail: `at ${trigger.time}` };
-  }
-  if (trigger.freq === "Every month") {
-    return { lead: "Monthly", detail: `on the 1st at ${trigger.time}` };
-  }
-  return { lead: "Every day", detail: `at ${trigger.time}` };
-}
-
-function whenLabel(triggers: Trigger[]) {
-  if (triggers.length === 0) {
-    return "Unscheduled";
-  }
-  const { lead, detail } = describeTrigger(triggers[0] ?? defaultTrigger());
-  return [lead, detail].filter(Boolean).join(" ");
+function displayedWhen(when: string, lookup: DemoLookup): string {
+  return displayRoutineWhen(when, lookup);
 }
 
 function previewForBot(bot: LiveBot, extra: ExtraMessages) {
@@ -172,35 +125,222 @@ function previewForBot(bot: LiveBot, extra: ExtraMessages) {
   return bot.preview;
 }
 
-const BOOT_STEPS: Record<number, string> = {
-  8: "Allocating a machine",
-  46: "Restoring the session",
-  82: "Opening the browser",
-  100: "Handing you the screen",
-};
+type DeskWindowId = "list" | "app";
+type DeskPoint = { x: number; y: number };
+/** Window positions in percent of the desktop, plus stacking order (last is on top). */
+export type Desk = { pos: Record<DeskWindowId, DeskPoint>; order: DeskWindowId[] };
 
-function ComputerDesktop({ screen, large = false }: { screen: DemoScreen; large?: boolean }) {
+export const DEFAULT_DESK: Desk = {
+  pos: { list: { x: 12, y: 8 }, app: { x: 38, y: 22 } },
+  order: ["list", "app"],
+};
+const DESK_SIZE: Record<DeskWindowId, { w: number; h: number }> = {
+  list: { w: 50, h: 64 },
+  app: { w: 48, h: 60 },
+};
+const LIST_ROWS = [62, 48, 70, 54, 66, 44, 58];
+
+function raise(desk: Desk, id: DeskWindowId): Desk {
+  return { ...desk, order: [...desk.order.filter((item) => item !== id), id] };
+}
+
+export function ComputerDesktop({
+  screen,
+  desk,
+  text,
+  onDeskChange,
+}: {
+  screen: DemoScreen;
+  desk: Desk;
+  text: DemoTranslator;
+  /** Present only where the user has control; makes windows draggable and the dock clickable. */
+  onDeskChange?: (update: (desk: Desk) => Desk) => void;
+}) {
+  const deskRef = useRef<HTMLDivElement | null>(null);
+  const live = Boolean(onDeskChange);
+
+  function startDrag(id: DeskWindowId, event: ReactPointerEvent<HTMLDivElement>) {
+    const rect = deskRef.current?.getBoundingClientRect();
+    if (!onDeskChange || !rect || event.button !== 0) {
+      return;
+    }
+    const target = event.currentTarget;
+    const pointerId = event.pointerId;
+    target.setPointerCapture(pointerId);
+    const origin = desk.pos[id];
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const size = DESK_SIZE[id];
+    onDeskChange((current) => raise(current, id));
+    // Update only this window from the latest state so simultaneous touch drags
+    // on both windows do not overwrite each other.
+    const move = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) {
+        return;
+      }
+      const x = origin.x + ((moveEvent.clientX - startX) / rect.width) * 100;
+      const y = origin.y + ((moveEvent.clientY - startY) / rect.height) * 100;
+      onDeskChange((current) => ({
+        ...current,
+        pos: {
+          ...current.pos,
+          [id]: {
+            x: Math.min(92, Math.max(8 - size.w, x)),
+            y: Math.min(88, Math.max(0, y)),
+          },
+        },
+      }));
+    };
+    const stop = (stopEvent: PointerEvent) => {
+      if (stopEvent.pointerId !== pointerId) {
+        return;
+      }
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", stop);
+      target.removeEventListener("pointercancel", stop);
+    };
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", stop);
+    target.addEventListener("pointercancel", stop);
+  }
+
+  function windowStyle(id: DeskWindowId): CSSProperties {
+    const { x, y } = desk.pos[id];
+    return {
+      left: `${x}%`,
+      top: `${y}%`,
+      width: `${DESK_SIZE[id].w}%`,
+      height: `${DESK_SIZE[id].h}%`,
+      zIndex: desk.order.indexOf(id) + 1,
+    };
+  }
+
+  function windowBar(id: DeskWindowId, label?: string) {
+    return (
+      <div
+        className="product-demo__window-bar"
+        onPointerDown={live ? (event) => startDrag(id, event) : undefined}
+      >
+        <span />
+        <span />
+        <span />
+        <div className="product-demo__window-url">{label}</div>
+      </div>
+    );
+  }
+
+  const dock: { id: DeskWindowId; icon: ReactNode; label: string }[] = [
+    {
+      id: "app",
+      label: screen.host,
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" fill="currentColor" />
+        </svg>
+      ),
+    },
+    {
+      id: "list",
+      label: text("Files"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
-    <div className={`product-demo__desktop${large ? " is-large" : ""}`}>
-      <div className="product-demo__window">
-        <div className="product-demo__window-bar">
-          <span />
-          <span />
-          <span />
-          <div className="product-demo__window-url">{screen.host}</div>
-        </div>
-        <div className="product-demo__window-body">
-          <div className="product-demo__window-title">{screen.title}</div>
-          {screen.lines.map((line) => (
-            <div key={line}>{line}</div>
-          ))}
-        </div>
+    <div ref={deskRef} className={`product-demo__desktop${live ? " is-live" : ""}`}>
+      {screen.lines.length > 0 ? (
+        <>
+          <div
+            className="product-demo__window product-demo__window--list"
+            style={windowStyle("list")}
+            onPointerDown={
+              live ? () => onDeskChange?.((current) => raise(current, "list")) : undefined
+            }
+          >
+            {windowBar("list")}
+            <div className="product-demo__window-split">
+              <div className="product-demo__window-side">
+                {LIST_ROWS.slice(0, 5).map((width) => (
+                  <i key={width} style={{ width: `${width}%` }} />
+                ))}
+              </div>
+              <div className="product-demo__window-rows">
+                {LIST_ROWS.map((width) => (
+                  <div key={width}>
+                    <span className="product-demo__window-check">✓</span>
+                    <i style={{ width: `${width}%` }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div
+            className="product-demo__window product-demo__window--app"
+            style={windowStyle("app")}
+            onPointerDown={
+              live ? () => onDeskChange?.((current) => raise(current, "app")) : undefined
+            }
+          >
+            {windowBar("app", screen.host)}
+            <div className="product-demo__window-body">
+              <div className="product-demo__window-title">{screen.title}</div>
+              {screen.lines.map((line, index) => (
+                <div key={line} className="product-demo__window-line">
+                  <span />
+                  <div>
+                    {line}
+                    <i style={{ width: `${LIST_ROWS[index] ?? 50}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
+      <div className="product-demo__dock">
+        {dock.map((app) =>
+          live ? (
+            <button
+              key={app.id}
+              type="button"
+              className={`product-demo__dock-icon product-demo__dock-icon--${app.id}`}
+              aria-label={app.label}
+              onClick={() => onDeskChange?.((current) => raise(current, app.id))}
+            >
+              {app.icon}
+            </button>
+          ) : (
+            <span
+              key={app.id}
+              className={`product-demo__dock-icon product-demo__dock-icon--${app.id}`}
+            >
+              {app.icon}
+            </span>
+          ),
+        )}
       </div>
     </div>
   );
 }
 
-function Thread({ messages }: { messages: DemoMessage[] }) {
+export function Thread({
+  messages,
+  text,
+  screen,
+  desk,
+  onOpenComputer,
+}: {
+  messages: DemoMessage[];
+  text: DemoTranslator;
+  screen: DemoScreen;
+  desk: Desk;
+  onOpenComputer: () => void;
+}) {
   return (
     <>
       {messages.map((message, index) => {
@@ -234,13 +374,39 @@ function Thread({ messages }: { messages: DemoMessage[] }) {
             </div>
           );
         }
+        if (message.type === "computer") {
+          return (
+            <div
+              key={`computer-${index}`}
+              className="product-demo__message product-demo__message--bot"
+            >
+              <div className="product-demo__computer">
+                <div className="product-demo__computer-head">
+                  <strong>{text("Computer")}</strong>
+                  <span>{text("Done")}</span>
+                </div>
+                <p>{message.text}</p>
+                <button
+                  type="button"
+                  className="product-demo__computer-shot"
+                  onClick={onOpenComputer}
+                  aria-label={text("Take control of computer")}
+                >
+                  <ComputerDesktop screen={screen} desk={desk} text={text} />
+                </button>
+              </div>
+            </div>
+          );
+        }
         if (message.type === "typing") {
           return (
             <div
               key={`typing-${index}`}
               className="product-demo__message product-demo__message--bot"
             >
-              <div className="product-demo__bubble product-demo__bubble--typing">working…</div>
+              <div className="product-demo__bubble product-demo__bubble--typing">
+                {text("working…")}
+              </div>
             </div>
           );
         }
@@ -262,38 +428,48 @@ function Thread({ messages }: { messages: DemoMessage[] }) {
 function OnboardThread({
   answers,
   onAnswer,
+  text,
+  lookup,
 }: {
   answers: string[];
   onAnswer: (value: string) => void;
+  text: DemoTranslator;
+  lookup: DemoLookup;
 }) {
   return (
     <>
-      <div className="product-demo__time">Today</div>
+      <div className="product-demo__time">{text("Today")}</div>
       <div className="product-demo__message product-demo__message--bot">
         <div className="product-demo__bubble product-demo__bubble--bot">
-          Hey Avery — good to meet you.
+          {text("Hey Avery. Good to meet you.")}
         </div>
       </div>
       {ONBOARD.map((step, index) => {
         const answer = answers[index];
         if (answer !== undefined) {
-          const letter = String.fromCharCode(65 + Math.max(0, step.opts.indexOf(answer)));
+          const letter = String.fromCharCode(
+            65 +
+              Math.max(
+                0,
+                step.opts.findIndex((opt) => opt === answer),
+              ),
+          );
           return (
-            <div key={step.q}>
+            <Fragment key={step.q}>
               <div className="product-demo__choice product-demo__choice--done">
-                <div className="product-demo__choice-q">{step.q}</div>
+                <div className="product-demo__choice-q">{text(step.q)}</div>
                 <div className="product-demo__choice-picked">
                   <span className="product-demo__choice-letter">{letter}</span>
-                  <span>{answer}</span>
+                  <span>{lookup(answer)}</span>
                   <span className="product-demo__choice-check">✓</span>
                 </div>
               </div>
               <div className="product-demo__message product-demo__message--bot">
                 <div className="product-demo__bubble product-demo__bubble--bot">
-                  {step.ack(answer)}
+                  {text(step.ack, { answer: lookup(answer) })}
                 </div>
               </div>
-            </div>
+            </Fragment>
           );
         }
         if (answers.length !== index) {
@@ -301,27 +477,28 @@ function OnboardThread({
         }
         return (
           <div key={step.q} className="product-demo__choice">
-            <div className="product-demo__choice-q">{step.q}</div>
-            <div className="product-demo__choice-sub">{step.sub}</div>
+            <div className="product-demo__choice-q">{text(step.q)}</div>
+            <div className="product-demo__choice-sub">{text(step.sub)}</div>
             <div className="product-demo__choice-opts">
               {step.opts.map((opt, optIndex) => (
                 <button key={opt} type="button" onClick={() => onAnswer(opt)}>
                   <span className="product-demo__choice-letter">
                     {String.fromCharCode(65 + optIndex)}
                   </span>
-                  <span>{opt}</span>
+                  <span>{text(opt)}</span>
                 </button>
               ))}
             </div>
-            <div className="product-demo__choice-own">Type your own answer</div>
+            <div className="product-demo__choice-own">{text("Type your own answer")}</div>
           </div>
         );
       })}
       {answers.length === ONBOARD.length ? (
         <div className="product-demo__message product-demo__message--bot">
           <div className="product-demo__bubble product-demo__bubble--bot">
-            That’s everything I need. Give me a first job whenever you’re ready — I’ll ask before
-            anything leaves the building.
+            {text(
+              "That’s everything I need. Give me a first job whenever you’re ready. I’ll ask before anything leaves the building.",
+            )}
           </div>
         </div>
       ) : null}
@@ -329,8 +506,16 @@ function OnboardThread({
   );
 }
 
-export function ProductDemo() {
-  const [bots, setBots] = useState<LiveBot[]>(cloneBots);
+export function ProductDemo({
+  bots: initialBots,
+  strings,
+}: {
+  bots: DemoBot[];
+  strings: DemoMessages;
+}) {
+  const text: DemoTranslator = (source, values) => fillDemoText(strings, source, values);
+  const lookup: DemoLookup = (source, values) => lookupDemoText(strings, source, values);
+  const [bots, setBots] = useState<LiveBot[]>(() => cloneBots(initialBots));
   const [activeId, setActiveId] = useState("inbox");
   const [panelOpen, setPanelOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -338,7 +523,8 @@ export function ProductDemo() {
   const [panelMode, setPanelMode] = useState<PanelMode>("computer");
   const [hasControl, setHasControl] = useState(false);
   const [takeover, setTakeover] = useState(false);
-  const [bootPct, setBootPct] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [desk, setDesk] = useState<Desk>(DEFAULT_DESK);
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
   const [extra, setExtra] = useState<ExtraMessages>({});
@@ -347,7 +533,6 @@ export function ProductDemo() {
   const timersRef = useRef<number[]>([]);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const widePanelRef = useRef(true);
-  const booting = bootPct > 0;
 
   const active = bots.find((bot) => bot.id === activeId) ?? bots[0];
   const messages = useMemo(() => {
@@ -368,9 +553,12 @@ export function ProductDemo() {
   const onboardingOpen = Boolean(active?.onboarding && active.answers.length < ONBOARD.length);
 
   useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
     setHasControl(false);
     setTakeover(false);
-    setBootPct(0);
   }, [activeId]);
 
   useEffect(() => {
@@ -424,18 +612,17 @@ export function ProductDemo() {
   }, [menuOpen]);
 
   useEffect(() => {
-    if (!takeover && !booting) {
+    if (!takeover) {
       return;
     }
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setTakeover(false);
-        setBootPct(0);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [takeover, booting]);
+  }, [takeover]);
 
   if (!active) {
     return null;
@@ -489,6 +676,7 @@ export function ProductDemo() {
       active: routine?.active ?? true,
       triggers: routine ? [parseWhen(routine.when)] : [],
       runs: routine?.runs?.map((run) => ({ ...run })) ?? [],
+      sourceWhen: routine?.when,
     });
   }
 
@@ -497,14 +685,22 @@ export function ProductDemo() {
   }
 
   function changeRoutine(patch: Partial<RoutineDraft>) {
-    setRoutineDraft((current) => (current ? { ...current, ...patch } : current));
+    setRoutineDraft((current) => {
+      if (!current) return current;
+      // Drop opaque sourceWhen once the user edits triggers so an explicit
+      // daily 9:00 AM choice is not overwritten by the seeded custom label.
+      if (patch.triggers !== undefined) {
+        return { ...current, ...patch, sourceWhen: undefined };
+      }
+      return { ...current, ...patch };
+    });
   }
 
   function persistRoutine(draftState: RoutineDraft) {
     const index = draftState.index ?? active.routines.length;
     const next: DemoRoutine = {
-      name: draftState.name.trim() || "Untitled routine",
-      when: whenLabel(draftState.triggers),
+      name: draftState.name.trim() || text("Untitled routine"),
+      when: resolveRoutineWhen(draftState.triggers, draftState.sourceWhen),
       instruction: draftState.instruction,
       active: draftState.active,
       runs: draftState.runs,
@@ -545,18 +741,18 @@ export function ProductDemo() {
     const color = BOT_COLORS[bots.length % BOT_COLORS.length] ?? "#3EC5A8";
     const bot: LiveBot = {
       id: `bot-${Date.now()}`,
-      name: "New bot",
+      name: text("New bot"),
       color,
-      time: "Now",
-      preview: "Say what you want this bot doing",
+      time: text("Now"),
+      preview: text("Say what you want this bot doing"),
       title: "",
       description: "",
       onboarding: true,
       answers: [],
       routines: [],
-      screen: { host: "desktop", title: "Computer is stopped", lines: [] },
+      screen: { host: "desktop", title: text("Computer is stopped"), lines: [] },
       thread: [],
-      reply: "on it. tell me the job and i’ll get started.",
+      reply: text("on it. tell me the job and i’ll get started."),
     };
     setBots((current) => [bot, ...current]);
     setActiveId(bot.id);
@@ -573,11 +769,7 @@ export function ProductDemo() {
   }
 
   function closeOverlay() {
-    for (const timer of timersRef.current.splice(0)) {
-      window.clearTimeout(timer);
-    }
     setTakeover(false);
-    setBootPct(0);
   }
 
   function releaseControl() {
@@ -586,25 +778,8 @@ export function ProductDemo() {
   }
 
   function takeControl() {
-    if (booting) {
-      return;
-    }
-    if (hasControl) {
-      setTakeover(true);
-      return;
-    }
-    for (const timer of timersRef.current.splice(0)) {
-      window.clearTimeout(timer);
-    }
-    setBootPct(8);
-    schedule(() => setBootPct(46), 450);
-    schedule(() => setBootPct(82), 1100);
-    schedule(() => setBootPct(100), 1750);
-    schedule(() => {
-      setBootPct(0);
-      setHasControl(true);
-      setTakeover(true);
-    }, 2300);
+    setHasControl(true);
+    setTakeover(true);
   }
 
   function appendMessage(botId: string, message: DemoMessage) {
@@ -638,6 +813,7 @@ export function ProductDemo() {
 
   function selectBot(id: string) {
     setActiveId(id);
+    setDesk(DEFAULT_DESK);
     closeMenu();
     if (panelMode === "routine") {
       setPanelMode("computer");
@@ -660,8 +836,8 @@ export function ProductDemo() {
     const completedRun: DemoRoutineRun = {
       mark: "●",
       color: "#4ECB71",
-      text: "Completed",
-      time: "Just now",
+      text: text("Completed"),
+      time: text("Just now"),
     };
     const index = persistRoutine({
       ...routineDraft,
@@ -676,11 +852,14 @@ export function ProductDemo() {
           }
         : current,
     );
-    appendMessage(active.id, { type: "meta", text: `Routine ran · ${routineDraft.name}` });
+    appendMessage(active.id, {
+      type: "meta",
+      text: text("Routine ran · {name}", { name: routineDraft.name }),
+    });
   }
 
   return (
-    <div className="product-demo">
+    <div className="product-demo" data-product-demo-ready={isHydrated ? "true" : undefined}>
       <div className={`product-demo__frame${panelOpen ? "" : " is-collapsed"}`}>
         <aside
           id="product-demo-bots"
@@ -694,12 +873,12 @@ export function ProductDemo() {
               <span />
               <span />
             </div>
-            <span className="product-demo__drawer-title">Bots</span>
+            <span className="product-demo__drawer-title">{text("Bots")}</span>
             <div className="product-demo__chrome-actions">
               <button
                 type="button"
                 className="product-demo__new"
-                aria-label="New bot"
+                aria-label={text("New bot")}
                 onClick={startNewBot}
               >
                 +
@@ -707,7 +886,7 @@ export function ProductDemo() {
               <button
                 type="button"
                 className="product-demo__sidebar-close"
-                aria-label="Hide bots"
+                aria-label={text("Hide bots")}
                 onClick={closeMenu}
               >
                 ✕
@@ -720,7 +899,7 @@ export function ProductDemo() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search"
+              placeholder={text("Search")}
             />
           </label>
           <div className="product-demo__bot-list">
@@ -755,7 +934,7 @@ export function ProductDemo() {
           <button
             type="button"
             className="product-demo__scrim"
-            aria-label="Hide bots"
+            aria-label={text("Hide bots")}
             onClick={closeMenu}
           />
         ) : null}
@@ -767,7 +946,7 @@ export function ProductDemo() {
                 type="button"
                 ref={menuButtonRef}
                 className="product-demo__menu-btn"
-                aria-label="Show bots"
+                aria-label={text("Show bots")}
                 aria-expanded={menuOpen}
                 aria-controls="product-demo-bots"
                 onClick={() => setMenuOpen(true)}
@@ -793,8 +972,8 @@ export function ProductDemo() {
               type="button"
               className="product-demo__panel-toggle"
               aria-pressed={panelOpen && panelMode === "computer"}
-              aria-label="Toggle computer panel"
-              title="Computer"
+              aria-label={text("Toggle computer panel")}
+              title={text("Computer")}
               onClick={toggleComputer}
             >
               <svg
@@ -813,14 +992,25 @@ export function ProductDemo() {
 
           <div className="product-demo__thread" ref={scrollRef}>
             {active.onboarding ? (
-              <OnboardThread answers={active.answers} onAnswer={answerOnboard} />
+              <OnboardThread
+                answers={active.answers}
+                onAnswer={answerOnboard}
+                text={text}
+                lookup={lookup}
+              />
             ) : null}
             {messages.length === 0 && !active.onboarding ? (
               <div className="product-demo__empty-thread">
-                Message {active.name} to give it a first job.
+                {text("Message {name} to give it a first job.", { name: active.name })}
               </div>
             ) : (
-              <Thread messages={messages} />
+              <Thread
+                messages={messages}
+                text={text}
+                screen={active.screen}
+                desk={desk}
+                onOpenComputer={takeControl}
+              />
             )}
           </div>
 
@@ -839,10 +1029,23 @@ export function ProductDemo() {
                     send();
                   }
                 }}
-                placeholder={onboardingOpen ? "Type your own answer" : `Message ${active.name}`}
-                aria-label={onboardingOpen ? "Type your own answer" : `Message ${active.name}`}
+                placeholder={
+                  onboardingOpen
+                    ? text("Type your own answer")
+                    : text("Message {name}", { name: active.name })
+                }
+                aria-label={
+                  onboardingOpen
+                    ? text("Type your own answer")
+                    : text("Message {name}", { name: active.name })
+                }
               />
-              <button type="button" className="product-demo__send" onClick={send} aria-label="Send">
+              <button
+                type="button"
+                className="product-demo__send"
+                onClick={send}
+                aria-label={text("Send")}
+              >
                 ↑
               </button>
             </div>
@@ -853,9 +1056,13 @@ export function ProductDemo() {
           <aside className="product-demo__panel">
             {panelMode !== "routine" ? (
               <div className="product-demo__panel-head">
-                <span>{panelMode === "settings" ? "settings" : `${active.name}’s computer`}</span>
+                <span>
+                  {panelMode === "settings"
+                    ? text("settings")
+                    : text("{name}’s computer", { name: active.name })}
+                </span>
                 <div className="product-demo__panel-actions">
-                  <button type="button" aria-label="Bot settings" onClick={openSettings}>
+                  <button type="button" aria-label={text("Bot settings")} onClick={openSettings}>
                     <svg
                       width="17"
                       height="17"
@@ -870,7 +1077,7 @@ export function ProductDemo() {
                   </button>
                   <button
                     type="button"
-                    aria-label="Close panel"
+                    aria-label={text("Close panel")}
                     onClick={() => setPanelOpen(false)}
                   >
                     ✕
@@ -885,31 +1092,30 @@ export function ProductDemo() {
                   type="button"
                   className="product-demo__screen"
                   onClick={takeControl}
-                  aria-label={hasControl ? "Open computer" : "Take control of computer"}
+                  aria-label={hasControl ? text("Open computer") : text("Take control of computer")}
                 >
-                  <ComputerDesktop screen={active.screen} />
+                  <ComputerDesktop screen={active.screen} desk={desk} text={text} />
                 </button>
                 <div className="product-demo__screen-meta">
-                  <span>{hasControl ? "You have control" : `${active.name}’s screen`}</span>
-                  <Button
+                  {hasControl ? <span>{text("You have control")}</span> : null}
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    className="product-demo__text-btn"
                     onClick={() => (hasControl ? releaseControl() : takeControl())}
                   >
-                    {hasControl ? "Release" : "Take control"}
-                  </Button>
+                    {hasControl ? text("Release") : text("Take control")}
+                  </button>
                 </div>
-                <div className="product-demo__panel-label">Routines</div>
+                <div className="product-demo__panel-label">{text("Routines")}</div>
                 {active.routines.length === 0 ? (
                   <div className="product-demo__empty-routines">
-                    <p>Routines are recurring tasks this agent runs on a schedule.</p>
+                    <p>{text("Routines are recurring tasks this agent runs on a schedule.")}</p>
                     <button
                       type="button"
                       className="product-demo__ghost-btn"
                       onClick={() => openRoutine(null, null)}
                     >
-                      Create routine
+                      {text("Create routine")}
                     </button>
                   </div>
                 ) : (
@@ -923,7 +1129,9 @@ export function ProductDemo() {
                       >
                         <span className="product-demo__routine-icon">◷</span>
                         <span className="product-demo__routine-name">{routine.name}</span>
-                        <span className="product-demo__routine-when">{routine.when}</span>
+                        <span className="product-demo__routine-when">
+                          {displayedWhen(routine.when, lookup)}
+                        </span>
                       </button>
                     ))}
                     <button
@@ -931,7 +1139,7 @@ export function ProductDemo() {
                       className="product-demo__quiet"
                       onClick={() => openRoutine(null, null)}
                     >
-                      + New routine
+                      {text("+ New routine")}
                     </button>
                   </>
                 )}
@@ -944,27 +1152,27 @@ export function ProductDemo() {
                   <LandingBotAvatar color={active.color} size={72} />
                 </div>
                 <label className="product-demo__field">
-                  Name
+                  {text("Name")}
                   <input
                     value={active.name}
-                    placeholder="Name this agent"
+                    placeholder={text("Name this agent")}
                     onChange={(event) => patchActive({ name: event.target.value })}
                   />
                 </label>
                 <label className="product-demo__field">
-                  Title
+                  {text("Title")}
                   <input
                     value={active.title}
-                    placeholder="Describe what this agent does"
+                    placeholder={text("Describe what this agent does")}
                     onChange={(event) => patchActive({ title: event.target.value })}
                   />
                 </label>
                 <label className="product-demo__field">
-                  Description
+                  {text("Description")}
                   <textarea
                     rows={4}
                     value={active.description}
-                    placeholder="What this agent is for"
+                    placeholder={text("What this agent is for")}
                     onChange={(event) => patchActive({ description: event.target.value })}
                   />
                 </label>
@@ -974,14 +1182,14 @@ export function ProductDemo() {
             {panelMode === "routine" && routineDraft ? (
               <div className="product-demo__routine-editor">
                 <div className="product-demo__routine-nav">
-                  <button type="button" onClick={saveRoutine} aria-label="Back to computer">
+                  <button type="button" onClick={saveRoutine} aria-label={text("Back to computer")}>
                     ‹
                   </button>
-                  <span>Routine</span>
+                  <span>{text("Routine")}</span>
                   <button
                     type="button"
                     onClick={() => setPanelOpen(false)}
-                    aria-label="Close panel"
+                    aria-label={text("Close panel")}
                   >
                     ✕
                   </button>
@@ -995,9 +1203,9 @@ export function ProductDemo() {
                   >
                     <span />
                   </button>
-                  <span>{routineDraft.active ? "Active" : "Paused"}</span>
+                  <span>{routineDraft.active ? text("Active") : text("Paused")}</span>
                   <button type="button" className="product-demo__ghost-btn" onClick={deleteRoutine}>
-                    Delete
+                    {text("Delete")}
                   </button>
                   <button
                     type="button"
@@ -1005,40 +1213,40 @@ export function ProductDemo() {
                     disabled={!routineDraft.name.trim()}
                     onClick={testRun}
                   >
-                    Test run
+                    {text("Test run")}
                   </button>
                 </div>
                 <label className="product-demo__field">
-                  Name
+                  {text("Name")}
                   <input
                     value={routineDraft.name}
-                    placeholder="Name this routine"
+                    placeholder={text("Name this routine")}
                     onChange={(event) => changeRoutine({ name: event.target.value })}
                   />
                 </label>
                 <label className="product-demo__field">
-                  Instruction
+                  {text("Instruction")}
                   <textarea
                     rows={4}
                     value={routineDraft.instruction}
-                    placeholder="What should this routine do each time it runs?"
+                    placeholder={text("What should this routine do each time it runs?")}
                     onChange={(event) => changeRoutine({ instruction: event.target.value })}
                   />
                 </label>
                 <div className="product-demo__field">
-                  When to run
+                  {text("When to run")}
                   {routineDraft.triggers.length === 0 ? (
                     <button
                       type="button"
                       className="product-demo__add-schedule"
                       onClick={() => changeRoutine({ triggers: [defaultTrigger()] })}
                     >
-                      + Add schedule
+                      {text("+ Add schedule")}
                     </button>
                   ) : (
                     <div className="product-demo__triggers">
                       {routineDraft.triggers.map((trigger, index) => {
-                        const { lead, detail } = describeTrigger(trigger);
+                        const { lead, detail } = describeTrigger(trigger, lookup);
                         const timed = [
                           "Every day",
                           "Weekdays",
@@ -1053,7 +1261,7 @@ export function ProductDemo() {
                               </span>
                               <button
                                 type="button"
-                                aria-label="Remove schedule"
+                                aria-label={text("Remove schedule")}
                                 onClick={() =>
                                   changeRoutine({
                                     triggers: routineDraft.triggers.filter(
@@ -1074,13 +1282,13 @@ export function ProductDemo() {
                               >
                                 {FREQS.map((freq) => (
                                   <option key={freq} value={freq}>
-                                    {freq}
+                                    {text(freq)}
                                   </option>
                                 ))}
                               </select>
                               {trigger.freq === "Interval" ? (
                                 <>
-                                  <span>every</span>
+                                  <span>{text("every")}</span>
                                   <select
                                     value={String(trigger.n)}
                                     onChange={(event) =>
@@ -1101,7 +1309,7 @@ export function ProductDemo() {
                                   >
                                     {UNITS.map((unit) => (
                                       <option key={unit} value={unit}>
-                                        {unit}
+                                        {text(unit)}
                                       </option>
                                     ))}
                                   </select>
@@ -1109,7 +1317,7 @@ export function ProductDemo() {
                               ) : null}
                               {timed ? (
                                 <>
-                                  <span>at</span>
+                                  <span>{text("at")}</span>
                                   <select
                                     value={trigger.time}
                                     onChange={(event) =>
@@ -1118,7 +1326,7 @@ export function ProductDemo() {
                                   >
                                     {TIMES.map((time) => (
                                       <option key={time} value={time}>
-                                        {time}
+                                        {text(time)}
                                       </option>
                                     ))}
                                   </select>
@@ -1144,15 +1352,15 @@ export function ProductDemo() {
                           changeRoutine({ triggers: [...routineDraft.triggers, defaultTrigger()] })
                         }
                       >
-                        + Add another
+                        {text("+ Add another")}
                       </button>
                     </div>
                   )}
                 </div>
                 <div className="product-demo__field">
-                  Run history
+                  {text("Run history")}
                   {routineDraft.runs.length === 0 ? (
-                    <p className="product-demo__muted">No runs yet</p>
+                    <p className="product-demo__muted">{text("No runs yet")}</p>
                   ) : (
                     <ul className="product-demo__runs">
                       {routineDraft.runs.map((run, index) => (
@@ -1170,49 +1378,45 @@ export function ProductDemo() {
           </aside>
         ) : null}
 
-        {booting || takeover ? (
+        {takeover ? (
           <div className="product-demo__stage">
-            {booting ? (
-              <div className="product-demo__boot">
-                <div className="product-demo__boot-title">Booting up {active.name}’s computer</div>
-                <div className="product-demo__boot-track">
-                  <div style={{ width: `${bootPct}%` }} />
+            <div className="product-demo__takeover">
+              <div className="product-demo__takeover-bar">
+                <div className="product-demo__takeover-who">
+                  <LandingBotAvatar color={active.color} size={32} />
+                  <span>{text("{name}’s computer", { name: active.name })}</span>
+                  <span className="product-demo__takeover-pill">{text("You have control")}</span>
                 </div>
-                <div className="product-demo__boot-step">{BOOT_STEPS[bootPct] ?? ""}</div>
-              </div>
-            ) : (
-              <div className="product-demo__takeover">
-                <div className="product-demo__takeover-bar">
-                  <div className="product-demo__takeover-who">
-                    <LandingBotAvatar color={active.color} size={32} />
-                    <span>{active.name}’s computer</span>
-                    <span className="product-demo__takeover-pill">You have control</span>
-                  </div>
-                  <div className="product-demo__takeover-actions">
-                    <Button type="button" variant="outline" size="sm" onClick={releaseControl}>
-                      Release
-                    </Button>
-                    <button
-                      type="button"
-                      className="product-demo__takeover-close"
-                      onClick={closeOverlay}
-                      aria-label="Close computer"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-                <div className="product-demo__takeover-screen">
-                  <ComputerDesktop screen={active.screen} large />
+                <div className="product-demo__takeover-actions">
+                  <button
+                    type="button"
+                    className="product-demo__outline-btn"
+                    onClick={releaseControl}
+                  >
+                    {text("Release")}
+                  </button>
+                  <button
+                    type="button"
+                    className="product-demo__takeover-close"
+                    onClick={closeOverlay}
+                    aria-label={text("Close computer")}
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
-            )}
+              <div className="product-demo__takeover-screen">
+                <ComputerDesktop
+                  screen={active.screen}
+                  desk={desk}
+                  text={text}
+                  onDeskChange={setDesk}
+                />
+              </div>
+            </div>
           </div>
         ) : null}
       </div>
-      <p className="product-demo__caption">
-        Live demo — pick a bot, open its computer, add a routine, or start a new chat.
-      </p>
     </div>
   );
 }

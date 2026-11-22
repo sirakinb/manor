@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import type { ReactNode } from "react";
-import { BuiCard } from "../components/beautiful-ui/primitives";
+import { BuiCard } from "../components/ai/primitives";
 import { brandName } from "../lib/brand";
 
 export function UserGuide({ topic }: { topic: "start" | "agents" | "business" }) {

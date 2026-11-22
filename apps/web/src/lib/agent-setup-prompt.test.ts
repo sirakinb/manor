@@ -1,4 +1,5 @@
-import { type WorkspaceAccess, workspaceExternalToolsForChannels } from "@rakazo/contracts";
+import type { WorkspaceAccess } from "@rakazo/contracts";
+import { workspaceExternalToolsForChannels } from "@rakazo/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./brand", () => ({ brandName: "Manor" }));

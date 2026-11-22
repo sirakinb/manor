@@ -1,14 +1,14 @@
 import type { BackgroundJob, JobPublisher } from "@rakazo/adapter-kit";
-import { createDb, ensureDefaultAutomations, type PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { createDb, ensureDefaultAutomations } from "@rakazo/db";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { FakeIngestionRunner } from "./ingestion-runner.js";
-import { EncryptedSecretStore } from "./secrets.js";
+import { EncryptedSecretStore } from "./secrets/secrets.js";
 import { runWorkspaceAutomation } from "./workspace-automation-runner.js";
 import { saveWorkspaceCredential } from "./workspace-credentials.js";
 
 const databaseUrl = process.env.DATABASE_URL;
-const describePostgres =
-  process.env.VERIFY_DATABASE && databaseUrl ? describe.sequential : describe.skip;
+const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
 const NOW = new Date("2026-09-04T12:40:00Z");
 
@@ -17,6 +17,13 @@ class RecordingJobs implements JobPublisher {
   async enqueue(job: BackgroundJob) {
     this.jobs.push(job);
   }
+  async enqueueIn(_tx: unknown, job: BackgroundJob) {
+    this.jobs.push(job);
+  }
+  async enqueueManyIn(_tx: unknown, jobs: readonly BackgroundJob[]) {
+    this.jobs.push(...jobs);
+  }
+  async cancelIn() {}
   async cancel() {}
   async close() {}
 }

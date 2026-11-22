@@ -8,6 +8,7 @@ export const ActorSchema = z.object({
   spaceId: Id,
   organizationId: Id,
   email: z.string().email(),
+  /** Deprecated wire field. App accounts have no deployment role; always false. */
   isDeploymentOwner: z.boolean(),
   portalOrganizationId: Id.optional(),
   /** Authenticated person, retained when operating on a shared space account. */
@@ -16,18 +17,6 @@ export const ActorSchema = z.object({
   spaceAccountUserId: Id.optional(),
 });
 export type Actor = z.infer<typeof ActorSchema>;
-
-// Manor sprite family. Keep in sync with ui-tokens botColors and the
-// SPRITES map in ui-web/bot-avatar.tsx.
-export const BOT_COLORS = [
-  "#8B5CF6",
-  "#F5C542",
-  "#3FB6AE",
-  "#A78BFA",
-  "#F08040",
-  "#E0524D",
-  "#5B8DEF",
-] as const;
 
 export const RunStatus = z.enum([
   "queued",
@@ -41,11 +30,27 @@ export const RunStatus = z.enum([
 ]);
 export type RunStatus = z.infer<typeof RunStatus>;
 
-export const EffectStatus = z.enum(["intended", "completed", "failed", "ambiguous", "reconciled"]);
-export type EffectStatus = z.infer<typeof EffectStatus>;
+export const ThinkingLevelSchema = z.enum([
+  "off",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+]);
+export type ThinkingLevel = z.infer<typeof ThinkingLevelSchema>;
+
+/** How a bot talks to people while it works: its written text, or only the messages it sends. */
+export const ReplyModeSchema = z.enum(["chat", "messages"]);
+export type ReplyMode = z.infer<typeof ReplyModeSchema>;
 
 export const MemoryScope = z.enum(["bot", "user"]);
 export type MemoryScope = z.infer<typeof MemoryScope>;
 
-export const SandboxKind = z.enum(["docker", "e2b", "daytona", "box", "desktop", "local", "fake"]);
+/**
+ * A computer provider's id. Opaque here: the adapters own the list of providers and check an id
+ * against it, so a stored kind this build no longer has still reads.
+ */
+export const SandboxKind = z.string().min(1);
 export type SandboxKind = z.infer<typeof SandboxKind>;

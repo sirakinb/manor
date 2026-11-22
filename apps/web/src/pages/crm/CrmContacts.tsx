@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmContact, CrmOverview, CrmTag } from "@rakazo/contracts";
 import { useMemo, useState } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import { CrmContactsSheet } from "./CrmContactsSheet";
 import { formatMoney } from "./theme";
 

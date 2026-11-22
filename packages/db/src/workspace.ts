@@ -28,22 +28,21 @@ import type {
   WorkspaceSyncRun,
 } from "@rakazo/contracts";
 import { WorkspaceActivityEvidenceSchema } from "@rakazo/contracts";
-import { Prisma, type PrismaClient } from "./client.js";
 import { syncWaterBillsFromCrm } from "./crm-utility-bills.js";
-import { IsolationError, type OrganizationScope } from "./scope.js";
+import type { PrismaClient } from "./database/client.js";
+import { Prisma } from "./database/client.js";
+import type { OrganizationScope } from "./database/scope.js";
+import { IsolationError } from "./database/scope.js";
 import {
   matchBillsToProperties,
   normStreetAddr,
   upsertCityUtilityBill,
 } from "./utility-city-bills.js";
-import {
-  allocateLeasesForBillingMonth,
-  splitChargeAmounts,
-  type UtilityLeaseTerm,
-} from "./utility-leases.js";
+import type { UtilityLeaseTerm } from "./utility-leases.js";
+import { allocateLeasesForBillingMonth, splitChargeAmounts } from "./utility-leases.js";
+import type { PipeSpec } from "./workspace-pipes.js";
 import {
   matchSource,
-  type PipeSpec,
   pipeFromFreshness,
   pipeFromRuns,
   pipesForChannels,

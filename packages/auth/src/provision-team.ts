@@ -1,6 +1,12 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { brandById } from "@rakazo/brands";
-import { createSpaceAccount, joinOrganization, type PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import {
+  assertSpaceTakesPerson,
+  createSpaceAccount,
+  joinOrganization,
+  runAsSystem,
+} from "@rakazo/db";
 import { hashPassword } from "better-auth/crypto";
 
 type PortalTeamInput = { brandId: string; members: Array<{ email: string; name: string }> };
@@ -42,94 +48,108 @@ export async function provisionPortalTeam(prisma: PrismaClient, input: PortalTea
   );
   if (new Set(members.map((member) => member.email)).size !== members.length)
     throw new Error("Duplicate member");
-  return prisma.$transaction(
-    async (tx) => {
-      let organization = await tx.organization.findUnique({ where: { brandId: brand.id } });
-      if (!organization)
-        organization = await tx.organization.create({
-          data: {
-            id: randomUUID(),
-            name: brand.name,
-            slug: brand.id,
-            brandId: brand.id,
-            logo: brand.logo.src,
-            createdAt: new Date(),
-          },
-        });
-      let space = await tx.space.findFirst({
-        where: { organizationId: organization.id, isDefault: true },
-      });
-      if (!space) {
-        space = await tx.space.create({
-          data: {
-            id: randomUUID(),
-            organizationId: organization.id,
-            name: brand.name,
-            isDefault: true,
-          },
-        });
-        // New organizations start with one shared team boundary. Existing
-        // spaces keep their ownership; live data needs a reviewed migration.
-        await createSpaceAccount(tx, space);
-      }
-      const accounts: Array<{ email: string; password: string | null; created: boolean }> = [];
-      for (const member of members) {
-        let user = await tx.user.findFirst({
-          where: { email: { equals: member.email, mode: "insensitive" } },
-        });
-        const created = !user;
-        if (user?.portalBrandId && user.portalBrandId !== brand.id)
-          throw new Error("An existing account belongs to another client portal");
-        if (!user) {
-          user = await tx.user.create({
+  // Runs from the operator CLI with no request: it creates an organization, its team
+  // space and account, users and their seeded memory across tenants, so it is a named
+  // system context. The context is set before the transaction checks out its connection.
+  return runAsSystem("operator portal provisioning", () =>
+    prisma.$transaction(
+      async (tx) => {
+        let organization = await tx.organization.findUnique({ where: { brandId: brand.id } });
+        if (!organization)
+          organization = await tx.organization.create({
             data: {
               id: randomUUID(),
-              email: member.email,
-              name: member.name,
-              portalBrandId: brand.id,
-            },
-          });
-          await tx.account.create({
-            data: {
-              id: randomUUID(),
-              userId: user.id,
-              accountId: user.id,
-              providerId: "credential",
-              password: member.hash,
-            },
-          });
-        }
-        const membership = await tx.member.findUnique({
-          where: { organizationId_userId: { organizationId: organization.id, userId: user.id } },
-        });
-        if (!membership) {
-          await joinOrganization(tx as PrismaClient, user, {
-            id: organization.id,
-            defaultSpaceId: space.id,
-          });
-        } else {
-          await tx.spaceMember.upsert({
-            where: { spaceId_userId: { spaceId: space.id, userId: user.id } },
-            update: {},
-            create: {
-              id: randomUUID(),
-              spaceId: space.id,
-              organizationId: organization.id,
-              userId: user.id,
-              role: "member",
+              name: brand.name,
+              slug: brand.id,
+              brandId: brand.id,
+              logo: brand.logo.src,
               createdAt: new Date(),
             },
           });
+        let space = await tx.space.findFirst({
+          where: { organizationId: organization.id, isDefault: true },
+        });
+        if (!space) {
+          space = await tx.space.create({
+            data: {
+              id: randomUUID(),
+              organizationId: organization.id,
+              name: brand.name,
+              isDefault: true,
+            },
+          });
+          // New organizations start with one shared team boundary. Existing
+          // spaces keep their ownership; live data needs a reviewed migration.
+          await createSpaceAccount(tx, space);
         }
-        accounts.push({ email: member.email, password: created ? member.password : null, created });
-      }
-      return {
-        organizationId: organization.id,
-        spaceId: space.id,
-        url: `https://${brand.hostnames[0]}`,
-        accounts,
-      };
-    },
-    { timeout: 15_000 },
+        const accounts: Array<{ email: string; password: string | null; created: boolean }> = [];
+        for (const member of members) {
+          let user = await tx.user.findFirst({
+            where: { email: { equals: member.email, mode: "insensitive" } },
+          });
+          const created = !user;
+          if (user?.portalBrandId && user.portalBrandId !== brand.id)
+            throw new Error("An existing account belongs to another client portal");
+          if (!user) {
+            user = await tx.user.create({
+              data: {
+                id: randomUUID(),
+                email: member.email,
+                name: member.name,
+                // The operator provisions these accounts directly, so the address is trusted.
+                emailVerified: true,
+                portalBrandId: brand.id,
+              },
+            });
+            await tx.account.create({
+              data: {
+                id: randomUUID(),
+                userId: user.id,
+                accountId: user.id,
+                providerId: "credential",
+                password: member.hash,
+              },
+            });
+          }
+          const membership = await tx.member.findUnique({
+            where: { organizationId_userId: { organizationId: organization.id, userId: user.id } },
+          });
+          if (!membership) {
+            await joinOrganization(tx as PrismaClient, user, {
+              id: organization.id,
+              defaultSpaceId: space.id,
+            });
+          } else {
+            // Manor: a space without a shared account holds one person, so provisioning never
+            // adds a second one to it; the whole batch rolls back instead.
+            await assertSpaceTakesPerson(tx, { spaceId: space.id, userId: user.id });
+            await tx.spaceMember.upsert({
+              where: { spaceId_userId: { spaceId: space.id, userId: user.id } },
+              update: {},
+              create: {
+                id: randomUUID(),
+                spaceId: space.id,
+                organizationId: organization.id,
+                userId: user.id,
+                role: "member",
+                createdAt: new Date(),
+              },
+            });
+          }
+          accounts.push({
+            email: member.email,
+            password: created ? member.password : null,
+            created,
+          });
+        }
+        return {
+          organizationId: organization.id,
+          spaceId: space.id,
+          url: `https://${brand.hostnames[0]}`,
+          accounts,
+        };
+      },
+      { timeout: 15_000 },
+    ),
   );
 }

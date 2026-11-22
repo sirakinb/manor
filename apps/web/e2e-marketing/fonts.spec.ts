@@ -6,7 +6,9 @@ test("marketing page renders without the unverified bundled font", async ({ page
   page.on("request", (request) => {
     if (/aeonik/i.test(request.url())) fontRequests.push(request.url());
   });
-  // Use the installed open-license font; screenshots do not depend on Google Fonts or analytics.
+  // Serve Geist from the repository; screenshots do not depend on Google Fonts or analytics.
+  // The web app no longer installs @fontsource-variable/geist (it loads Geist from Google Fonts),
+  // so the face comes from its bundled open-license Geist Pixel Grid file.
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.hostname === "fonts.googleapis.com") {
@@ -17,10 +19,7 @@ test("marketing page renders without the unverified bundled font", async ({ page
     } else if (url.pathname === "/__test-geist.woff2") {
       await route.fulfill({
         contentType: "font/woff2",
-        path: path.resolve(
-          import.meta.dirname,
-          "../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2",
-        ),
+        path: path.resolve(import.meta.dirname, "../public/fonts/geist-pixel-grid.woff2"),
       });
     } else if (url.origin === "http://127.0.0.1:4321") {
       await route.continue();

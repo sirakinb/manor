@@ -1,7 +1,8 @@
 import { RPCHandler } from "@orpc/server/fetch";
 import type { Actor } from "@rakazo/contracts";
 import { describe, expect, it, vi } from "vitest";
-import { createRouter, type RouterDeps } from "./router.js";
+import type { RouterDeps } from "./router.js";
+import { createRouter } from "./router.js";
 
 const inputs = {
   list: undefined,
@@ -45,7 +46,7 @@ describe("maintenance RPC authorization", () => {
             },
           },
         );
-        expect(response.status).toBe(actor ? 403 : 401);
+        expect(response?.status).toBe(actor ? 403 : 401);
         expect(read).not.toHaveBeenCalled();
       });
     }

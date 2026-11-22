@@ -1,10 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { INTEGRATION_SCOPES } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { BuiButton, BuiCard, SuccessPop } from "../components/beautiful-ui/primitives";
+import { BuiButton, BuiCard, SuccessPop } from "../components/ai/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
 import { brandName } from "../lib/brand";
-import { withSpaceHeaders } from "../lib/rpc";
+import { withSpaceHeaders } from "../lib/query/rpc";
 import { useWorkspaceAccess } from "../lib/use-workspace-access";
 
 type Credential = {
@@ -277,8 +277,8 @@ export function CrmApiAccessPanel() {
               </BuiButton>
               <p className="min-w-0 flex-1 text-xs leading-5 text-[#85858A]">
                 <Trans>
-                  One paste into Claude, Cursor, or any coding agent — token included, it connects
-                  over MCP and verifies itself.
+                  One paste into Claude, Cursor, or any coding agent. The token is included, and it
+                  connects over MCP and verifies itself.
                 </Trans>
               </p>
             </div>

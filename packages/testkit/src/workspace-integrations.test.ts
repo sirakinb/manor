@@ -15,11 +15,11 @@ process.env.SANDBOX_PROVIDER = "fake";
 process.env.AGENT_RUNTIME = "scripted";
 const describeDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
-    ? describe.sequential
+    ? describe // Vitest 5 runs a suite's tests in order unless told otherwise.
     : describe.skip;
 
 describeDb("external workspace handoff", () => {
-  let handles: Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
+  let handles: Awaited<ReturnType<typeof import("@rakazo/api/app").createApp>>;
   let cookie: string;
   let token: string;
   let workspaceId: string;
@@ -54,7 +54,7 @@ describeDb("external workspace handoff", () => {
     });
   }
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       dataDir,

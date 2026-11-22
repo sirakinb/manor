@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { CrmModule, CrmOverview } from "@rakazo/contracts";
 import { useCallback, useEffect, useState } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
 import { CrmContacts } from "./CrmContacts";
 import { CrmForms } from "./CrmForms";
 import { CrmHome } from "./CrmHome";

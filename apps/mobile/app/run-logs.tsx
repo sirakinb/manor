@@ -1,17 +1,16 @@
-import type { Run, RunDiagnostics } from "@rakazo/contracts";
 import { RunLogsController } from "@rakazo/core";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from "react-native";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 
 export default function RunLogs() {
   const { botId } = useLocalSearchParams<{ botId: string }>();
   const controller = useMemo(
     () =>
       new RunLogsController(botId, {
-        history: (input) => rpc<{ runs: Run[] }>("runs/history", input),
-        diagnostics: (input) => rpc<RunDiagnostics>("runs/diagnostics", input),
+        history: (input) => rpc("runs/history", input),
+        diagnostics: (input) => rpc("runs/diagnostics", input),
       }),
     [botId],
   );

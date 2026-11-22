@@ -5,7 +5,7 @@
     "owner": "defipapi-org",
     "scheme": "manor",
     "version": "1.0.1",
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "plugins": [
@@ -19,8 +19,28 @@
       ],
       "expo-router",
       "expo-secure-store",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false,
+          "microphonePermission": "Manor uses the microphone for voice calls with your bots."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "speechRecognitionPermission": "Manor turns your speech into messages during voice calls.",
+          "microphonePermission": "Manor uses the microphone for voice calls with your bots."
+        }
+      ],
       "expo-localization",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Manor to read and add events in calendars you choose for your bots.",
+          "remindersPermission": "Allow Manor to create and complete reminders in lists you choose for your bots."
+        }
+      ],
       "@react-native-vector-icons/ionicons",
       "@react-native-vector-icons/material-design-icons",
       [
@@ -35,16 +55,60 @@
         {
           "photosPermission": "Manor uses your photo library so you can attach images to a bot message.",
           "cameraPermission": "Manor uses the camera so you can attach photos to a bot message.",
-          "microphonePermission": false
+          "microphonePermission": "Manor uses the microphone for voice calls with your bots."
         }
       ],
-      "expo-sharing",
-      "./plugins/with-worklets-headers"
+      "./plugins/with-share-extension",
+      [
+        "expo-sharing",
+        {
+          "ios": {
+            "enabled": true,
+            "appGroupId": "group.com.pentridgemedia.manor",
+            "activationRule": {
+              "supportsText": true,
+              "supportsWebUrlWithMaxCount": 1,
+              "supportsImageWithMaxCount": 10,
+              "supportsFileWithMaxCount": 10
+            }
+          },
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "text/*",
+              "image/*",
+              "audio/*",
+              "video/mp4",
+              "application/pdf",
+              "application/json",
+              "application/zip"
+            ],
+            "multipleShareMimeTypes": [
+              "image/*",
+              "audio/*",
+              "video/mp4",
+              "application/pdf",
+              "application/json",
+              "application/zip"
+            ]
+          }
+        }
+      ],
+      "./plugins/with-worklets-headers",
+      "./plugins/with-lan-cleartext",
+      "./plugins/with-android-no-gwp-asan",
+      "./plugins/with-agent-notifications",
+      "./plugins/with-app-intents"
     ],
+    "locales": {
+      "es": "./locales/es.json",
+      "pl": "./locales/pl.json",
+      "th": "./locales/th.json"
+    },
     "ios": {
       "bundleIdentifier": "com.pentridgemedia.manor",
       "buildNumber": "1",
-      "supportsTablet": false,
+      "supportsTablet": true,
       "icon": "./assets/icon.png",
       "config": {
         "usesNonExemptEncryption": false
@@ -55,7 +119,13 @@
         "NSLocalNetworkUsageDescription": "Manor connects to a self-hosted Manor server on your local network.",
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
-        }
+        },
+        "UIBackgroundModes": ["voip", "audio", "remote-notification"],
+        "NSUserActivityTypes": ["INSendMessageIntent"]
+      },
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true,
+        "com.apple.developer.usernotifications.communication": true
       }
     },
     "android": {
@@ -76,7 +146,33 @@
       "router": {},
       "supportsRTL": true,
       "eas": {
-        "projectId": "10b6d66c-519d-4222-b5bb-4c68bd275905"
+        "projectId": "10b6d66c-519d-4222-b5bb-4c68bd275905",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "RakazoWidgets",
+                  "bundleIdentifier": "com.pentridgemedia.manor.widgets"
+                },
+                {
+                  "targetName": "expo-sharing-extension",
+                  "bundleIdentifier": "com.pentridgemedia.manor.expo-sharing-extension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": ["group.com.pentridgemedia.manor"]
+                  }
+                },
+                {
+                  "targetName": "AgentNotifications",
+                  "bundleIdentifier": "com.pentridgemedia.manor.notifications",
+                  "entitlements": {
+                    "com.apple.developer.usernotifications.communication": true
+                  }
+                }
+              ]
+            }
+          }
+        }
       }
     },
     "runtimeVersion": {

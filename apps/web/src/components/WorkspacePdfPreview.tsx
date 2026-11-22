@@ -2,8 +2,8 @@ import { useLingui } from "@lingui/react/macro";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState } from "react";
-import { decodeArtifactBase64 } from "../lib/artifact-open";
-import { BuiButton, LoadingState } from "./beautiful-ui/primitives";
+import { decodeArtifactBase64 } from "../lib/pages/artifact-open";
+import { BuiButton, LoadingState } from "./ai/primitives";
 
 /** Render pages without browser plugins, PDF scripts, remote viewers, or remote assets. */
 export function WorkspacePdfPreview({ dataBase64 }: { dataBase64: string }) {

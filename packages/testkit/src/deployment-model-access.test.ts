@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ComposioEmulator, InMemoryRealtimeFanout } from "@rakazo/adapters";
+import { ComposioConnector, FakeComposioClient, InMemoryRealtimeFanout } from "@rakazo/adapters";
 import type { ModelCatalogEntry } from "@rakazo/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
@@ -14,7 +14,7 @@ const describeDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL ? describe : describe.skip;
 
 describeDb("bot model access through a deployment connection", () => {
-  let handles: Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
+  let handles: Awaited<ReturnType<typeof import("@rakazo/api/app").createApp>>;
   let cookie: string;
   const dataDir = mkdtempSync(path.join(tmpdir(), "model-access-"));
   async function call(procedure: string, body: unknown = {}) {
@@ -25,7 +25,7 @@ describeDb("bot model access through a deployment connection", () => {
     });
   }
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       dataDir,
@@ -33,7 +33,7 @@ describeDb("bot model access through a deployment connection", () => {
       agentRuntime: "scripted",
       wakeupDriver: "memory",
       realtime: new InMemoryRealtimeFanout(),
-      composio: new ComposioEmulator(),
+      composio: new ComposioConnector({ client: new FakeComposioClient() }),
       signupsEnabled: "true",
       defaultProvider: "openrouter",
       deploymentModelKey: "synthetic-shared-key",

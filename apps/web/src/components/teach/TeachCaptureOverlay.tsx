@@ -1,7 +1,11 @@
 import type { TaughtSkill } from "@rakazo/contracts";
 import { DEFAULT_COMPUTER_SCREEN, mapTeachPointer, teachCaptureKey } from "@rakazo/core";
 import { useEffect, useRef } from "react";
-import { rpc } from "../../lib/rpc";
+import { rpc } from "../../lib/query/rpc";
+import { enqueueTeachComputerInput } from "./teach-computer-input-chain";
+
+// An Escape inside one of these belongs to that popup, not to the demo.
+const POPUP_SELECTOR = "[role='dialog'], [role='alertdialog'], [role='menu'], [role='listbox']";
 
 export function TeachCaptureOverlay({
   botId,
@@ -17,7 +21,6 @@ export function TeachCaptureOverlay({
   screenHeight?: number;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const inputChainRef = useRef(Promise.resolve());
   const width = screenWidth ?? DEFAULT_COMPUTER_SCREEN.width;
   const height = screenHeight ?? DEFAULT_COMPUTER_SCREEN.height;
 
@@ -28,10 +31,10 @@ export function TeachCaptureOverlay({
     const target: HTMLDivElement = overlay;
 
     function enqueueInput(task: () => Promise<void>) {
-      inputChainRef.current = inputChainRef.current.then(task).catch(() => undefined);
+      void enqueueTeachComputerInput(botId, task);
     }
 
-    function pointerAt(event: PointerEvent) {
+    function pointerAt(event: MouseEvent) {
       return mapTeachPointer(event.clientX, event.clientY, target.getBoundingClientRect(), {
         width,
         height,
@@ -55,11 +58,16 @@ export function TeachCaptureOverlay({
       await rpc.computer.input({ botId, kind: "key", payload: { key } });
     }
 
-    async function sendScroll(direction: "up" | "down", amount: number) {
+    async function sendScroll(
+      direction: "up" | "down" | "left" | "right",
+      amount: number,
+      x: number,
+      y: number,
+    ) {
       await rpc.computer.input({
         botId,
         kind: "scroll",
-        payload: { direction, amount },
+        payload: { direction, amount, x, y },
       });
     }
 
@@ -118,9 +126,14 @@ export function TeachCaptureOverlay({
 
     function onWheel(event: WheelEvent) {
       event.preventDefault();
-      const direction = event.deltaY < 0 ? "up" : "down";
-      const amount = Math.min(20, Math.max(1, Math.round(Math.abs(event.deltaY) / 80) || 1));
-      enqueueInput(() => sendScroll(direction, amount));
+      // A mostly sideways wheel or trackpad swipe scrolls left or right.
+      const sideways = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+      const delta = sideways ? event.deltaX : event.deltaY;
+      const direction = sideways ? (delta < 0 ? "left" : "right") : delta < 0 ? "up" : "down";
+      const amount = Math.min(20, Math.max(1, Math.round(Math.abs(delta) / 80) || 1));
+      // The computer scrolls what is under the same point on its screen.
+      const { x, y } = pointerAt(event);
+      enqueueInput(() => sendScroll(direction, amount, x, y));
     }
 
     function onKeyDown(event: KeyboardEvent) {
@@ -129,6 +142,13 @@ export function TeachCaptureOverlay({
       if (
         event.target instanceof HTMLElement &&
         event.target.closest("button, input, textarea, select, a, [contenteditable]")
+      ) {
+        return;
+      }
+      if (
+        event.key === "Escape" &&
+        event.target instanceof HTMLElement &&
+        event.target.closest(POPUP_SELECTOR)
       ) {
         return;
       }
@@ -148,7 +168,9 @@ export function TeachCaptureOverlay({
     target.addEventListener("pointercancel", onPointerUp);
     target.addEventListener("wheel", onWheel, { passive: false });
     target.addEventListener("contextmenu", onContextMenu);
-    window.addEventListener("keydown", onKeyDown);
+    // Capture phase, so the overlay marks a recorded key as handled before the page's own
+    // handlers run: the computer window closes on an Escape that is not yet prevented.
+    window.addEventListener("keydown", onKeyDown, true);
     return () => {
       target.removeEventListener("pointerdown", onPointerDown);
       target.removeEventListener("pointermove", onPointerMove);
@@ -156,7 +178,7 @@ export function TeachCaptureOverlay({
       target.removeEventListener("pointercancel", onPointerUp);
       target.removeEventListener("wheel", onWheel);
       target.removeEventListener("contextmenu", onContextMenu);
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onKeyDown, true);
     };
   }, [botId, enabled, height, skill, width]);
 

@@ -1,7 +1,8 @@
-import { TEAM_HEARTBEAT_MS, type TeamMember } from "@rakazo/contracts";
+import type { TeamMember } from "@rakazo/contracts";
+import { TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, AppState, Text, View } from "react-native";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 
 export function TeamMembers() {
   const [members, setMembers] = useState<TeamMember[] | null>(null);
@@ -13,7 +14,7 @@ export function TeamMembers() {
       if (pending || AppState.currentState !== "active") return;
       pending = true;
       try {
-        const next = await rpc<TeamMember[]>("team/list");
+        const next = await rpc("team/list");
         if (!disposed) {
           setMembers(next);
           setFailed(false);

@@ -1,16 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
 import type { WorkspaceOverview } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { rpc } from "../../lib/rpc";
-import {
-  CLICKABLE,
-  formatCompact,
-  formatMoney,
-  formatNumber,
-  formatPct,
-  type SectionKey,
-  Sparkline,
-} from "./bits";
+import { rpc } from "../../lib/query/rpc";
+import type { SectionKey } from "./bits";
+import { CLICKABLE, formatCompact, formatMoney, formatNumber, formatPct, Sparkline } from "./bits";
 import { PipelineMap } from "./PipelineMap";
 
 type Sparks = { voice?: number[]; social?: number[]; leasing?: number[] };

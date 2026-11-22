@@ -1,11 +1,6 @@
 import { ChatMarkdown } from "@rakazo/chat-ui/native";
-import {
-  type ComputerStatus,
-  WORKSPACE_FILE_MAX_BYTES,
-  type WorkspaceEntry,
-  type WorkspaceLocation,
-  workspacePreviewType,
-} from "@rakazo/contracts";
+import type { ComputerStatus, WorkspaceEntry, WorkspaceLocation } from "@rakazo/contracts";
+import { WORKSPACE_FILE_MAX_BYTES, workspacePreviewType } from "@rakazo/contracts";
 import { WorkspaceFilesController } from "@rakazo/core";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
@@ -24,7 +19,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 
 const inputStyle = {
   color: "#ECECEE",
@@ -83,7 +78,7 @@ export default function Files() {
     let active = true;
     const refresh = async () => {
       try {
-        const status = await rpc<ComputerStatus>("computer/status", { botId });
+        const status = await rpc("computer/status", { botId });
         if (active) setComputer(status);
       } catch (error) {
         if (active) controller.error(error);
@@ -275,7 +270,7 @@ export default function Files() {
         <Action
           label="Wake computer"
           onPress={() =>
-            void rpc<ComputerStatus>("computer/boot", { botId }, { timeoutMs: 90_000 })
+            void rpc("computer/boot", { botId }, { timeoutMs: 90_000 })
               .then(setComputer)
               .catch(controller.error)
           }

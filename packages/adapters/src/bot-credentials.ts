@@ -1,6 +1,6 @@
+import type { SecretStore } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
-import type { EncryptedSecretStore } from "./secrets.js";
-import { generateTotp, normalizeTotpSecret, totpSecondsRemaining } from "./totp.js";
+import { generateTotp, normalizeTotpSecret, totpSecondsRemaining } from "./secrets/vault/totp.js";
 
 export const BOT_CREDENTIAL_SECRET_KIND = "bot-credential";
 
@@ -40,7 +40,7 @@ export function parseBotCredentialSecret(plaintext: string): BotCredentialSecret
 
 export async function loadBotCredentialSecret(
   prisma: PrismaClient,
-  secrets: EncryptedSecretStore,
+  secrets: Pick<SecretStore, "load">,
   scope: { spaceId: string; userId: string },
   secretId: string | null,
 ): Promise<BotCredentialSecret> {
@@ -50,7 +50,7 @@ export async function loadBotCredentialSecret(
     select: { id: true, ciphertext: true },
   });
   if (!row) return {};
-  return parseBotCredentialSecret(secrets.load(row.ciphertext, row.id));
+  return parseBotCredentialSecret(await secrets.load(row.ciphertext, row.id));
 }
 
 /** Case-insensitive match on id or label; a unique substring match on label also works. */
@@ -81,7 +81,7 @@ export function formatBotCredentialsPrompt(rows: BotCredentialRow[]): string | u
     return `- ${parts.join(" — ")}`;
   });
   return [
-    "Stored sign-in credentials for this bot. Sign in yourself with them: click the field on the computer, then call use_credential with the credential label and field to type it (username, password, or the current 2FA code). The secret values are typed for you and never shown; do not ask for them and do not request takeover for these logins. Security-question answers and other hints are in the notes.",
+    "Stored sign-in credentials for this bot. Sign in yourself with them: click the field on the computer, then call use_credential with the credential label and field to type it (username, password, or the current 2FA code). The secret values are typed for you and never shown; do not ask for them and do not request takeover for these logins. Security-question answers and other hints are in the notes. These logins were saved in this bot's settings: use them only with use_credential by label; they do not appear in list_secrets. Logins saved through a chat request are separate and are filled with browser_act fill_secret.",
     ...lines,
   ].join("\n");
 }

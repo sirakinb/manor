@@ -1,0 +1,613 @@
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
+import type { RequestListener, Server } from "node:http";
+import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import type { ElectronApplication, Page } from "@playwright/test";
+import { _electron as electron, expect, test } from "@playwright/test";
+import type { RakazoDesktop } from "@rakazo/contracts";
+import { prepareHostComputer } from "../src/main/this-computer/host-computer.js";
+import { shownWindow } from "./shown-window.js";
+
+const APP_MARKER = "Local Rakazo stack ready";
+const IMAGE_TAG = "v9.9.9";
+const STACK_PROBE_PATH = "/.well-known/rakazo-desktop-stack";
+const STACK_TOKEN_HEADER = "x-rakazo-desktop-stack-token";
+const COMPOSE_DIR = path.resolve(import.meta.dirname, "..", "..", "..", "infra", "compose");
+// Waits that span the fake docker's 2 s pull and the calls around it; a busy runner is slow.
+const AFTER_PULL = { timeout: 15_000 };
+
+type FakeDockerMode =
+  | "ok"
+  | "daemon-down"
+  | "compose-check-fails"
+  | "pull-fails"
+  | "pool-exhausted"
+  | "port-conflict"
+  | "ports-exhausted";
+
+let server: Server;
+let serverUrl: string;
+let userData: string;
+let app: ElectronApplication | undefined;
+let stackProbes = 0;
+
+// The fake docker is a POSIX shell script; Windows desktop e2e does not run in CI.
+test.skip(process.platform === "win32", "fake docker needs a POSIX shell");
+
+test.beforeAll(async () => {
+  server = createServer(async (request, response) => {
+    if (request.url === STACK_PROBE_PATH && request.method === "GET") {
+      stackProbes += 1;
+      const expected = await readFile(path.join(userData, "stack", ".desktop-stack-token"), "utf8")
+        .then((value) => value.trim())
+        .catch(() => null);
+      if (expected === null || request.headers[STACK_TOKEN_HEADER] !== expected) {
+        response.writeHead(404).end("Not found");
+        return;
+      }
+      response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ ok: true, imageTag: IMAGE_TAG }));
+      return;
+    }
+    if (request.url === "/rpc/health" && request.method === "POST") {
+      response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ json: { ok: true, version: "0.1.0" } }));
+      return;
+    }
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Rakazo</title></head><body><main>${APP_MARKER}</main></body></html>`,
+    );
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  if (address === null || typeof address === "string") throw new Error("stub server has no port");
+  serverUrl = `http://127.0.0.1:${address.port}`;
+});
+
+test.afterAll(async () => {
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
+});
+
+test.beforeEach(async () => {
+  // The fake docker logs $PWD, which is the resolved path (macOS /var is a symlink).
+  userData = await realpath(await mkdtemp(path.join(tmpdir(), "rakazo-desktop-stack-")));
+  // Setup otherwise follows the machine's language; these specs read its English text.
+  await writeFile(path.join(userData, "ui-locale.txt"), "en\n");
+  stackProbes = 0;
+});
+
+test.afterEach(async () => {
+  try {
+    await app?.close();
+  } finally {
+    app = undefined;
+    await rm(userData, { recursive: true, force: true });
+  }
+});
+
+function fakeDockerLog() {
+  return path.join(userData, "fake-docker.log");
+}
+
+/**
+ * Stands in for the docker CLI: records `cwd | RAKAZO_IMAGE_TAG | argv` for every call and
+ * answers the handful of commands the app issues. The log path and mode are baked into the
+ * script because the app passes docker an allowlisted environment.
+ */
+function fakeDockerPath() {
+  return path.join(userData, "fake-docker.sh");
+}
+
+async function writeFakeDocker(mode: FakeDockerMode) {
+  const script = fakeDockerPath();
+  let up = '  up) echo "Container rakazo-web-1 Started"; exit 0 ;;';
+  if (mode === "pool-exhausted") {
+    up = '  up) echo "all predefined address pools have been fully subnetted" >&2; exit 1 ;;';
+  } else if (mode === "ports-exhausted") {
+    up = '  up) echo "port is already allocated" >&2; exit 1 ;;';
+  } else if (mode === "port-conflict") {
+    up = `  up) if [ ! -f '${path.join(userData, "port-conflict")}' ]; then touch '${path.join(userData, "port-conflict")}'; echo "port is already allocated" >&2; exit 1; fi; echo "Container rakazo-web-1 Started"; exit 0 ;;`;
+  }
+  const lines = [
+    "#!/bin/sh",
+    `printf '%s | %s | %s\\n' "$PWD" "$RAKAZO_IMAGE_TAG" "$*" >> '${fakeDockerLog()}'`,
+    'case "$1 $2" in',
+    mode === "compose-check-fails"
+      ? '  "compose version") echo "Access is denied." >&2; exit 7 ;;'
+      : '  "compose version") echo "5.6.1"; exit 0 ;;',
+    '  "info --format")',
+    mode === "daemon-down"
+      ? '    echo "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?" >&2; exit 1 ;;'
+      : '    echo "27.1.1"; exit 0 ;;',
+    "esac",
+    "# compose --env-file .env -f docker-compose.images.yml --project-name rakazo-desktop <command> ...",
+    'case "$8" in',
+    "  pull)",
+    mode === "pull-fails"
+      ? '    echo "Error response from daemon: manifest unknown" >&2; exit 1 ;;'
+      : '    echo " a235d761c5d1 Downloading 59.47MB"; echo " a235d761c5d1 Downloading 412.3MB"; echo "app Pulled"; sleep 2; echo "computer Pulled"; exit 0 ;;',
+    up,
+    '  logs) echo "web-1 | listening"; exit 0 ;;',
+    "esac",
+    "exit 0",
+    "",
+  ];
+  await writeFile(script, lines.join("\n"), { encoding: "utf8", mode: 0o755 });
+  return script;
+}
+
+async function launch(mode: FakeDockerMode | "missing") {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    RAKAZO_PERFORMANCE_USER_DATA: userData,
+    // The hosted-server shortcut would skip setup on a first run.
+    MANOR_BUNDLED_SERVER_URL: "",
+  };
+  // A stale RAKAZO_WEB_URL from the developer's shell would bypass setup entirely.
+  delete env.RAKAZO_WEB_URL;
+  // A first launch opens Rakazo Cloud; these specs stay offline and start in setup instead.
+  if (!existsSync(path.join(userData, "setup.json"))) env.RAKAZO_FORCE_SETUP = "1";
+  return electron.launch({
+    args: ["."],
+    cwd: path.resolve(import.meta.dirname, ".."),
+    env: {
+      ...env,
+      // "missing" points at where the fake docker will be written, so a spec can install it later.
+      RAKAZO_DOCKER_BINARY: mode === "missing" ? fakeDockerPath() : await writeFakeDocker(mode),
+      RAKAZO_LOCAL_WEB_URL: serverUrl,
+      RAKAZO_IMAGE_TAG: IMAGE_TAG,
+    },
+  });
+}
+
+/** Setup opens on Manor Cloud; these tests exercise the app-managed local stack. */
+async function chooseThisComputer(setup: Page) {
+  await setup.getByRole("radio", { name: /This computer/ }).check();
+}
+
+async function savedSetup() {
+  try {
+    return JSON.parse(await readFile(path.join(userData, "setup.json"), "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+async function readLog() {
+  try {
+    return (await readFile(fakeDockerLog(), "utf8")).trim().split("\n");
+  } catch {
+    return [];
+  }
+}
+
+test("This computer installs and starts the stack, then opens the app", async () => {
+  app = await launch("ok");
+  const setup = await app.firstWindow();
+
+  await expect(setup.getByRole("radio", { name: /Manor Cloud/ })).toBeChecked();
+  await chooseThisComputer(setup);
+  // The panel is empty until a start begins, so check the attribute rather than the box.
+  await expect(setup.locator("#panel-new")).toHaveJSProperty("hidden", false);
+  await expect(setup.locator("#stack")).toBeHidden();
+  await expect(setup.getByRole("button", { name: "Check connection" })).toBeHidden();
+
+  const appWindowPromise = app.waitForEvent("window");
+  await setup.getByRole("button", { name: "Continue" }).click();
+  await expect(setup.locator("#stack-phase")).toHaveText("Downloading Manor…");
+  await expect(setup.getByRole("button", { name: "Continue" })).toBeDisabled();
+  // Docker output stays behind the details toggle; the phase, the bar, and the size show by default.
+  await expect(setup.locator("#stack-detail")).toHaveText("412 MB downloaded");
+  await expect(setup.locator("#stack-progress")).toBeVisible();
+  await expect(setup.locator("#stack-output")).toBeHidden();
+  await setup.screenshot({
+    path: path.join(import.meta.dirname, "screenshots", "06-setup-installing.png"),
+    // Fast-forward the bar's width transition so the artifact shows the value, not a frame of it.
+    animations: "disabled",
+  });
+  await setup.getByRole("button", { name: "Technical details" }).click();
+  await expect(setup.locator("#stack-output")).toContainText("app Pulled");
+
+  const appWindow = await appWindowPromise;
+  await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
+  await expect.poll(savedSetup).toEqual({ mode: "new", serverUrl });
+
+  const stackDir = path.join(userData, "stack");
+  const envFile = path.join(stackDir, ".env");
+  const tokenFile = path.join(stackDir, ".desktop-stack-token");
+  expect((await stat(envFile)).mode & 0o777).toBe(0o600);
+  expect((await stat(tokenFile)).mode & 0o777).toBe(0o600);
+  expect(await readFile(tokenFile, "utf8")).toMatch(/^[0-9a-f]{64}\n$/);
+  const env = await readFile(envFile, "utf8");
+  expect(env).toMatch(/^POSTGRES_PASSWORD=[0-9a-f]{32}$/m);
+  expect(env).toMatch(/^BETTER_AUTH_SECRET=[0-9a-f]{64}$/m);
+  expect(env).not.toContain("RAKAZO_IMAGE_TAG=");
+  expect(env).not.toContain("RAKAZO_COMPUTER_IMAGE_TAG=");
+  await expect(readFile(path.join(stackDir, "docker-compose.images.yml"), "utf8")).resolves.toBe(
+    await readFile(path.join(COMPOSE_DIR, "docker-compose.images.yml"), "utf8"),
+  );
+
+  const compose =
+    "compose --env-file .env -f docker-compose.images.yml --project-name rakazo-desktop";
+  expect(await readLog()).toEqual([
+    `${stackDir} | ${IMAGE_TAG} | compose version --short`,
+    `${stackDir} | ${IMAGE_TAG} | info --format {{.ServerVersion}}`,
+    `${stackDir} | ${IMAGE_TAG} | ${compose} config --images`,
+    `${stackDir} | ${IMAGE_TAG} | ${compose} pull`,
+    `${stackDir} | ${IMAGE_TAG} | ${compose} up -d --wait --wait-timeout 300`,
+  ]);
+});
+
+test("without Docker the app offers the download and continues once Docker is installed", async () => {
+  app = await launch("missing");
+  const setup = await app.firstWindow();
+  await expect(setup.getByText("Your data stays on this computer.")).toBeVisible();
+  await setup.screenshot({
+    path: path.join(import.meta.dirname, "screenshots", "07a-setup-choices.png"),
+  });
+  await chooseThisComputer(setup);
+
+  await setup.getByRole("button", { name: "Continue" }).click();
+  const docker = process.platform === "linux" ? "Docker" : "Docker Desktop";
+  await expect(setup.locator("#stack-phase")).toHaveText(
+    `Manor needs ${docker} to run on this computer.`,
+  );
+  // Installing Docker is a step, not a failure.
+  await expect(setup.locator("#stack-phase")).not.toHaveAttribute("data-tone");
+  const download = setup.getByRole("button", {
+    name: process.platform === "linux" ? "Install Docker" : "Download Docker Desktop",
+  });
+  await expect(download).toBeEnabled();
+  await setup.screenshot({
+    path: path.join(import.meta.dirname, "screenshots", "07-setup-docker-missing.png"),
+    animations: "disabled",
+  });
+
+  // Manor Cloud stays available without Docker.
+  await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
+  await expect(setup.locator("#stack")).toBeHidden();
+  await expect(setup.getByRole("button", { name: "Continue" })).toBeEnabled();
+  expect(await savedSetup()).toBeNull();
+
+  // Back on This computer, installing Docker is all it takes: setup finds it and carries on.
+  await setup.getByRole("radio", { name: /This computer/ }).check();
+  const appWindowPromise = app.waitForEvent("window");
+  await writeFakeDocker("ok");
+  const appWindow = await appWindowPromise;
+  await expect(appWindow.getByText(APP_MARKER)).toBeVisible(AFTER_PULL);
+  await expect.poll(savedSetup).toEqual({ mode: "new", serverUrl });
+});
+
+test("switching to Manor Cloud while the stack starts keeps that choice", async () => {
+  app = await launch("ok");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+
+  await setup.getByRole("button", { name: "Continue" }).click();
+  await expect(setup.locator("#stack-phase")).toHaveText("Downloading Manor…");
+
+  // Fake docker sleeps during pull; leave This computer before ready so followStack must not save.
+  await setup.getByRole("radio", { name: /Manor Cloud/ }).check();
+  await expect(setup.locator("#panel-existing")).toBeVisible();
+  await expect(setup.getByRole("button", { name: "Continue" })).toBeEnabled();
+  await expect(setup.getByRole("button", { name: "Check connection" })).toBeVisible();
+
+  // Main process still finishes the install; setup.json must stay untouched. Wait for the
+  // stack to be ready, not for a fixed time: a health probe that misses once retries later.
+  // How the window handles readiness after the switch is pinned in setup.test.ts.
+  await expect
+    .poll(
+      () =>
+        setup.evaluate(async () => {
+          const { stack } = (
+            window as unknown as {
+              rakazoSetup: { stack: { state: () => Promise<{ phase: string } | null> } };
+            }
+          ).rakazoSetup;
+          return (await stack.state())?.phase;
+        }),
+      AFTER_PULL,
+    )
+    .toBe("ready");
+  expect(await savedSetup()).toBeNull();
+  expect(app.windows()).toHaveLength(1);
+
+  // Back on This computer, Continue starts (or re-follows) and opens the app.
+  await setup.getByRole("radio", { name: /This computer/ }).check();
+  const appWindowPromise = app.waitForEvent("window");
+  await setup.getByRole("button", { name: "Continue" }).click();
+  await expect((await appWindowPromise).getByText(APP_MARKER)).toBeVisible();
+  await expect.poll(savedSetup).toEqual({ mode: "new", serverUrl });
+});
+
+test("a stopped Docker daemon is reported and setup keeps asking Docker on its own", async () => {
+  app = await launch("daemon-down");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+
+  await setup.getByRole("button", { name: "Continue" }).click();
+  // The fake docker belongs to no desktop app, so there is nothing for setup to open itself.
+  await expect(setup.locator("#stack-phase")).toHaveText(
+    process.platform === "linux"
+      ? "Docker is installed but not running. Start the Docker service to continue."
+      : "Docker is installed but not running. Open it to continue.",
+  );
+  // Setup looks again on its own, so there is no button to press.
+  await expect(setup.locator("#continue")).toBeHidden();
+  await setup.screenshot({
+    path: path.join(import.meta.dirname, "screenshots", "07b-setup-docker-not-running.png"),
+    animations: "disabled",
+  });
+
+  const infoCalls = async () =>
+    (await readLog()).filter((line) => line.includes("info --format")).length;
+  await expect.poll(infoCalls, { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
+  expect((await readLog()).some((line) => line.includes(" pull"))).toBe(false);
+});
+
+test("a failed Compose check shows diagnostics instead of installation help", async () => {
+  app = await launch("compose-check-fails");
+  const setup = await app.firstWindow();
+  await setup.getByRole("radio", { name: /This computer/ }).check();
+  await setup.getByRole("button", { name: "Continue" }).click();
+  await expect(setup.locator("#stack-phase")).toHaveText(
+    "Could not check Docker Compose. Check the output below, then retry.",
+  );
+  await expect(setup.locator("#stack-output")).toContainText("Access is denied.");
+  await expect(setup.locator("#stack-output")).toContainText("exited with code 7");
+  await expect(setup.getByRole("button", { name: "Retry" })).toBeEnabled();
+  await setup.screenshot({
+    path: path.join(import.meta.dirname, "screenshots", "11-setup-compose-check-failed.png"),
+  });
+});
+
+test("unpublished images show the docker output and a Retry button", async () => {
+  app = await launch("pull-fails");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+
+  await setup.getByRole("button", { name: "Continue" }).click();
+  await expect(setup.locator("#stack-phase")).toHaveText(
+    `Images for ${IMAGE_TAG} are not published yet. Try again in a few minutes.`,
+  );
+  await expect(setup.locator("#stack-output")).toContainText("manifest unknown");
+  await expect(setup.getByRole("button", { name: "Retry" })).toBeEnabled();
+  expect((await readLog()).some((line) => line.endsWith(" up -d --wait --wait-timeout 300"))).toBe(
+    false,
+  );
+});
+
+test("a saved local stack that is down is started again without asking", async () => {
+  // Nothing listens on the saved address, so the launch probe fails and the stack is restarted.
+  const probe = createServer();
+  await new Promise<void>((resolve) => probe.listen(0, "127.0.0.1", resolve));
+  const address = probe.address();
+  if (address === null || typeof address === "string") throw new Error("probe has no port");
+  await new Promise<void>((resolve, reject) => {
+    probe.close((error) => (error ? reject(error) : resolve()));
+  });
+  await writeFile(
+    path.join(userData, "setup.json"),
+    `${JSON.stringify({ mode: "new", serverUrl: `http://127.0.0.1:${address.port}` }, null, 2)}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+
+  app = await launch("ok");
+  const setup = await app.firstWindow();
+  await expect(setup.getByRole("radio", { name: /This computer/ })).toBeChecked();
+  await expect(setup.locator("#stack")).toBeVisible();
+  await expect(setup.locator("#status")).toBeEmpty();
+
+  const appWindow = await app.waitForEvent("window");
+  await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
+  await expect.poll(savedSetup).toEqual({ mode: "new", serverUrl });
+  expect((await readLog()).some((line) => line.includes(" pull"))).toBe(true);
+});
+
+test("a saved local stack is reused only after its private identity matches", async () => {
+  const stackDir = path.join(userData, "stack");
+  await mkdir(stackDir, { recursive: true });
+  const host = await prepareHostComputer(userData, "docker");
+  await writeFile(
+    path.join(stackDir, ".desktop-host-config"),
+    createHash("sha256").update(JSON.stringify(host.connection)).digest("hex"),
+  );
+  await host.close();
+  await writeFile(path.join(stackDir, ".desktop-stack-token"), `${"ab".repeat(32)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  await writeFile(
+    path.join(userData, "setup.json"),
+    `${JSON.stringify({ mode: "new", serverUrl }, null, 2)}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+
+  app = await launch("ok");
+  const appWindow = await shownWindow(app);
+  await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
+  expect(await readLog()).toEqual([]);
+});
+
+for (const hasStackFiles of [false, true]) {
+  test(`a saved external server does not discover local services (${hasStackFiles ? "retained" : "absent"} stack files)`, async () => {
+    if (hasStackFiles) {
+      const stackDir = path.join(userData, "stack");
+      await mkdir(stackDir, { recursive: true });
+      await writeFile(path.join(stackDir, ".desktop-stack-token"), `${"ab".repeat(32)}\n`, {
+        encoding: "utf8",
+        mode: 0o600,
+      });
+    }
+    await writeFile(
+      path.join(userData, "setup.json"),
+      `${JSON.stringify({ mode: "existing", serverUrl }, null, 2)}\n`,
+      { encoding: "utf8", mode: 0o600 },
+    );
+    app = await launch("ok");
+    const appWindow = await app.firstWindow();
+    await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
+    expect(stackProbes).toBe(0);
+    expect(await readLog()).toEqual([]);
+    expect(
+      await app.evaluate(
+        ({ Menu }) => Menu.getApplicationMenu()?.getMenuItemById("quit-and-stop-bots")?.visible,
+      ),
+    ).toBe(false);
+  });
+}
+
+test("a saved local target is the exact origin authenticated before reuse", async () => {
+  const uncheckedServer = createServer((request, response) => {
+    if (request.url === "/rpc/health" && request.method === "POST") {
+      response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ json: { ok: true, version: "0.1.0" } }));
+      return;
+    }
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end("<!doctype html><html><body>Unchecked listener</body></html>");
+  });
+  await new Promise<void>((resolve) => uncheckedServer.listen(0, "127.0.0.1", resolve));
+  try {
+    const address = uncheckedServer.address();
+    if (address === null || typeof address === "string") {
+      throw new Error("unchecked server has no port");
+    }
+    const stackDir = path.join(userData, "stack");
+    await mkdir(stackDir, { recursive: true });
+    await writeFile(path.join(stackDir, ".desktop-stack-token"), `${"ab".repeat(32)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    await writeFile(
+      path.join(userData, "setup.json"),
+      `${JSON.stringify(
+        { mode: "new", serverUrl: `http://127.0.0.1:${address.port}` },
+        null,
+        2,
+      )}\n`,
+      { encoding: "utf8", mode: 0o600 },
+    );
+
+    app = await launch("ok");
+    const setup = await app.firstWindow();
+    await expect(setup.getByRole("radio", { name: /This computer/ })).toBeChecked();
+    await expect(setup.locator("#stack")).toBeVisible();
+    await expect(setup.getByText("Unchecked listener")).toHaveCount(0);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      uncheckedServer.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});
+
+test("an existing stack .env keeps its lines and gains only added secrets", async () => {
+  const stackDir = path.join(userData, "stack");
+  await mkdir(stackDir, { recursive: true });
+  const sentinel = "POSTGRES_PASSWORD=keep-me\nSENTINEL=1\n";
+  await writeFile(path.join(stackDir, ".env"), sentinel, { encoding: "utf8", mode: 0o600 });
+
+  app = await launch("ok");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+  const appWindowPromise = app.waitForEvent("window");
+  await setup.getByRole("button", { name: "Continue" }).click();
+  const appWindow = await appWindowPromise;
+  await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
+
+  const env = await readFile(path.join(stackDir, ".env"), "utf8");
+  expect(env.startsWith(sentinel)).toBe(true);
+  expect(env.slice(sentinel.length)).toMatch(/^POSTGRES_APP_PASSWORD=[0-9a-f]{32}\n$/);
+});
+
+test("exhausted address pools explain recovery", async () => {
+  app = await launch("pool-exhausted");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+  await setup.getByRole("button", { name: "Continue" }).click();
+  await expect(setup.locator("#stack-phase")).toHaveText(
+    "Docker has no free network address pools. Remove unused Docker networks or expand Docker’s address pools, then retry.",
+    AFTER_PULL,
+  );
+  await expect(setup.getByRole("button", { name: "Retry" })).toBeEnabled();
+  await setup.screenshot({
+    path: path.join(import.meta.dirname, "screenshots", "09-setup-address-pool-exhausted.png"),
+  });
+});
+
+test("a port conflict opens and saves the replacement managed origin", async () => {
+  app = await launch("port-conflict");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+  const appWindowPromise = app.waitForEvent("window");
+  await setup.getByRole("button", { name: "Continue" }).click();
+  const urlFile = path.join(userData, "stack", ".desktop-web-url");
+  let replacementUrl = "";
+  await expect
+    .poll(async () => {
+      replacementUrl = await readFile(urlFile, "utf8").catch(() => "");
+      return replacementUrl !== "" && replacementUrl !== serverUrl;
+    }, AFTER_PULL)
+    .toBe(true);
+  // Stand in for the web container Docker would bind to the selected port.
+  const replacement = createServer(server.listeners("request")[0] as RequestListener);
+  await new Promise<void>((resolve) =>
+    replacement.listen(Number(new URL(replacementUrl).port), "127.0.0.1", resolve),
+  );
+  try {
+    const appWindow = await appWindowPromise;
+    await expect(appWindow.getByText(APP_MARKER)).toBeVisible();
+    await expect.poll(savedSetup).toEqual({ mode: "new", serverUrl: replacementUrl });
+    expect((await readLog()).filter((line) => line.includes(" up -d"))).toHaveLength(2);
+  } finally {
+    replacement.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      replacement.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test("repeated port conflicts stop with a retry action", async () => {
+  app = await launch("ports-exhausted");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+  await setup.getByRole("button", { name: "Continue" }).click();
+  await expect(setup.locator("#stack-phase")).toHaveText(
+    "Could not bind a local port after retrying. Retry to choose another port.",
+    AFTER_PULL,
+  );
+  await expect(setup.getByRole("button", { name: "Retry" })).toBeEnabled();
+  expect((await readLog()).filter((line) => line.includes(" up -d"))).toHaveLength(3);
+  await setup.screenshot({
+    path: path.join(import.meta.dirname, "screenshots", "10-setup-ports-unavailable.png"),
+  });
+});
+
+test("the desktop never exposes server administration or account impersonation", async () => {
+  app = await launch("ok");
+  const setup = await app.firstWindow();
+  await chooseThisComputer(setup);
+  const nextWindow = app.waitForEvent("window");
+  await setup.getByRole("button", { name: "Continue", exact: true }).click();
+  const main = await nextWindow;
+  await expect(main.getByText(APP_MARKER)).toBeVisible();
+  expect(
+    await main.evaluate(
+      () =>
+        "localSettings" in
+        (window as typeof window & { rakazoDesktop: RakazoDesktop }).rakazoDesktop,
+    ),
+  ).toBe(false);
+  expect(
+    await app.evaluate(({ Menu }) =>
+      Boolean(Menu.getApplicationMenu()?.getMenuItemById("local-server-settings")),
+    ),
+  ).toBe(false);
+});

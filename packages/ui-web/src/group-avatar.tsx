@@ -1,4 +1,6 @@
-import { type CSSProperties, memo } from "react";
+import type { BotAvatarSet } from "@rakazo/contracts";
+import type { CSSProperties } from "react";
+import { memo } from "react";
 import { BotAvatar } from "./bot-avatar.js";
 import { cn } from "./lib/utils.js";
 
@@ -6,6 +8,7 @@ export interface GroupAvatarMember {
   botId?: string;
   name?: string;
   color: string;
+  avatarSet?: BotAvatarSet;
   status?: string;
 }
 
@@ -25,15 +28,14 @@ export const GroupAvatar = memo(function GroupAvatar({
     return (
       <div
         className={cn(
-          "rakazo-group-avatar relative flex items-center justify-center rounded-full border border-[#2A2A32] bg-[#1A1A1E] text-[#9A9AA2]",
+          "rakazo-group-avatar relative flex items-center justify-center rounded-full border border-border bg-muted text-muted-foreground",
           className,
         )}
         style={{ width: size, height: size, flex: "none" }}
       >
         <svg
           aria-hidden="true"
-          width={Math.round(size * 0.48)}
-          height={Math.round(size * 0.48)}
+          style={{ width: Math.round(size * 0.48), height: Math.round(size * 0.48) }}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -54,6 +56,7 @@ export const GroupAvatar = memo(function GroupAvatar({
     return (
       <BotAvatar
         color={firstMember.color}
+        avatarSet={firstMember.avatarSet}
         identity={firstMember.botId ?? firstMember.name}
         size={size}
         status={firstMember.status}
@@ -84,15 +87,16 @@ export const GroupAvatar = memo(function GroupAvatar({
       {visibleMembers.map((member, index) => (
         <div
           key={member.botId ?? index}
-          className="absolute rounded-full"
+          className="absolute"
           style={{
             ...positions[index],
             zIndex: index + 1,
-            boxShadow: "0 0 0 1.5px #121215",
+            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.6))",
           }}
         >
           <BotAvatar
             color={member.color}
+            avatarSet={member.avatarSet}
             identity={member.botId ?? member.name}
             size={miniSize}
             status={member.status}
@@ -101,11 +105,12 @@ export const GroupAvatar = memo(function GroupAvatar({
       ))}
       {members.length > 3 ? (
         <div
-          className="absolute right-0 bottom-0 z-[3] flex items-center justify-center rounded-full bg-[#202026] text-[10px] font-semibold text-[#E0E0E6]"
+          aria-hidden="true"
+          // off-scale: count must fit the mini avatar dot
+          className="absolute right-0 bottom-0 z-[3] flex items-center justify-center rounded-full bg-secondary border border-border text-[10px] font-semibold text-secondary-foreground shadow-md"
           style={{
             width: miniSize,
             height: miniSize,
-            boxShadow: "0 0 0 1.5px #121215",
           }}
         >
           {`+${members.length - 2}`}

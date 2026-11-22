@@ -20,7 +20,7 @@ to render CRM data, alongside the existing list table and kanban board.
 1. Full gridlines, dense rows, column headers — a grid, not a list.
 2. Click a cell → active-cell outline; Enter or type → inline edit in place.
    No drawer round-trip for a one-field change.
-3. Picklist fields (stage, tags) open a dropdown *inside the cell*.
+3. Picklist fields (stage, tags) open a dropdown _inside the cell_.
 4. Keyboard nav: arrows move the active cell, Tab/Shift+Tab across, Enter
    commits + moves down, Esc cancels.
 5. Quick-add: a floating "+ Contact" / trailing blank row appends a record

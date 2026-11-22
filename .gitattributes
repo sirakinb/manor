@@ -6,3 +6,6 @@ infra/sandboxes/computer/fluxbox.* text eol=lf
 *.png binary
 *.jpg binary
 *.ico binary
+
+# The release controller builds from git archive and refuses symlinks; nothing on the server needs this folder.
+.depot export-ignore

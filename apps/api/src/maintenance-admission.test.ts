@@ -1,6 +1,8 @@
+import { createLogger, createTestSink, installLogger } from "@rakazo/logging";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { describe, expect, it, vi } from "vitest";
+import { healthRoutes } from "./http/health.js";
 import { mountMaintenanceAdmission } from "./maintenance-admission.js";
 
 describe("API maintenance admission", () => {
@@ -31,17 +33,42 @@ describe("API maintenance admission", () => {
     expect((await app.request("/rpc/maintenance-escape", { method: "POST" })).status).toBe(503);
     expect((await app.request("/health")).status).toBe(200);
   });
+  it("keeps diagnostics readable and readiness closed while the gate is closed", async () => {
+    const app = new Hono();
+    const enter = vi.fn().mockRejectedValue(new Error("closed"));
+    mountMaintenanceAdmission(app, { enter });
+    app.route(
+      "/",
+      healthRoutes(() => ({ revision: "abc123" })),
+    );
+    const details = await app.request("/internal/health");
+    expect(details.status).toBe(200);
+    await expect(details.json()).resolves.toEqual({
+      ok: true,
+      revision: "abc123",
+      telemetry: { degraded: false, droppedLines: 0, failures: 0, lastFailureAt: null },
+    });
+    expect(enter).not.toHaveBeenCalled();
+    expect((await app.request("/ready")).status).toBe(503);
+    expect(enter).toHaveBeenCalledOnce();
+  });
   it("does not turn committed work into a retry when lease completion is uncertain", async () => {
     const app = new Hono();
     const leave = vi.fn().mockRejectedValue(new Error("lost response"));
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const sink = createTestSink();
+    installLogger(createLogger({ service: "rakazo-api", sinks: [sink] }));
     mountMaintenanceAdmission(app, { enter: vi.fn().mockResolvedValue(leave) });
     app.post("/rpc/work", (c) => c.json({ committed: true }));
     expect(await (await app.request("/rpc/work", { method: "POST" })).json()).toEqual({
       committed: true,
     });
     expect(leave).toHaveBeenCalledOnce();
-    expect(log).toHaveBeenCalled();
-    log.mockRestore();
+    expect(sink.events).toEqual([
+      expect.objectContaining({
+        level: "error",
+        message: "Maintenance admission completion is unconfirmed.",
+      }),
+    ]);
+    installLogger(createLogger({ service: "rakazo-api", level: "off", sinks: [] }));
   });
 });

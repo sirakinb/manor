@@ -3,9 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitForLocalComputerHello } from "./local-computer-handshake.js";
 
 function fakeSocket() {
-  const socket = new EventEmitter() as EventEmitter & { send: ReturnType<typeof vi.fn> };
-  socket.send = vi.fn();
-  return socket;
+  return Object.assign(new EventEmitter(), { send: vi.fn<(data: string) => void>() });
 }
 
 describe("waitForLocalComputerHello", () => {

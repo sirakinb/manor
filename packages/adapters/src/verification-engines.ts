@@ -1,4 +1,4 @@
-import { autoReviewTimeoutMs } from "./auto-review.js";
+import { autoReviewTimeoutMs } from "./approvals/auto-review.js";
 import { JevVerifier } from "./jev-verifier.js";
 
 export const LLM_ENGINE = "llm";
@@ -47,5 +47,9 @@ export function planVerificationEngines(input: {
       shadow: input.compare && input.available[other] ? other : undefined,
     };
   }
-  return input.available[other] ? { primary: other } : {};
+  // An unavailable Jev falls back to the LLM checker. An unavailable LLM checker is not replaced
+  // by Jev: Jev runs only when the member chose it, so Auto with no approval model asks a person.
+  return input.selected === JEV_ENGINE && input.available[LLM_ENGINE]
+    ? { primary: LLM_ENGINE }
+    : {};
 }

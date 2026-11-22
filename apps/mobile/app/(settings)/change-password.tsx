@@ -1,0 +1,165 @@
+import { useLingui } from "@lingui/react/macro";
+import { MAX_PASSWORD_LENGTH, PASSWORD_RULES } from "@rakazo/core";
+import { useRouter } from "expo-router";
+import { useContext, useEffect, useRef, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { NativeActionButton } from "../../components/native/native-action-button";
+import { errorText } from "../../lib/api/user-error";
+import { mobileTokens } from "../../lib/appearance/appearance";
+import { changePassword } from "../../lib/auth/api-auth";
+import { CallKeyboardContext } from "../../lib/calls/call-keyboard-context";
+import { endCallBeforeSessionEnd } from "../../lib/calls/call-session";
+import { useSideInsets } from "../../lib/layout/side-insets";
+import { announceToScreenReader } from "../../lib/native/announce";
+import { native, useThemedStyles } from "../../lib/native/native";
+
+export default function ChangePassword() {
+  const call = useContext(CallKeyboardContext);
+  const sideInsets = useSideInsets();
+  const router = useRouter();
+  const { t } = useLingui();
+  const styles = useThemedStyles(createStyles);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const [error, setError] = useState<string | null>(null);
+  const ready = !!currentPassword && !!newPassword && !!confirmation;
+
+  function close() {
+    if (router.canGoBack()) router.back();
+    else router.replace("/profile");
+  }
+
+  async function save() {
+    if (!ready || submitting.current) return;
+    if (newPassword !== confirmation) {
+      const message = t`Passwords do not match`;
+      setError(message);
+      announceToScreenReader(message);
+      return;
+    }
+    submitting.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      // Hang up while the session still exists, so the server records the call's end.
+      await endCallBeforeSessionEnd();
+      await changePassword(currentPassword, newPassword);
+      if (!mounted.current) return;
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmation("");
+      close();
+    } catch (cause) {
+      if (!mounted.current) return;
+      const message = errorText(cause, t`Could not change password`);
+      setError(message);
+      announceToScreenReader(message);
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  }
+
+  return (
+    <SafeAreaView edges={["bottom"]} style={styles.screen}>
+      <KeyboardAvoidingView
+        enabled={!call}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.screen}
+      >
+        <ScrollView
+          style={sideInsets}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
+        >
+          {[
+            {
+              label: t`Current password`,
+              value: currentPassword,
+              onChange: setCurrentPassword,
+              current: true,
+            },
+            {
+              label: t`New password`,
+              value: newPassword,
+              onChange: setNewPassword,
+              current: false,
+            },
+            {
+              label: t`Confirm password`,
+              value: confirmation,
+              onChange: setConfirmation,
+              current: false,
+            },
+          ].map((field) => (
+            <TextInput
+              key={field.label}
+              accessibilityLabel={field.label}
+              autoCapitalize="none"
+              autoComplete={field.current ? "current-password" : "new-password"}
+              textContentType={field.current ? "password" : "newPassword"}
+              passwordRules={field.current ? undefined : PASSWORD_RULES}
+              maxLength={MAX_PASSWORD_LENGTH}
+              autoCorrect={false}
+              editable={!pending}
+              onChangeText={field.onChange}
+              placeholder={field.label}
+              placeholderTextColor={native.tertiaryLabel}
+              secureTextEntry
+              style={styles.input}
+              value={field.value}
+            />
+          ))}
+          {error ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {error}
+            </Text>
+          ) : null}
+          <NativeActionButton
+            busy={pending}
+            disabled={!ready}
+            label={t`Change password`}
+            onPress={() => void save()}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+function createStyles() {
+  const tokens = mobileTokens();
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: native.page },
+    content: { padding: 20, gap: 12 },
+    input: {
+      minHeight: 48,
+      borderRadius: 12,
+      backgroundColor: native.fill,
+      color: native.label,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 16,
+    },
+    error: { color: tokens.destructive, fontSize: 14 },
+  });
+}

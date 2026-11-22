@@ -1,15 +1,8 @@
 import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import type { RakazoDesktopLocalComputerStatus } from "@rakazo/contracts";
-import {
-  type BrowserWindow,
-  dialog,
-  Menu,
-  type NativeImage,
-  Notification,
-  nativeImage,
-  Tray,
-} from "electron";
+import type { BrowserWindow, NativeImage } from "electron";
+import { dialog, Menu, Notification, nativeImage, Tray } from "electron";
 import { WebSocket } from "ws";
 import { waitForLocalComputerHello } from "./local-computer-handshake.js";
 import {

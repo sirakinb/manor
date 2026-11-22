@@ -1,126 +1,130 @@
-import type { Space } from "@rakazo/contracts";
-import { Stack, useRouter } from "expo-router";
+import { useLingui } from "@lingui/react/macro";
+import { Stack, useNavigation, useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { rpc, selectSpace } from "../lib/api";
+import {
+  AccessibilityInfo,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { NativeActionButton } from "../components/native/native-action-button";
+import { cancelHeaderOptions } from "../components/native/sheet-header";
+import { selectSpace } from "../lib/api/api-server";
+import { errorText } from "../lib/api/user-error";
+import { useSideInsets } from "../lib/layout/side-insets";
+import { hapticSuccess } from "../lib/native/haptics";
+import { native, useMobileTokens } from "../lib/native/native";
+import { useSave } from "../lib/query/query";
+import { ACCOUNT_SETTINGS } from "../lib/query/settings-target";
+import { isSearchInboxSession, searchInboxSession } from "../lib/search/search-inbox";
+import { refreshOrganizations } from "../lib/spaces/organizations";
 
 export default function NewSpace() {
+  const sideInsets = useSideInsets();
+  const { t } = useLingui();
+  const tokens = useMobileTokens();
   const router = useRouter();
+  const navigation = useNavigation();
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function create() {
-    const trimmed = name.trim();
-    if (!trimmed || pending) return;
-    setPending(true);
-    setError(null);
-    try {
-      const space = await rpc<Space>("spaces/create", { name: trimmed, shared });
-      if (!(await selectSpace(space.id))) {
-        Alert.alert("Space created", "It could not be opened. Try again from the sidebar.");
-        router.dismissAll();
-        router.replace("/");
-        return;
-      }
+  const creationError = (failure: Error) => errorText(failure, t`Could not create space`);
+  const creation = useSave({
+    // A new Space belongs to the account, so opening it does not end the save that made it.
+    target: ACCOUNT_SETTINGS,
+    save: async (
+      ask: { name: string; shared: boolean; askedIn: ReturnType<typeof searchInboxSession> },
+      send,
+    ) => {
+      const space = await send("spaces/create", { name: ask.name, shared: ask.shared });
+      if (navigation.isFocused() && isSearchInboxSession(ask.askedIn)) hapticSuccess();
+      void refreshOrganizations();
+      // The Space exists by now, so it is opened even when this sheet has been closed meanwhile.
+      if (!(await selectSpace(space.id)))
+        Alert.alert(t`Space created`, t`It could not be opened. Try again from the sidebar.`);
       router.dismissAll();
       router.replace("/");
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not create space");
-      setPending(false);
-    }
+    },
+    // VoiceOver and TalkBack keep focus on the button, so the failure is spoken here as well.
+    onFailed: (failure) => AccessibilityInfo.announceForAccessibility(creationError(failure)),
+    closesScreen: true,
+  });
+  const pending = creation.pending;
+  const error = creation.error ? creationError(creation.error) : null;
+
+  function create() {
+    const trimmed = name.trim();
+    if (trimmed) creation.run({ name: trimmed, shared, askedIn: searchInboxSession() });
   }
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Cancel"
-            >
-              <Text style={{ color: "#0A84FF", fontSize: 17 }}>Cancel</Text>
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={cancelHeaderOptions(t`Cancel`, () => router.back())} />
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#050506" }}
+        contentInsetAdjustmentBehavior="automatic"
+        style={[{ flex: 1, backgroundColor: tokens.background }, sideInsets]}
         contentContainerStyle={{ padding: 24 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View
+        <Text style={{ color: tokens.mutedForeground, fontSize: 14 }}>{t`Name`}</Text>
+        <TextInput
+          accessibilityLabel={t`Name`}
+          autoFocus
+          value={name}
+          maxLength={60}
+          onChangeText={setName}
+          onSubmitEditing={create}
+          placeholder={t`Customer support`}
+          placeholderTextColor={tokens.mutedForeground}
+          returnKeyType="done"
           style={{
-            borderWidth: 1,
-            borderColor: "#343438",
-            borderRadius: 16,
-            backgroundColor: "#1A1A1D",
-            padding: 18,
+            marginTop: 8,
+            backgroundColor: native.fill,
+            borderRadius: 11,
+            padding: 14,
+            color: tokens.foreground,
+            fontSize: 16,
           }}
-        >
-          <Text style={{ color: "#F1F1F2", fontSize: 18, fontWeight: "600" }}>Space</Text>
-          <Text style={{ color: "#85858A", fontSize: 14, marginTop: 20 }}>Name</Text>
-          <TextInput
-            autoFocus
-            value={name}
-            maxLength={60}
-            onChangeText={setName}
-            onSubmitEditing={() => void create()}
-            placeholder="Customer support"
-            placeholderTextColor="#6C6C70"
-            returnKeyType="done"
-            style={{
-              marginTop: 8,
-              backgroundColor: "#101012",
-              borderRadius: 11,
-              padding: 14,
-              color: "#ECECEE",
-              fontSize: 16,
-            }}
-          />
-          <View accessibilityRole="radiogroup" style={{ marginTop: 20, gap: 12 }}>
-            {[false, true].map((team) => (
-              <Pressable
-                key={String(team)}
-                disabled={pending}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: shared === team }}
-                onPress={() => setShared(team)}
+        />
+        <View accessibilityRole="radiogroup" style={{ marginTop: 20, gap: 12 }}>
+          {[false, true].map((team) => (
+            <Pressable
+              key={String(team)}
+              disabled={pending}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: shared === team }}
+              onPress={() => setShared(team)}
+            >
+              <Text
+                style={{
+                  color: shared === team ? tokens.foreground : tokens.mutedForeground,
+                  fontSize: 15,
+                }}
               >
-                <Text style={{ color: shared === team ? "#F1F1F2" : "#85858A", fontSize: 15 }}>
-                  {shared === team ? "● " : "○ "}
-                  {team ? "Team — everyone in this organization" : "Personal — only you"}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {shared ? (
-            <Text style={{ color: "#85858A", marginTop: 12 }}>
-              Agents, conversations, files, and connected accounts are shared.
-            </Text>
-          ) : null}
-          {error ? <Text style={{ color: "#EF4444", marginTop: 14 }}>{error}</Text> : null}
-          <Pressable
-            onPress={() => void create()}
-            disabled={!name.trim() || pending}
-            style={{
-              marginTop: 20,
-              backgroundColor: "#8B5CF6",
-              borderRadius: 999,
-              padding: 14,
-              alignItems: "center",
-              opacity: !name.trim() || pending ? 0.4 : 1,
-            }}
-          >
-            <Text style={{ color: "#090A12", fontSize: 16, fontWeight: "600" }}>
-              {pending ? "Creating…" : "Create space"}
-            </Text>
-          </Pressable>
+                {shared === team ? "● " : "○ "}
+                {team ? "Team: everyone in this organization" : "Personal: only you"}
+              </Text>
+            </Pressable>
+          ))}
         </View>
+        {shared ? (
+          <Text style={{ color: tokens.mutedForeground, marginTop: 12 }}>
+            Agents, conversations, files, and connected accounts are shared.
+          </Text>
+        ) : null}
+        {error ? (
+          <Text accessibilityRole="alert" style={{ color: tokens.destructive, marginTop: 14 }}>
+            {error}
+          </Text>
+        ) : null}
+        <NativeActionButton
+          disabled={!name.trim() || pending}
+          label={pending ? t`Creating…` : t`Create space`}
+          onPress={create}
+          style={{ marginTop: 20 }}
+        />
       </ScrollView>
     </>
   );

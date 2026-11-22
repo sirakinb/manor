@@ -1,0 +1,264 @@
+import type { ConnectorCatalogItem } from "@rakazo/adapter-kit";
+import { planLiveConnectionSync } from "@rakazo/adapters";
+import type { Actor } from "@rakazo/contracts";
+import { availableChatApps, isAvailableChatApp } from "@rakazo/core";
+import type { Prisma } from "@rakazo/db";
+import { IsolationError, recordSecurityEvent } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
+import { connectionCreatedEvent } from "../auth/security-audit.js";
+import {
+  beginConnection,
+  completeConnection,
+  connectionContext,
+  revokeConnection,
+} from "../integrations/connection-flows.js";
+import { recordToolConnected } from "../integrations/tool-connect-analytics.js";
+import type { RouterDeps } from "../router.js";
+import type { RouterContext } from "./context.js";
+
+async function reconcileConnections(
+  { prisma, analytics }: Pick<RouterDeps, "prisma" | "analytics">,
+  owner: Pick<Actor, "spaceId" | "userId">,
+  connectorId: string,
+  connectedProviders: string[],
+  reconnectRefs: string[],
+  listConnectedRefs: () => Promise<string[] | undefined>,
+): Promise<void> {
+  const connectedProviderKeys = new Set(
+    connectedProviders.map((provider) => provider.trim().toLowerCase()),
+  );
+  const rows = (
+    await prisma.connection.findMany({
+      where: {
+        spaceId: owner.spaceId,
+        userId: owner.userId,
+        connectorId,
+        status: { in: ["pending", "connected"] },
+      },
+      select: {
+        id: true,
+        provider: true,
+        displayName: true,
+        status: true,
+        updatedAt: true,
+        createdAt: true,
+        providerRef: true,
+      },
+      // Breaks a tie between attempts begun at the same moment in favour of the later row.
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    })
+  ).filter((row: { provider: string }) =>
+    connectedProviderKeys.has(row.provider.trim().toLowerCase()),
+  );
+  // Asked only when a sign-in is waiting to be matched to the account it created. When the
+  // listing fails, the rows wait for the next pass instead of this one guessing.
+  let sync: ReturnType<typeof planLiveConnectionSync> = { connectIds: [], revokeIds: [] };
+  try {
+    const liveRefs = rows.some((row) => row.status === "pending")
+      ? await listConnectedRefs()
+      : undefined;
+    sync = planLiveConnectionSync(rows, connectedProviders, Date.now(), liveRefs);
+  } catch (error) {
+    getLogger().warn(`${connectorId} signed-in accounts could not be listed`, { error });
+  }
+  // One update per row so the credential event goes only to rows this call actually connected.
+  const connectedIds: string[] = [];
+  const updates = [
+    ...sync.connectIds.map((id) => async (tx: Prisma.TransactionClient) => {
+      const updated = await tx.connection.updateMany({
+        where: { id, spaceId: owner.spaceId, userId: owner.userId, status: "pending" },
+        data: { status: "connected" },
+      });
+      if (updated.count > 0) connectedIds.push(id);
+    }),
+    ...(sync.revokeIds.length > 0
+      ? [
+          (tx: Prisma.TransactionClient) =>
+            tx.connection.updateMany({
+              where: {
+                id: { in: sync.revokeIds },
+                spaceId: owner.spaceId,
+                userId: owner.userId,
+                status: "pending",
+              },
+              data: { status: "revoked" },
+            }),
+        ]
+      : []),
+    // The provider reports these accounts dead, so the app offers to connect them again.
+    ...(reconnectRefs.length > 0
+      ? [
+          (tx: Prisma.TransactionClient) =>
+            tx.connection.updateMany({
+              where: {
+                spaceId: owner.spaceId,
+                userId: owner.userId,
+                connectorId,
+                status: "connected",
+                providerRef: { in: reconnectRefs },
+              },
+              data: { status: "error" },
+            }),
+        ]
+      : []),
+  ];
+  // Interactive rather than a batch: a batch cannot carry the request's database context.
+  if (updates.length > 0)
+    await prisma.$transaction(async (tx) => {
+      for (const update of updates) await update(tx);
+    });
+  for (const id of connectedIds) {
+    await recordSecurityEvent(connectionCreatedEvent("connections.catalog", id, owner));
+    const row = rows.find((candidate) => candidate.id === id);
+    if (row) recordToolConnected(analytics, owner.userId, row);
+  }
+}
+
+/** Serialize begin/revoke for one user+provider so slug-wide remote deletes cannot race a new connect. */
+
+export function connectionsRoutes(ctx: RouterContext) {
+  const { deps, spaceAuthed } = ctx;
+  return {
+    connections: {
+      catalog: spaceAuthed.connections.catalog.handler(async ({ context, input }) => {
+        const adapterContext = connectionContext(
+          context.actor,
+          "connections.catalog",
+          context.signal,
+        );
+        const providers = input.connectorId
+          ? [deps.connectors.managed(input.connectorId)].filter(
+              (provider): provider is NonNullable<typeof provider> => Boolean(provider),
+            )
+          : deps.connectors.managedProviders();
+        const catalogs = await Promise.all(
+          providers.map(async (provider): Promise<ConnectorCatalogItem[]> => {
+            try {
+              const [items, reconnectRefs] = await Promise.all([
+                provider.catalog(adapterContext, input.query),
+                provider.listReconnectRefs?.(adapterContext).catch(() => []) ?? [],
+              ]);
+              const nowConnected = items.filter((item) => item.connected).map((item) => item.slug);
+              if (nowConnected.length > 0 || reconnectRefs.length > 0) {
+                await reconcileConnections(
+                  deps,
+                  context.actor,
+                  provider.describe().id,
+                  nowConnected,
+                  reconnectRefs,
+                  async () => provider.listConnectedRefs?.(adapterContext),
+                ).catch((error) => {
+                  getLogger().error(
+                    `${provider.describe().id} connection reconciliation failed`,
+                    error,
+                  );
+                });
+              }
+              return items;
+            } catch {
+              return [];
+            }
+          }),
+        );
+        const chatApps = deps.messaging?.enabled
+          ? availableChatApps(deps.messaging.providers, Boolean(deps.messagingInstallations))
+          : [];
+        return catalogs
+          .flat()
+          .map((item) => (isAvailableChatApp(item, chatApps) ? { ...item, chatApp: true } : item));
+      }),
+      list: spaceAuthed.connections.list.handler(async ({ context }) => {
+        const rows = await deps.prisma.connection.findMany({
+          where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
+        });
+        return rows.map((row) => ({
+          id: row.id,
+          connectorId: row.connectorId,
+          provider: row.provider,
+          displayName: row.displayName,
+          status: row.status as "pending" | "connected" | "revoked" | "error",
+          capabilities: [],
+          createdAt: row.createdAt.toISOString(),
+        }));
+      }),
+      begin: spaceAuthed.connections.begin.handler(({ context, input }) =>
+        beginConnection(deps, context, input),
+      ),
+      complete: spaceAuthed.connections.complete.handler(({ context, input }) =>
+        completeConnection(deps, context, input),
+      ),
+      rename: spaceAuthed.connections.rename.handler(async ({ context, input }) => {
+        const existing = await deps.prisma.connection.findFirst({
+          where: {
+            id: input.connectionId,
+            spaceId: context.actor.spaceId,
+            userId: context.actor.userId,
+          },
+        });
+        if (!existing) throw new IsolationError();
+        const row = await deps.prisma.connection.update({
+          where: { id: existing.id },
+          data: { displayName: input.displayName },
+        });
+        return {
+          id: row.id,
+          connectorId: row.connectorId,
+          provider: row.provider,
+          displayName: row.displayName,
+          status: row.status as "pending" | "connected" | "revoked" | "error",
+          capabilities: [],
+          createdAt: row.createdAt.toISOString(),
+        };
+      }),
+      revoke: spaceAuthed.connections.revoke.handler(({ context, input }) =>
+        revokeConnection(deps, context, input),
+      ),
+      tools: spaceAuthed.connections.tools.handler(async ({ context, input }) => {
+        const connector = deps.connectors.managed(input.connectorId);
+        if (!connector) return [];
+        const row = await deps.prisma.connection.findFirst({
+          where: {
+            spaceId: context.actor.spaceId,
+            userId: context.actor.userId,
+            connectorId: input.connectorId,
+            provider: input.provider,
+            status: "connected",
+          },
+        });
+        if (!row) return [];
+        try {
+          const adapterContext = {
+            ...connectionContext(context.actor, "connections.tools", context.signal),
+            connectedConnections: [
+              {
+                id: row.id,
+                connectorId: input.connectorId,
+                externalId: input.provider,
+                displayName: row.displayName,
+                providerRef: row.providerRef ?? undefined,
+              },
+            ],
+            connectedProviders: [input.provider],
+          };
+          const tools = connector.listAppTools
+            ? await connector.listAppTools(adapterContext, input.provider)
+            : await connector.discoverTools(adapterContext);
+          return tools.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+          }));
+        } catch (error) {
+          const fields = { connectorId: input.connectorId, provider: input.provider };
+          // The client went away before the list came back.
+          if (context.signal?.aborted)
+            getLogger().warn("connections.tools cancelled", {
+              ...fields,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          else getLogger().error("connections.tools failed", error, fields);
+          return [];
+        }
+      }),
+    },
+  };
+}

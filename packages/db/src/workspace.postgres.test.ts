@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createDb, type PrismaClient } from "./client.js";
-import { IsolationError } from "./scope.js";
-import { createWorkspaceRepos, type WorkspaceRepos } from "./workspace.js";
+import type { PrismaClient } from "./database/client.js";
+import { createDb } from "./database/client.js";
+import { IsolationError } from "./database/scope.js";
+import type { WorkspaceRepos } from "./workspace.js";
+import { createWorkspaceRepos } from "./workspace.js";
 
 const databaseUrl = process.env.DATABASE_URL;
-const describePostgres =
-  process.env.VERIFY_DATABASE && databaseUrl ? describe.sequential : describe.skip;
+const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
 // Pinned at test start (not a fixed date) because default `updatedAt` columns
 // carry the wall clock, and the pipe rollup compares the two.
@@ -120,7 +121,8 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
 
     // Leasing: one property with two active leases, two listings.
     await prisma.workspaceBuildiumProperty.create({
-      data: { workspaceId, propertyId: 1001, addressLine: "12 Test St" },
+      // The Buildium sync records whether a property is active; the picker lists active ones.
+      data: { workspaceId, propertyId: 1001, addressLine: "12 Test St", isActive: true },
     });
     await prisma.workspaceBuildiumLease.createMany({
       data: [
@@ -698,6 +700,10 @@ describePostgres("createWorkspaceRepos (PostgreSQL)", () => {
     await prisma.workspaceUtilityProperty.update({
       where: { id: tracked.utilityPropertyId },
       data: { aliases: [] },
+    });
+    // The turnover leases are done; the leasing summary counts the base fixture's leases only.
+    await prisma.workspaceBuildiumLease.deleteMany({
+      where: { workspaceId, leaseId: { in: [40, 41] } },
     });
   });
 

@@ -1,31 +1,29 @@
-appId: com.rakazo.app
-name: Rakazo mobile smoke
+appId: com.pentridgemedia.manor
+name: Manor mobile smoke
 ---
 - launchApp:
     clearState: true
 
-- assertVisible: "Sign in to Rakazo"
 - assertVisible: "Sign up"
-- tapOn: "Sign up"
-- assertVisible: "Sign up for Rakazo"
-- assertVisible: "Name"
-- tapOn: "Sign in"
-- assertVisible: "Sign in to Rakazo"
+- runFlow:
+    when:
+      true: ${typeof RAKAZO_MOBILE_API_URL !== "undefined" && RAKAZO_MOBILE_API_URL != null && RAKAZO_MOBILE_API_URL.trim() !== ""}
+    file: helpers/server.yaml
+- assertVisible: "Sign up"
 - tapOn: "Email"
 - inputText: ${RAKAZO_E2E_EMAIL}
 - tapOn: "Password"
 - inputText: ${RAKAZO_E2E_PASSWORD}
-- tapOn: "Sign in to Rakazo"
-- tapOn: "Sign in"
+- hideKeyboard
+- tapOn: "Continue with email"
 
 - extendedWaitUntil:
-    visible: "New bot"
+    visible: "Create"
     timeout: 30000
+- tapOn: "Create"
 - tapOn: "New bot"
-- assertVisible: "Name this bot"
-- tapOn: "Name this bot"
-- inputText: ${RAKAZO_E2E_BOT_NAME}
-- hideKeyboard
+- tapOn: "Name your Bot"
+- inputText: "Smoke"
 - tapOn: "Create"
 
 - extendedWaitUntil:
@@ -36,7 +34,8 @@ name: Rakazo mobile smoke
 - pressKey: Enter
 - assertVisible: ${RAKAZO_E2E_MESSAGE}
 
-- tapOn: "Open computer →"
+- tapOn: "Bot actions"
+- tapOn: "Open computer"
 - extendedWaitUntil:
     visible: "Open computer"
     timeout: 30000

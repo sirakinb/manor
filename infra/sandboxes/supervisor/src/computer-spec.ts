@@ -1,13 +1,217 @@
 import { createHash } from "node:crypto";
+import { isIP } from "node:net";
+import path from "node:path";
+import {
+  COMPUTER_CACHE_ENV,
+  MAX_DESKTOP_DISPLAY,
+  screenPorts,
+} from "@rakazo/core/node/desktop-runtime";
+import type Docker from "dockerode";
+import type { ComputerLocale } from "./computer-locale.js";
+import { computerLocaleEnv } from "./computer-locale.js";
 
-export const COMPUTER_IMAGE = process.env.RAKAZO_COMPUTER_IMAGE ?? "rakazo/computer:local";
+/**
+ * The computer image. RAKAZO_COMPUTER_IMAGE_TAG is appended the way Compose does, so a
+ * supervisor started outside Compose pulls the same published tag instead of an untagged
+ * (`:latest`) name. An image that already carries a tag or digest is used as is.
+ */
+export function resolveComputerImage(
+  image = process.env.RAKAZO_COMPUTER_IMAGE,
+  tag = process.env.RAKAZO_COMPUTER_IMAGE_TAG,
+): string {
+  const name = image?.trim();
+  if (!name) return "rakazo/computer:local";
+  const wantedTag = tag?.trim();
+  const lastSegment = name.slice(name.lastIndexOf("/") + 1);
+  if (!wantedTag || name.includes("@") || lastSegment.includes(":")) return name;
+  return `${name}:${wantedTag}`;
+}
+
+export const COMPUTER_IMAGE = resolveComputerImage();
+
+/** The files from infra/sandboxes/computer the supervisor sends when it builds the image locally. */
+export const COMPUTER_IMAGE_CONTEXT_FILES = [
+  "Dockerfile",
+  "apt-security.sh",
+  "start.sh",
+  "user-env.sh",
+  "control.py",
+  "xcapture.c",
+  "rakazo-browser",
+  "rakazo-focus-or-launch",
+  "rakazo-page-browser",
+  "page_secrets.py",
+  "install-agent-browser.sh",
+  "rakazo-browser.desktop",
+  "browser-policy.json",
+  "embed.html",
+  "clipboard-bridge.js",
+  "mobile-keyboard.js",
+  "fluxbox.init",
+  "fluxbox.apps",
+  "fluxbox.menu",
+  "rakazo-local-bin.sh",
+] as const;
+
+/**
+ * Docker's rule for a name that carries its registry: the first path component has a "." or
+ * ":", is "localhost", or has an uppercase letter. The supervisor pulls only such names, never an
+ * unqualified one that Docker would look up on Docker Hub, where anyone could register
+ * rakazo/computer.
+ */
+export function isRegistryQualifiedImage(image: string): boolean {
+  const slash = image.indexOf("/");
+  if (slash < 0) return false;
+  const host = image.slice(0, slash);
+  return /[.:A-Z]/.test(host) || host === "localhost";
+}
+
 export const COMPUTER_UID = 1000;
 export const COMPUTER_GID = 1000;
 export const COMPUTER_USER = `${COMPUTER_UID}:${COMPUTER_GID}`;
-export const TEAM_SCREEN_LIMIT = 8;
+
+export { screenPorts };
 export const COMPUTER_CONTROL_PORT = 7070;
 export const SCREEN_HOST = process.env.SANDBOX_SCREEN_HOST ?? "127.0.0.1";
 export type ScreenNetworkMode = "published" | "internal" | "isolated";
+
+export function resolveTeamScreenLimit(value = process.env.SANDBOX_TEAM_SCREEN_LIMIT): number {
+  if (value === undefined || value.trim() === "" || isUnlimited(value)) return MAX_DESKTOP_DISPLAY;
+  const limit = Number(value);
+  if (!Number.isSafeInteger(limit) || limit < 1) {
+    throw new Error(
+      "SANDBOX_TEAM_SCREEN_LIMIT must be a positive integer, or 0 for no configured cap",
+    );
+  }
+  return Math.min(limit, MAX_DESKTOP_DISPLAY);
+}
+
+export function resolveSpaceComputerLimit(
+  value = process.env.SANDBOX_MAX_COMPUTERS_PER_SPACE,
+): number {
+  if (value === undefined || value.trim() === "" || isUnlimited(value)) return 0;
+  const limit = Number(value);
+  if (!Number.isSafeInteger(limit) || limit < 1) {
+    throw new Error(
+      "SANDBOX_MAX_COMPUTERS_PER_SPACE must be a positive integer, or 0 for no configured cap",
+    );
+  }
+  return limit;
+}
+
+/**
+ * Resource ceilings for a bot computer, which runs untrusted page content: one
+ * runaway page must not starve the host or sibling bots. Set any of these to
+ * "0", "none" or "unlimited" to opt out.
+ */
+const DEFAULT_COMPUTER_MEMORY = "2g";
+const DEFAULT_COMPUTER_CPUS = "2";
+const DEFAULT_COMPUTER_PIDS_LIMIT = "2048";
+/** The daemon refuses HostConfig.Memory below this at container creation. */
+const MIN_DOCKER_MEMORY_BYTES = 6 * 1024 ** 2;
+
+const MEMORY_UNITS: Record<string, number> = {
+  b: 1,
+  k: 1024,
+  m: 1024 ** 2,
+  g: 1024 ** 3,
+};
+
+function isUnlimited(raw: string): boolean {
+  const value = raw.trim().toLowerCase();
+  return value === "0" || value === "unlimited" || value === "none";
+}
+
+/** Bytes from a docker-style size string ("2g", "1536m", "1073741824"). */
+export function parseMemoryBytes(name: string, raw: string): number {
+  if (isUnlimited(raw)) return 0;
+  const match = /^(\d+(?:\.\d+)?)\s*([bkmg])?b?$/i.exec(raw.trim());
+  if (!match) {
+    throw new Error(`${name} must be a size like "2g", "1536m" or a byte count, received "${raw}"`);
+  }
+  const scale = MEMORY_UNITS[(match[2] ?? "b").toLowerCase()] ?? 1;
+  const bytes = Math.floor(Number(match[1]) * scale);
+  if (!Number.isSafeInteger(bytes) || bytes <= 0) {
+    throw new Error(`${name} must resolve to a positive byte count, received "${raw}"`);
+  }
+  // The daemon rejects a limit under 6 MiB at container creation. Catching it here turns a
+  // per-bot 500 at the first `POST /computers` into a startup failure that names the variable.
+  if (bytes < MIN_DOCKER_MEMORY_BYTES) {
+    throw new Error(`${name} must be at least 6m, Docker's minimum, received "${raw}"`);
+  }
+  return bytes;
+}
+
+/** Docker NanoCpus (1e9 per core) from a CPU count like "1.5". */
+export function parseNanoCpus(name: string, raw: string): number {
+  if (isUnlimited(raw)) return 0;
+  const value = Number(raw.trim());
+  // Tiny positives floor to 0 nanocpus (Docker reads as unlimited). Huge values leave the
+  // safe-integer range or become Infinity. Validate the converted number either way.
+  const nanoCpus = Math.floor(value * 1e9);
+  if (!Number.isSafeInteger(nanoCpus) || nanoCpus <= 0) {
+    throw new Error(`${name} must be a positive number of CPUs, received "${raw}"`);
+  }
+  return nanoCpus;
+}
+
+function parsePidsLimit(name: string, raw: string): number {
+  if (isUnlimited(raw)) return 0;
+  const value = Number(raw.trim());
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer, received "${raw}"`);
+  }
+  return value;
+}
+
+/** An unset variable and one present but blank both mean "use the default". */
+function envOrDefault(name: string, fallback: string): string {
+  const raw = process.env[name];
+  return raw === undefined || raw.trim() === "" ? fallback : raw;
+}
+
+/**
+ * An environment value with blank treated as unset, for Manor's legacy names below.
+ * Manor's VPS Compose file passes these as `${VAR:-}`, which arrives as an empty string.
+ */
+function envValue(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+/** The host resource ceilings applied to every bot computer. */
+export function computerResourceLimits() {
+  // Manor shipped RAKAZO_COMPUTER_MEMORY_MB (whole megabytes) and RAKAZO_COMPUTER_PIDS
+  // before upstream's names existed. Deployments that still set them keep working;
+  // the upstream names win when both are present.
+  const memory = envValue("RAKAZO_COMPUTER_MEMORY");
+  const legacyMemoryMb = envValue("RAKAZO_COMPUTER_MEMORY_MB");
+  const memoryBytes =
+    memory === undefined && legacyMemoryMb !== undefined
+      ? parseMemoryBytes(
+          "RAKAZO_COMPUTER_MEMORY_MB",
+          isUnlimited(legacyMemoryMb) ? legacyMemoryMb : `${legacyMemoryMb}m`,
+        )
+      : parseMemoryBytes("RAKAZO_COMPUTER_MEMORY", memory ?? DEFAULT_COMPUTER_MEMORY);
+  const nanoCpus = parseNanoCpus(
+    "RAKAZO_COMPUTER_CPUS",
+    envOrDefault("RAKAZO_COMPUTER_CPUS", DEFAULT_COMPUTER_CPUS),
+  );
+  const pids = envValue("RAKAZO_COMPUTER_PIDS_LIMIT");
+  const legacyPids = envValue("RAKAZO_COMPUTER_PIDS");
+  const pidsLimit =
+    pids === undefined && legacyPids !== undefined
+      ? parsePidsLimit("RAKAZO_COMPUTER_PIDS", legacyPids)
+      : parsePidsLimit("RAKAZO_COMPUTER_PIDS_LIMIT", pids ?? DEFAULT_COMPUTER_PIDS_LIMIT);
+  return {
+    // Memory and MemorySwap are set together: leaving MemorySwap unset lets the
+    // container swap to twice Memory, so the ceiling would not hold.
+    Memory: memoryBytes,
+    MemorySwap: memoryBytes,
+    NanoCpus: nanoCpus,
+    PidsLimit: pidsLimit,
+  };
+}
 
 export function resolveScreenNetworkMode(value: string | undefined): ScreenNetworkMode {
   if (!value || value === "published") return "published";
@@ -15,23 +219,419 @@ export function resolveScreenNetworkMode(value: string | undefined): ScreenNetwo
   throw new Error(`Unsupported SANDBOX_SCREEN_NETWORK value: ${value}`);
 }
 
+/**
+ * Egress policy for per-bot computer networks. `open` gives full outbound access,
+ * including the host's bridge addresses, the LAN, and link-local cloud metadata
+ * endpoints. `restricted` keeps public internet egress but lets the operator drop
+ * everything else with one host-side iptables rule set — the supervisor gives each
+ * computer network a deterministic bridge interface name so the rules match by
+ * interface (`-i mnrc+` in Manor) instead of ephemeral subnets. Enforcement lives on the
+ * Docker host (infra/compose/restrict-computer-egress.sh) and is verified before
+ * computers start (egress-probe.ts). The Compose stacks default to `auto`: restricted
+ * when that check passes, open otherwise, so a stack installed before the rules
+ * existed keeps working on upgrade. Unset here means a host-run supervisor, usually
+ * on Docker Desktop, whose VM-hosted bridges the host rules cannot reach, so it stays
+ * open.
+ */
+export type ComputerEgressMode = "open" | "restricted";
+export type ComputerEgressSetting = ComputerEgressMode | "auto";
+
+export function resolveComputerEgressMode(
+  value = process.env.SANDBOX_COMPUTER_EGRESS,
+): ComputerEgressSetting {
+  if (value === undefined || value.trim() === "" || value === "open") return "open";
+  if (value === "restricted" || value === "auto") return value;
+  throw new Error(`Unsupported SANDBOX_COMPUTER_EGRESS value: ${value}`);
+}
+
+/**
+ * Host bridge interface prefix for per-bot networks. A fixed prefix lets the host firewall match
+ * every computer network by interface (`mnrc+`) without knowing Docker's subnet choices.
+ * Manor's deployed firewall (infra/compose/harden-computer-egress.sh, COMPUTER_BRIDGE=mnrc) and
+ * every existing bot network use this prefix, so it replaces upstream's "rakazo-c". Upstream's
+ * infra/compose/restrict-computer-egress.sh matches "rakazo-c" and is an unused alternative here.
+ */
+export const COMPUTER_BRIDGE_PREFIX = "mnrc";
+
+/**
+ * DNS servers for computers, from SANDBOX_COMPUTER_DNS (comma-separated IP addresses).
+ * Unset keeps Docker's default: a computer on its own network asks Docker's embedded
+ * resolver, which forwards to the host's configured resolvers.
+ * Docker 28+ forwards host DNS from the host namespace. Older Docker and explicit
+ * container/daemon DNS forward from the computer network, where restricted egress
+ * drops private resolvers. Servers set here replace that target.
+ */
+export function resolveComputerDns(value = process.env.SANDBOX_COMPUTER_DNS): string[] | undefined {
+  const servers = (value ?? "")
+    .split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+  // Manor: fall back to RAKAZO_COMPUTER_DNS (or the sandboxed-runtime default) so the
+  // DNS a container is created with matches what the resume check expects.
+  if (servers.length === 0) return COMPUTER_DNS.length ? COMPUTER_DNS : undefined;
+  const invalid = servers.find((server) => isIP(server) === 0);
+  if (invalid) throw new Error(`Unsupported SANDBOX_COMPUTER_DNS server: ${invalid}`);
+  return servers;
+}
+
+/** Whether a container's DNS servers are the ones configured (none configured: none set). */
+export function computerDnsMatches(current: string[] | null | undefined, desired?: string[]) {
+  const have = current ?? [];
+  const want = desired ?? [];
+  return have.length === want.length && have.every((server, index) => server === want[index]);
+}
+
+/** The computer environment variable rakazo-browser reads for --proxy-pac-url. */
+export const BROWSER_PROXY_PAC_ENV = "RAKAZO_BROWSER_PROXY_PAC_URL";
+// Chromium takes the PAC script as one argument; a data: URL holds the whole script.
+const MAX_BROWSER_PROXY_PAC_URL_LENGTH = 64 * 1024;
+const BROWSER_PROXY_PAC_PROTOCOLS: Record<string, true> = {
+  "http:": true,
+  "https:": true,
+  "data:": true,
+};
+
+/**
+ * Proxy auto-config (PAC) script for the bot browser, from SANDBOX_COMPUTER_BROWSER_PROXY_PAC_URL:
+ * an absolute http://, https:// or data: URL. The script decides per request which sites go
+ * through a proxy and which connect directly. Unset leaves the browser's connections as they are.
+ */
+export function resolveComputerBrowserProxyPacUrl(
+  value = process.env.SANDBOX_COMPUTER_BROWSER_PROXY_PAC_URL,
+): string | undefined {
+  const raw = (value ?? "").trim();
+  if (!raw) return undefined;
+  const fail = (reason: string) =>
+    new Error(`Unsupported SANDBOX_COMPUTER_BROWSER_PROXY_PAC_URL: ${reason}`);
+  if (raw.length > MAX_BROWSER_PROXY_PAC_URL_LENGTH) throw fail("longer than 64 KiB");
+  // The browser launcher passes it as a single flag, so it cannot hold spaces.
+  if (/\s/.test(raw) || [...raw].some((char) => char <= " " || char === "\u007f"))
+    throw fail("contains whitespace or control characters (base64-encode a data: URL)");
+  let protocol: string;
+  try {
+    protocol = new URL(raw).protocol;
+  } catch {
+    throw fail("expected an absolute http://, https:// or data: URL");
+  }
+  if (!BROWSER_PROXY_PAC_PROTOCOLS[protocol])
+    throw fail(`expected an http://, https:// or data: URL, received ${protocol}`);
+  return raw;
+}
+
+/** Whether a computer's environment carries the configured PAC URL (none configured: none set). */
+export function computerBrowserProxyPacMatches(
+  env: string[] | null | undefined,
+  desired?: string,
+): boolean {
+  const prefix = `${BROWSER_PROXY_PAC_ENV}=`;
+  const have = (env ?? []).filter((entry) => entry.startsWith(prefix));
+  if (desired === undefined) return have.length === 0;
+  return have.length === 1 && have[0] === `${prefix}${desired}`;
+}
+
+/**
+ * Host GPUs every computer may compute on, from SANDBOX_COMPUTER_COMPUTE_GPUS: `all` or a
+ * positive count, as in `docker run --gpus`. Unset gives computers no GPU. Returns Docker's
+ * device count, where -1 means all.
+ */
+export function resolveComputerComputeGpus(
+  value = process.env.SANDBOX_COMPUTER_COMPUTE_GPUS,
+): number | undefined {
+  const raw = (value ?? "").trim();
+  if (!raw) return undefined;
+  if (raw === "all") return -1;
+  const count = /^[1-9]\d*$/.test(raw) ? Number(raw) : Number.NaN;
+  if (!Number.isSafeInteger(count))
+    throw new Error(
+      `Unsupported SANDBOX_COMPUTER_COMPUTE_GPUS: "${raw}" (expected all or a positive count)`,
+    );
+  return count;
+}
+
+/**
+ * Whether a container was created with the configured GPUs. Devices are fixed when a container
+ * is created, so turning the setting on or off, or changing the count, replaces the computer.
+ */
+export function computerComputeGpusMatch(
+  current: Docker.DeviceRequest[] | null | undefined,
+  desired?: number,
+) {
+  const requests = current ?? [];
+  if (desired === undefined) return requests.length === 0;
+  return requests.length === 1 && requests[0]?.Count === desired;
+}
+
+/** A host directory mounted into every computer (SANDBOX_COMPUTER_MOUNTS). */
+export interface ComputerMount {
+  source: string;
+  target: string;
+  readOnly: boolean;
+  /** rslave: mounts made later under the source (a remounted network share) reach the computer. */
+  propagation?: "rslave";
+}
+
+/** Container paths a mount may sit under: outside the home and every system directory. */
+const MOUNT_TARGET_ROOTS = ["/mnt", "/media", "/srv"];
+const MOUNT_OPTIONS = new Set(["ro", "rw", "rslave"]);
+/**
+ * Host paths no computer may see, nor any directory holding one: the Docker socket and runtime
+ * state, kernel interfaces, host configuration and Docker's own storage.
+ */
+export const DENIED_MOUNT_SOURCES = [
+  "/var/run",
+  "/run",
+  "/proc",
+  "/sys",
+  "/dev",
+  "/etc",
+  "/boot",
+  "/root",
+  "/var/lib/docker",
+];
+
+// normalize keeps a trailing slash; Docker reports mounts without one.
+function cleanMountPath(value: string) {
+  return path.posix.normalize(value).replace(/(.)\/+$/, "$1");
+}
+
+function pathsOverlap(a: string, b: string) {
+  const within = (child: string, parent: string) =>
+    child === parent || parent === "/" || child.startsWith(`${parent}/`);
+  return within(a, b) || within(b, a);
+}
+
+/**
+ * Throws when a mount source is, holds, or sits inside a protected host path: the fixed
+ * denylist plus the caller's own, such as the bot homes' data directory and the Docker socket.
+ */
+export function assertComputerMountSources(
+  mounts: ComputerMount[],
+  protectedPaths: readonly (string | undefined)[] = [],
+) {
+  const denied = [
+    ...DENIED_MOUNT_SOURCES,
+    ...protectedPaths
+      .filter((entry): entry is string => Boolean(entry && path.posix.isAbsolute(entry)))
+      .map(cleanMountPath),
+  ];
+  for (const mount of mounts) {
+    const hit = denied.find((entry) => pathsOverlap(mount.source, entry));
+    if (hit !== undefined) {
+      throw new Error(
+        `Unsupported SANDBOX_COMPUTER_MOUNTS source "${mount.source}": overlaps protected host path ${hit}`,
+      );
+    }
+  }
+}
+
+/**
+ * Host directories mounted into every computer in every Space, from SANDBOX_COMPUTER_MOUNTS:
+ * comma-separated `source:target[:option...]` entries with options ro (default), rw and rslave.
+ * Both paths are absolute without `..`. A target sits below /mnt, /media or /srv: inside
+ * /home/rakazo Docker would create the mount point root-owned in the bot's home, which then
+ * fails the home ownership check, and system directories are not the operator's to replace.
+ */
+export function resolveComputerMounts(
+  value = process.env.SANDBOX_COMPUTER_MOUNTS,
+  protectedPaths: readonly (string | undefined)[] = [],
+): ComputerMount[] {
+  const entries = (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const mounts: ComputerMount[] = [];
+  for (const entry of entries) {
+    const [rawSource, rawTarget, ...options] = entry.split(":").map((part) => part.trim());
+    const fail = (reason: string) =>
+      new Error(`Unsupported SANDBOX_COMPUTER_MOUNTS entry "${entry}": ${reason}`);
+    if (!rawSource || !rawTarget) throw fail("expected source:target[:ro|rw|rslave]");
+    if (!path.posix.isAbsolute(rawSource) || !path.posix.isAbsolute(rawTarget))
+      throw fail("source and target must be absolute paths");
+    if ([rawSource, rawTarget].some((raw) => raw.split("/").includes("..")))
+      throw fail("paths must not contain ..");
+    const source = cleanMountPath(rawSource);
+    const target = cleanMountPath(rawTarget);
+    if (!MOUNT_TARGET_ROOTS.some((root) => target.startsWith(`${root}/`)))
+      throw fail(`target must be below ${MOUNT_TARGET_ROOTS.join(", ")}`);
+    const unknown = options.find((option) => !MOUNT_OPTIONS.has(option));
+    if (unknown !== undefined) throw fail(`unknown option "${unknown}"`);
+    if (options.includes("ro") && options.includes("rw")) throw fail("both ro and rw");
+    // Mounts propagated in later keep their own flags, so read-only cannot be promised.
+    if (options.includes("rslave") && !options.includes("rw")) throw fail("rslave requires rw");
+    const overlap = mounts.find((other) => pathsOverlap(other.target, target));
+    if (overlap) throw fail(`target overlaps ${overlap.target}`);
+    mounts.push({
+      source,
+      target,
+      readOnly: !options.includes("rw"),
+      ...(options.includes("rslave") ? { propagation: "rslave" as const } : {}),
+    });
+  }
+  assertComputerMountSources(mounts, protectedPaths);
+  return mounts;
+}
+
+function computerMountSettings(mount: ComputerMount): Docker.MountSettings {
+  return {
+    Type: "bind",
+    Source: mount.source,
+    Target: mount.target,
+    ReadOnly: mount.readOnly,
+    ...(mount.propagation ? { BindOptions: { Propagation: mount.propagation } } : {}),
+  } as Docker.MountSettings;
+}
+
+/**
+ * Label holding each mount's configured source by target. Docker Desktop stores a bind source
+ * as its own VM path when the container also mounts a volume, as every Compose computer's home
+ * does, so the inspected Source cannot be compared with the setting.
+ */
+const MOUNT_SOURCES_LABEL = "rakazo.mountSources";
+
+function mountSourcesLabel(mounts: ComputerMount[]) {
+  return JSON.stringify(Object.fromEntries(mounts.map((mount) => [mount.target, mount.source])));
+}
+
+function labeledMountSources(labels: Record<string, string> | undefined): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(labels?.[MOUNT_SOURCES_LABEL] ?? "{}");
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Whether a container carries exactly the configured host mounts. Mounts are fixed when a
+ * container is created, so an added, changed or removed entry replaces the computer.
+ */
+export function computerMountsMatch(
+  info: Pick<Docker.ContainerInspectInfo, "Config" | "HostConfig">,
+  desired: ComputerMount[],
+) {
+  const binds = (info.HostConfig.Mounts ?? []).filter(
+    (mount) => mount.Type === "bind" && mount.Target !== "/home/rakazo",
+  );
+  const sources = labeledMountSources(info.Config.Labels);
+  return (
+    binds.length === desired.length &&
+    desired.every((want) =>
+      binds.some(
+        (have) =>
+          sources[want.target] === want.source &&
+          have.Target === want.target &&
+          Boolean(have.ReadOnly) === want.readOnly &&
+          (have.BindOptions?.Propagation ?? undefined) === want.propagation,
+      ),
+    )
+  );
+}
+
+/**
+ * Host bridge interface name for a computer network. Linux caps interface names
+ * at 15 bytes (IFNAMSIZ), so the prefix gets an 11-hex-char suffix derived from the
+ * same digest as the network name — deterministic across recreate, unique per bot.
+ */
+export function computerBridgeNameFor(botId: string) {
+  const hash = createHash("sha256").update(botId).digest("hex").slice(0, 11);
+  return `${COMPUTER_BRIDGE_PREFIX}${hash}`;
+}
+
+/**
+ * Owner label for this install's computer networks, which can share a Docker host
+ * with other installs that name theirs the same way. It is derived from where the
+ * computer homes live (see computerHomeStorage) and hashed to keep host paths out.
+ */
+export function computerNetworkOwnerFor(
+  dataDir: string,
+  info: Docker.ContainerInspectInfo | undefined,
+) {
+  const mount = info?.Mounts.find((entry) => entry.Destination === dataDir);
+  const root =
+    mount?.Type === "volume" ? `volume:${mount.Name}` : `path:${mount?.Source ?? dataDir}`;
+  return createHash("sha256").update(root).digest("hex").slice(0, 32);
+}
+
+/**
+ * Whether a network-create failure means this daemon may be unable to create
+ * dual-stack networks: every capability error the daemon emits names IPv6 or
+ * ip6tables ("could not find an available, non-overlapping IPv6 address pool…",
+ * "Unable to enable IPv6 addresses on bridge…", "ip6tables is missing", "IPv6
+ * global forwarding is disabled"), and the exact wording changes between
+ * releases, so match broadly. A transient error that happens to name ip6tables
+ * falls back too, but the fallback is bounded: a stop gives the network back
+ * (reclaimComputerNetwork) and the next start creates it again, retrying IPv6.
+ * Every other error surfaces, so a transient failure fails loudly and retries.
+ */
+export function isIpv6NetworkUnavailable(error: unknown): boolean {
+  return /ipv6|ip6tables/i.test(String(error));
+}
+
+/**
+ * IPv6 for computer networks, open egress only: Docker 27+ allocates each network
+ * its own ULA /64 when no subnet is given and, with ip6tables on by default,
+ * masquerades outbound traffic through the host's IPv6 address. A ULA source keeps
+ * IPv4 preferred for dual-stack names (RFC 6724), so only IPv6-only destinations
+ * move to IPv6. Restricted egress stays IPv4-only: the host ruleset and the
+ * startup probe (egress-probe.ts) enforce and verify IPv4 only. Daemons that
+ * cannot create the dual-stack network (Docker 26, Docker-in-Docker without
+ * ip6_tables, IPv6 off in the kernel) get the same network without IPv6 from
+ * the caller's fallback, so a computer start never fails on this.
+ *
+ * Manor names the bridge in every egress mode, not only `restricted`: its host firewall matches
+ * `mnrc+` interfaces whether or not SANDBOX_COMPUTER_EGRESS is set, and an unnamed bridge would
+ * fall outside those rules.
+ */
+/**
+ * Manor: per-bot computer networks stay IPv4-only. Manor's host firewall
+ * (infra/compose/harden-computer-egress.sh) writes iptables rules only, so an IPv6 path would let a
+ * computer reach the host and private IPv6 networks around it. Turn this on only after that script
+ * also writes the matching ip6tables rules. Production pins one computer network
+ * (RAKAZO_COMPUTER_NETWORK) and never creates these networks.
+ */
+export const COMPUTER_NETWORK_IPV6 = false;
+
+export function computerNetworkCreateOptions(
+  botId: string,
+  owner: string,
+  egress: ComputerEgressMode = "open",
+  ipv6 = true,
+) {
+  return {
+    Name: computerNetworkNameFor(botId),
+    Driver: "bridge",
+    CheckDuplicate: true,
+    ...(COMPUTER_NETWORK_IPV6 && ipv6 && egress === "open" ? { EnableIPv6: true } : {}),
+    Labels: { "rakazo.computerOwner": owner, "rakazo.botId": botId },
+    Options: { "com.docker.network.bridge.name": computerBridgeNameFor(botId) },
+  };
+}
+
+/**
+ * Docker Engine API 1.48 added GwPriority. Older supported daemons must receive
+ * the original connect payload, because their API cannot preserve this setting.
+ */
+export function screenPeerNetworkConnectOptions(
+  containerId: string,
+  apiVersion: string,
+): Docker.NetworkConnectOptions {
+  const version = /^(\d+)\.(\d+)$/.exec(apiVersion);
+  const supportsGatewayPriority = Boolean(
+    version && (Number(version[1]) > 1 || (Number(version[1]) === 1 && Number(version[2]) >= 48)),
+  );
+  if (!supportsGatewayPriority) return { Container: containerId };
+
+  // @types/dockerode 4.0.1 predates the API field; the server accepts the
+  // endpoint setting as part of the standard Engine API payload.
+  const endpointConfig: Docker.EndpointSettings & { GwPriority: number } = { GwPriority: -1 };
+  return { Container: containerId, EndpointConfig: endpointConfig };
+}
+
 export function hostComputerUser(uid = process.getuid?.(), gid = process.getgid?.()): string {
   if (uid === undefined || gid === undefined || uid === 0) return COMPUTER_USER;
   return `${uid}:${gid}`;
 }
 
-function positiveNumber(raw: string | undefined, fallback: number): number {
-  const value = Number(raw);
-  return Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-// Per-computer resource ceilings. Defaults suit a 2 vCPU / 8 GB host running
-// one or two computers alongside the app containers.
-const COMPUTER_MEMORY_MB = positiveNumber(process.env.RAKAZO_COMPUTER_MEMORY_MB, 2048);
-const COMPUTER_CPUS = positiveNumber(process.env.RAKAZO_COMPUTER_CPUS, 1.5);
-// A graphical desktop with a browser forks well past a few hundred processes,
-// so this ceiling is a fork-bomb guard rather than a workload budget.
-const COMPUTER_PIDS = positiveNumber(process.env.RAKAZO_COMPUTER_PIDS, 2048);
 // Optional OCI runtime for agent computers. Set to "runsc" (gVisor) to run each
 // computer on a user-space kernel so a container escape cannot reach the host.
 // Unset uses the Docker default runtime.
@@ -47,35 +647,64 @@ export const COMPUTER_DNS = (
   .map((entry) => entry.trim())
   .filter(Boolean);
 
-export function screenPorts(index: number) {
-  if (index < 0 || index >= TEAM_SCREEN_LIMIT) {
-    throw new Error(
-      `screen index ${index} exceeds the Team Computer limit of ${TEAM_SCREEN_LIMIT}`,
-    );
-  }
-  return {
-    display: `:${index + 1}`,
-    displayNumber: index + 1,
-    viewPort: String(6080 + index * 2),
-    controlPort: String(6081 + index * 2),
-    viewVncPort: 5900 + index * 2,
-    controlVncPort: 5901 + index * 2,
-  };
-}
-
-export function computerPortBindings() {
+export function computerPortBindings(publishControlPort = false) {
   const ExposedPorts: Record<string, object> = {};
   const PortBindings: Record<string, Array<{ HostIp: string; HostPort: string }>> = {};
-  for (let index = 0; index < TEAM_SCREEN_LIMIT; index += 1) {
-    const ports = screenPorts(index);
-    ExposedPorts[`${ports.viewPort}/tcp`] = {};
-    ExposedPorts[`${ports.controlPort}/tcp`] = {};
-    PortBindings[`${ports.viewPort}/tcp`] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
-    PortBindings[`${ports.controlPort}/tcp`] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
+  const port = `${screenPorts(0).viewPort}/tcp`;
+  ExposedPorts[port] = {};
+  PortBindings[port] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
+  // Host-run Docker Desktop supervisors need an opt-in loopback mapping.
+  // Otherwise control stays unpublished on the container network.
+  if (publishControlPort) {
+    ExposedPorts[`${COMPUTER_CONTROL_PORT}/tcp`] = {};
+    PortBindings[`${COMPUTER_CONTROL_PORT}/tcp`] = [{ HostIp: "127.0.0.1", HostPort: "0" }];
   }
-  // Control stays on the container network only (0.0.0.0 inside the container).
-  // Do not publish 7070 to the host.
   return { ExposedPorts, PortBindings };
+}
+
+export function computerHomeStorage(
+  serviceHomePath: string,
+  dataDir: string,
+  info: Docker.ContainerInspectInfo | undefined,
+): { homePath: string; homeVolume?: { name: string; subpath: string } } {
+  const relative = path.relative(dataDir, serviceHomePath);
+  if (
+    !relative ||
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
+    throw new Error("computer home must be inside the data directory");
+  }
+  const mount = info?.Mounts.find((entry) => entry.Destination === dataDir);
+  if (mount?.Type === "volume") {
+    if (!mount.Name) throw new Error("computer data volume has no name");
+    return { homePath: serviceHomePath, homeVolume: { name: mount.Name, subpath: relative } };
+  }
+  return { homePath: mount?.Source ? path.join(mount.Source, relative) : serviceHomePath };
+}
+
+export function assertVolumeSubpathSupport(apiVersion: string) {
+  const match = /^(\d+)\.(\d+)$/.exec(apiVersion);
+  if (!match || Number(match[1]) < 1 || (Number(match[1]) === 1 && Number(match[2]) < 45)) {
+    throw new Error("Docker Engine 26+ (API 1.45+) is required for bot home volume subpaths");
+  }
+}
+
+export function homeVolumeMatches(
+  mounts: Docker.ContainerInspectInfo["HostConfig"]["Mounts"],
+  volume: { name: string; subpath: string },
+) {
+  return (
+    mounts?.some(
+      (mount) =>
+        mount.Target === "/home/rakazo" &&
+        mount.Type === "volume" &&
+        mount.Source === volume.name &&
+        mount.VolumeOptions?.Subpath === volume.subpath &&
+        !mount.ReadOnly,
+    ) ?? false
+  );
 }
 
 export interface ComputerCreateInput {
@@ -84,9 +713,18 @@ export interface ComputerCreateInput {
   botId: string;
   spaceId: string;
   homePath: string;
+  homeVolume?: { name: string; subpath: string };
   user?: string;
   controlToken?: string;
   networkMode?: string;
+  publishControlPort?: boolean;
+  dns?: string[];
+  mounts?: ComputerMount[];
+  /** Docker's GPU device count, where -1 means all (see resolveComputerComputeGpus). */
+  computeGpus?: number;
+  /** PAC URL for the bot browser (see resolveComputerBrowserProxyPacUrl). */
+  browserProxyPacUrl?: string;
+  locale?: ComputerLocale;
 }
 
 interface PointerInput {
@@ -103,43 +741,69 @@ export type SandboxInput =
   | { kind: "clipboard"; text: string };
 
 export function containerCreateOptions(input: ComputerCreateInput) {
-  const ports = computerPortBindings();
+  const ports = computerPortBindings(input.publishControlPort);
+  const extraMounts = (input.mounts ?? []).map(computerMountSettings);
   return {
     Image: input.image,
     name: input.name,
     User: input.user ?? COMPUTER_USER,
     Tty: true,
     Env: [
+      ...Object.entries(COMPUTER_CACHE_ENV).map(([key, value]) => `${key}=${value}`),
       "DISPLAY=:1",
       "HOME=/home/rakazo",
       "PATH=/home/rakazo/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
       "NPM_CONFIG_PREFIX=/home/rakazo/.local",
       "PIP_USER=1",
       ...(input.controlToken ? [`RAKAZO_COMPUTER_CONTROL_TOKEN=${input.controlToken}`] : []),
+      ...computerLocaleEnv(input.locale),
+      ...(input.browserProxyPacUrl ? [`${BROWSER_PROXY_PAC_ENV}=${input.browserProxyPacUrl}`] : []),
     ],
     Labels: {
       "rakazo.managed": "true",
       "rakazo.botId": input.botId,
       "rakazo.spaceId": input.spaceId,
+      ...(input.mounts?.length ? { [MOUNT_SOURCES_LABEL]: mountSourcesLabel(input.mounts) } : {}),
     },
     ExposedPorts: ports.ExposedPorts,
     HostConfig: {
-      Binds: [`${input.homePath}:/home/rakazo`],
+      ...(input.homeVolume
+        ? {
+            Binds: undefined,
+            Mounts: [
+              {
+                Type: "volume" as const,
+                Source: input.homeVolume.name,
+                Target: "/home/rakazo",
+                // Docker makes Labels and DriverConfig optional; dockerode's types do not.
+                VolumeOptions: {
+                  NoCopy: true,
+                  Subpath: input.homeVolume.subpath,
+                } as Docker.MountSettings["VolumeOptions"],
+              },
+              ...extraMounts,
+            ],
+          }
+        : {
+            Binds: [`${input.homePath}:/home/rakazo`],
+            Mounts: extraMounts.length ? extraMounts : undefined,
+          }),
       PortBindings: ports.PortBindings,
       ShmSize: 256 * 1024 * 1024,
       CapDrop: ["ALL"],
       SecurityOpt: ["no-new-privileges:true"],
       // Keep one computer from starving the host (and every other bot on it).
-      // Override per deployment with RAKAZO_COMPUTER_MEMORY_MB / _CPUS / _PIDS.
-      Memory: COMPUTER_MEMORY_MB * 1024 * 1024,
-      MemorySwap: COMPUTER_MEMORY_MB * 1024 * 1024,
-      NanoCpus: Math.round(COMPUTER_CPUS * 1e9),
-      PidsLimit: COMPUTER_PIDS,
+      ...computerResourceLimits(),
       ReadonlyPaths: ["/usr/share/novnc"],
       AutoRemove: false,
       NetworkMode: input.networkMode ?? "bridge",
       ...(COMPUTER_RUNTIME ? { Runtime: COMPUTER_RUNTIME } : {}),
       ...(COMPUTER_DNS.length ? { Dns: COMPUTER_DNS } : {}),
+      ...(input.dns ? { Dns: input.dns } : {}),
+      // No driver named: Docker picks whichever one on the host provides GPUs.
+      ...(input.computeGpus !== undefined
+        ? { DeviceRequests: [{ Count: input.computeGpus, Capabilities: [["gpu"]] }] }
+        : {}),
     },
     WorkingDir: "/home/rakazo",
   };
@@ -162,19 +826,7 @@ export function computerNetworkNameFor(botId: string) {
   return `rakazo-computer-${sanitizeIdentifier(botId).slice(0, 32)}-${hash}`;
 }
 
-/**
- * Host bridge interface prefix for per-bot networks. A fixed prefix lets the host firewall match
- * every computer network by interface (`mnrc+`) without knowing Docker's subnet choices.
- */
-export const COMPUTER_BRIDGE_PREFIX = "mnrc";
-
-/** Linux caps interface names at 15 characters, so this is the prefix plus 11 hex characters. */
-export function computerBridgeNameFor(botId: string) {
-  const hash = createHash("sha256").update(botId).digest("hex").slice(0, 11);
-  return `${COMPUTER_BRIDGE_PREFIX}${hash}`;
-}
-
-/** Current and prior network names used by this PR, for delete cleanup. */
+/** Current and prior network names, for delete cleanup. */
 export function computerNetworkNamesForCleanup(botId: string) {
   const safe = sanitizeIdentifier(botId);
   const digest = createHash("sha256").update(botId).digest("hex");
@@ -198,6 +850,12 @@ export function legacyNetworkOwnedSolelyBy(
 
 export function screenUrlFor(hostPort: string, host = SCREEN_HOST) {
   return `http://${host}:${hostPort}/embed.html`;
+}
+
+export function screenUrlWithToken(screenUrl: string, token: string) {
+  const url = new URL(screenUrl);
+  url.searchParams.set("path", `websockify?token=${encodeURIComponent(token)}`);
+  return url.toString();
 }
 
 /**
@@ -226,17 +884,65 @@ export function resolveScreenPublishTarget(input: {
   return undefined;
 }
 
+type ControlPortBindings =
+  | Record<string, Array<{ HostIp?: string; HostPort?: string }> | null | undefined>
+  | null
+  | undefined;
+
+function validHostPort(port: string | undefined): port is string {
+  return !!port && /^\d{1,5}$/.test(port) && Number(port) > 0 && Number(port) <= 65535;
+}
+
+/** Resolve an assigned runtime port only when every control binding is loopback. */
+export function publishedLoopbackControlHostPort(portBindings: ControlPortBindings) {
+  const bindings = portBindings?.[`${COMPUTER_CONTROL_PORT}/tcp`];
+  if (!bindings?.length || bindings.some((binding) => binding.HostIp !== "127.0.0.1")) {
+    return undefined;
+  }
+  return bindings.find((binding) => validHostPort(binding.HostPort))?.HostPort;
+}
+
 /**
- * Resolve the in-container control service via its Docker network IP.
- * Control is never host-published; the supervisor reaches 7070 on the
- * container network while the process binds 0.0.0.0 inside the sandbox.
+ * Reuse only containers whose configured control publication matches the setting.
+ * Inspect HostConfig so stopped containers and Docker's automatic port allocation
+ * (empty or zero HostPort) work before a runtime port has been assigned.
+ */
+export function controlPortPublicationMatches(
+  portBindings: ControlPortBindings,
+  publishControlPort: boolean,
+): boolean {
+  const bindings = portBindings?.[`${COMPUTER_CONTROL_PORT}/tcp`];
+  if (!publishControlPort) return !bindings?.length;
+  return (
+    !!bindings?.length &&
+    bindings.every(
+      (binding) =>
+        binding.HostIp === "127.0.0.1" &&
+        (binding.HostPort === "" || binding.HostPort === "0" || validHostPort(binding.HostPort)),
+    )
+  );
+}
+
+/**
+ * Resolve the computer control service. Prefer a published loopback HostPort
+ * when provided; otherwise use the Docker network IP. When requirePublishedHostPort
+ * is set, never fall back to the container IP (unreachable from Docker Desktop hosts).
  */
 export function resolveComputerControlEndpoint(input: {
   token: string | undefined;
   networkMode: string | null | undefined;
   networks: Record<string, { IPAddress?: string } | undefined> | null | undefined;
+  publishedHostPort?: string;
+  requirePublishedHostPort?: boolean;
 }): { url: string; token: string } | undefined {
   if (!input.token) return undefined;
+  if (validHostPort(input.publishedHostPort)) {
+    return {
+      url: `http://127.0.0.1:${input.publishedHostPort}/v1/desktop`,
+      token: input.token,
+    };
+  }
+  if (input.requirePublishedHostPort) return undefined;
   const address =
     (input.networkMode ? input.networks?.[input.networkMode]?.IPAddress : undefined) ||
     Object.values(input.networks ?? {}).find((network) => network?.IPAddress)?.IPAddress;
@@ -275,5 +981,15 @@ function mapKey(key: string) {
   if (lower === "alt") return "alt";
   if (lower === "shift") return "shift";
   if (lower === "meta" || lower === "cmd" || lower === "super") return "super";
+  if (lower === "pagedown" || lower === "page_down" || lower === "pgdn") return "Page_Down";
+  if (lower === "pageup" || lower === "page_up" || lower === "pgup") return "Page_Up";
+  if (lower === "arrowup" || lower === "up") return "Up";
+  if (lower === "arrowdown" || lower === "down") return "Down";
+  if (lower === "arrowleft" || lower === "left") return "Left";
+  if (lower === "arrowright" || lower === "right") return "Right";
+  if (lower === "delete" || lower === "del") return "Delete";
+  if (lower === "home") return "Home";
+  if (lower === "end") return "End";
+  if (lower === "insert" || lower === "ins") return "Insert";
   return key;
 }

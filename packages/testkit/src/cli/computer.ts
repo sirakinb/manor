@@ -2,26 +2,32 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { computerTestSandbox } from "../computers/computer-test-config.js";
+import { disposableDatabaseEnv, startPostgres } from "./postgres.js";
 import { runProcess } from "./process.js";
 
 async function main() {
+  const { values } = parseArgs({ options: { sandbox: { type: "string", default: "boat" } } });
+  const sandbox = computerTestSandbox(values.sandbox);
   loadRootEnv();
-  for (const key of ["E2B_API_KEY", "OPENROUTER_API_KEY", "COMPUTER_E2E_MODEL"]) {
+  for (const key of [sandbox.apiKeyEnv, "OPENROUTER_API_KEY", "COMPUTER_E2E_MODEL"]) {
     if (!process.env[key]) throw new Error(`${key} is required`);
   }
   const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-computer-e2e-run-"));
-  const database = await new PostgreSqlContainer("postgres:16-alpine").start();
+  const database = await startPostgres();
   const env = {
     ...process.env,
-    DATABASE_URL: database.getConnectionUri(),
-    REALTIME_DATABASE_URL: database.getConnectionUri(),
+    ...disposableDatabaseEnv(database.getConnectionUri()),
     RUN_COMPUTER_E2E: "1",
     VERIFY_PROVIDERS: "1",
+    VERIFY_LOGGING: "1",
+    LOG_LEVEL: "error",
+    LOG_FORMAT: "json",
     COMPOSIO_API_KEY: "",
     WAKEUP_DRIVER: "memory",
-    SANDBOX_PROVIDER: "e2b",
+    SANDBOX_PROVIDER: sandbox.provider,
     AGENT_RUNTIME: "pi",
     BETTER_AUTH_SECRET: "computer-e2e-auth-secret-32chars",
     ENCRYPTION_KEY: "computer-e2e-encryption-key-32chars",
@@ -45,7 +51,7 @@ async function main() {
     });
     await runProcess(
       "pnpm",
-      ["exec", "vitest", "run", "packages/testkit/src/computer-use.e2e.test.ts"],
+      ["exec", "vitest", "run", "packages/testkit/src/computers/computer-use.e2e.test.ts"],
       env,
     );
   } finally {

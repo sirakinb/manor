@@ -1,26 +1,25 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import type { SecretStore } from "@rakazo/adapter-kit";
 import {
   assertSafeRemoteUrl,
   CRM_READ_ONLY_TOOL_NAMES,
   createCrmWebhookEmitter,
   createSafeRemoteFetch,
   crmAgentTools,
-  type EncryptedSecretStore,
   executeCrmTool,
 } from "@rakazo/adapters";
+import type { Actor, CrmModule, CrmModuleRecord, IntegrationScope } from "@rakazo/contracts";
 import {
-  type Actor,
   CRM_MODULE_FIELD_MAX,
   CRM_MODULE_FIELD_TYPES,
   CRM_MODULE_NAME_MAX,
-  type CrmModule,
-  type CrmModuleRecord,
   INTEGRATION_SCOPES,
-  type IntegrationScope,
 } from "@rakazo/contracts";
-import { createCrmRepos, IsolationError, type PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { createCrmRepos, IsolationError } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
 import type { Context, Hono } from "hono";
 import * as z from "zod";
 import {
@@ -311,7 +310,7 @@ function decodeCursor(value: string | undefined) {
 
 export function createCrmIntegrationService(deps: {
   prisma: PrismaClient;
-  secrets: EncryptedSecretStore;
+  secrets: SecretStore;
   fetch?: typeof fetch;
 }) {
   const { prisma, secrets } = deps;
@@ -725,7 +724,7 @@ export function createCrmIntegrationService(deps: {
           response: body as never,
         },
       })
-      .catch((error) => console.error("idempotency response persistence", error));
+      .catch((error) => getLogger().error("idempotency response persistence", error));
     return { body, status: 200 };
   }
 
@@ -763,7 +762,7 @@ export function createCrmIntegrationService(deps: {
         data: row.event.payload,
       });
       const timestamp = Math.floor(Date.now() / 1000).toString();
-      const secret = secrets.load(row.endpoint.signingSecret, row.endpoint.id);
+      const secret = await secrets.load(row.endpoint.signingSecret, row.endpoint.id);
       const signature = signCrmWebhook(secret, timestamp, body);
       try {
         const response = await webhookFetch(row.endpoint.url, {
@@ -892,7 +891,7 @@ export function mountCrmIntegrationRoutes(
   app: Hono,
   deps: {
     prisma: PrismaClient;
-    secrets: EncryptedSecretStore;
+    secrets: SecretStore;
     resolveActor: (request: Request) => Promise<Actor | null>;
     service?: CrmIntegrationService;
   },
@@ -1260,7 +1259,7 @@ export function mountCrmIntegrationRoutes(
         userId,
         signal: c.req.raw.signal,
       },
-      endpointId,
+      { recordId: endpointId },
     );
     const row = await deps.prisma.crmWebhookEndpoint.create({
       data: {
@@ -1405,7 +1404,9 @@ export function mountCrmIntegrationRoutes(
   let timer: ReturnType<typeof setTimeout> | undefined;
   const poll = async () => {
     if (stopped) return;
-    await service.deliverPending().catch((error) => console.error("crm webhook delivery", error));
+    await service
+      .deliverPending()
+      .catch((error) => getLogger().error("crm webhook delivery", error));
     if (!stopped) timer = setTimeout(poll, 5_000);
   };
   timer = setTimeout(poll, 1_000);

@@ -20,10 +20,10 @@ Manor runs on Linux; iMessage only exists on Apple hardware. A Mac has to sit in
 the middle, and unlike most integrations an agent cannot drive it through a
 browser — there is no iMessage web client. Options:
 
-| Bridge | Cost | Notes |
-|---|---|---|
-| [BlueBubbles](https://bluebubbles.app) on your own Mac | free | Open source, REST + webhooks. A Mac mini makes it always-on. |
-| Hosted API (Sendblue, LoopMessage) | per message | No Mac to run; a third party sees the messages. |
+| Bridge                                                 | Cost        | Notes                                                        |
+| ------------------------------------------------------ | ----------- | ------------------------------------------------------------ |
+| [BlueBubbles](https://bluebubbles.app) on your own Mac | free        | Open source, REST + webhooks. A Mac mini makes it always-on. |
+| Hosted API (Sendblue, LoopMessage)                     | per message | No Mac to run; a third party sees the messages.              |
 
 For customer-facing texting at scale, use SMS (Twilio) rather than consumer
 iMessage — Apple's terms do not permit commercial bulk messaging, and this same

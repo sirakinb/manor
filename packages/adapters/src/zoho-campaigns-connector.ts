@@ -5,6 +5,7 @@ import type {
   ConnectorEvent,
   ConnectorTool,
   ManagedConnectorProvider,
+  SecretStore,
 } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
 import { IsolationError, workspaceForAgent } from "@rakazo/db";
@@ -12,12 +13,9 @@ import {
   combineSignals,
   redactConnectorPayload,
   sanitizeConnectorError,
-} from "./connector-safety.js";
-import type { EncryptedSecretStore } from "./secrets.js";
-import {
-  loadWorkspaceCredential,
-  type WorkspaceCredentialFields,
-} from "./workspace-credentials.js";
+} from "./integrations/connector-safety.js";
+import type { WorkspaceCredentialFields } from "./workspace-credentials.js";
+import { loadWorkspaceCredential } from "./workspace-credentials.js";
 
 export const ZOHO_CAMPAIGNS_CONNECTOR_ID = "zoho-campaigns";
 export const ZOHO_CAMPAIGNS_SLUG = "zoho-campaigns";
@@ -78,7 +76,7 @@ export type ZohoCampaignsWorkspaceResolver = (context: AdapterContext) => Promis
 
 export interface ZohoCampaignsConnectorDependencies {
   prisma: PrismaClient;
-  secrets: EncryptedSecretStore;
+  secrets: Pick<SecretStore, "load">;
   resolveWorkspaceId?: ZohoCampaignsWorkspaceResolver;
   loadCredential?: ZohoCampaignsCredentialLoader;
   fetch?: typeof fetch;

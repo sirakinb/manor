@@ -1,8 +1,19 @@
 import { createCipheriv, createHash } from "node:crypto";
+import { BUILTIN_TOOL_NAMES, FLEET_TOOL_NAMES } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
-import { FakeSandboxProvider } from "./fake-sandbox.js";
-import { inferScript, ScriptedAgentRuntime } from "./scripted-runtime.js";
-import { EncryptedSecretStore } from "./secrets.js";
+import { crmAgentTools } from "./crm-tools.js";
+import {
+  offersAgentConnectionTools,
+  selectBuiltinToolsForRun,
+} from "./runs/tools/run-tool-selection.js";
+import { inferScript, ScriptedAgentRuntime } from "./runtime/scripted-runtime.js";
+import { EncryptedSecretStore } from "./secrets/secrets.js";
+import {
+  agentConnectionTools,
+  builtinAgentTools,
+  DELEGATION_TOOL_NAMES,
+} from "./tools/builtin.tool-definition.js";
+import { workspaceAgentTools } from "./workspace-tools.js";
 
 describe("secret store", () => {
   it("round-trips and never stores plaintext in ciphertext", async () => {
@@ -16,18 +27,25 @@ describe("secret store", () => {
     });
     expect(record.ciphertext).not.toContain("sk-or-v1-secretvalue");
     expect(record.ciphertext).toMatch(/^v2:/);
-    expect(store.load(record.ciphertext, record.id)).toBe("sk-or-v1-secretvalue");
-    expect(() => store.load(record.ciphertext, "another-row")).toThrow();
+    await expect(store.load(record.ciphertext, record.id)).resolves.toBe("sk-or-v1-secretvalue");
+    await expect(store.load(record.ciphertext, "another-row")).rejects.toThrow();
   });
 
-  it("keeps legacy ciphertext readable without rewriting it at startup", () => {
+  it("keeps legacy ciphertext readable without rewriting it at startup", async () => {
     const key = "legacy-test-key";
     const iv = Buffer.alloc(12, 7);
     const cipher = createCipheriv("aes-256-gcm", createHash("sha256").update(key).digest(), iv);
     const encrypted = Buffer.concat([cipher.update("legacy-secret", "utf8"), cipher.final()]);
     const legacy = Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64");
     const store = new EncryptedSecretStore(key);
-    expect(store.load(legacy, "secret-row")).toBe("legacy-secret");
+    expect(await store.load(legacy, "secret-row")).toBe("legacy-secret");
+  });
+
+  it("rejects malformed v2 ciphertext when loading asynchronously", async () => {
+    const store = new EncryptedSecretStore("test-key");
+    await expect(store.load("v2:AAAA", "secret-row")).rejects.toThrow(
+      "Encrypted secret is malformed",
+    );
   });
 });
 
@@ -162,44 +180,156 @@ describe("scripted runtime", () => {
 });
 
 describe("builtin tools", () => {
-  it("exposes the tools the executor actually applies", async () => {
-    const { builtinAgentTools } = await import("./builtin-tools.js");
-    expect(builtinAgentTools.map((t) => t.name)).toEqual(
-      expect.arrayContaining([
-        "write_file",
-        "attach_file",
-        "shell",
-        "remember",
-        "request_takeover",
-        "ask_user",
-        "request_secret",
-        "run_subagent",
-        "create_space",
-        "spawn_bot",
-        "archive_bot",
-        "skill_read",
-        "skill_create",
-        "skill_update",
-        "skill_delete",
-        "web_search",
-        "web_fetch",
-      ]),
-    );
+  it("keeps every bot management tool out of helper tool lists", () => {
+    for (const name of FLEET_TOOL_NAMES) expect(DELEGATION_TOOL_NAMES.has(name), name).toBe(true);
   });
-});
 
-describe("fake sandbox", () => {
-  it("provisions isolated computers", async () => {
-    const sandbox = new FakeSandboxProvider();
-    const ctx = {
-      operationId: "1",
-      traceId: "1",
-      spaceId: "w",
-      userId: "u",
-      signal: new AbortController().signal,
+  it("offers subagents action tools without further delegation or parent configuration", () => {
+    const options = {
+      graphicalToolsAllowed: true,
+      pageBrowserAllowed: true,
+      groupId: null,
+      semanticMemoryEnabled: true,
+      cloudAgentEnabled: true,
+      historyRetrievalEnabled: true,
+      ticketBoardEnabled: true,
+      messagingChannelRun: false,
     };
-    const a = await sandbox.provision({ botId: "a", homePath: "/tmp/a" }, ctx);
-    const b = await sandbox.provision({ botId: "b", homePath: "/tmp/b" }, ctx);
-    expect(a.id).not.toBe(b.id);
+    const owner = selectBuiltinToolsForRun({ ...options, trigger: "user" }).map(
+      (tool) => tool.name,
+    );
+    const helper = selectBuiltinToolsForRun({ ...options, trigger: "helper" }).map(
+      (tool) => tool.name,
+    );
+    for (const name of [
+      "shell",
+      "computer_act",
+      "browser_act",
+      "write_file",
+      "save_memory",
+      "remember",
+      "skill_create",
+      "schedule_create",
+      "ask_user",
+      "search_history",
+      "read_history",
+    ]) {
+      expect(owner, name).toContain(name);
+      expect(helper, name).toContain(name);
+    }
+    for (const name of [
+      "run_subagent",
+      "spawn_bot",
+      "update_bot",
+      "message_user",
+      "request_takeover",
+    ]) {
+      expect(helper, name).not.toContain(name);
+    }
+  });
+
+  it.each([false, true])(
+    "keeps fleet reads out of helpers with channel privacy %s",
+    (messagingChannelRun) => {
+      const tools = selectBuiltinToolsForRun({
+        trigger: "helper",
+        fleetManagement: true,
+        messagingChannelRun,
+        graphicalToolsAllowed: false,
+        groupId: null,
+        semanticMemoryEnabled: false,
+      });
+      for (const name of FLEET_TOOL_NAMES)
+        expect(
+          tools.some((tool) => tool.name === name),
+          name,
+        ).toBe(false);
+    },
+  );
+
+  it("offers agent connections to a chat-linked bot's turns, but not to its helpers", () => {
+    const linked = { hasMessagingIdentity: true, crossSpaceCommunication: true };
+    expect(offersAgentConnectionTools({ ...linked, trigger: "user" })).toBe(true);
+    expect(offersAgentConnectionTools({ ...linked, trigger: "helper" })).toBe(false);
+    expect(offersAgentConnectionTools({ ...linked, trigger: "tickets" })).toBe(false);
+    expect(
+      offersAgentConnectionTools({ ...linked, crossSpaceCommunication: false, trigger: "user" }),
+    ).toBe(false);
+  });
+
+  it("exposes the tools the executor actually applies", async () => {
+    // Manor's own tools are switched by their features (CRM, Workspace, channels, stored
+    // logins, previews, webhook routines), not by the per-bot list of disabled tools.
+    const manorOwned = new Set([
+      ...[...crmAgentTools, ...workspaceAgentTools].map((tool) => tool.name),
+      "routine_prepare_webhook",
+      "send_channel_message",
+      "share_preview",
+      "use_credential",
+    ]);
+    const offered = [...builtinAgentTools, ...agentConnectionTools].map((tool) => tool.name);
+    expect(offered).toEqual(expect.arrayContaining([...manorOwned]));
+    expect([...BUILTIN_TOOL_NAMES].sort()).toEqual(
+      offered.filter((name) => !manorOwned.has(name)).sort(),
+    );
+    const options = {
+      graphicalToolsAllowed: true,
+      groupId: null,
+      trigger: "user",
+      semanticMemoryEnabled: true,
+      cloudAgentEnabled: true,
+      historyRetrievalEnabled: true,
+      messagingChannelRun: false,
+      voiceCall: true,
+    };
+    const ticketNames = [
+      "board_tickets",
+      "ticket_get",
+      "ticket_create",
+      "ticket_update",
+      "ticket_comment",
+    ];
+    const enabled = selectBuiltinToolsForRun({ ...options, ticketBoardEnabled: true }).map(
+      (tool) => tool.name,
+    );
+    const disabled = selectBuiltinToolsForRun({ ...options, ticketBoardEnabled: false }).map(
+      (tool) => tool.name,
+    );
+    expect(enabled.filter((name) => ticketNames.includes(name))).toEqual(ticketNames);
+    expect(disabled).toEqual(enabled.filter((name) => !ticketNames.includes(name)));
+    expect(
+      selectBuiltinToolsForRun({
+        ...options,
+        ticketBoardEnabled: true,
+        disabledBuiltinTools: ticketNames,
+      }).map((tool) => tool.name),
+    ).toEqual(disabled);
+    const purchaseNames = ["request_purchase", "purchase_status", "paid_request"];
+    expect(enabled.filter((name) => purchaseNames.includes(name))).toEqual([]);
+    expect(
+      selectBuiltinToolsForRun({ ...options, paymentWalletEnabled: true })
+        .map((tool) => tool.name)
+        .filter((name) => purchaseNames.includes(name)),
+    ).toEqual(purchaseNames);
+    const serviceNames = ["service_search", "service_call"];
+    const services = (extra: Partial<Parameters<typeof selectBuiltinToolsForRun>[0]>) =>
+      selectBuiltinToolsForRun({ ...options, ...extra })
+        .map((tool) => tool.name)
+        .filter((name) => serviceNames.includes(name));
+    expect(services({})).toEqual([]);
+    expect(services({ paidServicesEnabled: true })).toEqual(serviceNames);
+    expect(enabled).not.toContain("read_meeting_transcript");
+    expect(
+      selectBuiltinToolsForRun({ ...options, meetingTranscriptsAvailable: true }).map(
+        (tool) => tool.name,
+      ),
+    ).toContain("read_meeting_transcript");
+    expect(
+      selectBuiltinToolsForRun({
+        ...options,
+        meetingTranscriptsAvailable: true,
+        disabledBuiltinTools: ["read_meeting_transcript"],
+      }).map((tool) => tool.name),
+    ).not.toContain("read_meeting_transcript");
   });
 });

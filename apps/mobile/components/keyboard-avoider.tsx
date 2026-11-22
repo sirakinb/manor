@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, View, type ViewStyle } from "react-native";
+import type { ViewInstance, ViewStyle } from "react-native";
+import { KeyboardAvoidingView, Platform, View } from "react-native";
 
 /**
  * KeyboardAvoidingView compares its own onLayout frame, which is relative to its
@@ -11,7 +12,7 @@ import { KeyboardAvoidingView, Platform, View, type ViewStyle } from "react-nati
  * would read a different context and quietly return the fallback value.
  */
 export function KeyboardAvoider({ children, style }: { children: ReactNode; style?: ViewStyle }) {
-  const root = useRef<View>(null);
+  const root = useRef<ViewInstance>(null);
   const [offset, setOffset] = useState(0);
 
   const measure = useCallback(() => {

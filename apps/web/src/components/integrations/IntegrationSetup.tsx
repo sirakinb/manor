@@ -1,0 +1,164 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import type { IntegrationCatalogResult } from "@rakazo/contracts";
+import { signInMcpServers } from "@rakazo/core";
+import { Button, Disclosure, Input } from "@rakazo/ui-web";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { connectMcpEndpoint } from "../../lib/integrations/mcp-connect";
+import { lazyComponent } from "../../lib/platform/preload-recovery";
+import { rpc } from "../../lib/query/rpc";
+import type { ErrorDetails } from "../../lib/query/user-error";
+import { errorDetails } from "../../lib/query/user-error";
+import { ErrorNotice } from "../ErrorNotice";
+import type { McpOAuthPaste } from "./McpOAuthPasteForm";
+
+// Manor: only a loopback-only provider needs it, so it loads when one does.
+const McpOAuthPasteForm = lazyComponent(() =>
+  import("./McpOAuthPasteForm").then((module) => module.McpOAuthPasteForm),
+);
+
+/** Personal MCP connections never configure deployment-wide provider credentials. */
+export function IntegrationSetup({
+  onDone,
+  botId,
+  initialQuery,
+}: {
+  onDone?: () => void;
+  botId?: string;
+  /** Searches the public catalog for this once on open. */
+  initialQuery?: string;
+}) {
+  const { t } = useLingui();
+  const [endpoint, setEndpoint] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const [results, setResults] = useState<IntegrationCatalogResult[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ErrorDetails | null>(null);
+  const [connected, setConnected] = useState<string[]>([]);
+  // A sign-in the provider finishes only by pasting the address back; not connected until then.
+  const [paste, setPaste] = useState<(McpOAuthPaste & { endpoint: string }) | null>(null);
+  const remoteResults = signInMcpServers(results);
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+    } catch (err) {
+      setError(errorDetails(err, t`Could not connect`));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function search(text: string) {
+    void run(async () => {
+      const response = await rpc.capabilities.catalogSearch({
+        query: text,
+        usePublicCatalog: true,
+      });
+      setResults(response.results);
+      setSearched(true);
+    });
+  }
+
+  // Ref, not state: a development remount must not send the search twice.
+  const searchedInitial = useRef(false);
+  useEffect(() => {
+    if (searchedInitial.current || !initialQuery?.trim()) return;
+    searchedInitial.current = true;
+    search(initialQuery);
+  }, []);
+
+  async function connect(name: string, url: string) {
+    await run(async () => {
+      setPaste(null);
+      const result = await connectMcpEndpoint({ name, endpoint: url, botId });
+      if (typeof result === "object") {
+        setPaste({ endpoint: url, ...result.paste });
+        return;
+      }
+      if (result !== "cancelled") setConnected((current) => [...current, url]);
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-display font-medium text-foreground">
+        <Trans>Add MCP server</Trans>
+      </h1>
+      <form
+        className="flex gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          search(query);
+        }}
+      >
+        <Input
+          aria-label={t`Search apps`}
+          placeholder={t`Search apps`}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <Button type="submit" disabled={busy || !query.trim()}>
+          <Trans>Search integrations.sh</Trans>
+        </Button>
+      </form>
+      {remoteResults.map((result) => (
+        <div key={result.endpoint} className="flex items-center justify-between gap-3">
+          <span className="min-w-0 truncate">{result.name}</span>
+          <Button
+            variant="outline"
+            disabled={busy || connected.includes(result.endpoint)}
+            onClick={() => void connect(result.name, result.endpoint)}
+          >
+            {connected.includes(result.endpoint) ? t`Connected` : t`Connect`}
+          </Button>
+        </div>
+      ))}
+      {searched && !remoteResults.length ? (
+        <p className="text-body text-muted-foreground">
+          <Trans>No remote MCP servers found</Trans>
+        </p>
+      ) : null}
+      <Disclosure
+        className="text-body text-muted-foreground"
+        summary={<Trans>Add server URL</Trans>}
+      >
+        <div className="mt-3 space-y-3">
+          <Input
+            aria-label={t`Server URL`}
+            value={endpoint}
+            onChange={(event) => setEndpoint(event.target.value)}
+            placeholder="https://example.com/mcp"
+          />
+          <Button
+            disabled={busy || !endpoint.trim()}
+            onClick={() => void connect("MCP server", endpoint.trim())}
+          >
+            <Trans>Connect</Trans>
+          </Button>
+        </div>
+      </Disclosure>
+      {paste ? (
+        <Suspense fallback={null}>
+          <McpOAuthPasteForm
+            key={paste.sessionId}
+            paste={paste}
+            onFinished={() => {
+              setConnected((current) => [...current, paste.endpoint]);
+              setPaste(null);
+            }}
+            onCancel={() => setPaste(null)}
+            onError={(err) => setError(errorDetails(err, t`Could not finish connecting`))}
+          />
+        </Suspense>
+      ) : null}
+      {error ? <ErrorNotice error={error} /> : null}
+      {onDone ? (
+        <Button disabled={busy} onClick={onDone}>
+          <Trans>Continue</Trans>
+        </Button>
+      ) : null}
+    </div>
+  );
+}

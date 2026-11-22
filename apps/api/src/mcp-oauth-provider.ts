@@ -1,6 +1,8 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { type Actor, INTEGRATION_SCOPES, type IntegrationScope } from "@rakazo/contracts";
+import type { Actor, IntegrationScope } from "@rakazo/contracts";
+import { INTEGRATION_SCOPES } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
+import { runAsTenant } from "@rakazo/db";
 import type { Context, Hono } from "hono";
 import * as z from "zod";
 import { issueIntegrationToken } from "./crm-integrations.js";
@@ -220,15 +222,19 @@ export function mountMcpOAuthProvider(app: Hono, deps: OAuthDeps) {
   app.get("/v1/oauth/authorize", async (c) => {
     const actor = await deps.resolveActor(c.req.raw);
     if (!actor) return c.json({ error: { message: "Authentication required" } }, 401);
-    const parsed = AuthorizationRequest.safeParse(c.req.query());
-    if (!parsed.success)
-      return c.json({ error: { message: "This authorization request is invalid." } }, 400);
-    const client = await findClient(parsed.data.client_id, parsed.data.redirect_uri);
-    if (!client) return c.json({ error: { message: "Unknown client or redirect address." } }, 400);
-    return c.json({
-      client_name: client.name,
-      redirect_host: new URL(parsed.data.redirect_uri).host,
-      scopes: requestedScopes(parsed.data.scope),
+    // Manor: consent acts for the signed-in person, so it runs in their tenant context.
+    return runAsTenant({ spaceId: actor.spaceId, userId: actor.userId }, async () => {
+      const parsed = AuthorizationRequest.safeParse(c.req.query());
+      if (!parsed.success)
+        return c.json({ error: { message: "This authorization request is invalid." } }, 400);
+      const client = await findClient(parsed.data.client_id, parsed.data.redirect_uri);
+      if (!client)
+        return c.json({ error: { message: "Unknown client or redirect address." } }, 400);
+      return c.json({
+        client_name: client.name,
+        redirect_host: new URL(parsed.data.redirect_uri).host,
+        scopes: requestedScopes(parsed.data.scope),
+      });
     });
   });
 
@@ -236,37 +242,41 @@ export function mountMcpOAuthProvider(app: Hono, deps: OAuthDeps) {
   app.post("/v1/oauth/authorize", async (c) => {
     const actor = await deps.resolveActor(c.req.raw);
     if (!actor) return c.json({ error: { message: "Authentication required" } }, 401);
-    // JSON only, so a cross-site form post cannot approve on the user's behalf.
-    if (!c.req.header("content-type")?.startsWith("application/json"))
-      return c.json({ error: { message: "Expected JSON" } }, 415);
-    const parsed = Approval.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success)
-      return c.json({ error: { message: "This authorization request is invalid." } }, 400);
-    const request = parsed.data;
-    const client = await findClient(request.client_id, request.redirect_uri);
-    if (!client) return c.json({ error: { message: "Unknown client or redirect address." } }, 400);
-    const allowed = requestedScopes(request.scope);
-    if (request.scopes.some((scope) => !allowed.includes(scope)))
-      return c.json({ error: { message: "Scopes exceed the request." } }, 400);
-    const code = randomBytes(32).toString("base64url");
-    await prisma.oAuthAuthorizationCode.deleteMany({ where: { expiresAt: { lt: now() } } });
-    await prisma.oAuthAuthorizationCode.create({
-      data: {
-        codeHash: sha256(code),
-        clientId: client.id,
-        spaceId: actor.spaceId,
-        userId: actor.userId,
-        redirectUri: request.redirect_uri,
-        codeChallenge: request.code_challenge,
-        scopes: [...new Set(request.scopes)],
-        expiresAt: new Date(now().getTime() + CODE_TTL_MS),
-      },
+    // Manor: consent acts for the signed-in person, so it runs in their tenant context.
+    return runAsTenant({ spaceId: actor.spaceId, userId: actor.userId }, async () => {
+      // JSON only, so a cross-site form post cannot approve on the user's behalf.
+      if (!c.req.header("content-type")?.startsWith("application/json"))
+        return c.json({ error: { message: "Expected JSON" } }, 415);
+      const parsed = Approval.safeParse(await c.req.json().catch(() => null));
+      if (!parsed.success)
+        return c.json({ error: { message: "This authorization request is invalid." } }, 400);
+      const request = parsed.data;
+      const client = await findClient(request.client_id, request.redirect_uri);
+      if (!client)
+        return c.json({ error: { message: "Unknown client or redirect address." } }, 400);
+      const allowed = requestedScopes(request.scope);
+      if (request.scopes.some((scope) => !allowed.includes(scope)))
+        return c.json({ error: { message: "Scopes exceed the request." } }, 400);
+      const code = randomBytes(32).toString("base64url");
+      await prisma.oAuthAuthorizationCode.deleteMany({ where: { expiresAt: { lt: now() } } });
+      await prisma.oAuthAuthorizationCode.create({
+        data: {
+          codeHash: sha256(code),
+          clientId: client.id,
+          spaceId: actor.spaceId,
+          userId: actor.userId,
+          redirectUri: request.redirect_uri,
+          codeChallenge: request.code_challenge,
+          scopes: [...new Set(request.scopes)],
+          expiresAt: new Date(now().getTime() + CODE_TTL_MS),
+        },
+      });
+      const redirect = new URL(request.redirect_uri);
+      redirect.searchParams.set("code", code);
+      if (request.state) redirect.searchParams.set("state", request.state);
+      redirect.searchParams.set("iss", deps.publicOrigin(c.req.raw));
+      return c.json({ redirect_to: redirect.href });
     });
-    const redirect = new URL(request.redirect_uri);
-    redirect.searchParams.set("code", code);
-    if (request.state) redirect.searchParams.set("state", request.state);
-    redirect.searchParams.set("iss", deps.publicOrigin(c.req.raw));
-    return c.json({ redirect_to: redirect.href });
   });
 
   app.post("/oauth/token", async (c) => {

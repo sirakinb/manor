@@ -3,10 +3,11 @@ import type { Bot, WorkspaceOverview, WorkspaceSummary } from "@rakazo/contracts
 import { Settings } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { BuiButton } from "../../components/beautiful-ui/primitives";
-import { rpc } from "../../lib/rpc";
+import { BuiButton } from "../../components/ai/primitives";
+import { rpc } from "../../lib/query/rpc";
 import { WorkspaceTeamContext } from "./AskTeam";
-import { isSectionKey, Loading, type SectionKey } from "./bits";
+import type { SectionKey } from "./bits";
+import { isSectionKey, Loading } from "./bits";
 import { Overview } from "./Overview";
 import { EmailSection } from "./sections/EmailSection";
 import { LeasingSection } from "./sections/LeasingSection";

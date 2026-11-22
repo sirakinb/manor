@@ -1,6 +1,6 @@
 import type { WorkspaceAccess } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { rpc } from "./rpc";
+import { rpc } from "./query/rpc";
 
 export function useWorkspaceAccess() {
   const [access, setAccess] = useState<WorkspaceAccess | null>(null);

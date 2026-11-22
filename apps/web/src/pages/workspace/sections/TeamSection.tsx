@@ -2,14 +2,26 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceActivity, WorkspaceOverview, WorkspaceSummary } from "@rakazo/contracts";
 import { BotAvatar } from "@rakazo/ui-web";
 import { ArrowUpRight, BookOpen, ChevronDown } from "lucide-react";
-import { useContext, useState } from "react";
+import { lazy, Suspense, useContext, useState } from "react";
 import { Link } from "react-router-dom";
-import { BuiButton } from "../../../components/beautiful-ui/primitives";
-import { rpc } from "../../../lib/rpc";
-import { KnowledgeSection, SpaceMemorySection } from "../../KnowledgeSection";
+import { BuiButton } from "../../../components/ai/primitives";
+import { ErrorBoundary, SectionLoadFailed } from "../../../components/ErrorBoundary";
+import { rpc } from "../../../lib/query/rpc";
 import { WorkspaceTeamContext } from "../AskTeam";
 import { AutomationsCard } from "../AutomationsCard";
 import { Card, CLICKABLE_TEXT, Empty, ErrorLine, formatDateTime, PageHeader } from "../bits";
+
+// Lazy, as in the bot panel: a static import here would pull the section into the
+// shell's first load and undo its code split.
+const KnowledgeSection = lazy(() =>
+  import("../../space/KnowledgeSection").then((module) => ({ default: module.KnowledgeSection })),
+);
+const AgentSkills = lazy(() =>
+  import("../../space/KnowledgeSection").then((module) => ({ default: module.AgentSkills })),
+);
+const SpaceMemorySection = lazy(() =>
+  import("../../space/KnowledgeSection").then((module) => ({ default: module.SpaceMemorySection })),
+);
 
 export function TeamSection({
   eyebrow,
@@ -64,8 +76,8 @@ export function TeamSection({
                   <BotAvatar identity={bot.id} color={bot.color} size={40} status={bot.status} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-medium text-[#ECECEE]">{bot.name}</p>
-                    {bot.title ? (
-                      <p className="mt-1 text-[12px] text-[#85858A]">{bot.title}</p>
+                    {bot.description ? (
+                      <p className="mt-1 truncate text-[12px] text-[#85858A]">{bot.description}</p>
                     ) : null}
                   </div>
                   <button
@@ -98,9 +110,27 @@ export function TeamSection({
             </ul>
           )}
           {knowledgeBotId ? (
-            <div id="workspace-bot-knowledge" className="mt-4 border-t border-[#25282B] pt-2">
-              <KnowledgeSection key={knowledgeBotId} botId={knowledgeBotId} />
-              <SpaceMemorySection />
+            <div
+              id="workspace-bot-knowledge"
+              data-testid="bot-knowledge"
+              className="mt-4 border-t border-[#25282B] pt-2"
+            >
+              <ErrorBoundary fallback={<SectionLoadFailed />}>
+                <Suspense fallback={null}>
+                  {/* The bot's memory, then the space's skills (upstream keeps skills per person
+                      in a space, managed in the Skills dialog), then the shared memory. */}
+                  <KnowledgeSection key={knowledgeBotId} botId={knowledgeBotId} />
+                  <section className="mt-6">
+                    <h3 className="mb-2 text-[13px] font-medium text-[#ECECEE]">
+                      <Trans>Skills</Trans>
+                    </h3>
+                    <AgentSkills />
+                  </section>
+                  <div className="mt-6">
+                    <SpaceMemorySection />
+                  </div>
+                </Suspense>
+              </ErrorBoundary>
             </div>
           ) : null}
         </Card>

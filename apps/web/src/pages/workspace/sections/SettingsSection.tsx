@@ -1,27 +1,18 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import {
-  WORKSPACE_CREDENTIAL_PROVIDERS,
-  type WorkspaceCredentialProvider,
-  type WorkspaceCredentialRow,
-  type WorkspaceSettings,
-  type WorkspaceSettingsUpdate,
-  type WorkspaceSummary,
+import type {
+  WorkspaceCredentialProvider,
+  WorkspaceCredentialRow,
+  WorkspaceSettings,
+  WorkspaceSettingsUpdate,
+  WorkspaceSummary,
 } from "@rakazo/contracts";
-import {
-  Bot,
-  Building2,
-  Camera,
-  type LucideIcon,
-  Mail,
-  Mails,
-  Network,
-  Phone,
-  Sparkles,
-} from "lucide-react";
+import { WORKSPACE_CREDENTIAL_PROVIDERS } from "@rakazo/contracts";
+import type { LucideIcon } from "lucide-react";
+import { Bot, Building2, Camera, Mail, Mails, Network, Phone, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BuiButton } from "../../../components/beautiful-ui/primitives";
-import { rpc } from "../../../lib/rpc";
+import { BuiButton } from "../../../components/ai/primitives";
+import { rpc } from "../../../lib/query/rpc";
 import {
   Card,
   CLICKABLE_TEXT,

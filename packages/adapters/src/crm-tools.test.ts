@@ -1,7 +1,7 @@
 import type { CrmContact, CrmDeal, CrmOverview, CrmPipeline } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
+import type { CrmRepos } from "./crm-tools.js";
 import {
-  type CrmRepos,
   crmAgentTools,
   executeCrmTool,
   resolvePipelineByName,

@@ -12,10 +12,11 @@
 // Reply delivery is the agent's `send_channel_message` tool; see
 // packages/adapters/src/channels.ts.
 import { timingSafeEqual } from "node:crypto";
-import { type JobPublisher, runContinueJob } from "@rakazo/adapter-kit";
+import type { JobPublisher } from "@rakazo/adapter-kit";
+import { runContinueJob } from "@rakazo/adapter-kit";
 import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import type { Context, Hono } from "hono";
-import { buildUserMessageBlocks } from "./artifacts.js";
+import { buildUserMessageBlocks } from "./content/artifacts.js";
 import { twilioConfig, twilioSenderAllowed, twilioSignatureValid } from "./twilio.js";
 
 export interface ChannelDeps {

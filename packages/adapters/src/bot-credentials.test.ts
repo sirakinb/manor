@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
+import type { BotCredentialRow } from "./bot-credentials.js";
 import {
-  type BotCredentialRow,
   findBotCredential,
   formatBotCredentialsPrompt,
   parseBotCredentialSecret,
   resolveBotCredentialValue,
   serializeBotCredentialSecret,
 } from "./bot-credentials.js";
-import { builtinAgentTools } from "./builtin-tools.js";
-import { selectToolsForRoutingMode } from "./executor.js";
-import { generateTotp } from "./totp.js";
+import { selectToolsForRoutingMode } from "./runs/executor/executor.js";
+import { generateTotp } from "./secrets/vault/totp.js";
+import { builtinAgentTools } from "./tools/builtin.tool-definition.js";
 
 const RFC_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
 

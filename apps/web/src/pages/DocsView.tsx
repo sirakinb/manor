@@ -1,12 +1,12 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceAccess } from "@rakazo/contracts";
 import { useState } from "react";
-import { BuiButton, LoadingState } from "../components/beautiful-ui/primitives";
+import { BuiButton, LoadingState } from "../components/ai/primitives";
 import { buildAgentSetupPrompt } from "../lib/agent-setup-prompt";
+import type { Endpoint } from "../lib/api-catalog";
 import {
   CONTACT_ENDPOINTS,
   DEAL_ENDPOINTS,
-  type Endpoint,
   MCP_TOOLS,
   MODULE_ENDPOINTS,
   SCOPES,
@@ -513,7 +513,7 @@ function RestReference({ origin }: { origin: string }) {
       <Section title={<Trans>Custom modules</Trans>}>
         <Prose>
           <Trans>
-            Modules are the user-defined sheets in the CRM — each one declares typed fields (text,
+            Modules are the user-defined sheets in the CRM. Each one declares typed fields (text,
             number, date, checkbox, select, email, phone, URL) and holds records validated against
             them. Record <Mono>values</Mono> accept field labels or field ids as keys:
           </Trans>
@@ -538,9 +538,9 @@ function RestReference({ origin }: { origin: string }) {
       <Section title={<Trans>OpenAPI document</Trans>}>
         <Prose>
           <Trans>
-            The machine-readable spec lives at <Mono>{`${origin}/v1/openapi.json`}</Mono> — import
-            it into Postman, Insomnia, or a code generator to get typed clients for everything on
-            this page.
+            The machine-readable spec lives at <Mono>{`${origin}/v1/openapi.json`}</Mono>. Import it
+            into Postman, Insomnia, or a code generator to get typed clients for everything on this
+            page.
           </Trans>
         </Prose>
       </Section>
@@ -603,7 +603,7 @@ function WebhooksReference({ origin }: { origin: string }) {
     <>
       <Prose>
         <Trans>
-          {brandName} pushes CRM changes to URLs you register — in Integrations → API & agent access
+          {brandName} pushes CRM changes to URLs you register: in Integrations → API & agent access
           or via <Mono>POST /v1/webhooks</Mono>. Each endpoint gets a signing secret, shown once.
         </Trans>
       </Prose>
@@ -618,8 +618,8 @@ function WebhooksReference({ origin }: { origin: string }) {
   }'`}</Code>
         <Prose>
           <Trans>
-            URLs must be HTTPS. The response includes the endpoint and its signing secret — store
-            it; it cannot be retrieved again.
+            URLs must be HTTPS. The response includes the endpoint and its signing secret. Store it;
+            it cannot be retrieved again.
           </Trans>
         </Prose>
       </Section>
@@ -672,7 +672,7 @@ x-manor-signature: v1=<hex>
       <Section title={<Trans>Inbound: trigger a bot</Trans>}>
         <Prose>
           <Trans>
-            Webhooks also flow the other way — every bot has an inbound URL that external services
+            Webhooks also flow the other way: every bot has an inbound URL that external services
             can POST to. The payload arrives as a message and any routine with a webhook trigger
             runs, so the bot can act on it with its tools. Set it up in the bot's routine editor.
           </Trans>

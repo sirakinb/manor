@@ -37,11 +37,11 @@ You can change this later from your name in the sidebar → **Models**.
 
 ## 4. Create your first agent
 
-Give it a **Name**, a **Title** (its role, such as "Office manager"), and a **Description** of what
-it's responsible for. The agent then introduces itself, asks what to focus on first, and suggests
+Give it a **Name** and a **Description** of what it's responsible for, such as "Office manager
+for the front desk". The agent then introduces itself, asks what to focus on first, and suggests
 apps to connect.
 
-To add more agents later: **Create** → **New bot**.
+To add more agents later: **Create** → **New bot**. More in [Bots and chats](./bots-and-chats.md).
 
 ## 5. Give it real work
 
@@ -50,9 +50,10 @@ Start with one small task you do every week.
 
 - **Its computer:** each agent has its own browser and terminal. Open **Agent computer** to watch
   it work, or click **Take control** to step in.
-- **Approvals:** before a consequential action, the agent asks. Choose **Allow once**, **Always
-  allow this tool**, or **Deny**. Set what needs approval in **Settings** → **Advanced** →
-  **Action confirmations**.
+- **Approvals:** before a change, the agent asks. Choose **Allow once**, **Always allow this
+  tool**, or **Deny**. In **Settings** → **Approvals**, pick **Ask** (ask before any change),
+  **Auto** (an approval model passes what fits your request), or **Never ask**, and manage the
+  tools and sites on the allow and block lists. See [Approvals](./approvals.md).
 - **Website logins:** add them in the agent's settings under **Sign-in credentials** instead of
   pasting passwords into chat.
 
@@ -61,12 +62,12 @@ Start with one small task you do every week.
 Once a task works, ask the agent to repeat it, for example: "Do this every weekday at 8 AM
 Eastern." You can also build routines yourself: **Agent computer** → **Routines** → **+**.
 A routine runs **On a schedule** or from a **Webhook**, which lets a form or another tool kick it
-off.
+off. See [Routines](./routines.md).
 
 ## 7. Connect your tools
 
 Open **Integrations** in the sidebar to add apps such as Gmail or Slack, or to add your own tool
-source: an MCP server, an OpenAPI document, or Treg.
+source: an MCP server, an OpenAPI document, or Treg. See [Connect apps](./integrations.md).
 
 ## 8. Explore the rest
 
@@ -76,16 +77,21 @@ source: an MCP server, an OpenAPI document, or Treg.
 - **Your name in the sidebar:** **Settings** (including messaging channels such as text, Slack,
   WhatsApp, and Telegram), plus **Models**, **Memory**, **Voice**, and **Usage**.
 
+## Bring an agent you already have
+
+Coming from OpenClaw, Hermes or another assistant? [Import it](./import-an-agent.md) as a new
+agent.
+
 ## Running your server
 
 On the VPS:
 
-| Command | What it does |
-| --- | --- |
-| `manor update` | Install the latest release |
-| `manor status` | Show what's running |
+| Command          | What it does                                      |
+| ---------------- | ------------------------------------------------- |
+| `manor update`   | Install the latest release                        |
+| `manor status`   | Show what's running                               |
 | `manor logs api` | Recent logs (also `web`, `worker`, `cloudflared`) |
-| `manor restart` | Restart after editing settings |
+| `manor restart`  | Restart after editing settings                    |
 
 Settings live in `/opt/manor/.env`. To let more people create accounts, add their emails to
 `SIGNUP_ALLOWLIST` (comma-separated), then run `manor restart`. Inviting teammates into your

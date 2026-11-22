@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_COMPOSE_FILE,
   DEFAULT_UPDATER_PORT,
+  missingSecretAssignments,
   readEnvAssignment,
   readTagState,
   resolveUpdaterConfig,
@@ -19,11 +20,55 @@ describe("resolveUpdaterConfig", () => {
     const config = resolveUpdaterConfig({ ...base });
     expect(config).toMatchObject({
       deployDir: "/srv/rakazo",
-      composeFile: `/srv/rakazo/${DEFAULT_COMPOSE_FILE}`,
+      composeFiles: [`/srv/rakazo/${DEFAULT_COMPOSE_FILE}`],
+      updateServices: ["api", "worker", "web"],
       envFile: "/srv/rakazo/.env",
       projectName: DEFAULT_COMPOSE_PROJECT_NAME,
       token: base.RAKAZO_UPDATER_TOKEN,
       port: DEFAULT_UPDATER_PORT,
+      autoUpdateIntervalMs: 0,
+    });
+  });
+
+  it("only schedules when an operator explicitly selects a valid interval", () => {
+    expect(resolveUpdaterConfig({ ...base, RAKAZO_AUTO_UPDATE_INTERVAL_HOURS: "6" })).toMatchObject(
+      { autoUpdateIntervalMs: 6 * 3_600_000 },
+    );
+    for (const hours of ["true", "-1", "0.5", "169", "Infinity"]) {
+      expect(() =>
+        resolveUpdaterConfig({ ...base, RAKAZO_AUTO_UPDATE_INTERVAL_HOURS: hours }),
+      ).toThrow(/RAKAZO_AUTO_UPDATE_INTERVAL_HOURS/);
+    }
+  });
+
+  it("disables unsupported mirror scheduling without taking down manual controls", () => {
+    const config = resolveUpdaterConfig({
+      ...base,
+      RAKAZO_IMAGE: "registry.example.com/custom/app",
+      RAKAZO_AUTO_UPDATE_INTERVAL_HOURS: "6",
+    });
+    expect(config.autoUpdateIntervalMs).toBe(0);
+    expect(config.autoUpdateDisabledReason).toMatch(/manual controls remain available/);
+    expect(
+      resolveUpdaterConfig({ ...base, RAKAZO_IMAGE: "registry.example.com/custom/app" }),
+    ).toMatchObject({ autoUpdateIntervalMs: 0, autoUpdateDisabledReason: null });
+  });
+
+  it("disables scheduling for a managed mirrored computer repository", () => {
+    const env = {
+      ...base,
+      RAKAZO_COMPUTER_IMAGE: "registry.example.com/mirror/computer",
+      RAKAZO_AUTO_UPDATE_INTERVAL_HOURS: "6",
+    };
+    expect(
+      resolveUpdaterConfig({ ...env, RAKAZO_UPDATE_SERVICES: "supervisor,computer" }),
+    ).toMatchObject({
+      autoUpdateIntervalMs: 0,
+      autoUpdateDisabledReason: expect.stringContaining("managed computer"),
+    });
+    expect(resolveUpdaterConfig(env)).toMatchObject({
+      autoUpdateIntervalMs: 6 * 3_600_000,
+      autoUpdateDisabledReason: null,
     });
   });
 
@@ -62,6 +107,74 @@ describe("resolveUpdaterConfig", () => {
     }
   });
 
+  it("resolves a Compose file list in order, against the deployment directory", () => {
+    expect(
+      resolveUpdaterConfig({
+        ...base,
+        RAKAZO_COMPOSE_FILE: "infra/compose/docker-compose.prod.yml:ops/overlay.yml",
+      }).composeFiles,
+    ).toEqual(["/srv/rakazo/infra/compose/docker-compose.prod.yml", "/srv/rakazo/ops/overlay.yml"]);
+  });
+
+  it("honours COMPOSE_PATH_SEPARATOR the way Compose does", () => {
+    expect(
+      resolveUpdaterConfig({
+        ...base,
+        COMPOSE_PATH_SEPARATOR: ",",
+        RAKAZO_COMPOSE_FILE: "a.yml,b.yml",
+      }).composeFiles,
+    ).toEqual(["/srv/rakazo/a.yml", "/srv/rakazo/b.yml"]);
+  });
+
+  it("checks every entry in a list, not just the first", () => {
+    expect(() =>
+      resolveUpdaterConfig({
+        ...base,
+        RAKAZO_COMPOSE_FILE: "infra/compose/docker-compose.prod.yml:../../etc/compose.yml",
+      }),
+    ).toThrow(/RAKAZO_COMPOSE_FILE/);
+    expect(() =>
+      resolveUpdaterConfig({
+        ...base,
+        RAKAZO_COMPOSE_FILE: "infra/compose/docker-compose.prod.yml:/etc/compose.yml",
+      }),
+    ).toThrow(/RAKAZO_COMPOSE_FILE/);
+  });
+
+  it("refuses a Compose file list that names nothing", () => {
+    expect(() => resolveUpdaterConfig({ ...base, RAKAZO_COMPOSE_FILE: ":  :" })).toThrow(
+      /RAKAZO_COMPOSE_FILE/,
+    );
+  });
+
+  it("appends the deployment's extra services to the built-in set", () => {
+    expect(
+      resolveUpdaterConfig({ ...base, RAKAZO_UPDATE_SERVICES: "supervisor, caddy" }).updateServices,
+    ).toEqual(["api", "worker", "web", "supervisor", "caddy"]);
+  });
+
+  it("cannot drop a built-in service, however RAKAZO_UPDATE_SERVICES is written", () => {
+    const services = resolveUpdaterConfig({
+      ...base,
+      RAKAZO_UPDATE_SERVICES: "web,supervisor",
+    }).updateServices;
+    expect(services).toEqual(["api", "worker", "web", "supervisor"]);
+  });
+
+  it("refuses to recreate the updater, which would kill the run mid-flight", () => {
+    expect(() =>
+      resolveUpdaterConfig({ ...base, RAKAZO_UPDATE_SERVICES: "supervisor,updater" }),
+    ).toThrow(/updater/);
+  });
+
+  it("refuses a service name it would not hand to compose as one argument", () => {
+    for (const service of ["--build", "a b", "-f", "api;rm"]) {
+      expect(() =>
+        resolveUpdaterConfig({ ...base, RAKAZO_UPDATE_SERVICES: `supervisor,${service}` }),
+      ).toThrow(/RAKAZO_UPDATE_SERVICES/);
+    }
+  });
+
   it("refuses an image name it would not be willing to hand to compose", () => {
     expect(() => resolveUpdaterConfig({ ...base, RAKAZO_IMAGE: "Bad Name" })).toThrow(
       /RAKAZO_IMAGE/,
@@ -89,8 +202,83 @@ describe("readEnvAssignment", () => {
     expect(readEnvAssignment("A='v1.0.0'", "A")).toBe("v1.0.0");
   });
 
+  it.each([
+    "A=v1.2.3 # pinned",
+    "A=v1.2.3\t# pinned",
+    'A="v1.2.3" # pinned',
+    "A='v1.2.3' # pinned",
+    'A="v1.2.3"# pinned',
+    'A="v1.2.3" # "pinned"',
+    "A='v1.2.3' # 'pinned'",
+  ])("ignores Compose inline comments in %s", (contents) => {
+    expect(readEnvAssignment(contents, "A")).toBe("v1.2.3");
+  });
+
+  it.each([
+    ["A=value#literal", "value#literal"],
+    ["A=#literal", "#literal"],
+    ['A="value # literal" # comment', "value # literal"],
+    ["A='value # literal' # comment", "value # literal"],
+    ['A="value \\" # literal" # comment', 'value \\" # literal'],
+    ["A= # comment", ""],
+    ['A="" # comment', ""],
+    ["A='' # comment", ""],
+  ])("preserves the value in %s", (contents, expected) => {
+    expect(readEnvAssignment(contents, "A")).toBe(expected);
+  });
+
   it("does not match a key that merely shares a prefix", () => {
     expect(readEnvAssignment("RAKAZO_IMAGE_TAG_PREVIOUS=v1", "RAKAZO_IMAGE_TAG")).toBeNull();
+  });
+
+  it.each([
+    ["export A=v1.2.3", "v1.2.3"],
+    ["export\tA=v1.2.3", "v1.2.3"],
+    ['export A="v1.2.3" # pinned', "v1.2.3"],
+    ["export   A = v1.2.3", "v1.2.3"],
+  ])("reads an export-prefixed assignment: %j", (contents, expected) => {
+    expect(readEnvAssignment(contents, "A")).toBe(expected);
+  });
+
+  it.each(["exported=no", "OTHER_RAKAZO_IMAGE_TAG=x", "# export RAKAZO_IMAGE_TAG=x"])(
+    "does not match %j for the key RAKAZO_IMAGE_TAG",
+    (line) => {
+      expect(readEnvAssignment(line, "RAKAZO_IMAGE_TAG")).toBeNull();
+    },
+  );
+});
+
+describe("missingSecretAssignments", () => {
+  const generate = () => "f".repeat(32);
+
+  it("adds the app database password to a .env from before database roles", () => {
+    expect(missingSecretAssignments("POSTGRES_PASSWORD=x\n", generate)).toEqual({
+      POSTGRES_APP_PASSWORD: generate(),
+    });
+    expect(missingSecretAssignments("POSTGRES_APP_PASSWORD=\n", generate)).toEqual({
+      POSTGRES_APP_PASSWORD: generate(),
+    });
+  });
+
+  it("never replaces a password that is already set", () => {
+    expect(missingSecretAssignments("POSTGRES_APP_PASSWORD='kept'\n", generate)).toEqual({});
+  });
+
+  it.each(["kept#literal", "'kept # literal' # comment", '"kept # literal" # comment'])(
+    "keeps an existing password containing a hash: %s",
+    (value) => {
+      expect(missingSecretAssignments(`POSTGRES_APP_PASSWORD=${value}\n`, generate)).toEqual({});
+    },
+  );
+
+  it("generates a password when the assignment contains only a comment", () => {
+    expect(missingSecretAssignments("POSTGRES_APP_PASSWORD= # comment\n", generate)).toEqual({
+      POSTGRES_APP_PASSWORD: generate(),
+    });
+  });
+
+  it("generates a URI-safe value by default", () => {
+    expect(missingSecretAssignments("").POSTGRES_APP_PASSWORD).toMatch(/^[0-9a-f]{32}$/);
   });
 });
 
@@ -98,6 +286,19 @@ describe("readTagState", () => {
   it("reads the pinned tag and the rollback tag", () => {
     const contents = "RAKAZO_IMAGE_TAG=v1.1.0\nRAKAZO_IMAGE_TAG_PREVIOUS=v1.0.0\n";
     expect(readTagState(contents)).toEqual({ currentTag: "v1.1.0", previousTag: "v1.0.0" });
+  });
+
+  it("reads export-prefixed tags, as Compose does", () => {
+    const contents = "export RAKAZO_IMAGE_TAG=v1.2.3\nexport RAKAZO_IMAGE_TAG_PREVIOUS=v1.2.2\n";
+    expect(readTagState(contents)).toEqual({ currentTag: "v1.2.3", previousTag: "v1.2.2" });
+  });
+
+  it.each(["", '"', "'"])("reads tags with inline comments and %j quoting", (quote) => {
+    const contents = [
+      `RAKAZO_IMAGE_TAG=${quote}v1.2.3${quote} # pinned`,
+      `RAKAZO_IMAGE_TAG_PREVIOUS=${quote}v1.2.2${quote} # rollback`,
+    ].join("\n");
+    expect(readTagState(contents)).toEqual({ currentTag: "v1.2.3", previousTag: "v1.2.2" });
   });
 
   it("falls back to the locally built tag when nothing is pinned yet", () => {

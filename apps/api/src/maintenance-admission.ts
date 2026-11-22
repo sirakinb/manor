@@ -1,4 +1,5 @@
 import type { MaintenanceAdmission } from "@rakazo/adapters";
+import { getLogger } from "@rakazo/logging";
 import type { Hono } from "hono";
 
 /** Mount after CORS so a closed guard returns a readable response to web clients. */
@@ -11,7 +12,13 @@ export function mountMaintenanceAdmission(
     const path = c.req.path;
     // Maintenance RPCs still perform authoritative owner authorization. Read-only
     // health/identity and release polling must work during a guarded rollout.
-    if (path === "/health" || path === "/rpc/me" || path.startsWith("/rpc/maintenance/"))
+    // /ready is not exempt: a closed gate is not ready.
+    if (
+      path === "/health" ||
+      path === "/internal/health" ||
+      path === "/rpc/me" ||
+      path.startsWith("/rpc/maintenance/")
+    )
       return next();
     let leave: () => Promise<void>;
     try {
@@ -26,7 +33,9 @@ export function mountMaintenanceAdmission(
     } finally {
       // A lost lease-completion reply must not turn a committed business mutation
       // into an apparent failure and encourage a duplicate user submission.
-      await leave().catch(() => console.error("Maintenance admission completion is unconfirmed."));
+      await leave().catch(() =>
+        getLogger().error("Maintenance admission completion is unconfirmed."),
+      );
     }
   });
 }

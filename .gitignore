@@ -7,6 +7,7 @@ dist
 build
 coverage
 .playwright-report
+.playwright-cli
 test-results
 playwright-report
 *.tsbuildinfo
@@ -24,6 +25,7 @@ apps/desktop/out
 apps/desktop/e2e/screenshots
 apps/mobile/.expo
 apps/mobile/dist
+apps/mobile/android
 apps/mobile/ios
 packages/db/src/generated
 infra/sandboxes/supervisor/dist
@@ -31,6 +33,8 @@ infra/sandboxes/supervisor/dist
 .vercel
 .cache
 artifacts
+!apps/mobile/lib/artifacts
+!packages/contracts/src/artifacts
 backups
 test-report
 verify-report
@@ -42,10 +46,13 @@ PRODUCT_PLAN.md
 **/._*
 .DS_Store
 
-# Lingui compiled catalogs — Vite plugin compiles .po at build time
-apps/web/src/locales/**/*.mjs
-apps/web/src/locales/**/*.js
+# Lingui compiled catalogs — the Vite plugin and Metro compile .po at build time
+packages/i18n/locales/**/*.mjs
+packages/i18n/locales/**/*.js
+# Every string in the source, extracted before each production build
+packages/i18n/locales/messages.pot
 apps/web/scripts/msgids.json
+playwright-report-www
 
 # Python bytecode from the computer sandbox image
 __pycache__/
@@ -55,3 +62,10 @@ __pycache__/
 # `git add -A` commit a whole second copy of the repo, and Biome refuses to run
 # against a nested root config.
 .claude/worktrees/
+
+# Downloaded embedded computer screen SDK files
+apps/web/public/computer-screen/*.js
+apps/web/public/computer-screen/sdk/
+
+# Private marketing pages, cloned in by apps/www/scripts/clone-marketing.sh
+apps/www/src/marketing/

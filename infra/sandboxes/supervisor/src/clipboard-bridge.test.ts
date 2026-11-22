@@ -1,14 +1,19 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { deferred } from "@rakazo/core/test-async";
 import { describe, expect, it, vi } from "vitest";
 import {
   attachHostClipboardPaste,
+  attachMobilePaste,
+  attachRemoteClipboardCopy,
   clipboardTextFromPaste,
   isPasteChord,
   pasteHostText,
+  readHostClipboardText,
   releaseModifierKeys,
   sendRemotePaste,
 } from "../../computer/clipboard-bridge.js";
+import { COMPUTER_IMAGE_CONTEXT_FILES } from "./computer-spec.js";
 
 describe("host clipboard paste bridge", () => {
   it("detects Ctrl/Cmd+V and ignores other chords", () => {
@@ -202,11 +207,178 @@ describe("host clipboard paste bridge", () => {
     const dockerfile = readFileSync(path.join(root, "Dockerfile"), "utf8");
     const embed = readFileSync(path.join(root, "embed.html"), "utf8");
     const start = readFileSync(path.join(root, "start.sh"), "utf8");
-    const supervisor = readFileSync(path.join(import.meta.dirname, "index.ts"), "utf8");
     expect(dockerfile).toMatch(/clipboard-bridge\.js/);
     expect(embed).toMatch(/attachHostClipboardPaste/);
+    expect(embed).toMatch(/attachRemoteClipboardCopy/);
+    expect(embed).toMatch(/attachMobilePaste/);
+    expect(embed).toMatch(/id="mobile-paste"/);
     expect(embed).toMatch(/clipboard-bridge\.js/);
     expect(start).toMatch(/clipboard-bridge\.js/);
-    expect(supervisor).toMatch(/"clipboard-bridge\.js"/);
+    expect(COMPUTER_IMAGE_CONTEXT_FILES).toContain("clipboard-bridge.js");
+  });
+});
+
+describe("mobile paste control", () => {
+  const connectedRfb = () => ({
+    viewOnly: false,
+    _rfbConnectionState: "connected",
+    clipboardPasteFrom: vi.fn(),
+    sendKey: vi.fn(),
+  });
+
+  const pasteButton = () => {
+    const listeners = new Map<string, (event: object) => void>();
+    const button = {
+      hidden: true,
+      addEventListener: (type: string, listener: (event: object) => void) => {
+        listeners.set(type, listener);
+      },
+      removeEventListener: (type: string, _listener: (event: object) => void) => {
+        listeners.delete(type);
+      },
+    };
+    return { button, listeners };
+  };
+
+  const pasteTarget = (value = "_________") => ({
+    value,
+    focus: vi.fn(),
+    blur: vi.fn(),
+    setSelectionRange: vi.fn(),
+  });
+
+  it("reads host clipboard text and treats denial as unavailable", async () => {
+    expect(await readHostClipboardText({ readText: async () => "from-phone" })).toBe("from-phone");
+    expect(await readHostClipboardText({ readText: async () => "" })).toBe("");
+    expect(
+      await readHostClipboardText({
+        readText: async () => {
+          throw new Error("denied");
+        },
+      }),
+    ).toBe(null);
+    expect(await readHostClipboardText({})).toBe(null);
+    expect(await readHostClipboardText(null)).toBe(null);
+  });
+
+  it("pastes clipboard text from a Paste tap", async () => {
+    const { button, listeners } = pasteButton();
+    const rfb = connectedRfb();
+    const fallbackFocus = pasteTarget();
+    const detach = attachMobilePaste(rfb, {
+      button,
+      clipboard: { readText: async () => "from-phone" },
+      fallbackFocus,
+    });
+    expect(button.hidden).toBe(false);
+    await listeners.get("click")?.({});
+    expect(rfb.clipboardPasteFrom).toHaveBeenCalledWith("from-phone");
+    expect(fallbackFocus.blur).toHaveBeenCalledOnce();
+    detach();
+    expect(listeners.size).toBe(0);
+  });
+
+  it("focuses the paste target before the clipboard read settles", async () => {
+    const { button, listeners } = pasteButton();
+    const rfb = connectedRfb();
+    const fallbackFocus = pasteTarget("___");
+    const clipboardText = deferred<string>();
+    const readText = vi.fn(() => clipboardText.promise);
+    attachMobilePaste(rfb, {
+      button,
+      clipboard: { readText },
+      fallbackFocus,
+    });
+    const pending = listeners.get("click")?.({});
+    expect(fallbackFocus.focus).toHaveBeenCalledOnce();
+    expect(fallbackFocus.setSelectionRange).toHaveBeenCalledWith(3, 3);
+    expect(rfb.clipboardPasteFrom).not.toHaveBeenCalled();
+    expect(readText).toHaveBeenCalledOnce();
+    clipboardText.resolve("from-phone");
+    await pending;
+    expect(rfb.clipboardPasteFrom).toHaveBeenCalledWith("from-phone");
+    expect(fallbackFocus.blur).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the prepared paste target focused when the clipboard API is unavailable", async () => {
+    const { button, listeners } = pasteButton();
+    const rfb = connectedRfb();
+    const fallbackFocus = pasteTarget("___");
+    attachMobilePaste(rfb, {
+      button,
+      clipboard: {
+        readText: async () => {
+          throw new Error("denied");
+        },
+      },
+      fallbackFocus,
+    });
+    await listeners.get("click")?.({});
+    expect(rfb.clipboardPasteFrom).not.toHaveBeenCalled();
+    expect(fallbackFocus.focus).toHaveBeenCalledOnce();
+    expect(fallbackFocus.setSelectionRange).toHaveBeenCalledWith(3, 3);
+    expect(fallbackFocus.blur).not.toHaveBeenCalled();
+  });
+
+  it("does not show Paste in view-only sessions", () => {
+    const button = { hidden: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    attachMobilePaste({ viewOnly: true }, { button });
+    expect(button.hidden).toBe(true);
+    expect(button.addEventListener).not.toHaveBeenCalled();
+  });
+});
+
+describe("remote clipboard copy", () => {
+  const rfbTarget = () => {
+    const listeners = new Map<string, (event: object) => void>();
+    const rfb = {
+      addEventListener: (type: string, listener: (event: object) => void) => {
+        listeners.set(type, listener);
+      },
+      removeEventListener: (type: string) => {
+        listeners.delete(type);
+      },
+    };
+    return { rfb, listeners };
+  };
+
+  it("writes remote cut text to the host clipboard", () => {
+    const { rfb, listeners } = rfbTarget();
+    const writeText = vi.fn(async (_text: string) => {});
+    const detach = attachRemoteClipboardCopy(rfb, { clipboard: { writeText } });
+    listeners.get("clipboard")?.({ detail: { text: "otp-482991" } });
+    expect(writeText).toHaveBeenCalledWith("otp-482991");
+    detach();
+    expect(listeners.size).toBe(0);
+  });
+
+  it("ignores events without text", () => {
+    const { rfb, listeners } = rfbTarget();
+    const writeText = vi.fn(async (_text: string) => {});
+    attachRemoteClipboardCopy(rfb, { clipboard: { writeText } });
+    listeners.get("clipboard")?.({});
+    listeners.get("clipboard")?.({ detail: {} });
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("does not attach when the clipboard write API is missing", () => {
+    const { rfb, listeners } = rfbTarget();
+    const detach = attachRemoteClipboardCopy(rfb, { clipboard: {} });
+    expect(listeners.size).toBe(0);
+    expect(() => detach()).not.toThrow();
+    expect(() =>
+      attachRemoteClipboardCopy(null, { clipboard: { writeText: vi.fn() } }),
+    ).not.toThrow();
+  });
+
+  it("swallows clipboard write denials", async () => {
+    const { rfb, listeners } = rfbTarget();
+    const writeText = vi.fn(async (_text: string) => {
+      throw new Error("denied");
+    });
+    attachRemoteClipboardCopy(rfb, { clipboard: { writeText } });
+    listeners.get("clipboard")?.({ detail: { text: "secret" } });
+    // Let the rejection settle; it must not surface as unhandled.
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith("secret"));
   });
 });

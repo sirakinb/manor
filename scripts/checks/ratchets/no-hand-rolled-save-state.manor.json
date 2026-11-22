@@ -1,0 +1,18 @@
+{
+  "apps/mobile/components/crm-contacts.tsx": 1,
+  "apps/mobile/components/crm-pipeline.tsx": 2,
+  "apps/web/src/components/BotCredentialsSettings.tsx": 1,
+  "apps/web/src/components/ShareThisMacSettings.tsx": 1,
+  "apps/web/src/components/integrations/McpOAuthPasteForm.tsx": 1,
+  "apps/web/src/pages/CrmApiAccessPanel.tsx": 1,
+  "apps/web/src/pages/OAuthAuthorize.tsx": 1,
+  "apps/web/src/pages/crm/CrmContacts.tsx": 1,
+  "apps/web/src/pages/crm/CrmContactsSheet.tsx": 1,
+  "apps/web/src/pages/crm/CrmForms.tsx": 1,
+  "apps/web/src/pages/crm/CrmModuleSheet.tsx": 1,
+  "apps/web/src/pages/crm/CrmPipelineBoard.tsx": 3,
+  "apps/web/src/pages/crm/SheetGrid.tsx": 1,
+  "apps/web/src/pages/workspace/sections/ReportsSection.tsx": 1,
+  "apps/web/src/pages/workspace/sections/SettingsSection.tsx": 2,
+  "apps/web/src/pages/workspace/sections/UtilitiesSection.tsx": 5
+}

@@ -1,7 +1,13 @@
 import { expect, test } from "@playwright/test";
 import type { ModelCatalogEntry } from "@rakazo/contracts";
-import { createDb } from "../../../packages/db/src/client";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { createDb } from "@rakazo/db";
+import {
+  captureScreenshot,
+  completeOnboarding,
+  expandAdvancedSection,
+  openBotSettings,
+  signup,
+} from "./helpers/helpers";
 
 /**
  * The Workspace place only exists for organizations with a connected
@@ -366,8 +372,9 @@ test("workspace appears once the organization has one and its map opens sections
   await expect(automations.getByText("Monthly recap", { exact: true })).toHaveCount(0);
   await captureScreenshot(page, testInfo, "workspace-team");
   await page.getByRole("button", { name: "Knowledge", exact: true }).first().click();
+  // Skills are their own section now (no tabs); imported workspace playbooks show there.
   const knowledge = page.getByTestId("bot-knowledge");
-  await knowledge.getByRole("button", { name: "Skills", exact: true }).click();
+  await expect(knowledge.getByRole("heading", { name: "Skills", exact: true })).toBeVisible();
   await expect(
     knowledge.getByText("workspace-callback-playbook", { exact: true }).first(),
   ).toBeVisible();
@@ -589,7 +596,7 @@ test("workspace appears once the organization has one and its map opens sections
   expect(await access.evaluate((node) => node.parentElement?.firstElementChild === node)).toBe(
     true,
   );
-  await access.locator("summary").click();
+  await expandAdvancedSection(access);
   await expect(access.getByRole("button", { name: "Create token", exact: true })).toHaveCSS(
     "background-color",
     "rgb(168, 85, 247)",
@@ -599,9 +606,13 @@ test("workspace appears once the organization has one and its map opens sections
 
   // The API separately verifies shared-credential authorization. Here the catalog
   // fixture checks that deployment availability reaches the bot model selector.
+  let deploymentModels = 0;
   await page.route("**/rpc/models/list", async (route) => {
     const response = await route.fetch();
     const payload = (await response.json()) as { json: ModelCatalogEntry[] };
+    deploymentModels = payload.json.filter(
+      (entry) => entry.provider === "openrouter" && !entry.placeholder,
+    ).length;
     await route.fulfill({
       response,
       json: {
@@ -614,11 +625,22 @@ test("workspace appears once the organization has one and its map opens sections
     });
   });
   await page.goto(`/app/${selectedBotId}`);
-  await page.locator("main").getByRole("button", { name: "Operations", exact: true }).click();
+  // The bot panel's settings fold under its Settings heading.
+  await openBotSettings(page);
   const botSettings = page.getByTestId("bot-settings");
-  await botSettings.getByText("Advanced", { exact: true }).click();
-  const models = botSettings.getByRole("combobox", { name: "Model", exact: true });
-  await expect(models.locator("option").filter({ hasText: "OpenRouter" }).first()).toBeAttached();
-  expect(await models.locator("option").count()).toBeGreaterThan(2);
+  // No model of the user's own is connected, so every choice past the space default is
+  // the deployment's. That list is long enough for the searchable picker.
+  expect(deploymentModels).toBeGreaterThan(10);
+  // The model row names the model in use and opens the list.
+  const model = botSettings.locator('button[id$="-model"]');
+  await expect(model).toContainText("Space default");
+  await model.click();
+  await expect(page.getByRole("combobox", { name: "Search models" })).toBeFocused();
+  const modelOptions = page.locator('[data-slot="command-list"]').getByRole("option");
+  await expect(modelOptions).toHaveCount(deploymentModels + 1);
+  await expect(modelOptions.filter({ hasText: "Space default" })).toHaveCount(1);
+  await expect(
+    page.locator('[data-slot="command-list"]').getByRole("option", { name: / \(OpenRouter\)$/ }),
+  ).toHaveCount(deploymentModels);
   await captureScreenshot(page, testInfo, "workspace-openrouter-model-choices");
 });

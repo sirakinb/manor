@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Manor ใช้กล้องเพื่อให้คุณแนบรูปภาพกับข้อความถึงบอทได้",
+    "NSPhotoLibraryUsageDescription": "Manor ใช้คลังรูปภาพของคุณเพื่อให้แนบรูปภาพกับข้อความถึงบอทได้",
+    "NSLocalNetworkUsageDescription": "Manor เชื่อมต่อกับเซิร์ฟเวอร์ Manor ที่ติดตั้งเองบนเครือข่ายภายในของคุณ",
+    "NSMicrophoneUsageDescription": "Manor ใช้ไมโครโฟนระหว่างการแชทด้วยเสียงกับบอท",
+    "NSSpeechRecognitionUsageDescription": "Manor แปลงเสียงพูดของคุณเป็นข้อความระหว่างการแชทด้วยเสียง",
+    "NSFaceIDUsageDescription": "อนุญาตให้ Manor ใช้ Face ID"
+  }
+}

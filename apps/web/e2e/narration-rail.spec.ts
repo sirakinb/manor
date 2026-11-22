@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot } from "./helpers";
+import { captureScreenshot } from "./helpers/helpers";
 
 // The bot's reasoning stays in the open: thoughts render as quiet paragraphs
 // on a rail, never folded behind a summary, live or done.

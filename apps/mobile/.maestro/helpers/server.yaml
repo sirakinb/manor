@@ -1,0 +1,28 @@
+appId: com.pentridgemedia.manor
+---
+# Reuse an already-open server sheet, or open it from authentication: Manor shows "Custom
+# server" only once one is set; otherwise the picker opens from a long press on the mark.
+- runFlow:
+    when:
+      notVisible:
+        id: "server-address"
+      visible: "Custom server.*"
+    commands:
+      - tapOn: "Custom server.*"
+- runFlow:
+    when:
+      notVisible:
+        id: "server-address"
+    commands:
+      - longPressOn: "Manor"
+- tapOn:
+    id: "server-address"
+- eraseText
+- inputText: ${RAKAZO_MOBILE_API_URL}
+# Android form sheets can omit native-stack header buttons. Submit the URL
+# through TextInput.onSubmitEditing while its keyboard remains focused.
+- pressKey: Enter
+- extendedWaitUntil:
+    notVisible:
+      id: "server-address"
+    timeout: 15000

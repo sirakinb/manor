@@ -2,9 +2,9 @@ import type { CrmContact, CrmOverview } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { rpc } from "../lib/api";
+import { rpc } from "../lib/api/api";
 import { contactName, matchesContact } from "../lib/crm";
-import { manor } from "../lib/native";
+import { manor } from "../lib/native/native";
 import { Button, Card, Chip, Empty, Field, Label } from "./crm-kit";
 import { KeyboardAvoider } from "./keyboard-avoider";
 

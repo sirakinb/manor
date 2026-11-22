@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Your team of always-on AI agents that you can give real work to." />
     <!-- Keep link previews in the initial HTML: social crawlers do not run the app. -->
     <meta property="og:type" content="website" />
@@ -21,12 +21,17 @@
     <meta name="twitter:image" content="https://manor.pentridgemedia.com/manor-social-card-v2.jpg" />
     <meta name="twitter:image:alt" content="The Manor wordmark in drifting particles above the line “Your team of always-on AI agents that you can give real work to,” against a moonlit purple sky." />
     <meta name="theme-color" content="#0a0a0a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Manor" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/manor-mark.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>Manor</title>
+    <!-- Manor is dark only; theme.js pins it before first paint (the CSP blocks inline scripts). -->
+    <script src="/theme.js"></script>
     <link rel="preload" href="/fonts/geist-pixel-grid.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link

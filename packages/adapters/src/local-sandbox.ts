@@ -11,7 +11,7 @@ import type {
 } from "@rakazo/adapter-kit";
 import { LOCAL_COMPUTER_GUI_MESSAGE, LOCAL_COMPUTER_OFFLINE_MESSAGE } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
-import { placeholderObservation } from "./computer-support.js";
+import { placeholderObservation } from "./computers/screens/computer-support.js";
 import type { LocalComputerGateway, LocalComputerMethod } from "./local-computer-gateway.js";
 
 const GUI_ERROR = new Error(LOCAL_COMPUTER_GUI_MESSAGE);

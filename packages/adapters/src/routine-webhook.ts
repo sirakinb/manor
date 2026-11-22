@@ -1,8 +1,12 @@
 import { createHmac, randomBytes } from "node:crypto";
-import type { AdapterContext, ComputerRef, SandboxProvider } from "@rakazo/adapter-kit";
+import type {
+  AdapterContext,
+  ComputerRef,
+  SandboxProvider,
+  SecretStore,
+} from "@rakazo/adapter-kit";
 import { routineWebhookPath } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
-import type { EncryptedSecretStore } from "./secrets.js";
 
 /** Setup credentials are limited to one routine; rotating the bot key revokes them. */
 export function routineWebhookToken(botSecret: string, routineId: string): string {
@@ -13,7 +17,7 @@ export function routineWebhookToken(botSecret: string, routineId: string): strin
 
 /** Load redaction values without making an unreadable webhook key block chat. */
 export async function routineWebhookRedactionSecrets(
-  deps: { prisma: PrismaClient; secretStore: EncryptedSecretStore },
+  deps: { prisma: PrismaClient; secretStore: Pick<SecretStore, "load"> },
   bot: { id: string; spaceId: string; userId: string; webhookSecretId: string | null },
 ): Promise<string[]> {
   if (!bot.webhookSecretId) return [];
@@ -23,7 +27,7 @@ export async function routineWebhookRedactionSecrets(
   if (!secret) return [];
   let key: string;
   try {
-    key = deps.secretStore.load(secret.ciphertext, secret.id);
+    key = await deps.secretStore.load(secret.ciphertext, secret.id);
   } catch {
     return [];
   }
@@ -37,7 +41,7 @@ export async function routineWebhookRedactionSecrets(
 export async function prepareRoutineWebhook(
   deps: {
     prisma: PrismaClient;
-    secretStore: EncryptedSecretStore;
+    secretStore: Pick<SecretStore, "load" | "put">;
     sandbox: SandboxProvider;
     webhookBaseUrl?: string;
   },
@@ -107,7 +111,7 @@ export async function prepareRoutineWebhook(
     : null;
   if (!secret) return { error: "Webhook credential unavailable. Retry setup." };
   const token = routineWebhookToken(
-    deps.secretStore.load(secret.ciphertext, secret.id),
+    await deps.secretStore.load(secret.ciphertext, secret.id),
     routine.id,
   );
   registerSecret(token);

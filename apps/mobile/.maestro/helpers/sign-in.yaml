@@ -1,0 +1,25 @@
+appId: com.pentridgemedia.manor
+---
+# A cold API 34 emulator can show a launcher ANR over the healthy app, and a relaunch
+# after clearState can take Maestro about half a minute to bring the app back.
+- extendedWaitUntil:
+    visible: "Sign up|Pixel Launcher isn't responding"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Pixel Launcher isn't responding"
+    commands:
+      - tapOn: "Close app"
+- extendedWaitUntil:
+    visible: "Sign up"
+    timeout: 30000
+- runFlow: server.yaml
+- tapOn: "Email"
+- inputText: ${RAKAZO_SCREENSHOT_EMAIL}
+- tapOn: "Password"
+- inputText: ${RAKAZO_SCREENSHOT_PASSWORD}
+- hideKeyboard
+- tapOn: "Continue with email"
+- extendedWaitUntil:
+    visible: "Researcher"
+    timeout: 30000

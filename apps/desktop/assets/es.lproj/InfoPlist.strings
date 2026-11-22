@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "Manor usa el micrófono para el dictado y las llamadas de voz con tus bots.";
+"NSSpeechRecognitionUsageDescription" = "Manor convierte lo que dices en texto para el dictado y las llamadas de voz con tus bots.";

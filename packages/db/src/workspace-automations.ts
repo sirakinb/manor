@@ -5,8 +5,8 @@ import type {
   WorkspaceSyncRun,
 } from "@rakazo/contracts";
 import { nextCronDateAcrossStrict } from "@rakazo/core";
-import type { PrismaClient } from "./client.js";
-import { IsolationError } from "./scope.js";
+import type { PrismaClient } from "./database/client.js";
+import { IsolationError } from "./database/scope.js";
 import { computePipeStatus, WORKSPACE_PIPES } from "./workspace-pipes.js";
 
 /**

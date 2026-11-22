@@ -1,0 +1,186 @@
+import type { SCIMOptions } from "@better-auth/scim";
+import { displayName, isMessagingEmail } from "@rakazo/core";
+import type { PrismaClient } from "@rakazo/db";
+import type { BetterAuthOptions } from "better-auth";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError } from "better-auth/api";
+
+/**
+ * The directory's word on an account, inside a SCIM request that may still fail: on or off,
+ * and whether that changed it. An account kept off is reported again, so a retried request
+ * can finish ending its access.
+ */
+export interface DirectoryAccountChange {
+  userId: string;
+  active: boolean;
+  changed: boolean;
+}
+
+/** Shared with the main auth config so both read and write the same user field. */
+export const DEACTIVATED_AT_FIELD = {
+  deactivatedAt: { type: "date", required: false, input: false },
+} as const satisfies NonNullable<BetterAuthOptions["user"]>["additionalFields"];
+
+/**
+ * SCIM 2.0 user provisioning for the deployment's identity provider, loaded only when the
+ * operator sets a SCIM token. The token can read and write users, not groups.
+ *
+ * It runs as its own auth instance on the same database, because SCIM writes need database
+ * transactions that sign-up and sign-in do not use. It serves only the SCIM routes and never
+ * creates a session.
+ *
+ * A directory user whose email already has an account takes that account over without
+ * changing its name or email, so the directory can turn it off. Otherwise the directory
+ * creates the account. Turning a user off (or deleting it) deactivates the account and keeps
+ * its content; a later create with the same external id finds it again.
+ */
+/**
+ * Manor: reserved `.invalid` addresses belong to accounts nobody signs in to (a team space's
+ * shared account, `<id>@space.invalid`, and chat-app accounts), so the directory can neither
+ * create nor take one over.
+ */
+export function isReservedDirectoryEmail(email: string): boolean {
+  return isMessagingEmail(email) || email.trim().toLowerCase().endsWith(".invalid");
+}
+
+/** Reads whether an account is a team space's shared account. */
+type SpaceAccountLookup = {
+  user: {
+    findUnique(args: {
+      where: { id: string };
+      select: { isSpaceAccount: true };
+    }): Promise<{ isSpaceAccount: boolean } | null>;
+  };
+};
+
+/**
+ * How directory users map onto accounts. Manor: a team space's shared account is never the
+ * directory's person, so it is never linked, switched off, or renamed through SCIM.
+ */
+export function directoryIdentity(
+  prisma: SpaceAccountLookup,
+  onAccountChange: (change: DirectoryAccountChange) => void,
+): NonNullable<SCIMOptions["identity"]> {
+  const isSpaceAccount = async (userId: string) =>
+    Boolean(
+      (await prisma.user.findUnique({ where: { id: userId }, select: { isSpaceAccount: true } }))
+        ?.isSpaceAccount,
+    );
+  return {
+    resolveUser: async ({ resource }, { database }) => {
+      const email = resource.primaryEmail.toLowerCase();
+      // Reserved addresses belong to chat-app and team space accounts; creating one is refused below.
+      if (isReservedDirectoryEmail(email)) return { action: "create" };
+      type Match = { id: string; emailVerified: boolean };
+      // Accounts store emails lowercased. One an older release wrote with capitals is found
+      // by case; two that differ only by case are a conflict for the operator to resolve.
+      const exact = await database.findOne<Match>({
+        model: "user",
+        where: [{ field: "email", value: email }],
+      });
+      const [existing, other] = exact
+        ? [exact]
+        : await database.findMany<Match>({
+            model: "user",
+            where: [{ field: "email", value: email, mode: "insensitive" }],
+            limit: 2,
+          });
+      if (other)
+        throw new APIError("CONFLICT", { message: "More than one account has this email" });
+      if (!existing) return { action: "create" };
+      if (await isSpaceAccount(existing.id))
+        throw new APIError("CONFLICT", { message: "A team space account has this email" });
+      // Only a proven mailbox is the directory's person: anyone could have signed up with the
+      // address first.
+      if (!existing.emailVerified)
+        throw new APIError("CONFLICT", { message: "An unverified account has this email" });
+      return { action: "link", userId: existing.id, profile: "preserve" };
+    },
+    reconcileUser: async ({ userId, active }, { database }) => {
+      // Never reachable through resolveUser; kept so no older link can switch a team space off.
+      if (await isSpaceAccount(userId)) return;
+      const user = await database.findOne<{ deactivatedAt: Date | null }>({
+        model: "user",
+        where: [{ field: "id", value: userId }],
+      });
+      if (!user) return;
+      const changed = active === Boolean(user.deactivatedAt);
+      if (changed)
+        await database.update({
+          model: "user",
+          where: [{ field: "id", value: userId }],
+          update: { deactivatedAt: active ? null : new Date() },
+        });
+      if (changed || !active) onAccountChange({ userId, active, changed });
+    },
+  };
+}
+
+export async function createDirectory(
+  prisma: PrismaClient,
+  options: {
+    token: string;
+    secret: string;
+    baseURL: string;
+    logger?: BetterAuthOptions["logger"];
+    /** The header carrying the client address the API resolved, as for the main auth config. */
+    ipAddressHeader: string;
+    onAccountChange: (change: DirectoryAccountChange) => void;
+  },
+): Promise<Directory> {
+  const { scim } = await import("@better-auth/scim");
+  const identity = directoryIdentity(prisma, options.onAccountChange);
+  const userData = async (user: { email?: string; name?: string }) => {
+    if (user.email && isReservedDirectoryEmail(user.email))
+      throw new APIError("BAD_REQUEST", { message: "Email is not available" });
+    return {
+      data: { ...user, ...(user.name !== undefined ? { name: displayName(user.name, "") } : {}) },
+    };
+  };
+  return betterAuth({
+    appName: "Rakazo",
+    logger: options.logger,
+    secret: options.secret,
+    baseURL: options.baseURL,
+    database: prismaAdapter(prisma, { provider: "postgresql", transaction: true }),
+    // A directory's first sync sends one request per person from a few addresses.
+    rateLimit: {
+      enabled: process.env.NODE_ENV === "production",
+      storage: "database",
+      window: 60,
+      max: 1200,
+    },
+    advanced: { ipAddress: { ipAddressHeaders: [options.ipAddressHeader] } },
+    user: { additionalFields: DEACTIVATED_AT_FIELD },
+    databaseHooks: {
+      user: {
+        create: { before: (user) => userData(user) },
+        update: { before: (user) => userData(user) },
+      },
+    },
+    plugins: [
+      scim({
+        connections: [
+          {
+            id: "directory",
+            credentials: [
+              {
+                type: "bearer",
+                id: "operator",
+                token: options.token,
+                scopes: ["scim.users.read", "scim.users.write"],
+              },
+            ],
+          },
+        ],
+        identity,
+      }),
+    ],
+  });
+}
+
+/** Serves the SCIM routes under the auth base path. */
+export interface Directory {
+  handler: (request: Request) => Promise<Response>;
+}

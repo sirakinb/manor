@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { AppBootstrap } from "@rakazo/contracts";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, signup } from "./helpers/helpers";
 
 for (const deploymentOwner of [false, true]) {
   test(`retired maintenance UI stays hidden for ${deploymentOwner ? "deployment" : "organization"} owners`, async ({

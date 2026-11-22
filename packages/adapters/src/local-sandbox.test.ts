@@ -9,10 +9,10 @@ import {
   writeLocalFolderFile,
 } from "@rakazo/core/node/local-folder-runtime";
 import { afterAll, describe, expect, it } from "vitest";
-import { FakeSandboxProvider } from "./fake-sandbox.js";
-import { createRunSandbox } from "./host-aware-sandbox.js";
+import { createRunSandbox } from "./computers/sandbox/host-aware-sandbox.js";
 import { MemoryLocalComputerGateway } from "./local-computer-gateway.js";
 import { LocalSandboxProvider } from "./local-sandbox.js";
+import { FakeSandboxProvider } from "./providers/computer/fake/fake-sandbox.js";
 
 const ctx = {
   operationId: "op",
@@ -121,7 +121,7 @@ describe("LocalSandboxProvider", () => {
 describe("createRunSandbox local routing", () => {
   it("does not treat local as SANDBOX_PROVIDER and routes local computers separately", async () => {
     const fake = new FakeSandboxProvider();
-    const sandbox = createRunSandbox("fake", { localComputer: fake });
+    const sandbox = await createRunSandbox("fake", { localComputer: fake });
     expect(sandbox.describe().id).toBe("fake");
     const cloud = await sandbox.provision({ botId: "cloud", homePath: "/tmp" }, ctx);
     expect(cloud.kind).toBe("fake");

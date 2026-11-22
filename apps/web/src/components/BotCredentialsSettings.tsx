@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { BotCredential } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { rpc } from "../lib/rpc";
+import { rpc } from "../lib/query/rpc";
 
 const inputClass =
   "mt-1 w-full rounded-[11px] border border-[#26262A] bg-transparent px-3.5 py-2.5 text-[14px] text-[#ECECEE] placeholder:text-[#5C5C62]";
@@ -63,7 +63,6 @@ export function BotCredentialsSettings({ botId }: { botId: string }) {
 
   useEffect(() => {
     void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botId]);
 
   function startNew() {
@@ -257,7 +256,7 @@ export function BotCredentialsSettings({ botId }: { botId: string }) {
               autoComplete="new-password"
               placeholder={
                 editing !== "new" && rows.find((row) => row.id === editing)?.hasPassword
-                  ? t`Stored — leave blank to keep`
+                  ? t`Stored. Leave blank to keep`
                   : ""
               }
               {...field("password")}
@@ -271,7 +270,7 @@ export function BotCredentialsSettings({ botId }: { botId: string }) {
               autoComplete="off"
               placeholder={
                 editing !== "new" && rows.find((row) => row.id === editing)?.hasTotp
-                  ? t`Stored — leave blank to keep`
+                  ? t`Stored. Leave blank to keep`
                   : t`Base32 key or otpauth:// link from the site's authenticator setup`
               }
               {...field("totpSecret")}

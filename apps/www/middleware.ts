@@ -1,59 +1,61 @@
-import { next } from "@vercel/functions";
+import { next, rewrite } from "@vercel/functions";
 import {
+  AGENT_DISCOVERY_LINKS,
   getMarkdownAlternate,
-  getMarkdownDocument,
-  markdownResponse,
   negotiateRepresentation,
-  NOT_FOUND_MARKDOWN,
 } from "./src/agent-content.js";
 
 const VARY_HEADER = "Accept, Accept-Encoding";
+const APEX_ORIGIN = "https://rakazo.com";
+const WWW_HOST = "www.rakazo.com";
 
 export const config = {
-  matcher: ["/((?!api|_astro|.*\\..*).*)"],
+  matcher: ["/((?!api|_astro|.*\\..*).*)", "/sitemap.xml"],
 };
 
+function permanentRedirect(location: string): Response {
+  return new Response(null, {
+    status: 301,
+    headers: { Location: location },
+  });
+}
+
 export default function middleware(request: Request): Response {
+  const url = new URL(request.url);
+
+  if (url.hostname.toLowerCase() === WWW_HOST) {
+    const destination = new URL(`${url.pathname}${url.search}`, APEX_ORIGIN);
+    return permanentRedirect(destination.toString());
+  }
+
+  if (url.pathname === "/sitemap.xml") {
+    const destination = new URL(`/sitemap-index.xml${url.search}`, APEX_ORIGIN);
+    return permanentRedirect(destination.toString());
+  }
+
   if (request.method !== "GET" && request.method !== "HEAD") return next();
 
-  const { pathname } = new URL(request.url);
-  const acceptHeader = request.headers.get("accept");
-  const representation = negotiateRepresentation(acceptHeader);
-  const markdown = getMarkdownDocument(pathname);
-  const genericAgentNotFound =
-    !markdown && (!acceptHeader?.trim() || acceptHeader.trim() === "*/*");
-
-  if (representation === "markdown" || genericAgentNotFound) {
-    return markdownResponse(
-      markdown ?? NOT_FOUND_MARKDOWN,
-      request.method,
-      markdown ? 200 : 404,
-    );
-  }
-
-  if (representation === "not-acceptable") {
-    return new Response(
-      request.method === "HEAD"
-        ? null
-        : "Not acceptable. Request text/html or text/markdown.\n",
-      {
-        status: 406,
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          Vary: VARY_HEADER,
-        },
+  const markdownAlternate = getMarkdownAlternate(url.pathname);
+  if (markdownAlternate && negotiateRepresentation(request.headers.get("accept")) === "markdown") {
+    const destination = new URL(url);
+    destination.pathname = markdownAlternate;
+    return rewrite(destination, {
+      headers: {
+        "Content-Language": "en",
+        "Content-Type": "text/markdown; charset=utf-8",
+        Link: AGENT_DISCOVERY_LINKS,
+        Vary: VARY_HEADER,
       },
-    );
+    });
   }
-
-  const markdownAlternate = getMarkdownAlternate(pathname);
   return next({
     headers: {
-      ...(markdownAlternate
-        ? {
-            Link: `<${markdownAlternate}>; rel="alternate"; type="text/markdown"`,
-          }
-        : {}),
+      Link: [
+        AGENT_DISCOVERY_LINKS,
+        ...(markdownAlternate
+          ? [`<${markdownAlternate}>; rel="alternate"; type="text/markdown"`]
+          : []),
+      ].join(", "),
       Vary: VARY_HEADER,
     },
   });

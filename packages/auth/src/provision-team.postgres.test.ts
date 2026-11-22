@@ -1,8 +1,10 @@
 import {
+  asSystem,
   bootstrapUserSpace,
   createDb,
   createSpaceForMember,
   requireMembership,
+  runAsSystem,
   spaceResourceActor,
 } from "@rakazo/db";
 import { hashPassword, verifyPassword } from "better-auth/crypto";
@@ -12,6 +14,11 @@ import { provisionPortalTeam } from "./provision-team.js";
 const postgres = process.env.VERIFY_DATABASE && process.env.DATABASE_URL ? describe : describe.skip;
 postgres("operator portal provisioning", () => {
   const db = createDb(process.env.DATABASE_URL!);
+  // Fixtures and assertions have no request around them; code under test gets the plain
+  // client inside the context its real caller provides.
+  const system = asSystem(db.prisma);
+  const signup = (...args: Parameters<typeof bootstrapUserSpace>) =>
+    runAsSystem("authentication", () => bootstrapUserSpace(...args));
   const suffix = `${process.pid}-${Date.now()}`;
   const email = `provision-${suffix}@example.test`;
   const existingEmail = `existing-${suffix}@example.test`;
@@ -22,10 +29,10 @@ postgres("operator portal provisioning", () => {
   let organizationId: string | undefined;
   let personalOrganizationId: string | undefined;
   afterAll(async () => {
-    if (organizationId) await db.prisma.organization.delete({ where: { id: organizationId } });
+    if (organizationId) await system.organization.delete({ where: { id: organizationId } });
     if (personalOrganizationId)
-      await db.prisma.organization.delete({ where: { id: personalOrganizationId } });
-    await db.prisma.user.deleteMany({
+      await system.organization.delete({ where: { id: personalOrganizationId } });
+    await system.user.deleteMany({
       where: {
         OR: [
           { email: { in: [email, existingEmail, foreignEmail, rollbackEmail, joiningEmail] } },
@@ -39,47 +46,40 @@ postgres("operator portal provisioning", () => {
   it("creates isolated membership and a working password, then preserves it on replay", async () => {
     // This test requires an isolated synthetic database, like the E2E harness.
     expect(
-      await db.prisma.organization.findUnique({ where: { brandId: "vibecodephilly" } }),
+      await system.organization.findUnique({ where: { brandId: "vibecodephilly" } }),
     ).toBeNull();
     const input = { brandId: "vibecodephilly", members: [{ email, name: "Portal Tester" }] };
     const result = await provisionPortalTeam(db.prisma, input);
     organizationId = result.organizationId;
-    const space = await db.prisma.space.findUniqueOrThrow({ where: { id: result.spaceId } });
+    const space = await system.space.findUniqueOrThrow({ where: { id: result.spaceId } });
     expect(space.accountUserId).toBeTruthy();
     spaceAccountId = space.accountUserId!;
-    expect(await db.prisma.space.count({ where: { organizationId } })).toBe(1);
+    expect(await system.space.count({ where: { organizationId } })).toBe(1);
     expect(result.accounts[0]?.created).toBe(true);
-    const user = await db.prisma.user.findUniqueOrThrow({ where: { email } });
+    const user = await system.user.findUniqueOrThrow({ where: { email } });
     expect(user.portalBrandId).toBe("vibecodephilly");
-    const account = await db.prisma.account.findFirstOrThrow({
+    const account = await system.account.findFirstOrThrow({
       where: { userId: user.id, providerId: "credential" },
     });
     expect(
       await verifyPassword({ hash: account.password!, password: result.accounts[0]!.password! }),
     ).toBe(true);
-    expect(await db.prisma.spaceMember.count({ where: { userId: user.id, organizationId } })).toBe(
-      1,
-    );
+    expect(await system.spaceMember.count({ where: { userId: user.id, organizationId } })).toBe(1);
     const replay = await provisionPortalTeam(db.prisma, input);
     expect(replay.organizationId).toBe(organizationId);
     expect(replay.accounts[0]).toEqual({ email, password: null, created: false });
-    expect(
-      (await db.prisma.account.findUniqueOrThrow({ where: { id: account.id } })).password,
-    ).toBe(account.password);
+    expect((await system.account.findUniqueOrThrow({ where: { id: account.id } })).password).toBe(
+      account.password,
+    );
   });
   it("adds an existing main-portal account without changing its password or original organization", async () => {
-    const user = await db.prisma.user.create({
+    const user = await system.user.create({
       data: { id: `existing-${suffix}`, email: existingEmail, name: "Existing Tester" },
     });
-    const personal = await bootstrapUserSpace(
-      db.prisma,
-      user,
-      { signupsEnabled: "true", signupAllowlist: "" },
-      { claimDeploymentOwner: false },
-    );
+    const personal = await signup(db.prisma, user, { claimDeploymentOwner: false });
     personalOrganizationId = personal.organizationId;
     const hash = await hashPassword("existing-test-password");
-    await db.prisma.account.create({
+    await system.account.create({
       data: {
         id: `account-${suffix}`,
         userId: user.id,
@@ -93,20 +93,20 @@ postgres("operator portal provisioning", () => {
       members: [{ email: existingEmail.toUpperCase(), name: "Ignored rename" }],
     });
     expect(result.accounts[0]).toEqual({ email: existingEmail, password: null, created: false });
-    expect(await db.prisma.space.count({ where: { organizationId } })).toBe(1);
+    expect(await system.space.count({ where: { organizationId } })).toBe(1);
     expect(
-      await db.prisma.memoryDocument.count({ where: { spaceId: result.spaceId, scope: "user" } }),
+      await system.memoryDocument.count({ where: { spaceId: result.spaceId, scope: "user" } }),
     ).toBe(1);
-    expect(
-      await db.prisma.notificationPreference.count({ where: { spaceId: result.spaceId } }),
-    ).toBe(1);
-    expect(await db.prisma.member.count({ where: { userId: user.id } })).toBe(2);
-    expect(await db.prisma.user.findUnique({ where: { id: user.id } })).toMatchObject({
+    expect(await system.notificationPreference.count({ where: { spaceId: result.spaceId } })).toBe(
+      1,
+    );
+    expect(await system.member.count({ where: { userId: user.id } })).toBe(2);
+    expect(await system.user.findUnique({ where: { id: user.id } })).toMatchObject({
       name: "Existing Tester",
       portalBrandId: null,
     });
     expect(
-      (await db.prisma.account.findUniqueOrThrow({ where: { id: `account-${suffix}` } })).password,
+      (await system.account.findUniqueOrThrow({ where: { id: `account-${suffix}` } })).password,
     ).toBe(hash);
   });
   it("joins the same shared account on signup and creates a personal space only on request", async () => {
@@ -115,44 +115,33 @@ postgres("operator portal provisioning", () => {
       members: [{ email, name: "Portal Tester" }],
     });
     organizationId = provisioned.organizationId;
-    spaceAccountId = (
-      await db.prisma.space.findUniqueOrThrow({ where: { id: provisioned.spaceId } })
-    ).accountUserId!;
-    const user = await db.prisma.user.create({
+    spaceAccountId = (await system.space.findUniqueOrThrow({ where: { id: provisioned.spaceId } }))
+      .accountUserId!;
+    const user = await system.user.create({
       data: { id: `joining-${suffix}`, email: joiningEmail, name: "New Teammate" },
     });
-    const team = await bootstrapUserSpace(
-      db.prisma,
-      user,
-      { signupsEnabled: "true", signupAllowlist: "" },
-      { brandId: "vibecodephilly" },
-    );
-    const actor = await requireMembership(db.prisma, user.id, team.spaceId);
+    const team = await signup(db.prisma, user, { brandId: "vibecodephilly" });
+    const actor = await requireMembership(db.prisma, user, team.spaceId);
     expect((await spaceResourceActor(db.prisma, actor)).userId).toBe(spaceAccountId);
-    await bootstrapUserSpace(
-      db.prisma,
-      user,
-      { signupsEnabled: "true", signupAllowlist: "" },
-      { brandId: "vibecodephilly" },
+    await signup(db.prisma, user, { brandId: "vibecodephilly" });
+    expect(await system.space.count({ where: { organizationId } })).toBe(1);
+    expect(await system.spaceMember.count({ where: { organizationId, userId: user.id } })).toBe(1);
+    const personal = await runAsSystem("create a Space for its member", () =>
+      createSpaceForMember(db.prisma, {
+        currentSpaceId: team.spaceId,
+        userId: user.id,
+        name: "My private space",
+      }),
     );
-    expect(await db.prisma.space.count({ where: { organizationId } })).toBe(1);
-    expect(await db.prisma.spaceMember.count({ where: { organizationId, userId: user.id } })).toBe(
-      1,
-    );
-    const personal = await createSpaceForMember(db.prisma, {
-      currentSpaceId: team.spaceId,
-      userId: user.id,
-      name: "My private space",
-    });
-    const privateActor = await requireMembership(db.prisma, user.id, personal.id);
+    const privateActor = await requireMembership(db.prisma, user, personal.id);
     expect((await spaceResourceActor(db.prisma, privateActor)).userId).toBe(user.id);
-    const peer = await db.prisma.user.findUniqueOrThrow({ where: { email } });
-    await expect(requireMembership(db.prisma, peer.id, personal.id)).rejects.toThrow(
+    const peer = await system.user.findUniqueOrThrow({ where: { email } });
+    await expect(requireMembership(db.prisma, peer, personal.id)).rejects.toThrow(
       "No personal space",
     );
   });
   it("rolls back the batch if an account is restricted to a different client", async () => {
-    await db.prisma.user.create({
+    await system.user.create({
       data: {
         id: `foreign-${suffix}`,
         email: foreignEmail,
@@ -169,6 +158,6 @@ postgres("operator portal provisioning", () => {
         ],
       }),
     ).rejects.toThrow("another client portal");
-    expect(await db.prisma.user.findUnique({ where: { email: rollbackEmail } })).toBeNull();
+    expect(await system.user.findUnique({ where: { email: rollbackEmail } })).toBeNull();
   });
 });

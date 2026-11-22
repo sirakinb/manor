@@ -1,44 +1,166 @@
-import { ACTIVE_RUN_STATUSES, avatarIdentitySeed, organicAvatarPath } from "@rakazo/core";
-import { type CSSProperties, memo, useId, useSyncExternalStore } from "react";
-import { type AvatarStyle, useAvatarStyle } from "./avatar-style.js";
+import type { BotAvatarSet, BotColorDef } from "@rakazo/contracts";
+import { BOT_COLOR_LIST, BOT_COLORS } from "@rakazo/contracts";
+import type { AvatarEyes, LogoAvatarActivity } from "@rakazo/core";
+import {
+  avatarEyeRects,
+  avatarIdentitySeed,
+  botEyeTone,
+  DEFAULT_BOT_AVATAR_COLOR,
+  isRunWorking,
+  ORGANIC_AVATAR_EYES,
+  ORGANIC_AVATAR_VIEWBOX,
+  organicAvatarEyeTilt,
+  organicAvatarPath,
+  resolvePersonaColorDef,
+  SHIPPED_BOT_AVATAR_EYES,
+  SHIPPED_BOT_AVATAR_SHAPE_KEYS,
+  SHIPPED_BOT_AVATAR_SHAPES,
+  SHIPPED_BOT_AVATAR_VIEWBOX,
+  shippedBotAvatarShapePath,
+} from "@rakazo/core";
+import type { ComponentProps, CSSProperties } from "react";
+import { memo, useEffect, useId, useMemo, useSyncExternalStore } from "react";
+import { useBotAvatarActivity } from "./bot-avatar-activity.js";
+import { useAvatarMotionVisibility } from "./hooks/use-avatar-motion-visibility.js";
 import { cn } from "./lib/utils.js";
+import { LogoAvatar } from "./logo-avatar.js";
 import "./styles.css";
 
 const SPRITES: Record<string, string> = {
   "#8B5CF6": "/sprites/sprite-purple.png",
+  // Upstream's brighter Executive Violet (the default colour), which `#8B5CF6` now resolves to.
+  "#A97EFE": "/sprites/sprite-purple.png",
   "#F5C542": "/sprites/sprite-yellow.png",
   "#3FB6AE": "/sprites/sprite-teal.png",
   "#A78BFA": "/sprites/sprite-lavender.png",
   "#F08040": "/sprites/sprite-orange.png",
+  // Upstream's Forge Orange, the colour a new account's first bot gets.
+  "#FF781C": "/sprites/sprite-orange.png",
   "#E0524D": "/sprites/sprite-red.png",
   "#5B8DEF": "/sprites/sprite-blue.png",
 };
 
+export type { BotColorDef };
+export { BOT_COLOR_LIST, BOT_COLORS, DEFAULT_BOT_AVATAR_COLOR, resolvePersonaColorDef };
+
+export const BOT_SHAPES = SHIPPED_BOT_AVATAR_SHAPES;
+export const SHIPPED_SHAPE_KEYS = SHIPPED_BOT_AVATAR_SHAPE_KEYS;
+const VIEWBOX = SHIPPED_BOT_AVATAR_VIEWBOX;
+
+export const BOT_MASCOT_SHAPES = SHIPPED_SHAPE_KEYS.map(
+  (k) => BOT_SHAPES[k] ?? FALLBACK_SHAPE_PATH,
+);
+
+const FALLBACK_SHAPE_PATH = BOT_SHAPES.hex ?? "";
+
+export function parseBotAvatar(
+  rawColor: string,
+  _identity?: string,
+): {
+  color: string;
+  shapeIndex?: number;
+  isImage: boolean;
+  imageUrl?: string;
+} {
+  if (!rawColor) return { color: "#F97316", isImage: false };
+  // Only data: image URLs are rendered. Arbitrary http(s)/blob values in `color`
+  // must not become <img src> (SSRF / tracking when other members view the bot).
+  if (rawColor.startsWith("data:image/")) {
+    return { color: "#F97316", isImage: true, imageUrl: rawColor };
+  }
+  if (rawColor.includes("::shape_")) {
+    const parts = rawColor.split("::shape_");
+    const rawShapeIdx = parts[1] ?? "0";
+    const parsedShapeIdx = /^\d+$/.test(rawShapeIdx) ? Number(rawShapeIdx) : 0;
+    const shapeIdx = Number.isSafeInteger(parsedShapeIdx) ? parsedShapeIdx : 0;
+    return {
+      color: parts[0] || "#F97316",
+      shapeIndex: shapeIdx % SHIPPED_SHAPE_KEYS.length,
+      isImage: false,
+    };
+  }
+  return { color: rawColor, isImage: false };
+}
+
+const AVATAR_HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+export function defaultBotAvatarValue(rawColor: string): string {
+  const parsed = parseBotAvatar(rawColor);
+  if (rawColor && !parsed.isImage && AVATAR_HEX.test(parsed.color)) return parsed.color;
+  return DEFAULT_BOT_AVATAR_COLOR;
+}
+
 export interface BotAvatarProps {
   color: string;
+  avatarSet?: BotAvatarSet;
+  activity?: LogoAvatarActivity;
   size?: number;
   status?: string;
-  variant?: AvatarStyle;
   identity?: string;
   className?: string;
 }
 
 export const BotAvatar = memo(function BotAvatar({
   color,
-  size = 38,
+  avatarSet,
+  activity,
+  size = 36,
   status,
-  variant,
-  identity,
+  identity = "",
   className,
 }: BotAvatarProps) {
-  const isWorking = ACTIVE_RUN_STATUSES.some((activeStatus) => activeStatus === status);
-  const gradId = `spin-grad-${useId().replace(/[^a-zA-Z0-9-_]/g, "")}`;
-  const preferredVariant = useAvatarStyle();
-  const style = variant ?? preferredVariant;
-  // Manor's brand colors render as sprites; anything else gets the animated
-  // avatar. Every seeded bot color is a sprite key, so this has to yield to an
-  // explicit "organic" choice or the account setting could never take effect.
-  const sprite = style === "robot" ? SPRITES[color.toUpperCase()] : undefined;
+  const isWorking = isRunWorking(status);
+  // Manor: a unique gradient id for the working ring around a sprite.
+  const id = useId().replace(/[^a-zA-Z0-9-_]/g, "");
+
+  const parsed = useMemo(() => parseBotAvatar(color, identity), [color, identity]);
+  const effectiveId = identity || parsed.color || "agent";
+
+  const colorDef = useMemo(
+    () => resolvePersonaColorDef(effectiveId, parsed.color),
+    [effectiveId, parsed.color],
+  );
+
+  if (parsed.isImage && parsed.imageUrl) {
+    return (
+      <div
+        className={cn("rakazo-bot-avatar relative shrink-0 select-none", className)}
+        data-working={isWorking}
+        style={{ width: size, height: size }}
+      >
+        <div className="rakazo-bot-avatar-picture relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">
+          <img src={parsed.imageUrl} alt="" className="h-full w-full object-cover" />
+        </div>
+        {isWorking ? (
+          <svg
+            className="rakazo-bot-avatar-ring rakazo-bot-avatar-ring-working absolute pointer-events-none"
+            style={{
+              inset: -4,
+              width: size + 8,
+              height: size + 8,
+            }}
+            viewBox="0 0 48 48"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              cx="24"
+              cy="24"
+              r="22"
+              className="stroke-status-working"
+              strokeWidth="3.2"
+              strokeLinecap="round"
+              strokeDasharray="45 80"
+            />
+          </svg>
+        ) : null}
+      </div>
+    );
+  }
+
+  // Manor's sprite is how a bot on one of Manor's sprite colours is drawn when it
+  // has no uploaded image (above) and no chosen shape; anything else gets upstream's avatar.
+  const sprite = parsed.shapeIndex === undefined ? SPRITES[parsed.color.toUpperCase()] : undefined;
   if (sprite) {
     return (
       <div
@@ -49,118 +171,57 @@ export const BotAvatar = memo(function BotAvatar({
         data-working={isWorking}
         style={{ width: size, height: size, flex: "none" }}
       >
-        {isWorking ? <WorkingRing size={size} color={color} gradId={gradId} /> : null}
+        {isWorking ? <WorkingRing size={size} color={parsed.color} gradId={`${id}-ring`} /> : null}
         <img
           src={sprite}
           alt=""
+          className="rakazo-bot-avatar-sprite"
           style={{ width: size, height: size, objectFit: "contain", flex: "none" }}
         />
       </div>
     );
   }
-  if (style === "organic") {
+
+  if (parsed.shapeIndex === undefined && avatarSet === "rakazo") {
+    const Avatar = activity === undefined ? LiveLogoAvatar : LogoAvatar;
+    return (
+      <Avatar
+        avatarValue={color ? colorDef.hex : undefined}
+        identity={effectiveId}
+        size={size}
+        activity={activity}
+        status={status}
+        className={className}
+      />
+    );
+  }
+  if (parsed.shapeIndex === undefined) {
     return (
       <OrganicAvatar
-        color={color}
-        identity={identity}
+        color={colorDef.hex}
+        identity={effectiveId}
         size={size}
         isWorking={isWorking}
         className={className}
       />
     );
   }
-  const visorW = Math.round(size * 0.68);
-  const visorH = Math.round(size * 0.44);
-  const eyeW = Math.max(4, Math.round(size * 0.14));
-  const eyeH = Math.max(7, Math.round(size * 0.22));
-  const eyeRadius = Math.max(2, Math.round(eyeW * 0.5));
-  const eyeGap = Math.max(3, Math.round(size * 0.1));
-
-  const seed = hashString(color || "#8B5CF6");
-  const eyeVariant = seed % 4;
-  const idleDuration = (4.2 + ((seed * 7) % 28) / 10).toFixed(2);
-  const idleDelay = (-(((seed * 13) % 45) / 10)).toFixed(2);
-  const eyeGlow = `0 0 4px #FFFFFF, 0 0 8px #FFFFFF, 0 0 14px ${lightenColor(color, 20)}`;
-  const idleEyeAnimation = {
-    "--rakazo-eye-animation-name": `rakazo-eyes-idle-${eyeVariant}`,
-    "--rakazo-eye-animation-duration": `${idleDuration}s`,
-    "--rakazo-eye-animation-easing": "cubic-bezier(0.4, 0, 0.2, 1)",
-    "--rakazo-eye-animation-delay": `${idleDelay}s`,
-  } as CSSProperties;
-  const workingEyeAnimation = {
-    "--rakazo-eye-animation-name": "rakazo-eyes-working",
-    "--rakazo-eye-animation-duration": "1.4s",
-    "--rakazo-eye-animation-easing": "ease-in-out",
-    "--rakazo-eye-animation-delay": "0s",
-  } as CSSProperties;
 
   return (
-    <div
-      className={cn(
-        "rakazo-bot-avatar group relative flex items-center justify-center rounded-full select-none",
-        className,
-      )}
-      data-working={isWorking}
-      style={{
-        width: size,
-        height: size,
-        flex: "none",
-        background: `radial-gradient(circle at 35% 26%, ${lightenColor(color, 35)}, ${color} 55%, ${darkenColor(color, 40)} 100%)`,
-        boxShadow: isWorking
-          ? `0 0 0 2px rgba(255,255,255,0.25), 0 0 ${Math.round(size * 0.45)}px ${color}, inset 0 1px 2px rgba(255,255,255,0.6)`
-          : `0 2px ${Math.max(4, Math.round(size * 0.15))}px rgba(0,0,0,0.4), inset 0 1px 1.5px rgba(255,255,255,0.4)`,
-      }}
-    >
-      <WorkingRing size={size} color={color} gradId={gradId} />
-
-      <div
-        className="rakazo-bot-avatar-visor relative flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-[1.04]"
-        style={{
-          width: visorW,
-          height: visorH,
-          borderRadius: Math.round(visorH * 0.52),
-          background: "linear-gradient(180deg, #101014 0%, #030305 100%)",
-          boxShadow: "inset 0 1.5px 3px rgba(0,0,0,0.95), 0 1px 1px rgba(255,255,255,0.18)",
-          border: "1px solid rgba(255,255,255,0.14)",
-        }}
-      >
-        <div
-          className="absolute top-0 inset-x-0 h-[40%] pointer-events-none rounded-t-full"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.01) 100%)",
-          }}
-        />
-
-        {(["idle", "working"] as const).map((mode) => (
-          <div
-            key={mode}
-            className={`rakazo-bot-avatar-eyes rakazo-bot-avatar-eyes-${mode} absolute inset-0 z-10 flex items-center justify-center`}
-            style={{
-              gap: eyeGap,
-              ...(mode === "idle" ? idleEyeAnimation : workingEyeAnimation),
-            }}
-          >
-            {[0, 1].map((eye) => (
-              <span
-                key={eye}
-                className="block bg-white"
-                style={{
-                  width: eyeW,
-                  height: eyeH,
-                  borderRadius: eyeRadius,
-                  backgroundColor: "#FFFFFF",
-                  boxShadow: eyeGlow,
-                }}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
+    <MascotAvatar
+      color={colorDef.hex}
+      seed={avatarIdentitySeed(effectiveId)}
+      body={shippedBotAvatarShapePath(parsed.shapeIndex)}
+      viewBox={VIEWBOX}
+      eyes={SHIPPED_BOT_AVATAR_EYES}
+      size={size}
+      isWorking={isWorking}
+      className={cn("rakazo-shape-avatar", className)}
+    />
   );
 });
 
+/** The spinning ring around Manor's sprite avatars while a run is active. */
 function WorkingRing({ size, color, gradId }: { size: number; color: string; gradId: string }) {
   return (
     <svg
@@ -173,6 +234,7 @@ function WorkingRing({ size, color, gradId }: { size: number; color: string; gra
       }}
       viewBox="0 0 48 48"
       fill="none"
+      aria-hidden="true"
     >
       <circle
         cx="24"
@@ -195,15 +257,63 @@ function WorkingRing({ size, color, gradId }: { size: number; color: string; gra
   );
 }
 
+/** Only live Rakazo consumers subscribe to public activity updates. */
+function LiveLogoAvatar({
+  status,
+  ...props
+}: ComponentProps<typeof LogoAvatar> & { status?: string }) {
+  const activity = useBotAvatarActivity(props.identity ?? "", status);
+  return <LogoAvatar {...props} activity={activity} />;
+}
+
 function OrganicAvatar({
   color,
   identity,
+  className,
+  ...props
+}: {
+  color: string;
+  identity?: string;
+  size: number;
+  isWorking: boolean;
+  className?: string;
+}) {
+  const seed = avatarIdentitySeed(identity || color || DEFAULT_BOT_AVATAR_COLOR);
+  return (
+    <MascotAvatar
+      {...props}
+      color={color}
+      seed={seed}
+      body={organicAvatarPath(seed)}
+      morph={organicAvatarPath(seed, 0.42)}
+      viewBox={ORGANIC_AVATAR_VIEWBOX}
+      eyes={ORGANIC_AVATAR_EYES}
+      eyeTilt={organicAvatarEyeTilt(seed)}
+      className={cn("rakazo-organic-avatar", className)}
+    />
+  );
+}
+
+/** A body with bar eyes that moves while its bot works; the seed picks the motion. */
+function MascotAvatar({
+  color,
+  seed,
+  body,
+  morph,
+  viewBox,
+  eyes,
+  eyeTilt = 0,
   size,
   isWorking,
   className,
 }: {
   color: string;
-  identity?: string;
+  seed: number;
+  body: string;
+  morph?: string;
+  viewBox: string;
+  eyes: AvatarEyes;
+  eyeTilt?: number;
   size: number;
   isWorking: boolean;
   className?: string;
@@ -213,65 +323,92 @@ function OrganicAvatar({
     reducedMotionSnapshot,
     () => false,
   );
-  const seed = avatarIdentitySeed(identity || color || "#8B5CF6");
+  const { ref, visible } = useAvatarMotionVisibility(!reducedMotion);
+  useEffect(() => {
+    // jsdom has no SMIL clock, so these are optional.
+    if (visible) ref.current?.unpauseAnimations?.();
+    else ref.current?.pauseAnimations?.();
+  }, [ref, visible]);
   const duration = `${4.8 + (seed % 24) / 10}s`;
-  const shapeA = organicAvatarPath(seed);
-  const shapeB = organicAvatarPath(seed, 0.42);
+  const eyeOrigin = `${(eyes.leftCx + eyes.rightCx) / 2}px ${eyes.cy}px`;
+  const unit = viewBoxWidth(viewBox) / viewBoxWidth(ORGANIC_AVATAR_VIEWBOX);
 
   return (
     <svg
-      viewBox="-60 -60 120 120"
+      ref={ref}
+      viewBox={viewBox}
       aria-hidden="true"
-      className={cn("rakazo-organic-avatar overflow-visible select-none", className)}
+      className={cn("rakazo-mascot-avatar overflow-visible select-none", className)}
       data-working={isWorking}
+      data-paused={!visible}
       data-shape-family={seed % 10}
       data-eye-pattern={seed % 4}
-      style={{
-        width: size,
-        height: size,
-        flex: "none",
-      }}
+      // Inline size so a parent's icon sizing (Button sizes bare SVGs) cannot shrink it.
+      style={
+        {
+          width: size,
+          height: size,
+          flex: "none",
+          "--rakazo-mascot-unit": `${unit}px`,
+        } as CSSProperties
+      }
     >
       {(["idle", "working"] as const).map((mode) => (
         <path
           key={mode}
-          className={`rakazo-organic-avatar-body rakazo-organic-avatar-body-${mode}`}
-          d={shapeA}
+          className={`rakazo-mascot-avatar-body rakazo-mascot-avatar-body-${mode}`}
+          d={body}
           fill={color}
           style={
             {
-              "--rakazo-organic-path": `path("${shapeA}")`,
+              "--rakazo-mascot-path": `path("${body}")`,
               filter:
                 mode === "working"
-                  ? `drop-shadow(0 0 ${Math.round(size * 0.16)}px ${color})`
-                  : "drop-shadow(0 2px 3px rgba(0,0,0,.34))",
+                  ? `drop-shadow(0 0 ${Math.round(size * 0.16 * unit)}px ${color})`
+                  : "drop-shadow(0 calc(2 * var(--rakazo-mascot-unit)) calc(3 * var(--rakazo-mascot-unit)) rgba(0,0,0,.34))",
             } as CSSProperties
           }
         >
-          {!reducedMotion ? (
+          {/* Only a working body morphs. A late <animate> joins the svg clock mid-loop. */}
+          {morph && !reducedMotion && mode === "working" && isWorking ? (
             <animate
               attributeName="d"
-              values={`${shapeA};${shapeB};${shapeA}`}
+              values={`${body};${morph};${body}`}
               dur={duration}
               repeatCount="indefinite"
             />
           ) : null}
         </path>
       ))}
-      <g transform={`rotate(${(seed % 9) - 4})`}>
+      <g transform={`rotate(${eyeTilt})`}>
         {(["idle", "working"] as const).map((mode) => (
           <g
             key={mode}
-            className={`rakazo-organic-avatar-eyes rakazo-organic-avatar-eyes-${mode}`}
-            fill="#101014"
+            className={`rakazo-mascot-avatar-eyes rakazo-mascot-avatar-eyes-${mode} ${eyeFill(color)}`}
+            style={{ transformOrigin: eyeOrigin }}
           >
-            <rect x="-14" y="-12" width="7" height="24" rx="3.5" />
-            <rect x="7" y="-12" width="7" height="24" rx="3.5" />
+            <BarEyes eyes={eyes} />
           </g>
         ))}
       </g>
     </svg>
   );
+}
+
+function viewBoxWidth(viewBox: string): number {
+  return Number(viewBox.split(" ")[2]);
+}
+
+function BarEyes({ eyes }: { eyes: AvatarEyes }) {
+  return avatarEyeRects(eyes).map((rect) => <rect key={rect.x} {...rect} />);
+}
+
+/** Eyes are cut-outs in the page color unless the body is nearly white or black. */
+function eyeFill(bodyHex: string): string {
+  const tone = botEyeTone(bodyHex);
+  if (tone === "dark") return "fill-foreground dark:fill-background";
+  if (tone === "light") return "fill-background dark:fill-foreground";
+  return "fill-background";
 }
 
 const reducedMotionMedia = "(prefers-reduced-motion: reduce)";
@@ -286,53 +423,64 @@ function subscribeToReducedMotion(onChange: () => void): () => void {
   return () => media.removeEventListener("change", onChange);
 }
 
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
+export function BotShapePreview({
+  shapeIndex,
+  identity,
+  label,
+  color,
+  selected,
+  onClick,
+}: {
+  /** An Avatar Studio shape; omit it to draw the organic body `identity` gets. */
+  shapeIndex?: number;
+  identity?: string;
+  label?: string;
+  color: string;
+  selected?: boolean;
+  onClick?: () => void;
+}) {
+  const key =
+    shapeIndex === undefined
+      ? undefined
+      : (SHIPPED_SHAPE_KEYS[shapeIndex % SHIPPED_SHAPE_KEYS.length] ?? "hex");
+  const colorDef = resolvePersonaColorDef("preview", color);
 
-function lightenColor(hex: string, percent: number): string {
-  return adjustColor(hex, percent);
-}
-
-function darkenColor(hex: string, percent: number): string {
-  return adjustColor(hex, -percent);
-}
-
-function adjustColor(hex: string, percent: number): string {
-  const clean = hex.replace(/^#/, "");
-  if (clean.length !== 6 && clean.length !== 3) return hex;
-  const num = parseInt(
-    clean.length === 3
-      ? clean
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : clean,
-    16,
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label ?? key}
+      aria-pressed={selected ?? false}
+      className={cn(
+        "relative flex size-11 items-center justify-center rounded-xl transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover",
+        selected
+          ? "ring-2 ring-primary ring-offset-2 ring-offset-popover bg-white/10"
+          : "hover:bg-white/5",
+      )}
+    >
+      {shapeIndex === undefined ? (
+        <BotAvatar color={color} identity={identity} size={32} />
+      ) : (
+        <svg viewBox={VIEWBOX} className="size-8 overflow-visible" aria-hidden="true">
+          <path d={shippedBotAvatarShapePath(shapeIndex)} fill={colorDef.hex} />
+          <g className={eyeFill(colorDef.hex)}>
+            <BarEyes eyes={SHIPPED_BOT_AVATAR_EYES} />
+          </g>
+        </svg>
+      )}
+    </button>
   );
-  if (Number.isNaN(num)) return hex;
-  let r = (num >> 16) + Math.round((255 * percent) / 100);
-  let g = ((num >> 8) & 0x00ff) + Math.round((255 * percent) / 100);
-  let b = (num & 0x0000ff) + Math.round((255 * percent) / 100);
-  r = Math.min(255, Math.max(0, r));
-  g = Math.min(255, Math.max(0, g));
-  b = Math.min(255, Math.max(0, b));
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 export function Wordmark({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="flex h-11 w-11 items-center justify-center gap-1.5 rounded-full bg-[#16161A]">
-        <span className="h-4 w-[7px] rounded-full bg-[#F7F7F4]" />
-        <span className="h-4 w-[7px] rounded-full bg-[#F7F7F4]" />
+      <div className="flex h-11 w-11 items-center justify-center gap-1.5 rounded-full bg-card">
+        <span className="h-4 w-[7px] rounded-full bg-primary" />
+        <span className="h-4 w-[7px] rounded-full bg-primary" />
       </div>
-      <span className="font-[Aeonik,ui-sans-serif] text-[28px] tracking-tight text-[#1B1B1E]">
+      {/* off-scale: wordmark sized to the 44px logo mark */}
+      <span className="font-[Aeonik,ui-sans-serif] text-[28px] tracking-tight text-foreground">
         Rakazo
       </span>
     </div>

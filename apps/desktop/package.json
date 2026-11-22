@@ -1,15 +1,19 @@
 {
   "name": "@rakazo/desktop",
+  "productName": "Manor",
   "version": "0.2.5",
+  "author": {
+    "name": "Manor"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
     "dev": "pnpm build && electron .",
-    "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "build": "node scripts/build.mjs && node scripts/copy-static.mjs && node scripts/build-speech.mjs",
     "pack": "pnpm --filter @rakazo/web build && pnpm build && electron-builder --mac --win --linux",
     "pack:dir": "pnpm --filter @rakazo/web build && pnpm build && electron-builder --dir",
-    "check": "tsc --noEmit -p tsconfig.json",
+    "check": "tsrs --noEmit -p tsconfig.json && tsrs --noEmit -p tsconfig.jsdom.json && tsrs --noEmit -p e2e/tsconfig.json && tsrs --noEmit -p scripts/tsconfig.json",
     "test": "vitest run --root ../.. apps/desktop/src",
     "test:e2e": "pnpm build && playwright test --config e2e/playwright.config.ts",
     "release": "pnpm --filter @rakazo/web build && pnpm build && electron-builder --publish never"
@@ -17,20 +21,27 @@
   "dependencies": {
     "@rakazo/contracts": "workspace:*",
     "@rakazo/core": "workspace:*",
-    "electron-updater": "^6.8.9",
+    "@rakazo/logging": "workspace:*",
+    "@sentry/electron": "8.3.0",
+    "electron-updater": "6.8.12",
+    "koffi": "3.3.7",
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@rakazo/adapters": "workspace:*",
+    "@rakazo/core": "workspace:*",
+    "@rakazo/ui-tokens": "workspace:*",
     "@types/ws": "^8.18.1",
-    "@playwright/test": "^1.55.0",
-    "electron": "^43.4.0",
-    "electron-builder": "^26.0.12",
-    "typescript": "^5.9.2",
-    "vitest": "^4.1.10"
+    "electron": "45.2.3",
+    "electron-builder": "26.18.1",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0",
+    "yaml": "2.9.1"
   },
   "build": {
     "appId": "com.pentridgemedia.manor",
-    "productName": "Manor",
     "directories": {
       "output": "out",
       "buildResources": "assets"
@@ -43,19 +54,77 @@
       {
         "from": "../web/dist",
         "to": "web"
+      },
+      {
+        "from": "../../infra/compose/docker-compose.images.yml",
+        "to": "stack/docker-compose.images.yml"
+      },
+      {
+        "from": "../../infra/compose/.env.images.example",
+        "to": "stack/.env.images.example"
       }
     ],
     "extraMetadata": {
+      "name": "manor",
       "main": "dist/main.js"
     },
     "mac": {
       "icon": "assets/icon.icns",
       "category": "public.app-category.productivity",
+      "x64ArchFiles": "{**/node_modules/@koromix/koffi-darwin-*/darwin_*/koffi.node,**/node_modules/@oxc-parser/binding-darwin-*/parser.darwin-*.node}",
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Manor uses the microphone for dictation and voice calls with your bots.",
+        "NSSpeechRecognitionUsageDescription": "Manor turns what you say into text for dictation and voice calls with your bots."
+      },
+      "extraResources": [
+        {
+          "from": "build/speech/rakazo-speech",
+          "to": "speech/rakazo-speech"
+        },
+        {
+          "from": "assets/es.lproj",
+          "to": "es.lproj"
+        },
+        {
+          "from": "assets/pl.lproj",
+          "to": "pl.lproj"
+        },
+        {
+          "from": "build/server-bundle.json",
+          "to": "server-bundle.json"
+        }
+      ],
       "target": [
         "dmg",
         "zip"
       ],
       "notarize": true
+    },
+    "dmg": {
+      "title": "${productName}",
+      "iconSize": 100,
+      "window": {
+        "width": 660,
+        "height": 400
+      },
+      "contents": [
+        {
+          "x": 170,
+          "y": 175,
+          "type": "file"
+        },
+        {
+          "x": 490,
+          "y": 175,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "win": {
       "icon": "assets/icon.ico",

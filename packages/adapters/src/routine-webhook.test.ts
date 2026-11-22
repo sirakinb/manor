@@ -58,7 +58,8 @@ function fixture(existing = true) {
     $transaction: vi.fn(async (fn: (client: typeof tx) => unknown) => fn(tx)),
   };
   const secretStore = {
-    load: vi.fn().mockReturnValue(key),
+    // The store is asynchronous: reads resolve, and an unreadable key rejects.
+    load: vi.fn().mockResolvedValue(key),
     put: vi.fn().mockResolvedValue({ id: "new-secret", ciphertext: "encrypted" }),
   };
   const deps = {
@@ -88,9 +89,7 @@ describe("routine webhook setup handoff", () => {
       key,
       routineWebhookToken(key, routine.id),
     ]);
-    f.secretStore.load.mockImplementation(() => {
-      throw new Error("Malformed ciphertext");
-    });
+    f.secretStore.load.mockRejectedValue(new Error("Malformed ciphertext"));
     f.prisma.routine.findMany.mockClear();
     await expect(routineWebhookRedactionSecrets(deps, bot)).resolves.toEqual([]);
     expect(f.prisma.routine.findMany).not.toHaveBeenCalled();

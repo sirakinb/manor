@@ -1,12 +1,7 @@
-import type { IngestionRunner, JobPublisher } from "@rakazo/adapter-kit";
+import type { IngestionRunner, JobPublisher, SecretStore } from "@rakazo/adapter-kit";
 import { workspaceAutomationWakeupJob } from "@rakazo/adapter-kit";
-import {
-  automationNextRunAt,
-  automationSpec,
-  fillWaterBillsFromCrmByDueDate,
-  type PrismaClient,
-} from "@rakazo/db";
-import type { EncryptedSecretStore } from "./secrets.js";
+import type { PrismaClient } from "@rakazo/db";
+import { automationNextRunAt, automationSpec, fillWaterBillsFromCrmByDueDate } from "@rakazo/db";
 import { loadWorkspaceCredential } from "./workspace-credentials.js";
 
 /**
@@ -22,7 +17,7 @@ const truncate = (value: string): string => value.slice(0, ERROR_TEXT_MAX);
 
 export interface WorkspaceAutomationDeps {
   prisma: PrismaClient;
-  secrets: EncryptedSecretStore;
+  secrets: Pick<SecretStore, "load">;
   jobs: JobPublisher;
   /** Undefined when INGESTION_URL is not configured; runs then fail with a clear message. */
   ingestion?: IngestionRunner;

@@ -1,7 +1,7 @@
 import { toolRequiresApproval } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
-import { selectBuiltinToolsForRun } from "./executor.js";
+import { selectBuiltinToolsForRun } from "./runs/executor/executor.js";
 import {
   executeWorkspaceTool,
   WORKSPACE_READ_ONLY_TOOL_NAMES,
@@ -17,6 +17,7 @@ describe("workspace agent tools", () => {
       groupId: null,
       trigger: "user",
       semanticMemoryEnabled: false,
+      messagingChannelRun: false,
     };
     expect(
       selectBuiltinToolsForRun(options).some((tool) => tool.name.startsWith("workspace_")),

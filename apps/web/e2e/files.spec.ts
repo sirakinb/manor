@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { WorkspaceFileResult } from "@rakazo/contracts";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers/helpers";
 
 test("workspace files can be created, edited, moved to shared files and downloaded", async ({
   page,
@@ -9,6 +9,8 @@ test("workspace files can be created, edited, moved to shared files and download
   await completeOnboarding(page);
   await page.getByTestId("files-trigger").click();
   const panel = page.getByTestId("files-panel");
+  // The panel loads when first opened, so wait for it before the instant check.
+  await expect(panel).toBeVisible();
   if (await panel.getByRole("button", { name: "Wake computer" }).isVisible())
     await panel.getByRole("button", { name: "Wake computer" }).click();
   await expect(panel.getByRole("button", { name: "New folder", exact: true })).toBeVisible();
@@ -76,6 +78,8 @@ test("unsaved drafts survive closing Files and stale edits cannot overwrite bot 
   await page.getByTestId("files-trigger").click();
   const panel = page.getByTestId("files-panel");
   // Refresh the shell's computer status after booting through the test API.
+  // The panel loads when first opened, so wait for it before the instant check.
+  await expect(panel).toBeVisible();
   if (await panel.getByRole("button", { name: "Wake computer" }).isVisible())
     await panel.getByRole("button", { name: "Wake computer" }).click();
   await panel.getByTestId("files-list").getByText("notes.txt", { exact: true }).click();
@@ -152,6 +156,8 @@ test("Changes exposes repositories, branches, selected commits and diffs", async
   });
   await page.getByTestId("files-trigger").click();
   const panel = page.getByTestId("files-panel");
+  // The panel loads when first opened, so wait for it before the instant check.
+  await expect(panel).toBeVisible();
   if (await panel.getByRole("button", { name: "Wake computer" }).isVisible())
     await panel.getByRole("button", { name: "Wake computer" }).click();
   await panel.getByTestId("files-tab-changes").click();
@@ -169,6 +175,8 @@ test("images and PDFs preview in Files without opening an editor", async ({ page
   await completeOnboarding(page);
   await page.getByTestId("files-trigger").click();
   const panel = page.getByTestId("files-panel");
+  // The panel loads when first opened, so wait for it before the instant check.
+  await expect(panel).toBeVisible();
   if (await panel.getByRole("button", { name: "Wake computer" }).isVisible())
     await panel.getByRole("button", { name: "Wake computer" }).click();
   const png = Buffer.from(

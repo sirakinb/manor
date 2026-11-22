@@ -31,16 +31,16 @@ pnpm dev
 
 ## Checks before you open a PR
 
-| Command | When to run |
-| --- | --- |
-| `pnpm test` | Default. Units, properties, and in-process contracts. Scripted runtime, fake sandbox, in-memory wakeup — no live connector or model-provider calls. |
-| `pnpm test:integration` | Postgres via Testcontainers: product journeys, authorization, executor lifecycle, Graphile / LISTEN/NOTIFY. Needs Docker. |
-| `pnpm test:e2e` | Playwright against the emulated API. Needs Docker. |
-| `pnpm test:topology` | Local product-path smoke: Docker computer + Graphile worker recovery. Needs Docker. Not PR CI. |
-| `pnpm test:canary` | Live OpenRouter / E2B canaries. Needs keys. Not PR CI. |
-| `pnpm test:computer` | Real vision model + E2B desktop. Needs keys; see README. Not PR CI. |
-| `pnpm check` | TypeScript (`tsc`) across the monorepo. |
-| `pnpm lint` | Biome lint and format check. |
+| Command                 | When to run                                                                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test`             | Default. Units, properties, and in-process contracts. Scripted runtime, fake sandbox, in-memory wakeup — no live connector or model-provider calls. |
+| `pnpm test:integration` | Postgres via Testcontainers: product journeys, authorization, executor lifecycle, Graphile / LISTEN/NOTIFY. Needs Docker.                           |
+| `pnpm test:e2e`         | Playwright against the emulated API. Needs Docker.                                                                                                  |
+| `pnpm test:topology`    | Local product-path smoke: Docker computer + Graphile worker recovery. Needs Docker. Not PR CI.                                                      |
+| `pnpm test:canary`      | Live OpenRouter / E2B canaries. Needs keys. Not PR CI.                                                                                              |
+| `pnpm test:computer`    | Real vision model + E2B desktop. Needs keys; see README. Not PR CI.                                                                                 |
+| `pnpm check`            | TypeScript (`tsc`) across the monorepo.                                                                                                             |
+| `pnpm lint`             | Biome lint and format check.                                                                                                                        |
 
 CI runs `pnpm lint`, `pnpm check`, production builds (including Electron preload smoke), `pnpm test`, `pnpm test:integration`, and `pnpm test:e2e` on every PR.
 
@@ -69,10 +69,10 @@ capability config, fixtures, logs, or snapshots; use the encrypted secret store 
 
 ## Help and security
 
-| Where | Use for |
-| --- | --- |
-| [Private vulnerability report](https://github.com/sirakinb/manor/security/advisories/new) | Security issues — see [SECURITY.md](SECURITY.md) |
-| [Manor issues](https://github.com/sirakinb/manor/issues/new/choose) | Bugs and self-hosting help; redact secrets and private data |
+| Where                                                                                     | Use for                                                     |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [Private vulnerability report](https://github.com/sirakinb/manor/security/advisories/new) | Security issues — see [SECURITY.md](SECURITY.md)            |
+| [Manor issues](https://github.com/sirakinb/manor/issues/new/choose)                       | Bugs and self-hosting help; redact secrets and private data |
 
 Workspace package names such as `@rakazo/desktop` and configuration keys beginning with
 `RAKAZO_` remain compatibility identifiers. Use the names in the checked-in scripts and examples.

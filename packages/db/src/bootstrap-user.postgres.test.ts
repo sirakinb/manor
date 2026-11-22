@@ -1,12 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bootstrapUserSpace, findBrandOrganization } from "./bootstrap-user.js";
-import { createDb, type PrismaClient } from "./client.js";
+import { bootstrapUserSpace, findBrandOrganization } from "./account/bootstrap-user.js";
+import type { PrismaClient } from "./database/client.js";
+import { createDb } from "./database/client.js";
+import { asSystem, runAsSystem } from "./database/row-security.js";
 
 const databaseUrl = process.env.DATABASE_URL;
-const describePostgres =
-  process.env.VERIFY_DATABASE && databaseUrl ? describe.sequential : describe.skip;
+const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
-const env = { signupsEnabled: "true", signupAllowlist: "" };
+// Sign-up bootstrap runs in the auth route's system context.
+const bootstrap = (...args: Parameters<typeof bootstrapUserSpace>) =>
+  runAsSystem("authentication", () => bootstrapUserSpace(...args));
 
 describePostgres("bootstrapUserSpace with a branded sign-up (PostgreSQL)", () => {
   const suffix = `${process.pid}-${Date.now()}`;
@@ -16,13 +19,16 @@ describePostgres("bootstrapUserSpace with a branded sign-up (PostgreSQL)", () =>
   const clientSpaceId = `brand-space-${suffix}`;
   const joiningUserId = `brand-joiner-${suffix}`;
   const personalUserId = `brand-nobody-${suffix}`;
+  // The code under test gets the plain client; fixtures and assertions use a system view.
+  let client: PrismaClient;
   let prisma: PrismaClient;
   let close: () => Promise<void>;
   let ownerBefore: string | null | undefined;
 
   beforeAll(async () => {
     const db = createDb(databaseUrl!);
-    prisma = db.prisma;
+    client = db.prisma;
+    prisma = asSystem(db.prisma);
     close = async () => {
       await db.prisma.$disconnect();
       await db.pool.end();
@@ -78,7 +84,7 @@ describePostgres("bootstrapUserSpace with a branded sign-up (PostgreSQL)", () =>
 
   it("joins the brand's organization as a member instead of creating a personal one", async () => {
     const organizationsBefore = await prisma.organization.count();
-    const result = await bootstrapUserSpace(prisma, { id: joiningUserId }, env, { brandId });
+    const result = await bootstrap(client, { id: joiningUserId }, { brandId });
     expect(result).toEqual({ spaceId: clientSpaceId, organizationId: clientOrganizationId });
     expect(await prisma.organization.count()).toBe(organizationsBefore);
 
@@ -111,15 +117,19 @@ describePostgres("bootstrapUserSpace with a branded sign-up (PostgreSQL)", () =>
   });
 
   it("is idempotent for a repeated join", async () => {
-    await bootstrapUserSpace(prisma, { id: joiningUserId }, env, { brandId });
+    await bootstrap(client, { id: joiningUserId }, { brandId });
     expect(await prisma.member.count({ where: { userId: joiningUserId } })).toBe(1);
     expect(await prisma.spaceMember.count({ where: { userId: joiningUserId } })).toBe(1);
   });
 
   it("falls back to the personal bootstrap when no organization claims the brand", async () => {
-    const result = await bootstrapUserSpace(prisma, { id: personalUserId }, env, {
-      brandId: `${brandId}-unclaimed`,
-    });
+    const result = await bootstrap(
+      client,
+      { id: personalUserId },
+      {
+        brandId: `${brandId}-unclaimed`,
+      },
+    );
     expect(result.organizationId).toBe(result.spaceId);
     expect(result.organizationId).not.toBe(clientOrganizationId);
     const organization = await prisma.organization.findUnique({

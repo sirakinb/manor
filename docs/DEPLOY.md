@@ -6,11 +6,11 @@ manor.pentridgemedia.com runs on. Expect 30–45 minutes end to end.
 
 ## What you need
 
-| Thing | Cost | Notes |
-|---|---|---|
-| A VPS | ~$10–25/mo | Any provider (Hostinger, Hetzner, DigitalOcean…). Minimum 2 vCPU / 8 GB RAM / 100 GB disk, Ubuntu 24.04. Pick a "Docker" template if offered. |
-| A domain | ~$10/yr | Any registrar. |
-| A Cloudflare account | Free | Serves DNS and the tunnel. |
+| Thing                | Cost       | Notes                                                                                                                                         |
+| -------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| A VPS                | ~$10–25/mo | Any provider (Hostinger, Hetzner, DigitalOcean…). Minimum 2 vCPU / 8 GB RAM / 100 GB disk, Ubuntu 24.04. Pick a "Docker" template if offered. |
+| A domain             | ~$10/yr    | Any registrar.                                                                                                                                |
+| A Cloudflare account | Free       | Serves DNS and the tunnel.                                                                                                                    |
 
 You do **not** need to pay for AI models — Manor is bring-your-own-key. Each
 user connects their own subscription (ChatGPT Plus/Pro, Claude Pro/Max,

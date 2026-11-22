@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { auth, type OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import { auth } from "@modelcontextprotocol/sdk/client/auth.js";
 import type { PrismaClient } from "@rakazo/db";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
@@ -274,7 +275,7 @@ describe("MCP OAuth provider", () => {
 
   it("completes the MCP SDK client's discovery, registration and code exchange", async () => {
     const { app, prisma } = setup();
-    const fetchFn = (url: string | URL, init?: RequestInit) => app.request(String(url), init);
+    const fetchFn = async (url: string | URL, init?: RequestInit) => app.request(String(url), init);
     const saved: Record<string, unknown> = {};
     let authorizationUrl: URL | undefined;
     const provider: OAuthClientProvider = {

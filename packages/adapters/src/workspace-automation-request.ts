@@ -1,11 +1,7 @@
 import type { JobPublisher } from "@rakazo/adapter-kit";
 import { workspaceAutomationRunNowJob } from "@rakazo/adapter-kit";
-import {
-  ensureDefaultAutomations,
-  IsolationError,
-  type PrismaClient,
-  requireWorkspaceAutomation,
-} from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { ensureDefaultAutomations, IsolationError, requireWorkspaceAutomation } from "@rakazo/db";
 
 export class WorkspaceAutomationRequestError extends Error {}
 

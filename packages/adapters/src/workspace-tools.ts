@@ -4,13 +4,12 @@ import {
   workspaceToolDescriptions as descriptions,
   workspaceToolSchemas as schemas,
 } from "@rakazo/contracts";
+import type { PrismaClient, WorkspaceAgentOwner } from "@rakazo/db";
 import {
   createWorkspaceRepos,
   ensureDefaultAutomations,
   IsolationError,
   listWorkspaceAutomations,
-  type PrismaClient,
-  type WorkspaceAgentOwner,
   workspaceForAgent,
 } from "@rakazo/db";
 import * as z from "zod";

@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 import type { Routine, RunDiagnostics } from "@rakazo/contracts";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  openBotPanel,
+  rpc,
+  signup,
+} from "./helpers/helpers";
 
 test("a failed routine has persistent diagnostics after its banner is dismissed", async ({
   page,
@@ -19,7 +26,10 @@ test("a failed routine has persistent diagnostics after its banner is dismissed"
   const { runId } = await rpc<{ runId: string }>(page, "routines/testRun", {
     routineId: routine.id,
   });
-  await expect(page.getByTestId("composer-error")).toContainText("Scripted run failure");
+  // The banner shows a plain summary; the raw failure sits behind its Details disclosure.
+  await expect(page.getByTestId("composer-error")).toContainText(
+    "The model provider returned an error.",
+  );
   await page.getByRole("button", { name: "View logs", exact: true }).click();
   const logs = page.getByTestId("run-logs");
   await expect(logs.getByTestId("run-log-status")).toHaveText("failed");
@@ -48,7 +58,8 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
   await page.setViewportSize({ width: 1600, height: 1000 });
   await signup(page, `resize-${Date.now()}@rakazo.test`, "password12", "Resize test");
   await completeOnboarding(page);
-  await page.getByTitle("Agent computer", { exact: true }).click();
+  // The computer is the first section of the bot panel; the header has no computer button.
+  await openBotPanel(page);
   const panel = page.getByTestId("side-panel");
   const handle = page.getByRole("separator", { name: "Resize panel" });
   await expect(handle).toBeVisible();
@@ -64,14 +75,19 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
     await expect.poll(async () => (await panel.boundingBox())!.width).toBeGreaterThan(470);
   }
   await handle.focus();
-  const beforeKeyboard = (await panel.boundingBox())!.width;
+  // The panel animates its width, so read the target from the separator and wait for the
+  // panel to settle on it instead of measuring mid-transition. One key step is 32px.
+  const beforeKeyboard = Number(await handle.getAttribute("aria-valuenow"));
   await handle.press("ArrowLeft");
-  await expect.poll(async () => (await panel.boundingBox())!.width).toBeGreaterThan(beforeKeyboard);
-  const saved = (await panel.boundingBox())!.width;
+  const saved = beforeKeyboard + 32;
+  await expect(handle).toHaveAttribute("aria-valuenow", String(saved));
+  await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(saved);
   await captureScreenshot(page, testInfo, "computer-panel-expanded");
   await page.reload();
-  await page.getByTitle("Agent computer", { exact: true }).click();
-  await expect.poll(async () => (await panel.boundingBox())!.width).toBe(saved);
+  // The right rail is restored after a reload; the helper opens it only if it stayed closed.
+  await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
+  await openBotPanel(page);
+  await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(saved);
   await page.getByRole("button", { name: "Expand computer", exact: true }).click();
   await expect(page.getByTestId("computer-preview")).toContainText("Open in full window");
 });

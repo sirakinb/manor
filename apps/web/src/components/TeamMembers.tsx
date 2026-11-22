@@ -1,10 +1,13 @@
-import { Trans } from "@lingui/react/macro";
-import { TEAM_HEARTBEAT_MS, type TeamMember } from "@rakazo/contracts";
+import { Trans, useLingui } from "@lingui/react/macro";
+import type { TeamMember } from "@rakazo/contracts";
+import { TEAM_HEARTBEAT_MS } from "@rakazo/contracts";
+import { displayName } from "@rakazo/core";
 import { useEffect, useState } from "react";
-import { rpc } from "../lib/rpc";
-import { BuiCard, LoadingState } from "./beautiful-ui/primitives";
+import { rpc } from "../lib/query/rpc";
+import { BuiCard, LoadingState } from "./ai/primitives";
 
 export function TeamMembers() {
+  const { t } = useLingui();
   const [members, setMembers] = useState<TeamMember[] | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -54,7 +57,7 @@ export function TeamMembers() {
                 className="h-2 w-2 shrink-0 rounded-full"
                 style={{ background: failed ? "#85858a" : member.active ? "#4ade80" : "#85858a" }}
               />
-              <span className="font-medium">{member.name}</span>
+              <span className="font-medium">{displayName(member.name, t`Member`)}</span>
               <span className="ml-auto text-xs text-[var(--rk-accent-soft)]">{member.role}</span>
             </div>
             <p className="mt-1 text-xs text-[#a2a2a8]">

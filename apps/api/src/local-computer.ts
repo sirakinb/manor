@@ -1,15 +1,13 @@
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { RealtimeFanout } from "@rakazo/adapter-kit";
-import {
-  completeLocalComputerCommand,
-  type LocalComputerMethod,
-  localComputerSessionTopic,
-} from "@rakazo/adapters";
+import type { LocalComputerMethod } from "@rakazo/adapters";
+import { completeLocalComputerCommand, localComputerSessionTopic } from "@rakazo/adapters";
 import type { LocalComputerLiveSession, LocalDevice as LocalDeviceDto } from "@rakazo/contracts";
 import { LOCAL_COMPUTER_OFFLINE_MESSAGE } from "@rakazo/core";
 import { hashLocalDeviceToken, mintLocalDeviceToken } from "@rakazo/core/node/local-device-token";
-import { ensureComputerRecord, type PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@rakazo/db";
+import { ensureComputerRecord, runAsSystem, runAsTenant } from "@rakazo/db";
 import { WebSocket, WebSocketServer } from "ws";
 
 export const LOCAL_COMPUTER_SOCKET_PATH = "/local-computer";
@@ -167,12 +165,17 @@ async function handleLocalComputerSocket(
   });
 
   ws.on("close", () => {
-    void disconnect();
+    // A socket event carries no database context; the session is the device's member's.
+    const closing = device;
+    void (closing ? runAsTenant(closing, disconnect) : disconnect());
   });
 
-  device = await deps.prisma.localDevice.findFirst({
-    where: { tokenHash: hashLocalDeviceToken(token), revokedAt: null },
-  });
+  // The token is all that names the member here, so the lookup crosses tenants.
+  device = await runAsSystem("find the device a This Mac token names", () =>
+    deps.prisma.localDevice.findFirst({
+      where: { tokenHash: hashLocalDeviceToken(token), revokedAt: null },
+    }),
+  );
   if (!device) {
     ws.close(4401, "invalid device token");
     return;
@@ -193,7 +196,8 @@ async function handleLocalComputerSocket(
     } catch {
       return;
     }
-    void (async () => {
+    // The device token names one member in one space; its computer row is that space's.
+    void runAsTenant(currentDevice, async () => {
       if (message.type === "hello") {
         const folderName = String(message.folderName ?? "folder").slice(0, 120);
         await deps.prisma.localComputerSession.updateMany({
@@ -249,7 +253,7 @@ async function handleLocalComputerSocket(
         await disconnect();
         ws.close(1000, "stopped");
       }
-    })();
+    });
   }
 
   async function disconnect() {

@@ -1,5 +1,6 @@
 import type { TransactionalEmail, TransactionalEmailProvider } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 import type { CrmIntegrationService } from "./crm-integrations.js";
@@ -266,7 +267,7 @@ export function mountPublicFormRoutes(
       if (!deps.email) return;
       await deps.email.send({ to, fromName: form.senderName ?? undefined, ...build() });
     } catch (error) {
-      console.error(`Public form ${label} email failed`, error);
+      getLogger().error(`Public form ${label} email failed`, error);
     }
   };
 
@@ -387,7 +388,7 @@ export function mountPublicFormRoutes(
         ? await submitScorecard(c, form, body)
         : await submitEvent(c, form, body);
     } catch (cause) {
-      console.error("Public form submission failed", cause);
+      getLogger().error("Public form submission failed", cause);
       return c.json(error("Could not save your submission"), 400);
     }
   };

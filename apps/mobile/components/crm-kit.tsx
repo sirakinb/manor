@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { brandType, manor } from "../lib/native";
+import { brandType, manor } from "../lib/native/native";
 
 /** The eyebrow above a number or a section, in Manor's label face. */
 export function Label({ children }: { children: ReactNode }) {

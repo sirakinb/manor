@@ -2,6 +2,7 @@ import contextlib
 import io
 import json
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -244,6 +245,54 @@ class OperatorBoundaryTests(unittest.TestCase):
         self.assertEqual(workspace.read()["state"], "provisioning")
         with mock.patch.object(workspace, "docker", return_value=b""):
             self.assertEqual(workspace.destroy()["state"], "destroyed")
+
+    def test_submission_carries_only_commits_made_in_the_workspace(self):
+        trusted, clone = self.root / "trusted", self.root / "clone"
+        def git(*args, cwd=None):
+            return subprocess.run(
+                ["git", "-c", "user.name=Synthetic", "-c", "user.email=synthetic@example.invalid",
+                 "-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main", *args],
+                cwd=cwd, check=True, capture_output=True, text=True,
+                env={"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": str(self.root),
+                     "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null"}).stdout.strip()
+        def commit(directory, name):
+            (directory / name).write_text(name)
+            git("add", name, cwd=directory)
+            git("commit", "-q", "-m", name, cwd=directory)
+            return git("rev-parse", "HEAD", cwd=directory)
+        git("init", "-q", str(trusted))
+        commit(trusted, "history")
+        base = commit(trusted, "base")
+        git("clone", "-q", str(trusted), str(clone))
+        workspace = Workspace(self.root / "state", "unit")
+        workspace.record.write_text(canonical({"revision": base}))
+        executed = []
+        def execute(command):
+            executed.append(command)
+            return subprocess.run(command, cwd=clone, check=True, capture_output=True).stdout
+        def imported(revision):
+            return git("rev-parse", "refs/manor-workspaces/unit/" + revision, cwd=trusted)
+        with mock.patch.object(workspace, "execute", side_effect=execute):
+            # A commit the trusted repository already holds needs no bundle.
+            self.assertEqual(workspace.submit(str(trusted)), {"revision": base})
+            self.assertEqual(imported(base), base)
+            self.assertFalse(any("bundle" in command for command in executed))
+            head = commit(clone, "change")
+            self.assertEqual(workspace.submit(str(trusted)), {"revision": head})
+            self.assertEqual(executed[-1][-2:], ["HEAD", "^" + base])
+            self.assertEqual(imported(head), head)
+            prerequisites = git("bundle", "verify", str(self.root / "state" / "unit.bundle"), cwd=trusted)
+            self.assertIn(base, prerequisites)
+            # A record written before the starting revision was kept still submits everything.
+            workspace.record.write_text(canonical({}))
+            older = commit(clone, "older-record")
+            self.assertEqual(workspace.submit(str(trusted)), {"revision": older})
+            self.assertEqual(executed[-1][-1], "HEAD")
+            self.assertEqual(imported(older), older)
+            # Uncommitted work is still refused.
+            (clone / "pending").write_text("pending")
+            with self.assertRaisesRegex(Refused, "commit_workspace_changes_first"):
+                workspace.submit(str(trusted))
 
     def test_request_id_schema_matches_canonical_runtime_ids(self):
         schema = json.loads((Path(__file__).resolve().parents[4] / "packages/contracts/release-v1.schema.json").read_text())

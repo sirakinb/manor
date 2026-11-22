@@ -2,8 +2,8 @@ import { useLingui } from "@lingui/react/macro";
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { MessageBlock } from "@rakazo/contracts";
 import { formatDurationMs } from "@rakazo/core";
-import { useEffect, useState } from "react";
-import { ManorOrb } from "./beautiful-ui/ManorOrb";
+import { Fragment, useEffect, useState } from "react";
+import { ManorOrb } from "./ai/ManorOrb";
 
 export type ActivityItem = Extract<MessageBlock, { kind: "thinking" } | { kind: "steps" }>;
 
@@ -30,6 +30,16 @@ export function groupNarrationBlocks(blocks: readonly MessageBlock[]): Narration
   return entries;
 }
 
+/** The trimmed text of every prose entry, so a step note already shown as narration is not repeated. */
+export function proseTexts(entries: readonly NarrationEntry[]): ReadonlySet<string> {
+  const texts = new Set<string>();
+  for (const entry of entries) {
+    const text = entry.kind === "prose" ? entry.block.text.trim() : "";
+    if (text) texts.add(text);
+  }
+  return texts;
+}
+
 /**
  * Prose is "interim" when the bot keeps working after it: it shares the rail
  * with the reasoning instead of reading as the final answer.
@@ -43,7 +53,16 @@ export function isInterimProse(entries: readonly NarrationEntry[], index: number
  * open: thoughts as quiet italic paragraphs behind a hairline, tool calls as
  * plain one-line steps. Nothing folds away once the turn completes.
  */
-export function ActivityTimeline({ items, live }: { items: ActivityItem[]; live: boolean }) {
+export function ActivityTimeline({
+  items,
+  live,
+  shownProse,
+}: {
+  items: ActivityItem[];
+  live: boolean;
+  /** Narration already on screen; a step note with the same text is not shown again. */
+  shownProse?: ReadonlySet<string>;
+}) {
   return (
     <div data-testid="activity-timeline" data-live={live || undefined} className="rk-tl">
       <div className="rk-tl-rail">
@@ -64,16 +83,26 @@ export function ActivityTimeline({ items, live }: { items: ActivityItem[]; live:
             <div key={index} className="rk-tl-steps" data-testid="tool-rows">
               {item.steps.map((step, stepIndex) => {
                 const stepLive = isCurrent && stepIndex === item.steps.length - 1;
+                const note = step.note?.trim();
                 return (
-                  <div
-                    key={stepIndex}
-                    className={`rk-tl-step${stepLive ? " rk-tl-step-live" : ""}`}
-                    dir="auto"
-                  >
-                    {step.label}
-                    {step.count > 1 ? ` ×${step.count}` : ""}
-                    {stepLive ? "…" : ""}
-                  </div>
+                  <Fragment key={stepIndex}>
+                    <div className={`rk-tl-step${stepLive ? " rk-tl-step-live" : ""}`} dir="auto">
+                      {step.label}
+                      {step.count > 1 ? ` ×${step.count}` : ""}
+                      {stepLive ? "…" : ""}
+                    </div>
+                    {/* What the bot wrote before this step, rendered as upstream's tool activity
+                        does, as quiet text under the row. */}
+                    {note && !shownProse?.has(note) ? (
+                      <div
+                        data-testid="tool-step-note"
+                        className="pb-1 text-body-sm leading-5 text-muted-foreground"
+                        dir="auto"
+                      >
+                        <ChatMarkdown>{note}</ChatMarkdown>
+                      </div>
+                    ) : null}
+                  </Fragment>
                 );
               })}
             </div>

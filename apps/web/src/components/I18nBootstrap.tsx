@@ -1,8 +1,12 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { type ReactNode, useEffect, useState } from "react";
-import { bootstrapI18n, getActiveUiLocale } from "../lib/i18n";
-import { resolveUiLocale } from "../lib/ui-locale";
+import { useLingui } from "@lingui/react/macro";
+import { InputRevealLabelsProvider, KitLabelsProvider } from "@rakazo/ui-web";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { bootstrapI18n, getActiveUiLocale } from "../lib/locale/i18n";
+import { resolveUiLocale } from "../lib/locale/ui-locale";
+import { MarkdownChrome } from "./messages/markdown-copy";
 
 export function I18nBootstrap({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(() => i18n.locale === getActiveUiLocale());
@@ -21,11 +25,29 @@ export function I18nBootstrap({ children }: { children: ReactNode }) {
   if (!ready) {
     return (
       <div
-        className="grid h-full place-items-center text-[#6C6C70]"
+        className="grid h-full place-items-center text-muted-foreground/80"
         data-rakazo-app-state="i18n-pending"
       />
     );
   }
 
-  return <I18nProvider i18n={i18n}>{children}</I18nProvider>;
+  return (
+    <I18nProvider i18n={i18n}>
+      <KitLabels>
+        <MarkdownChrome>{children}</MarkdownChrome>
+      </KitLabels>
+    </I18nProvider>
+  );
+}
+
+/** Translations for the text the UI kit draws itself. */
+function KitLabels({ children }: { children: ReactNode }) {
+  const { t } = useLingui();
+  return (
+    <KitLabelsProvider close={t`Close`} loading={t`Loading`}>
+      <InputRevealLabelsProvider show={t`Show password`} hide={t`Hide password`}>
+        {children}
+      </InputRevealLabelsProvider>
+    </KitLabelsProvider>
+  );
 }

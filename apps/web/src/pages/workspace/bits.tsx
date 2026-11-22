@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspacePipeStatus } from "@rakazo/contracts";
 import { useEffect, useState } from "react";
-import { BuiButton, BuiCard, LoadingState } from "../../components/beautiful-ui/primitives";
+import { BuiButton, BuiCard, LoadingState } from "../../components/ai/primitives";
 import { accentColor } from "../../lib/brand";
 import { formatMoney, formatMoneyCents, formatMoneyShort, withAlpha } from "../crm/theme";
 

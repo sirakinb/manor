@@ -9,7 +9,7 @@ import {
   stageBreakdown,
   summarize,
 } from "../lib/crm";
-import { manor } from "../lib/native";
+import { manor } from "../lib/native/native";
 import { Bar, Card, Empty, Label, Segmented } from "./crm-kit";
 
 export function CrmHome({

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { createDb } from "../../../packages/db/src/client";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { createDb } from "@rakazo/db";
+import { captureScreenshot, completeOnboarding, signup } from "./helpers/helpers";
 
 test("user guides remain available when the API reference cannot load", async ({
   page,

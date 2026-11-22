@@ -1,0 +1,54 @@
+appId: com.pentridgemedia.manor
+name: Manor organizations
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    permissions:
+      notifications: deny
+- extendedWaitUntil:
+    visible: "Sign up|Pixel Launcher isn't responding"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Pixel Launcher isn't responding"
+    commands:
+      - tapOn: "Close app"
+- extendedWaitUntil:
+    visible: "Sign up"
+    timeout: 30000
+- runFlow: helpers/server.yaml
+- tapOn: "Email"
+- inputText: ${RAKAZO_SCREENSHOT_EMAIL}
+- tapOn: "Password"
+- inputText: ${RAKAZO_SCREENSHOT_PASSWORD}
+- hideKeyboard
+- tapOn: "Continue with email"
+- tapOn:
+    text: "Don’t allow"
+    optional: true
+- extendedWaitUntil:
+    visible: "Researcher"
+    timeout: 30000
+
+# Manor: each portal has one organization. Settings name it and offer no create, and the inbox
+# title has no organization switcher.
+- openLink: "manor:///account"
+- scrollUntilVisible:
+    element: "Organization"
+    direction: DOWN
+# Manor: the row opens the organization's settings; there is no organization menu.
+- tapOn: "Organization"
+- extendedWaitUntil:
+    visible: "Name"
+    timeout: 10000
+- assertNotVisible: "Create organization"
+- assertNotVisible: "Delete organization"
+- takeScreenshot: "40-account-organization"
+- openLink: "manor:///"
+- extendedWaitUntil:
+    visible: "Researcher"
+    timeout: 15000
+- assertNotVisible:
+    id: "organization-menu"

@@ -1,0 +1,12 @@
+{
+  "apps/api/src/crm-integrations.ts": 12,
+  "apps/api/src/mcp-oauth-provider.ts": 3,
+  "apps/api/src/public-forms.ts": 1,
+  "apps/api/src/router.ts": 2,
+  "apps/api/src/workspace-integrations.ts": 1,
+  "packages/adapters/src/google-forms-connector.ts": 1,
+  "packages/adapters/src/maintenance-vps.ts": 2,
+  "packages/adapters/src/mcp/mcp-oauth.ts": 1,
+  "packages/adapters/src/runs/lifecycle/run-attempt.ts": 2,
+  "packages/adapters/src/zoho-campaigns-connector.ts": 2
+}

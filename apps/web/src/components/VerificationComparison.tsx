@@ -6,8 +6,8 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { FOCUSABLE } from "../lib/focusable";
-import { rpc } from "../lib/rpc";
-import { BuiButton, BuiCard, LoadingState } from "./beautiful-ui/primitives";
+import { useSpaceRpc } from "../lib/query/space-rpc";
+import { BuiButton, BuiCard, LoadingState } from "./ai/primitives";
 import { ChartCanvas } from "./ChartCanvas";
 
 type Checkpoint = "action" | "answer";
@@ -19,6 +19,7 @@ const RANGES = [7, 30, 90] as const;
 
 /** Side-by-side results for the checker engines, with Markdown and CSV downloads. */
 export function VerificationComparisonOverlay({ onClose }: { onClose: () => void }) {
+  const rpc = useSpaceRpc();
   const { t } = useLingui();
   const [days, setDays] = useState<number>(30);
   const [botId, setBotId] = useState("");
@@ -97,7 +98,7 @@ export function VerificationComparisonOverlay({ onClose }: { onClose: () => void
     return () => {
       cancelled = true;
     };
-  }, [days, botId, t]);
+  }, [days, botId, t, rpc]);
 
   async function download(format: "markdown" | "csv") {
     setDownloading(format);

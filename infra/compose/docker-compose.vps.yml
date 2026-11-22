@@ -115,6 +115,9 @@ services:
       - ../../.env.vps
     environment:
       NODE_ENV: production
+      # Every other setting in .env.vps (EMAIL_REPLY_TO, RAKAZO_NAV_LINKS, REFERRAL_EMAIL_ENABLED,
+      # VOICE_SUMMARY_MIN_CHARS, USER_DEVICES_ENABLED, NOVITA_API_KEY, SANDBOX_TEMPLATE, ...)
+      # arrives through env_file, so leaving one out of .env.vps keeps it unset.
       # Sibling containers reach the API over the compose network, so it must
       # not bind loopback-only inside its own namespace.
       API_HOST: "0.0.0.0"
@@ -260,6 +263,15 @@ services:
       API_PROXY_TARGET: http://api:3100
       RAKAZO_HOST: ${RAKAZO_HOST:?Set RAKAZO_HOST in .env.vps}
       SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env.vps}
+      # Extra script and connect origins for the app's content security policy. Empty keeps
+      # the built-in policy; an invalid origin stops the server rather than widen it.
+      RAKAZO_CSP_SCRIPT_SRC: ${RAKAZO_CSP_SCRIPT_SRC:-}
+      RAKAZO_CSP_CONNECT_SRC: ${RAKAZO_CSP_CONNECT_SRC:-}
+      # Manor: brand portal pages frame app previews from this primary origin.
+      WEB_ORIGIN: ${WEB_ORIGIN:-}
+      # vite preview bundles its config with Rolldown, which starts one thread per host CPU.
+      # Upstream fixes it at 4 so pids_limit holds on many-core hosts; empty keeps the default.
+      RAYON_NUM_THREADS: ${RAYON_NUM_THREADS:-}
     expose:
       - "5173"
     networks:
@@ -281,7 +293,14 @@ services:
       - ALL
     pids_limit: 128
     mem_limit: 128m
-    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.vps}"]
+    command:
+      [
+        "tunnel",
+        "--no-autoupdate",
+        "run",
+        "--token",
+        "${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env.vps}",
+      ]
     networks:
       - app
     depends_on:
