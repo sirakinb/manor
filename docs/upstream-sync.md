@@ -375,6 +375,10 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   stay off until their repository variables are set (`SECURITY_SCANS_ENABLED`,
   `WWW_INDEXNOW_ENABLED`). Turning the scans on after the sync is worthwhile; they were gated so
   findings in upstream's code do not block the stacked sync pull requests.
+- Upstream's startup bundle budget (`scripts/checks/bundle-size.budgets.json`, from `v0.12.0`)
+  is kept at upstream's number. Manor's places (Workspace, CRM, docs) and side panels (files,
+  run logs, saved logins) load when opened (`lazyComponent`), which keeps the web app under it.
+  A new Manor view is loaded the same way; raise the budget only for code every page needs.
 - The mobile app stays on Manor's own version and keeps no Apple sign-in entitlement; upstream's
   `expo-apple-authentication` config plugin is not in Manor's app config.
 

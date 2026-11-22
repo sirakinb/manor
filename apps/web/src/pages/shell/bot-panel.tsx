@@ -35,7 +35,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, X } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { Suspense, useEffect, useId, useRef, useState } from "react";
-import { BotCredentialsSettings } from "../../components/BotCredentialsSettings";
 import { BotEmailAddressField } from "../../components/BotEmailAddressField";
 import { ErrorBoundary, SectionLoadFailed } from "../../components/ErrorBoundary";
 import { InstructionSettings } from "../../components/InstructionSettings";
@@ -63,6 +62,11 @@ const ScratchpadSection = lazyComponent(() =>
 
 const KnowledgeSection = lazyComponent(() =>
   import("../KnowledgeSection").then((module) => module.KnowledgeSection),
+);
+
+// Manor: saved logins sit in the folded Settings section, so they load when it opens.
+const BotCredentialsSettings = lazyComponent(() =>
+  import("../../components/BotCredentialsSettings").then((module) => module.BotCredentialsSettings),
 );
 
 /** The fields saved together as soon as one changes, in the order their saved snapshot keeps them. */
@@ -865,7 +869,9 @@ export function BotSettings({
               />
             ) : null}
             {/* Manor's saved website logins stay beside upstream's Space vault. */}
-            <BotCredentialsSettings botId={bot.id} />
+            <Suspense fallback={null}>
+              <BotCredentialsSettings botId={bot.id} />
+            </Suspense>
           </div>
         </div>
         {error ? <p className="mt-2 text-body-sm text-destructive">{error}</p> : null}

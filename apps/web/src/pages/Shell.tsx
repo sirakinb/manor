@@ -56,11 +56,9 @@ import { useLocation, useParams } from "react-router-dom";
 import { ComputerUpdateProgress } from "../components/ComputerUpdateProgress";
 import { CallCard, CallReturnBar } from "../components/call/CallCard";
 import { IncomingCall } from "../components/call/IncomingCall";
-import { FilesPanel } from "../components/FilesPanel";
 import { IconTooltip } from "../components/IconTooltip";
 import { PageLoading } from "../components/PageLoading";
 import { PageViewHost } from "../components/pages/PageViewHost";
-import { RunLogsPanel } from "../components/RunLogsPanel";
 import type { ArtifactTarget } from "../lib/artifact-open";
 import { authClient } from "../lib/auth";
 import { peekBootstrapSeed } from "../lib/bootstrap";
@@ -76,7 +74,7 @@ import { desktopBridge } from "../lib/desktop";
 import { hasOpenDialog } from "../lib/has-open-dialog";
 import { PagesProvider, usePagesForChat } from "../lib/pages";
 import { markAfterPaint, markOnce } from "../lib/performance";
-import { usePreloadRecoveryState } from "../lib/preload-recovery";
+import { lazyComponent, usePreloadRecoveryState } from "../lib/preload-recovery";
 import { lastChatKey, lastChatOf, queryClient, spaceQueries, spaceSeedKey } from "../lib/query";
 import { rightPanelStorageKey } from "../lib/right-panel-state";
 import { routineNeedsOneShotArm } from "../lib/routine-draft";
@@ -88,8 +86,6 @@ import { useDesktopBadge } from "../lib/use-desktop-badge";
 import { useFileDropZone } from "../lib/use-file-drop";
 import { useTeamPresence } from "../lib/use-team-presence";
 import { errorText } from "../lib/user-error";
-import { CrmView } from "./crm/CrmView";
-import { DocsView } from "./DocsView";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import { ArchivedChats } from "./shell/archived-chats";
 import type { ChatMenuState, ChatMenuTarget } from "./shell/chat-context-menu";
@@ -139,7 +135,19 @@ import { useTeaching } from "./shell/use-teaching";
 import { useThreadState } from "./shell/use-thread-state";
 import { useThreadSync } from "./shell/use-thread-sync";
 import type { SettingsSection } from "./shell-overlay";
-import { WorkspaceView } from "./workspace/WorkspaceView";
+
+// Manor: its places and side panels load when opened, so they stay out of the startup bundle.
+const WorkspaceView = lazyComponent(() =>
+  import("./workspace/WorkspaceView").then((module) => module.WorkspaceView),
+);
+const CrmView = lazyComponent(() => import("./crm/CrmView").then((module) => module.CrmView));
+const DocsView = lazyComponent(() => import("./DocsView").then((module) => module.DocsView));
+const FilesPanel = lazyComponent(() =>
+  import("../components/FilesPanel").then((module) => module.FilesPanel),
+);
+const RunLogsPanel = lazyComponent(() =>
+  import("../components/RunLogsPanel").then((module) => module.RunLogsPanel),
+);
 
 const NO_AGENT_SKILLS: AgentSkillCatalogEntry[] = [];
 const NO_PROVIDERS: string[] = [];
@@ -1327,19 +1335,27 @@ function SpaceShell() {
           />
         ) : null}
         {workspaceOpen ? (
-          <WorkspaceView
-            organizationName={currentOrganizationName}
-            onOpenBot={(bot, text) => {
-              setBots((current) =>
-                current.some((candidate) => candidate.id === bot.id) ? current : [...current, bot],
-              );
-              navigate(`/app/${bot.id}`, { state: { composerPrefill: { botId: bot.id, text } } });
-            }}
-          />
+          <Suspense fallback={null}>
+            <WorkspaceView
+              organizationName={currentOrganizationName}
+              onOpenBot={(bot, text) => {
+                setBots((current) =>
+                  current.some((candidate) => candidate.id === bot.id)
+                    ? current
+                    : [...current, bot],
+                );
+                navigate(`/app/${bot.id}`, { state: { composerPrefill: { botId: bot.id, text } } });
+              }}
+            />
+          </Suspense>
         ) : crmOpen ? (
-          <CrmView />
+          <Suspense fallback={null}>
+            <CrmView />
+          </Suspense>
         ) : docsOpen ? (
-          <DocsView />
+          <Suspense fallback={null}>
+            <DocsView />
+          </Suspense>
         ) : (
           <div
             data-testid="chat-pane"
@@ -1815,7 +1831,7 @@ function SpaceShell() {
         }
         manorContent={
           active ? (
-            <>
+            <Suspense fallback={null}>
               {panel === "logs" ? <RunLogsPanel key={active.id} botId={active.id} /> : null}
               {panel === "files" ? (
                 <FilesPanel
@@ -1875,7 +1891,7 @@ function SpaceShell() {
                   </div>
                 </div>
               ) : null}
-            </>
+            </Suspense>
           ) : null
         }
       />
