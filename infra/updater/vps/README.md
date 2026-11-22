@@ -109,8 +109,10 @@ Edits and commits happen inside the container's `/workspace/tree` worktree.
 Node packages use `/app`, where source is mounted around the toolchain's
 installed dependencies. The synthetic database is reachable as `postgres`;
 `DATABASE_URL` and `DATA_DIR` refer only to that workspace.
-Submissions import a bundle into revision-specific refs after object
-validation; the release controller reads the trusted import repository.
+Submissions import a bundle of the commits made in the workspace into
+revision-specific refs after object validation; the release controller reads
+the trusted import repository. The bundle is limited to 128 MiB, and history
+the trusted repository already holds is not sent again.
 
 A fresh toolchain image must contain `/app/pnpm-lock.yaml` and matching
 installed dependencies. The candidate lockfile must match exactly. Dependency

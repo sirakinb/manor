@@ -70,7 +70,7 @@ class Workspace:
         config = {
             "id": self.workspace_id, "volume": str(volume), "toolchain": toolchain,
             "postgresImage": postgres_image, "port": port, "password": secrets.token_hex(24),
-            "previewToken": secrets.token_hex(24), "state": "provisioning",
+            "previewToken": secrets.token_hex(24), "state": "provisioning", "revision": revision,
         }
         self.record.write_text(canonical(config))
         self.record.chmod(0o600)
@@ -185,14 +185,26 @@ class Workspace:
         dirty = self.execute(["git", "-c", "core.fsmonitor=false", "status", "--porcelain"]).decode().strip()
         if dirty:
             raise Refused("commit_workspace_changes_first")
-        data = self.execute(["git", "-c", "core.fsmonitor=false", "bundle", "create", "-", "HEAD"])
+        trusted = ["git", "-c", "core.hooksPath=/dev/null", "-c", "safe.directory=" + repository, "-C", repository]
+        target = "refs/manor-workspaces/" + self.workspace_id + "/" + revision
+        try:
+            run(trusted + ["cat-file", "-e", revision + "^{commit}"])
+        except Refused:
+            pass
+        else:
+            # Nothing new: the trusted repository already validated this commit.
+            run(trusted + ["update-ref", target, revision])
+            return {"revision": revision}
+        # Bundle only the commits made since the workspace began. The trusted repository
+        # holds the rest, and the fetch below fails closed if it does not.
+        base = self.read().get("revision", "")
+        since = ["^" + base] if COMMIT.fullmatch(base) else []
+        data = self.execute(["git", "-c", "core.fsmonitor=false", "bundle", "create", "-", "HEAD", *since])
         if len(data) > 128 * 1024 * 1024:
             raise Refused("bundle_too_large")
         bundle = self.state / (self.workspace_id + ".bundle")
         bundle.write_bytes(data)
-        run(["git", "-c", "core.hooksPath=/dev/null", "-c", "fetch.fsckObjects=true",
-             "-c", "safe.directory=" + repository,
-             "-C", repository, "fetch", str(bundle), "HEAD:refs/manor-workspaces/" + self.workspace_id + "/" + revision])
+        run(trusted + ["-c", "fetch.fsckObjects=true", "fetch", str(bundle), "HEAD:" + target])
         return {"revision": revision}
 
     def preview_url(self):
