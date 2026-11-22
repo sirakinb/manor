@@ -831,6 +831,31 @@ Things the one production deploy at the end must cover, collected as stages land
     was healthy in about ten seconds, the worker ran with no error, the web service served the
     app and reached the API through its proxy, and no run, message, thread, event or job row
     changed.
+- The same image was then started with the shape of production's settings: every name the live
+  API and worker receive, with each secret and identifying value replaced by a random stand-in
+  of the same form, and the two settings this release adds. Both started with no configuration
+  error.
+- It was also run against the controller's real admission gate, in the order a rollout uses it.
+  The controller's own health probe, which requires the admission guard, passed with the gate
+  open, passed again for an API started while the gate was closed (the moment after a rollout
+  switches images), and passed after reopening; new work was refused while the gate was closed,
+  and neither process logged an error.
+- The backup a rollout takes is verified by restoring it into a 1 GiB filesystem. The latest
+  nightly dump restores there in 20 seconds at a peak of 510 MB, inside the gate's 256 MiB of
+  memory.
+- **This release has no automatic way back once its migrations have run.** The migrated schema
+  drops 14 columns the running release reads (on bots, threads, messages, computers and others),
+  so the previous image cannot run against it, and the controller's recovery, which restores the
+  previous image and never the database, would not give a working app. The way back is the
+  backup the rollout takes after admission closes, restored by an operator, with the previous
+  image. Nothing is written between that backup and the migration, so no data would be lost.
+  The rollout waits 120 seconds for the services to start, which is fixed in the controller;
+  migrating the fresh copy took 11 seconds and the API was healthy about ten seconds later.
+- The installed controller matches the repository at the revision it records, apart from one
+  operator file the repository does not carry. Installing this change replaces two files,
+  `docker_adapter.py` and `workspace.py`.
+- A preparation is refused while the interactive development environment is running, as before;
+  stop it for the preparation and start it afterwards.
 - In production the worker and web containers start only after the API is healthy, and the API
   applies migrations before it starts, so the new code never runs against a half-migrated
   database. The health wait after a rollout is 60 seconds; raise it for this release.
