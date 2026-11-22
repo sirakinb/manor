@@ -775,6 +775,20 @@ Things the one production deploy at the end must cover, collected as stages land
   - each chat owner's own earlier messages are readable by their routines (stamped by Manor's
     migration); messages from channels and other bots are not, as intended;
   - production's database time zone is already UTC.
+- The final branch's app image was built from `infra/compose/Dockerfile` (about nine minutes,
+  3.2 GB) and its API and worker were run against that fresh copy on a network with no
+  outbound access, with a throwaway encryption key, `CONTENT_ENCRYPTION=off`,
+  `PHONE_CALLS_ENABLED=true` and the Docker computer provider:
+  - the API was healthy in about nine seconds and listed no social sign-in providers; a
+    signed-out request was refused;
+  - with a temporary session for a portal's main user, on that portal's host, the new API
+    returned their space and bots, a chat with every block kind Manor adds, computer status,
+    approval settings (Ask, Manor's checker), connections, the Workspace (status, overview,
+    team, system), the CRM overview and the team list, with no error logged;
+  - the worker ran for two minutes with no error and changed nothing: no run, message, thread,
+    event, job or computer row was touched, and no lifecycle email was attempted.
+  Still to rehearse: the release tooling itself (toolchain image from the `toolchain` stage,
+  archive and build limits, workspace disk), which runs through the release controller.
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR
