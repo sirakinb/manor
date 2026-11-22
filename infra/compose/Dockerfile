@@ -54,9 +54,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lo
   --filter=. --filter="@rakazo/api..." --filter="@rakazo/worker..." \
   --filter="@rakazo/web..." --filter="@rakazo/sandbox-supervisor..." \
   && chmod -R a+rX "${COREPACK_HOME}"
-# A release runs as uid 1000 and writes beside its source: `vite preview` bundles its config there.
-# Give that user the folders, as in the image this replaces, and not the dependencies inside them.
-RUN find /app -type d \( -name node_modules -prune -o -true \) -exec chown 1000:1000 {} +
+# A release runs as uid 1000, and its web service (`vite preview`) bundles its config into a
+# temporary file beside it. That one folder is all a release writes in /app; the rest stays root's.
+RUN chown 1000:1000 /app/apps/web
 ENV NODE_ENV=production
 EXPOSE 3100 5173 7091
 CMD ["pnpm", "--filter", "@rakazo/api", "start"]

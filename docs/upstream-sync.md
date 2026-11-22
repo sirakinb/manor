@@ -351,7 +351,12 @@ itself are what remain.
   routine, never the delivery text; with no routine a person decides.
 - The release toolchain image has its own stage in `infra/compose/Dockerfile` (`toolchain`),
   because upstream's `build` stage now ends without installed dependencies. The default image
-  build does not make it.
+  build does not make it. A release runs as uid 1000, and the stage gives that user one folder,
+  the web app's: the web service bundles its Vite config into a temporary file there and cannot
+  start otherwise. Everything else in the image stays root's.
+- A remote development workspace submits only the commits made in it (decided 2026-11-22). The
+  whole history no longer fits the 128 MiB bundle limit now that upstream's history is merged
+  in, and the trusted repository already holds the rest.
 - The Apple silicon server bundle for the desktop's Docker-free option is published with the
   desktop release in Manor's desktop releases repository; the file keeps upstream's internal
   name.
@@ -803,6 +808,29 @@ Things the one production deploy at the end must cover, collected as stages land
     The controller's limits became optional policy fields for that reason (a separate change),
     and the policy for this release has to set them, build the API and worker as well as the web
     app, name the new toolchain image and allow the release's revision.
+- The updated controller then prepared this branch itself, start to finish, in the same isolated
+  engine (2026-11-22): its own `prepare`, under the 512 MiB cap its service runs with, against
+  the real toolchain image, with a plain folder standing in for the loop filesystem that engine
+  cannot make. With `buildMemoryMb` 3072, `artifactLimitMb` 512, `buildDiskMb` 4096,
+  `buildPidsLimit` 256 and `buildTimeoutSeconds` 3600:
+  - a preparation takes eight to twelve minutes: about four to seed the build folder from the
+    toolchain, two to build, and two to four to commit the image; the acceptance command runs
+    in seconds;
+  - the controller's own process stays near 206 MiB with a 418 MB artifact, which is spooled to
+    disk; the build folder holds about 2,930 MB;
+  - the build needs its Node heap capped below the container's limit. The controller sets the
+    heap to the limit less 128 MiB, and the web build's bundler uses memory outside that heap:
+    at 2,560 MiB one build in seven was killed. With the limit at 3,072 MiB and
+    `NODE_OPTIONS=--max-old-space-size=2048` set by the build command, eight builds peaked at
+    2,340 MiB or less and none was killed;
+  - the test command must give the test runner a writable home (`HOME=/tmp`): the acceptance
+    container is read-only and the runner writes a token file. A short command over the shared
+    contracts (57 files, 1,236 tests) passes in the build container and in the final image;
+  - the image the controller produced was started with production's own service commands on the
+    network with no outbound access, against the fresh copy: the API applied no migration and
+    was healthy in about ten seconds, the worker ran with no error, the web service served the
+    app and reached the API through its proxy, and no run, message, thread, event or job row
+    changed.
 - In production the worker and web containers start only after the API is healthy, and the API
   applies migrations before it starts, so the new code never runs against a half-migrated
   database. The health wait after a rollout is 60 seconds; raise it for this release.

@@ -61,6 +61,11 @@ held in memory, so its limit counts toward the disk a build needs.
 
 Build scratch is removed after preparation, including on failure and restart.
 A build filesystem left at a different size than `buildDiskMb` is recreated.
+The build container's Node heap is `buildMemoryMb` less 128 MiB. A build whose
+tools use much memory outside that heap should set a lower
+`NODE_OPTIONS=--max-old-space-size` in its build command. The acceptance
+container is read-only apart from `/tmp`, so a test command that writes to its
+home directory needs `HOME=/tmp`.
 Retained release images, workspace source and database snapshots are not
 removed by that cleanup. No automatic image or backup pruning occurs.
 Suspend the workspace before preparing a candidate. The controller refuses
