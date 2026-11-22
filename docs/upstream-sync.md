@@ -16,9 +16,10 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`, `v0.12.0`, `v0.13.0`.
-In progress: upstream's `main` as of 2026-11-22 (commit `31b9ebaaa`, 606 commits after
-`v0.13.0`), the last stage.
+`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`, `v0.12.0`, `v0.13.0`, and
+upstream's `main` as of 2026-11-22 (commit `31b9ebaaa`, 606 commits after `v0.13.0`). Every
+stage's pull request is green. Nothing is deployed yet: the deploy rehearsal and the deploy
+itself are what remain.
 
 ### How a stage is resolved
 
@@ -761,6 +762,19 @@ Things the one production deploy at the end must cover, collected as stages land
     (new permission prompts), Thai as a language, and the Integrations shortcut moving to
     Cmd/Ctrl+Shift+A on desktop.
   - The mobile app again needs a new native build (calendar and store review modules).
+- The whole chain was rehearsed in one run on a fresh copy of the 2026-11-22 backup, with the
+  pre-deploy step simulated on the copy: 268 migrations applied in 11 seconds, none failed, no
+  invalid indexes, no table removed. The only existing rows that changed are the ones the
+  one-person migration is meant to remove (the second person's membership and seeded Workspace
+  rows in the one space that had two people) and the approval settings rows the account
+  settings migration creates. After the chain:
+  - every account and every space is on Ask, and there are no Always allow rules, so none of
+    upstream's changes to Auto and Never ask alters what a bot may do without a card;
+  - no bot has daily check-ins on, so no open work is parked;
+  - every computer is a Docker computer of size `standard`;
+  - each chat owner's own earlier messages are readable by their routines (stamped by Manor's
+    migration); messages from channels and other bots are not, as intended;
+  - production's database time zone is already UTC.
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR
