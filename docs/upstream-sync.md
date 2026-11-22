@@ -859,6 +859,39 @@ Things the one production deploy at the end must cover, collected as stages land
 - In production the worker and web containers start only after the API is healthy, and the API
   applies migrations before it starts, so the new code never runs against a half-migrated
   database. The health wait after a rollout is 60 seconds; raise it for this release.
+- The Workspace automations were run end to end on a clone of the migrated copy (2026-11-22): the
+  release's worker, a copy of the ingestion image production runs, no outbound network, and
+  stand-in provider logins sealed with the live release's sealing routine. In the one workspace
+  that has automations enabled, all eight fired when due; the worker opened each login; the
+  ingestion service accepted every signed request; the three pipelines that gate themselves
+  finished as `success` with no records; the five that call a provider stopped at the network;
+  and each automation was armed again for the same next run production had. The provider calls
+  and the real encryption key cannot be exercised there.
+- A release does not replace the ingestion service. No `workspace_*` table, constraint or index
+  differs between production and the migrated copy (403 columns in 28 tables) and none is under
+  row-level security. Production's app and ingestion service both connect as the owner role,
+  which row-level security does not bind.
+- Scheduled routines keep `nextRunAt`. The worker arms a routine one minute before it is due; one
+  made due on the clone started a run on time and was armed for its next date. The run then
+  stopped where it opens its stored credentials, which the copy cannot decrypt.
+- **The supervisor and the computer image are not replaced by the controller and must be updated
+  with this release.** Production's are from early September. Left in place, they still let the
+  release's API boot a computer, write and read its files, give a screen and stop it, but that
+  supervisor has no `/browser` or `/terminal` route, so the page browser tools fail. After
+  swapping in the release's supervisor and computer image, the same computer was recreated from
+  the new image on its next boot with its home folder intact, and navigate and snapshot answered
+  through the helper. To update them:
+  - build both from the release ahead of time (`infra/sandboxes/supervisor/Dockerfile` with the
+    repository as context, and `infra/sandboxes/computer`); the computer image's package
+    download took almost two hours on the server that day;
+  - keep the previous images under another tag, point `rakazo/computer:local` at the new image
+    and set the supervisor's image in the controller's Compose file;
+  - once the release is healthy, recreate only the supervisor
+    (`up -d --no-deps --no-build --pull never supervisor`). `RAKAZO_COMPUTER_MEMORY_MB` is still
+    read.
+- The controller's Compose file pins the ingestion service to an image that is no longer on the
+  host; the running container uses a later build. A release does not recreate that service, so
+  nothing changes, but set the pin to the running image when the file is next edited.
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR
