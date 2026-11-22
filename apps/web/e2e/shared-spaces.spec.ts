@@ -1,12 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import type { Bot } from "@rakazo/contracts";
-import {
-  createDb,
-  createSpaceForMember,
-  ensureOwnSpace,
-  runAsSystem,
-} from "../../../packages/db/src/index";
+import { createDb, createSpaceForMember, ensureOwnSpace, runAsSystem } from "@rakazo/db";
 import {
   captureScreenshot,
   chooseOption,

@@ -14,6 +14,7 @@ const SCANNED = /\.(?:[cm]?[jt]sx?|sql|prisma|sh|ya?ml|py|kt|swift)$/;
 const MARKER = /compat-shim\(after v(\d+\.\d+\.\d+)\)/g;
 const RELEASE_HEADING = /^## \[(\d+\.\d+\.\d+)\]/gm;
 const RELEASES_UNTIL_DUE = 2;
+const UPSTREAM_CHANGELOG = "docs/upstream-changelog.md";
 
 const compareVersions = (a, b) => {
   const [x, y] = [a, b].map((version) => version.split(".").map(Number));
@@ -50,8 +51,10 @@ function shimProblems(file, text, released) {
 }
 
 test("compatibility shims are removed once nothing running needs them", () => {
-  const released = releasedVersions(readFileSync(path.join(root, "CHANGELOG.md"), "utf8"));
-  assert.ok(released.length > 0, "CHANGELOG.md lists no releases");
+  // Manor: shims name upstream's releases, which Manor's own changelog does not list. The copy of
+  // upstream's changelog is refreshed at each sync.
+  const released = releasedVersions(readFileSync(path.join(root, UPSTREAM_CHANGELOG), "utf8"));
+  assert.ok(released.length > 0, `${UPSTREAM_CHANGELOG} lists no releases`);
   const files = gitGrep("compat-shim(after")
     .split("\0")
     .filter((file) => SCANNED.test(file) && file !== SELF);

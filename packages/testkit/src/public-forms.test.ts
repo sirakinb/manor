@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
 
 type App = AppHandles["app"];
-type AppHandles = Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
+type AppHandles = Awaited<ReturnType<typeof import("@rakazo/api/app").createApp>>;
 type Form = { id: string; slug: string; enabled: boolean; eventStartsAt: string | null };
 
 process.env.WAKEUP_DRIVER = "memory";
@@ -56,7 +56,7 @@ describeWithDatabase("organization public forms", () => {
   };
 
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       dataDir,

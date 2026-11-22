@@ -1,7 +1,7 @@
 // Ratchets: each rule in ratchets/ freezes today's violations per file in its baseline, so new
 // code obeys the rule at once and old code is cleaned up later. See README.md.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -33,6 +33,7 @@ export async function loadRules(dir = rulesDir) {
         matches: pathMatcher(rule.include, rule.exclude ?? []),
         hits: rule.count ? countHits(name, rule.count) : patternHits(rule.pattern),
         baselinePath: path.join(dir, `${name}.baseline.json`),
+        manorBaselinePath: path.join(dir, `${name}.manor.json`),
       };
     }),
   );
@@ -79,6 +80,34 @@ export function scan(rules, files, root = repoRoot) {
 
 export function readBaseline(rule) {
   return existsSync(rule.baselinePath) ? JSON.parse(readFileSync(rule.baselinePath, "utf8")) : {};
+}
+
+/**
+ * Manor: what the fork's own code is allowed on top of upstream's baseline, kept in a file of its
+ * own so an upstream sync never conflicts on a baseline. Written by `--freeze-manor`.
+ */
+export function readManorBaseline(rule) {
+  return rule.manorBaselinePath && existsSync(rule.manorBaselinePath)
+    ? JSON.parse(readFileSync(rule.manorBaselinePath, "utf8"))
+    : {};
+}
+
+/** Upstream's baseline plus Manor's allowance, per file. */
+export function allowances(rule) {
+  const allowed = { ...readBaseline(rule) };
+  for (const [file, extra] of Object.entries(readManorBaseline(rule)))
+    allowed[file] = (allowed[file] ?? 0) + extra;
+  return allowed;
+}
+
+/** Counts above upstream's baseline, which is what Manor's file has to allow. */
+export function aboveBaseline(baseline, found) {
+  const extra = {};
+  for (const [file, hits] of found) {
+    const over = hits.length - (baseline[file] ?? 0);
+    if (over > 0) extra[file] = over;
+  }
+  return extra;
 }
 
 /** Sorted keys, one entry per line, so parallel pull requests rarely touch the same lines. */
@@ -214,8 +243,19 @@ async function main(args) {
     writeFileSync(rule.baselinePath, formatBaseline(counts));
     return;
   }
+  if (args[0] === "--freeze-manor") {
+    // Manor: after an upstream sync, rewrite what the fork's code is allowed above upstream's
+    // baselines. Review the diff: a count that grew is new code breaking a rule.
+    for (const rule of rules) {
+      const extra = aboveBaseline(readBaseline(rule), found.get(rule.name));
+      if (Object.keys(extra).length > 0)
+        writeFileSync(rule.manorBaselinePath, formatBaseline(extra));
+      else rmSync(rule.manorBaselinePath, { force: true });
+    }
+    return;
+  }
   throw new Error(
-    "Usage: node scripts/checks/ratchets.mjs --tighten [rule-name] | --freeze <rule-name>",
+    "Usage: node scripts/checks/ratchets.mjs --tighten [rule-name] | --freeze <rule-name> | --freeze-manor",
   );
 }
 

@@ -17,12 +17,24 @@ export function portalBrandId(headers: Headers): string | null {
   return brand.id === defaultBrand.id ? null : brand.id;
 }
 
-export async function assertPortalAccess(prisma: PrismaClient, userId: string, headers: Headers) {
+/** The account fields the portal rule reads; a session's user carries them (`PORTAL_USER_FIELDS`). */
+export type PortalUser = { portalBrandId?: string | null; isSpaceAccount?: boolean | null };
+
+export async function assertPortalAccess(
+  prisma: PrismaClient,
+  userId: string,
+  headers: Headers,
+  /** The account as the session just read it; without it the account is read here. */
+  known?: PortalUser,
+) {
   const brandId = portalBrandId(headers);
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { portalBrandId: true, isSpaceAccount: true },
-  });
+  const user =
+    typeof known?.isSpaceAccount === "boolean"
+      ? { portalBrandId: known.portalBrandId ?? null, isSpaceAccount: known.isSpaceAccount }
+      : await prisma.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: { portalBrandId: true, isSpaceAccount: true },
+        });
   if (user.isSpaceAccount)
     throw new APIError("FORBIDDEN", { message: "This account cannot sign in." });
   if (user.portalBrandId && user.portalBrandId !== brandId)
@@ -41,11 +53,12 @@ export async function assertPortalAccess(prisma: PrismaClient, userId: string, h
 
 export async function requirePortalMembership(
   prisma: PrismaClient,
-  user: { id: string; email: string },
+  user: { id: string; email: string } & PortalUser,
   request: Request,
 ) {
   const userId = user.id;
-  const portalOrganizationId = await assertPortalAccess(prisma, userId, request.headers);
+  // The session read the account with every request, so the portal rule reuses that read.
+  const portalOrganizationId = await assertPortalAccess(prisma, userId, request.headers, user);
   const requestedSpaceId = request.headers.get("x-rakazo-space-id");
   const resolve = () => requireMembership(prisma, user, requestedSpaceId, portalOrganizationId);
   try {

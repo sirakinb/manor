@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { brandById } from "@rakazo/brands";
+import { createDb } from "@rakazo/db";
 import { provisionPortalTeam } from "../../../packages/auth/src/provision-team";
-import { createDb } from "../../../packages/db/src/index";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
 // Both tests claim the "vibecodephilly" brand, and an organization's brand id is unique.

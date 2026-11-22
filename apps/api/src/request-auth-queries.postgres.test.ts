@@ -62,7 +62,9 @@ it.skipIf(!databaseUrl)(
 
       const authReads: string[] = [];
       expect((await counted.run(authReads, () => call(cookie))).status).toBe(200);
-      expect(authReads.sort()).toEqual(["session", "space_members", "user"]);
+      // Manor: `member` is the portal check (`assertPortalAccess`), which finds the organization
+      // the request's portal allows; it reuses the session's account read for the account fields.
+      expect(authReads.sort()).toEqual(["member", "session", "space_members", "user"]);
 
       const user = await system.user.findUniqueOrThrow({ where: { email } });
       await system.spaceMember.deleteMany({ where: { userId: user.id } });

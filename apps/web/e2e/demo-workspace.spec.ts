@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { brandById } from "@rakazo/brands";
-import { createDb } from "../../../packages/db/src/client";
+import { createDb } from "@rakazo/db";
 import { createDemoWorkspace } from "../../../packages/db/src/demo-workspace";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 

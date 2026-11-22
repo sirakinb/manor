@@ -20,7 +20,7 @@ const withDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL
     ? describe // Vitest 5 runs a suite's tests in order unless told otherwise.
     : describe.skip;
-type Handles = Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
+type Handles = Awaited<ReturnType<typeof import("@rakazo/api/app").createApp>>;
 
 withDb("shared spaces keep team resources separate from personal accounts", () => {
   let handles: Handles;
@@ -83,7 +83,7 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     return { cookie, me, organizationId: space.organizationId };
   }
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       dataDir,

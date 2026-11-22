@@ -1,0 +1,11 @@
+{
+  "apps/mobile/app/(settings)/integrations.tsx": 1,
+  "apps/mobile/app/crm.tsx": 2,
+  "apps/mobile/app/files.tsx": 3,
+  "apps/mobile/app/run-logs.tsx": 2,
+  "apps/mobile/components/computer-mode-picker.tsx": 1,
+  "apps/mobile/components/crm-contacts.tsx": 4,
+  "apps/mobile/components/crm-pipeline.tsx": 5,
+  "apps/mobile/components/team-members.tsx": 1,
+  "apps/mobile/components/thread/thread-screen.tsx": 1
+}

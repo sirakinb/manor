@@ -19,7 +19,7 @@ const describeDb =
     : describe.skip;
 
 describeDb("external workspace handoff", () => {
-  let handles: Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
+  let handles: Awaited<ReturnType<typeof import("@rakazo/api/app").createApp>>;
   let cookie: string;
   let token: string;
   let workspaceId: string;
@@ -54,7 +54,7 @@ describeDb("external workspace handoff", () => {
     });
   }
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       dataDir,

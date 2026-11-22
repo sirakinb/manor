@@ -14,7 +14,7 @@ const describeDb =
   process.env.VERIFY_DATABASE === "1" && process.env.DATABASE_URL ? describe : describe.skip;
 
 describeDb("bot model access through a deployment connection", () => {
-  let handles: Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts").createApp>>;
+  let handles: Awaited<ReturnType<typeof import("@rakazo/api/app").createApp>>;
   let cookie: string;
   const dataDir = mkdtempSync(path.join(tmpdir(), "model-access-"));
   async function call(procedure: string, body: unknown = {}) {
@@ -25,7 +25,7 @@ describeDb("bot model access through a deployment connection", () => {
     });
   }
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       dataDir,

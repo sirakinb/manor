@@ -1,0 +1,6 @@
+{
+  "packages/adapters/src/maintenance.postgres.test.ts": 1,
+  "packages/core/src/maintenance.test.ts": 2,
+  "packages/core/src/run-logs.test.ts": 1,
+  "packages/core/src/workspace-files.test.ts": 1
+}

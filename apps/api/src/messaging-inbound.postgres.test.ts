@@ -305,7 +305,19 @@ describe.skipIf(!enabled)("connection requests whose send failed (PostgreSQL)", 
 
   type Identity = Awaited<ReturnType<typeof provision>>;
 
-  function requestConnection(requester: Identity, target: Identity) {
+  /**
+   * Manor: bots in different Spaces talk only within one organization, and each provisioned
+   * identity has its own, so a requesting bot lives in the target's Space, where bots always may.
+   */
+  async function peer(target: Identity, name: string): Promise<{ botId: string }> {
+    const bot = await system.bot.create({
+      data: { spaceId: target.spaceId, userId: target.userId, name, color: "test" },
+      select: { id: true },
+    });
+    return { botId: bot.id };
+  }
+
+  function requestConnection(requester: { botId: string }, target: Identity) {
     return system.agentConnection.create({
       data: { requesterBotId: requester.botId, targetBotId: target.botId, status: "pending" },
     });
@@ -338,7 +350,7 @@ describe.skipIf(!enabled)("connection requests whose send failed (PostgreSQL)", 
 
   function sendRequest(
     sender: MessagingDelivery,
-    requester: Identity,
+    requester: { botId: string },
     target: Identity,
   ): Promise<void> {
     return runAsSystem("connection request", () =>
@@ -394,7 +406,7 @@ describe.skipIf(!enabled)("connection requests whose send failed (PostgreSQL)", 
 
   it("does not let a YES after a failed send approve that request", async () => {
     const target = await provision("target");
-    const requester = await provision("requester");
+    const requester = await peer(target, "Requester");
     const connection = await requestConnection(requester, target);
     await delivered(target, `msg:earlier-${randomUUID()}`, "Shall I book the table?");
     const sendToThread = vi.fn(async (): Promise<{ handle: string }> => {
@@ -417,8 +429,8 @@ describe.skipIf(!enabled)("connection requests whose send failed (PostgreSQL)", 
 
   it("does not let an older request take a YES meant for a newer one that arrived but failed", async () => {
     const target = await provision("target");
-    const attacker = await provision("attacker");
-    const trusted = await provision("trusted");
+    const attacker = await peer(target, "Attacker");
+    const trusted = await peer(target, "Trusted");
     const attackerConnection = await requestConnection(attacker, target);
     await delivered(
       target,

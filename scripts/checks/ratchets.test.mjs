@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 import {
+  aboveBaseline,
+  allowances,
   formatBaseline,
   loadRules,
   readBaseline,
@@ -19,7 +21,8 @@ const found = scan(rules, repoFiles());
 
 for (const rule of rules) {
   test(`${rule.name}: no file is above its baseline`, () => {
-    const offenders = violations(readBaseline(rule), found.get(rule.name));
+    // Manor: its own allowance is added to upstream's baseline.
+    const offenders = violations(allowances(rule), found.get(rule.name));
     if (offenders.length === 0) return;
     const failure = new Error(report(rule, offenders));
     // The report is the whole story; a stack through the test runner only buries it.
@@ -124,4 +127,13 @@ test("tighten lowers counts and drops clean or missing files, and never raises o
 
 test("baselines are written with sorted keys, one entry per line", () => {
   assert.equal(formatBaseline({ "b.ts": 1, "a/c.ts": 2 }), '{\n  "a/c.ts": 2,\n  "b.ts": 1\n}\n');
+});
+
+test("Manor's allowance is what its code has above upstream's baseline", async () => {
+  const { hits } = await scanFixture();
+  assert.deepEqual(aboveBaseline({ "src/old.ts": 1 }, hits.get("no-sleep")), {
+    "src/new.ts": 1,
+    "src/old.ts": 1,
+  });
+  assert.deepEqual(aboveBaseline({ "src/old.ts": 2, "src/new.ts": 3 }, hits.get("no-sleep")), {});
 });

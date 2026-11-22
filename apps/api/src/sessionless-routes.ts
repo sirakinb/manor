@@ -16,7 +16,10 @@ export const SESSIONLESS_ROUTES: Readonly<Record<string, string>> = {
   "PUT /api/auth/scim/v2/*": "the directory's bearer token",
   "PATCH /api/auth/scim/v2/*": "the directory's bearer token",
   "DELETE /api/auth/scim/v2/*": "the directory's bearer token",
-  "POST /api/v1/bots/:botId/webhook": "the bot's webhook secret as a bearer token",
+  "POST /api/v1/bots/:botId/webhook":
+    "the bot's webhook secret as a bearer token, or (Manor) as a `token` query parameter",
+  "POST /api/v1/bots/:botId/routines/:routineId/webhook":
+    "Manor: the bot's webhook secret, or the routine's token derived from it, as a bearer token or a `token` query parameter",
   "POST /api/v1/bots/:botId/github": "a body signature made with the bot's webhook secret",
   "GET /api/v1/email/unsubscribe": "a signed token in the link, bound to one user",
   "POST /api/v1/email/unsubscribe": "a signed token in the link, bound to one user",

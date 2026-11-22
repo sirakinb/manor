@@ -63,7 +63,6 @@ export function BotCredentialsSettings({ botId }: { botId: string }) {
 
   useEffect(() => {
     void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botId]);
 
   function startNew() {

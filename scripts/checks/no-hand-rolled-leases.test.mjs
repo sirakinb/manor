@@ -40,6 +40,18 @@ const EXISTING = new Set([
   // process that took it (a takeover keeps it for hours and a later worker takes it back by run id),
   // it is taken inside other transactions, and those transactions end it by run id.
   "ComputerExecutionLease.fence",
+  // Manor: retry state of its own queues from before `withLease`.
+  "CrmWebhookDelivery.attempts",
+  "CrmWebhookDelivery.nextAttemptAt",
+  "MaintenanceJob.executionLeaseUntil",
+  "MaintenanceJob.nextAttemptAt",
+  // Manor: rental leases in the Workspace, which only share the word.
+  "WorkspaceBuildiumLease.leaseId",
+  "WorkspaceBuildiumLease.leaseType",
+  "WorkspaceBuildiumLease.leaseFrom",
+  "WorkspaceBuildiumLease.leaseTo",
+  "WorkspaceBuildiumListing.leaseTerms",
+  "WorkspaceWaterBillChargePost.leaseId",
 ]);
 
 const LEASE_LIKE = /(?<!re)lease|claim|attempt|fence|lockedAt/i;

@@ -176,9 +176,9 @@ export async function createSpaceForMember(
     prisma.$transaction(
       async (tx) => {
         // Manor: the new Space goes in the organization of the actor's current Space, which
-        // requireMembership already limited to the session's portal organization. Upstream moves
-        // a guest's new Space to their own organization (homeOrganizationId); Manor has no guests
-        // while space sharing is off, and the portal rule would refuse that organization anyway.
+        // requireMembership already limited to the session's portal organization. A guest there
+        // (only possible with space sharing or organization changes lifted, or mid-removal) gets
+        // it in their own organization, as upstream does, never in the one they are a guest of.
         const currentMembership = await tx.spaceMember.findUnique({
           where: {
             spaceId_userId: {
@@ -190,6 +190,7 @@ export async function createSpaceForMember(
             organizationId: true,
             member: {
               select: {
+                role: true,
                 user: { select: { isSpaceAccount: true } },
                 organization: { select: { name: true } },
               },
@@ -198,10 +199,21 @@ export async function createSpaceForMember(
         });
         if (!currentMembership || currentMembership.member.user.isSpaceAccount)
           throw new IsolationError();
-        const organizationId = currentMembership.organizationId;
+        const organizationId =
+          currentMembership.member.role === GUEST_ROLE
+            ? await ownedOrganizationId(tx, input.userId)
+            : currentMembership.organizationId;
         organization = {
           id: organizationId,
-          name: currentMembership.member.organization.name,
+          name:
+            organizationId === currentMembership.organizationId
+              ? currentMembership.member.organization.name
+              : ((
+                  await tx.organization.findUnique({
+                    where: { id: organizationId },
+                    select: { name: true },
+                  })
+                )?.name ?? ""),
         };
         await lockOrganizationSpaces(tx, organizationId);
         const deleting = await tx.space.count({

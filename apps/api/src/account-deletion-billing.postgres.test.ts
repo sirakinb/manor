@@ -736,6 +736,28 @@ describePostgres("account deletion billing ordering (PostgreSQL)", () => {
           createdAt,
         },
       });
+      // Manor: joining an organization adds nobody to another person's Space, so the neighbour is
+      // in it through an accepted invite, as upstream's membership trigger would have put them.
+      await asSystem(prisma).spaceInvite.create({
+        data: {
+          spaceId: joined.actor.spaceId,
+          tokenHash: `neighbour-invite-${stamp}`,
+          createdByUserId: userId,
+          expiresAt: new Date(createdAt.getTime() + 86_400_000),
+          acceptedAt: createdAt,
+          acceptedByUserId: neighbour,
+        },
+      });
+      await asSystem(prisma).spaceMember.create({
+        data: {
+          id: `${neighbour}-space-member`,
+          spaceId: joined.actor.spaceId,
+          organizationId: joined.organizationId,
+          userId: neighbour,
+          role: "member",
+          createdAt,
+        },
+      });
       billingHeld.resolve();
       await removing.promise;
       // Another deletion then claims the Space this one let go of.

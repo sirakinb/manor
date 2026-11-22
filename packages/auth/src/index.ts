@@ -457,6 +457,9 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       // Set by the directory; read with every session so a deactivated account is refused.
       additionalFields: {
         ...DEACTIVATED_AT_FIELD,
+        // Manor: read with every session too, so the portal rule needs no second account read.
+        portalBrandId: { type: "string", required: false, input: false },
+        isSpaceAccount: { type: "boolean", required: false, input: false },
         signupSurface: attributionField,
         signupUtmSource: attributionField,
         signupUtmMedium: attributionField,

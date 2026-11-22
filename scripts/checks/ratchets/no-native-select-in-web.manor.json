@@ -1,0 +1,15 @@
+{
+  "apps/web/src/components/FilesPanel.tsx": 4,
+  "apps/web/src/components/RunLogsPanel.tsx": 1,
+  "apps/web/src/components/VerificationComparison.tsx": 2,
+  "apps/web/src/pages/OAuthAuthorize.tsx": 1,
+  "apps/web/src/pages/crm/CrmForms.tsx": 1,
+  "apps/web/src/pages/crm/CrmHome.tsx": 1,
+  "apps/web/src/pages/crm/CrmModuleSheet.tsx": 1,
+  "apps/web/src/pages/crm/CrmPipelineBoard.tsx": 5,
+  "apps/web/src/pages/crm/SheetGrid.tsx": 1,
+  "apps/web/src/pages/workspace/sections/ReportCreateCard.tsx": 1,
+  "apps/web/src/pages/workspace/sections/ReportsSection.tsx": 2,
+  "apps/web/src/pages/workspace/sections/SettingsSection.tsx": 4,
+  "apps/web/src/pages/workspace/sections/UtilitiesSection.tsx": 2
+}

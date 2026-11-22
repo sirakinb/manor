@@ -244,7 +244,13 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     // The failed removal went to its backup job, which the queue ran.
     await vi.waitFor(() => expect(cancelled).toHaveBeenCalledTimes(2), { timeout: 10_000 });
     await vi.waitFor(
-      async () => expect(await composio.listConnectedAccountIds(actor.userId, "GMAIL")).toEqual([]),
+      async () =>
+        expect(
+          await composio.listConnectedAccountIds(
+            composioEntityId(actor.userId, actor.spaceId),
+            "GMAIL",
+          ),
+        ).toEqual([]),
       { timeout: 10_000 },
     );
   });
@@ -291,7 +297,13 @@ describeWithDatabase("Composio catalog reconciliation", () => {
 
     await vi.waitFor(() => expect(cancelled).toHaveBeenCalledTimes(2), { timeout: 10_000 });
     await vi.waitFor(
-      async () => expect(await composio.listConnectedAccountIds(actor.userId, "GMAIL")).toEqual([]),
+      async () =>
+        expect(
+          await composio.listConnectedAccountIds(
+            composioEntityId(actor.userId, actor.spaceId),
+            "GMAIL",
+          ),
+        ).toEqual([]),
       { timeout: 10_000 },
     );
   });
@@ -300,7 +312,10 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     const cookie = await signup(app, `busy-cleanup-${stamp}@rakazo.test`, "Busy Cleanup");
     const actor = await rpc<Actor>(app, cookie, "me");
     await connectRemote(composio, actor, "GMAIL");
-    const [ref] = await composio.listConnectedAccountIds(actor.userId, "GMAIL");
+    const [ref] = await composio.listConnectedAccountIds(
+      composioEntityId(actor.userId, actor.spaceId),
+      "GMAIL",
+    );
     const cleanup = {
       spaceId: actor.spaceId,
       userId: actor.userId,
@@ -337,7 +352,12 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     }
 
     await runCleanupNow(cleanup);
-    expect(await composio.listConnectedAccountIds(actor.userId, "GMAIL")).toEqual([]);
+    expect(
+      await composio.listConnectedAccountIds(
+        composioEntityId(actor.userId, actor.spaceId),
+        "GMAIL",
+      ),
+    ).toEqual([]);
     expect(queuedCleanup(cleanup)).toBeUndefined();
 
     // A removal that already happened is safe to repeat.
@@ -429,7 +449,8 @@ describeWithDatabase("Composio catalog reconciliation", () => {
       provider: "GMAIL",
       ref: row.providerRef!,
     };
-    const remote = () => composio.listConnectedAccountIds(actor.userId, "GMAIL");
+    const remote = () =>
+      composio.listConnectedAccountIds(composioEntityId(actor.userId, actor.spaceId), "GMAIL");
     const status = async () => (await statuses([connectionId]))[0]?.status;
     return { cookie, actor, connectionId, cleanup, remote, status };
   }
@@ -470,13 +491,23 @@ describeWithDatabase("Composio catalog reconciliation", () => {
 
     // The removal read the row under the provider lock and found the authorization in use.
     expect(cancelled).not.toHaveBeenCalled();
-    expect(await composio.listConnectedAccountIds(actor.userId, "GMAIL")).toEqual([state]);
+    expect(
+      await composio.listConnectedAccountIds(
+        composioEntityId(actor.userId, actor.spaceId),
+        "GMAIL",
+      ),
+    ).toEqual([state]);
     const cleanup = { ...own, connectorId: "composio", ref: state };
 
     // The job reads it the same way. (This queue cannot delete a job inside a transaction.)
     await runCleanupNow(cleanup);
     expect(cancelled).not.toHaveBeenCalled();
-    expect(await composio.listConnectedAccountIds(actor.userId, "GMAIL")).toEqual([state]);
+    expect(
+      await composio.listConnectedAccountIds(
+        composioEntityId(actor.userId, actor.spaceId),
+        "GMAIL",
+      ),
+    ).toEqual([state]);
     expect(queuedCleanup(cleanup)).toBeUndefined();
   });
 
@@ -586,7 +617,12 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     expect(answer.state).not.toBe("");
     expect(saved).toMatchObject({ status: "pending", providerRef: answer.state });
     expect(cancelled).not.toHaveBeenCalled();
-    expect(await composio.listConnectedAccountIds(actor.userId, "GMAIL")).toEqual([answer.state]);
+    expect(
+      await composio.listConnectedAccountIds(
+        composioEntityId(actor.userId, actor.spaceId),
+        "GMAIL",
+      ),
+    ).toEqual([answer.state]);
 
     const next = await start();
     expect(next.connectionId).not.toBe(saved!.id);
@@ -595,7 +631,12 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     // Its job finds the authorization in use too.
     await runCleanupNow({ ...own, connectorId: "composio", ref: answer.state });
     expect(cancelled).not.toHaveBeenCalled();
-    expect(await composio.listConnectedAccountIds(actor.userId, "GMAIL")).toContain(answer.state);
+    expect(
+      await composio.listConnectedAccountIds(
+        composioEntityId(actor.userId, actor.spaceId),
+        "GMAIL",
+      ),
+    ).toContain(answer.state);
   });
 
   it("removes what a failed begin left under the app's name although its own row is still there", async () => {

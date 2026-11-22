@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { ModelCatalogEntry } from "@rakazo/contracts";
-import { createDb } from "../../../packages/db/src/client";
+import { createDb } from "@rakazo/db";
 import {
   captureScreenshot,
   completeOnboarding,

@@ -375,6 +375,14 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   stay off until their repository variables are set (`SECURITY_SCANS_ENABLED`,
   `WWW_INDEXNOW_ENABLED`). Turning the scans on after the sync is worthwhile; they were gated so
   findings in upstream's code do not block the stacked sync pull requests.
+- Upstream's repository checks (`scripts/checks`, from `v0.12.0`; CI runs them as "Script
+  tests") apply to Manor's code as well. Upstream's baselines are never edited: what Manor's own
+  code has above them lives in `scripts/checks/ratchets/<rule>.manor.json`, rewritten after each
+  sync with `node scripts/checks/ratchets.mjs --freeze-manor` (read the diff: a count that grew
+  is new code breaking a rule). Manor's entries in the import allowlist and the lease column
+  list are marked in those files. The shim check reads upstream's releases from
+  `docs/upstream-changelog.md`, a verbatim copy of upstream's `CHANGELOG.md` refreshed at each
+  sync (`git show <tag>:CHANGELOG.md > docs/upstream-changelog.md`).
 - Upstream's startup bundle budget (`scripts/checks/bundle-size.budgets.json`, from `v0.12.0`)
   is kept at upstream's number. Manor's places (Workspace, CRM, docs) and side panels (files,
   run logs, saved logins) load when opened (`lazyComponent`), which keeps the web app under it.

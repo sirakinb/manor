@@ -385,7 +385,7 @@ test("start a bigger tier's trial from the tiers layout", async ({ page }, testI
     page.waitForURL(/[?&]paid/),
     page.getByRole("button", { name: "Start Pro trial", exact: true }).click(),
   ]);
-  await expect(page.getByRole("heading", { name: "Choose how to use Rakazo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose how to use Manor" })).toBeVisible();
   expect(selected).toEqual({ funding: "byok", interval: "year", tier: "pro" });
 });
 

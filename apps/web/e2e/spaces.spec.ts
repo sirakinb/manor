@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createDb } from "../../../packages/db/src/client";
+import { createDb } from "@rakazo/db";
 import { captureScreenshot, completeOnboarding, openNewSpace, rpc, signup } from "./helpers";
 
 test("Manor hides other organizations and recovers a saved client space", async ({
