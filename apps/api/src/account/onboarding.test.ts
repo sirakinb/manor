@@ -1,7 +1,13 @@
 import type * as db from "@rakazo/db";
 import { appendEventInTransaction } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
-import { chooseFocus, dismissFocus, markAppConnected, promptFocus } from "./onboarding.js";
+import {
+  chooseFocus,
+  dismissFocus,
+  markAppConnected,
+  promptFocus,
+  startOnboarding,
+} from "./onboarding.js";
 
 const posted = vi.hoisted(() => [] as Array<{ blocks: unknown[]; markUnread?: boolean }>);
 vi.mock("@rakazo/db", async (original) => ({
@@ -276,5 +282,41 @@ it("updates the authorized card's own message even outside the bounded scan", as
   expect(tx.message.update).toHaveBeenCalledWith({
     where: { id: "middle" },
     data: { blocks: [{ ...card, status: "connected" }] },
+  });
+});
+
+describe("startOnboarding (Manor's team-space welcome)", () => {
+  function welcomeFixture(options: { teamSpace: boolean; messages?: number }) {
+    const { deps, actor } = fixture([]);
+    const prisma = deps.prisma as unknown as {
+      message: { count: () => Promise<number> };
+      space: { findUniqueOrThrow: () => Promise<object> };
+    };
+    prisma.message = { count: vi.fn(async () => options.messages ?? 0) };
+    prisma.space.findUniqueOrThrow = vi.fn(async () => ({
+      name: "Example Team",
+      accountUserId: options.teamSpace ? "space-account" : null,
+    }));
+    return { deps, actor };
+  }
+  const texts = () =>
+    posted.flatMap((message) => message.blocks).map((block) => (block as { text?: string }).text);
+
+  it("tells a new team space's first chat what is shared", async () => {
+    const { deps, actor } = welcomeFixture({ teamSpace: true });
+    await startOnboarding(deps, actor, "bot");
+    expect(texts()).toEqual([expect.stringMatching(/^Welcome to Example Team\. /)]);
+  });
+
+  it("posts nothing in a personal space", async () => {
+    const { deps, actor } = welcomeFixture({ teamSpace: false });
+    await startOnboarding(deps, actor, "bot");
+    expect(posted).toEqual([]);
+  });
+
+  it("posts nothing into a thread that already has messages", async () => {
+    const { deps, actor } = welcomeFixture({ teamSpace: true, messages: 1 });
+    await startOnboarding(deps, actor, "bot");
+    expect(posted).toEqual([]);
   });
 });

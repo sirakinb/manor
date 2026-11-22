@@ -63,13 +63,14 @@ test("new organization starts with one shared space and teammates reuse its setu
     expect(await db.prisma.space.count({ where: { organizationId } })).toBe(1);
     expect(await db.prisma.bot.count({ where: { spaceId: team.spaceId } })).toBe(0);
     await page.addInitScript((id) => localStorage.setItem("rakazo:space-id", id), team.spaceId);
-    // Setup creates the first bot and opens its chat on its own. Hold that create so the
-    // sharing notice is on screen for as long as the assertions need it.
+    // Setup asks the server for the Space's first bot and opens its chat on its own. Hold that
+    // request so the sharing notice is on screen for as long as the assertions need it.
     let releaseBotCreate: () => void = () => undefined;
     const botCreateHeld = new Promise<void>((resolve) => {
       releaseBotCreate = resolve;
     });
-    await page.route("**/rpc/bots/create", async (route) => {
+    const firstBotRequest = /^https?:\/\/[^/]+\/rpc\/onboarding\/firstBot(?:\?|$)/;
+    await page.route(firstBotRequest, async (route) => {
       await botCreateHeld;
       await route.continue();
     });
@@ -81,7 +82,7 @@ test("new organization starts with one shared space and teammates reuse its setu
     await captureScreenshot(page, testInfo, "team-setup-sharing-boundary");
     releaseBotCreate();
     await completeOnboarding(page);
-    await page.unroute("**/rpc/bots/create");
+    await page.unroute(firstBotRequest);
     await page.waitForURL(/\/app\/[^/]+$/);
     expect(await db.prisma.bot.count({ where: { spaceId: team.spaceId } })).toBe(1);
     // The sidebar row previews the latest message too, so read the chat itself.

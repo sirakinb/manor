@@ -149,7 +149,8 @@ test("two teammates use the same agent and conversation while personal spaces st
       .getByTestId("featured-connectors")
       .getByText("Gmail", { exact: true })
       .locator("xpath=ancestor::*[.//button][1]");
-    await gmailRow.getByRole("button", { name: "Add", exact: true }).click();
+    // Each Add button is named after its app for screen readers (upstream #5948).
+    await gmailRow.getByRole("button", { name: "Add Gmail", exact: true }).click();
     await expect(gmailRow.getByRole("button", { name: "Added", exact: true })).toBeVisible();
     await captureScreenshot(peerPage, testInfo, "shared-space-integrations");
     await page.getByRole("button", { name: "Integrations", exact: true }).click();

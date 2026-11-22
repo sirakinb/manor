@@ -162,9 +162,10 @@ test("a browser outside the desktop app opens sign-in on its local server", asyn
       },
     }),
   );
-  await page.goto("/");
+  // Manor keeps its Welcome page at /, so start from the app's own entry, which needs a session.
+  await page.goto("/app");
   await expect(page).toHaveURL(/\/sign-in$/);
-  await expect(page.getByRole("heading", { name: "Sign in to Rakazo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to Manor" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Sign up", exact: true })).toHaveCount(0);
   await captureScreenshot(page, testInfo, "local-account-sign-in");
 

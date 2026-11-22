@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Routine } from "@rakazo/contracts";
+import { SPACE_SHARING } from "../../src/lib/space-sharing";
 import {
   captureScreenshot,
   completeOnboarding,
@@ -22,6 +23,9 @@ async function inSpace<T>(page: Page, spaceId: string, path: string, json: unkno
 test("another member's routine is read-only, can be turned on, and can be copied", async ({
   browser,
 }, testInfo) => {
+  // Manor: invite-link sharing is off (SPACE_SHARING), so two people never share an ordinary
+  // space and a routine's owner is always the person or the team space's shared account.
+  test.skip(!SPACE_SHARING, "Manor keeps invite-link sharing off; this is upstream's journey.");
   const stamp = Date.now();
   const owner = await (await browser.newContext()).newPage();
   const member = await (await browser.newContext()).newPage();

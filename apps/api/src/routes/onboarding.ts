@@ -19,6 +19,7 @@ export function onboardingRoutes(ctx: RouterContext) {
     createBot: repos.createBot,
     introduce: (actor: Actor, bot: Bot) => enqueueBotIntroRun(deps, actor, bot),
     promptFocus: (actor: Actor, botId: string) => promptFocus(onboardingDeps, actor, botId),
+    welcome: (actor: Actor, botId: string) => startOnboarding(onboardingDeps, actor, botId),
   };
   return {
     onboarding: {

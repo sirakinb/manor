@@ -42,6 +42,7 @@ function fixture(
     ),
     introduce: vi.fn(async () => undefined),
     promptFocus: vi.fn(async () => undefined),
+    welcome: vi.fn(async () => undefined),
   };
   return { deps, run: () => ensureFirstBot(deps as unknown as FirstBotDeps, actor) };
 }
@@ -60,6 +61,33 @@ describe("ensureFirstBot", () => {
     expect(deps.introduce.mock.invocationCallOrder[0]).toBeLessThan(
       deps.promptFocus.mock.invocationCallOrder[0]!,
     );
+  });
+
+  it("posts Manor's team-space welcome first, before the intro run and the focus card", async () => {
+    const { deps, run } = fixture();
+    await run();
+    expect(deps.welcome).toHaveBeenCalledTimes(1);
+    expect(deps.welcome).toHaveBeenCalledWith(actor, "chief-new");
+    expect(deps.welcome.mock.invocationCallOrder[0]).toBeLessThan(
+      deps.introduce.mock.invocationCallOrder[0]!,
+    );
+    expect(deps.welcome.mock.invocationCallOrder[0]).toBeLessThan(
+      deps.promptFocus.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("welcomes a team space once: a teammate who finds its Chief posts nothing", async () => {
+    const { deps, run } = fixture({ candidates: [{ id: "chief", spawnKey: FIRST_BOT_SPAWN_KEY }] });
+    await run();
+    expect(deps.welcome).not.toHaveBeenCalled();
+  });
+
+  it("still greets Chief when the welcome cannot be posted", async () => {
+    const { deps, run } = fixture();
+    deps.welcome.mockRejectedValueOnce(new Error("database blip"));
+    await expect(run()).resolves.toEqual({ botId: "chief-new" });
+    expect(deps.introduce).toHaveBeenCalled();
+    expect(deps.promptFocus).toHaveBeenCalled();
   });
 
   it("reuses the bot with the first-run key before a legacy Chief", async () => {

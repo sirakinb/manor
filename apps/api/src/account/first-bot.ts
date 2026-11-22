@@ -24,6 +24,11 @@ export type FirstBotDeps = {
   introduce: (actor: Actor, bot: Bot) => Promise<void>;
   /** Posts the focus choice while the thread is still idle and no intro run asks instead. */
   promptFocus: (actor: Actor, botId: string) => Promise<void>;
+  /**
+   * Manor: posts what a team space shares into its first chat while the thread is still empty;
+   * nothing outside a team space.
+   */
+  welcome?: (actor: Actor, botId: string) => Promise<void>;
 };
 
 /**
@@ -70,6 +75,9 @@ async function createFirstBot(deps: FirstBotDeps, actor: Actor): Promise<string 
     color: BOT_COLOR_LIST.find((color) => color.id === "orange")?.hex,
     spawnKey: FIRST_BOT_SPAWN_KEY,
   });
+  // Manor: the team-space welcome is the thread's first message. Only the creator posts it, so a
+  // teammate who finds this Chief later posts nothing; a failure leaves Chief usable.
+  if (deps.welcome) await bestEffort("first bot team space welcome", deps.welcome(actor, bot.id));
   // Each runs at most once per thread, and in this order: the focus card waits for an intro run
   // that is already committed, so a concurrent call cannot leave both openers. A Chief that is
   // only found is left as it is, since whoever created it greets it.
