@@ -6,8 +6,9 @@ import { provisionPortalTeam } from "../../../packages/auth/src/provision-team";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers/helpers";
 
 // Both tests claim the "vibecodephilly" brand, and an organization's brand id is unique.
-// They share this file so they run one after the other: spec files run in parallel workers,
-// and side by side each test would find, rebrand or delete the other's organization.
+// Side by side each test would find, rebrand or delete the other's organization. Tests in one
+// file also run in parallel here (`fullyParallel`), so this file keeps them in order.
+test.describe.configure({ mode: "serial" });
 
 test("new organization starts with one shared space and teammates reuse its setup", async ({
   page,
