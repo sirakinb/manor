@@ -7,7 +7,7 @@ import type { LocalComputerLiveSession, LocalDevice as LocalDeviceDto } from "@r
 import { LOCAL_COMPUTER_OFFLINE_MESSAGE } from "@rakazo/core";
 import { hashLocalDeviceToken, mintLocalDeviceToken } from "@rakazo/core/node/local-device-token";
 import type { PrismaClient } from "@rakazo/db";
-import { ensureComputerRecord, runAsTenant } from "@rakazo/db";
+import { ensureComputerRecord, runAsSystem, runAsTenant } from "@rakazo/db";
 import { WebSocket, WebSocketServer } from "ws";
 
 export const LOCAL_COMPUTER_SOCKET_PATH = "/local-computer";
@@ -165,12 +165,17 @@ async function handleLocalComputerSocket(
   });
 
   ws.on("close", () => {
-    void disconnect();
+    // A socket event carries no database context; the session is the device's member's.
+    const closing = device;
+    void (closing ? runAsTenant(closing, disconnect) : disconnect());
   });
 
-  device = await deps.prisma.localDevice.findFirst({
-    where: { tokenHash: hashLocalDeviceToken(token), revokedAt: null },
-  });
+  // The token is all that names the member here, so the lookup crosses tenants.
+  device = await runAsSystem("find the device a This Mac token names", () =>
+    deps.prisma.localDevice.findFirst({
+      where: { tokenHash: hashLocalDeviceToken(token), revokedAt: null },
+    }),
+  );
   if (!device) {
     ws.close(4401, "invalid device token");
     return;
