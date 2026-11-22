@@ -1,7 +1,7 @@
-import { SandboxKind } from "@rakazo/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { NO_SANDBOX_MESSAGE } from "./none-sandbox.js";
 import { createSandboxProvider } from "./sandbox-factory.js";
+import { knownSandboxKinds } from "./sandbox-kind-capabilities.js";
 
 const ctx = {
   operationId: "op",
@@ -149,15 +149,15 @@ describe("createSandboxProvider", () => {
 
   it("throws on unknown provider", async () => {
     await expect(createSandboxProvider("bogus", {})).rejects.toThrow(
-      'Unknown SANDBOX_PROVIDER "bogus". Use none | docker | e2b | novita | daytona | createos | boat | boxd | instabox | railway | kubernetes | incus | local-vm | wuying | desktop | fake.',
+      'Unknown SANDBOX_PROVIDER "bogus". Use none | docker | wuying | e2b | novita | daytona | createos | boat | boxd | instabox | railway | kubernetes | incus | local-vm | desktop | fake.',
     );
   });
 
   it("accepts only sandbox kinds, including none", async () => {
-    expect(SandboxKind.options).toContain("none");
-    for (const kind of SandboxKind.options) {
-      // Manor: This Mac ("local") is routed per computer, never chosen as SANDBOX_PROVIDER.
-      if (kind === "local") continue;
+    expect(knownSandboxKinds).toContain("none");
+    // Manor: This Mac ("local") is routed per computer, never chosen as SANDBOX_PROVIDER.
+    expect(knownSandboxKinds).not.toContain("local");
+    for (const kind of knownSandboxKinds) {
       await expect(createSandboxProvider(kind, {})).resolves.toBeDefined();
     }
     await expect(createSandboxProvider("local", {})).rejects.toThrow(/Unknown SANDBOX_PROVIDER/);

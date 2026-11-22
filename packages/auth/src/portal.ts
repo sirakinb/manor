@@ -41,12 +41,13 @@ export async function assertPortalAccess(prisma: PrismaClient, userId: string, h
 
 export async function requirePortalMembership(
   prisma: PrismaClient,
-  userId: string,
+  user: { id: string; email: string },
   request: Request,
 ) {
+  const userId = user.id;
   const portalOrganizationId = await assertPortalAccess(prisma, userId, request.headers);
   const requestedSpaceId = request.headers.get("x-rakazo-space-id");
-  const resolve = () => requireMembership(prisma, userId, requestedSpaceId, portalOrganizationId);
+  const resolve = () => requireMembership(prisma, user, requestedSpaceId, portalOrganizationId);
   try {
     return { ...(await resolve()), portalOrganizationId };
   } catch (error) {

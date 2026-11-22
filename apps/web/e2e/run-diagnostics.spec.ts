@@ -4,7 +4,7 @@ import {
   activeBotId,
   captureScreenshot,
   completeOnboarding,
-  openBotPanelTab,
+  openBotPanel,
   rpc,
   signup,
 } from "./helpers";
@@ -58,8 +58,8 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
   await page.setViewportSize({ width: 1600, height: 1000 });
   await signup(page, `resize-${Date.now()}@rakazo.test`, "password12", "Resize test");
   await completeOnboarding(page);
-  // The computer is the bot panel's Computer tab; the header has no computer button.
-  await openBotPanelTab(page, "Computer");
+  // The computer is the first section of the bot panel; the header has no computer button.
+  await openBotPanel(page);
   const panel = page.getByTestId("side-panel");
   const handle = page.getByRole("separator", { name: "Resize panel" });
   await expect(handle).toBeVisible();
@@ -84,12 +84,9 @@ test("the computer panel resizes with mouse and keyboard and remembers its width
   await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(saved);
   await captureScreenshot(page, testInfo, "computer-panel-expanded");
   await page.reload();
-  // The right rail is restored after a reload, so only open it when it stayed closed.
+  // The right rail is restored after a reload; the helper opens it only if it stayed closed.
   await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
-  await page.getByTestId("bot-settings-trigger").waitFor({ state: "visible" });
-  if ((await panel.getAttribute("data-panel")) === "closed") {
-    await openBotPanelTab(page, "Computer");
-  }
+  await openBotPanel(page);
   await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(saved);
   await page.getByRole("button", { name: "Expand computer", exact: true }).click();
   await expect(page.getByTestId("computer-preview")).toContainText("Open in full window");

@@ -2,11 +2,14 @@
 import type { ReactNode } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
+import { brand } from "../lib/brand";
+import type * as Passkeys from "../lib/passkeys";
+import { usePasskeysSupported } from "../lib/passkeys";
 import { clearSpaceSelection } from "../lib/rpc";
 import { AuthPage } from "./Auth";
 
@@ -30,6 +33,7 @@ vi.mock("@rakazo/ui-web", () => ({
       {children}
     </button>
   ),
+  LogoAvatar: () => <svg aria-hidden="true" data-rakazo-logo="" />,
   Input: (props: React.ComponentProps<"input">) => <input {...props} />,
   InputOTP: ({
     maxLength,
@@ -64,11 +68,21 @@ vi.mock("@rakazo/ui-web", () => ({
 vi.mock("../lib/auth-capabilities", () => ({ fetchAuthCapabilities: vi.fn() }));
 vi.mock("../lib/auth", () => ({
   authClient: {
-    signIn: { social: vi.fn(async () => ({})), email: vi.fn(), emailOtp: vi.fn() },
+    signIn: {
+      social: vi.fn(async () => ({})),
+      email: vi.fn(),
+      emailOtp: vi.fn(),
+      passkey: vi.fn(async () => ({ data: {}, error: null })),
+    },
     emailOtp: { sendVerificationOtp: vi.fn() },
   },
 }));
 vi.mock("../lib/rpc", () => ({ clearSpaceSelection: vi.fn() }));
+vi.mock("../lib/passkeys", async (importActual) => ({
+  ...(await importActual<typeof Passkeys>()),
+  usePasskeysSupported: vi.fn(() => false),
+  conditionalPasskeyAvailable: vi.fn(async () => false),
+}));
 const capabilities: AuthCapabilities = {
   passwordAuth: false,
   sso: { name: "Example", availability: "unavailable" },
@@ -77,6 +91,8 @@ const capabilities: AuthCapabilities = {
 };
 // Manor's sign-in skin draws its own buttons: the primary action carries the accent fill.
 const PRIMARY_FILL = "bg-[var(--rk-accent-strong)]";
+// Manor draws the brand's logo where upstream draws its avatar mark.
+const BRAND_LOGO = `[alt="${brand.logo.alt}"], [aria-label="${brand.logo.alt}"]`;
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
@@ -100,6 +116,9 @@ async function render(mode: "in" | "up" | "forgot" = "in", entry = "/") {
     ),
   );
 }
+function LocationProbe() {
+  return <span data-testid="location">{useLocation().pathname}</span>;
+}
 async function enter(input: Element | null, value: string) {
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
@@ -107,7 +126,9 @@ async function enter(input: Element | null, value: string) {
   });
 }
 function button(text: string) {
-  return [...host.querySelectorAll("button")].find((button) => button.textContent === text)!;
+  return [...host.querySelectorAll("button")].find(
+    (node) => node.textContent?.replace(/\s+/g, " ").trim() === text,
+  )!;
 }
 async function submit() {
   await act(async () => {
@@ -130,7 +151,7 @@ it.each(["in", "up"] as const)("offers SSO and hides credentials on %s", async (
   expect(host.textContent).toContain("Continue with Example");
   expect(host.querySelector("input")).toBeNull();
   const sso = host.querySelector("button")!;
-  expect(sso.className).toContain(PRIMARY_FILL);
+  expect(sso.dataset.variant).toBe("outline");
   expect(sso.className).toContain("w-full");
 });
 it("retries failed capabilities without exposing a password form", async () => {
@@ -147,25 +168,91 @@ it("retries failed capabilities without exposing a password form", async () => {
   expect(fetchAuthCapabilities).toHaveBeenCalledTimes(2);
   expect(host.textContent).toContain("Continue with Example");
 });
-it.each(["in", "up"] as const)("puts quiet SSO below the primary action on %s", async (mode) => {
+it.each(["in", "up"] as const)("offers providers before the email form on %s", async (mode) => {
   vi.mocked(fetchAuthCapabilities).mockResolvedValue({ ...capabilities, passwordAuth: true });
   await render(mode);
-  const email = host.querySelector('input[name="email"]')!;
-  const password = host.querySelector('input[type="password"]')!;
-  const submit = host.querySelector('button[type="submit"]')!;
-  const sso = [...host.querySelectorAll("button")].find(
-    (button) => button.textContent === "Continue with Example",
-  )!;
-  for (const [first, second] of [
-    [email, password],
-    [password, submit],
-    [submit, sso],
-  ] as const) {
-    expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  }
-  expect(submit.className).toContain(PRIMARY_FILL);
-  expect(sso.className).not.toContain(PRIMARY_FILL);
-  expect(sso.className).not.toContain("w-full");
+  const provider = button("Continue with Example");
+  const emailChoice = button("Continue with email");
+  expect(host.querySelector('input[name="email"]')).toBeNull();
+  expect(provider.dataset.variant).toBe("outline");
+  expect(provider.className).toContain("w-full");
+  expect(emailChoice.dataset.variant).toBe("outline");
+  expect(emailChoice.className).toContain("w-full");
+  expect(host.querySelector(BRAND_LOGO)).not.toBeNull();
+  expect(
+    provider.compareDocumentPosition(emailChoice) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  await act(async () => emailChoice.click());
+  expect(host.querySelector('input[name="email"]')).not.toBeNull();
+  expect(host.querySelector('button[type="submit"]')!.className).toContain(PRIMARY_FILL);
+  expect(button("Back")).toBeDefined();
+  await act(async () => button("Back").click());
+  expect(host.querySelector('input[name="email"]')).toBeNull();
+  expect(button("Continue with Example")).toBeDefined();
+});
+
+it("shows a configured provider beside the password form and hides the rest", async () => {
+  const mark = { viewBox: "0 0 24 24", paths: [{ d: "M1 1h2v2H1z" }] };
+  vi.mocked(fetchAuthCapabilities).mockResolvedValue({
+    ...capabilities,
+    passwordAuth: true,
+    sso: null,
+    providers: [
+      { id: "google", name: "Google", presentation: { variant: "outline", mark } },
+      { id: "apple", name: "Apple", presentation: { variant: "solid", mark } },
+    ],
+  });
+  await render();
+  expect(host.querySelector('input[name="email"]')).toBeNull();
+  const google = button("Continue with Google");
+  const apple = button("Continue with Apple");
+  const emailChoice = button("Continue with email");
+  expect(google.dataset.variant).toBe("outline");
+  expect(apple.dataset.variant).toBe("outline");
+  expect(google.parentElement).toBe(apple.parentElement);
+  expect(google.parentElement?.className).toContain("flex-col");
+  expect(google.querySelector("svg")).not.toBeNull();
+  expect(apple.querySelector("svg")).not.toBeNull();
+  expect(emailChoice.dataset.variant).toBe("outline");
+  expect(emailChoice.className).toContain("w-full");
+  expect(host.textContent).toContain("Welcome back");
+  expect(host.querySelector(BRAND_LOGO)).not.toBeNull();
+  await act(async () => google.click());
+  expect(authClient.signIn.social).toHaveBeenCalledWith(
+    expect.objectContaining({ provider: "google" }),
+  );
+  await act(async () => emailChoice.click());
+  expect(host.querySelector('input[name="email"]')).not.toBeNull();
+  vi.mocked(fetchAuthCapabilities).mockResolvedValue({
+    ...capabilities,
+    passwordAuth: true,
+    sso: null,
+    providers: [],
+  });
+  await render("up");
+  expect(host.textContent).not.toContain("Continue with");
+  expect(host.querySelector('input[name="email"]')).not.toBeNull();
+});
+
+it("offers a supported passkey in the sign-in chooser only", async () => {
+  vi.mocked(usePasskeysSupported).mockReturnValue(true);
+  vi.mocked(fetchAuthCapabilities).mockResolvedValue({ ...capabilities, passwordAuth: true });
+  await render();
+  const passkey = button("Continue with passkey");
+  expect(
+    button("Continue with email").compareDocumentPosition(passkey) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  await act(async () => passkey.click());
+  expect(authClient.signIn.passkey).toHaveBeenCalledWith({ autoFill: false });
+  expect(clearSpaceSelection).toHaveBeenCalled();
+
+  await render();
+  await act(async () => button("Continue with email").click());
+  expect(button("Sign in with passkey")).toBeUndefined();
+
+  await render("up");
+  expect(button("Continue with passkey")).toBeUndefined();
 });
 
 it("hides SSO in password recovery", async () => {
@@ -349,4 +436,32 @@ it("leaves the password form unchanged without email codes", async () => {
   expect(host.querySelector('input[type="password"]')).not.toBeNull();
   expect(host.querySelector<HTMLInputElement>('input[type="password"]')!.required).toBe(true);
   expect(host.querySelector('button[type="submit"]')!.textContent).toBe("Sign in");
+});
+
+it.each(["in", "up"] as const)(
+  "signs in to a demo server's shared account in one click on %s",
+  async (mode) => {
+    const demoAccount = { email: "demo@example.com", password: "demo-password" };
+    vi.mocked(fetchAuthCapabilities).mockResolvedValue({ ...codeCapabilities, demoAccount });
+    vi.mocked(authClient.signIn.email).mockResolvedValue({ data: {}, error: null } as never);
+    await act(async () =>
+      root.render(
+        <MemoryRouter initialEntries={["/sign-up"]}>
+          <AuthPage mode={mode} />
+          <LocationProbe />
+        </MemoryRouter>,
+      ),
+    );
+    await act(async () => button("Sign in with demo account").click());
+    expect(authClient.signIn.email).toHaveBeenCalledWith(demoAccount);
+    expect(host.querySelector("[data-testid=location]")!.textContent).toBe(
+      mode === "up" ? "/sign-in" : "/sign-up",
+    );
+  },
+);
+
+it("offers no demo sign-in on other servers", async () => {
+  vi.mocked(fetchAuthCapabilities).mockResolvedValue(codeCapabilities);
+  await render();
+  expect(button("Sign in with demo account")).toBeUndefined();
 });

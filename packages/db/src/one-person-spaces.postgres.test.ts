@@ -13,7 +13,6 @@ import { assertSpaceTakesPerson, SpaceHasPersonError } from "./team-space.js";
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
-const env = { signupsEnabled: "true", signupAllowlist: "" };
 const bootstrap = (...args: Parameters<typeof bootstrapUserSpace>) =>
   runAsSystem("authentication", () => bootstrapUserSpace(...args));
 
@@ -89,7 +88,7 @@ describePostgres("one person per space without a shared account (PostgreSQL)", (
   });
 
   it("gives the first person the brand's empty default space", async () => {
-    await expect(bootstrap(client, { id: ada }, env, { brandId })).resolves.toEqual({
+    await expect(bootstrap(client, { id: ada }, { brandId })).resolves.toEqual({
       spaceId: defaultSpace,
       organizationId: organization,
     });
@@ -106,7 +105,7 @@ describePostgres("one person per space without a shared account (PostgreSQL)", (
   });
 
   it("gives the next person a space of their own, their default in that organization", async () => {
-    const joined = await bootstrap(client, { id: bea }, env, { brandId });
+    const joined = await bootstrap(client, { id: bea }, { brandId });
     beaSpace = joined.spaceId;
     expect(joined.organizationId).toBe(organization);
     expect(beaSpace).not.toBe(defaultSpace);
@@ -137,10 +136,10 @@ describePostgres("one person per space without a shared account (PostgreSQL)", (
   });
 
   it("keeps the first person's bots and chats out of the next person's reach", async () => {
-    await expect(requireMembership(client, bea, defaultSpace)).rejects.toBeInstanceOf(
-      IsolationError,
-    );
-    const actor = await requireMembership(client, bea, beaSpace);
+    await expect(
+      requireMembership(client, { id: bea, email: "bea@example.test" }, defaultSpace),
+    ).rejects.toBeInstanceOf(IsolationError);
+    const actor = await requireMembership(client, { id: bea, email: "bea@example.test" }, beaSpace);
     const repos = createRepos(client);
     const as = <T>(fn: () => Promise<T>) => runAsTenant({ spaceId: beaSpace, userId: bea }, fn);
     expect((await as(() => repos.listBots(actor))).map((bot) => bot.id)).not.toContain(adaBot);
@@ -152,7 +151,7 @@ describePostgres("one person per space without a shared account (PostgreSQL)", (
 
   it("recreates a person's own space when they lost their membership", async () => {
     await prisma.spaceMember.deleteMany({ where: { spaceId: beaSpace, userId: bea } });
-    await expect(bootstrap(client, { id: bea }, env)).resolves.toEqual({
+    await expect(bootstrap(client, { id: bea })).resolves.toEqual({
       spaceId: beaSpace,
       organizationId: organization,
     });

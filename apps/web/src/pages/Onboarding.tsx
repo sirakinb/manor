@@ -40,14 +40,16 @@ export function OnboardingPage() {
   const { signingOut, logOut } = useSignOut("/sign-in", setError);
 
   useEffect(() => {
-    let cancelled = false;
+    const leaving = new AbortController();
+    const { signal } = leaving;
     void initialMe()
       .then(async (me) => {
+        if (signal.aborted) return;
         const [models, navigation] = await Promise.all([
-          rpc.models.list().catch(() => []),
-          rpc.spaces.list(),
+          rpc.models.list(undefined, { signal }).catch(() => []),
+          rpc.spaces.list(undefined, { signal }),
         ]);
-        if (cancelled) return;
+        if (signal.aborted) return;
         setSpace(navigation.spaces.find((entry) => entry.id === me.spaceId) ?? null);
         // A teammate may already have completed the shared setup.
         const existingBot = navigation.current.bots[0];
@@ -64,10 +66,10 @@ export function OnboardingPage() {
       })
       .catch(() => {
         // Manor: a failed load says so instead of creating a first bot a teammate may already have.
-        if (!cancelled) setError(t`Could not load setup. Reload to try again.`);
+        if (!signal.aborted) setError(t`Could not load setup. Reload to try again.`);
       });
     return () => {
-      cancelled = true;
+      leaving.abort();
       modelProbe.invalidate();
     };
   }, []);

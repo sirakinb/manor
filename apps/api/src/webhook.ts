@@ -5,6 +5,7 @@ import { hasValidBearerToken } from "@rakazo/core";
 import type { Context, Hono } from "hono";
 import { mountGithubWebhookRoute } from "./github-webhook.js";
 import { readBoundedBody } from "./http-body.js";
+import { formatWebhookPrompt } from "./inbound-delivery.prompt.js";
 import type {
   WebhookDeps as InboundWebhookDeps,
   WebhookEvents as InboundWebhookEvents,
@@ -12,7 +13,6 @@ import type {
 } from "./webhook-inbound.js";
 import {
   deliverWebhookEvent,
-  formatWebhookPrompt,
   loadWebhookTarget,
   parseWebhookPayload,
   WEBHOOK_MAX_BODY_BYTES,
@@ -22,12 +22,10 @@ import {
 export {
   formatGithubEventPrompt,
   githubEventName,
-  githubWebhookPath,
   hasValidGithubSignature,
 } from "./github-webhook.js";
+export { formatUntrustedDeliveryPayload, formatWebhookPrompt } from "./inbound-delivery.prompt.js";
 export {
-  formatUntrustedDeliveryPayload,
-  formatWebhookPrompt,
   WEBHOOK_MAX_BODY_BYTES,
   WEBHOOK_SECRET_KIND,
   type WebhookTarget,
@@ -41,10 +39,6 @@ export type WebhookEvents = {
 };
 
 export type WebhookDeps = Omit<InboundWebhookDeps, "events"> & { events: WebhookEvents };
-
-export function webhookPath(botId: string): string {
-  return `/api/v1/bots/${botId}/webhook`;
-}
 
 export function mountWebhookHttpRoutes(app: Hono, deps: WebhookDeps) {
   const secretCache: WebhookSecretCache = new Map();

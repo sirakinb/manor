@@ -16,7 +16,7 @@ deployed once, after every stage has landed and a rehearsal against a copy of
 production data has passed.
 
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
-`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`. In progress: `v0.11.0`.
+`v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`. In progress: `v0.12.0`.
 
 ### How a stage is resolved
 
@@ -33,7 +33,9 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
    previous stage, add `--from 'apps/web/src/locales/{locale}/messages.po'`). Extract first:
    upstream's catalogs lack Manor's own strings, so a carry before extract fills nothing.
    Strings that name the product get the brand-swapped translation (`{brandName}` for web,
-   "Manor" for mobile). The catalogs stay committed; no CI check compares them with the code
+   "Manor" for mobile): run the carry again against the merged tag with
+   `--swap 'Rakazo={brandName}'` and then `--swap 'Rakazo=Manor'`, which fills a renamed
+   string from upstream's translation of the original. The catalogs stay committed; no CI check compares them with the code
    and production builds extract a template first, so a missing string shows in English.
    Never commit `packages/i18n/locales/messages.pot`.
 3. Everything else is a hand union: Manor keeps every feature it has and gains
@@ -119,7 +121,8 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
   takeover is retired: upstream's `revokeScreenControl` treats a gone sandbox as
   released and surfaces other failures.
 - Passkeys are offered only on the primary host (`passkeyRpIdForRequest`); brand
-  portals are on another domain and keep password, email-code and Google sign-in.
+  portals are on another domain and keep password and email-code sign-in. Google and Apple
+  sign-in buttons are never offered on a portal (see "Decisions made during the sync").
 - Bot computer screens are framed same-host (upstream's `embeddableScreenUrl`). App
   previews stay on the primary host so preview code cannot reach a brand portal
   user's session; the content security policy allows exactly `WEB_ORIGIN` in
@@ -346,6 +349,34 @@ Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0
 - The Apple silicon server bundle for the desktop's Docker-free option is published with the
   desktop release in Manor's desktop releases repository; the file keeps upstream's internal
   name.
+- Social sign-in buttons are off by default (decided 2026-11-21, `v0.12.0`). Upstream offers
+  "Continue with Google" whenever the Google client settings are set, and Manor sets those for
+  the Google Forms link, so upstream's rule would change every sign-in page on deploy; on a
+  portal the callback also lands on the primary host. The sign-in page lists Google and Apple
+  only when `SOCIAL_SIGN_IN_ENABLED` is set and only on the primary host. The provider stays
+  registered as before, so the Forms link is unchanged.
+- Upstream's organization invitations and member management (`v0.12.0`) stay off behind the
+  same flags as create, remove and switch. Their browser spec
+  (`e2e/organization-members.spec.ts`) carries a Manor test that the feature is refused while
+  off, and upstream's journey is skipped until the flag is lifted. Manor's own team member management stays the way
+  people are added. Even with the flags lifted, upstream's code keeps Manor's guards: a person
+  who accepts an invitation gets their own space, is never removed from a team space, and a
+  shared account is never listed, changed or removed.
+- Saved logins still stay in two places after `v0.12.0`, although upstream's vault gained
+  per-bot access, imports and authenticator keys. Folding Manor's per-bot saved logins into
+  the vault is now possible in principle (the vault has codes; it still has no notes) and is a
+  separate change after the sync, with a data migration that needs the encryption key.
+- The Workspace file lock uses upstream's `leases` table (key `workspace-files:<computerId>`)
+  from `v0.12.0`, because upstream dropped the computer columns Manor used for it. A run does
+  not take a computer while a file change holds that lease, and the idle sweep leaves it alone.
+- A This Mac bot's routine or webhook run keeps using the team's cloud computer on upstream's
+  lazy lease path.
+- Upstream's security scan workflows and its search-engine notification for the marketing site
+  stay off until their repository variables are set (`SECURITY_SCANS_ENABLED`,
+  `WWW_INDEXNOW_ENABLED`). Turning the scans on after the sync is worthwhile; they were gated so
+  findings in upstream's code do not block the stacked sync pull requests.
+- The mobile app stays on Manor's own version and keeps no Apple sign-in entitlement; upstream's
+  `expo-apple-authentication` config plugin is not in Manor's app config.
 
 ### Deploy checklist for the staged sync
 
@@ -589,6 +620,29 @@ Things the one production deploy at the end must cover, collected as stages land
   which routines started by a webhook will now act without a card.
 - Microsoft Teams messaging (`TEAMS_APP_ID`, `TEAMS_APP_PASSWORD`, `TEAMS_APP_TENANT_ID`) stays
   unset.
+- `v0.12.0` (41 migrations, rehearsed on the copy: all applied, none failed, no invalid
+  indexes, no existing table gained or lost rows; four new empty tables):
+  - Stop the API and worker before migrating, as already required. This release's drops
+    (`drop_computer_execution_columns`, `drop_computer_control_run`,
+    `drop_hand_rolled_delivery_state`, `drop_legacy_run_retry_wake`,
+    `drop_signup_settings_columns`) apply at once under plain `prisma migrate deploy`, and
+    `queue_unsent_run_replies` queues chat-app replies from the last day again, which could send
+    one twice if the old release were still running.
+  - `expire_waiting_run_secrets` queues a job for every run waiting on an answer; the copy had
+    none. `database_time_zone_utc` sets the database default time zone to UTC; the copy was
+    already on UTC, so check `SHOW timezone` on production before the deploy.
+  - Nine concurrent index builds and one concurrent index drop run outside a transaction; the
+    usual recovery applies if one is interrupted.
+  - Keep unset: `SOCIAL_SIGN_IN_ENABLED`, the `APPLE_*` sign-in settings, `DEMO_ACCOUNT_EMAIL`
+    and `DEMO_ACCOUNT_PASSWORD` (never in production), `BOT_EMAIL_SMTP_URL`, `DUB_API_KEY`,
+    `EXPERIMENTS`, `RAKAZO_COMPUTER_PROXY`, `SANDBOX_COMPUTER_COMPUTE_GPUS`,
+    `COMPUTER_DEFAULT_MODE` (default `team`). Keep `GOOGLE_CLIENT_ID` and
+    `GOOGLE_CLIENT_SECRET` as they are, for the Forms link. `SMTP_URL` on the worker is no
+    longer read; account email is sent by the API.
+  - The mobile app asks each person for AI data sharing consent again (the disclosure version
+    changed), and every account email has upstream's new layout.
+  - Helper bots can now act instead of being read-only, and saving memory after outside content
+    asks first in Ask and goes to the checker in Auto. Say so in the release note to tenants.
 - Node 24.15 or newer is required.
 - Upstream's new automation workflows stay off because their repository variables stay unset:
   issue triage (`ISSUE_TRIAGE_ENABLED`), preview builds, deploys and cleanup with their PR

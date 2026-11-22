@@ -85,6 +85,8 @@ test("Manor shows one organization and offers no switcher or Create organization
     const menu = await openAvatarMenu(page);
     await expect(menu.getByRole("button", { name: "Studio", exact: true })).toHaveCount(0);
     await expect(menu.getByRole("button", { name: "Client Company", exact: true })).toHaveCount(0);
+    // Nor does it offer the organization submenu that switches or starts one.
+    await expect(page.getByTestId("organization-menu-trigger")).toHaveCount(0);
     await captureScreenshot(page, testInfo, "org-menu-single");
     await page.keyboard.press("Escape");
 

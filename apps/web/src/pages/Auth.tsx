@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { signInProviders } from "@rakazo/contracts";
 import {
   credentialIssue,
   MAX_PASSWORD_LENGTH,
@@ -7,11 +8,13 @@ import {
   suggestEmailCorrection,
 } from "@rakazo/core";
 import { Button, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from "@rakazo/ui-web";
+import { ChevronLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ParticleWordmark } from "../components/ai/ParticleWordmark";
 import { BrandLogo } from "../components/BrandLogo";
-import { PasskeySignIn } from "../components/PasskeySignIn";
+import { PasskeySignIn, usePasskeySignIn } from "../components/PasskeySignIn";
+import { SocialSignInButtons } from "../components/SocialSignInButtons";
 import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
@@ -33,6 +36,10 @@ export const submitClass = "mt-3 h-12 w-full rounded-xl text-body-lg";
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const chooserPath = mode === "up" ? "/sign-up" : "/sign-in";
+  const emailStep = location.pathname === `${chooserPath}/email`;
   const next = signInNext(searchParams.get("next"));
   // Switching between sign-in and sign-up keeps where the person was going.
   const nextQuery = next ? `?next=${encodeURIComponent(next)}` : "";
@@ -50,6 +57,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   });
   const [pending, setPending] = useState(false);
   const entering = useRef(false);
+  const passkey = usePasskeySignIn({ onSignedIn: enterApp, onError: setError });
   const [resetSent, setResetSent] = useState(false);
   // Signup triggers a session refresh that remounts the anonymous auth page.
   const sent = resetSent || searchParams.get("verify") === "email";
@@ -62,11 +70,21 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   // A blank password asks for an emailed code, so code-only accounts need no toggle.
   const codeMode = useCode && !password;
   const codeStep = useCode && codeSent;
+  const providers = reset ? signInProviders(reset) : [];
+  const chooser = Boolean(
+    reset?.passwordAuth && providers.length > 0 && !emailStep && mode !== "forgot" && !codeStep,
+  );
+  // The chooser and the email step share a card. A server with no providers keeps today's form.
+  const presented = Boolean(
+    reset?.passwordAuth && providers.length > 0 && mode !== "forgot" && !sent && !codeStep,
+  );
   const passwordFieldId = mode === "in" ? "current-password" : "new-password";
   const logoOnly = !sent && !codeStep && mode === "in" && brand.id !== "manor";
   const title =
     sent || codeStep ? (
       <Trans>Check your email</Trans>
+    ) : presented && mode === "in" ? (
+      <Trans>Welcome back</Trans>
     ) : mode === "in" ? (
       <Trans>Sign in to {brandName}</Trans>
     ) : mode === "up" ? (
@@ -210,20 +228,39 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     setPending(true);
   }
 
+  async function signInAsDemo(account: { email: string; password: string }) {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await authClient.signIn.email(account);
+      if (result.error) {
+        setError(authErrorText(result.error, t`Could not continue`));
+        return;
+      }
+      // Sign-up sends a signed-in user to new-account onboarding; the demo account already exists.
+      if (mode === "up") navigate(`/sign-in${nextQuery}`, { replace: true });
+      enterApp();
+    } catch {
+      setError(t`Could not reach the server`);
+    } finally {
+      if (!entering.current) setPending(false);
+    }
+  }
+
   function leaveCodeStep() {
     setCodeSent(false);
     setCode("");
     setError(null);
   }
 
-  async function signInWithSso() {
+  async function signInWithProvider(provider: string) {
     setError(null);
     try {
       const result = await runSsoFlow(
         (disableRedirect, callbackURL) =>
           authClient.signIn.social({
             disableRedirect,
-            provider: "oidc",
+            provider,
             newUserCallbackURL: callbackURL(newAccountDestination(next)),
             callbackURL: callbackURL(next ?? "/app"),
             errorCallbackURL: callbackURL("/sign-in"),
@@ -250,6 +287,24 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
       </div>
       <div className="flex flex-1 items-center justify-center px-6 pb-16">
         <form onSubmit={submit} className="flex w-full max-w-[460px] flex-col items-center">
+          {presented && emailStep ? (
+            <div className="mb-4 self-start">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setError(null);
+                  if (location.state?.authChooser) navigate(-1);
+                  else navigate(`${chooserPath}${nextQuery}`, { replace: true });
+                }}
+              >
+                <ChevronLeft />
+                <Trans>Back</Trans>
+              </Button>
+            </div>
+          ) : null}
           <BrandLogo
             className={
               brand.logo.viewBox
@@ -305,21 +360,55 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   </Button>
                 </div>
               ) : null}
-              {reset?.sso && mode !== "forgot" ? (
-                <button
-                  type="button"
+              {mode !== "forgot" ? (
+                <SocialSignInButtons
+                  providers={providers}
                   disabled={pending}
-                  onClick={() => void signInWithSso()}
-                  className="mt-3 w-full rounded-[13px] bg-[var(--rk-accent-strong)] py-[18px] text-center text-[17px] font-medium text-white hover:bg-[var(--rk-accent)]"
-                >
-                  <Trans>Continue with {reset.sso.name}</Trans>
-                </button>
+                  onPress={(providerId) => void signInWithProvider(providerId)}
+                />
               ) : null}
               {error ? (
-                <p role="alert" className="mt-3 text-sm text-[#EF4444]">
+                <p role="alert" className="mt-4 w-full text-center text-sm text-destructive">
                   {error}
                 </p>
               ) : null}
+            </div>
+          ) : chooser ? (
+            <div
+              className={`flex w-full flex-col items-center text-[16px] text-[#8A8590] ${logoOnly ? "mt-[38px]" : ""}`}
+            >
+              <SocialSignInButtons
+                providers={providers}
+                disabled={pending || passkey.pending}
+                onPress={(providerId) => void signInWithProvider(providerId)}
+                onEmail={() => {
+                  setError(null);
+                  navigate(`${chooserPath}/email${nextQuery}`, { state: { authChooser: true } });
+                }}
+                onPasskey={mode === "in" && passkey.supported ? passkey.start : undefined}
+              />
+              {error ? (
+                <p role="alert" className="mt-4 w-full text-center text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+              <p className="mt-[30px] text-center">
+                {mode === "in" ? (
+                  <>
+                    <Trans>Don’t have an account?</Trans>{" "}
+                    <Link to={`/sign-up${nextQuery}`} className="font-medium text-foreground">
+                      <Trans>Sign up</Trans>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Trans>Already have an account?</Trans>{" "}
+                    <Link to={`/sign-in${nextQuery}`} className="font-medium text-foreground">
+                      <Trans>Sign in</Trans>
+                    </Link>
+                  </>
+                )}
+              </p>
             </div>
           ) : (
             <>
@@ -494,11 +583,24 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
               </button>
               {mode === "in" && !codeStep ? (
                 <PasskeySignIn
+                  autoFillOnly={presented}
                   disabled={pending}
                   className="mt-3 h-auto w-full rounded-[13px] border border-[var(--rk-hairline-strong)] bg-transparent py-[17px] text-[16px] text-[#F1F0F3] hover:bg-[var(--rk-main)]"
                   onSignedIn={enterApp}
                   onError={setError}
                 />
+              ) : null}
+              {reset?.demoAccount && mode !== "forgot" && !codeStep ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={pending}
+                  className={submitClass}
+                  onClick={() => reset.demoAccount && void signInAsDemo(reset.demoAccount)}
+                >
+                  <Trans>Sign in with demo account</Trans>
+                </Button>
               ) : null}
               {codeStep ? (
                 <button
@@ -510,18 +612,8 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                   <Trans>Back</Trans>
                 </button>
               ) : null}
-              {reset?.sso && mode !== "forgot" && !codeStep ? (
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => void signInWithSso()}
-                  className="mt-3 text-[14px] text-[#8A8590] hover:text-[#F1F0F3]"
-                >
-                  <Trans>Continue with {reset.sso.name}</Trans>
-                </button>
-              ) : null}
               {codeStep ? null : (
-                <p className="mt-[30px] text-[16px] text-[#8A8590]">
+                <p className="mt-[30px] text-center text-[16px] text-[#8A8590]">
                   {mode === "in" ? (
                     <>
                       <Trans>Don’t have an account?</Trans>{" "}
@@ -637,10 +729,14 @@ export function PasswordResetPage() {
 
 export function AuthFrame({
   title,
+  surface = false,
+  leading,
   onSubmit,
   children,
 }: {
   title: React.ReactNode;
+  surface?: boolean;
+  leading?: React.ReactNode;
   onSubmit: (event: React.FormEvent) => void;
   children: React.ReactNode;
 }) {
@@ -653,22 +749,36 @@ export function AuthFrame({
         <WindowChrome />
       </div>
       <div className="flex flex-1 items-center justify-center px-6 pb-16">
-        <form onSubmit={onSubmit} className="flex w-full max-w-[460px] flex-col items-center">
-          <BrandLogo
-            className={
-              brand.logo.viewBox
-                ? "h-[90px] w-[156px]"
-                : brand.logo.wide
-                  ? "h-12 w-auto"
-                  : "h-[74px] w-[74px]"
-            }
-          />
-          <h1
-            aria-live="polite"
-            className="mb-9 mt-7 text-balance text-center text-4xl font-medium tracking-tight"
-          >
-            {title}
-          </h1>
+        <form
+          onSubmit={onSubmit}
+          className={
+            surface
+              ? "flex w-full max-w-[520px] flex-col rounded-3xl border border-border bg-card px-8 pt-8 pb-9 shadow-sm"
+              : "flex w-full max-w-[460px] flex-col items-center"
+          }
+        >
+          {leading ? <div className="mb-4 self-start">{leading}</div> : null}
+          <div className={surface ? "flex w-full flex-col items-center" : "contents"}>
+            <BrandLogo
+              className={
+                brand.logo.viewBox
+                  ? "h-[90px] w-[156px]"
+                  : brand.logo.wide
+                    ? "h-12 w-auto"
+                    : "h-[74px] w-[74px]"
+              }
+            />
+            <h1
+              aria-live="polite"
+              className={
+                surface
+                  ? "mt-5 mb-6 text-balance text-center text-4xl font-medium tracking-tight"
+                  : "mt-7 mb-9 text-balance text-center text-4xl font-medium tracking-tight"
+              }
+            >
+              {title}
+            </h1>
+          </div>
           {children}
         </form>
       </div>

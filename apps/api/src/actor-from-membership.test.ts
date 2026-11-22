@@ -10,6 +10,7 @@ const actor = {
   email: "owner@example.test",
   isDeploymentOwner: false,
 };
+const user = { id: actor.userId, email: actor.email };
 
 function prisma(options: { membership: boolean; failure?: Error; ownerUserId?: string }) {
   return {
@@ -39,23 +40,21 @@ function prisma(options: { membership: boolean; failure?: Error; ownerUserId?: s
 describe("actorFromMembership", () => {
   it("returns no actor when the user is not a member of the requested Space", async () => {
     await expect(
-      actorFromMembership(
-        requireMembership(prisma({ membership: false }), "user-1", "space-other"),
-      ),
+      actorFromMembership(requireMembership(prisma({ membership: false }), user, "space-other")),
     ).resolves.toBeNull();
   });
 
   it("returns the actor for a real membership, not the owner unless it holds the seat", async () => {
     const db = prisma({ membership: true });
     await expect(
-      actorFromMembership(requireMembership(db, "user-1", "space-support")),
+      actorFromMembership(requireMembership(db, user, "space-support")),
     ).resolves.toEqual(actor);
   });
 
   it("marks the deployment owner from the stored owner seat", async () => {
     const db = prisma({ membership: true, ownerUserId: "user-1" });
     await expect(
-      actorFromMembership(requireMembership(db, "user-1", "space-support")),
+      actorFromMembership(requireMembership(db, user, "space-support")),
     ).resolves.toEqual({ ...actor, isDeploymentOwner: true });
   });
 
@@ -68,7 +67,7 @@ describe("actorFromMembership", () => {
             membership: true,
             failure,
           }),
-          "user-1",
+          user,
           "space-support",
         ),
       ),

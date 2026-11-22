@@ -2,9 +2,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { i18n } from "@lingui/core";
 import { ORPCError } from "@orpc/client";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { agentImportErrorText } from "./agent-import-errors";
 import { UI_LOCALES } from "./ui-locale";
+
+// The brand comes from the page's hostname, which this Node test has none of.
+vi.mock("./brand", () => ({ brandName: "Manor" }));
 
 beforeEach(() => {
   i18n.load("en", {});

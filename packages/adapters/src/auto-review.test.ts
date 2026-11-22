@@ -4,7 +4,6 @@ import {
   autoReviewMinConfidence,
   autoReviewTimeoutMs,
   buildAnswerCheckPrompt,
-  buildAutoReviewPrompt,
   checkerCostUsd,
   createLlmVerifier,
   isAutoReviewCheckerConfigured,
@@ -16,6 +15,7 @@ import {
   resolveAutoReviewProviderKind,
   runAutoReviewJudge,
 } from "./auto-review.js";
+import { buildAutoReviewPrompt } from "./auto-review.prompt.js";
 
 describe("resolveAutoReviewChecker", () => {
   it("prefers explicit env overrides", () => {

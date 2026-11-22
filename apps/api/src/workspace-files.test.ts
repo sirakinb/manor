@@ -1,5 +1,5 @@
 import { RPCHandler } from "@orpc/server/fetch";
-import { FakeSandboxProvider } from "@rakazo/adapters";
+import { FakeSandboxProvider, workspaceFilesLeaseKey } from "@rakazo/adapters";
 import type { Actor, WorkspaceFileOperation } from "@rakazo/contracts";
 import { describe, expect, it, vi } from "vitest";
 import type { RouterDeps } from "./router.js";
@@ -33,7 +33,27 @@ async function setup({ running = false, foreign = false, mode = "team", asleep =
     state: asleep ? "stopped" : "running",
     scope: mode,
   };
+  // Upstream's `leases` table, as `withLease` reads and writes it.
+  const leases = new Map<string, number>();
+  let fence = 0;
+  const leaseQuery = vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) => {
+    const sql = strings.join("?");
+    if (sql.includes('INSERT INTO "leases"')) {
+      const key = String(values[0]);
+      if (leases.has(key)) return [];
+      leases.set(key, ++fence);
+      return [{ fence: BigInt(fence) }];
+    }
+    if (sql.includes('DELETE FROM "leases"')) {
+      if (leases.get(String(values[0])) === values[1]) leases.delete(String(values[0]));
+      return [];
+    }
+    if (sql.includes('UPDATE "leases"'))
+      return leases.get(String(values[1])) === values[2] ? [1] : [];
+    return [];
+  });
   const prisma = {
+    $queryRaw: leaseQuery,
     bot: { findFirst: vi.fn().mockResolvedValue(foreign ? null : { id: "bot-1", computer }) },
     computer: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     computerExecutionLease: { findFirst: vi.fn().mockResolvedValue(null) },
@@ -66,7 +86,7 @@ async function setup({ running = false, foreign = false, mode = "team", asleep =
     if (!response) throw new Error("No RPC procedure matched");
     return response;
   };
-  return { call, prisma, execute, sandbox };
+  return { call, prisma, execute, sandbox, leases };
 }
 
 describe("workspace file API", () => {
@@ -84,7 +104,7 @@ describe("workspace file API", () => {
     );
   });
   it("rejects mutations while any bot works on the Team Computer and releases the lock", async () => {
-    const { call, execute, prisma } = await setup({ running: true });
+    const { call, execute, prisma, leases } = await setup({ running: true });
     expect((await call({ action: "create", path: "notes.txt", kind: "file" })).status).toBe(409);
     expect(execute).not.toHaveBeenCalled();
     expect(prisma.run.findFirst).toHaveBeenCalledWith(
@@ -92,9 +112,18 @@ describe("workspace file API", () => {
         where: expect.objectContaining({ bot: { computerId: "computer-1" } }),
       }),
     );
-    expect(prisma.computer.updateMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({ data: { executionRunId: null, executionLeaseExpiresAt: null } }),
-    );
+    // The change held the computer's file lease and gave it back although it was refused.
+    expect(prisma.$queryRaw).toHaveBeenCalled();
+    expect(leases.size).toBe(0);
+  });
+  it("refuses a change while another change holds the computer's file lease", async () => {
+    const { call, execute, leases } = await setup();
+    leases.set(workspaceFilesLeaseKey("computer-1"), 99);
+    expect((await call({ action: "create", path: "notes.txt", kind: "file" })).status).toBe(409);
+    expect(execute).not.toHaveBeenCalled();
+    leases.clear();
+    expect((await call({ action: "create", path: "notes.txt", kind: "file" })).status).toBe(200);
+    expect(leases.size).toBe(0);
   });
   it("maps locations explicitly and allows only Team Computers to use shared files", async () => {
     const { call, sandbox } = await setup();

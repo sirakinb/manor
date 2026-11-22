@@ -2,7 +2,7 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { SandboxDamagedError } from "@rakazo/adapter-kit";
 import type * as Adapters from "@rakazo/adapters";
-import { ComputerBusyError } from "@rakazo/adapters";
+import { ComputerBusyError, ComputerRecoveryRequiredError } from "@rakazo/adapters";
 import type { Actor } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import { Prisma } from "@rakazo/db";
@@ -85,6 +85,8 @@ describe("computer boot", () => {
     lifecycle.provisionComputer.mockRejectedValue(new Error("stop after the lease"));
     const tx = {
       computer: { findUniqueOrThrow: vi.fn().mockResolvedValue(stoppedBot.computer) },
+      // Manor: no Workspace file change holds the computer.
+      lease: { count: vi.fn(async () => 0) },
       computerExecutionLease: {
         updateManyAndReturn: vi.fn().mockResolvedValue([]),
         create: busy
@@ -196,6 +198,27 @@ describe("computer boot", () => {
     const response = await boot(prisma);
 
     expect(response?.status).toBe(404);
+    expect(lifecycle.provisionComputer).toHaveBeenCalledOnce();
+    expect(lifecycle.releaseComputerExecutionLease).toHaveBeenCalledOnce();
+  });
+
+  it("returns the quarantine recovery instruction over RPC without starting the computer", async () => {
+    const error = new ComputerRecoveryRequiredError();
+    lifecycle.provisionComputer.mockRejectedValue(error);
+    const prisma = {
+      spaceMember: { count: vi.fn(async () => 1) },
+      bot: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...stoppedBot,
+          computer: { ...stoppedBot.computer, state: "quarantined" },
+        }),
+      },
+    } as unknown as PrismaClient;
+
+    const response = await boot(prisma);
+
+    expect(response?.status).toBe(409);
+    expect(await response?.text()).toContain(error.message);
     expect(lifecycle.provisionComputer).toHaveBeenCalledOnce();
     expect(lifecycle.releaseComputerExecutionLease).toHaveBeenCalledOnce();
   });

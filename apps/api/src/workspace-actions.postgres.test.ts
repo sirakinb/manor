@@ -719,7 +719,13 @@ describePostgres("workspace write paths (PostgreSQL)", () => {
       prisma,
       secrets,
       email,
-      jobs: { enqueue, cancel: async () => {}, close: async () => {} },
+      jobs: {
+        enqueue,
+        enqueueIn: async () => {},
+        cancel: async () => {},
+        cancelIn: async () => {},
+        close: async () => {},
+      },
     });
     const input = {
       kind: "voice" as const,

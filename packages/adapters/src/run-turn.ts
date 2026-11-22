@@ -4,7 +4,7 @@ import {
   historyCompactJob,
   ModelAccountError,
   ModelOutputError,
-  runContinueJob,
+  memoryRetainTurnJob,
   SandboxAllowanceUsedError,
   SandboxProviderAccountError,
   SandboxRateLimitError,
@@ -25,30 +25,44 @@ import {
   userRunError,
   withoutLastToolStepNotes,
 } from "@rakazo/core";
-import { RunHistoryWriteError, recordUsage } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+import {
+  isDatabaseUnavailable,
+  RunHistoryWriteError,
+  recordUsage,
+  retryWhileDatabaseUnavailable,
+} from "@rakazo/db";
+import { bestEffort, getLogger } from "@rakazo/logging";
 import { sanitizedError } from "@rakazo/logging/monitoring";
 import { MAX_APPROVAL_DETAIL_LENGTH, truncate } from "./approval-ask.js";
 import { isToolPauseResult } from "./approval-effect.js";
 import { returnHelperOutcome } from "./background-helpers.js";
-import { returnBotMessageOutcome } from "./bot-messages.js";
+import { reportBotMessageWait, returnBotMessageOutcome } from "./bot-messages.js";
 import { scheduleComputerSleep } from "./computer-idle.js";
 import { holdComputerExecutionLeaseForTakeover } from "./computer-lifecycle.js";
 import { resolveBotWorkspacePath } from "./computer-support.js";
+import { answeredSteeringMessageIds, retainsConversationTurn } from "./conversation-memory.js";
 import {
   COMPACTION_BATCH_SIZE,
   HISTORY_WINDOW_SIZE,
   shouldEnqueueCompaction,
 } from "./history-compaction.js";
 import { connectorStepNames } from "./pi-runtime-tools.js";
+import { rejectedRequestsOf } from "./provider-request-shape.js";
+import { snapshotReply } from "./reply-snapshot.js";
 import {
   backOffRoutineAfterAccountError,
   clearRoutineBackoff,
   modelAccountRefusal,
 } from "./routine-backoff.js";
 import type { RunContext, RunState } from "./run-context.js";
-import { persistTurnCheckpoint } from "./run-context.js";
-import { enqueueSteeringContinuation, renewRunLease, requeueComputerRun } from "./run-lifecycle.js";
+import { persistTurnCheckpoint, saveTurnCheckpoint } from "./run-context.js";
+import {
+  computerRetryDelay,
+  enqueueSteeringContinuation,
+  renewRunLease,
+  requeueComputerRun,
+  requeueInterruptedRun,
+} from "./run-lifecycle.js";
 import { publishMessage, redactBlocks } from "./run-messages.js";
 import {
   completionMarksUnread,
@@ -80,8 +94,9 @@ import {
   runAllowsSilentEmpty,
   runPromotesMidTurnNarration,
   TOOL_STEPS_WITHOUT_RESPONSE,
-} from "./run-replies.js";
+} from "./run-replies.prompt.js";
 import { scheduleRoutineRetry } from "./run-routines.js";
+import { scheduleRunSecretsExpiry } from "./run-secrets-expiry.js";
 import { applyTool } from "./run-tools.js";
 import { withRuntimeCleanup } from "./runtime-stream.js";
 import {
@@ -110,6 +125,11 @@ import {
 } from "./tool-loop.js";
 import type { ToolRefusal } from "./tool-refusal.js";
 import {
+  keepToolStepResult,
+  keptToolArguments,
+  saveLatestStepScreenshot,
+} from "./tool-step-calls.js";
+import {
   assistantTurnSeparator,
   botMessageOutcomeFromMidTurn,
   clampUserProgressMessage,
@@ -119,6 +139,7 @@ import {
   STEERING_RESETS_MAX_PER_RUN,
   USER_PROGRESS_MESSAGE_MAX_LENGTH,
 } from "./user-progress.js";
+import { wakeRun } from "./wake-run.js";
 
 type RuntimeEvent<T extends AgentRuntimeEvent["type"]> = Extract<AgentRuntimeEvent, { type: T }>;
 
@@ -223,6 +244,10 @@ export async function consumeRunEvents(
         return true;
       } else if (event.type === "tool") {
         if (await onToolCalled(ctx, event)) return true;
+      } else if (event.type === "yielded") {
+        const ended = await handBackBetweenSteps(ctx, event.checkpoint);
+        event.answer(ended);
+        if (ended) return true;
       } else if (event.type === "subagent") {
         await publishSubagent(ctx, event);
       } else if (event.type === "usage" && !event.accounted) {
@@ -431,6 +456,7 @@ async function pauseForAnswer(ctx: RunContext, event: RuntimeEvent<"ask">) {
     attemptId: ctx.attempt.id,
     leaseOwner: workerId,
     leaseFence: fence,
+    onPaused: scheduleRunSecretsExpiry(deps.jobs, runId),
     blocks: [
       {
         kind: "ask",
@@ -447,6 +473,7 @@ async function pauseForAnswer(ctx: RunContext, event: RuntimeEvent<"ask">) {
   });
   if (!paused) return;
   await enqueueSteeringContinuation(deps, paused.continuationRunId);
+  await reportBotMessageWait(deps, run, bot, safeText, ctx.attempt.id);
   await notifyRun(deps, run, {
     kind: "help",
     title: `${displayName(bot.name, "Bot")} needs an answer`,
@@ -502,13 +529,10 @@ async function pauseForTakeover(ctx: RunContext, event: RuntimeEvent<"takeover">
     leaseOwner: workerId,
     leaseFence: fence,
     reason: safeReason,
-    computerId: ctx.computer.stored.id,
   });
   if (!paused) return;
   if (typeof paused === "object") {
-    await deps.jobs
-      .enqueue(runContinueJob(paused.continuationRunId))
-      .catch((error) => getLogger().error("takeover continuation enqueue", error));
+    await wakeRun(deps.jobs, paused.continuationRunId);
     return;
   }
   ctx.state.lease.retainComputer = true;
@@ -519,6 +543,29 @@ async function pauseForTakeover(ctx: RunContext, event: RuntimeEvent<"takeover">
     botId: bot.id,
     threadId: thread.id,
   });
+}
+
+/**
+ * The process is stopping and the turn finished a step: keep its narration, save the turn and
+ * queue the run, so another process resumes with the next model call instead of repeating one.
+ * Returns whether the turn ends here; when any part fails the turn goes on in this process, and
+ * the shutdown path hands it back if it is still running at the drain limit.
+ */
+async function handBackBetweenSteps(ctx: RunContext, checkpoint: string): Promise<boolean> {
+  const { deps, runId, workerId, fence } = ctx;
+  const ended = await bestEffort(
+    "run.hand_back",
+    (async () => {
+      await publishMidTurnNarration(ctx);
+      // Saved before the flush, so a shutdown that cuts the flush short still resumes after
+      // this step.
+      await saveTurnCheckpoint(ctx, checkpoint, snapshotReply(ctx.state.reply));
+      await ctx.computer.checkpoint.flush();
+      ctx.state.lease.handedBack = await requeueInterruptedRun(deps, runId, workerId, fence);
+      return true;
+    })(),
+  );
+  return ended ?? false;
 }
 
 /** Show the tool step, stop a repeating loop, and run the tool for scripted runtimes. */
@@ -532,10 +579,21 @@ async function onToolCalled(ctx: RunContext, event: RuntimeEvent<"tool">): Promi
   const stepNames = connectorStepNames(ctx.tools.connector.get(event.name), event.args);
   const callSteps = stepNames.length > 0 ? stepNames : [event.name];
   reply.pendingToolNames.push(...callSteps);
+  // A call that shows as its own step keeps what it was called with, for later turns to replay.
+  const ownStep = callSteps.length === 1 && callSteps[0] === event.name;
+  const early = reply.earlyCompletions?.get(event.executionId);
+  reply.earlyCompletions?.delete(event.executionId);
+  if (ownStep) {
+    reply.toolStepCalls.set(event.executionId, {
+      arguments: keptToolArguments(event.args, ctx.secrets),
+    });
+    if (early) keepToolStepResult(reply, early, ctx.secrets);
+  }
   reply.toolCalls.push(
     ...callSteps.map((name) => ({
       label: humanizeToolName(name),
       executionId: event.executionId,
+      ...(ownStep ? { tool: event.name } : {}),
     })),
   );
   // Text before ask_user stays pending: the run pauses next, and the question needs it.
@@ -610,6 +668,7 @@ async function onToolCalled(ctx: RunContext, event: RuntimeEvent<"tool">): Promi
     );
     const outcome = toolCompletionOutcome(completion);
     if (outcome) reply.toolOutcomes.set(event.executionId, outcome);
+    keepToolStepResult(reply, completion, ctx.secrets);
     await appendToolCompletionAudit(deps, audit, completion, ctx.secrets);
     return isToolPauseResult(result);
   } catch (error) {
@@ -638,6 +697,7 @@ async function stopStuckToolLoop(ctx: RunContext, toolName: string, refusal?: To
   ctx.runtimeAbortController.abort();
   ctx.tools.approvedReplays.assertDrained();
   flushPendingTools(reply);
+  await saveLatestStepScreenshot(ctx);
   // Calls that had not finished when the loop was stopped never ran to the end.
   reply.messageSegments = withReplyToolOutcomes(reply, "stopped");
   if (!(await renewRunLease(deps, runId, workerId, fence))) return;
@@ -653,6 +713,7 @@ async function stopStuckToolLoop(ctx: RunContext, toolName: string, refusal?: To
       ? overLimitStopText(humanName, overLimit)
       : loopGuardStopText(humanName, ctx.state.toolCallStreak);
   await ctx.settleRunningHelpers();
+  const answeredMessageIds = await conversationRetentionMessages(ctx);
   const stopped = await deps.events.finalizeRun({
     spaceId: run.spaceId,
     threadId: thread.id,
@@ -666,7 +727,9 @@ async function stopStuckToolLoop(ctx: RunContext, toolName: string, refusal?: To
     blocks: isBackgroundRunTrigger(run.trigger) ? [] : [{ kind: "text", text: stuckText }],
   });
   if (!stopped) return;
+  await enqueueConversationRetention(ctx, answeredMessageIds);
   const stoppedForOverLimit = overLimit >= MAX_CONSECUTIVE_OVER_LIMIT_ACTION_CALLS;
+  const loop = loopGuardStop(ctx.state.toolCallStreak);
   logLoopGuardStop(
     {
       spaceId: run.spaceId,
@@ -677,8 +740,12 @@ async function stopStuckToolLoop(ctx: RunContext, toolName: string, refusal?: To
     },
     {
       tool: toolName,
-      reason: stoppedForOverLimit ? "over_limit_actions" : "repeated_calls",
-      count: stoppedForOverLimit ? overLimit : loopGuardStop(ctx.state.toolCallStreak).count,
+      reason: stoppedForOverLimit
+        ? "over_limit_actions"
+        : loop.kind === "same_result"
+          ? "repeated_results"
+          : "repeated_calls",
+      count: stoppedForOverLimit ? overLimit : loop.count,
       failures: ctx.state.toolCallStreak.failures ?? 0,
       ...(refusal ? { refusal } : {}),
     },
@@ -779,6 +846,31 @@ async function groupSilenceStillAllowed(ctx: RunContext) {
   return !earlier;
 }
 
+/** Finalization deletes steering claims, so collect them before either completion path. */
+async function conversationRetentionMessages(ctx: RunContext): Promise<string[] | undefined> {
+  const { run, thread } = ctx;
+  if (
+    !retainsConversationTurn({
+      trigger: run.trigger,
+      sourceMessageId: run.sourceMessageId,
+      runBotId: run.botId,
+      threadBotId: thread.botId,
+      threadGroupId: thread.groupId,
+      nonOwnerChatRun: ctx.source.messagingChannelRun,
+      provider: ctx.memory.semantic,
+    })
+  )
+    return undefined;
+  return answeredSteeringMessageIds(ctx.deps, ctx.runId);
+}
+
+async function enqueueConversationRetention(ctx: RunContext, messageIds: string[] | undefined) {
+  if (!messageIds) return;
+  await ctx.deps.jobs
+    .enqueue(memoryRetainTurnJob(ctx.runId, messageIds))
+    .catch((error) => getLogger().error("memory.retain-turn enqueue failed", error));
+}
+
 /** The turn ended: apply a scripted runtime's files and memory, then finalize the reply. */
 export async function completeRun(ctx: RunContext) {
   const { deps, run, runId, bot, thread, context } = ctx;
@@ -864,6 +956,7 @@ export async function completeRun(ctx: RunContext) {
     reply.currentTextSegment = reply.assembled;
   }
   flushPendingTools(reply);
+  await saveLatestStepScreenshot(ctx);
   reply.messageSegments = withReplyToolOutcomes(reply);
   // Silent-allowed runs can choose an explicit NO_RESPONSE or finish empty.
   // Other runs still drop a stray sentinel at the edges of a real reply.
@@ -939,6 +1032,7 @@ export async function completeRun(ctx: RunContext) {
     ctx.source.peerMessage?.repliesToRequest === true,
   );
   await ctx.settleRunningHelpers();
+  const answeredMessageIds = await conversationRetentionMessages(ctx);
   const completed = await deps.events.finalizeRun({
     spaceId: run.spaceId,
     threadId: thread.id,
@@ -996,6 +1090,7 @@ export async function completeRun(ctx: RunContext) {
       runId: run.id,
     });
   }
+  await enqueueConversationRetention(ctx, answeredMessageIds);
   // Last, and never fatal: the run is already finalized, so a failure here must not reach
   // the failure path, where a second finalizeRun would match no rows and silently
   // skip the completion notification.
@@ -1039,6 +1134,34 @@ export function handoffEndedTurn(state: Pick<RunState, "handedOff">, error: unkn
 function runFailureFingerprint(provider: string, message: string): string[] {
   const { kind, status } = normalizeRunError(message);
   return ["run.failed", provider || "unknown", kind ?? "unclassified", String(status ?? "none")];
+}
+
+/** The shape of a request the provider rejected for a reason nothing classified. */
+function requestDetails(error: unknown): { "error.details"?: string } {
+  const rejected = rejectedRequestsOf(error);
+  return rejected ? { "error.details": JSON.stringify({ providerRequests: rejected }) } : {};
+}
+
+/**
+ * The database went away mid-turn, which is no fault of the turn. Once the database answers
+ * again, hand the run back as a stopping worker does, keeping its turn on the computer; it
+ * starts again here and resumes. Its fence spaces out repeats, so a database that is only
+ * saturated is not hammered. An outage longer than the wait leaves the run to lease expiry.
+ */
+export async function requeueRunAfterDatabaseOutage(ctx: RunContext): Promise<void> {
+  const { deps, runId, workerId, fence } = ctx;
+  if (!ctx.state.terminalCheckpointComplete) {
+    await ctx.computer.checkpoint.flush().catch(() => undefined);
+  }
+  const wakeAt = new Date(Date.now() + computerRetryDelay(fence));
+  try {
+    ctx.state.lease.handedBack = await retryWhileDatabaseUnavailable(
+      () => requeueInterruptedRun(deps, runId, workerId, fence, wakeAt),
+      { source: "run requeue", signal: deps.shutdownSignal },
+    );
+  } catch (error) {
+    if (!isDatabaseUnavailable(error)) throw error;
+  }
 }
 
 /** The turn failed: keep the reply streamed so far, record the error, and retry or notify. */
@@ -1134,6 +1257,7 @@ export async function failRun(
         attemptId: ctx.attempt.id,
         ...diagnoseRunFailure(error, "execution"),
         "error.fingerprint": runFailureFingerprint(model.active["model.provider"], message),
+        ...requestDetails(error),
       },
     );
   }

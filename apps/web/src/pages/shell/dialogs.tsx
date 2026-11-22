@@ -1,5 +1,6 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import type { AccountItem, Bot, BotSection } from "@rakazo/contracts";
+import { botRemovalWarning } from "@rakazo/i18n/bot-removal";
 import {
   Button,
   Checkbox,
@@ -10,8 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-  NativeSelect,
-  NativeSelectOption,
+  OptionSelect,
   RadioGroup,
   RadioGroupItem,
 } from "@rakazo/ui-web";
@@ -19,7 +19,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Lock } from "lucide-react";
 import { useId, useState } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { useSpaceQueries } from "../../lib/query";
+import { useSave, useSpaceQueries } from "../../lib/query";
+import type { RpcClient } from "../../lib/rpc";
 import { errorText } from "../../lib/user-error";
 
 /** Each dialog is mounted only while open, so `open` is always true and the
@@ -40,10 +41,10 @@ export function NewSpaceDialog({
 }: {
   onCancel: () => void;
   /** Manor: `shared` makes a team space everyone in the organization can use. */
-  onCreate: (name: string, shared: boolean) => Promise<string>;
+  onCreate: (name: string, shared: boolean, client: RpcClient) => Promise<string>;
   /** The user's own skills, servers, plugins and tool sources, across their spaces. */
   loadItems: () => Promise<AccountItem[]>;
-  chooseItems: (spaceId: string, items: AccountItem[]) => Promise<void>;
+  chooseItems: (spaceId: string, items: AccountItem[], client: RpcClient) => Promise<void>;
   onDone: (spaceId: string) => void;
 }) {
   const { t } = useLingui();
@@ -51,48 +52,43 @@ export function NewSpaceDialog({
   const accessId = useId();
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ id: string; items: AccountItem[] } | null>(null);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const key = (item: AccountItem) => `${item.kind}:${item.id}`;
+  // Both steps end by leaving the name step, so a success keeps it held.
+  const creation = useSave({
+    save: async (trimmed: string, client) => {
+      const spaceId = await onCreate(trimmed, shared, client);
+      return { spaceId, items: await loadItems().catch(() => []) };
+    },
+    onSaved: ({ spaceId, items }) => {
+      // Without items of their own there is nothing to choose, so the space is ready.
+      if (!items.length) return onDone(spaceId);
+      setChosen(new Set(items.filter((item) => item.availability.allSpaces).map(key)));
+      setCreated({ id: spaceId, items });
+    },
+    closesScreen: true,
+  });
+  const choice = useSave({
+    save: ({ id, items }: { id: string; items: AccountItem[] }, client) =>
+      chooseItems(id, items, client),
+    onSaved: (_, { id }) => onDone(id),
+    closesScreen: true,
+  });
+  const saving = created ? choice.pending : creation.pending;
+  const error = created
+    ? choice.error && errorText(choice.error, t`Could not save`)
+    : creation.error && errorText(creation.error, t`Could not create space`);
 
   const create = () => {
     const trimmed = name.trim();
     if (!trimmed || saving) return;
-    setSaving(true);
-    setError(null);
-    void (async () => {
-      let spaceId: string;
-      try {
-        spaceId = await onCreate(trimmed, shared);
-      } catch (reason) {
-        setError(errorText(reason, t`Could not create space`));
-        setSaving(false);
-        return;
-      }
-      // Without items of their own there is nothing to choose, so the space is ready.
-      const items = await loadItems().catch(() => []);
-      if (!items.length) return onDone(spaceId);
-      setChosen(new Set(items.filter((item) => item.availability.allSpaces).map(key)));
-      setCreated({ id: spaceId, items });
-      setSaving(false);
-    })();
+    creation.run(trimmed);
   };
 
   const finish = () => {
     if (!created || saving) return;
-    setSaving(true);
-    setError(null);
-    void chooseItems(
-      created.id,
-      created.items.filter((item) => chosen.has(key(item))),
-    )
-      .then(() => onDone(created.id))
-      .catch((reason: unknown) => {
-        setError(errorText(reason, t`Could not save`));
-        setSaving(false);
-      });
+    choice.run({ id: created.id, items: created.items.filter((item) => chosen.has(key(item))) });
   };
 
   if (created)
@@ -172,19 +168,18 @@ export function NewSpaceDialog({
         </label>
         <label htmlFor={accessId} className="block text-body text-foreground/75">
           <Trans>Access</Trans>
-          <NativeSelect
+          <OptionSelect
             id={accessId}
             aria-label={t`Space access`}
             value={shared ? "team" : "personal"}
             disabled={saving}
-            onChange={(event) => setShared(event.target.value === "team")}
+            onValueChange={(next) => setShared(next === "team")}
             className="mt-2 w-full"
-          >
-            <NativeSelectOption value="personal">{t`Personal — only you`}</NativeSelectOption>
-            <NativeSelectOption value="team">
-              {t`Team — everyone in this organization`}
-            </NativeSelectOption>
-          </NativeSelect>
+            options={[
+              { value: "personal", label: t`Personal — only you` },
+              { value: "team", label: t`Team — everyone in this organization` },
+            ]}
+          />
         </label>
         {shared ? (
           <p className="text-label text-muted-foreground">
@@ -212,13 +207,15 @@ export function NewBotSectionDialog({
 }: {
   bot: Pick<Bot, "name">;
   onCancel: () => void;
-  onConfirm: (name: string) => Promise<void>;
+  onConfirm: (name: string, client: RpcClient) => Promise<void>;
 }) {
   const { t } = useLingui();
   const nameId = useId();
   const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // The parent closes this dialog once the section exists, so a success keeps it held.
+  const save = useSave({ save: onConfirm, closesScreen: true });
+  const saving = save.pending;
+  const error = save.error && errorText(save.error, t`Could not create section`);
 
   return (
     <Dialog open onOpenChange={closeUnlessBusy(saving, onCancel)}>
@@ -229,12 +226,7 @@ export function NewBotSectionDialog({
             event.preventDefault();
             const trimmed = name.trim();
             if (!trimmed || saving) return;
-            setSaving(true);
-            setError(null);
-            void onConfirm(trimmed).catch((err: unknown) => {
-              setError(errorText(err, t`Could not create section`));
-              setSaving(false);
-            });
+            save.run(trimmed);
           }}
         >
           <DialogHeader>
@@ -277,13 +269,14 @@ export function RenameBotSectionDialog({
 }: {
   section: Pick<BotSection, "name">;
   onCancel: () => void;
-  onConfirm: (name: string) => Promise<void>;
+  onConfirm: (name: string, client: RpcClient) => Promise<void>;
 }) {
   const { t } = useLingui();
   const nameId = useId();
   const [name, setName] = useState(section.name);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const save = useSave({ save: onConfirm, closesScreen: true });
+  const saving = save.pending;
+  const error = save.error && errorText(save.error, t`Could not rename section`);
   const trimmed = name.trim();
   const unchanged = trimmed === section.name;
 
@@ -295,12 +288,7 @@ export function RenameBotSectionDialog({
           onSubmit={(event) => {
             event.preventDefault();
             if (!trimmed || saving || unchanged) return;
-            setSaving(true);
-            setError(null);
-            void onConfirm(trimmed).catch((err: unknown) => {
-              setError(errorText(err, t`Could not rename section`));
-              setSaving(false);
-            });
+            save.run(trimmed);
           }}
         >
           <DialogHeader>
@@ -373,37 +361,8 @@ export function ClearConversationDialog({
 
 /** The groups a failed preview cannot name, so Delete stays available. */
 function removedGroupsWarning(input: { failed: boolean; groups: readonly { name: string }[] }) {
-  if (input.failed) {
-    return (
-      <>
-        {" "}
-        <Trans>
-          Groups left with fewer than two bots are deleted too, including their messages, files, and
-          pages.
-        </Trans>
-      </>
-    );
-  }
-  if (input.groups.length === 0) return null;
-  const names = input.groups.map((group) => group.name).join(", ");
-  if (input.groups.length === 1) {
-    return (
-      <>
-        {" "}
-        <Trans>
-          The group {names} will be deleted too, including its messages, files, and pages.
-        </Trans>
-      </>
-    );
-  }
-  return (
-    <>
-      {" "}
-      <Trans>
-        The groups {names} will be deleted too, including their messages, files, and pages.
-      </Trans>
-    </>
-  );
+  const warning = botRemovalWarning(input.failed ? null : input.groups);
+  return warning ? <> {warning}</> : null;
 }
 
 export function DeleteBotDialog({

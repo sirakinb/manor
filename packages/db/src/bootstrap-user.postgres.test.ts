@@ -7,8 +7,6 @@ import { asSystem, runAsSystem } from "./row-security.js";
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = process.env.VERIFY_DATABASE && databaseUrl ? describe : describe.skip;
 
-const env = { signupsEnabled: "true", signupAllowlist: "" };
-
 // Sign-up bootstrap runs in the auth route's system context.
 const bootstrap = (...args: Parameters<typeof bootstrapUserSpace>) =>
   runAsSystem("authentication", () => bootstrapUserSpace(...args));
@@ -86,7 +84,7 @@ describePostgres("bootstrapUserSpace with a branded sign-up (PostgreSQL)", () =>
 
   it("joins the brand's organization as a member instead of creating a personal one", async () => {
     const organizationsBefore = await prisma.organization.count();
-    const result = await bootstrap(client, { id: joiningUserId }, env, { brandId });
+    const result = await bootstrap(client, { id: joiningUserId }, { brandId });
     expect(result).toEqual({ spaceId: clientSpaceId, organizationId: clientOrganizationId });
     expect(await prisma.organization.count()).toBe(organizationsBefore);
 
@@ -119,15 +117,19 @@ describePostgres("bootstrapUserSpace with a branded sign-up (PostgreSQL)", () =>
   });
 
   it("is idempotent for a repeated join", async () => {
-    await bootstrap(client, { id: joiningUserId }, env, { brandId });
+    await bootstrap(client, { id: joiningUserId }, { brandId });
     expect(await prisma.member.count({ where: { userId: joiningUserId } })).toBe(1);
     expect(await prisma.spaceMember.count({ where: { userId: joiningUserId } })).toBe(1);
   });
 
   it("falls back to the personal bootstrap when no organization claims the brand", async () => {
-    const result = await bootstrap(client, { id: personalUserId }, env, {
-      brandId: `${brandId}-unclaimed`,
-    });
+    const result = await bootstrap(
+      client,
+      { id: personalUserId },
+      {
+        brandId: `${brandId}-unclaimed`,
+      },
+    );
     expect(result.organizationId).toBe(result.spaceId);
     expect(result.organizationId).not.toBe(clientOrganizationId);
     const organization = await prisma.organization.findUnique({

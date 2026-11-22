@@ -5,8 +5,7 @@ import type {
   ProductAnalytics,
   SandboxProvider,
 } from "@rakazo/adapter-kit";
-import { runContinueJob } from "@rakazo/adapter-kit";
-import { notifyMemberMessage } from "@rakazo/adapters";
+import { notifyMemberMessage, wakeRun } from "@rakazo/adapters";
 import type {
   Actor,
   GroupMember,
@@ -47,7 +46,6 @@ import {
   IsolationError,
   loadMessageAuthor,
   lockSpaceGroup,
-  primaryActiveRun,
   retireWaitingQuestionInTransaction,
   SpaceDeletionInProgressError,
   sharedMessageAuthor,
@@ -79,7 +77,8 @@ export type ThreadTarget =
       groupId: string;
       threadId: string;
       groupName: string;
-      members: GroupMember[];
+      // A member's status changes with thread events, so the snapshot reads it with its cursor.
+      members: Omit<GroupMember, "status">[];
       memberBotIds: string[];
     };
 
@@ -182,14 +181,7 @@ export async function enqueueRunsNeedingContinue(
   runs: Array<{ id: string; status: string }>,
 ) {
   await Promise.all(
-    runs
-      .filter((run) => RUNS_NEEDING_CONTINUE.has(run.status))
-      .map((run) =>
-        jobs.enqueue(runContinueJob(run.id)).catch((error) => {
-          // The queued run is durable; the reconciler repairs a missed immediate wake.
-          getLogger().error("thread send enqueue", error);
-        }),
-      ),
+    runs.filter((run) => RUNS_NEEDING_CONTINUE.has(run.status)).map((run) => wakeRun(jobs, run.id)),
   );
 }
 
@@ -422,7 +414,6 @@ export async function resolveThreadTarget(
       name: member.bot.name,
       color: member.bot.color,
       avatarSet: resolveBotAvatarSet(member.bot.avatarSet),
-      status: primaryActiveRun(member.bot.runs)?.status ?? "idle",
     }));
     return {
       kind: "group",
@@ -1171,6 +1162,8 @@ export async function sendThreadMessage(
     // Subscribers catch up from the durable event cursor after a missed realtime wake.
     getLogger().error("thread send realtime notification", error);
   });
+  if (committed.runs.length > 0 || committed.routineRuns.length > 0)
+    await deps.events.publishSpaceChange?.(actor.spaceId, "runs");
   if (
     memberMessageAlerts({
       callId,

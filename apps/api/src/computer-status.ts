@@ -1,59 +1,51 @@
 import {
-  computerScreenSize,
-  computerSupportsTerminal,
-  computerSupportsUpdate,
   DISK_WARNING_PERCENT,
   diskUsedPercent,
   holdsUserControl,
+  sandboxKindCapabilities,
 } from "@rakazo/adapters";
 import type { ComputerStatus } from "@rakazo/contracts";
 import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 
-/** Mirrors computer.takeover: an execution lease blocks user control unless a takeover is pending. */
-export function executionBlocksUserTakeover(input: {
-  hasLease: boolean;
-  leaseExpiresAt: Date | null | undefined;
-  runStatus: string | null | undefined;
-  now?: number;
-  takeoverRequested?: boolean;
-}): boolean {
-  if (!input.hasLease) return false;
-  if (input.runStatus === "waiting_takeover" || input.takeoverRequested) return false;
-  const now = input.now ?? Date.now();
-  const leaseActive = Boolean(input.leaseExpiresAt && input.leaseExpiresAt.getTime() > now);
-  const runActive = Boolean(
-    input.runStatus && (ACTIVE_RUN_STATUSES as readonly string[]).includes(input.runStatus),
-  );
-  return leaseActive || runActive;
-}
-
-export async function resolveBusyBotName(
-  prisma: PrismaClient,
+/** What this bot is doing with its computer: which run holds it, and whether one waits for a person. */
+export async function resolveComputerWork(
+  prisma: Pick<PrismaClient, "computerExecutionLease" | "run">,
   input: {
     computerId: string | null | undefined;
     botId: string;
     botName: string;
   },
-): Promise<string | null> {
-  if (!input.computerId) return null;
-  const lease = await prisma.computerExecutionLease.findUnique({
-    where: { computerId_botId: { computerId: input.computerId, botId: input.botId } },
-    select: { expiresAt: true, runId: true, computer: { select: { controlRunId: true } } },
-  });
-  if (!lease) return null;
-  const run = await prisma.run.findUnique({
-    where: { id: lease.runId },
-    select: { status: true },
-  });
-  return executionBlocksUserTakeover({
-    hasLease: true,
-    leaseExpiresAt: lease.expiresAt,
-    runStatus: run?.status,
-    takeoverRequested: lease.computer.controlRunId === lease.runId,
-  })
-    ? input.botName
+): Promise<ComputerWork> {
+  if (!input.computerId) return { busyBotName: null, takeoverRequested: false };
+  const [lease, waiting] = await Promise.all([
+    prisma.computerExecutionLease.findUnique({
+      where: { computerId_botId: { computerId: input.computerId, botId: input.botId } },
+      select: { expiresAt: true, runId: true },
+    }),
+    prisma.run.findFirst({
+      where: { botId: input.botId, status: "waiting_takeover" },
+      select: { id: true },
+    }),
+  ]);
+  const run = lease
+    ? await prisma.run.findUnique({ where: { id: lease.runId }, select: { status: true } })
     : null;
+  const leaseActive = Boolean(lease && lease.expiresAt.getTime() > Date.now());
+  const runActive = Boolean(
+    run?.status && (ACTIVE_RUN_STATUSES as readonly string[]).includes(run.status),
+  );
+  // A run lets go of its computer a moment after it ends, and nothing signals that release, so
+  // the lease an ended run still holds is not work. A lease with no run is a boot, a reset, an
+  // update or a teaching session.
+  const heldWithoutRun = leaseActive && !run;
+  const working = run?.status !== "waiting_takeover" && (runActive || heldWithoutRun);
+  return { busyBotName: working ? input.botName : null, takeoverRequested: Boolean(waiting) };
+}
+
+export interface ComputerWork {
+  busyBotName: string | null;
+  takeoverRequested: boolean;
 }
 
 export function toComputerStatus(
@@ -64,23 +56,33 @@ export function toComputerStatus(
     scope: string;
     controlHolder: string;
     controlBotId?: string | null;
-    controlRunId?: string | null;
     homeRevision: string;
     maintenanceId?: string | null;
     diskUsedBytes?: bigint | null;
     diskFreeBytes?: bigint | null;
     diskDismissedPercent?: number | null;
     controlUserId?: string | null;
+    controlLeaseId?: string | null;
     userId?: string | null;
   } | null,
-  busyBotName: string | null = null,
+  work: ComputerWork = { busyBotName: null, takeoverRequested: false },
   shared = false,
   viewerId?: string,
 ): ComputerStatus {
   const controlledByOther = Boolean(
     viewerId && computer?.controlHolder === "user" && !holdsUserControl(computer, viewerId),
   );
-  const kind = (computer?.kind ?? "fake") as ComputerStatus["kind"];
+  // Only the holder learns their lease, the one their screen hands back when it closes.
+  const ownLeaseId =
+    viewerId &&
+    computer?.controlHolder === "user" &&
+    computer.controlBotId === botId &&
+    computer.controlLeaseId &&
+    holdsUserControl(computer, viewerId)
+      ? computer.controlLeaseId
+      : undefined;
+  const kind = computer?.kind ?? "fake";
+  // Manor: a "local" computer is This Mac (a shared folder on the person's Mac).
   const mode =
     computer?.scope === "dedicated" ? "dedicated" : computer?.scope === "local" ? "local" : "team";
   const state =
@@ -99,7 +101,7 @@ export function toComputerStatus(
                 computer?.state === "error"
               ? computer.state
               : "stopped";
-  const screen = computerScreenSize(computer?.kind);
+  const capabilities = sandboxKindCapabilities(kind);
   const diskPercent = computer ? diskUsedPercent(computer) : null;
   const diskFull =
     diskPercent !== null &&
@@ -109,20 +111,23 @@ export function toComputerStatus(
     botId,
     ...(shared ? { shared } : {}),
     ...(controlledByOther ? { controlledByOther } : {}),
+    ...(ownLeaseId ? { controlLeaseId: ownLeaseId } : {}),
     mode,
     kind,
     state,
     controlHolder: (computer?.controlHolder ?? "none") as ComputerStatus["controlHolder"],
     controlBotId: computer?.controlBotId ?? null,
-    takeoverRequested: Boolean(computer?.controlRunId),
+    takeoverRequested: work.takeoverRequested,
+    // Manor: This Mac has no screen and is never updated in place.
     screenAvailable:
       kind !== "local" && !computer?.maintenanceId && (state === "running" || state === "booting"),
-    screenWidth: screen.width,
-    screenHeight: screen.height,
+    screenWidth: capabilities.screen.width,
+    screenHeight: capabilities.screen.height,
     homeRevision: computer?.homeRevision ?? null,
-    busyBotName,
-    canUpdate: kind !== "local" && computerSupportsUpdate(kind),
-    terminalAvailable: computerSupportsTerminal(kind),
+    busyBotName: work.busyBotName,
+    canUpdate: kind !== "local" && capabilities.inPlaceUpdate,
+    terminalAvailable: capabilities.terminal,
+    ...(capabilities.runsOnUserMachine ? { runsOnUserMachine: true } : {}),
     ...(diskFull ? { diskFullPercent: diskPercent } : {}),
   };
 }

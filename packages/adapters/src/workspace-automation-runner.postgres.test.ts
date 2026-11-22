@@ -17,6 +17,10 @@ class RecordingJobs implements JobPublisher {
   async enqueue(job: BackgroundJob) {
     this.jobs.push(job);
   }
+  async enqueueIn(_tx: unknown, job: BackgroundJob) {
+    this.jobs.push(job);
+  }
+  async cancelIn() {}
   async cancel() {}
   async close() {}
 }

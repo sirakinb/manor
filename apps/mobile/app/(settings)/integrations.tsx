@@ -18,11 +18,11 @@ import {
   catalogItemAccounts,
   catalogItemKey,
   connectCatalogItem,
+  customMcpServerInput,
   filterConnectionCatalogItems,
   integrationCatalogsReady,
   isCatalogItemConnected,
   matchesWordPrefixes,
-  newClientId,
   OTHER_PLUGINS,
 } from "@rakazo/core";
 import type { NativeStackNavigationOptions } from "expo-router";
@@ -420,12 +420,13 @@ export default function Integrations() {
     writeIntegrationsCache(scope, next);
   }
 
-  async function retryRefresh() {
+  async function retryRefresh(isCurrent?: () => boolean) {
     const focus = focusGeneration.current;
     try {
       await refresh();
     } catch (reason) {
       if (
+        (!isCurrent || isCurrent()) &&
         mounted.current &&
         focus === focusGeneration.current &&
         (!cacheScope.current || isIntegrationsScopeCurrent(cacheScope.current))
@@ -746,7 +747,7 @@ export default function Integrations() {
       if (result.status === "connected") {
         if (result.row) updateAccount(result.row);
         void notifyAppConnected(item, isCurrent);
-        await refresh();
+        await retryRefresh(isCurrent);
         if (isCurrent()) setToolsTick((tick) => tick + 1);
         return;
       }
@@ -778,7 +779,7 @@ export default function Integrations() {
       await rpc("connections/revoke", { connectionId: row.id });
       if (!isCurrent()) return;
       updateAccount({ ...row, status: "revoked" });
-      await refresh();
+      await retryRefresh(isCurrent);
       if (isCurrent()) setToolsTick((tick) => tick + 1);
     } catch (reason) {
       if (!isCurrent()) return;
@@ -828,12 +829,12 @@ export default function Integrations() {
         if (!isCurrent()) return;
         updateAccount({ ...row, status: "revoked" });
       }
-      await refresh();
+      await retryRefresh(isCurrent);
       if (isCurrent()) closeDetail();
     } catch (reason) {
       if (!isCurrent()) return;
-      setCatalogError(errorText(reason, t`Could not revoke connection`));
       await refresh().catch(() => undefined);
+      if (isCurrent()) setCatalogError(errorText(reason, t`Could not revoke connection`));
     } finally {
       if (isCurrent()) setPending(null);
     }
@@ -864,7 +865,7 @@ export default function Integrations() {
         oauthBrowserOpen.current = true;
         await Linking.openURL(result.authorizationUrl);
       } else {
-        await refresh();
+        await retryRefresh(isCurrent);
       }
     } catch (reason) {
       if (isCurrent()) setMcpError(errorText(reason, t`Could not start MCP OAuth`));
@@ -889,12 +890,7 @@ export default function Integrations() {
     let created: McpServer | null = null;
     try {
       if (sourceAuth === "oauth") {
-        created = await rpc("mcp/servers/create", {
-          slug: `integration-${newClientId().slice(0, 8)}`,
-          name: displayName,
-          transport: "streamable_http",
-          endpoint: url.trim(),
-        });
+        created = await rpc("mcp/servers/create", customMcpServerInput(displayName, url));
         if (!isCurrent()) return;
         setOauthServerId(created.id);
       } else {
@@ -916,7 +912,7 @@ export default function Integrations() {
       setCredential("");
       setSourceKind(null);
       setAdding(null);
-      await refresh();
+      await retryRefresh(isCurrent);
       if (created) await authorizeMcp(created.id);
     } catch (reason) {
       if (isCurrent()) setSourceError(errorText(reason, t`Could not add source`));

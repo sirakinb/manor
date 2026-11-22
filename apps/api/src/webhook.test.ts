@@ -7,6 +7,7 @@ import {
   InfisicalSecretStore,
   routineWebhookToken,
 } from "@rakazo/adapters";
+import { deferred } from "@rakazo/core/test-async";
 import { SpaceDeletionInProgressError } from "@rakazo/db";
 import { createLogger, createTestSink } from "@rakazo/logging";
 import { requestLogging } from "@rakazo/logging/hono";
@@ -1163,14 +1164,12 @@ describe("webhook secret decryption", () => {
   });
 
   it("rejects a secret that was rotated while its decrypt was in flight", async () => {
-    let finishDecrypt: (plaintext: string) => void = () => undefined;
+    let decrypt = deferred<string>();
     let webhookSecretId = "secret-1";
-    const load = vi.fn(
-      () =>
-        new Promise<string>((resolve) => {
-          finishDecrypt = resolve;
-        }),
-    );
+    const load = vi.fn(() => {
+      decrypt = deferred<string>();
+      return decrypt.promise;
+    });
     const deps = createDeps({ load });
     const app = mount(deps);
     vi.mocked(deps.prisma.bot.findUnique).mockImplementation((async () => ({
@@ -1184,7 +1183,7 @@ describe("webhook secret decryption", () => {
     const pending = app.request("/api/v1/bots/bot-1/webhook", bearerDelivery(SECRET));
     await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
     webhookSecretId = "secret-2";
-    finishDecrypt(SECRET);
+    decrypt.resolve(SECRET);
 
     expect((await pending).status).toBe(401);
     expect(deps.sendUserMessage).not.toHaveBeenCalled();
@@ -1440,14 +1439,9 @@ describe("webhook secret cache", () => {
   });
 
   it("keeps the newer secret when a decrypt for the revoked one finishes late", async () => {
-    let finishStale: (value: string) => void = () => undefined;
+    const staleDecrypt = deferred<string>();
     const { deps, bots, secrets, load } = cacheDeps(() => SECRET);
-    load.mockImplementationOnce(
-      () =>
-        new Promise<string>((resolve) => {
-          finishStale = resolve;
-        }),
-    );
+    load.mockImplementationOnce(() => staleDecrypt.promise);
     bots.set("bot-1", "secret-1");
     secrets.set("secret-1", "cipher-1").set("secret-2", "cipher-2");
     const cache = new Map();
@@ -1456,7 +1450,7 @@ describe("webhook secret cache", () => {
     await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
     bots.set("bot-1", "secret-2");
     expect((await loadWebhookTarget(deps, cache, "bot-1"))?.expected).toBe(SECRET);
-    finishStale(SECRET);
+    staleDecrypt.resolve(SECRET);
     expect(await stale).toBeNull();
     expect((await loadWebhookTarget(deps, cache, "bot-1"))?.expected).toBe(SECRET);
     expect(load).toHaveBeenCalledTimes(2);

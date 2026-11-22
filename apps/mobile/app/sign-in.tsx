@@ -1,14 +1,16 @@
 import { ph } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
+import { signInProviders } from "@rakazo/contracts";
 import {
   credentialIssue,
   MAX_PASSWORD_LENGTH,
   PASSWORD_RULES,
   suggestEmailCorrection,
 } from "@rakazo/core";
+import { fetchFresh } from "@rakazo/core/query";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -25,9 +27,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 import { NativeActionButton } from "../components/native-action-button";
+import { SocialSignInButtons } from "../components/social-sign-in-buttons";
 import { FORM_COLUMN_WIDTH } from "../lib/adaptive-layout";
-import { currentApiBase, rpc } from "../lib/api";
+import { currentApiBase } from "../lib/api";
 import type { PasswordResetCapabilities } from "../lib/api-auth";
 import {
   passwordResetCapabilities,
@@ -38,17 +42,21 @@ import {
   signUp,
 } from "../lib/api-auth";
 import type { AuthMode } from "../lib/auth-routing";
+import { CallKeyboardContext } from "../lib/call-keyboard-context";
 import { displayApiHost, usesCustomApiBase } from "../lib/endpoint";
 import { hasIncomingShare } from "../lib/incoming-share";
 import { brandType, manor } from "../lib/native";
 import { passkeysAvailable, signInWithPasskey } from "../lib/passkey";
+import { queryClient, rpcQuery } from "../lib/query";
 import { loadSessionToken } from "../lib/session";
 import { continueWithSso } from "../lib/sso";
+import { confirmUnsentSendLoss } from "../lib/unsent-send-warning";
 import { credentialIssueText, errorText } from "../lib/user-error";
 
 const CODE_LENGTH = 6;
 
 export default function SignIn() {
+  const call = useContext(CallKeyboardContext);
   const { t } = useLingui();
   const router = useRouter();
   const { mode: requestedMode } = useLocalSearchParams<{ mode?: string | string[] }>();
@@ -72,10 +80,12 @@ export default function SignIn() {
   const [resetSent, setResetSent] = useState(false);
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const [emailStep, setEmailStep] = useState(false);
   const [passkeys, setPasskeys] = useState(false);
 
   useEffect(() => {
     setPasswordVisible(false);
+    setEmailStep(false);
   }, [mode, apiBase]);
 
   useFocusEffect(
@@ -134,10 +144,17 @@ export default function SignIn() {
   }
   if (hasSession) return <Redirect href={hasIncomingShare() ? "/share" : "/"} />;
 
+  const providers = reset ? signInProviders(reset) : [];
   const codeFlow = Boolean(reset?.passwordAuth && reset.emailCode && mode !== "forgot");
   // A blank password asks for an emailed code, so code-only accounts need no toggle.
   const usingCode = codeFlow && (codeSent || !password);
   const codeStep = codeFlow && codeSent;
+  const chooser = Boolean(
+    reset?.passwordAuth && providers.length > 0 && !emailStep && mode !== "forgot" && !codeStep,
+  );
+  const presented = Boolean(
+    reset?.passwordAuth && providers.length > 0 && mode !== "forgot" && !codeStep && !resetSent,
+  );
 
   async function submit(enteredCode = code) {
     if (pending || !reset?.passwordAuth) return;
@@ -178,6 +195,9 @@ export default function SignIn() {
         setCodeSent(true);
         return;
       }
+      // Everything past this point saves new credentials, which deletes the unsent
+      // queue a server-rejected session kept; ask first, like a sign-out does.
+      if (!(await confirmUnsentSendLoss("sign-in"))) return;
       if (usingCode) {
         const trimmedEmail = email.trim();
         await signInWithCode(
@@ -211,14 +231,22 @@ export default function SignIn() {
   // Any sign-in can create the account (a code, SSO), so ask the server rather than the form.
   async function openApp() {
     if (hasIncomingShare()) return router.replace("/share");
-    const me = await rpc("me").catch(() => null);
+    const me = await fetchFresh(queryClient, rpcQuery("me")).catch(() => null);
     router.replace(me?.needsSignupSurvey ? "/signup-survey" : "/");
   }
 
+  function startProvider(provider: (typeof providers)[number]) {
+    return externalSignIn(() => continueWithSso("sign-in", provider.id));
+  }
+
   async function externalSignIn(run: () => Promise<boolean>) {
+    if (pending) return;
     setPending(true);
     setError(null);
     try {
+      // External sign-ins save credentials too, so the kept queue gets the same question;
+      // pending is already set, so the wait for the queue check cannot double-open it.
+      if (!(await confirmUnsentSendLoss("sign-in"))) return;
       if (await run()) await openApp();
     } catch (err) {
       setError(errorText(err, t`Could not continue`));
@@ -233,6 +261,7 @@ export default function SignIn() {
     <SafeAreaView style={{ flex: 1, backgroundColor: manor.page }}>
       <StatusBar style="light" />
       <KeyboardAvoidingView
+        enabled={!call}
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
@@ -269,271 +298,206 @@ export default function SignIn() {
                 <Text style={styles.wordmark}>Manor</Text>
                 <Text style={styles.byline}>By Pentridge</Text>
               </Pressable>
-              {resetSent ? (
-                <View style={{ alignItems: "center", marginTop: 6 }}>
-                  <Text accessibilityRole="header" style={{ color: manor.ink, fontSize: 17 }}>
-                    {t`Check your email`}
-                  </Text>
-                  {/* Sign-up verification lands here too; the reset sentence is only true for a reset. */}
-                  {mode === "forgot" ? (
-                    <Text
-                      style={{
-                        color: manor.muted,
-                        fontSize: 15,
-                        marginTop: 10,
-                        textAlign: "center",
-                      }}
-                    >
-                      {t`If an account exists for that address, we sent a password reset link.`}
-                    </Text>
-                  ) : null}
+              <View style={presented ? styles.card : undefined}>
+                {presented && emailStep ? (
                   <Pressable
                     accessibilityRole="button"
+                    hitSlop={8}
                     onPress={() => {
-                      setMode("in");
-                      setResetSent(false);
-                      setCodeSent(false);
+                      setError(null);
+                      setEmailStep(false);
                     }}
-                    style={{ marginTop: 22 }}
+                    style={{
+                      alignSelf: "flex-start",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 2,
+                      minHeight: 32,
+                      marginBottom: 8,
+                    }}
                   >
-                    <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
-                      {t`Back to sign in`}
+                    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M15 6 9 12l6 6"
+                        stroke={manor.muted}
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                    <Text style={{ color: manor.muted, fontSize: 15, fontWeight: "500" }}>
+                      {t`Back`}
                     </Text>
                   </Pressable>
-                </View>
-              ) : (
-                <>
-                  {capabilityError ? (
-                    <View accessibilityRole="alert">
-                      <Text style={{ color: manor.danger }}>
-                        {t`Could not load sign-in options`}
-                      </Text>
-                      <NativeActionButton
-                        label={t`Retry`}
-                        onPress={() => setCapabilityAttempt((value) => value + 1)}
-                      />
-                    </View>
-                  ) : !reset ? (
-                    <ActivityIndicator
-                      color={manor.muted}
-                      accessibilityLabel={t`Loading…`}
-                      style={{ marginTop: 16 }}
-                    />
-                  ) : null}
-                  {reset?.sso && !reset.passwordAuth && mode !== "forgot" ? (
-                    <NativeActionButton
-                      label={t`Continue with ${ph({ name: reset.sso.name })}`}
-                      disabled={pending}
-                      onPress={() => void externalSignIn(continueWithSso)}
-                      style={{ marginTop: 16 }}
-                    />
-                  ) : null}
-                  {error && !reset?.passwordAuth ? (
-                    <Text accessibilityRole="alert" style={{ color: manor.danger, marginTop: 12 }}>
-                      {error}
+                ) : null}
+                {/* Manor's lockup names the product; the chooser adds a heading. */}
+                {presented ? (
+                  <Text
+                    accessibilityRole="header"
+                    style={{ color: manor.ink, fontSize: 17, textAlign: "center" }}
+                  >
+                    {mode === "in" ? t`Welcome back` : t`Create your account`}
+                  </Text>
+                ) : null}
+                {resetSent ? (
+                  <View style={{ alignItems: "center", marginTop: 6 }}>
+                    <Text accessibilityRole="header" style={{ color: manor.ink, fontSize: 17 }}>
+                      {t`Check your email`}
                     </Text>
-                  ) : null}
-                  {reset?.passwordAuth && codeStep ? (
-                    <>
+                    {/* Sign-up verification lands here too; the reset sentence is only true for a reset. */}
+                    {mode === "forgot" ? (
                       <Text
-                        accessibilityRole="header"
-                        style={{ color: manor.ink, fontSize: 17, textAlign: "center" }}
+                        style={{
+                          color: manor.muted,
+                          fontSize: 15,
+                          marginTop: 10,
+                          textAlign: "center",
+                        }}
                       >
-                        {t`Check your email`}
+                        {t`If an account exists for that address, we sent a password reset link.`}
                       </Text>
-                      <TextInput
-                        accessibilityLabel={t`Code`}
-                        autoComplete="one-time-code"
-                        autoFocus
-                        keyboardType="number-pad"
-                        keyboardAppearance="dark"
-                        maxLength={CODE_LENGTH}
-                        placeholder={t`Code`}
-                        placeholderTextColor={manor.muted2}
-                        textContentType="oneTimeCode"
-                        value={code}
-                        onChangeText={(value) => {
-                          const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH);
-                          setCode(digits);
-                          // iOS offers the code from Mail; a complete code signs in at once.
-                          if (digits.length === CODE_LENGTH) void submit(digits);
-                        }}
-                        onSubmitEditing={() => void submit()}
-                        style={[styles.field, { marginTop: 22 }]}
-                      />
-                      {error ? (
-                        <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text>
-                      ) : null}
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => void submit()}
-                        disabled={pending || code.length < CODE_LENGTH}
-                        style={({ pressed }) => [
-                          styles.submit,
-                          pressed && { backgroundColor: manor.accent },
-                          (pending || code.length < CODE_LENGTH) && { opacity: 0.5 },
-                        ]}
-                      >
-                        <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
-                          {pending ? t`Working…` : t`Continue`}
+                    ) : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => {
+                        setMode("in");
+                        setResetSent(false);
+                        setCodeSent(false);
+                      }}
+                      style={{ marginTop: 22 }}
+                    >
+                      <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
+                        {t`Back to sign in`}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <>
+                    {capabilityError ? (
+                      <View accessibilityRole="alert">
+                        <Text style={{ color: manor.danger }}>
+                          {t`Could not load sign-in options`}
                         </Text>
-                      </Pressable>
-                      <NativeActionButton
-                        label={t`Back`}
-                        prominence="quiet"
-                        disabled={pending}
-                        onPress={() => {
-                          setCodeSent(false);
-                          setCode("");
-                          setError(null);
-                        }}
-                        style={{ alignSelf: "center", marginTop: 16 }}
-                      />
-                    </>
-                  ) : reset?.passwordAuth ? (
-                    <>
-                      {mode === "up" ? (
-                        <TextInput
-                          autoComplete="name"
-                          placeholder={t`Name`}
-                          placeholderTextColor={manor.muted2}
-                          keyboardAppearance="dark"
-                          value={name}
-                          onChangeText={setName}
-                          style={[styles.field, { marginBottom: 12 }]}
+                        <NativeActionButton
+                          label={t`Retry`}
+                          onPress={() => setCapabilityAttempt((value) => value + 1)}
                         />
-                      ) : null}
-                      <TextInput
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        keyboardType="email-address"
-                        keyboardAppearance="dark"
-                        placeholder={t`Email`}
-                        placeholderTextColor={manor.muted2}
-                        value={email}
-                        onChangeText={(value) => {
-                          setEmail(value);
-                          setEmailBlurred(false);
-                        }}
-                        onBlur={() => setEmailBlurred(true)}
-                        style={styles.field}
+                      </View>
+                    ) : !reset ? (
+                      <ActivityIndicator
+                        color={manor.muted}
+                        accessibilityLabel={t`Loading…`}
+                        style={{ marginTop: 16 }}
                       />
-                      {emailSuggestion && emailBlurred ? (
+                    ) : null}
+                    {!reset?.passwordAuth && mode !== "forgot" ? (
+                      <SocialSignInButtons
+                        providers={providers}
+                        disabled={pending}
+                        onPress={(providerId) => {
+                          const provider = providers.find((item) => item.id === providerId);
+                          if (provider) void startProvider(provider);
+                        }}
+                      />
+                    ) : null}
+                    {error && !reset?.passwordAuth ? (
+                      <Text
+                        accessibilityRole="alert"
+                        style={{ color: manor.danger, marginTop: 12 }}
+                      >
+                        {error}
+                      </Text>
+                    ) : null}
+                    {reset?.passwordAuth && codeStep ? (
+                      <>
+                        <Text
+                          accessibilityRole="header"
+                          style={{ color: manor.ink, fontSize: 17, textAlign: "center" }}
+                        >
+                          {t`Check your email`}
+                        </Text>
+                        <TextInput
+                          accessibilityLabel={t`Code`}
+                          autoComplete="one-time-code"
+                          autoFocus
+                          keyboardType="number-pad"
+                          keyboardAppearance="dark"
+                          maxLength={CODE_LENGTH}
+                          placeholder={t`Code`}
+                          placeholderTextColor={manor.muted2}
+                          textContentType="oneTimeCode"
+                          value={code}
+                          onChangeText={(value) => {
+                            const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH);
+                            setCode(digits);
+                            // iOS offers the code from Mail; a complete code signs in at once.
+                            if (digits.length === CODE_LENGTH) void submit(digits);
+                          }}
+                          onSubmitEditing={() => void submit()}
+                          style={[styles.field, { marginTop: 22 }]}
+                        />
+                        {error ? (
+                          <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text>
+                        ) : null}
                         <Pressable
                           accessibilityRole="button"
-                          hitSlop={8}
-                          onPress={() => setEmail(emailSuggestion)}
-                          style={{ marginTop: 8, paddingHorizontal: 4 }}
+                          onPress={() => void submit()}
+                          disabled={pending || code.length < CODE_LENGTH}
+                          style={({ pressed }) => [
+                            styles.submit,
+                            pressed && { backgroundColor: manor.accent },
+                            (pending || code.length < CODE_LENGTH) && { opacity: 0.5 },
+                          ]}
                         >
-                          <Text style={{ color: manor.accent, fontSize: 14 }}>
-                            {t`Did you mean ${ph({ email: emailSuggestion })}?`}
+                          <Text style={styles.submitLabel}>
+                            {pending ? t`Working…` : t`Continue`}
                           </Text>
                         </Pressable>
-                      ) : null}
-                      {mode !== "forgot" ? (
-                        <View style={[styles.passwordField, { marginTop: 12 }]}>
-                          <TextInput
-                            autoComplete={mode === "in" ? "current-password" : "new-password"}
-                            textContentType={mode === "in" ? "password" : "newPassword"}
-                            passwordRules={mode === "in" ? undefined : PASSWORD_RULES}
-                            maxLength={MAX_PASSWORD_LENGTH}
-                            placeholder={t`Password`}
-                            placeholderTextColor={manor.muted2}
-                            keyboardAppearance="dark"
-                            returnKeyType="go"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            secureTextEntry={!passwordVisible}
-                            value={password}
-                            onChangeText={setPassword}
-                            onSubmitEditing={() => void submit()}
-                            style={styles.passwordInput}
-                          />
-                          <NativeActionButton
-                            accessibilityLabel={
-                              passwordVisible ? t`Hide password` : t`Show password`
-                            }
-                            icon={{
-                              ios: passwordVisible ? "eye.slash" : "eye",
-                              android: passwordVisible ? "eye-off-outline" : "eye-outline",
-                            }}
-                            prominence="quiet"
-                            onPress={() => setPasswordVisible((visible) => !visible)}
-                            style={{
-                              alignSelf: "center",
-                              minWidth: 44,
-                              minHeight: 44,
-                              marginRight: 4,
-                            }}
-                          />
-                        </View>
-                      ) : null}
-                      {error ? (
-                        <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text>
-                      ) : null}
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => void submit()}
-                        disabled={pending}
-                        style={({ pressed }) => [
-                          styles.submit,
-                          pressed && { backgroundColor: manor.accent },
-                        ]}
-                      >
-                        <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "500" }}>
-                          {pending
-                            ? t`Working…`
-                            : usingCode
-                              ? t`Continue`
-                              : mode === "in"
-                                ? t`Continue with email`
-                                : mode === "up"
-                                  ? t`Sign up`
-                                  : t`Send reset link`}
-                        </Text>
-                      </Pressable>
-                      {passkeys && mode === "in" ? (
                         <NativeActionButton
-                          label={t`Sign in with passkey`}
-                          icon={{ ios: "key.fill", android: "key-outline" }}
-                          prominence="secondary"
-                          fill
-                          disabled={pending}
-                          onPress={() => void externalSignIn(signInWithPasskey)}
-                          style={{ marginTop: 12 }}
-                        />
-                      ) : null}
-                      {reset.sso && mode !== "forgot" ? (
-                        <NativeActionButton
-                          label={t`Continue with ${ph({ name: reset.sso.name })}`}
+                          label={t`Back`}
                           prominence="quiet"
                           disabled={pending}
-                          onPress={() => void externalSignIn(continueWithSso)}
-                          style={{ alignSelf: "center", marginTop: 16 }}
-                        />
-                      ) : null}
-                      {mode === "in" && reset?.passwordReset && reset.resetUrl ? (
-                        <Pressable
-                          accessibilityRole="button"
-                          hitSlop={8}
                           onPress={() => {
-                            setMode("forgot");
+                            setCodeSent(false);
+                            setCode("");
                             setError(null);
                           }}
                           style={{ alignSelf: "center", marginTop: 16 }}
-                        >
-                          <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
-                            {t`Forgot password?`}
+                        />
+                      </>
+                    ) : chooser ? (
+                      <>
+                        <SocialSignInButtons
+                          providers={providers}
+                          disabled={pending}
+                          onEmail={() => {
+                            setError(null);
+                            setEmailStep(true);
+                          }}
+                          onPasskey={
+                            passkeys && mode === "in"
+                              ? () => void externalSignIn(signInWithPasskey)
+                              : undefined
+                          }
+                          onPress={(providerId) => {
+                            const provider = providers.find((item) => item.id === providerId);
+                            if (provider) void startProvider(provider);
+                          }}
+                        />
+                        {error ? (
+                          <Text
+                            accessibilityRole="alert"
+                            style={{ color: manor.danger, marginTop: 12 }}
+                          >
+                            {error}
                           </Text>
-                        </Pressable>
-                      ) : null}
-                      {mode !== "forgot" ? (
+                        ) : null}
                         <View
                           style={{
                             flexDirection: "row",
                             justifyContent: "center",
                             alignItems: "center",
-                            marginTop: 24,
+                            marginTop: 22,
                           }}
                         >
                           <Text style={{ color: manor.muted2, fontSize: 15 }}>
@@ -547,6 +511,7 @@ export default function SignIn() {
                             onPress={() => {
                               setMode((current) => (current === "in" ? "up" : "in"));
                               setError(null);
+                              setEmailStep(false);
                             }}
                             style={{ marginLeft: 5 }}
                           >
@@ -555,11 +520,172 @@ export default function SignIn() {
                             </Text>
                           </Pressable>
                         </View>
-                      ) : null}
-                    </>
-                  ) : null}
-                </>
-              )}
+                      </>
+                    ) : reset?.passwordAuth ? (
+                      <>
+                        {mode === "up" ? (
+                          <TextInput
+                            autoComplete="name"
+                            placeholder={t`Name`}
+                            placeholderTextColor={manor.muted2}
+                            keyboardAppearance="dark"
+                            value={name}
+                            onChangeText={setName}
+                            style={[
+                              styles.field,
+                              { marginTop: presented ? 20 : 0, marginBottom: 12 },
+                            ]}
+                          />
+                        ) : null}
+                        <TextInput
+                          autoCapitalize="none"
+                          autoComplete="email"
+                          keyboardType="email-address"
+                          keyboardAppearance="dark"
+                          placeholder={t`Email`}
+                          placeholderTextColor={manor.muted2}
+                          value={email}
+                          onChangeText={(value) => {
+                            setEmail(value);
+                            setEmailBlurred(false);
+                          }}
+                          onBlur={() => setEmailBlurred(true)}
+                          style={[styles.field, { marginTop: mode !== "up" && presented ? 20 : 0 }]}
+                        />
+                        {emailSuggestion && emailBlurred ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            hitSlop={8}
+                            onPress={() => setEmail(emailSuggestion)}
+                            style={{ marginTop: 8, paddingHorizontal: 4 }}
+                          >
+                            <Text style={{ color: manor.accent, fontSize: 14 }}>
+                              {t`Did you mean ${ph({ email: emailSuggestion })}?`}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                        {mode !== "forgot" ? (
+                          <View style={[styles.passwordField, { marginTop: 12 }]}>
+                            <TextInput
+                              autoComplete={mode === "in" ? "current-password" : "new-password"}
+                              textContentType={mode === "in" ? "password" : "newPassword"}
+                              passwordRules={mode === "in" ? undefined : PASSWORD_RULES}
+                              maxLength={MAX_PASSWORD_LENGTH}
+                              placeholder={t`Password`}
+                              placeholderTextColor={manor.muted2}
+                              keyboardAppearance="dark"
+                              returnKeyType="go"
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              secureTextEntry={!passwordVisible}
+                              value={password}
+                              onChangeText={setPassword}
+                              onSubmitEditing={() => void submit()}
+                              style={styles.passwordInput}
+                            />
+                            <NativeActionButton
+                              accessibilityLabel={
+                                passwordVisible ? t`Hide password` : t`Show password`
+                              }
+                              icon={{
+                                ios: passwordVisible ? "eye.slash" : "eye",
+                                android: passwordVisible ? "eye-off-outline" : "eye-outline",
+                              }}
+                              prominence="quiet"
+                              onPress={() => setPasswordVisible((visible) => !visible)}
+                              style={{
+                                alignSelf: "center",
+                                minWidth: 44,
+                                minHeight: 44,
+                                marginRight: 4,
+                              }}
+                            />
+                          </View>
+                        ) : null}
+                        {error ? (
+                          <Text style={{ color: manor.danger, marginTop: 12 }}>{error}</Text>
+                        ) : null}
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => void submit()}
+                          disabled={pending}
+                          style={({ pressed }) => [
+                            styles.submit,
+                            pressed && { backgroundColor: manor.accent },
+                          ]}
+                        >
+                          <Text style={styles.submitLabel}>
+                            {pending
+                              ? t`Working…`
+                              : usingCode
+                                ? t`Continue`
+                                : mode === "in"
+                                  ? t`Continue with email`
+                                  : mode === "up"
+                                    ? t`Sign up`
+                                    : t`Send reset link`}
+                          </Text>
+                        </Pressable>
+                        {passkeys && mode === "in" && !presented ? (
+                          <NativeActionButton
+                            label={t`Sign in with passkey`}
+                            icon={{ ios: "key.fill", android: "key-outline" }}
+                            prominence="secondary"
+                            fill
+                            disabled={pending}
+                            onPress={() => void externalSignIn(signInWithPasskey)}
+                            style={{ marginTop: 12 }}
+                          />
+                        ) : null}
+                        {mode === "in" && reset?.passwordReset && reset.resetUrl ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            hitSlop={8}
+                            onPress={() => {
+                              setMode("forgot");
+                              setError(null);
+                            }}
+                            style={{ alignSelf: "center", marginTop: 16 }}
+                          >
+                            <Text style={{ color: manor.ink, fontSize: 14, fontWeight: "600" }}>
+                              {t`Forgot password?`}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                        {mode !== "forgot" ? (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              marginTop: 24,
+                            }}
+                          >
+                            <Text style={{ color: manor.muted2, fontSize: 15 }}>
+                              {mode === "in"
+                                ? t`Don’t have an account?`
+                                : t`Already have an account?`}
+                            </Text>
+                            <Pressable
+                              accessibilityRole="button"
+                              hitSlop={8}
+                              onPress={() => {
+                                setMode((current) => (current === "in" ? "up" : "in"));
+                                setError(null);
+                              }}
+                              style={{ marginLeft: 5 }}
+                            >
+                              <Text style={{ color: manor.ink, fontSize: 15, fontWeight: "600" }}>
+                                {mode === "in" ? t`Sign up` : t`Sign in`}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </>
+                )}
+              </View>
             </ScrollView>
             {custom ? (
               <Pressable
@@ -607,6 +733,16 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginRight: -1.8,
   },
+  // The provider chooser and the email step behind it sit on one card.
+  card: {
+    borderWidth: 1,
+    borderColor: manor.hairlineStrong,
+    backgroundColor: manor.main,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
   field: {
     backgroundColor: manor.main,
     borderWidth: 1,
@@ -641,6 +777,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     alignItems: "center",
   },
+  submitLabel: { color: "#FFFFFF", fontSize: 17, fontWeight: "500" },
   footnoteLabel: {
     color: manor.muted,
     fontFamily: brandType.label,

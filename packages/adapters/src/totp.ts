@@ -1,25 +1,40 @@
 import { createHmac } from "node:crypto";
+import type { AuthenticatorKey } from "@rakazo/contracts";
 
-const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+function base32Bytes(secret: string): Buffer {
+  let bits = "";
+  for (const char of secret) bits += BASE32.indexOf(char).toString(2).padStart(5, "0");
+  return Buffer.from(bits.match(/.{8}/g)?.map((byte) => Number.parseInt(byte, 2)) ?? []);
+}
+
+/** When the code this key shows at `now` gives way to its next one. */
+export function totpCodeEnd(key: AuthenticatorKey, now: number): number {
+  return (Math.floor(now / 1000 / key.period) + 1) * key.period * 1000;
+}
+
+/** The RFC 6238 code an authenticator app shows for this key at `now`. */
+export function totpCode(key: AuthenticatorKey, now: number): string {
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(now / 1000 / key.period)));
+  const mac = createHmac(key.algorithm, base32Bytes(key.secret)).update(counter).digest();
+  const offset = mac[mac.length - 1]! & 0xf;
+  const code = (mac.readUInt32BE(offset) & 0x7fffffff) % 10 ** key.digits;
+  return String(code).padStart(key.digits, "0");
+}
+
+// Manor: the per-bot saved logins (`bot_credentials`, `use_credential`) store a 2FA seed as a
+// bare base32 secret and read codes through the helpers below, on top of upstream's totpCode.
 
 /** Decodes an RFC 4648 base32 string (case-insensitive, spaces/padding tolerated). */
 export function decodeBase32(input: string): Buffer {
   const clean = input.toUpperCase().replace(/[\s=-]/g, "");
   if (clean.length === 0) throw new Error("TOTP secret is empty");
-  const bytes: number[] = [];
-  let bits = 0;
-  let value = 0;
   for (const char of clean) {
-    const index = BASE32_ALPHABET.indexOf(char);
-    if (index === -1) throw new Error("TOTP secret is not valid base32");
-    value = (value << 5) | index;
-    bits += 5;
-    if (bits >= 8) {
-      bytes.push((value >>> (bits - 8)) & 0xff);
-      bits -= 8;
-    }
+    if (!BASE32.includes(char)) throw new Error("TOTP secret is not valid base32");
   }
-  return Buffer.from(bytes);
+  return base32Bytes(clean);
 }
 
 /**
@@ -44,21 +59,12 @@ export function generateTotp(
   secret: string,
   options: { now?: number; digits?: number; step?: number } = {},
 ): string {
-  const digits = options.digits ?? 6;
-  const step = options.step ?? 30;
-  const now = options.now ?? Date.now();
-  const counter = Math.floor(now / 1000 / step);
-  const message = Buffer.alloc(8);
-  message.writeUInt32BE(Math.floor(counter / 0x1_0000_0000), 0);
-  message.writeUInt32BE(counter >>> 0, 4);
-  const digest = createHmac("sha1", decodeBase32(secret)).update(message).digest();
-  const offset = digest[digest.length - 1]! & 0x0f;
-  const binary =
-    ((digest[offset]! & 0x7f) << 24) |
-    ((digest[offset + 1]! & 0xff) << 16) |
-    ((digest[offset + 2]! & 0xff) << 8) |
-    (digest[offset + 3]! & 0xff);
-  return String(binary % 10 ** digits).padStart(digits, "0");
+  const clean = secret.toUpperCase().replace(/[\s=-]/g, "");
+  decodeBase32(clean); // validate
+  return totpCode(
+    { secret: clean, algorithm: "sha1", digits: options.digits ?? 6, period: options.step ?? 30 },
+    options.now ?? Date.now(),
+  );
 }
 
 /** Seconds until the current TOTP code rolls over. */

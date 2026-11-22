@@ -76,12 +76,7 @@ postgres("operator portal provisioning", () => {
     const user = await system.user.create({
       data: { id: `existing-${suffix}`, email: existingEmail, name: "Existing Tester" },
     });
-    const personal = await signup(
-      db.prisma,
-      user,
-      { signupsEnabled: "true", signupAllowlist: "" },
-      { claimDeploymentOwner: false },
-    );
+    const personal = await signup(db.prisma, user, { claimDeploymentOwner: false });
     personalOrganizationId = personal.organizationId;
     const hash = await hashPassword("existing-test-password");
     await system.account.create({
@@ -125,20 +120,10 @@ postgres("operator portal provisioning", () => {
     const user = await system.user.create({
       data: { id: `joining-${suffix}`, email: joiningEmail, name: "New Teammate" },
     });
-    const team = await signup(
-      db.prisma,
-      user,
-      { signupsEnabled: "true", signupAllowlist: "" },
-      { brandId: "vibecodephilly" },
-    );
-    const actor = await requireMembership(db.prisma, user.id, team.spaceId);
+    const team = await signup(db.prisma, user, { brandId: "vibecodephilly" });
+    const actor = await requireMembership(db.prisma, user, team.spaceId);
     expect((await spaceResourceActor(db.prisma, actor)).userId).toBe(spaceAccountId);
-    await signup(
-      db.prisma,
-      user,
-      { signupsEnabled: "true", signupAllowlist: "" },
-      { brandId: "vibecodephilly" },
-    );
+    await signup(db.prisma, user, { brandId: "vibecodephilly" });
     expect(await system.space.count({ where: { organizationId } })).toBe(1);
     expect(await system.spaceMember.count({ where: { organizationId, userId: user.id } })).toBe(1);
     const personal = await runAsSystem("create a Space for its member", () =>
@@ -148,10 +133,10 @@ postgres("operator portal provisioning", () => {
         name: "My private space",
       }),
     );
-    const privateActor = await requireMembership(db.prisma, user.id, personal.id);
+    const privateActor = await requireMembership(db.prisma, user, personal.id);
     expect((await spaceResourceActor(db.prisma, privateActor)).userId).toBe(user.id);
     const peer = await system.user.findUniqueOrThrow({ where: { email } });
-    await expect(requireMembership(db.prisma, peer.id, personal.id)).rejects.toThrow(
+    await expect(requireMembership(db.prisma, peer, personal.id)).rejects.toThrow(
       "No personal space",
     );
   });

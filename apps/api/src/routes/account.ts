@@ -14,10 +14,19 @@ import {
   settleCallRequest,
   VERIFICATION_ENGINE_LABELS,
 } from "@rakazo/adapters";
-import type { ActionApprovalRule, Actor, Me, SettingsScope } from "@rakazo/contracts";
+import type {
+  ActionApprovalRule,
+  Actor,
+  Me,
+  SettingsScope,
+  SpaceChangeKind,
+} from "@rakazo/contracts";
+import { parseLabs } from "@rakazo/contracts";
 import {
+  abortableDelay,
   approvalModeFromPreference,
   approvalPreferenceFromMode,
+  ClientError,
   callRequestClientNonce,
 } from "@rakazo/core";
 import { urlSite } from "@rakazo/core/egress";
@@ -71,6 +80,9 @@ import type { RouterContext } from "./context.js";
 import { HEARTBEAT, meDto, mergeStreams, withHeartbeats } from "./shared.js";
 
 const ROSTER_CHANGED = Symbol("roster changed");
+const ORGANIZATIONS_CHANGED = Symbol("organizations changed");
+
+const SIGNAL_FAILURE_HOLD_MS = 30_000;
 
 export function accountRoutes(ctx: RouterContext) {
   const { deps, os, authed, spaceAuthed } = ctx;
@@ -95,7 +107,13 @@ export function accountRoutes(ctx: RouterContext) {
     },
     analytics: {
       screen: authed.analytics.screen.handler(async ({ context, input }) => {
-        deps.analytics?.capture(context.actor.userId, { name: "screen_viewed", ...input });
+        deps.analytics?.capture(
+          context.actor.userId,
+          { name: "screen_viewed", ...input },
+          undefined,
+          // The server only sends a plan layout while the test runs, so it is the exposure.
+          input.planLayout ? { "plan-layout": input.planLayout } : undefined,
+        );
         return { ok: true as const };
       }),
     },
@@ -108,7 +126,13 @@ export function accountRoutes(ctx: RouterContext) {
           const record = await firstModelConnectAnalytics(deps, context.actor, "credits");
           record(undefined, { name: "model_connect_started" });
         }
-        return billing.selectFunding(context.actor, input.funding, input.client, input.interval);
+        return billing.selectFunding(
+          context.actor,
+          input.funding,
+          input.client,
+          input.interval,
+          input.tier,
+        );
       }),
       purchaseCredits: authed.billing.purchaseCredits.handler(async ({ context, input }) =>
         requireBilling(deps).purchaseCredits(context.actor, input),
@@ -171,6 +195,12 @@ export function accountRoutes(ctx: RouterContext) {
       update: authed.preferences.update.handler(async ({ context, input }): Promise<Me> => {
         const userId = context.actor.userId;
         const botAvatarSet = input.botAvatarSet;
+        // A feature the deployment turns on is not the account's choice, so it is not saved with it.
+        const deploymentLabs = deps.env?.deploymentLabs ?? [];
+        const labs =
+          input.labs === undefined
+            ? undefined
+            : parseLabs(input.labs).filter((feature) => !deploymentLabs.includes(feature));
         if (input.timezone !== undefined) {
           // The routines that took the account zone keep their local schedule in the new
           // one, and the other fields commit in the same save. The move's row lock still
@@ -178,6 +208,7 @@ export function accountRoutes(ctx: RouterContext) {
           await changeUserTimezone(deps, userId, input.timezone, {
             ...(input.locale === undefined ? {} : { locale: input.locale }),
             ...(botAvatarSet === undefined ? {} : { botAvatarSet }),
+            ...(labs === undefined ? {} : { labs }),
           });
         } else {
           await deps.prisma.user.update({
@@ -186,6 +217,7 @@ export function accountRoutes(ctx: RouterContext) {
             data: {
               ...(input.locale === undefined ? {} : { locale: input.locale }),
               ...(botAvatarSet === undefined ? {} : { botAvatarSet }),
+              ...(labs === undefined ? {} : { labs }),
             },
           });
         }
@@ -372,24 +404,67 @@ export function accountRoutes(ctx: RouterContext) {
     },
     notifications: {
       subscribe: authed.notifications.subscribe.handler(async function* ({ context }) {
-        const { followChatAlerts, followRosterChanges } = deps.events;
+        const {
+          followChatAlerts,
+          followOrganizationChanges,
+          followRosterChanges,
+          followSpaceChanges,
+        } = deps.events;
         if (!followChatAlerts) throw new ORPCError("NOT_FOUND");
         const { spaceId, userId } = context.actor;
         const rosterChanges = async function* (
           signal: AbortSignal,
         ): AsyncGenerator<typeof ROSTER_CHANGED> {
           if (!followRosterChanges) return;
-          // Chat alerts keep flowing if roster signals fail; the client falls back to polling.
+          // The app re-reads the roster only on these signals, so a failure ends the stream the
+          // same way Space changes do below.
           try {
             for await (const _ of followRosterChanges(userId, signal)) yield ROSTER_CHANGED;
-          } catch {}
+          } catch (error) {
+            await abortableDelay(SIGNAL_FAILURE_HOLD_MS, signal);
+            throw error;
+          }
+        };
+        const spaceChanges = async function* (
+          signal: AbortSignal,
+        ): AsyncGenerator<{ spaceChange: SpaceChangeKind }> {
+          if (!followSpaceChanges) return;
+          // The app re-reads what these cover only on signals, so a failure ends the stream and
+          // the app reconnects and re-reads. Alerts keep flowing for a while first, so a lasting
+          // failure costs one reconnect every half minute rather than a tight loop.
+          try {
+            for await (const spaceChange of followSpaceChanges(spaceId, signal))
+              yield { spaceChange };
+          } catch (error) {
+            await abortableDelay(SIGNAL_FAILURE_HOLD_MS, signal);
+            throw error;
+          }
+        };
+        const organizationChanges = async function* (
+          signal: AbortSignal,
+        ): AsyncGenerator<typeof ORGANIZATIONS_CHANGED> {
+          if (!followOrganizationChanges) return;
+          try {
+            for await (const _ of followOrganizationChanges(userId, signal))
+              yield ORGANIZATIONS_CHANGED;
+          } catch (error) {
+            await abortableDelay(SIGNAL_FAILURE_HOLD_MS, signal);
+            throw error;
+          }
         };
         const frames = withHeartbeats(context, (signal) =>
-          mergeStreams(followChatAlerts(userId, spaceId, signal), rosterChanges(signal)),
+          mergeStreams(
+            followChatAlerts(userId, spaceId, signal),
+            rosterChanges(signal),
+            spaceChanges(signal),
+            organizationChanges(signal),
+          ),
         );
         for await (const next of frames) {
           if (next === HEARTBEAT) yield { type: "heartbeat" as const };
           else if (next === ROSTER_CHANGED) yield { type: "roster" as const };
+          else if (next === ORGANIZATIONS_CHANGED) yield { type: "organizations" as const };
+          else if ("spaceChange" in next) yield { type: next.spaceChange };
           else if (next.spaceId === spaceId) yield { type: "alert" as const, alert: next };
         }
       }),
@@ -445,7 +520,8 @@ export function accountRoutes(ctx: RouterContext) {
           try {
             await deps.pushTokens.saveDevice?.(context.actor.userId, input, context.sessionId);
           } catch (error) {
-            if (error instanceof PushSessionEndedError) throw new ORPCError("UNAUTHORIZED");
+            if (error instanceof PushSessionEndedError)
+              throw new ClientError("UNAUTHORIZED", "Unauthorized");
             throw error;
           }
           return { ok: true as const };
@@ -462,7 +538,8 @@ export function accountRoutes(ctx: RouterContext) {
             input.presentation,
           );
         } catch (error) {
-          if (error instanceof PushSessionEndedError) throw new ORPCError("UNAUTHORIZED");
+          if (error instanceof PushSessionEndedError)
+            throw new ClientError("UNAUTHORIZED", "Unauthorized");
           throw error;
         }
         return { ok: true as const };
@@ -481,6 +558,7 @@ export function accountRoutes(ctx: RouterContext) {
         async ({ context, input }) => {
           // The card ends with the session that registered it.
           if (!context.sessionId) throw new ORPCError("UNAUTHORIZED");
+          if (!input.token) return { following: Boolean(deps.workActivities) };
           const following = await deps.workActivities?.register(
             context.actor.userId,
             context.sessionId,
@@ -540,6 +618,8 @@ export function accountRoutes(ctx: RouterContext) {
           voiceId: input.voiceId,
           speechModel: input.speechModel,
           baseUrl: input.baseUrl,
+          sttBaseUrl: input.sttBaseUrl,
+          sttApiKey: input.sttApiKey,
           ttsModel: input.ttsModel,
           sttModel: input.sttModel,
           scope: input.scope,

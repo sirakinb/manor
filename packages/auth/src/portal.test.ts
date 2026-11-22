@@ -76,7 +76,7 @@ describe("client portal access", () => {
     await expect(
       requirePortalMembership(
         prisma as unknown as PrismaClient,
-        "admin",
+        { id: "admin", email: "admin@example.test" },
         new Request("https://manor.pentridgemedia.com/rpc/me", {
           headers: { host: "manor.pentridgemedia.com", "x-rakazo-space-id": "client-space" },
         }),
@@ -107,7 +107,7 @@ describe("client portal access", () => {
     await expect(
       requirePortalMembership(
         prisma as unknown as PrismaClient,
-        "admin",
+        { id: "admin", email: "admin@example.test" },
         new Request(`https://${clientHost}/rpc/me`, {
           headers: { host: clientHost, "x-rakazo-space-id": "personal-space" },
         }),
@@ -162,7 +162,11 @@ describe("a portal member with no space in the portal's organization", () => {
   it("gets their own space there, as a first sign-in on the portal would give them", async () => {
     const prisma = arriving();
     await expect(
-      requirePortalMembership(prisma as unknown as PrismaClient, "outsider", request()),
+      requirePortalMembership(
+        prisma as unknown as PrismaClient,
+        { id: "outsider", email: "outsider@example.test" },
+        request(),
+      ),
     ).resolves.toMatchObject({ spaceId: "own-space", portalOrganizationId: "client-org" });
     expect(ensureOwnSpace).toHaveBeenCalledExactlyOnceWith(
       prisma,
@@ -174,7 +178,11 @@ describe("a portal member with no space in the portal's organization", () => {
   it("gets nothing when they are only a guest of the organization", async () => {
     const prisma = arriving({ role: "guest" });
     await expect(
-      requirePortalMembership(prisma as unknown as PrismaClient, "outsider", request()),
+      requirePortalMembership(
+        prisma as unknown as PrismaClient,
+        { id: "outsider", email: "outsider@example.test" },
+        request(),
+      ),
     ).rejects.toThrow("No personal space");
     expect(ensureOwnSpace).not.toHaveBeenCalled();
   });
@@ -184,7 +192,7 @@ describe("a portal member with no space in the portal's organization", () => {
     await expect(
       requirePortalMembership(
         prisma as unknown as PrismaClient,
-        "outsider",
+        { id: "outsider", email: "outsider@example.test" },
         request({ "x-rakazo-space-id": "personal-space" }),
       ),
     ).rejects.toThrow("No personal space");
@@ -194,7 +202,11 @@ describe("a portal member with no space in the portal's organization", () => {
   it("gets nothing on a portal their account is not pinned to", async () => {
     const prisma = arriving({ pin: "meridian" });
     await expect(
-      requirePortalMembership(prisma as unknown as PrismaClient, "outsider", request()),
+      requirePortalMembership(
+        prisma as unknown as PrismaClient,
+        { id: "outsider", email: "outsider@example.test" },
+        request(),
+      ),
     ).rejects.toThrow("Use your organization's sign-in page.");
     expect(ensureOwnSpace).not.toHaveBeenCalled();
   });

@@ -1,7 +1,7 @@
 import { ph } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import type { PlanLimits, UsageSummary } from "@rakazo/contracts";
-import { modelCreditsUsd } from "@rakazo/contracts";
+import { hasLab, modelCreditsUsd } from "@rakazo/contracts";
 import { accountDisplay, formatTimeUntil } from "@rakazo/core";
 import type { Href } from "expo-router";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -13,6 +13,7 @@ import { AppMark } from "../../components/app-mark";
 import { ApprovalModeRow, ApprovalRulesRow } from "../../components/approval-settings-rows";
 import { NativeActionButton } from "../../components/native-action-button";
 import { NativeSymbol } from "../../components/native-symbol";
+import { OrganizationRowMenu } from "../../components/organization-menu";
 import { SettingsGroup, SettingsRow, useStackedSettings } from "../../components/settings-group";
 import { SpendingLimitRow, useSpendingStatus } from "../../components/spending-limit-row";
 import { TeamMembers } from "../../components/team-members";
@@ -25,7 +26,11 @@ import { endCallBeforeSessionEnd } from "../../lib/call-session";
 import { dateLocaleForUi, useUiLocale } from "../../lib/i18n";
 import type { MobileMe } from "../../lib/mobile-types";
 import { native, useMobileTokens, useThemedStyles } from "../../lib/native";
-import { activeOrganization, useOrganizations } from "../../lib/organizations";
+import {
+  activeOrganization,
+  ORGANIZATION_SWITCHING,
+  useOrganizations,
+} from "../../lib/organizations";
 import { createSettingsPageStyles } from "../../lib/settings-page-styles";
 import { isSettingsLink, openFromSettingsSheet } from "../../lib/settings-sheet";
 import { ACCOUNT_SETTINGS } from "../../lib/settings-target";
@@ -236,7 +241,7 @@ export default function Account() {
       href: "/artifacts",
       icon: { ios: "folder", android: "folder-outline" },
     },
-    ...(me?.ticketBoardEnabled
+    ...(hasLab(me?.labs, "board")
       ? [
           {
             title: t`Board`,
@@ -316,6 +321,11 @@ export default function Account() {
             href: "/vault",
             icon: { ios: "key", android: "key-outline" },
           })}
+          {settingsLink({
+            title: t`Computers`,
+            href: "/computers",
+            icon: { ios: "desktopcomputer", android: "desktop-outline" },
+          })}
           {me?.paymentWalletProvider
             ? settingsLink({
                 title: t`Wallet`,
@@ -351,11 +361,22 @@ export default function Account() {
                   } as const,
                 ]
               : []),
+            ...(me?.labsAvailable?.length
+              ? [
+                  {
+                    title: t`Labs`,
+                    href: "/labs",
+                    icon: { ios: "flask", android: "flask-outline" },
+                  } as const,
+                ]
+              : []),
           ].map(settingsLink)}
         </SettingsGroup>
 
         <SettingsGroup>
-          {organizations ? (
+          {/* Manor: one organization per portal, so the row opens its settings; upstream's
+          menu (switching, New organization) only with organization switching on. */}
+          {organizations && !ORGANIZATION_SWITCHING ? (
             <SettingsRow
               key="organization"
               accessibilityRole="button"
@@ -365,6 +386,24 @@ export default function Account() {
               title={t`Organization`}
               value={activeOrganization(organizations)?.name}
             />
+          ) : organizations ? (
+            <OrganizationRowMenu
+              key="organization"
+              list={organizations}
+              onCreate={() => openFromSettingsSheet(router, "/new-organization")}
+              onSettings={() => router.push("/organization")}
+            >
+              <SettingsRow
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel={t`Organization`}
+                accessibilityValue={{ text: activeOrganization(organizations)?.name }}
+                chevron="down"
+                leading={icon({ ios: "building.2", android: "business-outline" })}
+                title={t`Organization`}
+                value={activeOrganization(organizations)?.name}
+              />
+            </OrganizationRowMenu>
           ) : null}
           {/* Manor shows a team in Team members above; upstream's Members sheet is off. */}
           {me && SPACE_SHARING

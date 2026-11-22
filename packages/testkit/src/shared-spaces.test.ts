@@ -175,7 +175,13 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
     expect((await raw(ownerCookie, "bots/list", {}, personal.id)).status).toBeGreaterThanOrEqual(
       400,
     );
-    await expect(requireMembership(handles.prisma, accountUserId, team.id)).rejects.toThrow();
+    await expect(
+      requireMembership(
+        handles.prisma,
+        { id: accountUserId, email: "team-account@example.test" },
+        team.id,
+      ),
+    ).rejects.toThrow();
   });
 
   it("serializes simultaneous messages into one shared conversation and records both authors", async () => {
@@ -285,7 +291,11 @@ withDb("shared spaces keep team resources separate from personal accounts", () =
         ).map((member) => member.userId),
       );
     expect(await notified()).toEqual(new Set([owner.userId, peer.userId]));
-    const actor = await requireMembership(handles.prisma, peer.userId, team.id);
+    const actor = await requireMembership(
+      handles.prisma,
+      { id: peer.userId, email: "peer@example.test" },
+      team.id,
+    );
     await db.spaceMember.delete({
       where: { spaceId_userId: { spaceId: team.id, userId: peer.userId } },
     });

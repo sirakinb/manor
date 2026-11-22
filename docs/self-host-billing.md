@@ -15,7 +15,7 @@ a monthly and yearly price, a monthly computer allowance and a computer size. Ne
 start on Standard; existing subscribers keep the price they signed up at. A `null` Standard monthly
 price makes the plan free, hides the other tiers, and ends paid own-key subscriptions at their
 period end; a `null` yearly price offers that tier monthly only, and a `null` monthly price on Pro
-or Max hides it. Billing reads a plan's tier from its price's lookup key, which Rakazo creates as
+or Max hides it. Billing reads a plan's tier from its price's lookup key, which Manor creates as
 `rakazo_byok_<tier>_<monthly|yearly>_<cents>` (Standard's keys name no tier), so keep those keys
 on any price you create by hand. Before selling a tier, make sure the sandbox account can run its
 computer size; a computer that cannot start at its size starts at its current one.
@@ -33,9 +33,9 @@ access on the server, so a lapsed organization's bots and routines stop until it
 
 ## Model credits
 
-Configure the managed default model through the existing model connection settings. The default
-OpenRouter model is Luna 6; customers can choose another available model, with its usage deducted
-at model cost. In credit mode, the configured hosted provider uses Manor's key even when a personal
+Configure the managed default model through the existing [model connection settings](./self-host-models.md#deployment-model).
+Customers can choose another available model, with its usage deducted at model cost.
+In credit mode, the configured hosted provider uses Manor's key even when a personal
 key for that provider is saved. Switching back to BYOK restores that connection. Personal connections
 to other providers continue to use their own keys and never debit Manor credits. Hosted calls reserve an upper cost estimate atomically before starting, then settle
 to reported or catalog-priced usage. Unknown usage retains its reservation for reconciliation.
@@ -118,8 +118,9 @@ deployment credential; no Redis or external accounting service is required.
 The adapter pins Stripe API `2026-09-30.endive`. Configure webhook destinations for your own account,
 using snapshot payloads on the same API version. Subscribe to all `customer.subscription` events,
 `customer.deleted`, `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-`invoice.paid`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created`, and
-`charge.dispute.closed`. Credit Checkout restricts payment methods to cards. New subscriptions
+`invoice.paid`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created`,
+`charge.dispute.closed`, `charge.dispute.funds_withdrawn`, and `charge.dispute.funds_reinstated`.
+Credits a dispute holds back return if it is won. Credit Checkout restricts payment methods to cards. New subscriptions
 explicitly retain classic billing mode so API upgrades do not change invoice/proration behavior.
 
 For local testing, forward Stripe test events to `/api/v1/billing/webhook`. Use the signing secret

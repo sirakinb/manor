@@ -1,3 +1,4 @@
+import { ClientError } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { runAsSystem } from "@rakazo/db";
 
@@ -13,9 +14,10 @@ export class AccountDeletionRefusedError extends Error {
 }
 
 /** Deleting this organization would remove its Workspace, CRM data or public forms. */
-export class OrganizationHoldsBusinessDataError extends Error {
+export class OrganizationHoldsBusinessDataError extends ClientError {
   constructor() {
     super(
+      "BAD_REQUEST",
       "This organization has a Workspace, CRM data or public forms, so it can't be deleted here.",
     );
     this.name = "OrganizationHoldsBusinessDataError";

@@ -63,6 +63,8 @@ secrets exist.
 | `preview-build.yml`                                                        | pull requests touching app code                             | none                                                                          | `FLY_PREVIEW_ORG` variable                 |
 | `preview-deploy.yml`, `preview-cleanup.yml`                                | after a preview build; closed pull requests, daily          | `FLY_PREVIEW_TOKEN`, Fly variables, `CLAUDE_CODE_OAUTH_TOKEN` for screenshots | skip without `FLY_PREVIEW_TOKEN`           |
 | `pr-screenshots.yml`                                                       | called by a preview deploy and Playwright report publishing | `CODEX_SUBSCRIPTION_AUTH` or `CLAUDE_CODE_OAUTH_TOKEN`                        | needs a preview deployment and `S3_BUCKET` |
+| `security.yml`, `dependency-security.yml`                                  | pull requests, pushes to `main`, nightly, manual            | Advanced Security for review and CodeQL on a private repository               | `SECURITY_SCANS_ENABLED=true`              |
+| `www-indexnow.yml`                                                         | successful Vercel production deploys of the marketing site  | none                                                                          | `WWW_INDEXNOW_ENABLED=true`                |
 
 ## PR screenshot agent
 

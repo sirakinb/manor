@@ -11,6 +11,7 @@ name: Organizations
     element: "Organization.*"
     direction: DOWN
     timeout: 15000
+# Manor: the row opens the organization's settings; there is no organization menu.
 - tapOn: "Organization.*"
 - extendedWaitUntil:
     visible: "Name"

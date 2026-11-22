@@ -11,11 +11,10 @@ function prismaForMembership(
     winner?: string;
   } = {},
 ) {
-  const pins = [session.pinned ?? null, session.winner ?? session.pinned ?? null];
   return {
     $queryRaw: vi.fn(async () => lastActive.map((spaceId) => ({ spaceId }))),
     session: {
-      findUnique: vi.fn(async () => ({ activeOrganizationId: pins.shift() ?? null })),
+      findUnique: vi.fn(async () => ({ activeOrganizationId: session.winner ?? null })),
       updateMany: vi.fn(async () => ({ count: session.winner ? 0 : 1 })),
     },
     space: {
@@ -29,18 +28,17 @@ function prismaForMembership(
           where,
           select,
         }: {
-          where: { userId: string; spaceId?: string; organizationId?: string };
+          where: { spaceId?: string; organizationId?: string };
           select: Record<string, unknown>;
         }) => {
           if (select.id) return session.member === false ? null : { id: "space-member-1" };
           if (select.organizationId && !select.spaceId) return { organizationId: "org-first" };
+          if (session.member === false && where.organizationId === session.pinned) return null;
           return found
             ? {
-                userId: where.userId,
                 spaceId: where.spaceId ?? "space-default",
                 organizationId: where.organizationId ?? "org-1",
                 space: { accountUserId: null },
-                member: { user: { email: "owner@example.test" } },
               }
             : null;
         },
@@ -52,11 +50,17 @@ function prismaForMembership(
   } as unknown as PrismaClient;
 }
 
+const user = { id: "user-1", email: "owner@example.test" };
+const signedIn = (activeOrganizationId: string | null = null) => ({
+  id: "session-1",
+  activeOrganizationId,
+});
+
 describe("requireMembership", () => {
   it("scopes the actor to an explicitly requested space", async () => {
     const prisma = prismaForMembership(true);
 
-    await expect(requireMembership(prisma, "user-1", "space-support")).resolves.toEqual({
+    await expect(requireMembership(prisma, user, "space-support")).resolves.toEqual({
       userId: "user-1",
       spaceId: "space-support",
       organizationId: "org-1",
@@ -76,14 +80,14 @@ describe("requireMembership", () => {
 
   it("rejects a requested space the user does not belong to", async () => {
     await expect(
-      requireMembership(prismaForMembership(false), "user-1", "space-foreign"),
+      requireMembership(prismaForMembership(false), user, "space-foreign"),
     ).rejects.toBeInstanceOf(IsolationError);
   });
 
   it("selects the explicit default Space before older non-default memberships", async () => {
     const prisma = prismaForMembership(true);
 
-    await requireMembership(prisma, "user-1");
+    await requireMembership(prisma, user);
 
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -101,7 +105,7 @@ describe("requireMembership", () => {
   it("without a requested Space, opens the organization the user was last active in", async () => {
     const prisma = prismaForMembership(true, ["space-recent"]);
 
-    await requireMembership(prisma, "user-1", null, null, "session-1");
+    await requireMembership(prisma, user, null, null, signedIn());
 
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -122,7 +126,7 @@ describe("requireMembership", () => {
   it("keeps a session in the organization it was first given", async () => {
     const prisma = prismaForMembership(true, ["space-elsewhere"], { pinned: "org-pinned" });
 
-    await requireMembership(prisma, "user-1", null, null, "session-1");
+    await requireMembership(prisma, user, null, null, signedIn("org-pinned"));
 
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -135,6 +139,8 @@ describe("requireMembership", () => {
         select: expect.objectContaining({ spaceId: true }),
       }),
     );
+    expect(prisma.spaceMember.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.session.findUnique).not.toHaveBeenCalled();
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(prisma.session.updateMany).not.toHaveBeenCalled();
   });
@@ -142,7 +148,7 @@ describe("requireMembership", () => {
   it("pins a session with no finished runs to the organization it opens", async () => {
     const prisma = prismaForMembership(true, []);
 
-    await requireMembership(prisma, "user-1", null, null, "session-1");
+    await requireMembership(prisma, user, null, null, signedIn());
 
     expect(prisma.session.updateMany).toHaveBeenCalledWith({
       where: { id: "session-1", userId: "user-1", activeOrganizationId: null },
@@ -153,7 +159,7 @@ describe("requireMembership", () => {
   it("follows the pin a concurrent first request wrote", async () => {
     const prisma = prismaForMembership(true, ["space-recent"], { winner: "org-winner" });
 
-    await requireMembership(prisma, "user-1", null, null, "session-1");
+    await requireMembership(prisma, user, null, null, signedIn());
 
     expect(prisma.spaceMember.findFirst).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -173,7 +179,7 @@ describe("requireMembership", () => {
       member: false,
     });
 
-    await requireMembership(prisma, "user-1", null, null, "session-1");
+    await requireMembership(prisma, user, null, null, signedIn("org-gone"));
 
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -195,7 +201,7 @@ describe("requireMembership", () => {
   it("does not look up recent activity for a requested Space", async () => {
     const prisma = prismaForMembership(true, ["space-recent"]);
 
-    await expect(requireMembership(prisma, "user-1", "space-support")).resolves.toMatchObject({
+    await expect(requireMembership(prisma, user, "space-support")).resolves.toMatchObject({
       spaceId: "space-support",
     });
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
@@ -205,7 +211,7 @@ describe("requireMembership", () => {
     const prisma = prismaForMembership(false);
 
     await expect(
-      requireMembership(prisma, "user-1", "space-other-org", "org-portal", "session-1"),
+      requireMembership(prisma, user, "space-other-org", "org-portal", signedIn()),
     ).rejects.toBeInstanceOf(IsolationError);
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -223,7 +229,7 @@ describe("requireMembership", () => {
     const prisma = prismaForMembership(true, ["space-elsewhere"], { pinned: "org-pinned" });
 
     await expect(
-      requireMembership(prisma, "user-1", null, "org-portal", "session-1"),
+      requireMembership(prisma, user, null, "org-portal", signedIn("org-pinned")),
     ).resolves.toMatchObject({ organizationId: "org-portal" });
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledTimes(1);
     expect(prisma.spaceMember.findFirst).toHaveBeenCalledWith(

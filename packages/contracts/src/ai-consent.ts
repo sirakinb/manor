@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { SettingsScopeSchema } from "./settings-scope.js";
 
-export const AI_DISCLOSURE_VERSION = "2026-09-14";
+export const AI_DISCLOSURE_VERSION = "2026-11-12";
 // Manor is operated by Pentridge Media, so the default points at its policy, not upstream's.
 // A deployment can still override it with PRIVACY_POLICY_URL.
 export const AI_PRIVACY_URL = "https://www.pentridgemedia.com/privacy";

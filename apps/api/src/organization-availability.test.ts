@@ -14,6 +14,8 @@ const organization = (id: string) => ({
   defaultSpaceId: id,
   spaceIds: [id],
   canManage: true,
+  role: "owner" as const,
+  memberCount: 1,
 });
 
 const list: OrganizationList = {

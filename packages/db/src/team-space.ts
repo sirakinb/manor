@@ -1,3 +1,4 @@
+import { ClientError } from "@rakazo/core";
 import type { Prisma, PrismaClient } from "./client.js";
 
 /**
@@ -26,10 +27,9 @@ export async function isTeamSpace(
 }
 
 /** Upstream's invite, leave, removal and hand-over refuse a team space. */
-export class TeamSpaceSharingError extends Error {
-  readonly code = "FORBIDDEN";
+export class TeamSpaceSharingError extends ClientError {
   constructor() {
-    super("Members of a team space are managed by its organization");
+    super("FORBIDDEN", "Members of a team space are managed by its organization");
     this.name = "TeamSpaceSharingError";
   }
 }
@@ -63,10 +63,13 @@ export async function actsForRunUser(
   return member !== null;
 }
 
-/** Manor: a space without a shared account already has its one person. */
-export class SpaceHasPersonError extends Error {
+/** Manor: a space without a shared account already has its one person. A refusal the person reads. */
+export class SpaceHasPersonError extends ClientError {
   constructor() {
-    super("This space already belongs to someone; a person joining gets a space of their own");
+    super(
+      "FORBIDDEN",
+      "This space already belongs to someone. A person joining gets a space of their own.",
+    );
     this.name = "SpaceHasPersonError";
   }
 }

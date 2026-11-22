@@ -26,6 +26,7 @@ import type {
   McpConnector,
   McpOAuthBroker,
   MemoryProviderResolver,
+  MessagingDelivery,
   MessagingInstallations,
   PiOAuthLogins,
   PlanLimitsReader,
@@ -35,6 +36,7 @@ import type {
   PushTokenStore,
   RemoteConnectorDependencies,
   TicketChangeNotifier,
+  UserCloudAgents,
   verifyModelServesAgents,
   WorkActivities,
 } from "@rakazo/adapters";
@@ -55,9 +57,10 @@ import {
   touchRunningComputer,
   VERIFICATION_ENGINE_LABELS,
   WorkspaceFileError,
+  workspaceFilesLeaseKey,
 } from "@rakazo/adapters";
 import type { Auth } from "@rakazo/auth";
-import type { Actor, NavLink } from "@rakazo/contracts";
+import type { Actor, LabFeature, ModelCredential, NavLink } from "@rakazo/contracts";
 import { workspaceOperationMutates } from "@rakazo/contracts";
 import type { VerificationCheckInput } from "@rakazo/core";
 import {
@@ -74,7 +77,9 @@ import {
   createTeamRepos,
   createWorkspaceRepos,
   IsolationError,
+  LeaseHeldError,
   parseComputerMode,
+  withLease,
 } from "@rakazo/db";
 import type { BillingService } from "./billing.js";
 import type { WorkspaceRepo } from "./computer-changes.js";
@@ -127,8 +132,9 @@ import type { PropertyLedgerFactory } from "./workspace-actions.js";
 import { createWorkspaceActions, WorkspaceActionError } from "./workspace-actions.js";
 import { createWorkspaceTeam } from "./workspace-team.js";
 
+export { botIntroPrompt } from "./hidden-turns.prompt.js";
 export { nextConnectionLabel } from "./model-credentials.js";
-export { botIntroPrompt, enqueueBotIntroRun } from "./routes/bots.js";
+export { enqueueBotIntroRun } from "./routes/bots.js";
 export { HEARTBEAT_MS, SESSION_RECHECK_MS } from "./routes/shared.js";
 export { callMarkerClientNonce } from "./routes/threads.js";
 
@@ -145,6 +151,7 @@ export interface RouterDeps {
   notifications?: NotificationProvider;
   analytics?: ProductAnalytics;
   cloudAgent?: CloudAgentConnection | null;
+  userCloudAgents?: UserCloudAgents;
   /** The deployment's wallet provider; absent hides purchases. */
   paymentWallet?: PaymentWalletProvider | null;
   prisma: PrismaClient;
@@ -162,7 +169,7 @@ export interface RouterDeps {
   email?: TransactionalEmailProvider;
   /** Builds the property ledger for a workspace's Buildium credential. */
   propertyLedger?: PropertyLedgerFactory;
-  oauthLogins: PiOAuthLogins;
+  oauthLogins: PiOAuthLogins<ModelCredential>;
   /** Live Codex catalog seam; defaults to the shared per-process cache. */
   codexCatalog?: CodexLiveCatalog;
   providerCatalog?: ProviderCatalogCache;
@@ -192,6 +199,8 @@ export interface RouterDeps {
   artifacts: ArtifactStore;
   dataDir: string;
   messagingInstallations?: MessagingInstallations;
+  /** Sends replies to the chat apps people message from; absent without one. */
+  messagingDelivery?: MessagingDelivery;
   messaging?: {
     enabled: boolean;
     providers: string[];
@@ -218,9 +227,10 @@ export interface RouterDeps {
   env: {
     /** Domain of bots' email addresses; unset when this server receives no email. */
     inboundEmailDomain?: string;
-    ticketBoardEnabled?: boolean;
     navLinks?: NavLink[];
     adminEmails?: string[];
+    /** Labs features this deployment turns on for every account. */
+    deploymentLabs?: LabFeature[];
     phoneCallsEnabled?: boolean;
     phoneCallRingSeconds?: number;
     maxUploadSizeBytes?: number;
@@ -235,6 +245,8 @@ export interface RouterDeps {
     webOrigin: string;
     privacyPolicyUrl?: string;
     screenProxySecret: string;
+    /** Keys the hash that names an invited address in the security log, so it can't be guessed. */
+    invitationRecipientKey: string;
     sandboxProvider: string;
     gitSha?: string;
     integrationsCatalogUrl?: string;
@@ -699,29 +711,16 @@ function manorRoutes(
         if (computer.state !== "running" || !computer.providerRef) {
           throw new ORPCError("BAD_REQUEST", { message: "Wake the computer to manage its files" });
         }
+        const providerRef = computer.providerRef;
         const base = (location: "bot" | "shared") =>
           team ? (location === "shared" ? "shared" : `bots/${bot.id}`) : "";
         const mutation = workspaceOperationMutates(input.operation);
         const operationId = `workspace-files:${randomUUID()}`;
         const ctx = computerContext(context.actor, bot.id, operationId);
-        if (mutation) {
-          const claimed = await deps.prisma.computer.updateMany({
-            where: {
-              id: computer.id,
-              state: "running",
-              OR: [{ executionRunId: null }, { executionLeaseExpiresAt: { lt: new Date() } }],
-            },
-            data: {
-              executionRunId: operationId,
-              executionLeaseExpiresAt: new Date(Date.now() + 120_000),
-            },
-          });
-          if (!claimed.count)
-            throw new ORPCError("CONFLICT", {
-              message: "The computer is busy. Try again when it finishes.",
-            });
-        }
-        try {
+        // Manor: a file change holds the computer's `workspace-files:<computerId>` lease (the shared
+        // `leases` table, since upstream dropped the computer's execution columns), so a run cannot
+        // start on it meanwhile and two changes never overlap.
+        const manage = async () => {
           if (mutation) {
             const activeRun = await deps.prisma.run.findFirst({
               where: { bot: { computerId: computer.id }, status: { in: [...ACTIVE_RUN_STATUSES] } },
@@ -741,8 +740,8 @@ function manorRoutes(
             where: { id: computer.id, state: "running" },
             data: { updatedAt: new Date() },
           });
-          await touchRunningComputer(deps, { ...computer, providerRef: computer.providerRef });
-          const result = await manageWorkspaceFiles(
+          await touchRunningComputer(deps, { ...computer, providerRef });
+          return manageWorkspaceFiles(
             deps.sandbox,
             toComputerRef(computer),
             {
@@ -754,17 +753,25 @@ function manorRoutes(
             },
             ctx,
           );
-          return result;
+        };
+        try {
+          return mutation
+            ? await withLease(
+                deps.prisma,
+                workspaceFilesLeaseKey(computer.id),
+                { ttlMs: 120_000, signal: context.signal },
+                manage,
+              )
+            : await manage();
         } catch (error) {
+          if (error instanceof LeaseHeldError)
+            throw new ORPCError("CONFLICT", {
+              message: "The computer is busy. Try again when it finishes.",
+            });
           if (error instanceof WorkspaceFileError)
             throw new ORPCError(error.code, { message: error.message });
           throw error;
         } finally {
-          if (mutation)
-            await deps.prisma.computer.updateMany({
-              where: { id: computer.id, executionRunId: operationId },
-              data: { executionRunId: null, executionLeaseExpiresAt: null },
-            });
           scheduleComputerSleep(deps.jobs, computer.id);
         }
       }),

@@ -1,4 +1,5 @@
 import { MAX_TRANSCRIPTION_RESPONSE_BYTES, VOICE_RESPONSE_TIMEOUT_MS } from "@rakazo/core";
+import { deferred } from "@rakazo/core/test-async";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   combineTranscript,
@@ -48,12 +49,9 @@ function stubRecorderFallback(fetchMock: ReturnType<typeof vi.fn>) {
 describe("Dictation recorder fallback", () => {
   it("stops tracks if hold-to-talk is cancelled while the mic prompt is open", async () => {
     const track = { stop: vi.fn() };
-    let grant!: (stream: { getTracks: () => Array<{ stop: () => void }> }) => void;
-    const pending = new Promise<{ getTracks: () => Array<{ stop: () => void }> }>((resolve) => {
-      grant = resolve;
-    });
+    const grant = deferred<{ getTracks: () => Array<{ stop: () => void }> }>();
     vi.stubGlobal("navigator", {
-      mediaDevices: { getUserMedia: vi.fn(() => pending) },
+      mediaDevices: { getUserMedia: vi.fn(() => grant.promise) },
       language: "en-US",
     });
     const started = vi.fn();
@@ -78,7 +76,7 @@ describe("Dictation recorder fallback", () => {
       onFinal: () => undefined,
     });
     dictation.stop("cancel");
-    grant({ getTracks: () => [track] });
+    grant.resolve({ getTracks: () => [track] });
     await listening;
 
     expect(track.stop).toHaveBeenCalledOnce();
@@ -1728,10 +1726,7 @@ describe("Dictation web speech", () => {
       }
       vi.stubGlobal("window", { SpeechRecognition: FakeRecognition });
       const fetchMock = vi.fn(async () => Response.json({ text: "from server" }));
-      let markRecording: () => void = () => undefined;
-      const recording = new Promise<void>((resolve) => {
-        markRecording = resolve;
-      });
+      const recording = deferred();
       const track = { stop: vi.fn() };
       vi.stubGlobal("navigator", {
         mediaDevices: {
@@ -1748,7 +1743,7 @@ describe("Dictation web speech", () => {
           onstop: (() => void) | null = null;
           start() {
             this.state = "recording";
-            markRecording();
+            recording.resolve();
           }
           stop() {
             this.state = "inactive";
@@ -1766,7 +1761,7 @@ describe("Dictation web speech", () => {
       const onend = rec?.onend;
       rec?.onerror?.({ error });
       onend?.();
-      await recording;
+      await recording.promise;
       expect(dictation.state.error).toBeUndefined();
       expect(dictation.state.status).toBe("listening");
       expect(rec?.abort).toHaveBeenCalledOnce();
@@ -1822,10 +1817,7 @@ describe("Dictation web speech", () => {
       }
     }
     vi.stubGlobal("window", { SpeechRecognition: FakeRecognition });
-    let markRecording: () => void = () => undefined;
-    const recording = new Promise<void>((resolve) => {
-      markRecording = resolve;
-    });
+    const recording = deferred();
     const track = { stop: vi.fn() };
     vi.stubGlobal("navigator", {
       mediaDevices: {
@@ -1843,7 +1835,7 @@ describe("Dictation web speech", () => {
         onstop: (() => void) | null = null;
         start() {
           this.state = "recording";
-          markRecording();
+          recording.resolve();
         }
         stop() {
           this.state = "inactive";
@@ -1869,7 +1861,7 @@ describe("Dictation web speech", () => {
     });
     rec?.onerror?.({ error: "network" });
     onend?.();
-    await recording;
+    await recording.promise;
 
     expect(onFinal).not.toHaveBeenCalled();
     expect(dictation.state.status).toBe("listening");
@@ -1951,10 +1943,7 @@ describe("Dictation web speech", () => {
       }
     }
     vi.stubGlobal("window", { SpeechRecognition: FakeRecognition });
-    let markRecording: () => void = () => undefined;
-    const recording = new Promise<void>((resolve) => {
-      markRecording = resolve;
-    });
+    const recording = deferred();
     const fetchMock = vi.fn(async () => Response.json({ error: "unavailable" }, { status: 503 }));
     const track = { stop: vi.fn() };
     vi.stubGlobal("navigator", {
@@ -1972,7 +1961,7 @@ describe("Dictation web speech", () => {
         onstop: (() => void) | null = null;
         start() {
           this.state = "recording";
-          markRecording();
+          recording.resolve();
         }
         stop() {
           this.state = "inactive";
@@ -1991,7 +1980,7 @@ describe("Dictation web speech", () => {
       results: [[{ transcript: "call me later" }]],
     });
     rec?.onerror?.({ error: "network" });
-    await recording;
+    await recording.promise;
     expect(onFinal).not.toHaveBeenCalled();
     dictation.submitHold();
 
@@ -2070,10 +2059,7 @@ describe("Dictation web speech", () => {
       }
     }
     vi.stubGlobal("window", { SpeechRecognition: FakeRecognition });
-    let markRecording: () => void = () => undefined;
-    const recording = new Promise<void>((resolve) => {
-      markRecording = resolve;
-    });
+    const recording = deferred();
     const track = { stop: vi.fn() };
     vi.stubGlobal("navigator", {
       mediaDevices: {
@@ -2091,7 +2077,7 @@ describe("Dictation web speech", () => {
         onstop: (() => void) | null = null;
         start() {
           this.state = "recording";
-          markRecording();
+          recording.resolve();
         }
         stop() {
           this.state = "inactive";
@@ -2114,7 +2100,7 @@ describe("Dictation web speech", () => {
       results: [[{ transcript: "call me later" }]],
     });
     instances[0]?.onerror?.({ error: "network" });
-    await recording;
+    await recording.promise;
 
     expect(onFinal).not.toHaveBeenCalled();
     expect(dictation.state.transcript).toBe("call me later");

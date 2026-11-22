@@ -13,7 +13,7 @@ import {
   SettingsSwitch,
   useStackedSettings,
 } from "../../components/settings-group";
-import { currentApiBase, rpc, selectedSpaceId } from "../../lib/api";
+import { currentApiBase, selectedSpaceId } from "../../lib/api";
 import { getCachedAppearancePreference, setAppearancePreference } from "../../lib/appearance";
 import {
   getHapticsEnabled,

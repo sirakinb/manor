@@ -1,14 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
-import { signupPolicyFromEnv } from "@rakazo/core";
 import type { PrismaClient } from "./client.js";
 import { isUniqueViolation } from "./prisma-errors.js";
 import { runAsSystem } from "./row-security.js";
 import { assertSpaceTakesPerson } from "./team-space.js";
-
-export interface SignupPolicyEnv {
-  signupsEnabled: string | undefined;
-  signupAllowlist: string | undefined;
-}
 
 type OrganizationClient = Pick<
   PrismaClient,
@@ -281,7 +275,6 @@ export async function createOrganizationWithDefaultSpace(
 export async function bootstrapUserSpace(
   prisma: PrismaClient,
   user: { id: string },
-  env: SignupPolicyEnv,
   options: { claimDeploymentOwner?: boolean; brandId?: string | null } = {},
 ): Promise<{ spaceId: string; organizationId: string }> {
   if (options.brandId) {
@@ -307,16 +300,9 @@ export async function bootstrapUserSpace(
     name: "Personal",
     slug: `user-${user.id.slice(0, 12)}`,
   });
-  const policy = signupPolicyFromEnv(env);
   await prisma.deploymentSettings.upsert({
     where: { id: "default" },
-    create: {
-      id: "default",
-      ownerUserId: claimDeploymentOwner ? user.id : null,
-      signupsEnabled: policy.enabled,
-      signupAllowlist: policy.allowlist.join(","),
-      signupPolicyInitialized: true,
-    },
+    create: { id: "default", ownerUserId: claimDeploymentOwner ? user.id : null },
     update: {},
   });
   // Manor: the first sign-up claims the deployment-owner seat that maintenance is restricted to.

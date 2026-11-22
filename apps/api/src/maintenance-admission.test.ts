@@ -46,7 +46,7 @@ describe("API maintenance admission", () => {
     await expect(details.json()).resolves.toEqual({
       ok: true,
       revision: "abc123",
-      telemetry: { degraded: false, failures: 0, lastFailureAt: null },
+      telemetry: { degraded: false, droppedLines: 0, failures: 0, lastFailureAt: null },
     });
     expect(enter).not.toHaveBeenCalled();
     expect((await app.request("/ready")).status).toBe(503);

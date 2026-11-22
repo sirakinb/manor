@@ -14,6 +14,7 @@ import {
   verificationEmail,
 } from "./email.js";
 import { homeDeletionEmail } from "./home-deletion-email.js";
+import { organizationInvitationEmail } from "./organization-invitation-email.js";
 import {
   integrationClaimConfirmEmail,
   pluginSubmissionAdminEmail,
@@ -120,6 +121,11 @@ it("shares the layout across account, product and marketplace emails", async () 
     homeDeletionEmail(user, new Date(), "plan-ended", url),
     homeDeletionEmail(user, new Date(), "unused", url),
     referralEmail(user, url, url),
+    organizationInvitationEmail(user.email, {
+      organizationName: "Acme",
+      inviterName: "Sam",
+      url,
+    }),
     pluginSubmissionReceivedEmail(user.email),
     integrationClaimConfirmEmail(user.email, url),
     pluginSubmissionAdminEmail(
@@ -292,7 +298,7 @@ describe("email languages", () => {
     const english = await welcomeEmail(user, "https://example.test/u");
     expect(english.subject).toBe("Welcome to Manor");
     expect(english.text).toContain("Hi Ana,");
-    expect(english.text).toContain("Manor also has apps for iPhone");
+    expect(english.text).toContain("Manor runs on iPhone");
   });
 
   it.each(Object.entries(CATALOGS))(

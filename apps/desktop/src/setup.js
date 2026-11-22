@@ -45,8 +45,6 @@
   const stackProgress = document.getElementById("stack-progress");
   const stackProgressFill = document.getElementById("stack-progress-fill");
   const stackHint = document.getElementById("stack-hint");
-  const stackWaiting = document.getElementById("stack-waiting");
-  const stackWaitingText = document.getElementById("stack-waiting-text");
   const status = document.getElementById("status");
   const checkButton = document.getElementById("check");
   const continueButton = document.getElementById("continue");
@@ -240,10 +238,6 @@
           "Docker Desktop is a free app that runs Manor in the background. Install it and open it once.",
         )
       : t("Install Docker Engine and start it.");
-    stackWaiting.hidden = !isDockerPhase(phase);
-    stackWaitingText.textContent = dockerDesktop
-      ? t("Waiting for Docker Desktop…")
-      : t("Waiting for Docker…");
   }
 
   /** Looks for Docker again on a timer, so installing or opening it is all the person has to do. */

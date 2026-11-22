@@ -38,6 +38,7 @@ tags:
 - scrollUntilVisible:
     element: "Organization"
     direction: DOWN
+# Manor: the row opens the organization's settings; there is no organization menu.
 - tapOn: "Organization"
 - extendedWaitUntil:
     visible: "Name"

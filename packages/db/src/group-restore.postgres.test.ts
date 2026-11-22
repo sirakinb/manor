@@ -26,8 +26,6 @@ describePostgres("archived groups and their bots (PostgreSQL)", () => {
   };
   let computers = 0;
 
-  const signup = { signupsEnabled: undefined, signupAllowlist: undefined };
-
   /** A bot on a computer of its own, so each live one counts toward the computer quota. */
   async function bot(name: string) {
     const created = await createRepos(prisma).createBot(actor, {
@@ -73,7 +71,7 @@ describePostgres("archived groups and their bots (PostgreSQL)", () => {
       await db.pool.end();
     };
     owner = await runAsSystem("test fixture", () =>
-      provisionMessagingIdentity(prisma, { provider, address }, signup),
+      provisionMessagingIdentity(prisma, { provider, address }),
     );
     // A bootstrapped personal space shares its organization's id.
     actor = {

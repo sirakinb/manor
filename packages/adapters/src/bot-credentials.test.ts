@@ -7,7 +7,7 @@ import {
   resolveBotCredentialValue,
   serializeBotCredentialSecret,
 } from "./bot-credentials.js";
-import { builtinAgentTools } from "./builtin-tools.js";
+import { builtinAgentTools } from "./builtin.tool-definition.js";
 import { selectToolsForRoutingMode } from "./executor.js";
 import { generateTotp } from "./totp.js";
 

@@ -32,6 +32,7 @@ import {
   useOwnSpaces,
 } from "../components/integrations/space-availability";
 import { McpServerHealthLine } from "../components/McpServerHealthLine";
+import { desktopBridge } from "../lib/desktop";
 import { connectMcpOauth, finishMcpOauthFromPaste, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { useSpaceQueries } from "../lib/query";
 import { rpc } from "../lib/rpc";
@@ -111,6 +112,7 @@ export function McpServersOverlay({
   const botsQuery = useQuery(botsOptions);
   const assignmentsOptions = queries.mcp.assignments.all.queryOptions();
   const assignmentsQuery = useQuery(assignmentsOptions);
+  const mcpBrowser = desktopBridge()?.mcpBrowser;
   const servers = serversQuery.data ?? [];
   const spaceCount = useOwnSpaces().length;
   const bots = useMemo(
@@ -316,6 +318,8 @@ export function McpServersOverlay({
     setError(null);
     try {
       await rpc.mcp.servers.remove({ id: server.id });
+      // A server added again gets a fresh jar anyway; this drops the old one.
+      await mcpBrowser?.clear(server.id).catch(() => undefined);
       if (editing?.id === server.id) resetForm();
       await refresh();
     } catch (err) {
@@ -352,6 +356,8 @@ export function McpServersOverlay({
     setError(null);
     try {
       setOauthPending(server.id);
+      // Forget the provider's cookies too, so the next Connect can pick another account.
+      await mcpBrowser?.clear(server.id);
       await rpc.mcp.oauth.disconnect({ serverId: server.id });
       await refresh();
     } catch (err) {

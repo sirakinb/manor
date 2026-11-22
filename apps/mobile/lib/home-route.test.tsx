@@ -9,8 +9,23 @@ import { PickChatPane } from "../components/pick-chat-pane";
 import { resetI18nForTests } from "./i18n";
 import { useHomeHeader } from "./use-home-header";
 
+type HeaderItem = {
+  label?: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+  menu?: { items: Array<{ onPress: () => void }> };
+};
+/** The header options these tests read back from the mocked navigation. */
+type HeaderOptions = {
+  headerShown?: boolean;
+  headerTransparent?: boolean;
+  headerStyle?: { backgroundColor: string };
+  unstable_headerLeftItems?: () => HeaderItem[];
+  unstable_headerRightItems?: () => HeaderItem[];
+};
+
 const home = vi.hoisted(() => ({
-  options: {} as Record<string, any>,
+  options: {} as HeaderOptions,
   setOptions: vi.fn(),
   push: vi.fn(),
   insets: { top: 20, bottom: 30, left: 0, right: 12 },
@@ -66,7 +81,7 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   home.options = { headerShown: false };
   home.setOptions.mockReset();
-  home.setOptions.mockImplementation((next: Record<string, unknown>) => {
+  home.setOptions.mockImplementation((next: HeaderOptions) => {
     home.options = { ...home.options, ...next };
   });
   home.push.mockReset();
@@ -105,17 +120,12 @@ it.each([false, true])(
         expect(home.options.headerStyle).toEqual({ backgroundColor: "transparent" });
         expect(
           home.options
-            .unstable_headerLeftItems()
-            .map(
-              (item: { label?: string; accessibilityLabel: string }) =>
-                item.label ?? item.accessibilityLabel,
-            ),
+            .unstable_headerLeftItems?.()
+            .map((item) => item.label ?? item.accessibilityLabel),
           // Manor's CRM button sits beside Account.
         ).toEqual(["Account", "CRM"]);
         expect(
-          home.options
-            .unstable_headerRightItems()
-            .map((item: { accessibilityLabel: string }) => item.accessibilityLabel),
+          home.options.unstable_headerRightItems?.().map((item) => item.accessibilityLabel),
         ).toEqual(["Activity", "Search", "Create"]);
       }
     }
@@ -130,13 +140,13 @@ it("leaves the navigation bar alone from the embedded inbox", () => {
 
 it("wires the compact header items to their actions", () => {
   act(() => root.render(<Inbox />));
-  const [account, crm] = home.options.unstable_headerLeftItems();
-  const [activity, search, create] = home.options.unstable_headerRightItems();
-  account.onPress();
-  crm.onPress();
-  search.onPress();
-  activity.onPress();
-  for (const item of create.menu.items) item.onPress();
+  const [account, crm] = home.options.unstable_headerLeftItems?.() ?? [];
+  const [activity, search, create] = home.options.unstable_headerRightItems?.() ?? [];
+  account?.onPress();
+  crm?.onPress();
+  search?.onPress();
+  activity?.onPress();
+  for (const item of create?.menu?.items ?? []) item.onPress();
   expect(home.push.mock.calls).toEqual([["/account"], ["/crm"], ["/search"]]);
   expect(toggleActivityMode).toHaveBeenCalledOnce();
   expect(runCreateAction.mock.calls).toEqual([["bot"], ["group"], ["space"]]);

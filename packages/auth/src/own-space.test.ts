@@ -112,7 +112,7 @@ function fixture() {
     },
   };
   // A first session joins the brand's organization, or makes a personal one, with a space there.
-  vi.mocked(bootstrapUserSpace).mockImplementation(async (_prisma, user, _env, options) => {
+  vi.mocked(bootstrapUserSpace).mockImplementation(async (_prisma, user, options) => {
     const organizationId = options?.brandId ? `org-${options.brandId}` : "org-personal";
     members.push({
       userId: user.id,
@@ -209,7 +209,6 @@ describe("a person's own space on sign-in", () => {
     expect(bootstrapUserSpace).toHaveBeenCalledExactlyOnceWith(
       expect.anything(),
       expect.objectContaining({ id: userId }),
-      expect.anything(),
       { brandId: "jrh" },
     );
     expect(ensureOwnSpace).not.toHaveBeenCalled();

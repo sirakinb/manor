@@ -45,7 +45,7 @@ it.skipIf(!testDatabase)(
       // Manor keeps the deployment owner: the bootstrapped account is the first claimant.
       expect(
         await prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-      ).toMatchObject({ ownerUserId: owner.id, signupsEnabled: false });
+      ).toMatchObject({ ownerUserId: owner.id });
       expect(await prisma.session.count()).toBe(0);
       expect(owner.emailVerified).toBe(true);
       const memberships = await prisma.spaceMember.count({ where: { userId: owner.id } });
@@ -58,7 +58,7 @@ it.skipIf(!testDatabase)(
       await boot(env.OWNER_PASSWORD);
       expect(
         await prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-      ).toMatchObject({ ownerUserId: owner.id, signupsEnabled: false });
+      ).toMatchObject({ ownerUserId: owner.id });
       expect(await prisma.spaceMember.count({ where: { userId: owner.id } })).toBe(memberships);
       await boot("a-different-password-on-restart");
       expect(await prisma.user.count()).toBe(1);
@@ -100,7 +100,7 @@ it.skipIf(!testDatabase)(
       expect(await prisma.user.count()).toBe(1);
       expect(
         await prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-      ).toMatchObject({ ownerUserId: owner.id, signupsEnabled: false });
+      ).toMatchObject({ ownerUserId: owner.id });
     } finally {
       await prisma.$disconnect();
       await pool.end();

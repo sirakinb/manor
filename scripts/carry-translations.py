@@ -6,12 +6,15 @@ Manor's own translations. This copies every non-empty msgstr for the same msgid
 (and msgctxt) from <rev> into entries that are empty now.
 
 Usage: scripts/carry-translations.py <git-rev> <catalog.po>... [--from <old-path>]
+       [--swap <old>=<new>]
 
 The catalogs live in packages/i18n/locales/<locale>/messages.po; run it after
 `pnpm intl:extract`. --from reads each catalog from another path at <rev>, for a
 revision where the catalogs were elsewhere. Its {locale} is the catalog's folder
 name, e.g. --from 'apps/web/src/locales/{locale}/messages.po' for revisions
-before upstream v0.10.0.
+before upstream v0.10.0. --swap also offers each translation whose msgid contains <old>
+with <old> replaced by <new> in both msgid and msgstr: run it against the merged upstream tag
+with 'Rakazo={brandName}' (web) and 'Rakazo=Manor' (mobile) to translate strings Manor renamed.
 """
 
 import os
@@ -41,7 +44,7 @@ def value(parts):
     return "".join(part[1:-1] for part in parts) if parts else ""
 
 
-def carry(path, rev, source=None):
+def carry(path, rev, source=None, swap=None):
     old = source.format(locale=os.path.basename(os.path.dirname(path))) if source else path
     shown = subprocess.run(["git", "show", f"{rev}:{old}"], capture_output=True, text=True)
     if shown.returncode != 0:
@@ -51,6 +54,12 @@ def carry(path, rev, source=None):
     for _, fields in parse(shown.stdout):
         if "msgid" in fields and value(fields.get("msgstr")):
             known[(value(fields.get("msgctxt")), value(fields["msgid"]))] = fields["msgstr"]
+    if swap:
+        before, after = swap
+        for (context, msgid), parts in list(known.items()):
+            if before in msgid:
+                swapped = (context, msgid.replace(before, after))
+                known.setdefault(swapped, ['"' + value(parts).replace(before, after) + '"'])
     with open(path, encoding="utf-8") as handle:
         text = handle.read()
     blocks, filled = [], 0
@@ -78,11 +87,14 @@ def carry(path, rev, source=None):
 
 
 if __name__ == "__main__":
-    args, source = sys.argv[1:], None
+    args, source, swap = sys.argv[1:], None, None
     if "--from" in args[:-1]:
         at = args.index("--from")
         source, args = args[at + 1], args[:at] + args[at + 2 :]
-    if len(args) < 2:
+    if "--swap" in args[:-1]:
+        at = args.index("--swap")
+        swap, args = tuple(args[at + 1].split("=", 1)), args[:at] + args[at + 2 :]
+    if len(args) < 2 or (swap and len(swap) != 2):
         sys.exit(__doc__)
     for catalog in args[1:]:
-        carry(catalog, args[0], source)
+        carry(catalog, args[0], source, swap)

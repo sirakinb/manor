@@ -12,7 +12,7 @@ import { SERVICE_NAMES } from "@rakazo/logging";
 import { createRootLogger } from "@rakazo/logging/axiom";
 import { watchEventLoopStalls } from "@rakazo/logging/event-loop";
 import { createApp } from "./app.js";
-import { trackConnections } from "./drain.js";
+import { RUN_DRAIN_SIGNAL, trackConnections } from "./drain.js";
 import { loadEnv } from "./env.js";
 import { LOCAL_COMPUTER_SOCKET_PATH } from "./local-computer.js";
 
@@ -36,21 +36,32 @@ try {
     });
   }
 
-  // The deploy allows 30 seconds after the stop signal; leave time for stop() and the log flush.
+  // A stop that hands runs back is killed 30 seconds after the signal; leave time for stop().
   const drain = trackConnections(server as Server);
+  // Outlive the proxy's 2-minute idle reuse, or a request can hit a socket Node just closed.
+  (server as Server).keepAliveTimeout = 125_000;
 
-  let stopping = false;
-  const shutdown = async () => {
-    if (stopping) return;
-    stopping = true;
+  let stopped: Promise<void> | undefined;
+  const shutdown = (letRunsFinish: boolean) => {
+    // Stopping at once claims no new run, even while ordinary requests finish. One without
+    // letRunsFinish that arrives while the runs are draining ends the drain at once.
+    if (stopped) {
+      if (!letRunsFinish) void stop();
+      return stopped;
+    }
     stopStallWatch();
     // Manor: the drain also refuses and closes "This Mac" sockets: they are upgrades too.
-    await drain(20_000);
-    detachLocalComputer();
-    await stop();
-    await logger.flush({ timeoutMs: 2_000 });
+    const connectionsClosed = drain(20_000).finally(detachLocalComputer);
+    stopped = (async () => {
+      await stop({ letRunsFinish, connectionsClosed });
+      await logger.flush({ timeoutMs: 2_000 });
+    })();
+    return stopped;
   };
-  stopOnShutdownSignals(shutdown);
+  stopOnShutdownSignals(() => shutdown(false));
+  // Sent only by a deploy that has already started the next API and waits for this one to exit:
+  // stop taking requests at once, but let the chat turns running here end first.
+  process.on(RUN_DRAIN_SIGNAL, () => void shutdown(true));
 } catch (error) {
   logger.error("api startup failed", error);
   await logger.flush({ timeoutMs: 2_000 });

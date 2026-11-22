@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { ComputerStatus } from "@rakazo/contracts";
 import { Button, Label, Popover, PopoverContent, PopoverTrigger, Textarea } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
+import { runsOnUserMachine } from "../../lib/computer-sandbox";
 import { rpc } from "../../lib/rpc";
 import { errorText } from "../../lib/user-error";
 
@@ -88,7 +89,8 @@ export function TeachComputerOverlayControl({
   }, [botId, onRefresh]); // t omitted: identity churn must not re-lock Start
 
   // Hide only for desktop-host bots. Null computer still shows the control so teaching can boot.
-  if (computer?.kind === "desktop" || computer?.kind === "local") return null;
+  // Manor: a This Mac computer (kind "local") is the user's own machine too.
+  if (runsOnUserMachine(computer) || computer?.kind === "local") return null;
 
   async function refreshView() {
     const requestBotId = botId;

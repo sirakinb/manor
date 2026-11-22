@@ -16,7 +16,7 @@ import type {
   WorkspaceExportLimits,
 } from "@rakazo/adapter-kit";
 import type { PrismaClient } from "@rakazo/db";
-import { runAsSystem } from "@rakazo/db";
+import { draftRecordingsOfLease, runAsSystem } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { cancelComputerRunWork, providerKeepsHome } from "./computer-idle.js";
 import { computerProviderDescriptor } from "./computer-provider-registry.js";
@@ -113,6 +113,11 @@ async function createBaseRunSandbox(
       : opts.referenceInUse,
     onUnsafeStop: opts.prisma
       ? async (providerRef) => {
+          // Quarantine ends any person's control; a recording made under it ends with it.
+          const held = await opts.prisma!.computer.findMany({
+            where: { kind, providerRef, controlLeaseId: { not: null } },
+            select: { spaceId: true, controlLeaseId: true },
+          });
           const quarantined = await opts.prisma!.computer.updateMany({
             where: { kind, providerRef },
             data: {
@@ -125,11 +130,13 @@ async function createBaseRunSandbox(
               controlUserId: null,
               controlLeaseExpiresAt: null,
               controlBotId: null,
-              controlRunId: null,
             },
           });
           if (quarantined.count === 0)
             throw new Error("Computer recovery requirement could not be recorded");
+          for (const { spaceId, controlLeaseId } of held) {
+            await draftRecordingsOfLease(opts.prisma!, { spaceId, leaseId: controlLeaseId! });
+          }
         }
       : opts.onUnsafeStop,
   });
@@ -175,6 +182,11 @@ export class LocalAwareSandbox implements SandboxProvider {
   readonly environment?: SandboxProvider["environment"];
   /** Local computers are provisioned only by explicit kind, so this reports the cloud side. */
   readonly provisionKind?: SandboxProvider["provisionKind"];
+  /**
+   * A This Mac computer is a folder on the person's laptop with no machine to delete; every
+   * machine record names a cloud provider, so it goes to the cloud side.
+   */
+  readonly deleteMachine?: SandboxProvider["deleteMachine"];
 
   constructor(
     /** The provider behind every non-local computer. Tests observe it directly. */
@@ -191,6 +203,12 @@ export class LocalAwareSandbox implements SandboxProvider {
     }
     if (cloud.provisionKind) {
       this.provisionKind = (homeKey) => cloud.provisionKind!(homeKey);
+    }
+    if (cloud.deleteMachine) {
+      this.deleteMachine = async (machine, signal) => {
+        if (machine.provider === "local") return;
+        await cloud.deleteMachine!(machine, signal);
+      };
     }
     if (cloud.connectTerminal || local.connectTerminal) {
       this.connectTerminal = (computer, request, context) => {
@@ -395,7 +413,7 @@ export class HostAwareSandbox implements SandboxProvider {
 
   async provisionKind() {
     const provider = (await this.hostEnabled()) ? this.host : this.isolated;
-    return provider.describe().id as ComputerRef["kind"];
+    return provider.describe().id;
   }
 
   async provision(

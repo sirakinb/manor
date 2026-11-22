@@ -43,7 +43,6 @@ import {
   safeProxyResponseHeaders,
 } from "./src/screen-proxy.js";
 
-const webPort = Number(process.env.WEB_PORT ?? 5173);
 const PREVIEW_REWRITE_LIMIT = 4 * 1024 * 1024;
 
 /**
@@ -167,6 +166,7 @@ export default defineConfig(({ command, mode }) => {
   // Names this build in every API request; the dev server has none, so the handshake stays off.
   const buildId = command === "build" ? buildIdAt(new Date()) : "";
   const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, "../.."), "");
+  const webPort = Number(process.env.WEB_PORT ?? rootEnv.WEB_PORT ?? 5173);
   const read = (name: string) => process.env[name] ?? rootEnv[name];
   const settings = webServerSettings(read, createServiceLogger({ service: "rakazo-web" }));
   const { api, appPolicy, instanceTheme } = settings;
@@ -343,7 +343,7 @@ export default defineConfig(({ command, mode }) => {
     },
     preview: {
       host: "0.0.0.0",
-      port: Number(process.env.WEB_PORT ?? 5173),
+      port: webPort,
       allowedHosts,
       proxy,
     },
