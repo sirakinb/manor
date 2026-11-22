@@ -20,6 +20,8 @@ REVISION = "a" * 40
 TOOLCHAIN = "sha256:" + "a" * 64
 CANDIDATE = "sha256:" + "c" * 64
 LOCKFILE = b"lockfileVersion: synthetic\n"
+# Stands in for a mebibyte where a test needs real files near a limit.
+UNIT = 1024
 BOUNDS = {
     "buildMemoryMb": (128, 4096, "build_memory_out_of_bounds"),
     "artifactLimitMb": (16, 1024, "artifact_limit_out_of_bounds"),
@@ -193,14 +195,16 @@ class BuildLimitTests(unittest.TestCase):
         self.assertEqual(self.spooled(), [])
 
     def test_artifact_limit_is_configured(self):
-        with self.assertRaisesRegex(Refused, "artifact_too_large"):
-            self.prepare(self.policy(artifactLimitMb=16), {"dist.bin": 16 * MIB + 1})
-        with self.assertRaisesRegex(Refused, "artifact_too_large"):
-            self.prepare(self.policy(), {"dist.bin": MAX_ARCHIVE + 1})
-        self.assertEqual(self.spooled(), [])
-        # One file larger than the default limit passes the raised total and per-file limits.
-        _, fake, _, _ = self.prepare(self.policy(artifactLimitMb=129), {"dist.bin": MAX_ARCHIVE + 1})
-        self.assertIn("dist.bin", fake.streamed_names)
+        # A kibibyte stands in for a mebibyte: this suite also runs inside small containers.
+        with mock.patch("docker_adapter.MIB", UNIT):
+            with self.assertRaisesRegex(Refused, "artifact_too_large"):
+                self.prepare(self.policy(artifactLimitMb=16), {"dist.bin": 16 * UNIT + 1})
+            with self.assertRaisesRegex(Refused, "artifact_too_large"):
+                self.prepare(self.policy(), {"dist.bin": 128 * UNIT + 1})
+            self.assertEqual(self.spooled(), [])
+            # One file larger than the default limit passes the raised total and per-file limits.
+            _, fake, _, _ = self.prepare(self.policy(artifactLimitMb=129), {"dist.bin": 128 * UNIT + 1})
+            self.assertIn("dist.bin", fake.streamed_names)
 
     def test_refusal_after_artifact_is_spooled_leaves_no_file(self):
         adapter = DockerAdapter(self.policy())
@@ -219,23 +223,23 @@ class BuildLimitTests(unittest.TestCase):
         self.assertEqual(self.spooled(), [])
 
     def test_source_archive_stays_fixed_whatever_the_policy(self):
+        self.assertEqual(MAX_ARCHIVE, 128 * MIB)
         adapter = DockerAdapter(self.policy(artifactLimitMb=1024))
+        # A small stand-in for the fixed limit keeps the oversized archive small.
         with mock.patch.object(adapter, "docker", side_effect=FakeDocker()), \
                 mock.patch("docker_adapter.admission"), contextlib.ExitStack() as spool, \
-                mock.patch("docker_adapter.run", side_effect=[REVISION.encode(), b"x" * (MAX_ARCHIVE + 1)]) as command:
+                mock.patch("docker_adapter.MAX_ARCHIVE", 4096), \
+                mock.patch("docker_adapter.run", side_effect=[REVISION.encode(), b"x" * 4097]) as command:
             with self.assertRaisesRegex(Refused, "source_too_large"):
                 adapter._prepare(REVISION, "operation", spool)
         archive = command.call_args_list[1]
         self.assertIn("archive", archive.args[0])
         self.assertNotIn("max_output", archive.kwargs)
-        oversized = self.root / "oversized"
-        oversized.mkdir()
-        with (oversized / "big").open("wb") as target:
-            target.truncate(MAX_ARCHIVE + 1)
-        with tarfile.open(self.root / "source.tar", "w") as tar:
-            tar.add(oversized / "big", "big")
+        # A source file over the fixed limit is refused from its header, before any contents are read.
+        oversized = tarfile.TarInfo("big")
+        oversized.size = MAX_ARCHIVE + 1
         with self.assertRaisesRegex(Refused, "regular_source_files_required"):
-            members((self.root / "source.tar").read_bytes())
+            members(oversized.tobuf() + bytes(1024))
 
     def test_build_filesystem_of_another_size_is_recreated(self):
         state = self.root / "state"
@@ -245,7 +249,7 @@ class BuildLimitTests(unittest.TestCase):
         for existing, configured, kept in ((3072, 4096, False), (4096, 4096, True), (4096, None, False)):
             with self.subTest(existing=existing, configured=configured):
                 with disk.open("wb") as target:
-                    target.truncate(existing * MIB)
+                    target.truncate(existing * UNIT)
                 policy = self.policy() if configured is None else self.policy(buildDiskMb=configured)
                 seen = []
                 adapter = DockerAdapter(policy)
@@ -253,7 +257,8 @@ class BuildLimitTests(unittest.TestCase):
                     seen.append(disk.exists())
                     volume.mkdir(exist_ok=True)
                     return volume
-                with self.fakes(adapter, FakeDocker(), quota=quota), contextlib.ExitStack() as spool:
+                with mock.patch("docker_adapter.MIB", UNIT), \
+                        self.fakes(adapter, FakeDocker(), quota=quota), contextlib.ExitStack() as spool:
                     adapter._prepare(REVISION, "operation", spool)
                 self.assertEqual(seen, [kept])
                 disk.unlink(missing_ok=True)
