@@ -18,8 +18,8 @@ production data has passed.
 Stages done: `v0.1.6`, `v0.2.0`, `v0.3.0`, `v0.3.3`, `v0.3.5`, `v0.3.6`, `v0.4.0`,
 `v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v0.9.0`, `v0.10.0`, `v0.11.0`, `v0.12.0`, `v0.13.0`, and
 upstream's `main` as of 2026-11-22 (commit `31b9ebaaa`, 606 commits after `v0.13.0`). Every
-stage's pull request is green. Nothing is deployed yet: the deploy rehearsal and the deploy
-itself are what remain.
+stage's pull request is green. The whole sync landed on `main` as one pull request and was
+deployed on 2026-11-23; see [What the deploy did](#what-the-deploy-did-2026-11-23).
 
 ### How a stage is resolved
 
@@ -901,6 +901,39 @@ Things the one production deploy at the end must cover, collected as stages land
   failure drop the invalid index (`DROP INDEX CONCURRENTLY IF EXISTS "<name>"`), run
   `prisma migrate resolve --rolled-back <migration>`, then deploy again.
 - Every pnpm command needs pnpm 12, through corepack.
+
+### What the deploy did (2026-11-23)
+
+- **Landing.** The stages landed on `main` as one pull request with a merge commit, not one per
+  stage: the first stage failed three browser tests at its own head that later stages fixed, so
+  `main` never rested on a stage that was red. The full suite ran on the final tree, and each
+  stage's draft pull request closed as merged when its branch was moved to the next stage's head.
+- **Settings the checklist did not list.** The web container needs `WEB_ORIGIN`, which the
+  content security policy reads to let a brand's portal frame app previews from the primary
+  origin. The sign-up list in the environment file had drifted from the stored one and was
+  brought level. The ingestion pin was set to the running image.
+- **Final rehearsal.** The built image itself, with production's commands and container limits,
+  ran against a copy of the database taken that hour on a network without a way out: 268 new
+  migrations applied, none unfinished, no invalid index, row counts unchanged, and the
+  controller's own health probe passed with the gate open, closed and reopened.
+- **Rollout.** The app was paused for about six and a half minutes, most of it the backup and its
+  restore check. Nine leases from the running API and worker outlived their work and would have
+  held the drain until it timed out. Stopping those two containers once the gate had been closed
+  for thirty seconds let the gate clear their leases by its own rule (a stopped container holds
+  no writer), with no edit to admission state; the rollout recreates both containers. Had it
+  stopped before the switch, they would have been started again on the unchanged image.
+- **After the switch.** The supervisor and the computer image were swapped as described above.
+  The worker pruned the dead jobs it found at startup, which is expected. Scheduled automations
+  ran on the new version at their next times with the same results as before.
+- **Two errors seen in the first hour, fixed afterwards.** Removing a bot whose computer was
+  stopped logged a failed screen release, because the supervisor answers a stopped container
+  with Docker's refusal; the Docker provider now reports that container as gone, as its other
+  screen calls do. A sign-in fires several requests that seed the same space member, and the
+  notification row's upsert failed in the slower one; it is now an insert that skips a duplicate.
+- **Still to do.** A desktop release (it needs the update signing key for Linux or the
+  macOS-only mode) and a native mobile build (it needs the three extension identifiers and the
+  app group registered first). The 0.2.5 desktop shell and the 1.0.1 phone app keep working
+  against the new server because `RAKAZO_MIN_CLIENT_BUILD` is unset.
 
 ## Standing rules
 

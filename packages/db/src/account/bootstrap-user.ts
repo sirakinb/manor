@@ -49,11 +49,10 @@ async function seedSpaceDefaults(
           if (!isUniqueViolation(error)) throw error;
         });
     }
-    await prisma.notificationPreference.upsert({
-      where: { spaceId_userId: input },
-      create: input,
-      update: {},
-    });
+    // Several requests can seed the same member at once (a sign-in fires more than one). An upsert
+    // reads before it writes, so the slower one failed on the unique key; this insert skips a row
+    // that is already there, also inside a caller's transaction.
+    await prisma.notificationPreference.createMany({ data: input, skipDuplicates: true });
   };
   if ("$transaction" in prisma) await runAsSystem("seed a space member's defaults", seed);
   else await seed();
@@ -250,7 +249,7 @@ export async function createOrganizationWithDefaultSpace(
     .catch((error: unknown) => {
       if (!isUniqueViolation(error)) throw error;
     });
-  // Manor: one seeding path for every Space member; the notification row is an upsert, so a
+  // Manor: one seeding path for every Space member; the notification row skips a duplicate, so a
   // repeat inside a caller's transaction does not abort it.
   await seedSpaceDefaults(prisma, { spaceId: orgId, userId });
   return orgId;
