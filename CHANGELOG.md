@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
+Manor caught up with upstream through its main of 2026-11-22. This is the first desktop build made from that code; the server was updated the same day.
+
+### Security
+
+- Every desktop update is signed, and the app refuses an update whose signature is missing or does not match.
+- Letting bots use your computer needs an HTTPS server (or one on the same machine), stays connected only as long as the sign-in that turned it on, and stays off once you turn it off.
+- A bot asks before it clicks a button that pays on a website, in every approval mode.
+
+### Added
+
+- **Let bots use this computer**: in the desktop app, turn it on in **Settings → Computers** under **Your devices** and your own bots can run commands and use the apps on your Mac in chats you start. A bot asks before it first uses each app in a space. On a Mac, allow Manor under **Accessibility** and **Screen Recording** in System Settings ([desktop app](docs/desktop-app.md#let-bots-use-this-computer), [the bot's computer](docs/computer.md#use-your-own-computer)).
+- On Apple silicon Macs with macOS 26 or newer, **This computer** runs your own Manor without Docker; the app downloads what it needs the first time you pick it.
+- A model picker in the composer, with thinking controls on web and desktop.
+- Cmd+F finds text in the open chat, Cmd+L quotes selected text, Cmd+/ lists every shortcut, and large pastes can be attached as a file.
+- Notifications when a bot in another chat finishes, asks you something, asks you to take over its screen, or fails.
+
+### Changed
+
+- A jet-black default theme with no scanlines. Brand portals keep their own colours.
+- Each private space holds one person; a team space uses a shared account for its bots, connections and Team Computer.
+- The app opens straight to sign-in on first launch; **Change Server…** in the app menu still opens server setup.
+- Chats open and jump to messages faster, and the sidebar updates when something changes instead of polling.
+- Desktop releases are macOS only from this version.
+
+### Fixed
+
+- Copy buttons work reliably in the desktop app, and text fields have a right-click menu.
+- **Quit and Stop Bots** stops the local server, and so does switching away from **This computer**.
+
+### Self-host upgrade notes
+
+- Update the server before installing this desktop build: it expects the server from the same sync.
+- Linux AppImage builds are no longer published. Build from source to keep using the desktop app on Linux.
+
+## [0.2.5] - 2026-10-08
+
 ### Changed
 
 - The phone surface became a multi-platform messaging surface built on the open-source Chat SDK. Slack, WhatsApp Business Cloud, and Telegram DMs now work alongside iMessage/SMS (Sendblue). Link a chat app to your account from Messaging settings on the web: pick a bot, send the short-lived code to the line, and that conversation reaches that bot — each app can point at a different bot. Unknown senders are ignored unless `MESSAGING_OPEN_SIGNUP=true`, which restores the old text-first auto-provisioning (and is the only mode that needs the deployment model key). Webhooks move to `/api/v1/messaging/webhook/<provider>` (the old Sendblue path still works), and each platform mounts when its env credentials are set — see `.env.example`. Group channels remain iMessage-only for now; other platforms are 1:1 until their channel semantics are mapped.

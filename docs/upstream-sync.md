@@ -930,10 +930,17 @@ Things the one production deploy at the end must cover, collected as stages land
   with Docker's refusal; the Docker provider now reports that container as gone, as its other
   screen calls do. A sign-in fires several requests that seed the same space member, and the
   notification row's upsert failed in the slower one; it is now an insert that skips a duplicate.
-- **Still to do.** A desktop release (it needs the update signing key for Linux or the
-  macOS-only mode) and a native mobile build (it needs the three extension identifiers and the
-  app group registered first). The 0.2.5 desktop shell and the 1.0.1 phone app keep working
-  against the new server because `RAKAZO_MIN_CLIENT_BUILD` is unset.
+- **Desktop release 0.3.0.** The first desktop build from the synced code. Desktop releases are
+  macOS only from here (`DESKTOP_RELEASE_MAC_ONLY` is `true` on the repository): no Linux
+  installer had ever been downloaded, a Linux build now needs an update signing key that would
+  have to be kept safe for nobody, and a Windows build needs a signing account Manor does not
+  have. Going back means unsetting the variable and adding the keys in
+  [desktop-release.md](desktop-release.md). The build carries no provisioning profile, so system
+  passkeys stay hidden in the Mac app. "Let bots use this computer" needs this build: the server
+  side (`USER_DEVICES_ENABLED`, on by default) was already live.
+- **Still to do.** A native mobile build (it needs the three extension identifiers and the app
+  group registered first). The 1.0.1 phone app keeps working against the new server because
+  `RAKAZO_MIN_CLIENT_BUILD` is unset.
 
 ## Standing rules
 
