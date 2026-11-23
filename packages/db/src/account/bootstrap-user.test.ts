@@ -27,7 +27,11 @@ function makePrisma(settings: { id: string; ownerUserId: string | null } | null)
     },
     memoryDocument: { findFirst: vi.fn(async () => null), create: create() },
     notificationPreference: {
-      upsert: vi.fn(async (_input: { create: Record<string, unknown> }) => ({})),
+      createMany: vi.fn(
+        async (_input: { data: Record<string, unknown>; skipDuplicates: boolean }) => ({
+          count: 1,
+        }),
+      ),
     },
   };
   return prisma;
@@ -142,7 +146,10 @@ describe("bootstrapUserSpace", () => {
     expect(memoryData.scope).toBe("user");
     expect(memoryData.path).toBe("MEMORY.md");
 
-    const prefData = prisma.notificationPreference.upsert.mock.calls[0]![0].create;
+    const pref = prisma.notificationPreference.createMany.mock.calls[0]![0];
+    // Skipping a row that is already there keeps two sign-in requests from failing each other.
+    expect(pref.skipDuplicates).toBe(true);
+    const prefData = pref.data;
     expect(prefData.spaceId).toBe(spaceId);
     expect(prefData.userId).toBe("user-1");
   });
@@ -172,7 +179,7 @@ describe("bootstrapUserSpace concurrency", () => {
         findFirst: vi.fn(async () => ({ id: "mem-1" })),
         create: vi.fn(async () => ({})),
       },
-      notificationPreference: { upsert: vi.fn(async () => ({})) },
+      notificationPreference: { createMany: vi.fn(async () => ({ count: 0 })) },
     };
     const result = await bootstrapUserSpace(prisma as unknown as PrismaClient, { id: "user-1" });
 
@@ -203,7 +210,7 @@ describe("createOrganizationWithDefaultSpace", () => {
       isDefault: true,
     });
     expect(prisma.memoryDocument.create).toHaveBeenCalledOnce();
-    expect(prisma.notificationPreference.upsert).toHaveBeenCalledOnce();
+    expect(prisma.notificationPreference.createMany).toHaveBeenCalledOnce();
     expect(prisma.deploymentSettings.upsert).not.toHaveBeenCalled();
   });
 });

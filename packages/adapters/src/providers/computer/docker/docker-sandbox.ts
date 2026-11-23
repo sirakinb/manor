@@ -649,6 +649,14 @@ export class DockerSandboxProvider implements SandboxProvider {
       // 404 is only an already-missing computer. A teardown failure, including
       // one wrongly labeled 404, must stay a release failure.
       if (res.status === 404 && body.includes("computer not found")) return;
+      // A stopped container runs no browser, so the supervisor has nothing to stop in it and
+      // answers with Docker's refusal. Report it gone, as the other screen calls do, so removing
+      // a bot whose computer is stopped is not logged as a failed release.
+      const running = await this.containerRunning(computer, {
+        ...context,
+        signal: deadline.signal,
+      });
+      if (running === false) throw sandboxGoneError(computer);
       throw new Error(`sandbox screen release failed: ${res.status} ${body}`.trim());
     } finally {
       deadline.dispose();

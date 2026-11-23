@@ -846,6 +846,38 @@ describe("Docker sandbox", () => {
     );
   });
 
+  it("reports a stopped container as gone instead of a failed release", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "DELETE"
+        ? Response.json(
+            { error: "(HTTP code 409) container stopped/paused - container is not running" },
+            { status: 500 },
+          )
+        : Response.json({ running: false }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = new DockerSandboxProvider("http://supervisor.test", "test-token");
+    const computer = {
+      id: "computer",
+      botId: "home-bot",
+      kind: "docker",
+      providerRef: "computer",
+    } as const;
+
+    const released = await provider.releaseScreen(computer, context).catch((error) => error);
+    expect(isSandboxGoneError(released)).toBe(true);
+
+    // A container that is still running failed to tear its screen down; that stays a failure.
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) =>
+      init?.method === "DELETE"
+        ? Response.json({ error: "computer screen failed to stop" }, { status: 500 })
+        : Response.json({ running: true }),
+    );
+    await expect(provider.releaseScreen(computer, context)).rejects.toThrow(
+      "sandbox screen release failed: 500",
+    );
+  });
+
   it("bounds screen release even when fetch ignores cancellation", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn(

@@ -122,6 +122,16 @@ describePostgres("bootstrapUserSpace with a branded sign-up (PostgreSQL)", () =>
     expect(await prisma.spaceMember.count({ where: { userId: joiningUserId } })).toBe(1);
   });
 
+  it("lets the requests of one sign-in bootstrap the same person at once", async () => {
+    // A sign-in fires several requests together, and each one seeds the person's defaults.
+    await prisma.notificationPreference.deleteMany({ where: { userId: joiningUserId } });
+    await Promise.all(
+      Array.from({ length: 6 }, () => bootstrap(client, { id: joiningUserId }, { brandId })),
+    );
+    expect(await prisma.spaceMember.count({ where: { userId: joiningUserId } })).toBe(1);
+    expect(await prisma.notificationPreference.count({ where: { userId: joiningUserId } })).toBe(1);
+  });
+
   it("falls back to the personal bootstrap when no organization claims the brand", async () => {
     const result = await bootstrap(
       client,
